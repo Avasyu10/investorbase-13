@@ -91,9 +91,6 @@ export function ReportSegment({ segment, reportId, pdfUrl, pdfBlob }: ReportSegm
             className={`w-full h-full object-contain ${isRenderingCanvas ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
           />
         </div>
-        <div className="text-xs text-muted-foreground mt-2">
-          Page {segment.pageNumbers?.join(', ')}
-        </div>
       </CardContent>
     </Card>
   );

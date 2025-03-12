@@ -449,9 +449,9 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       
       segments.push({
         id,
-        title: `Page ${pageNum}`, // Simple page title
+        title: `Section ${pageNum}`, // Changed from "Page" to "Section" to avoid page number references
         content: textItems.join('\n'), // Store full page text content
-        pageNumbers: [pageNum],
+        pageNumbers: [pageNum], // Keep for internal reference but don't display
         pageIndex: pageNum - 1 // Store 0-based page index for rendering
       });
     }

@@ -169,7 +169,7 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
               {isRenderingCanvas && (
                 <div className="p-8 flex flex-col items-center justify-center">
                   <Loader className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground mt-2">Rendering page...</p>
+                  <p className="text-sm text-muted-foreground mt-2">Rendering content...</p>
                 </div>
               )}
               <canvas 
