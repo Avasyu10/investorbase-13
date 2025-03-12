@@ -82,6 +82,9 @@ const SectionDetails = () => {
     );
   }
 
+  // Determine metric type from section name if not available
+  const metricType = section.metric_type || section.name.toUpperCase();
+
   return (
     <div className="p-8 animate-fade-in">
       <Button 
@@ -119,11 +122,14 @@ const SectionDetails = () => {
             <h2 className="text-xl font-semibold mb-4">Detailed Analysis</h2>
           </div>
           
-          <SectionDetail sectionId={section.id} />
+          <SectionDetail 
+            sectionId={section.id} 
+            metricType={metricType}
+          />
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default SectionDetails;

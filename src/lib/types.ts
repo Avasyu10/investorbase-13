@@ -7,6 +7,19 @@ export type Company = {
   created_at: string;
 };
 
+export type MetricType = 
+  | "PROBLEM" 
+  | "MARKET" 
+  | "SOLUTION" 
+  | "PRODUCT" 
+  | "COMPETITIVE LANDSCAPE" 
+  | "TRACTION" 
+  | "BUSINESS MODEL" 
+  | "GTM STRATEGY" 
+  | "TEAM" 
+  | "FINANCIALS" 
+  | "ASK";
+
 export type Section = {
   id: string;
   company_id: string;
@@ -15,6 +28,7 @@ export type Section = {
   max_score: number;
   description: string | null;
   created_at: string;
+  metric_type?: MetricType;
 };
 
 export type SectionDetail = {

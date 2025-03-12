@@ -94,7 +94,20 @@ const CompanyDetails = () => {
       </div>
       
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold mb-4">Section Scores</h2>
+        <h2 className="text-2xl font-semibold mb-4">Assessment Categories</h2>
+        <div className="flex flex-wrap gap-2 mb-6">
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">PROBLEM</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">MARKET</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">SOLUTION</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">PRODUCT</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">COMPETITIVE LANDSCAPE</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">TRACTION</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">BUSINESS MODEL</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">GTM STRATEGY</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">TEAM</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">FINANCIALS</div>
+          <div className="text-xs bg-gray-100 px-2 py-1 rounded">ASK</div>
+        </div>
       </div>
       
       <SectionsList companyId={company.id} />
