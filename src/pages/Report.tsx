@@ -4,29 +4,18 @@ import { ReportViewer } from "@/components/reports/ReportViewer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const Report = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-
-  // Safely access auth context - handle if auth provider isn't available yet
-  let authData = { user: null, isLoading: false };
-  try {
-    authData = useAuth();
-  } catch (error) {
-    console.warn("Auth context not available, proceeding anyway");
-  }
-  
-  const { user, isLoading } = authData;
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !user) {
-      // Soft handling - we'll proceed anyway for now
-      setIsAuthenticated(false);
+      navigate('/');
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -35,6 +24,8 @@ const Report = () => {
       </div>
     );
   }
+
+  if (!user) return null;
 
   if (!id) {
     navigate("/dashboard");

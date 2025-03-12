@@ -2,8 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ParsedPdfSegment } from "@/lib/pdf-parser";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, FileText } from "lucide-react";
-import { PDFPreview } from "./PDFPreview";
+import { ArrowRight } from "lucide-react";
 
 interface ReportSegmentProps {
   segment: ParsedPdfSegment;
@@ -11,7 +10,7 @@ interface ReportSegmentProps {
   pdfUrl: string;
 }
 
-export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps) {
+export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -20,26 +19,17 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
 
   return (
     <Card 
-      className="transition-all duration-200 hover:shadow-md cursor-pointer hover:border-primary/50 overflow-hidden"
+      className="transition-all duration-200 hover:shadow-md cursor-pointer hover:border-primary/50"
       onClick={handleClick}
     >
       <CardHeader className="pb-2">
         <CardTitle className="text-lg group flex items-center justify-between">
-          <span className="line-clamp-1">{segment.title}</span>
-          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-70 group-hover:text-primary flex-shrink-0" />
+          <span>{segment.title}</span>
+          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-70 group-hover:text-primary" />
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        {segment.pageIndex !== undefined ? (
-          <PDFPreview 
-            pdfUrl={pdfUrl}
-            pageIndex={segment.pageIndex}
-          />
-        ) : (
-          <div className="w-full aspect-[1/1.4] flex items-center justify-center bg-muted/10">
-            <FileText className="h-10 w-10 text-muted-foreground opacity-50" />
-          </div>
-        )}
+      <CardContent>
+        {/* Page number has been removed */}
       </CardContent>
     </Card>
   );
