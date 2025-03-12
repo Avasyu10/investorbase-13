@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Download, Loader, Calendar, FileText, FileIcon } from "lucide-react";
+import { Download, Loader, Calendar, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportSegment } from "./ReportSegment";
 
@@ -14,7 +14,6 @@ interface ReportViewerProps {
 export function ReportViewer({ reportId }: ReportViewerProps) {
   const { toast } = useToast();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
@@ -26,13 +25,10 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       if (!report?.pdf_url) return;
       
       try {
-        setIsLoadingPdf(true);
         const blob = await downloadReport(report.pdf_url);
         setPdfBlob(blob);
       } catch (error) {
         console.error("Error loading PDF:", error);
-      } finally {
-        setIsLoadingPdf(false);
       }
     };
     
@@ -130,37 +126,16 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       <p className="text-muted-foreground">{report.description}</p>
       
-      <Separator className="my-6" />
-      
-      <div className="mb-4 flex items-center">
-        <FileIcon className="mr-2 h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Detailed Report</h2>
+      <div className="space-y-8">
+        {reportSegments.map((segment) => (
+          <ReportSegment 
+            key={segment.id} 
+            segment={segment}
+            pdfUrl={report.pdf_url}
+            pdfBlob={pdfBlob || undefined}
+          />
+        ))}
       </div>
-      
-      {isLoadingPdf && (
-        <div className="text-center py-4">
-          <Loader className="h-6 w-6 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground mt-2">Loading PDF for preview...</p>
-        </div>
-      )}
-      
-      {reportSegments.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {reportSegments.map((segment, index) => (
-            <ReportSegment 
-              key={segment.id} 
-              segment={segment} 
-              reportId={reportId}
-              pdfUrl={report.pdf_url}
-              pdfBlob={pdfBlob || undefined}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No pages could be extracted from this PDF. Please download the full report.</p>
-        </div>
-      )}
     </div>
   );
 }
