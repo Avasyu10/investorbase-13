@@ -20,11 +20,11 @@ export function ReportCard({ report }: ReportCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[220px] flex flex-col">
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[280px] flex flex-col">
       <CardHeader className="pb-2 flex-none">
         <div className="flex items-start gap-2">
           <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
-          <CardTitle className="line-clamp-2 min-h-[48px]">{report.title}</CardTitle>
+          <CardTitle className="line-clamp-5 min-h-[120px] text-lg">{report.title}</CardTitle>
         </div>
         <CardDescription className="flex items-center gap-1 text-xs">
           <Calendar className="h-3 w-3" />
