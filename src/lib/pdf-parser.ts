@@ -1,8 +1,12 @@
+
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 
 // Set the worker source path
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+// Cache PDFs to avoid re-parsing
+const pdfCache = new Map();
 
 export interface ParsedPdfSegment {
   id: string;
@@ -398,6 +402,12 @@ function selectBestCandidate(candidates: TitleCandidate[]): string {
 
 export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[]> {
   try {
+    // Try to get from cache first
+    const cacheKey = await createCacheKey(pdfBlob);
+    if (pdfCache.has(cacheKey)) {
+      return pdfCache.get(cacheKey);
+    }
+    
     // Load the PDF document
     const arrayBuffer = await pdfBlob.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -405,12 +415,14 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
 
     // Skip if PDF has 2 or fewer pages
     if (numPages <= 2) {
-      return [{
+      const result = [{
         id: 'full-report',
         title: 'Full Report',
         content: 'This report is too short to be segmented.',
         pageNumbers: [1],
       }];
+      pdfCache.set(cacheKey, result);
+      return result;
     }
 
     const segments: ParsedPdfSegment[] = [];
@@ -444,6 +456,9 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       });
     }
 
+    // Cache the result
+    pdfCache.set(cacheKey, segments);
+    
     return segments;
   } catch (error) {
     console.error('Error parsing PDF:', error);
@@ -456,7 +471,10 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
   }
 }
 
-// Function to render a PDF page to a canvas
+// Cache for loaded PDF documents to avoid re-loading
+const loadedPdfCache = new WeakMap();
+
+// Function to render a PDF page to a canvas with optimizations
 export async function renderPdfPageToCanvas(
   pdfBlob: Blob, 
   pageIndex: number, 
@@ -475,8 +493,15 @@ export async function renderPdfPageToCanvas(
       return;
     }
 
-    const arrayBuffer = await pdfBlob.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    // Get PDF document - try cache first
+    let pdf;
+    if (loadedPdfCache.has(pdfBlob)) {
+      pdf = loadedPdfCache.get(pdfBlob);
+    } else {
+      const arrayBuffer = await pdfBlob.arrayBuffer();
+      pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      loadedPdfCache.set(pdfBlob, pdf);
+    }
     
     // Make sure the requested page index is valid
     if (pageIndex < 0 || pageIndex >= pdf.numPages) {
@@ -494,10 +519,13 @@ export async function renderPdfPageToCanvas(
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     
-    // Render the page
+    // Render the page with optimized settings
     await page.render({
       canvasContext: context,
       viewport,
+      // Add rendering hints to improve performance
+      renderInteractiveForms: false,
+      enableWebGL: true,
     }).promise;
     
   } catch (error) {
@@ -518,4 +546,10 @@ export async function renderPdfPageToCanvas(
       console.error('Could not draw error message on canvas:', fallbackError);
     }
   }
+}
+
+// Helper function to create a cache key for a blob
+async function createCacheKey(blob: Blob): Promise<string> {
+  // Use blob size and type as a simple cache key
+  return `${blob.size}-${blob.type}`;
 }

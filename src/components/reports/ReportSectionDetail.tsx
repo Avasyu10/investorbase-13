@@ -20,17 +20,37 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isRenderingCanvas, setIsRenderingCanvas] = useState(true);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
     queryFn: () => getReportById(reportId),
   });
 
+  // Preload the PDF
+  useEffect(() => {
+    const loadPdf = async () => {
+      if (!report?.pdf_url) return;
+      
+      try {
+        const blob = await downloadReport(report.pdf_url);
+        setPdfBlob(blob);
+      } catch (error) {
+        console.error("Error loading PDF:", error);
+      }
+    };
+    
+    if (report && !pdfBlob) {
+      loadPdf();
+    }
+  }, [report, pdfBlob]);
+
   const handleDownload = async () => {
     if (!report) return;
     
     try {
-      const blob = await downloadReport(report.pdf_url);
+      // Use cached blob if available
+      const blob = pdfBlob || await downloadReport(report.pdf_url);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -72,11 +92,11 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       
       try {
         setIsRenderingCanvas(true);
-        // Get the PDF blob
-        const pdfBlob = await downloadReport(report.pdf_url);
+        // Use cached blob if available
+        const pdf = pdfBlob || await downloadReport(report.pdf_url);
         
-        // Render the page to the canvas at full size
-        await renderPdfPageToCanvas(pdfBlob, section.pageIndex, canvasRef.current, 1.5);
+        // Render the page to the canvas at a slightly larger scale for detail view
+        await renderPdfPageToCanvas(pdf, section.pageIndex, canvasRef.current, 1.5);
       } catch (error) {
         console.error('Error rendering PDF page:', error);
       } finally {
@@ -84,10 +104,16 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       }
     };
     
-    if (report) {
-      renderPdfPage();
+    // Only render when PDF blob is available or we have report data
+    if ((report && pdfBlob) || (report && !pdfBlob)) {
+      // Add a small delay to ensure the canvas is ready
+      const timeoutId = setTimeout(() => {
+        renderPdfPage();
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [report, sectionId, reportId]);
+  }, [report, sectionId, reportId, pdfBlob]);
 
   if (isLoading) {
     return (

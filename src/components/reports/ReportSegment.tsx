@@ -11,13 +11,15 @@ interface ReportSegmentProps {
   segment: ParsedPdfSegment;
   reportId: string;
   pdfUrl: string;
+  pdfBlob?: Blob; // Add pdfBlob prop to avoid re-downloading
 }
 
-export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps) {
+export function ReportSegment({ segment, reportId, pdfUrl, pdfBlob }: ReportSegmentProps) {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isRenderingCanvas, setIsRenderingCanvas] = useState(true);
   const [isCanvasMounted, setIsCanvasMounted] = useState(false);
+  const [renderAttempted, setRenderAttempted] = useState(false);
 
   const handleClick = () => {
     navigate(`/reports/${reportId}/sections/${segment.id}`);
@@ -35,20 +37,22 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
 
   useEffect(() => {
     // Only attempt to render when canvas is mounted and we have all required data
-    if (!isCanvasMounted || !pdfUrl || segment.pageIndex === undefined) return;
+    // Also check if we've already attempted a render to avoid infinite loops
+    if (!isCanvasMounted || segment.pageIndex === undefined || renderAttempted) return;
 
     const renderPagePreview = async () => {
       try {
         setIsRenderingCanvas(true);
+        setRenderAttempted(true);
         
-        // Get the PDF blob (add a small delay to ensure the canvas is ready)
-        const pdfBlob = await downloadReport(pdfUrl);
+        // Use the provided pdfBlob if available, otherwise download it
+        const pdf = pdfBlob || await downloadReport(pdfUrl);
         
         // Check again if canvas is still valid
         if (!canvasRef.current) return;
         
-        // Render the page to the canvas at a scaled down size for preview
-        await renderPdfPageToCanvas(pdfBlob, segment.pageIndex, canvasRef.current, 0.5);
+        // Render at a lower scale for better performance
+        await renderPdfPageToCanvas(pdf, segment.pageIndex, canvasRef.current, 0.3);
       } catch (error) {
         console.error('Error rendering PDF page preview:', error);
       } finally {
@@ -59,10 +63,10 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
     // Use a small delay to ensure the canvas is ready in the DOM
     const timeoutId = setTimeout(() => {
       renderPagePreview();
-    }, 100);
+    }, 50);
     
     return () => clearTimeout(timeoutId);
-  }, [segment, pdfUrl, isCanvasMounted]);
+  }, [segment, pdfUrl, isCanvasMounted, pdfBlob, renderAttempted]);
 
   return (
     <Card 

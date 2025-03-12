@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -13,17 +14,41 @@ interface ReportViewerProps {
 
 export function ReportViewer({ reportId }: ReportViewerProps) {
   const { toast } = useToast();
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
     queryFn: () => getReportById(reportId),
   });
 
+  // Preload the PDF blob once when report data is available
+  useEffect(() => {
+    const loadPdf = async () => {
+      if (!report?.pdf_url) return;
+      
+      try {
+        setIsLoadingPdf(true);
+        const blob = await downloadReport(report.pdf_url);
+        setPdfBlob(blob);
+      } catch (error) {
+        console.error("Error loading PDF:", error);
+      } finally {
+        setIsLoadingPdf(false);
+      }
+    };
+    
+    if (report && !pdfBlob) {
+      loadPdf();
+    }
+  }, [report, pdfBlob]);
+
   const handleDownload = async () => {
     if (!report) return;
     
     try {
-      const blob = await downloadReport(report.pdf_url);
+      // Use cached blob if available
+      const blob = pdfBlob || await downloadReport(report.pdf_url);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -116,14 +141,22 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         <h2 className="text-xl font-semibold">PDF Pages</h2>
       </div>
       
+      {isLoadingPdf && (
+        <div className="text-center py-4">
+          <Loader className="h-6 w-6 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground mt-2">Loading PDF for preview...</p>
+        </div>
+      )}
+      
       {reportSegments.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {reportSegments.map(segment => (
+          {reportSegments.map((segment, index) => (
             <ReportSegment 
               key={segment.id} 
               segment={segment} 
               reportId={reportId}
               pdfUrl={report.pdf_url}
+              pdfBlob={pdfBlob || undefined}
             />
           ))}
         </div>
