@@ -17,6 +17,7 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isRenderingCanvas, setIsRenderingCanvas] = useState(true);
+  const [isCanvasMounted, setIsCanvasMounted] = useState(false);
 
   const handleClick = () => {
     navigate(`/reports/${reportId}/sections/${segment.id}`);
@@ -24,15 +25,27 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
 
   // Display the title (page number)
   const displayTitle = segment.title || "Untitled Section";
+  
+  // Set canvas as mounted after initial render
+  useEffect(() => {
+    if (canvasRef.current) {
+      setIsCanvasMounted(true);
+    }
+  }, []);
 
   useEffect(() => {
-    const renderPagePreview = async () => {
-      if (!canvasRef.current || !pdfUrl || segment.pageIndex === undefined) return;
+    // Only attempt to render when canvas is mounted and we have all required data
+    if (!isCanvasMounted || !pdfUrl || segment.pageIndex === undefined) return;
 
+    const renderPagePreview = async () => {
       try {
         setIsRenderingCanvas(true);
-        // Get the PDF blob
+        
+        // Get the PDF blob (add a small delay to ensure the canvas is ready)
         const pdfBlob = await downloadReport(pdfUrl);
+        
+        // Check again if canvas is still valid
+        if (!canvasRef.current) return;
         
         // Render the page to the canvas at a scaled down size for preview
         await renderPdfPageToCanvas(pdfBlob, segment.pageIndex, canvasRef.current, 0.5);
@@ -43,8 +56,13 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
       }
     };
     
-    renderPagePreview();
-  }, [segment, pdfUrl]);
+    // Use a small delay to ensure the canvas is ready in the DOM
+    const timeoutId = setTimeout(() => {
+      renderPagePreview();
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [segment, pdfUrl, isCanvasMounted]);
 
   return (
     <Card 
@@ -58,15 +76,15 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="w-full h-[150px] relative border rounded overflow-hidden">
+        <div className="w-full h-[150px] relative border rounded overflow-hidden bg-muted/20">
           {isRenderingCanvas && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+            <div className="absolute inset-0 flex items-center justify-center">
               <Loader className="h-6 w-6 animate-spin text-primary" />
             </div>
           )}
           <canvas 
             ref={canvasRef} 
-            className={`w-full h-full object-contain ${isRenderingCanvas ? 'opacity-0' : 'opacity-100'}`}
+            className={`w-full h-full object-contain ${isRenderingCanvas ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
           />
         </div>
         <div className="text-xs text-muted-foreground mt-2">

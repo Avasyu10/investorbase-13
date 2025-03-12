@@ -463,9 +463,26 @@ export async function renderPdfPageToCanvas(
   canvas: HTMLCanvasElement,
   scale: number = 1.0
 ): Promise<void> {
+  if (!canvas) {
+    console.error('Canvas element is null');
+    return;
+  }
+
   try {
+    const context = canvas.getContext('2d');
+    if (!context) {
+      console.error('Canvas context not available');
+      return;
+    }
+
     const arrayBuffer = await pdfBlob.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    // Make sure the requested page index is valid
+    if (pageIndex < 0 || pageIndex >= pdf.numPages) {
+      console.error(`Invalid page index: ${pageIndex}. PDF has ${pdf.numPages} pages.`);
+      return;
+    }
     
     // Get the page
     const page = await pdf.getPage(pageIndex + 1); // +1 because PDF.js uses 1-based indices
@@ -477,10 +494,6 @@ export async function renderPdfPageToCanvas(
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     
-    // Get the rendering context
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas context not available');
-    
     // Render the page
     await page.render({
       canvasContext: context,
@@ -490,15 +503,19 @@ export async function renderPdfPageToCanvas(
   } catch (error) {
     console.error('Error rendering PDF page:', error);
     
-    // Draw error message on canvas
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.fillStyle = '#f8f9fa';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.fillStyle = '#e11d48';
-      context.font = '14px sans-serif';
-      context.textAlign = 'center';
-      context.fillText('Error rendering page', canvas.width / 2, canvas.height / 2);
+    // Draw error message on canvas if it's available
+    try {
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.fillStyle = '#f8f9fa';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#e11d48';
+        context.font = '14px sans-serif';
+        context.textAlign = 'center';
+        context.fillText('Error rendering page', canvas.width / 2, canvas.height / 2);
+      }
+    } catch (fallbackError) {
+      console.error('Could not draw error message on canvas:', fallbackError);
     }
   }
 }

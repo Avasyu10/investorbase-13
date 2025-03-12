@@ -4,18 +4,27 @@ import { ReportViewer } from "@/components/reports/ReportViewer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const Report = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    // Handle authentication check without immediate redirection
+    if (!isLoading) {
+      setIsAuthenticated(!!user);
+    }
+  }, [user, isLoading]);
+
+  // If explicitly not authenticated (not just loading), redirect
+  useEffect(() => {
+    if (isAuthenticated === false) {
       navigate('/');
     }
-  }, [user, isLoading, navigate]);
+  }, [isAuthenticated, navigate]);
 
   if (isLoading) {
     return (
@@ -25,7 +34,8 @@ const Report = () => {
     );
   }
 
-  if (!user) return null;
+  // Don't render anything while still determining auth status
+  if (isAuthenticated === null) return null;
 
   if (!id) {
     navigate("/dashboard");
