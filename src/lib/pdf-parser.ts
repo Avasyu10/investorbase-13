@@ -41,38 +41,22 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       
       if (items.length === 0) continue;
       
-      // Find the text item with the largest font size to use as title
-      let largestFontItem: any = null;
-      let largestFontSize = 0;
-      
-      // First pass: find the largest font size
+      // Get all text items with their content
+      const textItems: string[] = [];
       for (let i = 0; i < items.length; i++) {
         const item = items[i] as any;
-        // Skip empty items
-        if (!item.str?.trim()) continue;
-        
-        // Check if this item has font size info
-        if (item.transform && item.transform.length >= 6) {
-          // In PDF.js, the font size can be approximated from the transform matrix
-          // The vertical scale factor is often at index 3
-          const fontSize = Math.abs(item.transform[3]);
-          
-          if (fontSize > largestFontSize) {
-            largestFontSize = fontSize;
-            largestFontItem = item;
-          }
+        if (item.str?.trim()) {
+          textItems.push(item.str.trim());
         }
       }
       
-      // Set title based on largest font item or fallback
-      let title = '';
-      if (largestFontItem && largestFontItem.str) {
-        title = largestFontItem.str.trim();
-      }
-      
-      // If no title could be determined, use Page X
-      if (!title) {
-        title = `Page ${pageNum}`;
+      // Use the second paragraph (if available) as the title
+      // If there's only one paragraph or none, use a fallback title
+      let title = 'Page ' + pageNum;
+      if (textItems.length >= 2) {
+        title = textItems[1]; // Use the second paragraph as title
+      } else if (textItems.length === 1) {
+        title = textItems[0]; // Use the first paragraph if only one exists
       }
       
       const id = `page-${pageNum}`;
