@@ -47,7 +47,7 @@ const SectionDetails = () => {
 
   if (error || !section) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-8">
         <div className="text-center p-6 text-destructive">
           <h3 className="font-bold">Error loading section</h3>
           <p>{error ? (error as Error).message : "Section not found"}</p>
@@ -66,7 +66,7 @@ const SectionDetails = () => {
 
   if (!company) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-8">
         <div className="text-center p-6 text-muted-foreground">
           <p>Company not found.</p>
           <Button 
@@ -83,7 +83,7 @@ const SectionDetails = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
+    <div className="p-8 animate-fade-in">
       <Button 
         variant="ghost" 
         className="mb-6 -ml-2" 

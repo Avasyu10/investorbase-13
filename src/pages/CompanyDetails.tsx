@@ -38,7 +38,7 @@ const CompanyDetails = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-8">
         <div className="text-center p-6 text-destructive">
           <h3 className="font-bold">Error loading company</h3>
           <p>{(error as Error).message}</p>
@@ -57,7 +57,7 @@ const CompanyDetails = () => {
 
   if (!company) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-8">
         <div className="text-center p-6 text-muted-foreground">
           <p>Company not found.</p>
           <Button 
@@ -74,16 +74,7 @@ const CompanyDetails = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <Button 
-        variant="ghost" 
-        className="mb-6 -ml-2" 
-        onClick={() => navigate("/companies")}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to companies
-      </Button>
-      
+    <div className="p-8 animate-fade-in">
       <div className="bg-card p-6 rounded-lg shadow-sm mb-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
           <div className="flex items-center gap-4">

@@ -25,7 +25,7 @@ const Companies = () => {
   if (!user) return null;
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
+    <div className="p-8 animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
         <p className="text-muted-foreground mt-1">
