@@ -55,20 +55,60 @@ function normalizeText(text: string): string {
         normalized = normalized.replace(/\s+/g, '');
       }
       
+      // Initialize the nlp document
       const doc = nlp(normalized);
+      console.log("NLP initialized with:", normalized);
       
       // Use compromise's natural language processing to normalize the text
       if (doc.terms().length > 0) {
+        console.log("NLP detected terms:", doc.terms().out('array'));
+        
         // Handle camelCase and PascalCase
         if (/[a-z]/.test(normalized) && /[A-Z]/.test(normalized)) {
           normalized = normalized.replace(/([a-z])([A-Z])/g, '$1 $2');
         }
         // For all lowercase text, use nlp to find terms and add spaces
         else if (normalized === normalized.toLowerCase() && normalized.length > 6) {
-          // Split the text into possible words and join with spaces
-          const possibleTerms = doc.terms().json().map((term: any) => term.text);
-          if (possibleTerms.length > 1) {
-            normalized = possibleTerms.join(' ');
+          // Get terms from nlp
+          const terms = doc.terms().out('array');
+          console.log("NLP terms for lowercase text:", terms);
+          
+          // For completely lowercase text, try to use nlp to identify words
+          if (terms.length > 1) {
+            normalized = terms.join(' ');
+          } else {
+            // If nlp couldn't find terms, try to split by common word lengths
+            let result = '';
+            let tempWord = '';
+            
+            for (let i = 0; i < normalized.length; i++) {
+              tempWord += normalized[i];
+              
+              // Try to identify common word boundaries
+              if (tempWord.length >= 3 && tempWord.length <= 8) {
+                // Check if this could be a common word
+                const wordDoc = nlp(tempWord);
+                if (wordDoc.has('#Noun') || wordDoc.has('#Verb') || wordDoc.has('#Adjective')) {
+                  result += tempWord + ' ';
+                  tempWord = '';
+                } else if (tempWord.length >= 5) {
+                  // If it's getting long and not recognized, force a break
+                  result += tempWord + ' ';
+                  tempWord = '';
+                }
+              }
+            }
+            
+            // Add any remaining characters
+            if (tempWord.length > 0) {
+              result += tempWord;
+            }
+            
+            // Only use this result if it's different from the original
+            if (result.trim() !== normalized) {
+              normalized = result.trim();
+              console.log("Split by common word analysis:", normalized);
+            }
           }
         }
       }
@@ -403,11 +443,18 @@ function getContentCandidate(lineGroups: TextItemWithMetadata[][]): TitleCandida
     const firstWord = text.split(' ')[0].toLowerCase();
     if (!nonTitleStartWords.includes(firstWord)) score += 0.1;
     
-    // Title is often capitalized
-    if (text.split(' ').filter(word => word.length > 0).every(word => 
-      word[0] === word[0].toUpperCase() || ['of', 'the', 'in', 'on', 'at', 'to', 'and', 'or', 'for', 'with'].includes(word.toLowerCase())
+    // Title is often capitalized - BUT we'll be more lenient here for all-lowercase text
+    // Only boost score if capitalized, but don't penalize if not
+    if (text.split(' ').filter(word => word.length > 0).some(word => 
+      word[0] === word[0].toUpperCase()
     )) {
-      score += 0.2;
+      score += 0.1;
+    }
+    
+    // For lowercase text, give a small boost if it looks like a phrase rather than a sentence
+    if (text === text.toLowerCase() && !text.includes('.') && text.length > 10 && text.length < 60) {
+      score += 0.1;
+      console.log("Found potential lowercase title:", text, "with score:", score);
     }
     
     // Title length is usually 2-7 words
@@ -417,7 +464,7 @@ function getContentCandidate(lineGroups: TextItemWithMetadata[][]): TitleCandida
     // Early position bonus
     score += (1 - (i / 6)) * 0.1;
     
-    if (score > 0.65) {
+    if (score > 0.6) { // Lowered threshold to be more inclusive
       return {
         text,
         score: score * 0.8, // Content patterns are good indicators but not perfect
