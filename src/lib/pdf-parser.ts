@@ -440,18 +440,31 @@ export async function renderPdfPageToCanvas(
   scale: number = 1.0
 ): Promise<void> {
   try {
-    // Load a PDF document
+    // Check if blob is a valid PDF (at least a basic check)
+    if (pdfBlob.size < 100) {
+      throw new Error('PDF file is too small to be valid');
+    }
+    
+    // Create a buffer array from the blob for PDF.js
     const arrayBuffer = await pdfBlob.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     
-    // Add error handler to the loading task
-    loadingTask.onPassword = (updatePassword: any, reason: any) => {
-      // Handle password-protected PDFs
-      console.error('Password protected document:', reason);
-      throw new Error('Password protected document');
-    };
+    // Create a loading task with error handling
+    const loadingTask = pdfjsLib.getDocument({
+      data: arrayBuffer,
+      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true,
+    });
     
-    const pdf = await loadingTask.promise;
+    // Set a timeout for PDF loading
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('PDF loading timeout')), 10000);
+    });
+    
+    // Race between PDF loading and timeout
+    const pdf = await Promise.race([
+      loadingTask.promise,
+      timeoutPromise
+    ]) as pdfjsLib.PDFDocumentProxy;
     
     // Make sure pageIndex is within bounds
     if (pageIndex < 0 || pageIndex >= pdf.numPages) {

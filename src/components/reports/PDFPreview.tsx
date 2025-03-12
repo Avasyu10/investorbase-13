@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { renderPdfPageToCanvas } from "@/lib/pdf-parser";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInView } from "react-intersection-observer";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, FileText } from "lucide-react";
 
 interface PDFPreviewProps {
   pdfUrl: string;
@@ -31,10 +31,14 @@ export function PDFPreview({ pdfUrl, pageIndex, scale = 0.3 }: PDFPreviewProps) 
         setIsLoading(true);
         setHasError(false);
         
+        // Simulate a small delay to prevent rapid re-rendering attempts
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        if (!isMounted) return;
+        
         // Use AbortController for the fetch to prevent memory leaks
         const response = await fetch(pdfUrl, { 
           signal: controller.signal,
-          // Add cache control headers
           headers: {
             'Cache-Control': 'max-age=3600'
           }
@@ -74,15 +78,15 @@ export function PDFPreview({ pdfUrl, pageIndex, scale = 0.3 }: PDFPreviewProps) 
   }, [pdfUrl, pageIndex, scale, inView]);
 
   return (
-    <div ref={ref} className="w-full aspect-[1/1.4] relative">
+    <div ref={ref} className="w-full aspect-[1/1.4] relative bg-muted/10">
       {isLoading && (
         <Skeleton className="w-full h-full absolute inset-0" />
       )}
       
       {hasError && (
-        <div className="w-full h-full flex items-center justify-center bg-muted/20 absolute inset-0">
+        <div className="w-full h-full flex items-center justify-center absolute inset-0">
           <div className="flex flex-col items-center text-muted-foreground p-4">
-            <AlertCircle className="h-8 w-8 mb-2" />
+            <FileText className="h-8 w-8 mb-2 opacity-50" />
             <p className="text-xs text-center">Preview unavailable</p>
           </div>
         </div>
