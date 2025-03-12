@@ -1,4 +1,3 @@
-
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 
@@ -27,6 +26,32 @@ interface TitleCandidate {
   text: string;
   score: number;
   method: string;
+}
+
+// Function to normalize text by removing extra spaces between characters
+function normalizeText(text: string): string {
+  // First replace multiple spaces with a single space
+  let normalized = text.replace(/\s+/g, ' ').trim();
+  
+  // Check if text has spaces between every character (like "B a s e l i n e")
+  // by checking if all spaces are surrounded by single characters
+  const hasSpacesBetweenChars = /^([A-Za-z0-9] ){2,}[A-Za-z0-9]$/.test(normalized);
+  
+  if (hasSpacesBetweenChars) {
+    // Remove all spaces if it looks like there's a space between each character
+    normalized = normalized.replace(/\s/g, '');
+    
+    // Add spaces after common word boundaries
+    normalized = normalized.replace(/([a-z])([A-Z])/g, '$1 $2'); // Add space between camelCase
+    
+    // Special case for all caps text - add spaces between words if all characters are uppercase
+    if (/^[A-Z0-9]+$/.test(normalized) && normalized.length > 10) {
+      // For all caps text, try to split into words (this is a heuristic)
+      normalized = normalized.match(/[A-Z][a-z]*|[0-9]+/g)?.join(' ') || normalized;
+    }
+  }
+  
+  return normalized;
 }
 
 // Function to extract title from page using multiple methods
@@ -64,7 +89,8 @@ function extractTitleFromPage(textItems: TextItem[], viewport: any): string {
     contentCandidate
   ]);
   
-  return bestCandidate || "Untitled Page";
+  // Normalize the title to fix spacing issues
+  return normalizeText(bestCandidate || "Untitled Page");
 }
 
 // Group text items that appear to be in the same line
