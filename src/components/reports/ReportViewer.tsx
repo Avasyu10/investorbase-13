@@ -1,10 +1,13 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Download, Loader, Calendar, FileText } from "lucide-react";
+import { Download, Loader, Calendar, FileText, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReportSegment } from "./ReportSegment";
 
 interface ReportViewerProps {
   reportId: string;
@@ -54,6 +57,14 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       day: 'numeric' 
     }).format(date);
   };
+
+  // Sample report segments (in a real app, this would come from the database)
+  const reportSegments = [
+    { id: "summary", title: "Executive Summary", content: "This report provides an overview of our quarterly performance." },
+    { id: "financial", title: "Financial Analysis", content: "Revenue increased by 15% compared to the previous quarter." },
+    { id: "operations", title: "Operational Metrics", content: "Customer satisfaction reached 92%, up from 87% last quarter." },
+    { id: "forecast", title: "Future Outlook", content: "We anticipate continued growth in the next quarter based on current trends." }
+  ];
 
   if (isLoading) {
     return (
@@ -107,23 +118,46 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       <Separator className="my-6" />
       
-      {report.sections && report.sections.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Report Sections</h2>
-          {report.sections.map((section) => (
-            <Card key={section} className="mb-4">
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">{section}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {section} content would be displayed here.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      <Tabs defaultValue="preview" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="preview">
+            <Eye className="mr-2 h-4 w-4" />
+            Preview
+          </TabsTrigger>
+          <TabsTrigger value="sections">
+            <FileText className="mr-2 h-4 w-4" />
+            Sections
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="preview" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {reportSegments.map(segment => (
+              <ReportSegment key={segment.id} segment={segment} />
+            ))}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="sections" className="space-y-4">
+          {report.sections && report.sections.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Report Sections</h2>
+              {report.sections.map((section) => (
+                <Card key={section} className="mb-4">
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">{section}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {section} content would be displayed here.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
