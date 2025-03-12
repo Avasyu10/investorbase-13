@@ -1,11 +1,11 @@
 
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { COMPANIES_DETAILED_DATA } from "@/components/companies/CompanyDetails";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from "@/lib/companyData";
 
 const AnalysisSummary = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -28,7 +28,7 @@ const AnalysisSummary = () => {
 
   if (!user) return null;
 
-  const company = COMPANIES_DETAILED_DATA[Number(companyId)];
+  const company = COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)];
 
   if (!company) {
     return <div>Company not found</div>;
@@ -72,6 +72,6 @@ const AnalysisSummary = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default AnalysisSummary;
