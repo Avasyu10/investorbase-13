@@ -29,9 +29,7 @@ export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground">
-          {segment.pageIndex !== undefined ? `Page ${segment.pageIndex + 1}` : 'Unknown page'}
-        </p>
+        {/* Page number has been removed */}
       </CardContent>
     </Card>
   );
