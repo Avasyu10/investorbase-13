@@ -440,11 +440,26 @@ export async function renderPdfPageToCanvas(
   scale: number = 1.0
 ): Promise<void> {
   try {
+    // Load a PDF document
     const arrayBuffer = await pdfBlob.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     
-    // Get the page
-    const page = await pdf.getPage(pageIndex + 1); // +1 because PDF.js uses 1-based indices
+    // Add error handler to the loading task
+    loadingTask.onPassword = (updatePassword: any, reason: any) => {
+      // Handle password-protected PDFs
+      console.error('Password protected document:', reason);
+      throw new Error('Password protected document');
+    };
+    
+    const pdf = await loadingTask.promise;
+    
+    // Make sure pageIndex is within bounds
+    if (pageIndex < 0 || pageIndex >= pdf.numPages) {
+      throw new Error(`Page index ${pageIndex} out of bounds. Document has ${pdf.numPages} pages.`);
+    }
+    
+    // Get the page (PDF.js uses 1-based indices)
+    const page = await pdf.getPage(pageIndex + 1);
     
     // Get the viewport
     const viewport = page.getViewport({ scale });
@@ -456,6 +471,9 @@ export async function renderPdfPageToCanvas(
     // Get the rendering context
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas context not available');
+    
+    // Clear the canvas before rendering
+    context.clearRect(0, 0, canvas.width, canvas.height);
     
     // Render the page
     await page.render({
@@ -469,6 +487,10 @@ export async function renderPdfPageToCanvas(
     // Draw error message on canvas
     const context = canvas.getContext('2d');
     if (context) {
+      // Set canvas to a reasonable size if not already set
+      if (canvas.width === 0) canvas.width = 200;
+      if (canvas.height === 0) canvas.height = 280; // Typical aspect ratio
+      
       context.fillStyle = '#f8f9fa';
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.fillStyle = '#e11d48';
@@ -476,5 +498,8 @@ export async function renderPdfPageToCanvas(
       context.textAlign = 'center';
       context.fillText('Error rendering page', canvas.width / 2, canvas.height / 2);
     }
+    
+    // Re-throw the error to be handled by the calling component
+    throw error;
   }
 }

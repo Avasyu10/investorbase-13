@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ParsedPdfSegment } from "@/lib/pdf-parser";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, FileText } from "lucide-react";
 import { PDFPreview } from "./PDFPreview";
 
 interface ReportSegmentProps {
@@ -30,11 +30,15 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {segment.pageIndex !== undefined && (
+        {segment.pageIndex !== undefined ? (
           <PDFPreview 
             pdfUrl={pdfUrl}
             pageIndex={segment.pageIndex}
           />
+        ) : (
+          <div className="w-full aspect-[1/1.4] flex items-center justify-center bg-muted/10">
+            <FileText className="h-10 w-10 text-muted-foreground opacity-50" />
+          </div>
         )}
       </CardContent>
     </Card>
