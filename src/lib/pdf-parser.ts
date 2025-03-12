@@ -29,85 +29,108 @@ interface TitleCandidate {
   method: string;
 }
 
-// Function to fix spacing issues in extracted text using NLP
+// Function to fix spacing issues in extracted text using regex and NLP
 function normalizeText(text: string): string {
   if (!text) return "Untitled Page";
   
   // Initial clean-up: trim and replace multiple spaces with a single space
   let normalized = text.replace(/\s+/g, ' ').trim();
   
-  // Check for abnormal spacing patterns or all lowercase/joined text
-  const hasAbnormalSpacing = (
-    // Single letters with spaces (like "T h i s  i s  a  t e s t")
+  // Check if text appears to have spacing issues (no spaces, abnormal capitalization, etc.)
+  const hasSpacingIssues = (
+    // No spaces or very few spaces relative to length
+    (normalized.length > 15 && normalized.split(' ').length < normalized.length / 8) || 
+    // Alternating case patterns that suggest missing spaces
+    /[a-z][A-Z]/.test(normalized) ||
+    // Single letters separated by spaces (like "T h i s")
     /(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized) ||
-    // No spaces between words that should have spaces
-    (/^[a-zA-Z]{10,}$/.test(normalized) && !/^\d+$/.test(normalized)) ||
-    // All lowercase/uppercase text with no spaces
-    (/^[a-zA-Z\s]{10,}$/.test(normalized) && normalized.split(' ').some(word => word.length > 8))
+    // All lowercase with no spaces or very few spaces
+    (/^[a-z]{15,}$/.test(normalized) && normalized.indexOf(' ') === -1)
   );
   
-  if (hasAbnormalSpacing) {
-    console.log("Detected abnormal text:", normalized);
+  if (hasSpacingIssues) {
+    console.log("Fixing text with spacing issues:", normalized);
     
     try {
-      // For long text without spaces or with very long words, try to segment it
-      if (normalized.split(' ').some(word => word.length > 8)) {
-        // Use NLP to try to identify word boundaries first
-        const doc = nlp(normalized);
-        let terms = doc.terms().out('array');
+      // Step 1: Fix camelCase and PascalCase patterns
+      normalized = normalized
+        .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase -> camel Case
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2'); // PascalCase -> Pascal Case
+      
+      // Step 2: Handle continuous lowercase text (no spaces)
+      if (normalized.length > 10 && normalized.split(' ').length < 3) {
+        // Common English words of different lengths to use as separators
+        const commonWords = [
+          // 2-3 letter words
+          'of', 'to', 'in', 'on', 'at', 'by', 'for', 'the', 'and', 'but', 'or', 'nor', 'yet', 'so',
+          // 4 letter words
+          'from', 'with', 'this', 'that', 'some', 'what', 'when', 'then', 'than',
+          // 5+ letter words
+          'about', 'above', 'after', 'among', 'because', 'before', 'below', 'beside', 'between',
+          'during', 'except', 'inside', 'outside', 'through', 'toward', 'within', 'without',
+          // Common nouns in reports
+          'report', 'analysis', 'summary', 'review', 'study', 'survey', 'assessment', 'evaluation',
+          'overview', 'introduction', 'conclusion', 'recommendation', 'finding', 'section', 'chapter',
+          'page', 'table', 'figure', 'chart', 'graph', 'diagram', 'appendix', 'exhibit',
+          // Business terms
+          'market', 'business', 'company', 'industry', 'sector', 'product', 'service', 'customer',
+          'client', 'revenue', 'profit', 'cost', 'price', 'value', 'growth', 'trend', 'strategy',
+          'plan', 'goal', 'objective', 'result', 'outcome', 'impact', 'effect', 'performance',
+          'measure', 'metric', 'indicator', 'target', 'benchmark', 'standard', 'quality', 'risk',
+          'issue', 'problem', 'challenge', 'opportunity', 'solution', 'approach', 'method', 'technique'
+        ];
         
-        if (terms.length > 1) {
-          normalized = terms.join(' ');
-        } else {
-          // If NLP fails, try breaking at common word boundaries
-          const commonWordParts = [
-            'composite', 'score', 'represent', 'investment', 'potential',
-            'risk', 'factors', 'were', 'assigned', 'amplify', 'reduce',
-            'baseline', 'metric', 'problem', 'statement', 'identifies',
-            'financial', 'projections', 'ambitious', 'value', 'strategy',
-            'design', 'agencies', 'entrepreneurial', 'strong', 'team',
-            'revenue', 'model', 'absence', 'specific', 'while', 'the'
-          ];
-          
-          let result = normalized;
-          for (const word of commonWordParts) {
-            const regex = new RegExp(`(${word})`, 'gi');
-            result = result.replace(regex, ' $1 ');
-          }
-          
-          // Clean up the result
-          normalized = result.replace(/\s+/g, ' ').trim();
-          
-          // If still have very long words, try breaking at reasonable points
-          if (normalized.split(' ').some(word => word.length > 12)) {
-            normalized = normalized.replace(/([a-z]{4,})(?=[A-Z])/g, '$1 ');
-          }
+        // Create a regex pattern from common words
+        const wordPattern = new RegExp(`(${commonWords.join('|')})`, 'gi');
+        normalized = normalized.replace(wordPattern, ' $1 ');
+        
+        // Additional fixes for common patterns
+        normalized = normalized
+          // Break at number boundaries
+          .replace(/([a-zA-Z])(\d)/g, '$1 $2')
+          .replace(/(\d)([a-zA-Z])/g, '$1 $2')
+          // Break at punctuation
+          .replace(/([.,;:!?])([a-zA-Z])/g, '$1 $2')
+          // Break long words at reasonable points (4-5 chars)
+          .replace(/([a-z]{4,5})([a-z]{4,})/g, '$1 $2');
+      }
+      
+      // Step 3: If we still have very long words, try more aggressive splitting
+      const longWords = normalized.split(' ').filter(word => word.length > 12);
+      if (longWords.length > 0) {
+        for (const longWord of longWords) {
+          // Split very long words at vowel-consonant boundaries
+          const splitPattern = new RegExp(`${longWord.replace(/([aeiou])([bcdfghjklmnpqrstvwxyz])/gi, '$1 $2')}`, 'g');
+          normalized = normalized.replace(longWord, longWord.replace(/([aeiou])([bcdfghjklmnpqrstvwxyz])/gi, '$1 $2'));
         }
       }
       
-      // Final cleanup using NLP
-      const finalDoc = nlp(normalized);
-      const sentences = finalDoc.sentences().out('array');
-      if (sentences.length > 0) {
-        normalized = sentences.join(' ');
+      // Step 4: Use NLP as a last resort to further improve
+      if (normalized.split(' ').some(word => word.length > 10)) {
+        const doc = nlp(normalized);
+        let terms = doc.terms().out('array');
+        if (terms.length > 1) {
+          normalized = terms.join(' ');
+        }
       }
+      
+      // Final cleanup - remove excess spaces and fix capitalization
+      normalized = normalized
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize first letter of each word
       
     } catch (error) {
       console.error("Error in text normalization:", error);
-      // Fallback to simple heuristic approach
+      // Fallback to simple spacing fixes
       normalized = normalized
-        .replace(/([a-z])([A-Z])/g, '$1 $2') // Break at camelCase
-        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2') // Break at consecutive capitals
-        .replace(/([a-z]{4,})(?=[A-Z])/g, '$1 '); // Break long lowercase sequences
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
   }
   
-  // Final cleanup and capitalization
-  normalized = normalized
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize first letter of each word
-    
   return normalized;
 }
 
