@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Download, Loader, Calendar, FileText } from "lucide-react";
+import { Download, Loader, Calendar, FileText, FileIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportSegment } from "./ReportSegment";
 
@@ -136,6 +136,11 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       <Separator className="my-6" />
       
+      <div className="mb-4 flex items-center">
+        <FileIcon className="mr-2 h-5 w-5 text-primary" />
+        <h2 className="text-xl font-semibold">PDF Pages</h2>
+      </div>
+      
       {isLoadingPdf && (
         <div className="text-center py-4">
           <Loader className="h-6 w-6 animate-spin text-primary mx-auto" />
@@ -144,7 +149,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       )}
       
       {reportSegments.length > 0 ? (
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {reportSegments.map((segment, index) => (
             <ReportSegment 
               key={segment.id} 
