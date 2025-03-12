@@ -1,10 +1,11 @@
 
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
 import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from "@/lib/companyData";
 
 const AnalysisSummary = () => {
@@ -36,6 +37,15 @@ const AnalysisSummary = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => navigate(`/company/${companyId}`)}
+        className="mb-6"
+      >
+        <ChevronLeft className="mr-1" /> Back to Company
+      </Button>
+      
       <h1 className="text-3xl font-bold tracking-tight mb-6">{company.name} - Analysis Summary</h1>
       
       <Card className="mb-8">
@@ -72,6 +82,6 @@ const AnalysisSummary = () => {
       </Card>
     </div>
   );
-}
+};
 
 export default AnalysisSummary;

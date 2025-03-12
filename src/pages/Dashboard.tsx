@@ -3,6 +3,8 @@ import { CompaniesList } from "@/components/companies/CompaniesList";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
@@ -26,6 +28,16 @@ const Dashboard = () => {
 
   return (
     <div className="animate-fade-in">
+      <div className="container mx-auto px-4 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/')}
+          className="mb-4"
+        >
+          <ChevronLeft className="mr-1" /> Back to Home
+        </Button>
+      </div>
       <CompaniesList />
     </div>
   );
