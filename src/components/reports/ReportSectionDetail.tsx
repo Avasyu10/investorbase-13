@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Download, Loader, Calendar, FileText, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { renderPdfPageToCanvas } from "@/lib/pdf-parser";
 
 interface ReportSectionDetailProps {
@@ -19,6 +19,8 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
   const { toast } = useToast();
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [pageText, setPageText] = useState<string>("");
+  const [isRenderingCanvas, setIsRenderingCanvas] = useState(true);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
@@ -70,13 +72,29 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       if (!section || section.pageIndex === undefined) return;
       
       try {
+        setIsRenderingCanvas(true);
         // Get the PDF blob
         const pdfBlob = await downloadReport(report.pdf_url);
         
         // Render the page to the canvas at full size
         await renderPdfPageToCanvas(pdfBlob, section.pageIndex, canvasRef.current, 1.5);
+        
+        // Extract full text from the PDF page
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(section.pageIndex + 1); // +1 because PDF.js uses 1-based indices
+        const textContent = await page.getTextContent();
+        
+        // Combine all text items
+        const textItems = textContent.items
+          .filter((item: any) => item.str?.trim())
+          .map((item: any) => item.str.trim());
+        
+        setPageText(textItems.join('\n'));
       } catch (error) {
         console.error('Error rendering PDF page:', error);
+      } finally {
+        setIsRenderingCanvas(false);
       }
     };
     
@@ -168,23 +186,35 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>{section.title}</CardTitle>
-          {section.pageNumbers && section.pageNumbers.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Page{section.pageNumbers.length > 1 ? 's' : ''}: {section.pageNumbers.join(', ')}
-            </p>
-          )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="flex justify-center w-full overflow-auto">
             <div className="max-w-full border rounded shadow-lg overflow-auto">
+              {isRenderingCanvas && (
+                <div className="p-8 flex flex-col items-center justify-center">
+                  <Loader className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground mt-2">Rendering page...</p>
+                </div>
+              )}
               <canvas 
                 ref={canvasRef} 
-                className="max-w-full h-auto"
+                className={`max-w-full h-auto ${isRenderingCanvas ? 'hidden' : 'block'}`}
               />
             </div>
           </div>
+          
+          {pageText && (
+            <div className="mt-6 p-4 bg-muted/30 rounded-md">
+              <h3 className="text-sm font-semibold mb-2">Extracted Text:</h3>
+              <div className="whitespace-pre-line text-sm text-muted-foreground">
+                {pageText}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+import * as pdfjsLib from 'pdfjs-dist';

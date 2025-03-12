@@ -1,4 +1,3 @@
-
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 
@@ -64,7 +63,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       segments.push({
         id,
         title,
-        content: `Page ${pageNum} of the PDF report`, // Simplified content, since we'll show the page preview
+        content: textItems.join('\n'), // Store full page text content
         pageNumbers: [pageNum],
         pageIndex: pageNum - 1 // Store 0-based page index for rendering
       });

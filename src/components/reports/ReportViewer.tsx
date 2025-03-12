@@ -125,6 +125,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
               key={segment.id} 
               segment={segment} 
               reportId={reportId}
+              pdfUrl={report.pdf_url}
             />
           ))}
         </div>
