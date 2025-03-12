@@ -4,7 +4,7 @@ import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Download, Loader, Calendar, FileText, ArrowLeft } from "lucide-react";
+import { Loader, Calendar, FileText, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
@@ -44,35 +44,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       loadPdf();
     }
   }, [report, pdfBlob]);
-
-  const handleDownload = async () => {
-    if (!report) return;
-    
-    try {
-      // Use cached blob if available
-      const blob = pdfBlob || await downloadReport(report.pdf_url);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${report.title}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Download started",
-        description: `${report.title}.pdf is downloading`,
-      });
-    } catch (error) {
-      console.error("Download error:", error);
-      toast({
-        title: "Download failed",
-        description: "There was an error downloading the report",
-        variant: "destructive",
-      });
-    }
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -182,13 +153,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to report
-          </Button>
-          <Button 
-            onClick={handleDownload} 
-            className="transition-all duration-200 hover:shadow-md"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download PDF
           </Button>
         </div>
       </div>
