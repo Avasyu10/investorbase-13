@@ -11,6 +11,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Report from "./pages/Report";
+import ReportSection from "./pages/ReportSection";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const AppRoutes = () => (
       <Route path="/" element={<Index />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/reports/:id" element={<Report />} />
+      <Route path="/reports/:id/sections/:sectionId" element={<ReportSection />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </>

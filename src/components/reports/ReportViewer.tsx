@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Download, Loader, Calendar, FileText, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -129,7 +129,11 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
           {reportSegments.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {reportSegments.map(segment => (
-                <ReportSegment key={segment.id} segment={segment} />
+                <ReportSegment 
+                  key={segment.id} 
+                  segment={segment} 
+                  reportId={reportId}
+                />
               ))}
             </div>
           ) : (

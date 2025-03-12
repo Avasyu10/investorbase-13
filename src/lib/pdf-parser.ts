@@ -10,6 +10,7 @@ export interface ParsedPdfSegment {
   title: string;
   content: string;
   pageNumbers: number[];
+  isTitle?: boolean;
 }
 
 // Common section headings in business reports
@@ -27,7 +28,53 @@ const COMMON_SECTION_HEADINGS = [
   'Future Outlook',
   'Conclusion',
   'Appendix',
+  'Baseline Score',
+  'Risk Factors',
+  'Overall Score Assessment',
+  'Analysis Summary',
+  'BaselineScore',
+  'OverallScoreAssessment',
+  'AnalysisSummary',
 ];
+
+// Check if a string matches common report section title patterns
+function isSectionTitle(text: string): boolean {
+  // Remove extra whitespace and normalize
+  const normalizedText = text.trim().replace(/\s+/g, ' ');
+  
+  // Skip if too short
+  if (normalizedText.length < 3) return false;
+  
+  // Skip if too long to be a title
+  if (normalizedText.length > 60) return false;
+
+  // Check for exact matches with common headings (case insensitive)
+  for (const heading of COMMON_SECTION_HEADINGS) {
+    if (normalizedText.toLowerCase().includes(heading.toLowerCase())) {
+      return true;
+    }
+  }
+  
+  // Check for patterns like "Section 1: Title" or "1. Title"
+  if (/^(section|part|chapter)\s+\d+(\.\d+)*\s*:?/i.test(normalizedText) ||
+      /^\d+(\.\d+)*\s+[A-Z]/.test(normalizedText)) {
+    return true;
+  }
+  
+  // Check for title case with specific ending patterns
+  if (/^[A-Z][a-z]+((\s[A-Z][a-z]+)+)(\s(Analysis|Report|Summary|Assessment|Overview|Factors))?$/.test(normalizedText)) {
+    return true;
+  }
+  
+  // Check for all caps titles (common in reports)
+  if (normalizedText === normalizedText.toUpperCase() && 
+      normalizedText.length > 4 &&
+      normalizedText.length < 30) {
+    return true;
+  }
+  
+  return false;
+}
 
 export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[]> {
   try {
@@ -54,38 +101,46 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
 
     // Process text to identify sections
     textContentItems.forEach(({ pageNum, items }) => {
-      items.forEach((item) => {
+      items.forEach((item, index) => {
         // Check if this text item is likely a section heading
         const text = (item as any).str || '';
+        
+        if (text.trim()) {
+          // Enhanced section title detection
+          const isPotentialTitle = (
+            isSectionTitle(text) || 
+            // Check for font size/style differences that might indicate a title
+            ((item as any).height > 12 && text.length > 3 && text.length < 50) ||
+            // Check if this is the only text on a line and might be a title
+            (items.length > 10 && index > 0 && index < items.length - 1 && 
+             !(items[index-1] as any).str.trim() && 
+             !(items[index+1] as any).str.trim())
+          );
 
-        // Section detection: large font, all caps, or matching common headings
-        const isSectionHeading = 
-          (COMMON_SECTION_HEADINGS.some(heading => text.includes(heading))) || 
-          (text === text.toUpperCase() && text.length > 3 && text.length < 50) ||
-          ((item as any).height > 12 && text.length > 3 && text.length < 50);
+          if (isPotentialTitle) {
+            // Save previous section before starting new one
+            if (currentSectionContent.length > 0) {
+              foundAnySection = true;
+              const id = currentSectionTitle.toLowerCase().replace(/[^a-z0-9]/g, '-');
+              segments.push({
+                id,
+                title: currentSectionTitle,
+                content: currentSectionContent.join(' '),
+                pageNumbers: [...new Set(currentSectionPages)],
+                isTitle: true
+              });
+            }
 
-        if (isSectionHeading) {
-          // Save previous section before starting new one
-          if (currentSectionContent.length > 0) {
-            foundAnySection = true;
-            const id = currentSectionTitle.toLowerCase().replace(/[^a-z0-9]/g, '-');
-            segments.push({
-              id,
-              title: currentSectionTitle,
-              content: currentSectionContent.join(' '),
-              pageNumbers: [...new Set(currentSectionPages)],
-            });
-          }
-
-          // Start new section
-          currentSectionTitle = text.trim();
-          currentSectionContent = [];
-          currentSectionPages = [pageNum];
-        } else if (text.trim()) {
-          // Add text to current section
-          currentSectionContent.push(text.trim());
-          if (!currentSectionPages.includes(pageNum)) {
-            currentSectionPages.push(pageNum);
+            // Start new section
+            currentSectionTitle = text.trim();
+            currentSectionContent = [];
+            currentSectionPages = [pageNum];
+          } else if (text.trim()) {
+            // Add text to current section
+            currentSectionContent.push(text.trim());
+            if (!currentSectionPages.includes(pageNum)) {
+              currentSectionPages.push(pageNum);
+            }
           }
         }
       });
@@ -99,6 +154,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
         title: currentSectionTitle,
         content: currentSectionContent.join(' '),
         pageNumbers: [...new Set(currentSectionPages)],
+        isTitle: true
       });
     }
 
