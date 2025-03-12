@@ -40,27 +40,45 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       
       if (items.length === 0) continue;
       
-      // Get the first line as title (or use 'Page X' if empty)
-      let title = '';
-      let contentStartIndex = 0;
+      // Find the text item with the largest font size to use as title
+      let largestFontItem: any = null;
+      let largestFontSize = 0;
       
-      // Find the first non-empty text item to use as title
+      // First pass: find the largest font size
       for (let i = 0; i < items.length; i++) {
-        const text = (items[i] as any).str?.trim();
-        if (text) {
-          title = text;
-          contentStartIndex = i + 1;
-          break;
+        const item = items[i] as any;
+        // Skip empty items
+        if (!item.str?.trim()) continue;
+        
+        // Check if this item has font size info
+        if (item.transform && item.transform.length >= 6) {
+          // In PDF.js, the font size can be approximated from the transform matrix
+          // The vertical scale factor is often at index 3
+          const fontSize = Math.abs(item.transform[3]);
+          
+          if (fontSize > largestFontSize) {
+            largestFontSize = fontSize;
+            largestFontItem = item;
+          }
         }
       }
       
-      // If no title found, use Page X
+      // Set title based on largest font item or fallback
+      let title = '';
+      if (largestFontItem && largestFontItem.str) {
+        title = largestFontItem.str.trim();
+      }
+      
+      // If no title could be determined, use Page X
       if (!title) {
         title = `Page ${pageNum}`;
       }
       
-      // Get remaining content
-      const contentItems = items.slice(contentStartIndex).map(item => (item as any).str || '').filter(str => str.trim());
+      // Collect all text content (excluding the title)
+      const contentItems = items
+        .map(item => (item as any).str || '')
+        .filter(str => str.trim() && str.trim() !== title.trim());
+      
       const content = contentItems.join(' ');
       
       const id = `page-${pageNum}`;
