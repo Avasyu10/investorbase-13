@@ -1,3 +1,4 @@
+
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 
@@ -11,6 +12,92 @@ export interface ParsedPdfSegment {
   pageNumbers: number[];
   isTitle?: boolean;
   pageIndex?: number; // Store page index for rendering
+}
+
+// New function to extract title from page using layout analysis
+function extractTitleFromPage(textItems: TextItem[], viewport: any): string {
+  if (!textItems || textItems.length === 0) return "Untitled Page";
+  
+  // Convert text items to a more usable format with position and styling info
+  const items = textItems.map((item: any) => {
+    return {
+      text: item.str.trim(),
+      fontSize: item.transform[0], // In PDF.js, this transform value often correlates with font size
+      y: viewport.height - item.transform[5], // y-position, inverted to match top-down coordinate system
+      x: item.transform[4], // x-position
+      fontName: item.fontName || "",
+    };
+  }).filter(item => item.text.length > 0);
+  
+  if (items.length === 0) return "Untitled Page";
+  
+  // Sort items by vertical position (top to bottom)
+  items.sort((a, b) => a.y - b.y);
+  
+  // Group text items that appear to be in the same line/paragraph
+  const lineGroups: any[] = [];
+  let currentGroup: any[] = [items[0]];
+  const LINE_THRESHOLD = 5; // Items within this many pixels vertically are considered same line
+  
+  for (let i = 1; i < items.length; i++) {
+    const prevItem = items[i-1];
+    const currItem = items[i];
+    
+    // If this item is roughly on the same line as previous
+    if (Math.abs(currItem.y - prevItem.y) < LINE_THRESHOLD) {
+      currentGroup.push(currItem);
+    } else {
+      // Start a new line group
+      lineGroups.push(currentGroup);
+      currentGroup = [currItem];
+    }
+  }
+  
+  if (currentGroup.length > 0) {
+    lineGroups.push(currentGroup);
+  }
+  
+  // Process line groups to find title candidates
+  for (let i = 0; i < Math.min(lineGroups.length, 5); i++) { // Check first 5 line groups
+    const group = lineGroups[i];
+    
+    // Sort items in group by x-position (left to right)
+    group.sort((a: any, b: any) => a.x - b.x);
+    
+    // Combine text in this line
+    const lineText = group.map((item: any) => item.text).join(" ").trim();
+    
+    // Title heuristics:
+    // 1. Reasonable length for a title (not too short, not too long)
+    // 2. Not ending with common sentence-ending punctuation (suggesting it's complete)
+    // 3. Preferably has larger font size than average
+    
+    if (
+      lineText.length > 3 && 
+      lineText.length < 100 && 
+      !lineText.endsWith(".") && 
+      !lineText.match(/Page \d+/) && // Not just a page number
+      !lineText.match(/^\d+$/) // Not just a number
+    ) {
+      // Calculate average font size for this group
+      const avgFontSize = group.reduce((sum: number, item: any) => sum + item.fontSize, 0) / group.length;
+      
+      // If font size is 10% larger than the average of all items or it's one of the first few lines
+      if (i < 2 || avgFontSize > 1.1 * (items.reduce((sum, item) => sum + item.fontSize, 0) / items.length)) {
+        return lineText;
+      }
+    }
+  }
+  
+  // Fallback: Use the first non-empty line if no title candidate found
+  for (const group of lineGroups) {
+    const lineText = group.map((item: any) => item.text).join(" ").trim();
+    if (lineText.length > 3 && !lineText.match(/Page \d+/)) {
+      return lineText;
+    }
+  }
+  
+  return "Untitled Page";
 }
 
 export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[]> {
@@ -35,6 +122,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
     // Process each page (skipping first and last)
     for (let pageNum = 2; pageNum < numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1.0 });
       const textContent = await page.getTextContent();
       const items = textContent.items as TextItem[];
       
@@ -49,14 +137,8 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
         }
       }
       
-      // Use the second paragraph (if available) as the title
-      // If there's only one paragraph or none, use a fallback title
-      let title = 'Page ' + pageNum;
-      if (textItems.length >= 2) {
-        title = textItems[1]; // Use the second paragraph as title
-      } else if (textItems.length === 1) {
-        title = textItems[0]; // Use the first paragraph if only one exists
-      }
+      // Extract title using our layout analysis function
+      let title = extractTitleFromPage(items, viewport);
       
       const id = `page-${pageNum}`;
       
@@ -81,7 +163,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
   }
 }
 
-// New function to render a PDF page to a canvas
+// Function to render a PDF page to a canvas
 export async function renderPdfPageToCanvas(
   pdfBlob: Blob, 
   pageIndex: number, 

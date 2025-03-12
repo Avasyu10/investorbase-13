@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ParsedPdfSegment, renderPdfPageToCanvas } from "@/lib/pdf-parser";
 import { useNavigate } from "react-router-dom";
@@ -74,5 +74,3 @@ export function ReportSegment({ segment, reportId, pdfUrl }: ReportSegmentProps)
     </Card>
   );
 }
-
-import { useState } from "react";
