@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +31,7 @@ interface CompanyData {
   id: number;
   name: string;
   overallScore: number;
+  assessmentPoints: string[];
   sections: SectionData[];
 }
 
@@ -41,6 +41,12 @@ const COMPANIES_DETAILED_DATA: Record<number, CompanyData> = {
     id: 1,
     name: "TechFusion",
     overallScore: 4.2,
+    assessmentPoints: [
+      "Strong product-market fit with innovative solution",
+      "Experienced team with proven track record",
+      "Clear path to profitability with sustainable business model",
+      "Well-defined market strategy and competitive positioning"
+    ],
     sections: [
       { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.5, description: "Clear problem identification with market validation" },
       { id: "sec2", type: "MARKET", title: "Market", score: 4.2, description: "Large addressable market with growth potential" },
@@ -55,11 +61,15 @@ const COMPANIES_DETAILED_DATA: Record<number, CompanyData> = {
       { id: "sec11", type: "ASK", title: "Ask", score: 3.9, description: "Clear funding requirements and use of funds" }
     ]
   },
-  // Add more companies with their sections...
   2: {
     id: 2,
     name: "GreenEnergy Solutions",
     overallScore: 3.8,
+    assessmentPoints: [
+      "Promising technology with growing market potential",
+      "Skilled technical team requiring business experience",
+      "Early market validation with pilot projects"
+    ],
     sections: [
       { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.0, description: "Energy sustainability issues clearly outlined" },
       { id: "sec2", type: "MARKET", title: "Market", score: 4.2, description: "Growing renewable energy market with regulatory support" },
@@ -74,7 +84,6 @@ const COMPANIES_DETAILED_DATA: Record<number, CompanyData> = {
       { id: "sec11", type: "ASK", title: "Ask", score: 4.2, description: "Well-structured funding request with clear allocation plan" }
     ]
   },
-  // Additional companies would be added here...
 };
 
 // Section card component
@@ -136,6 +145,27 @@ export function CompanyDetails() {
             className="h-3 flex-1" 
           />
         </div>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Overall Score Assessment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-5 space-y-2">
+              {company.assessmentPoints.map((point, index) => (
+                <li key={index} className="text-muted-foreground">{point}</li>
+              ))}
+            </ul>
+          </CardContent>
+          <CardFooter className="flex justify-end">
+            <Link 
+              to={`/company/${company.id}/analysis`}
+              className="text-sm text-primary hover:underline"
+            >
+              View Full Analysis Summary →
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
       
       <h2 className="text-2xl font-semibold mb-4">Section Metrics</h2>
