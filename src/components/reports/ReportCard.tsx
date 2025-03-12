@@ -34,7 +34,7 @@ export function ReportCard({ report }: ReportCardProps) {
       <CardContent className="flex-1">
         <p className="text-sm text-muted-foreground line-clamp-2">{report.description}</p>
       </CardContent>
-      <CardFooter className="flex-none">
+      <CardFooter className="flex-none pb-4">
         <Button asChild className="w-full transition-all duration-200 hover:shadow-md">
           <Link to={`/reports/${report.id}`}>
             View Report
