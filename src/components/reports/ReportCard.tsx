@@ -20,7 +20,7 @@ export function ReportCard({ report }: ReportCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[280px] flex flex-col">
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col">
       <CardHeader className="pb-2 flex-none">
         <div className="flex items-start gap-2">
           <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
@@ -34,7 +34,7 @@ export function ReportCard({ report }: ReportCardProps) {
       <CardContent className="flex-1">
         <p className="text-sm text-muted-foreground line-clamp-2">{report.description}</p>
       </CardContent>
-      <CardFooter className="flex-none pb-4">
+      <CardFooter className="flex-none pb-6">
         <Button asChild className="w-full transition-all duration-200 hover:shadow-md">
           <Link to={`/reports/${report.id}`}>
             View Report
