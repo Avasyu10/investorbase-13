@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          total_score: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          total_score: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          total_score?: number
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           created_at: string | null
@@ -35,6 +59,79 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      section_details: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          score_impact: string | null
+          section_id: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          score_impact?: string | null
+          section_id: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          score_impact?: string | null
+          section_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_details_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sections: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          max_score: number
+          name: string
+          score: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_score?: number
+          name: string
+          score: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_score?: number
+          name?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

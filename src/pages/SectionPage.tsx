@@ -1,10 +1,10 @@
 
-import { CompaniesList } from "@/components/companies/CompaniesList";
+import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Dashboard = () => {
+const SectionPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -26,9 +26,9 @@ const Dashboard = () => {
 
   return (
     <div className="animate-fade-in">
-      <CompaniesList />
+      <SectionDetail />
     </div>
   );
 };
 
-export default Dashboard;
+export default SectionPage;

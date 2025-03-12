@@ -1,10 +1,10 @@
 
-import { CompaniesList } from "@/components/companies/CompaniesList";
+import { CompanyDetails } from "@/components/companies/CompanyDetails";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Dashboard = () => {
+const CompanyPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -26,9 +26,9 @@ const Dashboard = () => {
 
   return (
     <div className="animate-fade-in">
-      <CompaniesList />
+      <CompanyDetails />
     </div>
   );
 };
 
-export default Dashboard;
+export default CompanyPage;
