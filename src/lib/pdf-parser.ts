@@ -22,12 +22,6 @@ interface TextItemWithMetadata {
   isBold: boolean;
 }
 
-interface TitleCandidate {
-  text: string;
-  score: number;
-  method: string;
-}
-
 // Function to extract title from the second line
 function extractTitleFromPage(textItems: TextItem[], viewport: any): string {
   if (!textItems || textItems.length < 2) return "Untitled Page";

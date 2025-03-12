@@ -19,6 +19,11 @@ export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
 
   // Display the title or a fallback
   const displayTitle = segment.title || "Untitled Section";
+  
+  // Extract a short preview of the content (first 100 characters)
+  const contentPreview = segment.content && segment.content.length > 0 
+    ? segment.content.substring(0, 100) + (segment.content.length > 100 ? '...' : '')
+    : 'No content available';
 
   return (
     <Card 
@@ -32,7 +37,10 @@ export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Content display can be added here if needed */}
+        <p className="text-sm text-muted-foreground line-clamp-3">{contentPreview}</p>
+        <div className="text-xs text-muted-foreground mt-2">
+          Page {segment.pageNumbers?.join(', ')}
+        </div>
       </CardContent>
     </Card>
   );
