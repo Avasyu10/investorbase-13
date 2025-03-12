@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { renderPdfPageToCanvas } from "@/lib/pdf-parser";
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface ReportSectionDetailProps {
   reportId: string;
@@ -216,5 +216,3 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
     </div>
   );
 }
-
-import * as pdfjsLib from 'pdfjs-dist';
