@@ -1,6 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
-import nlp from 'compromise';
 
 // Set the worker source path
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -29,7 +28,7 @@ interface TitleCandidate {
   method: string;
 }
 
-// Function to fix spacing issues in extracted text using compromise
+// Function to fix spacing issues in extracted text
 function normalizeText(text: string): string {
   if (!text) return "Untitled Page";
   
@@ -45,51 +44,63 @@ function normalizeText(text: string): string {
     // Remove all spaces first
     const noSpaces = normalized.replace(/\s+/g, '');
     
-    // Use compromise to tokenize and normalize the text
-    // This will intelligently separate words based on its language model
-    try {
-      // First try to separate camelCase and PascalCase
-      let processed = noSpaces.replace(/([a-z])([A-Z])/g, '$1 $2');
+    // Add spaces between lowercase and uppercase letters (for camelCase)
+    normalized = noSpaces.replace(/([a-z])([A-Z])/g, '$1 $2');
+    
+    // For all caps text, try to add spaces every 3-5 characters if no spaces were added
+    if (normalized === noSpaces && normalized.length > 6) {
+      // Try common word patterns dictionary approach
+      const commonTitleWords = [
+        'baseline', 'metric', 'report', 'summary', 'analysis', 'results',
+        'financial', 'performance', 'overview', 'review', 'status', 'update',
+        'quarterly', 'annual', 'monthly', 'weekly', 'daily', 'assessment',
+        'evaluation', 'key', 'findings', 'conclusion', 'recommendation',
+        'executive', 'summary', 'introduction', 'background', 'methodology',
+        'appendix', 'references', 'glossary', 'index', 'table', 'figure',
+        'chart', 'graph', 'diagram', 'section', 'chapter', 'page', 'data',
+        'information', 'research', 'study', 'survey', 'interview', 'observation'
+      ];
       
-      // Use compromise to identify words and normalize
-      const doc = nlp(processed);
-      let terms = doc.terms().out('array');
+      let bestMatch = normalized;
+      let mostWordsFound = 0;
       
-      // If compromise found multiple terms, use those
-      if (terms.length > 1) {
-        return terms.join(' ');
-      }
-      
-      // If still a single term, try to break up ALL CAPS text
-      if (/^[A-Z0-9]+$/.test(noSpaces)) {
-        // Dictionary of common words in reports to look for
-        const commonWords = [
-          'BASELINE', 'METRIC', 'REPORT', 'SUMMARY', 'ANALYSIS', 'RESULTS',
-          'FINANCIAL', 'PERFORMANCE', 'OVERVIEW', 'REVIEW', 'STATUS', 'UPDATE',
-          'QUARTERLY', 'ANNUAL', 'MONTHLY', 'WEEKLY', 'DAILY', 'ASSESSMENT',
-          'EVALUATION', 'KEY', 'FINDINGS', 'CONCLUSION', 'RECOMMENDATION',
-          'EXECUTIVE', 'INTRODUCTION', 'BACKGROUND', 'METHODOLOGY',
-          'APPENDIX', 'REFERENCES', 'GLOSSARY', 'INDEX', 'TABLE', 'FIGURE',
-          'CHART', 'GRAPH', 'DIAGRAM', 'SECTION', 'CHAPTER', 'PAGE', 'DATA'
-        ];
+      // Try different word boundaries and see which one finds the most dictionary words
+      ['', ' '].forEach(separator => {
+        let tempText = noSpaces;
+        let wordsFound = 0;
         
-        let result = noSpaces;
-        
-        // Try to find and separate known words
-        for (const word of commonWords) {
+        commonTitleWords.forEach(word => {
           const regex = new RegExp(word, 'gi');
-          result = result.replace(regex, match => ` ${match} `);
-        }
+          const matches = tempText.match(regex);
+          
+          if (matches) {
+            wordsFound += matches.length;
+            // Replace each found word with the word plus a separator
+            tempText = tempText.replace(regex, match => {
+              // Preserve original case
+              const index = tempText.indexOf(match);
+              const originalCase = noSpaces.substring(index, index + match.length);
+              return originalCase + separator;
+            });
+          }
+        });
         
-        // Cleanup extra spaces and return
-        return result.replace(/\s+/g, ' ').trim();
-      }
+        // If this approach found more words than previous attempts
+        if (wordsFound > mostWordsFound) {
+          mostWordsFound = wordsFound;
+          bestMatch = tempText.trim();
+        }
+      });
       
-      return processed;
-    } catch (e) {
-      console.error('Error in compromise processing:', e);
-      // Fallback to simpler approach
-      return noSpaces.replace(/([A-Z])/g, ' $1').trim();
+      // If we found some words, use that result
+      if (mostWordsFound > 0) {
+        normalized = bestMatch;
+      } else {
+        // Fallback: for all caps text, try to add spaces in logical places
+        if (/^[A-Z0-9]+$/.test(normalized)) {
+          normalized = normalized.replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ');
+        }
+      }
     }
   }
   
