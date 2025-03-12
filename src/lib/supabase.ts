@@ -49,7 +49,7 @@ export async function getReportById(id: string) {
 }
 
 export async function downloadReport(fileUrl: string) {
-  const { data, error } = await supabase.storage.from('pdfs').download(fileUrl);
+  const { data, error } = await supabase.storage.from('reports').download(fileUrl);
 
   if (error) {
     console.error('Error downloading report:', error);
