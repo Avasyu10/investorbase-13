@@ -34,75 +34,75 @@ export interface CompanyData {
 export const COMPANIES_DETAILED_DATA: Record<number, CompanyData> = {
   1: {
     id: 1,
-    name: "TechFusion",
-    overallScore: 4.2,
+    name: "TechFusion AI",
+    overallScore: 4.7,
     sections: [
-      { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.5, description: "Clear problem identification with market validation" },
-      { id: "sec2", type: "MARKET", title: "Market", score: 4.2, description: "Large addressable market with growth potential" },
-      { id: "sec3", type: "SOLUTION", title: "Solution", score: 4.7, description: "Innovative solution with clear differentiation" },
-      { id: "sec4", type: "PRODUCT", title: "Product", score: 4.3, description: "Well-developed product with strong feature set" },
-      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 3.9, description: "Several competitors but with clear differentiation" },
-      { id: "sec6", type: "TRACTION", title: "Traction", score: 4.1, description: "Solid user growth and engagement metrics" },
-      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 4.4, description: "Scalable business model with multiple revenue streams" },
-      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 3.8, description: "Clear go-to-market strategy with initial execution" },
-      { id: "sec9", type: "TEAM", title: "Team", score: 4.6, description: "Strong team with relevant experience and complementary skills" },
-      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 4.0, description: "Solid financial projections with reasonable assumptions" },
-      { id: "sec11", type: "ASK", title: "Ask", score: 3.9, description: "Clear funding requirements and use of funds" }
+      { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.8, description: "Addressing inefficiencies in enterprise AI deployment with clear market validation and documented pain points" },
+      { id: "sec2", type: "MARKET", title: "Market", score: 4.6, description: "Large addressable market ($50B+) in enterprise AI with 25% YoY growth" },
+      { id: "sec3", type: "SOLUTION", title: "Solution", score: 4.9, description: "Proprietary AI orchestration platform with patent-pending technology" },
+      { id: "sec4", type: "PRODUCT", title: "Product", score: 4.7, description: "Enterprise-ready platform with robust features and security compliance" },
+      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 4.5, description: "Limited direct competition with significant barriers to entry" },
+      { id: "sec6", type: "TRACTION", title: "Traction", score: 4.6, description: "20+ enterprise clients including Fortune 500 companies" },
+      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 4.8, description: "High-margin SaaS model with 85% gross margins" },
+      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 4.5, description: "Enterprise sales strategy with strong partnership channels" },
+      { id: "sec9", type: "TEAM", title: "Team", score: 4.9, description: "Ex-Google AI leads with multiple successful exits" },
+      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 4.7, description: "$5M ARR with 200% YoY growth" },
+      { id: "sec11", type: "ASK", title: "Ask", score: 4.6, description: "$20M Series A for market expansion and R&D" }
     ]
   },
   2: {
     id: 2,
     name: "GreenEnergy Solutions",
-    overallScore: 3.8,
+    overallScore: 4.2,
     sections: [
-      { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.0, description: "Energy sustainability issues clearly outlined" },
-      { id: "sec2", type: "MARKET", title: "Market", score: 4.2, description: "Growing renewable energy market with regulatory support" },
-      { id: "sec3", type: "SOLUTION", title: "Solution", score: 3.8, description: "Novel renewable energy technology with some technical challenges" },
-      { id: "sec4", type: "PRODUCT", title: "Product", score: 3.5, description: "Product still in development with promising prototypes" },
-      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 3.6, description: "Competitive market with several established players" },
-      { id: "sec6", type: "TRACTION", title: "Traction", score: 3.2, description: "Early traction with pilot projects" },
-      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 3.9, description: "Service-based model with recurring revenue potential" },
-      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 3.7, description: "B2B focus with clear customer acquisition strategy" },
-      { id: "sec9", type: "TEAM", title: "Team", score: 4.1, description: "Strong technical team with some gaps in business experience" },
-      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 3.5, description: "Conservative financial projections with clear milestones" },
-      { id: "sec11", type: "ASK", title: "Ask", score: 4.2, description: "Well-structured funding request with clear allocation plan" }
+      { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.5, description: "Industrial energy waste causing significant environmental impact and costs" },
+      { id: "sec2", type: "MARKET", title: "Market", score: 4.3, description: "Growing renewable energy market with strong regulatory tailwinds" },
+      { id: "sec3", type: "SOLUTION", title: "Solution", score: 4.4, description: "AI-powered energy optimization system for industrial facilities" },
+      { id: "sec4", type: "PRODUCT", title: "Product", score: 4.1, description: "IoT-based monitoring system with predictive maintenance" },
+      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 3.9, description: "Competitive market with clear technological differentiation" },
+      { id: "sec6", type: "TRACTION", title: "Traction", score: 4.0, description: "10 pilot projects with 40% conversion rate" },
+      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 4.2, description: "Hardware + SaaS model with recurring revenue" },
+      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 4.1, description: "Direct sales to enterprises with channel partnerships" },
+      { id: "sec9", type: "TEAM", title: "Team", score: 4.3, description: "Strong technical team with industry experience" },
+      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 4.0, description: "$2M ARR with clear path to profitability" },
+      { id: "sec11", type: "ASK", title: "Ask", score: 4.2, description: "$15M Series A for scaling operations" }
     ]
   },
   3: {
     id: 3,
     name: "MedTech Innovations",
-    overallScore: 4.5,
+    overallScore: 4.8,
     sections: [
-      { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.8, description: "Critical healthcare challenge with substantial evidence" },
-      { id: "sec2", type: "MARKET", title: "Market", score: 4.6, description: "Large healthcare market with strong growth trends" },
-      { id: "sec3", type: "SOLUTION", title: "Solution", score: 4.7, description: "Innovative medical solution with patented technology" },
-      { id: "sec4", type: "PRODUCT", title: "Product", score: 4.4, description: "Advanced medical device with clinical validation" },
-      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 4.2, description: "Few direct competitors with high barriers to entry" },
-      { id: "sec6", type: "TRACTION", title: "Traction", score: 4.1, description: "Strong traction with healthcare providers and initial sales" },
-      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 4.5, description: "High-margin recurring revenue model" },
-      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 4.3, description: "Strong healthcare channel partnerships" },
-      { id: "sec9", type: "TEAM", title: "Team", score: 4.8, description: "Seasoned healthcare executives with strong domain expertise" },
-      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 4.4, description: "Detailed financial model with conservative growth assumptions" },
-      { id: "sec11", type: "ASK", title: "Ask", score: 4.6, description: "Strategic funding request aligned with regulatory milestones" }
+      { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.9, description: "Critical diagnostic delays in rare disease identification" },
+      { id: "sec2", type: "MARKET", title: "Market", score: 4.8, description: "$20B+ addressable market in medical diagnostics" },
+      { id: "sec3", type: "SOLUTION", title: "Solution", score: 4.9, description: "AI-powered diagnostic platform with FDA approval" },
+      { id: "sec4", type: "PRODUCT", title: "Product", score: 4.7, description: "HIPAA-compliant platform with clinical validation" },
+      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 4.6, description: "First-mover advantage in specialized diagnostics" },
+      { id: "sec6", type: "TRACTION", title: "Traction", score: 4.8, description: "Partnerships with 15 major hospitals" },
+      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 4.7, description: "Per-diagnosis pricing with institutional subscriptions" },
+      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 4.8, description: "B2B2C model through healthcare providers" },
+      { id: "sec9", type: "TEAM", title: "Team", score: 4.9, description: "World-class medical and AI researchers" },
+      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 4.8, description: "$8M ARR with 150% YoY growth" },
+      { id: "sec11", type: "ASK", title: "Ask", score: 4.7, description: "$30M Series B for global expansion" }
     ]
   },
-  // Add more companies with similar structure...
   4: {
     id: 4,
     name: "FinanceFlow",
-    overallScore: 3.6,
+    overallScore: 3.9,
     sections: [
-      { id: "sec1", type: "PROBLEM", title: "Problem", score: 3.8, description: "Financial inclusion challenges identified" },
-      { id: "sec2", type: "MARKET", title: "Market", score: 4.0, description: "Growing fintech market with regulatory complexities" },
-      { id: "sec3", type: "SOLUTION", title: "Solution", score: 3.7, description: "Digital banking solution for underserved markets" },
-      { id: "sec4", type: "PRODUCT", title: "Product", score: 3.5, description: "Mobile banking platform with core functionality" },
-      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 3.2, description: "Highly competitive market with large incumbents" },
-      { id: "sec6", type: "TRACTION", title: "Traction", score: 3.4, description: "Growing user base with moderate engagement" },
-      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 3.8, description: "Transaction-based revenue model" },
-      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 3.5, description: "Direct-to-consumer strategy with digital marketing" },
-      { id: "sec9", type: "TEAM", title: "Team", score: 3.9, description: "Mixed team of finance and technology professionals" },
-      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 3.6, description: "Path to profitability with reasonable assumptions" },
-      { id: "sec11", type: "ASK", title: "Ask", score: 3.7, description: "Growth capital request for marketing and expansion" }
+      { id: "sec1", type: "PROBLEM", title: "Problem", score: 4.1, description: "SME lending inefficiencies in emerging markets" },
+      { id: "sec2", type: "MARKET", title: "Market", score: 4.0, description: "$100B+ opportunity in SME financing" },
+      { id: "sec3", type: "SOLUTION", title: "Solution", score: 3.9, description: "AI-driven credit scoring and lending platform" },
+      { id: "sec4", type: "PRODUCT", title: "Product", score: 3.8, description: "Digital lending platform with automated underwriting" },
+      { id: "sec5", type: "COMPETITIVE_LANDSCAPE", title: "Competitive Landscape", score: 3.7, description: "Competitive market with regional focus" },
+      { id: "sec6", type: "TRACTION", title: "Traction", score: 3.8, description: "$10M in loans processed" },
+      { id: "sec7", type: "BUSINESS_MODEL", title: "Business Model", score: 4.0, description: "Fee-based model with interest revenue share" },
+      { id: "sec8", type: "GTM_STRATEGY", title: "GTM Strategy", score: 3.9, description: "Partnership with local banks and NBFCs" },
+      { id: "sec9", type: "TEAM", title: "Team", score: 4.1, description: "Experienced fintech entrepreneurs" },
+      { id: "sec10", type: "FINANCIALS", title: "Financials", score: 3.8, description: "$1.5M ARR with positive unit economics" },
+      { id: "sec11", type: "ASK", title: "Ask", score: 3.9, description: "$12M Series A for market expansion" }
     ]
   }
 };
+

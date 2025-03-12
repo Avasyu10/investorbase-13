@@ -14,14 +14,18 @@ import { ListFilter } from "lucide-react";
 
 // Dummy data for companies and their scores
 const COMPANIES_DATA = [
-  { id: 1, name: "TechFusion", score: 4.2 },
-  { id: 2, name: "GreenEnergy Solutions", score: 3.8 },
-  { id: 3, name: "MedTech Innovations", score: 4.5 },
-  { id: 4, name: "FinanceFlow", score: 3.6 },
-  { id: 5, name: "RetailRevolution", score: 4.0 },
-  { id: 6, name: "AIVentures", score: 4.7 },
-  { id: 7, name: "CloudNine Systems", score: 3.9 },
-  { id: 8, name: "EcoTrends", score: 3.5 },
+  { id: 1, name: "TechFusion AI", score: 4.7 },
+  { id: 2, name: "GreenEnergy Solutions", score: 4.2 },
+  { id: 3, name: "MedTech Innovations", score: 4.8 },
+  { id: 4, name: "FinanceFlow", score: 3.9 },
+  { id: 5, name: "RetailRevolution", score: 4.1 },
+  { id: 6, name: "DataSense Analytics", score: 4.5 },
+  { id: 7, name: "CloudScale Systems", score: 4.3 },
+  { id: 8, name: "EcoTrends Manufacturing", score: 3.8 },
+  { id: 9, name: "HealthAI Solutions", score: 4.6 },
+  { id: 10, name: "CyberShield Security", score: 4.4 },
+  { id: 11, name: "SmartHome Technologies", score: 4.0 },
+  { id: 12, name: "BlockchainX Solutions", score: 3.7 }
 ];
 
 type SortOption = "name" | "score";
