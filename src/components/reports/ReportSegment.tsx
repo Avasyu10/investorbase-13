@@ -1,6 +1,5 @@
-
 import { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ParsedPdfSegment } from "@/lib/pdf-parser";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Loader } from "lucide-react";
@@ -24,9 +23,6 @@ export function ReportSegment({ segment, reportId, pdfUrl, pdfBlob }: ReportSegm
   const handleClick = () => {
     navigate(`/reports/${reportId}/sections/${segment.id}`);
   };
-
-  // Display the title without any numbers
-  const displayTitle = "Report Section";
   
   // Set canvas as mounted after initial render
   useEffect(() => {
@@ -73,13 +69,7 @@ export function ReportSegment({ segment, reportId, pdfUrl, pdfBlob }: ReportSegm
       className="transition-all duration-200 hover:shadow-md cursor-pointer hover:border-primary/50"
       onClick={handleClick}
     >
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg group flex items-center justify-between">
-          <span>{displayTitle}</span>
-          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-70 group-hover:text-primary" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="w-full h-[150px] relative border rounded overflow-hidden bg-muted/20">
           {isRenderingCanvas && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -90,6 +80,9 @@ export function ReportSegment({ segment, reportId, pdfUrl, pdfBlob }: ReportSegm
             ref={canvasRef} 
             className={`w-full h-full object-contain ${isRenderingCanvas ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
           />
+        </div>
+        <div className="flex justify-end mt-2">
+          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-70" />
         </div>
       </CardContent>
     </Card>

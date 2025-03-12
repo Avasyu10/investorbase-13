@@ -1,8 +1,7 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader, Calendar, FileText, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +26,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
     queryFn: () => getReportById(reportId),
   });
 
-  // Preload the PDF
   useEffect(() => {
     const loadPdf = async () => {
       if (!report?.pdf_url) return;
@@ -63,10 +61,8 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       
       try {
         setIsRenderingCanvas(true);
-        // Use cached blob if available
         const pdf = pdfBlob || await downloadReport(report.pdf_url);
         
-        // Render the page to the canvas at a slightly larger scale for detail view
         await renderPdfPageToCanvas(pdf, section.pageIndex, canvasRef.current, 1.5);
       } catch (error) {
         console.error('Error rendering PDF page:', error);
@@ -75,9 +71,7 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       }
     };
     
-    // Only render when PDF blob is available or we have report data
     if ((report && pdfBlob) || (report && !pdfBlob)) {
-      // Add a small delay to ensure the canvas is ready
       const timeoutId = setTimeout(() => {
         renderPdfPage();
       }, 50);
@@ -160,10 +154,7 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       <Separator className="my-6" />
       
       <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Report Section</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           <div className="flex justify-center w-full overflow-auto">
             <div className="max-w-full border rounded shadow-lg overflow-auto">
               {isRenderingCanvas && (
