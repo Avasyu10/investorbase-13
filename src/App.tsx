@@ -16,6 +16,20 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// App routes with Authentication
+const AppRoutes = () => (
+  <>
+    <Navbar />
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/reports/:id" element={<Report />} />
+      <Route path="/reports/:id/sections/:sectionId" element={<ReportSection />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -23,14 +37,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/reports/:id" element={<Report />} />
-            <Route path="/reports/:id/sections/:sectionId" element={<ReportSection />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
@@ -38,4 +45,3 @@ const App = () => (
 );
 
 export default App;
-
