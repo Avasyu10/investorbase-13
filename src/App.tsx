@@ -9,8 +9,9 @@ import { Navbar } from "@/components/layout/Navbar";
 
 // Pages
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Report from "./pages/Report";
+import Companies from "./pages/Companies";
+import CompanyDetails from "./pages/CompanyDetails";
+import SectionDetails from "./pages/SectionDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,8 +22,9 @@ const AppRoutes = () => (
     <Navbar />
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/reports/:id" element={<Report />} />
+      <Route path="/companies" element={<Companies />} />
+      <Route path="/companies/:id" element={<CompanyDetails />} />
+      <Route path="/companies/:companyId/sections/:sectionId" element={<SectionDetails />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </>
