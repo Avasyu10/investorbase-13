@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { renderPdfPageToCanvas } from "@/lib/pdf-parser";
-import * as pdfjsLib from 'pdfjs-dist';
 
 interface ReportSectionDetailProps {
   reportId: string;
@@ -19,7 +19,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
   const { toast } = useToast();
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [pageText, setPageText] = useState<string>("");
   const [isRenderingCanvas, setIsRenderingCanvas] = useState(true);
   
   const { data: report, isLoading, error } = useQuery({
@@ -78,19 +77,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
         
         // Render the page to the canvas at full size
         await renderPdfPageToCanvas(pdfBlob, section.pageIndex, canvasRef.current, 1.5);
-        
-        // Extract full text from the PDF page
-        const arrayBuffer = await pdfBlob.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const page = await pdf.getPage(section.pageIndex + 1); // +1 because PDF.js uses 1-based indices
-        const textContent = await page.getTextContent();
-        
-        // Combine all text items
-        const textItems = textContent.items
-          .filter((item: any) => item.str?.trim())
-          .map((item: any) => item.str.trim());
-        
-        setPageText(textItems.join('\n'));
       } catch (error) {
         console.error('Error rendering PDF page:', error);
       } finally {
@@ -202,15 +188,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
               />
             </div>
           </div>
-          
-          {pageText && (
-            <div className="mt-6 p-4 bg-muted/30 rounded-md">
-              <h3 className="text-sm font-semibold mb-2">Extracted Text:</h3>
-              <div className="whitespace-pre-line text-sm text-muted-foreground">
-                {pageText}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
