@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
@@ -22,7 +21,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     queryFn: () => getReportById(reportId),
   });
 
-  // Preload the PDF blob once when report data is available
   useEffect(() => {
     const loadPdf = async () => {
       if (!report?.pdf_url) return;
@@ -47,7 +45,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     if (!report) return;
     
     try {
-      // Use cached blob if available
       const blob = pdfBlob || await downloadReport(report.pdf_url);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -105,7 +102,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     );
   }
 
-  // Use the parsed segments from the PDF if available
   const reportSegments = report.parsedSegments || [];
 
   return (
@@ -138,7 +134,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       <div className="mb-4 flex items-center">
         <FileIcon className="mr-2 h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">PDF Pages</h2>
+        <h2 className="text-xl font-semibold">Report</h2>
       </div>
       
       {isLoadingPdf && (
