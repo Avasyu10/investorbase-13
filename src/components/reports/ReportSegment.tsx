@@ -25,8 +25,8 @@ export function ReportSegment({ segment, reportId, pdfUrl, pdfBlob }: ReportSegm
     navigate(`/reports/${reportId}/sections/${segment.id}`);
   };
 
-  // Display the title (page number)
-  const displayTitle = segment.title || "Untitled Section";
+  // Display the title without any numbers
+  const displayTitle = "Report Section";
   
   // Set canvas as mounted after initial render
   useEffect(() => {

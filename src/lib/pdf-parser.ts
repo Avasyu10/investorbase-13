@@ -417,7 +417,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
     if (numPages <= 2) {
       const result = [{
         id: 'full-report',
-        title: 'Full Report',
+        title: 'Report Content',
         content: 'This report is too short to be segmented.',
         pageNumbers: [1],
       }];
@@ -449,7 +449,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       
       segments.push({
         id,
-        title: `Section ${pageNum}`, // Changed from "Page" to "Section" to avoid page number references
+        title: "Report Section", // Remove any numbering, just use generic "Report Section" 
         content: textItems.join('\n'), // Store full page text content
         pageNumbers: [pageNum], // Keep for internal reference but don't display
         pageIndex: pageNum - 1 // Store 0-based page index for rendering
@@ -464,8 +464,8 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
     console.error('Error parsing PDF:', error);
     return [{
       id: 'error',
-      title: 'Error Parsing PDF',
-      content: 'There was an error extracting content from this PDF. Please download the report to view it.',
+      title: 'Error Parsing Report',
+      content: 'There was an error extracting content from this report. Please download the report to view it.',
       pageNumbers: [1],
     }];
   }

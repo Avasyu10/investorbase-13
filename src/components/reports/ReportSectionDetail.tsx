@@ -161,7 +161,7 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>{section.title}</CardTitle>
+          <CardTitle>Report Section</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex justify-center w-full overflow-auto">
