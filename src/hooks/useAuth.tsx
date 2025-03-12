@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -24,26 +23,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user || null);
-      setIsLoading(false);
-    });
-
-    // Set up listener for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user || null);
+    const fetchInitialSession = async () => {
+      try {
+        setIsLoading(true);
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error fetching session:', error);
+          throw error;
+        }
+        
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+          console.log('Restored session for user:', session.user.email);
+        }
+      } catch (error) {
+        console.error('Session restoration error:', error);
+        toast({
+          title: "Authentication error",
+          description: "There was a problem with your authentication status",
+          variant: "destructive",
+        });
+      } finally {
         setIsLoading(false);
+      }
+    };
+
+    fetchInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        console.log('Auth state changed:', event);
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
+        setIsLoading(false);
+        
+        if (event === 'SIGNED_IN') {
+          console.log('User signed in:', currentSession?.user?.email);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Session token refreshed');
+        }
       }
     );
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [toast]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {

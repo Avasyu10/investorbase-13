@@ -1,16 +1,18 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Loader } from "lucide-react";
+import { useState } from "react";
 
-export function SignupForm() {
-  const { signInWithGoogle, isLoading } = useAuth();
+const SignupForm = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { signUpWithEmail, isLoading } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await signInWithGoogle();
+    await signUpWithEmail(email, password);
   };
 
   return (
@@ -73,4 +75,6 @@ export function SignupForm() {
       </form>
     </Card>
   );
-}
+};
+
+export default SignupForm;
