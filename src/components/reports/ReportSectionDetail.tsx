@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Download, Loader, Calendar, FileText, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { renderPdfPageToCanvas } from "@/lib/pdf-parser";
 
 interface ReportSectionDetailProps {
@@ -19,7 +19,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
   const { toast } = useToast();
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isRenderingCanvas, setIsRenderingCanvas] = useState(true);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
@@ -71,7 +70,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       if (!section || section.pageIndex === undefined) return;
       
       try {
-        setIsRenderingCanvas(true);
         // Get the PDF blob
         const pdfBlob = await downloadReport(report.pdf_url);
         
@@ -79,8 +77,6 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
         await renderPdfPageToCanvas(pdfBlob, section.pageIndex, canvasRef.current, 1.5);
       } catch (error) {
         console.error('Error rendering PDF page:', error);
-      } finally {
-        setIsRenderingCanvas(false);
       }
     };
     
@@ -172,19 +168,18 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>{section.title}</CardTitle>
+          {section.pageNumbers && section.pageNumbers.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Page{section.pageNumbers.length > 1 ? 's' : ''}: {section.pageNumbers.join(', ')}
+            </p>
+          )}
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
           <div className="flex justify-center w-full overflow-auto">
             <div className="max-w-full border rounded shadow-lg overflow-auto">
-              {isRenderingCanvas && (
-                <div className="p-8 flex flex-col items-center justify-center">
-                  <Loader className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground mt-2">Rendering page...</p>
-                </div>
-              )}
               <canvas 
                 ref={canvasRef} 
-                className={`max-w-full h-auto ${isRenderingCanvas ? 'hidden' : 'block'}`}
+                className="max-w-full h-auto"
               />
             </div>
           </div>
