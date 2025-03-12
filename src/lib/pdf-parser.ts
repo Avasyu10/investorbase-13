@@ -1,4 +1,3 @@
-
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 
@@ -27,6 +26,42 @@ interface TitleCandidate {
   text: string;
   score: number;
   method: string;
+}
+
+// Function to extract title from the second line
+function extractTitleFromPage(textItems: TextItem[], viewport: any): string {
+  if (!textItems || textItems.length < 2) return "Untitled Page";
+  
+  // Convert text items to a more usable format with position and styling info
+  const items = textItems.map((item: any) => {
+    return {
+      text: item.str.trim(),
+      fontSize: item.transform[0], // In PDF.js, this transform value often correlates with font size
+      y: viewport.height - item.transform[5], // y-position, inverted to match top-down coordinate system
+      x: item.transform[4], // x-position
+      fontName: item.fontName || "",
+      isBold: item.fontName?.toLowerCase().includes('bold') || false
+    } as TextItemWithMetadata;
+  }).filter(item => item.text.length > 0);
+  
+  if (items.length === 0) return "Untitled Page";
+  
+  // Group text items that appear to be in the same line
+  const lineGroups = groupTextItemsByLine(items);
+  
+  // Get the second line if available, otherwise first line
+  if (lineGroups.length >= 2) {
+    const secondLine = lineGroups[1];
+    const title = secondLine.map(item => item.text).join(" ").trim();
+    return normalizeText(title);
+  } else if (lineGroups.length >= 1) {
+    // Fallback to first line if there's only one line
+    const firstLine = lineGroups[0];
+    const title = firstLine.map(item => item.text).join(" ").trim();
+    return normalizeText(title);
+  }
+  
+  return "Untitled Page";
 }
 
 // Function to fix spacing issues in extracted text
@@ -167,45 +202,6 @@ function normalizeText(text: string): string {
   }
   
   return normalized;
-}
-
-// Function to extract title from page using multiple methods
-function extractTitleFromPage(textItems: TextItem[], viewport: any): string {
-  if (!textItems || textItems.length === 0) return "Untitled Page";
-  
-  // Convert text items to a more usable format with position and styling info
-  const items = textItems.map((item: any) => {
-    return {
-      text: item.str.trim(),
-      fontSize: item.transform[0], // In PDF.js, this transform value often correlates with font size
-      y: viewport.height - item.transform[5], // y-position, inverted to match top-down coordinate system
-      x: item.transform[4], // x-position
-      fontName: item.fontName || "",
-      isBold: item.fontName?.toLowerCase().includes('bold') || false
-    } as TextItemWithMetadata;
-  }).filter(item => item.text.length > 0);
-  
-  if (items.length === 0) return "Untitled Page";
-  
-  // Group text items that appear to be in the same line
-  const lineGroups = groupTextItemsByLine(items);
-  
-  // Get candidates from different methods
-  const fontSizeCandidate = getFontSizeCandidate(items, lineGroups);
-  const positionCandidate = getPositionCandidate(items, lineGroups, viewport);
-  const styleCandidate = getStyleCandidate(items, lineGroups);
-  const contentCandidate = getContentCandidate(lineGroups);
-  
-  // Score and select the best candidate
-  const bestCandidate = selectBestCandidate([
-    fontSizeCandidate,
-    positionCandidate,
-    styleCandidate,
-    contentCandidate
-  ]);
-  
-  // Normalize the title to fix spacing issues
-  return normalizeText(bestCandidate || "Untitled Page");
 }
 
 // Group text items that appear to be in the same line
@@ -437,7 +433,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
         }
       }
       
-      // Extract title using our multi-method approach
+      // Extract title using our simplified approach - get second line
       let title = extractTitleFromPage(items, viewport);
       
       const id = `page-${pageNum}`;

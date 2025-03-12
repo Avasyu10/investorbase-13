@@ -17,6 +17,9 @@ export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
     navigate(`/reports/${reportId}/sections/${segment.id}`);
   };
 
+  // Display the title or a fallback
+  const displayTitle = segment.title || "Untitled Section";
+
   return (
     <Card 
       className="transition-all duration-200 hover:shadow-md cursor-pointer hover:border-primary/50"
@@ -24,12 +27,12 @@ export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
     >
       <CardHeader className="pb-2">
         <CardTitle className="text-lg group flex items-center justify-between">
-          <span>{segment.title}</span>
+          <span>{displayTitle}</span>
           <ArrowRight className="h-4 w-4 text-muted-foreground opacity-70 group-hover:text-primary" />
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Page number has been removed */}
+        {/* Content display can be added here if needed */}
       </CardContent>
     </Card>
   );
