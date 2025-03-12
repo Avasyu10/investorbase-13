@@ -18,7 +18,7 @@ const Index = () => {
 
   useEffect(() => {
     if (user && !isLoading) {
-      navigate('/companies');
+      navigate('/dashboard');
     }
   }, [user, isLoading, navigate]);
 

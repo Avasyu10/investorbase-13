@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -91,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Welcome back!",
       });
       
-      navigate('/companies');
+      navigate('/dashboard');
     } catch (error: any) {
       toast({
         title: "Sign in failed",
@@ -110,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/companies`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         }
       });
 
