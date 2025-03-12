@@ -5,9 +5,11 @@ import { getReports } from "@/lib/supabase";
 import { Loader } from "lucide-react";
 
 export function ReportsList() {
-  const { data: reports, isLoading, error } = useQuery({
+  const { data: reports, isLoading, error, refetch } = useQuery({
     queryKey: ["reports"],
     queryFn: getReports,
+    retry: 1, // Retry once if it fails
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) {
@@ -23,13 +25,19 @@ export function ReportsList() {
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64 flex-col">
         <div className="text-center space-y-2">
           <p className="text-destructive font-medium">Failed to load reports</p>
           <p className="text-sm text-muted-foreground">
-            There was an error loading your reports. Please try again later.
+            {error instanceof Error ? error.message : "Unknown error occurred"}
           </p>
         </div>
+        <button 
+          onClick={() => refetch()} 
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+        >
+          Try Again
+        </button>
       </div>
     );
   }

@@ -74,7 +74,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         <div className="text-center space-y-2">
           <p className="text-destructive font-medium">Failed to load report</p>
           <p className="text-sm text-muted-foreground">
-            There was an error loading this report. Please try again later.
+            {error instanceof Error ? error.message : "There was an error loading this report. Please try again later."}
           </p>
         </div>
       </div>

@@ -20,32 +20,103 @@ export type Report = {
 // Functions to interact with Supabase
 
 export async function getReports() {
-  const { data, error } = await supabase
+  // First try to get records from the reports table
+  const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching reports:', error);
-    throw error;
+  if (tableError) {
+    console.error('Error fetching reports from table:', tableError);
   }
 
-  return data as Report[];
+  // If we have records in the reports table, return them
+  if (tableData && tableData.length > 0) {
+    console.log('Found reports in table:', tableData);
+    return tableData as Report[];
+  }
+
+  // If no records in table, try to list files from storage
+  console.log('No reports found in table, checking storage...');
+  const { data: storageData, error: storageError } = await supabase
+    .storage
+    .from('reports')
+    .list();
+
+  if (storageError) {
+    console.error('Error listing reports from storage:', storageError);
+    throw storageError;
+  }
+
+  if (!storageData || storageData.length === 0) {
+    console.log('No reports found in storage either');
+    return [];
+  }
+
+  console.log('Found reports in storage:', storageData);
+  
+  // Create report objects from storage files
+  const reports: Report[] = storageData
+    .filter(file => file.name.endsWith('.pdf'))
+    .map(file => {
+      const fileName = file.name.replace('.pdf', '');
+      return {
+        id: file.id,
+        title: fileName.replace(/_/g, ' '),
+        description: `PDF report: ${fileName}`,
+        pdf_url: file.name,
+        created_at: file.created_at || new Date().toISOString(),
+        sections: []
+      };
+    });
+
+  return reports;
 }
 
 export async function getReportById(id: string) {
-  const { data, error } = await supabase
+  // First try to get the report from the reports table
+  const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    console.error('Error fetching report:', error);
-    throw error;
+  if (tableError) {
+    console.error('Error fetching report from table:', tableError);
   }
 
-  return data as Report;
+  // If we found the report in the table, return it
+  if (tableData) {
+    return tableData as Report;
+  }
+
+  // If not found in table, try to get file details from storage
+  console.log('Report not found in table, checking storage...');
+  const { data: storageData, error: storageError } = await supabase
+    .storage
+    .from('reports')
+    .list();
+
+  if (storageError) {
+    console.error('Error listing reports from storage:', storageError);
+    throw storageError;
+  }
+
+  const file = storageData?.find(file => file.id === id);
+  
+  if (!file) {
+    throw new Error('Report not found');
+  }
+
+  const fileName = file.name.replace('.pdf', '');
+  return {
+    id: file.id,
+    title: fileName.replace(/_/g, ' '),
+    description: `PDF report: ${fileName}`,
+    pdf_url: file.name,
+    created_at: file.created_at || new Date().toISOString(),
+    sections: []
+  } as Report;
 }
 
 export async function downloadReport(fileUrl: string) {
