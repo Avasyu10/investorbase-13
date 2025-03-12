@@ -37,21 +37,34 @@ function normalizeText(text: string): string {
   // Initial clean-up: trim and replace multiple spaces with a single space
   let normalized = text.replace(/\s+/g, ' ').trim();
   
-  // Check for abnormal spacing patterns
+  // Check for abnormal spacing patterns or all lowercase long text
   const hasAbnormalSpacing = (
     // Single letters with spaces (like "T h i s  i s  a  t e s t")
     /(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized) ||
     // No spaces between words that should have spaces (like "ThisIsATest" or "thisisatest")
-    (/^[a-zA-Z]{10,}$/.test(normalized) && !/^\d+$/.test(normalized))
+    (/^[a-zA-Z]{10,}$/.test(normalized) && !/^\d+$/.test(normalized)) ||
+    // All lowercase text that's reasonably long without proper spaces
+    (/^[a-z\s]{10,}$/.test(normalized) && normalized.split(' ').some(word => word.length > 12))
   );
   
   if (hasAbnormalSpacing) {
-    console.log("Detected abnormal spacing in text:", normalized);
+    console.log("Detected abnormal spacing or lowercase text:", normalized);
     
     // Try compromise NLP approach first
     try {
+      // For all lowercase long text without spaces, try to segment it
+      if (/^[a-z]{10,}$/.test(normalized)) {
+        const doc = nlp(normalized);
+        const possibleTerms = doc.terms().out('array');
+        if (possibleTerms.length > 1) {
+          normalized = possibleTerms.join(' ');
+        } else {
+          // If NLP couldn't segment it, try a simple heuristic approach
+          normalized = normalized.replace(/([a-z]{3,6})(?=[a-z]{3,})/g, '$1 ');
+        }
+      }
       // Remove all spaces for texts with excessive spacing
-      if (/(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized)) {
+      else if (/(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized)) {
         normalized = normalized.replace(/\s+/g, '');
       }
       
@@ -85,8 +98,36 @@ function normalizeText(text: string): string {
       console.error("Error in NLP normalization:", error);
       // Fallback to original approaches if NLP fails
       
+      // Strategy for all lowercase text without proper segmentation
+      if (/^[a-z]{10,}$/.test(normalized)) {
+        // Attempt to break at common words if found
+        const commonWords = [
+          'the', 'and', 'for', 'of', 'to', 'in', 'on', 'with', 'by', 'as', 'at',
+          'from', 'an', 'is', 'was', 'were', 'are', 'be', 'been', 'being',
+          'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could',
+          'report', 'page', 'summary', 'analysis', 'results', 'data', 'chart', 'graph',
+          'table', 'figure', 'section', 'chapter', 'appendix', 'index'
+        ];
+        
+        let bestResult = normalized;
+        for (const word of commonWords) {
+          if (normalized.includes(word)) {
+            const regex = new RegExp(`(${word})`, 'g');
+            bestResult = bestResult.replace(regex, ' $1 ');
+          }
+        }
+        
+        // If we found common words, clean up the spaces
+        if (bestResult !== normalized) {
+          normalized = bestResult.replace(/\s+/g, ' ').trim();
+        } else {
+          // If no common words found, try a simple heuristic to break at logical intervals
+          normalized = normalized.replace(/([a-z]{3,6})(?=[a-z]{3,})/g, '$1 ');
+        }
+      }
+      
       // Strategy 1: Handle text with excessive spacing between single characters
-      if (/(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized)) {
+      else if (/(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized)) {
         // Remove all spaces and prepare to add them back in logical places
         let noSpaces = normalized.replace(/\s+/g, '');
         
