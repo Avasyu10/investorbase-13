@@ -25,6 +25,7 @@ const AppRoutes = () => (
       <Route path="/companies" element={<Companies />} />
       <Route path="/companies/:id" element={<CompanyDetails />} />
       <Route path="/companies/:companyId/sections/:sectionId" element={<SectionDetails />} />
+      <Route path="/dashboard" element={<Navigate to="/companies" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </>
