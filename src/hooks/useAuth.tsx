@@ -9,8 +9,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -45,52 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signInWithGoogle = async () => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        }
       });
 
       if (error) throw error;
-      
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
-      });
-      
-      navigate('/dashboard');
     } catch (error: any) {
       toast({
         title: "Sign in failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Account created",
-        description: "Please check your email for the confirmation link.",
-      });
-      
-      navigate('/login');
-    } catch (error: any) {
-      toast({
-        title: "Sign up failed",
         description: error.message,
         variant: "destructive",
       });
@@ -103,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
-      navigate('/login');
+      navigate('/');
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
@@ -125,8 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         isLoading,
-        signIn,
-        signUp,
+        signInWithGoogle,
         signOut,
       }}
     >
