@@ -30,11 +30,25 @@ export function SectionSidebar({ companyId }: SectionSidebarProps) {
     return <div className="p-4 text-sm text-muted-foreground">No sections found</div>;
   }
 
+  // Define the order of metrics
+  const metricOrder = [
+    'PROBLEM', 'MARKET', 'SOLUTION', 'PRODUCT', 
+    'COMPETITIVE_LANDSCAPE', 'TRACTION', 'BUSINESS_MODEL', 
+    'GTM_STRATEGY', 'TEAM', 'FINANCIALS', 'ASK'
+  ];
+  
+  // Sort sections by metric type
+  const sortedSections = [...sections].sort((a, b) => {
+    const indexA = metricOrder.indexOf(a.metric_type || '');
+    const indexB = metricOrder.indexOf(b.metric_type || '');
+    return indexA - indexB;
+  });
+
   return (
     <div className="space-y-1 p-2">
-      <h4 className="px-2 py-1 text-sm font-semibold">Sections</h4>
+      <h4 className="px-2 py-1 text-sm font-semibold">Assessment Metrics</h4>
       <nav className="space-y-1">
-        {sections.map((section) => (
+        {sortedSections.map((section) => (
           <Link
             key={section.id}
             to={`/companies/${companyId}/sections/${section.id}`}

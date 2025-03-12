@@ -96,14 +96,18 @@ const CompanyDetails = () => {
             )}
             <h1 className="text-3xl font-bold">{company.name}</h1>
           </div>
-          <div className="text-4xl font-bold">{company.total_score}/100</div>
+          <div className="text-4xl font-bold">{company.total_score}/5</div>
         </div>
         
-        <Progress value={company.total_score} className="h-3" />
+        <Progress value={(company.total_score / 5) * 100} className="h-3" />
+        
+        <div className="mt-4 text-sm text-muted-foreground">
+          <p>Score based on assessment of Problem, Market, Solution, Product, Competitive Landscape, Traction, Business Model, GTM Strategy, Team, Financials, and Ask</p>
+        </div>
       </div>
       
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold mb-4">Section Scores</h2>
+        <h2 className="text-2xl font-semibold mb-4">Assessment Metrics</h2>
       </div>
       
       <SectionsList companyId={company.id} />

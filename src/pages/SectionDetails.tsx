@@ -105,6 +105,9 @@ const SectionDetails = () => {
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
               <div>
                 <h1 className="text-2xl font-bold">{section.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {section.metric_type?.replace('_', ' ')}
+                </p>
                 {section.description && (
                   <p className="text-muted-foreground mt-1">{section.description}</p>
                 )}

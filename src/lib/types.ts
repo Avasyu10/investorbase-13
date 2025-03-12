@@ -14,6 +14,7 @@ export type Section = {
   score: number;
   max_score: number;
   description: string | null;
+  metric_type: 'PROBLEM' | 'MARKET' | 'SOLUTION' | 'PRODUCT' | 'COMPETITIVE_LANDSCAPE' | 'TRACTION' | 'BUSINESS_MODEL' | 'GTM_STRATEGY' | 'TEAM' | 'FINANCIALS' | 'ASK';
   created_at: string;
 };
 

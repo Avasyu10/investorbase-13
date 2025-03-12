@@ -14,7 +14,12 @@ export function SectionCard({ section, companyId }: SectionCardProps) {
     <Link to={`/companies/${companyId}/sections/${section.id}`} className="block hover:no-underline">
       <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <h3 className="font-semibold">{section.name}</h3>
+          <div>
+            <h3 className="font-semibold">{section.name}</h3>
+            <p className="text-xs text-muted-foreground">
+              {section.metric_type?.replace('_', ' ')}
+            </p>
+          </div>
           <div className="text-2xl font-bold">{section.score}</div>
         </CardHeader>
         <CardContent>
