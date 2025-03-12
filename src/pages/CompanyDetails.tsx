@@ -104,6 +104,22 @@ const CompanyDetails = () => {
       
       <div className="mb-6">
         <h2 className="text-2xl font-semibold mb-4">Section Scores</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium mb-2">Problem-Market-Solution Fit</h3>
+            <p className="text-muted-foreground text-sm">Assessment of the core problem, market opportunity, and proposed solution.</p>
+          </div>
+          
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium mb-2">Business Viability</h3>
+            <p className="text-muted-foreground text-sm">Evaluation of the business model, traction, and competitive positioning.</p>
+          </div>
+          
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium mb-2">Execution Capability</h3>
+            <p className="text-muted-foreground text-sm">Analysis of the team, go-to-market strategy, and financial projections.</p>
+          </div>
+        </div>
       </div>
       
       <SectionsList companyId={company.id} />
