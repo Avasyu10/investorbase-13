@@ -58,14 +58,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     }).format(date);
   };
 
-  // Sample report segments (in a real app, this would come from the database)
-  const reportSegments = [
-    { id: "summary", title: "Executive Summary", content: "This report provides an overview of our quarterly performance." },
-    { id: "financial", title: "Financial Analysis", content: "Revenue increased by 15% compared to the previous quarter." },
-    { id: "operations", title: "Operational Metrics", content: "Customer satisfaction reached 92%, up from 87% last quarter." },
-    { id: "forecast", title: "Future Outlook", content: "We anticipate continued growth in the next quarter based on current trends." }
-  ];
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -89,6 +81,9 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       </div>
     );
   }
+
+  // Use the parsed segments from the PDF if available
+  const reportSegments = report.parsedSegments || [];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -131,11 +126,17 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         </TabsList>
         
         <TabsContent value="preview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {reportSegments.map(segment => (
-              <ReportSegment key={segment.id} segment={segment} />
-            ))}
-          </div>
+          {reportSegments.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {reportSegments.map(segment => (
+                <ReportSegment key={segment.id} segment={segment} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No segments could be extracted from this PDF. Please download the full report.</p>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="sections" className="space-y-4">

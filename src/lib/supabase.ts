@@ -1,5 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
+import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 
 // These are provided by your Supabase project
 const supabaseUrl = 'https://jhtnruktmtjqrfoiyrep.supabase.co';
@@ -15,6 +16,7 @@ export type Report = {
   pdf_url: string;
   created_at: string;
   sections?: string[];
+  parsedSegments?: ParsedPdfSegment[];
 };
 
 // Functions to interact with Supabase
@@ -85,38 +87,57 @@ export async function getReportById(id: string) {
     console.error('Error fetching report from table:', tableError);
   }
 
-  // If we found the report in the table, return it
+  // If we found the report in the table, prepare to return it
+  let report: Report | null = null;
   if (tableData) {
-    return tableData as Report;
+    report = tableData as Report;
+  } else {
+    // If not found in table, try to get file details from storage
+    console.log('Report not found in table, checking storage...');
+    const { data: storageData, error: storageError } = await supabase
+      .storage
+      .from('reports')
+      .list();
+
+    if (storageError) {
+      console.error('Error listing reports from storage:', storageError);
+      throw storageError;
+    }
+
+    const file = storageData?.find(file => file.id === id);
+    
+    if (!file) {
+      throw new Error('Report not found');
+    }
+
+    const fileName = file.name.replace('.pdf', '');
+    report = {
+      id: file.id,
+      title: fileName.replace(/_/g, ' '),
+      description: `PDF report: ${fileName}`,
+      pdf_url: file.name,
+      created_at: file.created_at || new Date().toISOString(),
+      sections: []
+    } as Report;
   }
 
-  // If not found in table, try to get file details from storage
-  console.log('Report not found in table, checking storage...');
-  const { data: storageData, error: storageError } = await supabase
-    .storage
-    .from('reports')
-    .list();
-
-  if (storageError) {
-    console.error('Error listing reports from storage:', storageError);
-    throw storageError;
+  // Now parse the PDF content
+  try {
+    // Download the file
+    const pdfBlob = await downloadReport(report.pdf_url);
+    
+    // Parse the PDF content
+    const parsedSegments = await parsePdfFromBlob(pdfBlob);
+    
+    // Add parsed segments to the report
+    report.parsedSegments = parsedSegments;
+    
+    return report;
+  } catch (error) {
+    console.error('Error parsing PDF content:', error);
+    // Return the report without parsed segments if parsing fails
+    return report;
   }
-
-  const file = storageData?.find(file => file.id === id);
-  
-  if (!file) {
-    throw new Error('Report not found');
-  }
-
-  const fileName = file.name.replace('.pdf', '');
-  return {
-    id: file.id,
-    title: fileName.replace(/_/g, ' '),
-    description: `PDF report: ${fileName}`,
-    pdf_url: file.name,
-    created_at: file.created_at || new Date().toISOString(),
-    sections: []
-  } as Report;
 }
 
 export async function downloadReport(fileUrl: string) {
