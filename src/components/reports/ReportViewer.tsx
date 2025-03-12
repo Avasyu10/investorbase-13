@@ -3,11 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Download, Loader, Calendar, FileText, Eye } from "lucide-react";
+import { Download, Loader, Calendar, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef, useEffect } from "react";
 
 interface ReportViewerProps {
   reportId: string;
@@ -15,45 +13,11 @@ interface ReportViewerProps {
 
 export function ReportViewer({ reportId }: ReportViewerProps) {
   const { toast } = useToast();
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
     queryFn: () => getReportById(reportId),
   });
-
-  useEffect(() => {
-    if (report && !pdfUrl) {
-      loadPdfPreview();
-    }
-  }, [report]);
-
-  const loadPdfPreview = async () => {
-    if (!report) return;
-    
-    try {
-      setPreviewLoading(true);
-      const blob = await downloadReport(report.pdf_url);
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      
-      // Clean up URL when component unmounts
-      return () => {
-        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-      };
-    } catch (error) {
-      console.error("Preview loading error:", error);
-      toast({
-        title: "Preview failed",
-        description: "There was an error loading the PDF preview",
-        variant: "destructive",
-      });
-    } finally {
-      setPreviewLoading(false);
-    }
-  };
 
   const handleDownload = async () => {
     if (!report) return;
@@ -145,89 +109,27 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       <Separator className="my-6" />
       
       {report.sections && report.sections.length > 0 ? (
-        <Tabs defaultValue="preview" className="w-full">
-          <TabsList className="grid grid-cols-2 mb-6">
-            <TabsTrigger value="preview" className="transition-all duration-200">
-              <Eye className="mr-2 h-4 w-4" />
-              PDF Preview
-            </TabsTrigger>
-            <TabsTrigger value="sections" className="transition-all duration-200">
-              <FileText className="mr-2 h-4 w-4" />
-              Sections
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="preview" className="animate-fade-in">
-            <Card className="mb-4">
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Report Sections</h2>
+          {report.sections.map((section) => (
+            <Card key={section} className="mb-4">
               <CardContent className="pt-6">
-                {previewLoading ? (
-                  <div className="flex justify-center items-center h-64">
-                    <div className="flex flex-col items-center space-y-2">
-                      <Loader className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">Loading PDF preview...</p>
-                    </div>
-                  </div>
-                ) : pdfUrl ? (
-                  <div className="aspect-[16/9] w-full rounded-lg overflow-hidden border border-gray-200">
-                    <iframe 
-                      ref={iframeRef}
-                      src={pdfUrl}
-                      className="w-full h-full"
-                      title={`${report.title} preview`}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex justify-center items-center h-64">
-                    <p className="text-sm text-muted-foreground">
-                      PDF preview could not be loaded. Try downloading the file instead.
-                    </p>
-                  </div>
-                )}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">{section}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {section} content would be displayed here.
+                  </p>
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="sections" className="animate-fade-in">
-            {report.sections.map((section) => (
-              <Card key={section} className="mb-4">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{section}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      This section preview would display content extracted from the PDF.
-                      In a production environment, you would use a PDF parsing library to
-                      extract and display the content of this section.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-        </Tabs>
+          ))}
+        </div>
       ) : (
         <Card>
           <CardContent className="pt-6">
-            {previewLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="flex flex-col items-center space-y-2">
-                  <Loader className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Loading PDF preview...</p>
-                </div>
-              </div>
-            ) : pdfUrl ? (
-              <div className="aspect-[16/9] w-full rounded-lg overflow-hidden border border-gray-200">
-                <iframe 
-                  ref={iframeRef}
-                  src={pdfUrl}
-                  className="w-full h-full"
-                  title={`${report.title} preview`}
-                />
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                PDF preview could not be loaded. Try downloading the file instead.
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              This report does not have any sections defined. Please use the download button to view the full report.
+            </p>
           </CardContent>
         </Card>
       )}
