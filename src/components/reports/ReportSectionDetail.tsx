@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Download, Loader, Calendar, FileText, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { renderPdfPageToCanvas } from "@/lib/pdf-parser";
 
 interface ReportSectionDetailProps {
   reportId: string;
@@ -16,6 +18,7 @@ interface ReportSectionDetailProps {
 export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetailProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
@@ -58,6 +61,29 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
       day: 'numeric' 
     }).format(date);
   };
+
+  useEffect(() => {
+    const renderPdfPage = async () => {
+      if (!report || !canvasRef.current) return;
+      
+      const section = report.parsedSegments?.find(segment => segment.id === sectionId);
+      if (!section || section.pageIndex === undefined) return;
+      
+      try {
+        // Get the PDF blob
+        const pdfBlob = await downloadReport(report.pdf_url);
+        
+        // Render the page to the canvas at full size
+        await renderPdfPageToCanvas(pdfBlob, section.pageIndex, canvasRef.current, 1.5);
+      } catch (error) {
+        console.error('Error rendering PDF page:', error);
+      }
+    };
+    
+    if (report) {
+      renderPdfPage();
+    }
+  }, [report, sectionId, reportId]);
 
   if (isLoading) {
     return (
@@ -149,39 +175,13 @@ export function ReportSectionDetail({ reportId, sectionId }: ReportSectionDetail
           )}
         </CardHeader>
         <CardContent>
-          <div className="prose prose-sm max-w-none">
-            <p className="whitespace-pre-line">{section.content}</p>
-            
-            {/* Specialized visualizations based on section content */}
-            {section.id.includes('financial') && (
-              <div className="mt-8 h-64 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">Financial data visualization</p>
-              </div>
-            )}
-            
-            {section.id.includes('baseline') && (
-              <div className="mt-8 h-64 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">Baseline score visualization</p>
-              </div>
-            )}
-            
-            {section.id.includes('risk') && (
-              <div className="mt-8 h-64 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">Risk factors visualization</p>
-              </div>
-            )}
-            
-            {section.id.includes('assessment') && (
-              <div className="mt-8 h-64 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">Assessment results visualization</p>
-              </div>
-            )}
-            
-            {section.id.includes('summary') && (
-              <div className="mt-8 h-64 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground text-sm">Summary insights visualization</p>
-              </div>
-            )}
+          <div className="flex justify-center w-full overflow-auto">
+            <div className="max-w-full border rounded shadow-lg overflow-auto">
+              <canvas 
+                ref={canvasRef} 
+                className="max-w-full h-auto"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

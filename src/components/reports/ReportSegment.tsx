@@ -1,8 +1,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ParsedPdfSegment } from "@/lib/pdf-parser";
+import { ParsedPdfSegment, renderPdfPageToCanvas } from "@/lib/pdf-parser";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, FileText } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { downloadReport } from "@/lib/supabase";
 
 interface ReportSegmentProps {
   segment: ParsedPdfSegment;
@@ -11,12 +13,25 @@ interface ReportSegmentProps {
 
 export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
   const navigate = useNavigate();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Truncate content if it's too long
-  const truncateContent = (content: string, maxLength = 200) => {
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength) + '...';
-  };
+  useEffect(() => {
+    const renderPage = async () => {
+      if (!canvasRef.current || segment.pageIndex === undefined) return;
+      
+      try {
+        // Get the PDF blob
+        const pdfBlob = await downloadReport(reportId);
+        
+        // Render the page to the canvas
+        await renderPdfPageToCanvas(pdfBlob, segment.pageIndex, canvasRef.current, 0.5); // Scale down to 50%
+      } catch (error) {
+        console.error('Error rendering PDF page preview:', error);
+      }
+    };
+    
+    renderPage();
+  }, [segment, reportId]);
 
   const handleClick = () => {
     navigate(`/reports/${reportId}/sections/${segment.id}`);
@@ -39,22 +54,19 @@ export function ReportSegment({ segment, reportId }: ReportSegmentProps) {
         )}
       </CardHeader>
       <CardContent>
-        <div className="prose prose-sm max-w-none">
-          <p>{truncateContent(segment.content)}</p>
-          
-          {/* Visualization for financial data */}
-          {segment.id.includes('financial') && (
-            <div className="mt-4 h-32 bg-muted rounded-md flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">Financial chart visualization</p>
-            </div>
-          )}
-          
-          {/* Visualization for metrics and operational data */}
-          {(segment.id.includes('metrics') || segment.id.includes('operation')) && (
-            <div className="mt-4 h-32 bg-muted rounded-md flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">Operations metrics visualization</p>
-            </div>
-          )}
+        <div className="flex flex-col items-center overflow-hidden">
+          <div className="relative w-full border rounded shadow-sm max-h-[280px] overflow-hidden">
+            {segment.pageIndex !== undefined ? (
+              <canvas 
+                ref={canvasRef} 
+                className="w-full h-auto object-contain" 
+              />
+            ) : (
+              <div className="flex items-center justify-center h-48 bg-muted">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

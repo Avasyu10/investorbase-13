@@ -11,6 +11,7 @@ export interface ParsedPdfSegment {
   content: string;
   pageNumbers: number[];
   isTitle?: boolean;
+  pageIndex?: number; // Store page index for rendering
 }
 
 export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[]> {
@@ -74,20 +75,14 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
         title = `Page ${pageNum}`;
       }
       
-      // Collect all text content (excluding the title)
-      const contentItems = items
-        .map(item => (item as any).str || '')
-        .filter(str => str.trim() && str.trim() !== title.trim());
-      
-      const content = contentItems.join(' ');
-      
       const id = `page-${pageNum}`;
       
       segments.push({
         id,
         title,
-        content: content || `Content from page ${pageNum}`,
+        content: `Page ${pageNum} of the PDF report`, // Simplified content, since we'll show the page preview
         pageNumbers: [pageNum],
+        pageIndex: pageNum - 1 // Store 0-based page index for rendering
       });
     }
 
@@ -100,5 +95,52 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       content: 'There was an error extracting content from this PDF. Please download the report to view it.',
       pageNumbers: [1],
     }];
+  }
+}
+
+// New function to render a PDF page to a canvas
+export async function renderPdfPageToCanvas(
+  pdfBlob: Blob, 
+  pageIndex: number, 
+  canvas: HTMLCanvasElement,
+  scale: number = 1.0
+): Promise<void> {
+  try {
+    const arrayBuffer = await pdfBlob.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    // Get the page
+    const page = await pdf.getPage(pageIndex + 1); // +1 because PDF.js uses 1-based indices
+    
+    // Get the viewport
+    const viewport = page.getViewport({ scale });
+    
+    // Set canvas dimensions to match the viewport
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    
+    // Get the rendering context
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas context not available');
+    
+    // Render the page
+    await page.render({
+      canvasContext: context,
+      viewport,
+    }).promise;
+    
+  } catch (error) {
+    console.error('Error rendering PDF page:', error);
+    
+    // Draw error message on canvas
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.fillStyle = '#f8f9fa';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#e11d48';
+      context.font = '14px sans-serif';
+      context.textAlign = 'center';
+      context.fillText('Error rendering page', canvas.width / 2, canvas.height / 2);
+    }
   }
 }
