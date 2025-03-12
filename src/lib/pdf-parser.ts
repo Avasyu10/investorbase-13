@@ -41,38 +41,50 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       
       if (items.length === 0) continue;
       
-      // Find the text item with the largest font size to use as title
-      let largestFontItem: any = null;
-      let largestFontSize = 0;
+      // Group text items into paragraphs
+      const paragraphs: string[] = [];
+      let currentParagraph = '';
+      let lastY: number | null = null;
       
-      // First pass: find the largest font size
       for (let i = 0; i < items.length; i++) {
         const item = items[i] as any;
-        // Skip empty items
         if (!item.str?.trim()) continue;
         
-        // Check if this item has font size info
-        if (item.transform && item.transform.length >= 6) {
-          // In PDF.js, the font size can be approximated from the transform matrix
-          // The vertical scale factor is often at index 3
-          const fontSize = Math.abs(item.transform[3]);
-          
-          if (fontSize > largestFontSize) {
-            largestFontSize = fontSize;
-            largestFontItem = item;
+        const itemY = item.transform[5]; // Y position in the transform matrix
+        
+        // If this is a new line (Y position changed significantly)
+        if (lastY !== null && Math.abs(itemY - lastY) > 5) {
+          if (currentParagraph.trim()) {
+            paragraphs.push(currentParagraph.trim());
+            currentParagraph = '';
           }
         }
+        
+        currentParagraph += item.str + ' ';
+        lastY = itemY;
       }
       
-      // Set title based on largest font item or fallback
+      // Add the last paragraph
+      if (currentParagraph.trim()) {
+        paragraphs.push(currentParagraph.trim());
+      }
+      
+      // Use the second paragraph as title if available, otherwise use the first
       let title = '';
-      if (largestFontItem && largestFontItem.str) {
-        title = largestFontItem.str.trim();
+      if (paragraphs.length >= 2) {
+        title = paragraphs[1];
+      } else if (paragraphs.length === 1) {
+        title = paragraphs[0];
       }
       
-      // If no title could be determined, use Page X
+      // If no paragraphs were found, use a default title
       if (!title) {
         title = `Page ${pageNum}`;
+      }
+      
+      // Trim long titles
+      if (title.length > 100) {
+        title = title.substring(0, 97) + '...';
       }
       
       const id = `page-${pageNum}`;
