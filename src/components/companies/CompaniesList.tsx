@@ -1,8 +1,16 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { ListFilter } from "lucide-react";
 
 // Dummy data for companies and their scores
 const COMPANIES_DATA = [
@@ -16,9 +24,23 @@ const COMPANIES_DATA = [
   { id: 8, name: "EcoTrends", score: 3.5 },
 ];
 
+type SortOption = "name" | "score";
+
 export function CompaniesList() {
   const navigate = useNavigate();
-  const [companies] = useState(COMPANIES_DATA);
+  const [companiesData] = useState(COMPANIES_DATA);
+  const [sortBy, setSortBy] = useState<SortOption>("name");
+
+  // Sort companies based on the selected option
+  const sortedCompanies = useMemo(() => {
+    return [...companiesData].sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
+      } else {
+        return b.score - a.score; // Sort by score descending
+      }
+    });
+  }, [companiesData, sortBy]);
 
   const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
@@ -26,15 +48,33 @@ export function CompaniesList() {
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
-        <p className="text-muted-foreground mt-1">
-          Select a company to view detailed metrics
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
+          <p className="text-muted-foreground mt-1">
+            Select a company to view detailed metrics
+          </p>
+        </div>
+        
+        <div className="mt-4 md:mt-0">
+          <Select
+            value={sortBy}
+            onValueChange={(value) => setSortBy(value as SortOption)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <ListFilter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Sort by name</SelectItem>
+              <SelectItem value="score">Sort by score</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {companies.map((company) => (
+        {sortedCompanies.map((company) => (
           <Card 
             key={company.id} 
             className="cursor-pointer transition-all hover:shadow-md"
