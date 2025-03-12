@@ -1,6 +1,7 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
+import nlp from 'compromise';
 
 // Set the worker source path
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -29,11 +30,11 @@ interface TitleCandidate {
   method: string;
 }
 
-// Function to fix spacing issues in extracted text
+// Function to fix spacing issues in extracted text using NLP
 function normalizeText(text: string): string {
   if (!text) return "Untitled Page";
   
-  // Trim the text and replace multiple spaces with a single space
+  // Initial clean-up: trim and replace multiple spaces with a single space
   let normalized = text.replace(/\s+/g, ' ').trim();
   
   // Check for abnormal spacing patterns
@@ -45,115 +46,157 @@ function normalizeText(text: string): string {
   );
   
   if (hasAbnormalSpacing) {
-    // Strategy 1: Handle text with excessive spacing between single characters
-    if (/(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized)) {
-      // Remove all spaces and prepare to add them back in logical places
-      let noSpaces = normalized.replace(/\s+/g, '');
+    console.log("Detected abnormal spacing in text:", normalized);
+    
+    // Try compromise NLP approach first
+    try {
+      // Remove all spaces for texts with excessive spacing
+      if (/(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized)) {
+        normalized = normalized.replace(/\s+/g, '');
+      }
       
-      // Strategy for mixed case (camelCase or PascalCase)
-      if (/[a-z]/.test(noSpaces) && /[A-Z]/.test(noSpaces)) {
-        // Add spaces between lowercase followed by uppercase for camelCase
-        normalized = noSpaces.replace(/([a-z])([A-Z])/g, '$1 $2');
-      } 
-      // Strategy for all lowercase or all uppercase
-      else {
-        // Use common word boundaries for all-lowercase or all-uppercase text
-        const commonWords = [
-          'the', 'and', 'for', 'of', 'to', 'in', 'on', 'with', 'by', 'as', 'at',
-          'from', 'an', 'is', 'was', 'were', 'are', 'be', 'been', 'being',
-          'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could',
-          'report', 'page', 'summary', 'analysis', 'results', 'data', 'chart', 'graph',
-          'table', 'figure', 'section', 'chapter', 'appendix', 'index', 'baseline',
-          'financial', 'operational', 'strategic', 'tactical', 'performance'
-        ];
-        
-        // Start with the no-spaces text
-        let bestResult = noSpaces;
-        
-        // A: Try to find and separate common words
-        let potentialResult = noSpaces;
-        for (const word of commonWords) {
-          if (potentialResult.toLowerCase().includes(word)) {
-            const regex = new RegExp(`(${word})`, 'gi');
-            potentialResult = potentialResult.replace(regex, ' $1 ');
+      const doc = nlp(normalized);
+      
+      // Use compromise's natural language processing to normalize the text
+      if (doc.terms().length > 0) {
+        // Handle camelCase and PascalCase
+        if (/[a-z]/.test(normalized) && /[A-Z]/.test(normalized)) {
+          normalized = normalized.replace(/([a-z])([A-Z])/g, '$1 $2');
+        }
+        // For all lowercase text, use nlp to find terms and add spaces
+        else if (normalized === normalized.toLowerCase() && normalized.length > 6) {
+          // Split the text into possible words and join with spaces
+          const possibleTerms = doc.terms().json().map((term: any) => term.text);
+          if (possibleTerms.length > 1) {
+            normalized = possibleTerms.join(' ');
           }
         }
-        potentialResult = potentialResult.replace(/\s+/g, ' ').trim();
+      }
+      
+      // Final cleanup with NLP
+      const finalDoc = nlp(normalized);
+      const sentences = finalDoc.sentences().out('array');
+      if (sentences.length > 0) {
+        normalized = sentences.join(' ');
+      }
+      
+      console.log("NLP normalized text:", normalized);
+    } catch (error) {
+      console.error("Error in NLP normalization:", error);
+      // Fallback to original approaches if NLP fails
+      
+      // Strategy 1: Handle text with excessive spacing between single characters
+      if (/(\b\w\s\w\s\w\b|\b(\w\s){2,})/.test(normalized)) {
+        // Remove all spaces and prepare to add them back in logical places
+        let noSpaces = normalized.replace(/\s+/g, '');
         
-        // If we found some words, use that result
-        if (potentialResult !== noSpaces) {
-          bestResult = potentialResult;
-        }
-        // B: If no common words were found, use simple length-based heuristics for all-lowercase
-        else if (noSpaces.length > 6) {
-          // For all lowercase text, try to insert spaces after typical word lengths
-          if (noSpaces === noSpaces.toLowerCase()) {
-            // Insert potential spaces at typical word boundaries
-            let withSpaces = '';
-            let currentWord = '';
-            
-            for (let i = 0; i < noSpaces.length; i++) {
-              currentWord += noSpaces[i];
-              
-              // Try to break at logical word lengths (3-6 characters)
-              if (currentWord.length >= 3 && currentWord.length <= 6 && i < noSpaces.length - 1) {
-                // Look ahead to see if adding one more character would make it a common word
-                const lookAhead = currentWord + noSpaces[i+1];
-                if (commonWords.includes(lookAhead.toLowerCase())) {
-                  continue; // Don't break yet, add the next character
-                }
-                
-                withSpaces += currentWord + ' ';
-                currentWord = '';
-              }
+        // Strategy for mixed case (camelCase or PascalCase)
+        if (/[a-z]/.test(noSpaces) && /[A-Z]/.test(noSpaces)) {
+          // Add spaces between lowercase followed by uppercase for camelCase
+          normalized = noSpaces.replace(/([a-z])([A-Z])/g, '$1 $2');
+        } 
+        // Strategy for all lowercase or all uppercase
+        else {
+          // Use common word boundaries for all-lowercase or all-uppercase text
+          const commonWords = [
+            'the', 'and', 'for', 'of', 'to', 'in', 'on', 'with', 'by', 'as', 'at',
+            'from', 'an', 'is', 'was', 'were', 'are', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could',
+            'report', 'page', 'summary', 'analysis', 'results', 'data', 'chart', 'graph',
+            'table', 'figure', 'section', 'chapter', 'appendix', 'index', 'baseline',
+            'financial', 'operational', 'strategic', 'tactical', 'performance',
+            'assessment', 'evaluation', 'review', 'opportunity', 'executive'
+          ];
+          
+          // Start with the no-spaces text
+          let bestResult = noSpaces;
+          
+          // A: Try to find and separate common words
+          let potentialResult = noSpaces;
+          for (const word of commonWords) {
+            if (potentialResult.toLowerCase().includes(word)) {
+              const regex = new RegExp(`(${word})`, 'gi');
+              potentialResult = potentialResult.replace(regex, ' $1 ');
             }
-            
-            // Add the last word
-            withSpaces += currentWord;
-            bestResult = withSpaces.trim();
           }
-        }
-        
-        normalized = bestResult;
-      }
-    }
-    // Strategy 2: Handle text without spaces (like "thisisatest" or "ThisIsATest")
-    else if (/^[a-zA-Z]{10,}$/.test(normalized)) {
-      // For PascalCase or camelCase
-      if (/[A-Z]/.test(normalized.substring(1))) {
-        normalized = normalized
-          .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase
-          .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2'); // PascalCase
-      }
-      // For all lowercase without spaces
-      else {
-        // Use the same common words algorithm from above
-        const commonWords = [
-          'the', 'and', 'for', 'of', 'to', 'in', 'on', 'with', 'by', 'as', 'at',
-          'from', 'an', 'is', 'was', 'were', 'are', 'be', 'been', 'being',
-          'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could',
-          'report', 'page', 'summary', 'analysis', 'results', 'data', 'chart', 'graph',
-          'table', 'figure', 'section', 'chapter', 'appendix', 'index', 'baseline',
-          'financial', 'operational', 'strategic', 'tactical', 'performance'
-        ];
-        
-        let bestResult = normalized;
-        let potentialResult = normalized;
-        
-        // Try to find common words in the all-lowercase string
-        for (const word of commonWords) {
-          if (potentialResult.toLowerCase().includes(word)) {
-            const regex = new RegExp(`(${word})`, 'gi');
-            potentialResult = potentialResult.replace(regex, ' $1 ');
+          potentialResult = potentialResult.replace(/\s+/g, ' ').trim();
+          
+          // If we found some words, use that result
+          if (potentialResult !== noSpaces) {
+            bestResult = potentialResult;
           }
+          // B: If no common words were found, use simple length-based heuristics for all-lowercase
+          else if (noSpaces.length > 6) {
+            // For all lowercase text, try to insert spaces after typical word lengths
+            if (noSpaces === noSpaces.toLowerCase()) {
+              // Insert potential spaces at typical word boundaries
+              let withSpaces = '';
+              let currentWord = '';
+              
+              for (let i = 0; i < noSpaces.length; i++) {
+                currentWord += noSpaces[i];
+                
+                // Try to break at logical word lengths (3-6 characters)
+                if (currentWord.length >= 3 && currentWord.length <= 6 && i < noSpaces.length - 1) {
+                  // Look ahead to see if adding one more character would make it a common word
+                  const lookAhead = currentWord + noSpaces[i+1];
+                  if (commonWords.includes(lookAhead.toLowerCase())) {
+                    continue; // Don't break yet, add the next character
+                  }
+                  
+                  withSpaces += currentWord + ' ';
+                  currentWord = '';
+                }
+              }
+              
+              // Add the last word
+              withSpaces += currentWord;
+              bestResult = withSpaces.trim();
+            }
+          }
+          
+          normalized = bestResult;
         }
-        potentialResult = potentialResult.replace(/\s+/g, ' ').trim();
-        
-        if (potentialResult !== normalized) {
-          bestResult = potentialResult;
+      }
+      // Strategy 2: Handle text without spaces (like "thisisatest" or "ThisIsATest")
+      else if (/^[a-zA-Z]{10,}$/.test(normalized)) {
+        // For PascalCase or camelCase
+        if (/[A-Z]/.test(normalized.substring(1))) {
+          normalized = normalized
+            .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase
+            .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2'); // PascalCase
         }
-        
-        normalized = bestResult;
+        // For all lowercase without spaces
+        else {
+          // Use the same common words algorithm from above
+          const commonWords = [
+            'the', 'and', 'for', 'of', 'to', 'in', 'on', 'with', 'by', 'as', 'at',
+            'from', 'an', 'is', 'was', 'were', 'are', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could',
+            'report', 'page', 'summary', 'analysis', 'results', 'data', 'chart', 'graph',
+            'table', 'figure', 'section', 'chapter', 'appendix', 'index', 'baseline',
+            'financial', 'operational', 'strategic', 'tactical', 'performance',
+            'assessment', 'evaluation', 'review', 'opportunity', 'executive'
+          ];
+          
+          let bestResult = normalized;
+          let potentialResult = normalized;
+          
+          // Try to find common words in the all-lowercase string
+          for (const word of commonWords) {
+            if (potentialResult.toLowerCase().includes(word)) {
+              const regex = new RegExp(`(${word})`, 'gi');
+              potentialResult = potentialResult.replace(regex, ' $1 ');
+            }
+          }
+          potentialResult = potentialResult.replace(/\s+/g, ' ').trim();
+          
+          if (potentialResult !== normalized) {
+            bestResult = potentialResult;
+          }
+          
+          normalized = bestResult;
+        }
       }
     }
   }
@@ -439,6 +482,7 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
       
       // Extract title using our multi-method approach
       let title = extractTitleFromPage(items, viewport);
+      console.log(`Page ${pageNum} - Raw title: ${title}`);
       
       const id = `page-${pageNum}`;
       
