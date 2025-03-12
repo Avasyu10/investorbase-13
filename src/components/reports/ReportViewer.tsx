@@ -149,14 +149,14 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
               <h2 className="text-xl font-semibold">Report Sections</h2>
               {report.sections.map((section) => (
                 <Card key={section} className="mb-4">
-                  <CardContent className="pt-6">
+                  <div className="pt-6 p-6">
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium">{section}</h3>
                       <p className="text-sm text-muted-foreground">
                         {section} content would be displayed here.
                       </p>
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
               ))}
             </div>
