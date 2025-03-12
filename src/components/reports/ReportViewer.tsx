@@ -134,7 +134,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       <div className="mb-4 flex items-center">
         <FileIcon className="mr-2 h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Report</h2>
+        <h2 className="text-xl font-semibold">Detailed Report</h2>
       </div>
       
       {isLoadingPdf && (
