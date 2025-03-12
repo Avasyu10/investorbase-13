@@ -1,4 +1,3 @@
-
 import * as pdfjsLib from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 
@@ -27,6 +26,85 @@ interface TitleCandidate {
   text: string;
   score: number;
   method: string;
+}
+
+// Function to fix spacing issues in extracted text
+function normalizeText(text: string): string {
+  if (!text) return "Untitled Page";
+  
+  // Trim the text and replace multiple spaces with a single space
+  let normalized = text.replace(/\s+/g, ' ').trim();
+  
+  // Check if text has spaces between almost every character
+  // This pattern detects text like "B a s e l i n e"
+  const singleCharPattern = /(\b\w\s\w\s\w\s\w\b|\b(\w\s){2,})/;
+  const hasExcessiveSpacing = singleCharPattern.test(normalized);
+  
+  if (hasExcessiveSpacing) {
+    // Remove all spaces first
+    const noSpaces = normalized.replace(/\s+/g, '');
+    
+    // Add spaces between lowercase and uppercase letters (for camelCase)
+    normalized = noSpaces.replace(/([a-z])([A-Z])/g, '$1 $2');
+    
+    // For all caps text, try to add spaces every 3-5 characters if no spaces were added
+    if (normalized === noSpaces && normalized.length > 6) {
+      // Try common word patterns dictionary approach
+      const commonTitleWords = [
+        'baseline', 'metric', 'report', 'summary', 'analysis', 'results',
+        'financial', 'performance', 'overview', 'review', 'status', 'update',
+        'quarterly', 'annual', 'monthly', 'weekly', 'daily', 'assessment',
+        'evaluation', 'key', 'findings', 'conclusion', 'recommendation',
+        'executive', 'summary', 'introduction', 'background', 'methodology',
+        'appendix', 'references', 'glossary', 'index', 'table', 'figure',
+        'chart', 'graph', 'diagram', 'section', 'chapter', 'page', 'data',
+        'information', 'research', 'study', 'survey', 'interview', 'observation'
+      ];
+      
+      let bestMatch = normalized;
+      let mostWordsFound = 0;
+      
+      // Try different word boundaries and see which one finds the most dictionary words
+      ['', ' '].forEach(separator => {
+        let tempText = noSpaces;
+        let wordsFound = 0;
+        
+        commonTitleWords.forEach(word => {
+          const regex = new RegExp(word, 'gi');
+          const matches = tempText.match(regex);
+          
+          if (matches) {
+            wordsFound += matches.length;
+            // Replace each found word with the word plus a separator
+            tempText = tempText.replace(regex, match => {
+              // Preserve original case
+              const index = tempText.indexOf(match);
+              const originalCase = noSpaces.substring(index, index + match.length);
+              return originalCase + separator;
+            });
+          }
+        });
+        
+        // If this approach found more words than previous attempts
+        if (wordsFound > mostWordsFound) {
+          mostWordsFound = wordsFound;
+          bestMatch = tempText.trim();
+        }
+      });
+      
+      // If we found some words, use that result
+      if (mostWordsFound > 0) {
+        normalized = bestMatch;
+      } else {
+        // Fallback: for all caps text, try to add spaces in logical places
+        if (/^[A-Z0-9]+$/.test(normalized)) {
+          normalized = normalized.replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ');
+        }
+      }
+    }
+  }
+  
+  return normalized;
 }
 
 // Function to extract title from page using multiple methods
@@ -64,7 +142,8 @@ function extractTitleFromPage(textItems: TextItem[], viewport: any): string {
     contentCandidate
   ]);
   
-  return bestCandidate || "Untitled Page";
+  // Normalize the title to fix spacing issues
+  return normalizeText(bestCandidate || "Untitled Page");
 }
 
 // Group text items that appear to be in the same line
