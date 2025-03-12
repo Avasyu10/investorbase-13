@@ -20,21 +20,21 @@ export function ReportCard({ report }: ReportCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up">
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="line-clamp-1">{report.title}</CardTitle>
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[220px] flex flex-col">
+      <CardHeader className="pb-2 flex-none">
+        <div className="flex items-start gap-2">
+          <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
+          <CardTitle className="line-clamp-2 min-h-[48px]">{report.title}</CardTitle>
         </div>
         <CardDescription className="flex items-center gap-1 text-xs">
           <Calendar className="h-3 w-3" />
           <span>{formatDate(report.created_at)}</span>
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         <p className="text-sm text-muted-foreground line-clamp-2">{report.description}</p>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex-none">
         <Button asChild className="w-full transition-all duration-200 hover:shadow-md">
           <Link to={`/reports/${report.id}`}>
             View Report
