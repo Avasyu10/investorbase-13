@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -108,7 +107,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       <Separator className="my-6" />
       
-      {report.sections && report.sections.length > 0 ? (
+      {report.sections && report.sections.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Report Sections</h2>
           {report.sections.map((section) => (
@@ -124,14 +123,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
             </Card>
           ))}
         </div>
-      ) : (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">
-              This report does not have any sections defined. Please use the download button to view the full report.
-            </p>
-          </CardContent>
-        </Card>
       )}
     </div>
   );
