@@ -9,7 +9,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -44,20 +45,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithEmail = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: "Successfully signed in",
+        description: "Welcome back!",
+      });
+      
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
         options: {
-          redirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         }
       });
 
       if (error) throw error;
+      
+      toast({
+        title: "Sign up successful",
+        description: "Please check your email for the confirmation link.",
+      });
     } catch (error: any) {
       toast({
-        title: "Sign in failed",
+        title: "Sign up failed",
         description: error.message,
         variant: "destructive",
       });
@@ -92,7 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         isLoading,
-        signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
         signOut,
       }}
     >
