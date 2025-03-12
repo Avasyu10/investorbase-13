@@ -22,6 +22,12 @@ interface TextItemWithMetadata {
   isBold: boolean;
 }
 
+interface TitleCandidate {
+  text: string;
+  score: number;
+  method: string;
+}
+
 // Function to extract title from the second line
 function extractTitleFromPage(textItems: TextItem[], viewport: any): string {
   if (!textItems || textItems.length < 2) return "Untitled Page";
@@ -409,8 +415,8 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
 
     const segments: ParsedPdfSegment[] = [];
 
-    // Process each page (skipping first and last)
-    for (let pageNum = 2; pageNum < numPages; pageNum++) {
+    // Process each page (include all pages, no skipping)
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const viewport = page.getViewport({ scale: 1.0 });
       const textContent = await page.getTextContent();
@@ -427,14 +433,11 @@ export async function parsePdfFromBlob(pdfBlob: Blob): Promise<ParsedPdfSegment[
         }
       }
       
-      // Extract title using our simplified approach - get second line
-      let title = extractTitleFromPage(items, viewport);
-      
       const id = `page-${pageNum}`;
       
       segments.push({
         id,
-        title,
+        title: `Page ${pageNum}`, // Simple page title
         content: textItems.join('\n'), // Store full page text content
         pageNumbers: [pageNum],
         pageIndex: pageNum - 1 // Store 0-based page index for rendering

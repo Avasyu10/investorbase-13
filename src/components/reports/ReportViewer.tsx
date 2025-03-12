@@ -2,11 +2,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Download, Loader, Calendar, FileText, Lightbulb } from "lucide-react";
+import { Download, Loader, Calendar, FileText, FileIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportSegment } from "./ReportSegment";
 
 interface ReportViewerProps {
@@ -114,8 +112,8 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       <Separator className="my-6" />
       
       <div className="mb-4 flex items-center">
-        <Lightbulb className="mr-2 h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Insights</h2>
+        <FileIcon className="mr-2 h-5 w-5 text-primary" />
+        <h2 className="text-xl font-semibold">PDF Pages</h2>
       </div>
       
       {reportSegments.length > 0 ? (
@@ -131,7 +129,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         </div>
       ) : (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No insights could be extracted from this PDF. Please download the full report.</p>
+          <p className="text-muted-foreground">No pages could be extracted from this PDF. Please download the full report.</p>
         </div>
       )}
     </div>
