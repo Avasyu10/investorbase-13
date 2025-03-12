@@ -43,7 +43,7 @@ const AnalysisSummary = () => {
         onClick={() => navigate(`/company/${companyId}`)}
         className="mb-6"
       >
-        <ChevronLeft className="mr-1" /> Back to Company
+        <ChevronLeft className="mr-1" /> Back to {company.name}
       </Button>
       
       <h1 className="text-3xl font-bold tracking-tight mb-6">{company.name} - Analysis Summary</h1>

@@ -1,21 +1,28 @@
 
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
+import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from "@/lib/companyData";
 
 const SectionPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const { companyId } = useParams();
+  const [companyName, setCompanyName] = useState("");
 
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/');
     }
-  }, [user, isLoading, navigate]);
+    
+    // Get company name
+    if (companyId && COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)]) {
+      setCompanyName(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)].name);
+    }
+  }, [user, isLoading, navigate, companyId]);
 
   if (isLoading) {
     return (
@@ -36,7 +43,7 @@ const SectionPage = () => {
           onClick={() => navigate(`/company/${companyId}`)}
           className="mb-4"
         >
-          <ChevronLeft className="mr-1" /> Back to Company
+          <ChevronLeft className="mr-1" /> Back to {companyName}
         </Button>
       </div>
       <SectionDetail />
