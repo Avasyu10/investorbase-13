@@ -15,9 +15,6 @@ export type Section = {
   max_score: number;
   description: string | null;
   created_at: string;
-  // New metric field to identify the section type
-  metric_type?: 'PROBLEM' | 'MARKET' | 'SOLUTION' | 'PRODUCT' | 'COMPETITIVE_LANDSCAPE' | 
-                'TRACTION' | 'BUSINESS_MODEL' | 'GTM_STRATEGY' | 'TEAM' | 'FINANCIALS' | 'ASK';
 };
 
 export type SectionDetail = {
