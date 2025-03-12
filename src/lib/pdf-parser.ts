@@ -440,41 +440,25 @@ export async function renderPdfPageToCanvas(
   scale: number = 1.0
 ): Promise<void> {
   try {
-    // Check if blob is a valid PDF (at least a basic check)
-    if (pdfBlob.size < 100) {
-      throw new Error('PDF file is too small to be valid');
-    }
-    
     // Create a buffer array from the blob for PDF.js
     const arrayBuffer = await pdfBlob.arrayBuffer();
     
-    // Create a loading task with error handling
-    const loadingTask = pdfjsLib.getDocument({
+    // Load the PDF document
+    const pdf = await pdfjsLib.getDocument({
       data: arrayBuffer,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
       cMapPacked: true,
-    });
+    }).promise;
     
-    // Set a timeout for PDF loading
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('PDF loading timeout')), 10000);
-    });
-    
-    // Race between PDF loading and timeout
-    const pdf = await Promise.race([
-      loadingTask.promise,
-      timeoutPromise
-    ]) as pdfjsLib.PDFDocumentProxy;
-    
-    // Make sure pageIndex is within bounds
+    // Make sure pageIndex is valid
     if (pageIndex < 0 || pageIndex >= pdf.numPages) {
-      throw new Error(`Page index ${pageIndex} out of bounds. Document has ${pdf.numPages} pages.`);
+      pageIndex = 0; // Default to first page if invalid
     }
     
-    // Get the page (PDF.js uses 1-based indices)
+    // Get the specified page (PDF.js uses 1-based indices)
     const page = await pdf.getPage(pageIndex + 1);
     
-    // Get the viewport
+    // Get the viewport with the specified scale
     const viewport = page.getViewport({ scale });
     
     // Set canvas dimensions to match the viewport
@@ -502,7 +486,7 @@ export async function renderPdfPageToCanvas(
     if (context) {
       // Set canvas to a reasonable size if not already set
       if (canvas.width === 0) canvas.width = 200;
-      if (canvas.height === 0) canvas.height = 280; // Typical aspect ratio
+      if (canvas.height === 0) canvas.height = 280;
       
       context.fillStyle = '#f8f9fa';
       context.fillRect(0, 0, canvas.width, canvas.height);

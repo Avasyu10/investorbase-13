@@ -2,8 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { renderPdfPageToCanvas } from "@/lib/pdf-parser";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useInView } from "react-intersection-observer";
-import { AlertCircle, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 
 interface PDFPreviewProps {
   pdfUrl: string;
@@ -15,17 +14,13 @@ export function PDFPreview({ pdfUrl, pageIndex, scale = 0.3 }: PDFPreviewProps) 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
 
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
 
     const renderPreview = async () => {
-      if (!canvasRef.current || !inView) return;
+      if (!canvasRef.current) return;
       
       try {
         setIsLoading(true);
@@ -66,19 +61,17 @@ export function PDFPreview({ pdfUrl, pageIndex, scale = 0.3 }: PDFPreviewProps) 
       }
     };
 
-    if (inView) {
-      renderPreview();
-    }
+    renderPreview();
 
     // Cleanup function to prevent state updates after unmounting
     return () => {
       isMounted = false;
       controller.abort();
     };
-  }, [pdfUrl, pageIndex, scale, inView]);
+  }, [pdfUrl, pageIndex, scale]);
 
   return (
-    <div ref={ref} className="w-full aspect-[1/1.4] relative bg-muted/10">
+    <div className="w-full aspect-[1/1.4] relative bg-muted/10">
       {isLoading && (
         <Skeleton className="w-full h-full absolute inset-0" />
       )}
