@@ -13,7 +13,6 @@ import Companies from "./pages/Companies";
 import CompanyDetails from "./pages/CompanyDetails";
 import SectionDetails from "./pages/SectionDetails";
 import NotFound from "./pages/NotFound";
-import { CompanyLayout } from "./components/layout/CompanyLayout";
 
 const queryClient = new QueryClient();
 
@@ -23,14 +22,9 @@ const AppRoutes = () => (
     <Navbar />
     <Routes>
       <Route path="/" element={<Index />} />
-      
-      {/* Company routes with sidebar layout */}
-      <Route element={<CompanyLayout />}>
-        <Route path="/companies" element={<Companies />} />
-        <Route path="/companies/:id" element={<CompanyDetails />} />
-        <Route path="/companies/:companyId/sections/:sectionId" element={<SectionDetails />} />
-      </Route>
-      
+      <Route path="/companies" element={<Companies />} />
+      <Route path="/companies/:id" element={<CompanyDetails />} />
+      <Route path="/companies/:companyId/sections/:sectionId" element={<SectionDetails />} />
       <Route path="/dashboard" element={<Navigate to="/companies" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

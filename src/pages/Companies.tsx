@@ -24,31 +24,14 @@ const Companies = () => {
 
   if (!user) return null;
 
-  const metricCategories = [
-    "PROBLEM", "MARKET", "SOLUTION", "PRODUCT", "COMPETITIVE LANDSCAPE", 
-    "TRACTION", "BUSINESS MODEL", "GTM STRATEGY", "TEAM", "FINANCIALS", "ASK"
-  ];
-
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="container mx-auto px-4 py-8 animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
         <p className="text-muted-foreground mt-1">
-          Select a company to view detailed assessment scores
+          Select a company to view detailed scores
         </p>
       </div>
-      
-      <div className="mb-8">
-        <h2 className="text-lg font-medium mb-2">Assessment Categories</h2>
-        <div className="flex flex-wrap gap-2">
-          {metricCategories.map(category => (
-            <div key={category} className="text-xs bg-gray-100 px-2 py-1 rounded">
-              {category}
-            </div>
-          ))}
-        </div>
-      </div>
-      
       <CompaniesList />
     </div>
   );

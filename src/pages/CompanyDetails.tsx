@@ -38,7 +38,7 @@ const CompanyDetails = () => {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center p-6 text-destructive">
           <h3 className="font-bold">Error loading company</h3>
           <p>{(error as Error).message}</p>
@@ -57,7 +57,7 @@ const CompanyDetails = () => {
 
   if (!company) {
     return (
-      <div className="p-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center p-6 text-muted-foreground">
           <p>Company not found.</p>
           <Button 
@@ -74,7 +74,16 @@ const CompanyDetails = () => {
   }
 
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="container mx-auto px-4 py-8 animate-fade-in">
+      <Button 
+        variant="ghost" 
+        className="mb-6 -ml-2" 
+        onClick={() => navigate("/companies")}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to companies
+      </Button>
+      
       <div className="bg-card p-6 rounded-lg shadow-sm mb-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
           <div className="flex items-center gap-4">
@@ -94,20 +103,7 @@ const CompanyDetails = () => {
       </div>
       
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold mb-4">Assessment Categories</h2>
-        <div className="flex flex-wrap gap-2 mb-6">
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">PROBLEM</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">MARKET</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">SOLUTION</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">PRODUCT</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">COMPETITIVE LANDSCAPE</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">TRACTION</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">BUSINESS MODEL</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">GTM STRATEGY</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">TEAM</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">FINANCIALS</div>
-          <div className="text-xs bg-gray-100 px-2 py-1 rounded">ASK</div>
-        </div>
+        <h2 className="text-2xl font-semibold mb-4">Section Scores</h2>
       </div>
       
       <SectionsList companyId={company.id} />

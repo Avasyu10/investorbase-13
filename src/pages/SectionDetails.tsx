@@ -47,7 +47,7 @@ const SectionDetails = () => {
 
   if (error || !section) {
     return (
-      <div className="p-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center p-6 text-destructive">
           <h3 className="font-bold">Error loading section</h3>
           <p>{error ? (error as Error).message : "Section not found"}</p>
@@ -66,7 +66,7 @@ const SectionDetails = () => {
 
   if (!company) {
     return (
-      <div className="p-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center p-6 text-muted-foreground">
           <p>Company not found.</p>
           <Button 
@@ -82,11 +82,8 @@ const SectionDetails = () => {
     );
   }
 
-  // Determine metric type from section name if not available
-  const metricType = section.metric_type || section.name.toUpperCase();
-
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="container mx-auto px-4 py-8 animate-fade-in">
       <Button 
         variant="ghost" 
         className="mb-6 -ml-2" 
@@ -122,14 +119,11 @@ const SectionDetails = () => {
             <h2 className="text-xl font-semibold mb-4">Detailed Analysis</h2>
           </div>
           
-          <SectionDetail 
-            sectionId={section.id} 
-            metricType={metricType}
-          />
+          <SectionDetail sectionId={section.id} />
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default SectionDetails;
