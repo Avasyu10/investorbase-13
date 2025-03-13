@@ -41,6 +41,7 @@ export type Database = {
           pdf_url: string
           sections: string[] | null
           title: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -49,6 +50,7 @@ export type Database = {
           pdf_url: string
           sections?: string[] | null
           title: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -57,6 +59,7 @@ export type Database = {
           pdf_url?: string
           sections?: string[] | null
           title?: string
+          user_id?: string | null
         }
         Relationships: []
       }
