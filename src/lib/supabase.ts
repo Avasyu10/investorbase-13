@@ -203,9 +203,26 @@ export async function analyzeReport(reportId: string) {
     }
     
     console.log('Analysis result:', data);
+    
+    toast({
+      title: "Analysis complete",
+      description: "Your pitch deck has been successfully analyzed",
+    });
+    
     return data;
   } catch (error) {
     console.error('Error analyzing report:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    // Make sure we only show one toast
+    if (!errorMessage.includes("analysis failed")) {
+      toast({
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+    
     throw error;
   }
 }

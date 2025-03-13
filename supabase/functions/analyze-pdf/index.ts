@@ -12,24 +12,70 @@ serve(async (req) => {
   }
 
   try {
+    // Check environment variables early
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    
     if (!OPENAI_API_KEY) {
       console.error("OPENAI_API_KEY is not configured");
-      throw new Error('OPENAI_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'OPENAI_API_KEY is not configured',
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+    
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error("Supabase credentials are not configured");
+      return new Response(
+        JSON.stringify({ 
+          error: 'Supabase credentials are not configured',
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
     }
 
+    // Parse request data
     let reqData;
     try {
       reqData = await req.json();
     } catch (e) {
       console.error("Error parsing request JSON:", e);
-      throw new Error("Invalid request format. Expected JSON with reportId property.");
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid request format. Expected JSON with reportId property.",
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
     }
 
     const { reportId } = reqData;
     if (!reportId) {
       console.error("Missing reportId in request");
-      throw new Error("Report ID is required");
+      return new Response(
+        JSON.stringify({ 
+          error: "Report ID is required",
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
     }
 
     console.log(`Processing report ${reportId}`);
@@ -38,7 +84,16 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error("Missing Authorization header");
-      throw new Error('Authorization header is required');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authorization header is required',
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      );
     }
 
     try {
@@ -70,13 +125,25 @@ serve(async (req) => {
       );
     } catch (error) {
       console.error("Operation error:", error);
-      throw error; // Re-throw to be caught by outer catch
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      const status = errorMessage.includes("access denied") || errorMessage.includes("not found") ? 404 : 500;
+      
+      return new Response(
+        JSON.stringify({ 
+          error: errorMessage,
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: status 
+        }
+      );
     }
   } catch (error) {
     console.error("Error in analyze-pdf function:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "An unexpected error occurred",
+        error: error instanceof Error ? error.message : "An unexpected error occurred",
         success: false
       }),
       { 

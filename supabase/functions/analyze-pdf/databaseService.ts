@@ -6,14 +6,27 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       throw new Error('Analysis result is invalid or incomplete');
     }
 
+    if (!report || !report.id) {
+      console.error("Invalid report object:", report);
+      throw new Error('Report data is invalid');
+    }
+
     console.log("Creating company record");
     // Create a company entry for the report
-    const companyName = report.title;
+    const companyName = report.title || 'Unnamed Company';
+    let overallScore = 0;
+    
+    try {
+      overallScore = Math.round((analysis.overallScore || 0) * 20); // Convert 0-5 scale to 0-100
+    } catch (e) {
+      console.warn("Error calculating overall score, using default 0");
+    }
+    
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
         name: companyName,
-        total_score: Math.round((analysis.overallScore || 0) * 20) // Convert 0-5 scale to 0-100
+        total_score: overallScore
       })
       .select()
       .single();
@@ -31,20 +44,33 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     console.log(`Company created with ID: ${company.id}, inserting sections`);
 
     // Insert sections
-    const sectionInserts = analysis.sections.map((section: any) => ({
-      company_id: company.id,
-      name: section.title,
-      description: section.description || '',
-      score: Math.round((section.score || 0) * 20), // Convert 0-5 scale to 0-100
-    }));
+    const sectionInserts = analysis.sections.map((section: any) => {
+      let sectionScore = 0;
+      try {
+        sectionScore = Math.round((section.score || 0) * 20); // Convert 0-5 scale to 0-100
+      } catch (e) {
+        console.warn(`Error calculating score for section ${section.title}, using default 0`);
+      }
+      
+      return {
+        company_id: company.id,
+        name: section.title || 'Unnamed Section',
+        description: section.description || '',
+        score: sectionScore
+      };
+    });
 
-    const { error: sectionsError } = await supabase
-      .from('sections')
-      .insert(sectionInserts);
+    if (sectionInserts.length === 0) {
+      console.warn("No sections to insert");
+    } else {
+      const { error: sectionsError } = await supabase
+        .from('sections')
+        .insert(sectionInserts);
 
-    if (sectionsError) {
-      console.error("Error creating sections:", sectionsError);
-      throw new Error('Failed to create section records: ' + sectionsError.message);
+      if (sectionsError) {
+        console.error("Error creating sections:", sectionsError);
+        throw new Error('Failed to create section records: ' + sectionsError.message);
+      }
     }
 
     console.log("Sections inserted, getting IDs for detail records");
@@ -69,29 +95,33 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     // Insert section details (strengths and weaknesses)
     const sectionDetails = [];
-    for (let i = 0; i < insertedSections.length; i++) {
+    for (let i = 0; i < Math.min(insertedSections.length, analysis.sections.length); i++) {
       const section = insertedSections[i];
       const analysisSection = analysis.sections[i];
 
       if (analysisSection.strengths && Array.isArray(analysisSection.strengths)) {
         analysisSection.strengths.forEach((strength: string) => {
-          sectionDetails.push({
-            section_id: section.id,
-            title: "Strength",
-            content: strength,
-            score_impact: "positive"
-          });
+          if (strength && strength.trim()) {
+            sectionDetails.push({
+              section_id: section.id,
+              title: "Strength",
+              content: strength,
+              score_impact: "positive"
+            });
+          }
         });
       }
 
       if (analysisSection.weaknesses && Array.isArray(analysisSection.weaknesses)) {
         analysisSection.weaknesses.forEach((weakness: string) => {
-          sectionDetails.push({
-            section_id: section.id,
-            title: "Weakness",
-            content: weakness,
-            score_impact: "negative"
-          });
+          if (weakness && weakness.trim()) {
+            sectionDetails.push({
+              section_id: section.id,
+              title: "Weakness",
+              content: weakness,
+              score_impact: "negative"
+            });
+          }
         });
       }
     }
@@ -106,6 +136,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         console.error("Error creating section details:", detailsError);
         throw new Error('Failed to create section detail records: ' + detailsError.message);
       }
+    } else {
+      console.warn("No section details to insert");
     }
 
     console.log("Section details inserted, updating report");

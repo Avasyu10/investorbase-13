@@ -63,6 +63,8 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
 
     // Call OpenAI API for analysis
     console.log("Calling OpenAI API for analysis");
+    console.log(`PDF base64 length: ${pdfBase64.length}`);
+    
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -97,10 +99,28 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
       })
     });
 
+    // Check for HTTP errors in the OpenAI response
     if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.json();
+      const errorText = await openaiResponse.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: { message: errorText } };
+      }
+      
       console.error("OpenAI API error:", errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      
+      // Provide more specific error messages based on status codes
+      if (openaiResponse.status === 401) {
+        throw new Error("OpenAI API key is invalid");
+      } else if (openaiResponse.status === 429) {
+        throw new Error("OpenAI API rate limit exceeded");
+      } else if (openaiResponse.status === 413) {
+        throw new Error("PDF is too large for OpenAI to process");
+      } else {
+        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      }
     }
 
     const openaiData = await openaiResponse.json();
@@ -112,10 +132,24 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
       if (!content) {
         throw new Error("Empty response from OpenAI");
       }
-      return JSON.parse(content);
+      
+      // Try to parse the JSON response
+      const parsedContent = JSON.parse(content);
+      
+      // Validate the response structure
+      if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
+        throw new Error("Invalid analysis structure: missing or empty sections array");
+      }
+      
+      if (typeof parsedContent.overallScore !== 'number') {
+        console.warn("Warning: overallScore is not a number, setting default value");
+        parsedContent.overallScore = 3; // Default score
+      }
+      
+      return parsedContent;
     } catch (e) {
       console.error("Error parsing OpenAI response:", e);
-      throw new Error("Failed to parse analysis result");
+      throw new Error("Failed to parse analysis result: " + (e instanceof Error ? e.message : "Invalid JSON"));
     }
   } catch (error) {
     console.error("Error in analyzeWithOpenAI:", error);

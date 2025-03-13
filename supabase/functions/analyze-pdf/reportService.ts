@@ -14,15 +14,27 @@ export async function getReportData(reportId: string, authHeader: string) {
 
   console.log(`Getting report data for ${reportId}`);
 
-  // Get authenticated user
-  const { data: { user }, error: userError } = await supabase.auth.getUser(
-    authHeader.replace('Bearer ', '')
-  );
-  
-  if (userError || !user) {
-    console.error("Auth error:", userError);
-    throw new Error('Unauthorized');
+  // Extract token from authorization header
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) {
+    console.error("Invalid authorization token");
+    throw new Error('Invalid authorization token');
   }
+
+  // Get authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+  
+  if (userError) {
+    console.error("Auth error:", userError);
+    throw new Error('Authentication failed: ' + userError.message);
+  }
+  
+  if (!user) {
+    console.error("No user found with the provided token");
+    throw new Error('User not authenticated');
+  }
+
+  console.log(`Authenticated as user: ${user.id}`);
 
   // Get report details from database
   const { data: report, error: reportError } = await supabase
@@ -32,8 +44,13 @@ export async function getReportData(reportId: string, authHeader: string) {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (reportError || !report) {
+  if (reportError) {
     console.error("Report error:", reportError);
+    throw new Error('Database error: ' + reportError.message);
+  }
+
+  if (!report) {
+    console.error(`Report not found for id ${reportId} and user ${user.id}`);
     throw new Error('Report not found or access denied');
   }
 
@@ -45,9 +62,14 @@ export async function getReportData(reportId: string, authHeader: string) {
     .from('report_pdfs')
     .download(`${user.id}/${report.pdf_url}`);
 
-  if (pdfError || !pdfData) {
+  if (pdfError) {
     console.error("PDF download error:", pdfError);
-    throw new Error('Error downloading PDF');
+    throw new Error('Error downloading PDF: ' + pdfError.message);
+  }
+
+  if (!pdfData || pdfData.size === 0) {
+    console.error("PDF data is empty");
+    throw new Error('PDF file is empty or corrupted');
   }
 
   console.log("PDF downloaded successfully, converting to base64");
@@ -55,6 +77,13 @@ export async function getReportData(reportId: string, authHeader: string) {
   // Convert PDF to base64
   const pdfBase64 = await pdfData.arrayBuffer()
     .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))));
+
+  if (!pdfBase64 || pdfBase64.length === 0) {
+    console.error("PDF base64 conversion failed");
+    throw new Error('Failed to convert PDF to base64');
+  }
+
+  console.log(`PDF base64 conversion successful, length: ${pdfBase64.length}`);
 
   return { supabase, report, user, pdfBase64 };
 }

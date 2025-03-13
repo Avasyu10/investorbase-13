@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -111,14 +110,12 @@ export function ReportUpload() {
       } catch (analysisError: any) {
         console.error("Error analyzing report:", analysisError);
         
-        toast.error("Analysis failed", {
-          description: analysisError instanceof Error ? 
-            analysisError.message : 
-            "Failed to analyze pitch deck. The file was uploaded but couldn't be analyzed."
-        });
+        // Error already handled by the analyzeReport function
+        setProgress(0);
         
         // Still navigate to dashboard if analysis fails
         navigate('/dashboard');
+        return;
       }
     } catch (error: any) {
       console.error("Error processing report:", error);
