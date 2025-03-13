@@ -71,20 +71,31 @@ serve(async (req) => {
     const pdfBase64 = await pdfData.arrayBuffer()
       .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))));
 
-    // Analysis prompt
+    // Updated analysis prompt
     const prompt = `
-      You are an expert at analyzing startup pitch decks. Analyze this pitch deck PDF and structure your analysis according to these sections:
-      1. PROBLEM - What problem is the startup solving?
-      2. MARKET - What is the market size and opportunity?
-      3. SOLUTION - What is their proposed solution?
-      4. PRODUCT - How does their product work?
-      5. COMPETITIVE_LANDSCAPE - Who are their competitors and how are they different?
-      6. TRACTION - What progress have they made so far?
-      7. BUSINESS_MODEL - How do they make money?
-      8. GTM_STRATEGY - How do they plan to acquire customers?
-      9. TEAM - Who is on the team and what is their background?
-      10. FINANCIALS - What are their financial projections?
-      11. ASK - What are they asking for (investment amount, etc.)?
+      You have to act as an expert VC analyst. You have years of experience in analysing and assessing investment opportunities. You look past what's written in the deck and can call out the bullshit whenever you see it. You don't sugarcoat stuff and always provide sound reasoning for your judgement.
+
+      You start by taking a high level overview of the startup and identifying areas you need to look at critically.
+
+      Then in subsequent analysis you scrutinze the deck section wise. You surf the web each time to get relevant informationa and data. Your analysis is always based upon things that have occurred and patterns that emerge out of that.
+
+      1. Problem and Market Opportunity
+
+      2. Solution (Product)
+
+      3. Competitive Landscape
+
+      4. Traction
+
+      5. Business Model
+
+      6. Go-to-Market Strategy
+
+      7. Теам
+
+      8. Financials
+
+      9. The Ask
 
       For each section, provide:
       - A brief description (1-2 sentences)
