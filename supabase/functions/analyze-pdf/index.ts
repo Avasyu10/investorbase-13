@@ -133,7 +133,7 @@ serve(async (req) => {
       let status = 500;
       if (errorMessage.includes("not found")) {
         status = 404;
-      } else if (errorMessage.includes("access denied")) {
+      } else if (errorMessage.includes("belongs to another user") || errorMessage.includes("access denied")) {
         status = 403;
       } else if (errorMessage.includes("not authenticated") || errorMessage.includes("Authentication failed")) {
         status = 401;

@@ -12,7 +12,7 @@ export async function getReportData(reportId: string, authHeader: string) {
   
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  console.log(`Getting report data for ${reportId}`);
+  console.log(`Getting report data for reportId: ${reportId}`);
 
   // Extract token from authorization header
   const token = authHeader.replace('Bearer ', '');
@@ -36,10 +36,10 @@ export async function getReportData(reportId: string, authHeader: string) {
 
   console.log(`Authenticated as user: ${user.id}`);
 
-  // First, check if the report exists at all (for better error messages)
+  // Check if the report exists at all (for better error messages)
   const { data: allReports, error: allReportsError } = await supabase
     .from('reports')
-    .select('id')
+    .select('id, title, user_id')
     .eq('id', reportId);
     
   if (allReportsError) {
@@ -47,39 +47,35 @@ export async function getReportData(reportId: string, authHeader: string) {
     throw new Error('Database error: ' + allReportsError.message);
   }
   
+  console.log(`Found ${allReports?.length || 0} reports matching ID ${reportId}`);
+  
   if (!allReports || allReports.length === 0) {
-    console.error(`Report with ID ${reportId} does not exist`);
-    throw new Error('Report not found');
+    console.error(`Report with ID ${reportId} does not exist in the database`);
+    throw new Error(`Report with ID ${reportId} not found`);
   }
 
-  // Now get the specific report with user_id filter
-  const { data: report, error: reportError } = await supabase
-    .from('reports')
-    .select('*')
-    .eq('id', reportId)
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (reportError) {
-    console.error("Report error:", reportError);
-    throw new Error('Database error: ' + reportError.message);
-  }
-
-  if (!report) {
+  const reportBelongsToUser = allReports.some(r => r.user_id === user.id);
+  if (!reportBelongsToUser) {
     console.error(`Access denied: Report ${reportId} belongs to another user`);
-    throw new Error('Access denied: This report belongs to another user');
+    throw new Error(`Access denied: Report ${reportId} belongs to another user`);
   }
 
-  console.log(`Found report: ${report.title}, downloading PDF from storage`);
+  const report = allReports.find(r => r.user_id === user.id);
+  console.log(`Found user's report: ${report.title}, accessing PDF from storage`);
 
-  // Download the PDF from storage - FIXED PATH HERE
+  // Build the correct storage path
+  const storagePath = `${user.id}/${report.pdf_url}`;
+  console.log(`Attempting to download PDF from path: ${storagePath}`);
+
+  // Download the PDF from storage
   const { data: pdfData, error: pdfError } = await supabase
     .storage
     .from('report_pdfs')
-    .download(`${user.id}/${report.pdf_url}`);
+    .download(storagePath);
 
   if (pdfError) {
     console.error("PDF download error:", pdfError);
+    console.error(`Failed to access PDF at path: ${storagePath}`);
     throw new Error('Error downloading PDF: ' + pdfError.message);
   }
 
@@ -88,7 +84,7 @@ export async function getReportData(reportId: string, authHeader: string) {
     throw new Error('PDF file is empty or corrupted');
   }
 
-  console.log("PDF downloaded successfully, converting to base64");
+  console.log(`PDF downloaded successfully, size: ${pdfData.size} bytes, converting to base64`);
 
   // Convert PDF to base64
   const pdfBase64 = await pdfData.arrayBuffer()
