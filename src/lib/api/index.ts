@@ -17,7 +17,7 @@ import {
 } from './apiContract';
 
 // Check if we should use mock data or real API
-const USE_MOCK_API = true; // Set to false when ready to connect to real backend
+const USE_MOCK_API = false; // Set to false to use real backend
 
 // API Client that decides whether to use real or mock API
 const api = {
