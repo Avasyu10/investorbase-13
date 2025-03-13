@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import { FileUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -22,8 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { analyzePdfDirect } from "@/lib/api/pdfAnalysisService";
-import { supabase } from "@/integrations/supabase/client";
 
 // Company stage options
 const COMPANY_STAGES = [
@@ -63,12 +62,12 @@ const INDUSTRIES = [
 export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFile, setSupplementFile] = useState<File | null>(null);
-  const [companyName, setCompanyName] = useState("");
+  const [title, setTitle] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyStage, setCompanyStage] = useState("");
   const [industry, setIndustry] = useState("");
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
   const navigate = useNavigate();
@@ -78,19 +77,15 @@ export function ReportUpload() {
       const selectedFile = e.target.files[0];
       
       if (selectedFile.type !== 'application/pdf') {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload a PDF file",
-          variant: "destructive"
+        toast.error("Invalid file type", {
+          description: "Please upload a PDF file"
         });
         return;
       }
       
-      if (selectedFile.size > 25 * 1024 * 1024) { // 25MB limit
-        toast({
-          title: "File too large",
-          description: "Please upload a file smaller than 25MB",
-          variant: "destructive"
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error("File too large", {
+          description: "Please upload a file smaller than 10MB"
         });
         return;
       }
@@ -104,10 +99,8 @@ export function ReportUpload() {
       const selectedFile = e.target.files[0];
       
       if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-        toast({
-          title: "File too large",
-          description: "Please upload a file smaller than 10MB",
-          variant: "destructive"
+        toast.error("File too large", {
+          description: "Please upload a file smaller than 10MB"
         });
         return;
       }
@@ -138,101 +131,109 @@ export function ReportUpload() {
     e.preventDefault();
     
     if (!file) {
-      toast({
-        title: "No file selected",
-        description: "Please select a PDF file to upload",
-        variant: "destructive"
+      toast.error("No file selected", {
+        description: "Please select a PDF file to upload"
       });
       return;
     }
     
-    if (!companyName.trim()) {
-      toast({
-        title: "Company name required",
-        description: "Please provide a company name for the report",
-        variant: "destructive"
+    if (!title.trim()) {
+      toast.error("Company name required", {
+        description: "Please provide a company name for the report"
       });
       return;
     }
 
     try {
-      setIsLoading(true);
-      setProgressStage("Analyzing pitch deck...");
+      setIsProcessing(true);
+      setProgressStage("Processing pitch deck...");
       setProgress(10);
       
-      // Start with direct PDF analysis
-      try {
-        // Set progress to show we're analyzing with AI
-        setProgress(30);
-        setProgressStage("Analyzing with AI...");
-        
-        // Call the direct PDF analysis service
-        const analysis = await analyzePdfDirect(file, companyName);
-        
-        // Analysis is done - set progress to 100%
-        setProgress(100);
-        
-        // Save analysis to database
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .insert({
-            name: companyName,
-            total_score: Math.round(analysis.overallScore * 20) // Convert 0-5 scale to 0-100
-          })
-          .select()
-          .single();
-          
-        if (companyError) {
-          console.error("Error saving company:", companyError);
-          throw companyError;
-        }
-        
-        if (!company) {
-          throw new Error("Failed to create company record");
-        }
-        
-        console.log("Created company:", company);
-        
-        // Save sections
-        for (const section of analysis.sections) {
-          const { error: sectionError } = await supabase
-            .from('sections')
-            .insert({
-              company_id: company.id,
-              name: section.title,
-              description: section.description,
-              score: Math.round(section.score * 20) // Convert 0-5 scale to 0-100
-            });
-            
-          if (sectionError) {
-            console.error("Error saving section:", sectionError);
-            // Continue with other sections even if one fails
+      // Read the PDF file as base64
+      const pdfBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            // Remove data URL prefix (e.g., "data:application/pdf;base64,")
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+          } else {
+            reject(new Error("Failed to read file as base64"));
           }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      
+      setProgress(30);
+      toast.info("Analysis started", {
+        description: "This may take a few minutes depending on the size of your deck"
+      });
+      
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Call the edge function directly with the file data
+      setProgress(50);
+      setProgressStage("Analyzing pitch deck with AI...");
+      
+      const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
+        body: { 
+          pdfBase64,
+          metadata: {
+            title,
+            companyWebsite: companyWebsite || null,
+            companyStage: companyStage || null,
+            industry: industry || null,
+            founderLinkedIns: founderLinkedIns.filter(url => url.trim().length > 0) || []
+          }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
-        
-        // Navigate to the company page
-        navigate(`/company/${company.id}`);
-      } catch (analysisError: any) {
-        console.error("Error with direct analysis:", analysisError);
-        
-        // Analysis already shows toast errors in the service
-        setProgress(0);
-        
-        // Still navigate to dashboard if analysis fails
+      });
+      
+      if (error) {
+        console.error('Error invoking analyze-pdf-direct function:', error);
+        throw new Error(error.message || "Analysis failed");
+      }
+      
+      if (!data || data.error) {
+        const errorMessage = data?.error || "Unknown error occurred during analysis";
+        console.error('API returned error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      setProgress(100);
+      console.log("Analysis complete, result:", data);
+      
+      toast.success("Analysis complete", {
+        description: "Your pitch deck has been analyzed successfully!"
+      });
+      
+      // Navigate to the company page
+      if (data && data.companyId) {
+        navigate(`/company/${data.companyId}`);
+      } else {
+        console.error("No company ID returned from analysis");
         navigate('/dashboard');
-        return;
       }
     } catch (error: any) {
-      console.error("Error processing report:", error);
+      console.error("Error processing pitch deck:", error);
       
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to process pitch deck",
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: error instanceof Error ? error.message : "Failed to process pitch deck"
       });
       setProgress(0);
+      
+      // Navigate to dashboard if analysis fails
+      navigate('/dashboard');
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -250,23 +251,23 @@ export function ReportUpload() {
             <Label htmlFor="title">Company Name</Label>
             <Input
               id="title"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter your company name"
-              disabled={isLoading}
+              disabled={isProcessing}
               required
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="founderLinkedIns">Founder LinkedIn Profiles (Optional)</Label>
+            <Label>Founder LinkedIn Profiles (Optional)</Label>
             {founderLinkedIns.map((linkedin, index) => (
               <div key={index} className="flex gap-2 mb-2">
                 <Input
                   value={linkedin}
                   onChange={(e) => updateFounderLinkedIn(index, e.target.value)}
-                  placeholder="LinkedIn profile URL (optional)"
-                  disabled={isLoading}
+                  placeholder="LinkedIn profile URL"
+                  disabled={isProcessing}
                 />
                 {index > 0 && (
                   <Button
@@ -274,7 +275,7 @@ export function ReportUpload() {
                     variant="outline"
                     size="icon"
                     onClick={() => removeFounderLinkedIn(index)}
-                    disabled={isLoading}
+                    disabled={isProcessing}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -286,7 +287,7 @@ export function ReportUpload() {
               variant="outline"
               size="sm"
               onClick={addFounderLinkedIn}
-              disabled={isLoading}
+              disabled={isProcessing}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Another Founder
@@ -299,21 +300,21 @@ export function ReportUpload() {
               id="website"
               value={companyWebsite}
               onChange={(e) => setCompanyWebsite(e.target.value)}
-              placeholder="https://example.com (optional)"
-              disabled={isLoading}
+              placeholder="https://example.com"
+              disabled={isProcessing}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="stage">Stage of Company (Optional)</Label>
+              <Label htmlFor="stage">Stage of Company</Label>
               <Select 
                 value={companyStage} 
                 onValueChange={setCompanyStage}
-                disabled={isLoading}
+                disabled={isProcessing}
               >
                 <SelectTrigger id="stage">
-                  <SelectValue placeholder="Select stage (optional)" />
+                  <SelectValue placeholder="Select stage" />
                 </SelectTrigger>
                 <SelectContent>
                   {COMPANY_STAGES.map((stage) => (
@@ -326,14 +327,14 @@ export function ReportUpload() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="industry">Industry (Optional)</Label>
+              <Label htmlFor="industry">Industry</Label>
               <Select 
                 value={industry} 
                 onValueChange={setIndustry}
-                disabled={isLoading}
+                disabled={isProcessing}
               >
                 <SelectTrigger id="industry">
-                  <SelectValue placeholder="Select industry (optional)" />
+                  <SelectValue placeholder="Select industry" />
                 </SelectTrigger>
                 <SelectContent>
                   {INDUSTRIES.map((ind) => (
@@ -360,56 +361,56 @@ export function ReportUpload() {
                   accept=".pdf"
                   className="hidden"
                   onChange={handleFileChange}
-                  disabled={isLoading}
+                  disabled={isProcessing}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => document.getElementById("file")?.click()}
-                  disabled={isLoading}
+                  disabled={isProcessing}
                 >
                   Select PDF
                 </Button>
                 <p className="text-xs text-muted-foreground mt-1">
-                  PDF files only, max 25MB
+                  PDF files only, max 10MB
                 </p>
               </div>
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="supplementFile">Supplemental Material (Optional)</Label>
+            <Label htmlFor="supplementFile">Supplemental Material (if any)</Label>
             <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
               <div className="flex flex-col items-center space-y-2">
                 <FileUp className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  {supplementFile ? supplementFile.name : "Drag and drop or click to upload (optional)"}
+                  {supplementFile ? supplementFile.name : "Drag and drop or click to upload"}
                 </p>
                 <Input
                   id="supplementFile"
                   type="file"
                   className="hidden"
                   onChange={handleSupplementFileChange}
-                  disabled={isLoading}
+                  disabled={isProcessing}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => document.getElementById("supplementFile")?.click()}
-                  disabled={isLoading}
+                  disabled={isProcessing}
                 >
                   Select File
                 </Button>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Any file type, max 10MB (optional)
+                  Any file type, max 10MB
                 </p>
               </div>
             </div>
           </div>
           
-          {isLoading && (
+          {isProcessing && (
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium">{progressStage}</span>
@@ -417,7 +418,7 @@ export function ReportUpload() {
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground italic mt-1">
-                AI analysis may take a few minutes. Please be patient...
+                {progress > 40 ? "AI analysis may take a few minutes. Please be patient..." : ""}
               </p>
             </div>
           )}
@@ -426,16 +427,16 @@ export function ReportUpload() {
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={!file || isLoading}
+            disabled={!file || isProcessing}
             className="w-full md:w-auto"
           >
-            {isLoading ? (
+            {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
+                {progress > 40 ? "Analyzing..." : "Processing..."}
               </>
             ) : (
-              "Analyze Pitch Deck"
+              "Upload & Analyze"
             )}
           </Button>
         </CardFooter>
