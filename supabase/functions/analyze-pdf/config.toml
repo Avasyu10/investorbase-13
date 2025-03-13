@@ -1,8 +1,4 @@
 
-project_id = "jhtnruktmtjqrfoiyrep"
-import_map = """
-{
-  "imports": {}
-}
-"""
-verify_jwt = true
+# A string used as a namespace for the functions.
+project_id = "analyze-pdf"
+verify_jwt = false

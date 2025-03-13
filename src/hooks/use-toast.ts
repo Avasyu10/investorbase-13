@@ -75,6 +75,17 @@ const addToRemoveQueue = (toastId: string) => {
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
+      // Check if toast with same ID already exists
+      if (action.toast.id && state.toasts.find(t => t.id === action.toast.id)) {
+        // Update existing toast instead of adding a new one
+        return {
+          ...state,
+          toasts: state.toasts.map(t => 
+            t.id === action.toast.id ? { ...t, ...action.toast, open: true } : t
+          ),
+        }
+      }
+      
       return {
         ...state,
         toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
@@ -138,23 +149,25 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+interface ToastOptions extends Partial<Omit<ToasterToast, "id">> {
+  id?: string;
+}
 
-function toast({ ...props }: Toast) {
-  const id = genId()
+function toast({ id, ...props }: ToastOptions) {
+  const toastId = id || genId()
 
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
-      toast: { ...props, id },
+      toast: { ...props, id: toastId },
     })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: toastId })
 
   dispatch({
     type: "ADD_TOAST",
     toast: {
       ...props,
-      id,
+      id: toastId,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
@@ -163,7 +176,7 @@ function toast({ ...props }: Toast) {
   })
 
   return {
-    id: id,
+    id: toastId,
     dismiss,
     update,
   }

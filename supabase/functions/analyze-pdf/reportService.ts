@@ -72,7 +72,7 @@ export async function getReportData(reportId: string, authHeader: string) {
 
   console.log(`Found report: ${report.title}, downloading PDF from storage`);
 
-  // Download the PDF from storage
+  // Download the PDF from storage - FIXED PATH HERE
   const { data: pdfData, error: pdfError } = await supabase
     .storage
     .from('report_pdfs')

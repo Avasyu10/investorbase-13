@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -191,7 +192,9 @@ export async function analyzeReport(reportId: string) {
         errorMessage = "The analysis function returned an error. Please try again later.";
       }
       
+      // Use a unique toast ID to prevent duplicate toasts
       toast({
+        id: "analysis-error-1",
         title: "Analysis failed",
         description: errorMessage,
         variant: "destructive"
@@ -215,7 +218,9 @@ export async function analyzeReport(reportId: string) {
         userMessage = "The PDF file appears to be corrupted or empty.";
       }
       
+      // Use a unique toast ID to prevent duplicate toasts
       toast({
+        id: "analysis-error-2",
         title: "Analysis failed",
         description: userMessage,
         variant: "destructive"
@@ -227,6 +232,7 @@ export async function analyzeReport(reportId: string) {
     console.log('Analysis result:', data);
     
     toast({
+      id: "analysis-success",
       title: "Analysis complete",
       description: "Your pitch deck has been successfully analyzed",
     });
@@ -236,9 +242,11 @@ export async function analyzeReport(reportId: string) {
     console.error('Error analyzing report:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
-    // Make sure we only show one toast
+    // Prevent duplicate toasts by checking error message
+    // Use a unique toast ID to prevent duplicate toasts
     if (!errorMessage.includes("analysis failed")) {
       toast({
+        id: "analysis-error-3",
         title: "Analysis failed",
         description: "Could not analyze the report. Please try again later.",
         variant: "destructive"
