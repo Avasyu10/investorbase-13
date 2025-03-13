@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, type ParsedPdfSegment } from "../pdf-parser";
 import type { Tables } from "@/integrations/supabase/types";
