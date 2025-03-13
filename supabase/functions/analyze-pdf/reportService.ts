@@ -43,31 +43,52 @@ export async function getReportData(reportId: string, authHeader: string) {
 
   console.log(`Authenticated as user: ${user.id}`);
 
-  // Check if the report exists at all (for better error messages)
-  const { data: allReports, error: allReportsError } = await supabase
+  // Get all reports (for debugging purposes)
+  const { data: allUserReports, error: allReportsQueryError } = await supabase
     .from('reports')
     .select('id, title, user_id, pdf_url')
-    .eq('id', reportId);
+    .eq('user_id', user.id);
+  
+  if (allReportsQueryError) {
+    console.error("Error fetching all user reports:", allReportsQueryError);
+  } else {
+    console.log(`User has ${allUserReports?.length || 0} total reports`);
+    if (allUserReports && allUserReports.length > 0) {
+      console.log("Available report IDs:", allUserReports.map(r => r.id).join(", "));
+    }
+  }
+
+  // Check if the specific report exists
+  const { data: reportData, error: reportError } = await supabase
+    .from('reports')
+    .select('id, title, user_id, pdf_url')
+    .eq('id', reportId)
+    .eq('user_id', user.id)
+    .maybeSingle();
     
-  if (allReportsError) {
-    console.error("Error checking if report exists:", allReportsError);
-    throw new Error('Database error: ' + allReportsError.message);
+  if (reportError) {
+    console.error("Error fetching specific report:", reportError);
+    throw new Error('Database error: ' + reportError.message);
   }
   
-  console.log(`Found ${allReports?.length || 0} reports matching ID ${reportId}`);
-  
-  if (!allReports || allReports.length === 0) {
-    console.error(`Report with ID ${reportId} does not exist in the database`);
-    throw new Error(`Report with ID ${reportId} not found`);
+  if (!reportData) {
+    // Check if report exists for any user (debugging)
+    const { data: anyUserReport } = await supabase
+      .from('reports')
+      .select('id, user_id')
+      .eq('id', reportId)
+      .maybeSingle();
+      
+    if (anyUserReport) {
+      console.error(`Report ${reportId} exists but belongs to user ${anyUserReport.user_id}, not ${user.id}`);
+      throw new Error(`Access denied: Report ${reportId} belongs to another user`);
+    } else {
+      console.error(`Report with ID ${reportId} does not exist in the database`);
+      throw new Error(`Report with ID ${reportId} not found`);
+    }
   }
 
-  const reportBelongsToUser = allReports.some(r => r.user_id === user.id);
-  if (!reportBelongsToUser) {
-    console.error(`Access denied: Report ${reportId} belongs to another user`);
-    throw new Error(`Access denied: Report ${reportId} belongs to another user`);
-  }
-
-  const report = allReports.find(r => r.user_id === user.id);
+  const report = reportData;
   
   if (!report.pdf_url) {
     console.error(`Report ${reportId} does not have a PDF URL`);
@@ -76,9 +97,27 @@ export async function getReportData(reportId: string, authHeader: string) {
   
   console.log(`Found user's report: ${report.title}, accessing PDF from storage`);
 
-  // Build the correct storage path
+  // Build the correct storage path - the PDF should be in user.id/report.pdf_url
   const storagePath = `${user.id}/${report.pdf_url}`;
   console.log(`Attempting to download PDF from path: ${storagePath}`);
+
+  // Attempt to list files in the storage bucket to debug
+  const { data: bucketFiles, error: bucketError } = await supabase
+    .storage
+    .from('report_pdfs')
+    .list(user.id, {
+      limit: 100,
+      sortBy: { column: 'name', order: 'asc' },
+    });
+    
+  if (bucketError) {
+    console.error("Error listing files in storage bucket:", bucketError);
+  } else {
+    console.log(`Found ${bucketFiles?.length || 0} files in user's storage folder`);
+    if (bucketFiles && bucketFiles.length > 0) {
+      console.log("Available files:", bucketFiles.map(f => f.name).join(", "));
+    }
+  }
 
   // Download the PDF from storage
   const { data: pdfData, error: pdfError } = await supabase
@@ -89,6 +128,39 @@ export async function getReportData(reportId: string, authHeader: string) {
   if (pdfError) {
     console.error("PDF download error:", pdfError);
     console.error(`Failed to access PDF at path: ${storagePath}`);
+    
+    // Try alternative paths as fallback (debugging)
+    console.log("Attempting alternative storage paths...");
+    
+    // Try without user ID prefix
+    const altPath = report.pdf_url;
+    console.log(`Trying alternative path: ${altPath}`);
+    const { data: altPdfData, error: altPdfError } = await supabase
+      .storage
+      .from('report_pdfs')
+      .download(altPath);
+      
+    if (altPdfError) {
+      console.error("Alternative path failed:", altPdfError);
+      throw new Error('Error downloading PDF: ' + pdfError.message);
+    }
+    
+    if (altPdfData) {
+      console.log(`Successfully downloaded PDF from alternative path: ${altPath}`);
+      
+      // Use the successfully downloaded data
+      const pdfBase64 = await altPdfData.arrayBuffer()
+        .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))));
+        
+      if (!pdfBase64 || pdfBase64.length === 0) {
+        console.error("PDF base64 conversion failed");
+        throw new Error('Failed to convert PDF to base64');
+      }
+      
+      console.log(`PDF base64 conversion successful, length: ${pdfBase64.length}`);
+      return { supabase, report, user, pdfBase64 };
+    }
+    
     throw new Error('Error downloading PDF: ' + pdfError.message);
   }
 
