@@ -33,6 +33,5 @@ refresh_token_reuse_interval = 10
 [auth.email]
 enable_confirmations = false
 
-[[functions]]
-name = "analyze-pdf"
+[functions.analyze-pdf]
 verify_jwt = true
