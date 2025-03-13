@@ -46,15 +46,24 @@ export async function getReportData(reportId: string, authHeader: string) {
   // Get all reports (for debugging purposes)
   const { data: allUserReports, error: allReportsQueryError } = await supabase
     .from('reports')
-    .select('id, title, user_id, pdf_url')
-    .eq('user_id', user.id);
+    .select('id, title, user_id, pdf_url');
   
   if (allReportsQueryError) {
-    console.error("Error fetching all user reports:", allReportsQueryError);
+    console.error("Error fetching all reports:", allReportsQueryError);
   } else {
-    console.log(`User has ${allUserReports?.length || 0} total reports`);
+    console.log(`Total reports in database: ${allUserReports?.length || 0}`);
+    
+    // Log all report IDs for debugging
     if (allUserReports && allUserReports.length > 0) {
-      console.log("Available report IDs:", allUserReports.map(r => r.id).join(", "));
+      console.log("All report IDs in database:", allUserReports.map(r => r.id).join(", "));
+      
+      // Check if our target report exists in the complete list
+      const targetReport = allUserReports.find(r => r.id === reportId);
+      if (targetReport) {
+        console.log(`Target report found in complete list: ${JSON.stringify(targetReport)}`);
+      } else {
+        console.log(`Target report (${reportId}) NOT found in complete list`);
+      }
     }
   }
 
@@ -63,7 +72,6 @@ export async function getReportData(reportId: string, authHeader: string) {
     .from('reports')
     .select('id, title, user_id, pdf_url')
     .eq('id', reportId)
-    .eq('user_id', user.id)
     .maybeSingle();
     
   if (reportError) {
@@ -72,22 +80,30 @@ export async function getReportData(reportId: string, authHeader: string) {
   }
   
   if (!reportData) {
-    // Check if report exists for any user (debugging)
-    const { data: anyUserReport } = await supabase
+    console.error(`Report with ID ${reportId} not found in the reports table`);
+    
+    // Attempt to fetch without user_id constraint to see if it exists for any user
+    const { data: reportExists } = await supabase
       .from('reports')
       .select('id, user_id')
       .eq('id', reportId)
       .maybeSingle();
       
-    if (anyUserReport) {
-      console.error(`Report ${reportId} exists but belongs to user ${anyUserReport.user_id}, not ${user.id}`);
-      throw new Error(`Access denied: Report ${reportId} belongs to another user`);
+    if (reportExists) {
+      console.log(`Found report with ID ${reportId}, belongs to user ${reportExists.user_id}`);
+      
+      if (reportExists.user_id !== user.id) {
+        throw new Error(`Access denied: Report ${reportId} belongs to another user`);
+      } else {
+        console.log(`Strange case: Report belongs to current user but wasn't returned in previous query`);
+      }
     } else {
-      console.error(`Report with ID ${reportId} does not exist in the database`);
+      console.error(`Report with ID ${reportId} does not exist in the database at all`);
       throw new Error(`Report with ID ${reportId} not found`);
     }
   }
 
+  // At this point, we must have reportData or we would have thrown an error
   const report = reportData;
   
   if (!report.pdf_url) {

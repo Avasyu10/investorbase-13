@@ -1,9 +1,14 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, type ParsedPdfSegment } from "../pdf-parser";
-import { type Report } from "@/integrations/supabase/types";
+import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
 import { analyzeReport } from "./analysis";
+
+// Define the Report type to match what's being used
+type Report = Tables["reports"] & {
+  parsedSegments?: ParsedPdfSegment[];
+};
 
 export async function getReports() {
   const { data: { user } } = await supabase.auth.getUser();
