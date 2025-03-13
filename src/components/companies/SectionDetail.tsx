@@ -10,11 +10,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export function SectionDetail() {
   const { companyId, sectionId } = useParams<{ companyId: string, sectionId: string }>();
-  const { company } = useCompanyDetails(companyId ? Number(companyId) : undefined);
-  const { section, isLoading } = useSectionDetails(
-    companyId ? Number(companyId) : undefined,
-    sectionId ? Number(sectionId) : undefined
-  );
+  const { company } = useCompanyDetails(companyId);
+  const { section, isLoading } = useSectionDetails(companyId, sectionId);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   useEffect(() => {

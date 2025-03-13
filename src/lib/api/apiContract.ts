@@ -15,7 +15,7 @@ export interface BaseEntity {
 
 export interface CompanyBase extends BaseEntity {
   name: string;
-  overallScore: number;
+  overallScore: number; // 0-5 scale
 }
 
 export interface CompanyListItem extends CompanyBase {
@@ -39,7 +39,7 @@ export type SectionType =
 export interface SectionBase extends BaseEntity {
   type: SectionType;
   title: string;
-  score: number;
+  score: number; // 0-5 scale
   description: string;
 }
 

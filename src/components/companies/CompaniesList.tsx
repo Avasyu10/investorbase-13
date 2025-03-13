@@ -29,7 +29,7 @@ export function CompaniesList() {
       if (sortBy === "name") {
         return a.name.localeCompare(b.name);
       } else {
-        return b.score - a.score; // Sort by score descending
+        return b.overallScore - a.overallScore; // Sort by score descending
       }
     });
   }, [companies, sortBy]);
@@ -99,11 +99,11 @@ export function CompaniesList() {
             >
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
-                <CardDescription>Overall Score: {company.score}/5</CardDescription>
+                <CardDescription>Overall Score: {company.overallScore}/5</CardDescription>
               </CardHeader>
               <CardContent>
                 <Progress 
-                  value={company.score * 20} 
+                  value={company.overallScore * 20} 
                   className="h-2 mb-2" 
                 />
                 <p className="text-xs sm:text-sm text-muted-foreground">

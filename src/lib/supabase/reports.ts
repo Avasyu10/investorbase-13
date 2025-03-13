@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, type ParsedPdfSegment } from "../pdf-parser";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
-import { analyzeReport } from "./analysis";
 
 // Define the Report type to match what's being used
 type Report = Tables<"reports"> & {
@@ -21,7 +20,7 @@ export async function getReports() {
   // Get reports from the reports table for the current user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*')
+    .select('*, companies(name, overall_score)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -49,7 +48,7 @@ export async function getReportById(id: string) {
   // Get the report from the reports table
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*')
+    .select('*, companies(*)')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle();
@@ -63,24 +62,7 @@ export async function getReportById(id: string) {
     throw new Error('Report not found');
   }
 
-  const report = tableData as Report;
-
-  try {
-    // Download the file - pass the user ID for proper path construction
-    const pdfBlob = await downloadReport(report.pdf_url, user.id);
-    
-    // Parse the PDF content
-    const parsedSegments = await parsePdfFromBlob(pdfBlob);
-    
-    // Add parsed segments to the report
-    report.parsedSegments = parsedSegments;
-    
-    return report;
-  } catch (error) {
-    console.error('Error parsing PDF content:', error);
-    // Return the report without parsed segments if parsing fails
-    return report;
-  }
+  return tableData as Report;
 }
 
 export async function downloadReport(fileUrl: string, userId: string) {
@@ -93,20 +75,7 @@ export async function downloadReport(fileUrl: string, userId: string) {
 
   if (error) {
     console.error('Error downloading report:', error);
-    
-    // Try without user ID prefix as fallback (for backward compatibility)
-    console.log('Attempting fallback download without user ID prefix');
-    const { data: fallbackData, error: fallbackError } = await supabase.storage
-      .from('report_pdfs')
-      .download(fileUrl);
-      
-    if (fallbackError) {
-      console.error('Fallback download also failed:', fallbackError);
-      throw error; // Throw the original error
-    }
-    
-    console.log('Fallback download successful');
-    return fallbackData;
+    throw error;
   }
 
   console.log('Download successful');
@@ -122,50 +91,95 @@ export async function uploadReport(file: File, title: string, description: strin
       throw new Error('User not authenticated');
     }
     
-    console.log('Uploading report for user:', user.id);
+    console.log('Uploading and analyzing report for user:', user.id);
     
-    // Create a unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
+    // Convert file to base64 for direct analysis
+    const reader = new FileReader();
     
-    // Store filepath with user ID prefix
-    const filePath = `${user.id}/${fileName}`;
-    console.log('Uploading file to path:', filePath);
+    // Create a promise to handle the FileReader async operation
+    const pdfBase64Promise = new Promise<string>((resolve, reject) => {
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        // Get the base64 content without the data URL prefix
+        const base64Content = base64.split(',')[1];
+        resolve(base64Content);
+      };
+      reader.onerror = () => reject(new Error('Failed to read the file'));
+      reader.readAsDataURL(file);
+    });
     
-    // Upload the file to storage
-    const { error: uploadError } = await supabase.storage
-      .from('report_pdfs')
-      .upload(filePath, file);
-      
-    if (uploadError) {
-      console.error('Error uploading file to storage:', uploadError);
-      throw uploadError;
+    const pdfBase64 = await pdfBase64Promise;
+    
+    // Call the analyze-pdf-direct edge function with the base64 content
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('User not authenticated');
     }
     
-    console.log('File uploaded to storage successfully, saving record to database');
+    console.log('Calling analyze-pdf-direct function');
     
-    // Insert a record in the reports table
-    const { data: report, error: insertError } = await supabase
-      .from('reports')
-      .insert([{
-        title,
-        description,
-        pdf_url: fileName, // Store just the filename part in the database
-        user_id: user.id
-      }])
-      .select()
-      .single();
+    const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
+      body: { 
+        title, 
+        description, 
+        pdfBase64
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+    
+    if (error) {
+      console.error('Error invoking analyze-pdf-direct function:', error);
       
-    if (insertError) {
-      console.error('Error inserting report record:', insertError);
-      throw insertError;
+      toast({
+        id: "analysis-error-1",
+        title: "Analysis failed",
+        description: "There was a problem analyzing the pitch deck. Please try again later.",
+        variant: "destructive"
+      });
+      
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
+      
+      toast({
+        id: "analysis-error-2",
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Analysis result:', data);
+    
+    toast({
+      id: "analysis-success",
+      title: "Analysis complete",
+      description: "Your pitch deck has been successfully analyzed",
+    });
+    
+    // Get the report details using the company ID
+    const { data: reportData, error: reportError } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('company_id', data.companyId)
+      .maybeSingle();
+      
+    if (reportError) {
+      console.error('Error fetching report record:', reportError);
+      throw reportError;
     }
 
-    console.log('Report record created successfully:', report);
-    
-    return report as Report;
+    return reportData as Report;
   } catch (error) {
-    console.error('Error uploading report:', error);
+    console.error('Error uploading and analyzing report:', error);
     throw error;
   }
 }

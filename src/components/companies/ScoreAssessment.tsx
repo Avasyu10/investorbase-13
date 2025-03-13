@@ -15,9 +15,13 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
       </CardHeader>
       <CardContent>
         <ul className="list-disc pl-5 space-y-2">
-          {company.assessmentPoints.map((point, index) => (
-            <li key={index} className="text-muted-foreground">{point}</li>
-          ))}
+          {company.assessmentPoints.length > 0 ? (
+            company.assessmentPoints.map((point, index) => (
+              <li key={index} className="text-muted-foreground">{point}</li>
+            ))
+          ) : (
+            <li className="text-muted-foreground">No assessment points available</li>
+          )}
         </ul>
       </CardContent>
       <CardFooter className="flex justify-end">

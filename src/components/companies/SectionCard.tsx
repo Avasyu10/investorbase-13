@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { SectionBase } from "@/lib/api/apiContract";
 
 interface SectionCardProps {
-  section: SectionBase | any;
+  section: SectionBase;
   onClick: () => void;
 }
 

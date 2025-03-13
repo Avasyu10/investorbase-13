@@ -5,12 +5,11 @@ import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
-import { SectionBase } from "@/lib/api/apiContract";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
-  const { company, isLoading } = useCompanyDetails(companyId ? Number(companyId) : undefined);
+  const { company, isLoading } = useCompanyDetails(companyId);
 
   const handleSectionClick = (sectionId: number) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
@@ -58,7 +57,9 @@ export function CompanyDetails() {
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
         <div className="flex flex-col sm:flex-row sm:items-center mt-3 sm:mt-4 mb-4 sm:mb-6">
-          <span className="text-xl sm:text-2xl font-bold mb-2 sm:mb-0 sm:mr-4">Overall Score: {company.overallScore}/5</span>
+          <span className="text-xl sm:text-2xl font-bold mb-2 sm:mb-0 sm:mr-4">
+            Overall Score: {company.overallScore}/5
+          </span>
           <Progress 
             value={company.overallScore * 20} 
             className="h-2 sm:h-3 flex-1" 
@@ -73,7 +74,7 @@ export function CompanyDetails() {
         {company.sections.map((section) => (
           <SectionCard 
             key={section.id} 
-            section={section as unknown as any} 
+            section={section} 
             onClick={() => handleSectionClick(section.id)} 
           />
         ))}
