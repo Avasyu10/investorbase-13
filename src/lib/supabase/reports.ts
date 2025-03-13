@@ -6,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { analyzeReport } from "./analysis";
 
 // Define the Report type to match what's being used
-type Report = Tables["reports"] & {
+type Report = Tables<"reports"> & {
   parsedSegments?: ParsedPdfSegment[];
 };
 
