@@ -27,7 +27,7 @@ export function ReportUpload() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +35,7 @@ export function ReportUpload() {
       const selectedFile = e.target.files[0];
       
       if (selectedFile.type !== 'application/pdf') {
-        toast({
+        uiToast({
           title: "Invalid file type",
           description: "Please upload a PDF file",
           variant: "destructive",
@@ -44,7 +44,7 @@ export function ReportUpload() {
       }
       
       if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-        toast({
+        uiToast({
           title: "File too large",
           description: "Please upload a file smaller than 10MB",
           variant: "destructive",
@@ -60,7 +60,7 @@ export function ReportUpload() {
     e.preventDefault();
     
     if (!file) {
-      toast({
+      uiToast({
         title: "No file selected",
         description: "Please select a PDF file to upload",
         variant: "destructive",
@@ -69,7 +69,7 @@ export function ReportUpload() {
     }
     
     if (!title.trim()) {
-      toast({
+      uiToast({
         title: "Title required",
         description: "Please provide a title for the report",
         variant: "destructive",
@@ -83,8 +83,10 @@ export function ReportUpload() {
       setProgress(10);
       
       // Upload the report
+      console.log("Starting upload process");
       const report = await uploadReport(file, title, description);
       setProgress(40);
+      console.log("Upload complete, report:", report);
       
       toast({
         title: "Upload complete",
@@ -102,8 +104,10 @@ export function ReportUpload() {
       });
       
       try {
+        console.log("Starting analysis with report ID:", report.id);
         const result = await analyzeReport(report.id);
         setProgress(100);
+        console.log("Analysis complete, result:", result);
         
         toast({
           title: "Analysis complete",
@@ -111,7 +115,12 @@ export function ReportUpload() {
         });
         
         // Navigate to the company page
-        navigate(`/company/${result.companyId}`);
+        if (result && result.companyId) {
+          navigate(`/company/${result.companyId}`);
+        } else {
+          console.error("No company ID returned from analysis");
+          navigate('/dashboard');
+        }
       } catch (analysisError) {
         console.error("Error analyzing report:", analysisError);
         toast({

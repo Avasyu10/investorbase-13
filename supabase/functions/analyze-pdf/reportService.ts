@@ -6,12 +6,15 @@ export async function getReportData(reportId: string, authHeader: string) {
   const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  console.log(`Getting report data for ${reportId}`);
+
   // Get authenticated user
   const { data: { user }, error: userError } = await supabase.auth.getUser(
     authHeader.replace('Bearer ', '')
   );
   
   if (userError || !user) {
+    console.error("Auth error:", userError);
     throw new Error('Unauthorized');
   }
 
@@ -24,8 +27,11 @@ export async function getReportData(reportId: string, authHeader: string) {
     .single();
 
   if (reportError || !report) {
+    console.error("Report error:", reportError);
     throw new Error('Report not found or access denied');
   }
+
+  console.log(`Found report: ${report.title}, downloading PDF from storage`);
 
   // Download the PDF from storage
   const { data: pdfData, error: pdfError } = await supabase
@@ -34,8 +40,11 @@ export async function getReportData(reportId: string, authHeader: string) {
     .download(`${user.id}/${report.pdf_url}`);
 
   if (pdfError || !pdfData) {
+    console.error("PDF download error:", pdfError);
     throw new Error('Error downloading PDF');
   }
+
+  console.log("PDF downloaded successfully, converting to base64");
 
   // Convert PDF to base64
   const pdfBase64 = await pdfData.arrayBuffer()

@@ -33,11 +33,17 @@ serve(async (req) => {
     // Get report data and verify access
     const { supabase, report, user, pdfBase64 } = await getReportData(reportId, authHeader);
     
+    console.log("Successfully retrieved report data, analyzing with OpenAI");
+    
     // Analyze the PDF with OpenAI
     const analysis = await analyzeWithOpenAI(pdfBase64, OPENAI_API_KEY);
     
+    console.log("OpenAI analysis complete, saving results to database");
+    
     // Save analysis results to database
     const companyId = await saveAnalysisResults(supabase, analysis, report);
+
+    console.log(`Analysis complete, created company with ID: ${companyId}`);
 
     return new Response(
       JSON.stringify({ 

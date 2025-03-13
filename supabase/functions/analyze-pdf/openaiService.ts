@@ -50,55 +50,61 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
     }
   `;
 
-  // Call OpenAI API for analysis
-  console.log("Calling OpenAI API for analysis");
-  const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system", 
-          content: prompt
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Please analyze this pitch deck PDF"
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:application/pdf;base64,${pdfBase64}`
-              }
-            }
-          ]
-        }
-      ],
-      temperature: 0.5,
-      response_format: { type: "json_object" }
-    })
-  });
-
-  const openaiData = await openaiResponse.json();
-  console.log("Received OpenAI response");
-
-  if (!openaiResponse.ok) {
-    console.error("OpenAI API error:", openaiData);
-    throw new Error(`OpenAI API error: ${openaiData.error?.message || 'Unknown error'}`);
-  }
-
-  // Parse the analysis result
   try {
-    return JSON.parse(openaiData.choices[0].message.content);
-  } catch (e) {
-    console.error("Error parsing OpenAI response:", e);
-    throw new Error("Failed to parse analysis result");
+    // Call OpenAI API for analysis
+    console.log("Calling OpenAI API for analysis");
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system", 
+            content: prompt
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Please analyze this pitch deck PDF"
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:application/pdf;base64,${pdfBase64}`
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0.5,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorData = await openaiResponse.json();
+      console.error("OpenAI API error:", errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const openaiData = await openaiResponse.json();
+    console.log("Received OpenAI response");
+
+    // Parse the analysis result
+    try {
+      return JSON.parse(openaiData.choices[0].message.content);
+    } catch (e) {
+      console.error("Error parsing OpenAI response:", e);
+      throw new Error("Failed to parse analysis result");
+    }
+  } catch (error) {
+    console.error("Error in analyzeWithOpenAI:", error);
+    throw error;
   }
 }

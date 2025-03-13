@@ -117,6 +117,8 @@ export async function uploadReport(file: File, title: string, description: strin
       throw new Error('User not authenticated');
     }
     
+    console.log('Uploading report for user:', user.id);
+    
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
@@ -128,24 +130,30 @@ export async function uploadReport(file: File, title: string, description: strin
       .upload(filePath, file);
       
     if (uploadError) {
+      console.error('Error uploading file to storage:', uploadError);
       throw uploadError;
     }
+    
+    console.log('File uploaded to storage successfully, saving record to database');
     
     // Insert a record in the reports table
     const { data: report, error: insertError } = await supabase
       .from('reports')
-      .insert({
+      .insert([{
         title,
         description,
         pdf_url: fileName,
         user_id: user.id
-      })
+      }])
       .select()
       .single();
       
     if (insertError) {
+      console.error('Error inserting report record:', insertError);
       throw insertError;
     }
+
+    console.log('Report record created successfully:', report);
     
     return report as Report;
   } catch (error) {
