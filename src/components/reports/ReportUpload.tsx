@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -64,7 +62,6 @@ export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFile, setSupplementFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyStage, setCompanyStage] = useState("");
   const [industry, setIndustry] = useState("");
@@ -152,9 +149,9 @@ export function ReportUpload() {
       setProgressStage("Uploading pitch deck...");
       setProgress(10);
       
-      // Upload the report
+      // Upload the report - passing empty string for description since we removed it
       console.log("Starting upload process");
-      const report = await uploadReport(file, title, description);
+      const report = await uploadReport(file, title, "");
       setProgress(40);
       console.log("Upload complete, report:", report);
       
@@ -233,18 +230,6 @@ export function ReportUpload() {
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter a brief description"
-              disabled={isUploading || isAnalyzing}
-              rows={3}
-            />
-          </div>
-
           <div className="space-y-2">
             <Label>Founder LinkedIn Profiles</Label>
             {founderLinkedIns.map((linkedin, index) => (
@@ -334,7 +319,7 @@ export function ReportUpload() {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="file">Pitch Deck PDF</Label>
+            <Label htmlFor="file">Pitch Deck</Label>
             <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
               <div className="flex flex-col items-center space-y-2">
                 <FileUp className="h-8 w-8 text-muted-foreground" />
