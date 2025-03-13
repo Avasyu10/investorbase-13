@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -5,6 +6,7 @@ import { ChevronRight, Menu, X, CheckCircle, XCircle } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export function SectionDetail() {
   const { companyId, sectionId } = useParams<{ companyId: string, sectionId: string }>();
@@ -128,65 +130,74 @@ export function SectionDetail() {
             </div>
           </CardHeader>
           <CardContent className="pt-6 sm:pt-8">
-            <div className="space-y-6">
-              <div className="p-4 rounded-lg bg-muted/30 border">
-                <h3 className="text-lg font-medium mb-3">Summary</h3>
-                <p className="text-sm sm:text-base leading-relaxed">{section.description}</p>
-              </div>
+            <Tabs defaultValue="overview">
+              <TabsList className="mb-6">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="details">Details</TabsTrigger>
+              </TabsList>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="p-4 rounded-lg border border-green-200 bg-green-50">
-                  <h4 className="flex items-center gap-2 font-medium text-green-700 mb-3">
-                    <CheckCircle className="h-5 w-5" />
-                    <span>Key Strengths</span>
-                  </h4>
-                  <ul className="space-y-3 text-sm sm:text-base">
-                    {section.strengths.map((strength, idx) => (
-                      <li key={idx} className="pl-4 border-l-2 border-green-300">{strength}</li>
-                    ))}
-                  </ul>
+              <TabsContent value="overview" className="space-y-6">
+                <div className="p-4 rounded-lg bg-muted/30 border">
+                  <h3 className="text-lg font-medium mb-3">Summary</h3>
+                  <p className="text-sm sm:text-base leading-relaxed">{section.description}</p>
                 </div>
                 
-                <div className="p-4 rounded-lg border border-amber-200 bg-amber-50">
-                  <h4 className="flex items-center gap-2 font-medium text-amber-700 mb-3">
-                    <XCircle className="h-5 w-5" />
-                    <span>Areas for Improvement</span>
-                  </h4>
-                  <ul className="space-y-3 text-sm sm:text-base">
-                    {section.weaknesses.map((weakness, idx) => (
-                      <li key={idx} className="pl-4 border-l-2 border-amber-300">{weakness}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg border bg-muted/10">
-                <h3 className="text-lg font-medium mb-3 pb-2 border-b">Detailed Analysis</h3>
-                <p className="mb-6 text-sm sm:text-base leading-relaxed">
-                  {section.detailedContent}
-                </p>
-                  
-                <div className="space-y-6">
-                  <div className="p-4 rounded-lg border bg-muted/20">
-                    <h4 className="font-medium mb-3">Additional Details on Key Strengths:</h4>
-                    <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="p-4 rounded-lg border border-green-200 bg-green-50">
+                    <h4 className="flex items-center gap-2 font-medium text-green-700 mb-3">
+                      <CheckCircle className="h-5 w-5" />
+                      <span>Key Strengths</span>
+                    </h4>
+                    <ul className="space-y-3 text-sm sm:text-base">
                       {section.strengths.map((strength, idx) => (
-                        <li key={idx}>{strength}</li>
+                        <li key={idx} className="pl-4 border-l-2 border-green-300">{strength}</li>
                       ))}
                     </ul>
                   </div>
                   
-                  <div className="p-4 rounded-lg border bg-muted/20">
-                    <h4 className="font-medium mb-3">Additional Details on Areas for Improvement:</h4>
-                    <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
+                  <div className="p-4 rounded-lg border border-amber-200 bg-amber-50">
+                    <h4 className="flex items-center gap-2 font-medium text-amber-700 mb-3">
+                      <XCircle className="h-5 w-5" />
+                      <span>Areas for Improvement</span>
+                    </h4>
+                    <ul className="space-y-3 text-sm sm:text-base">
                       {section.weaknesses.map((weakness, idx) => (
-                        <li key={idx}>{weakness}</li>
+                        <li key={idx} className="pl-4 border-l-2 border-amber-300">{weakness}</li>
                       ))}
                     </ul>
                   </div>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
+              
+              <TabsContent value="details" className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-3 pb-2 border-b">Detailed Analysis</h3>
+                  <p className="mb-3 text-sm sm:text-base leading-relaxed">
+                    {section.detailedContent}
+                  </p>
+                  
+                  <div className="mt-6 space-y-6">
+                    <div className="p-4 rounded-lg border bg-muted/20">
+                      <h4 className="font-medium mb-3">Key Strengths:</h4>
+                      <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
+                        {section.strengths.map((strength, idx) => (
+                          <li key={idx}>{strength}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border bg-muted/20">
+                      <h4 className="font-medium mb-3">Areas for Improvement:</h4>
+                      <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
+                        {section.weaknesses.map((weakness, idx) => (
+                          <li key={idx}>{weakness}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
