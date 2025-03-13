@@ -1,6 +1,11 @@
 
 export async function saveAnalysisResults(supabase: any, analysis: any, report: any) {
   try {
+    if (!analysis || !analysis.sections || !Array.isArray(analysis.sections)) {
+      console.error("Invalid analysis format:", analysis);
+      throw new Error('Analysis result is invalid or incomplete');
+    }
+
     console.log("Creating company record");
     // Create a company entry for the report
     const companyName = report.title;
@@ -8,14 +13,19 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       .from('companies')
       .insert({
         name: companyName,
-        total_score: Math.round(analysis.overallScore * 20) // Convert 0-5 scale to 0-100
+        total_score: Math.round((analysis.overallScore || 0) * 20) // Convert 0-5 scale to 0-100
       })
       .select()
       .single();
 
     if (companyError) {
       console.error("Error creating company:", companyError);
-      throw new Error('Failed to create company record');
+      throw new Error('Failed to create company record: ' + companyError.message);
+    }
+
+    if (!company || !company.id) {
+      console.error("No company ID returned after insertion");
+      throw new Error('Failed to create company record: No ID returned');
     }
 
     console.log(`Company created with ID: ${company.id}, inserting sections`);
@@ -24,8 +34,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     const sectionInserts = analysis.sections.map((section: any) => ({
       company_id: company.id,
       name: section.title,
-      description: section.description,
-      score: Math.round(section.score * 20), // Convert 0-5 scale to 0-100
+      description: section.description || '',
+      score: Math.round((section.score || 0) * 20), // Convert 0-5 scale to 0-100
     }));
 
     const { error: sectionsError } = await supabase
@@ -34,7 +44,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     if (sectionsError) {
       console.error("Error creating sections:", sectionsError);
-      throw new Error('Failed to create section records');
+      throw new Error('Failed to create section records: ' + sectionsError.message);
     }
 
     console.log("Sections inserted, getting IDs for detail records");
@@ -47,7 +57,12 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     if (getSectionsError) {
       console.error("Error getting sections:", getSectionsError);
-      throw new Error('Failed to retrieve section records');
+      throw new Error('Failed to retrieve section records: ' + getSectionsError.message);
+    }
+
+    if (!insertedSections || insertedSections.length === 0) {
+      console.error("No sections found after insertion");
+      throw new Error('Failed to retrieve sections after creation');
     }
 
     console.log(`Retrieved ${insertedSections.length} sections, creating detail records`);
@@ -58,7 +73,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       const section = insertedSections[i];
       const analysisSection = analysis.sections[i];
 
-      if (analysisSection.strengths) {
+      if (analysisSection.strengths && Array.isArray(analysisSection.strengths)) {
         analysisSection.strengths.forEach((strength: string) => {
           sectionDetails.push({
             section_id: section.id,
@@ -69,7 +84,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         });
       }
 
-      if (analysisSection.weaknesses) {
+      if (analysisSection.weaknesses && Array.isArray(analysisSection.weaknesses)) {
         analysisSection.weaknesses.forEach((weakness: string) => {
           sectionDetails.push({
             section_id: section.id,
@@ -89,7 +104,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
       if (detailsError) {
         console.error("Error creating section details:", detailsError);
-        throw new Error('Failed to create section detail records');
+        throw new Error('Failed to create section detail records: ' + detailsError.message);
       }
     }
 
@@ -99,13 +114,13 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     const { error: updateError } = await supabase
       .from('reports')
       .update({ 
-        sections: analysis.sections.map((s: any) => s.title)
+        sections: analysis.sections.map((s: any) => s.title || '')
       })
       .eq('id', report.id);
 
     if (updateError) {
       console.error("Error updating report:", updateError);
-      throw new Error('Failed to update report');
+      throw new Error('Failed to update report: ' + updateError.message);
     }
 
     console.log("Analysis process complete!");

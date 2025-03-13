@@ -43,7 +43,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
           "strengths": ["Strength 1", "Strength 2"],
           "weaknesses": ["Weakness 1", "Weakness 2"]
         },
-        ... (repeat for all 11 sections)
+        ... (repeat for all sections)
       ],
       "overallScore": 3.5,
       "assessmentPoints": ["Key point 1", "Key point 2", "Key point 3"]
@@ -51,6 +51,16 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   `;
 
   try {
+    if (!apiKey) {
+      console.error("OpenAI API key is missing");
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    if (!pdfBase64 || pdfBase64.length === 0) {
+      console.error("PDF data is empty or invalid");
+      throw new Error("Invalid PDF data for analysis");
+    }
+
     // Call OpenAI API for analysis
     console.log("Calling OpenAI API for analysis");
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -98,7 +108,11 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
 
     // Parse the analysis result
     try {
-      return JSON.parse(openaiData.choices[0].message.content);
+      const content = openaiData.choices[0].message.content;
+      if (!content) {
+        throw new Error("Empty response from OpenAI");
+      }
+      return JSON.parse(content);
     } catch (e) {
       console.error("Error parsing OpenAI response:", e);
       throw new Error("Failed to parse analysis result");

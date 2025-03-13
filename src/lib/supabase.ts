@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -190,6 +189,17 @@ export async function analyzeReport(reportId: string) {
         variant: "destructive"
       });
       throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
+      toast({
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      throw new Error(errorMessage);
     }
     
     console.log('Analysis result:', data);

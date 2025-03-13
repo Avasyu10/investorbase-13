@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUp, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
 
 export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -26,7 +26,6 @@ export function ReportUpload() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
-  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,19 +33,15 @@ export function ReportUpload() {
       const selectedFile = e.target.files[0];
       
       if (selectedFile.type !== 'application/pdf') {
-        uiToast({
-          title: "Invalid file type",
-          description: "Please upload a PDF file",
-          variant: "destructive",
+        toast.error("Invalid file type", {
+          description: "Please upload a PDF file"
         });
         return;
       }
       
       if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-        uiToast({
-          title: "File too large",
-          description: "Please upload a file smaller than 10MB",
-          variant: "destructive",
+        toast.error("File too large", {
+          description: "Please upload a file smaller than 10MB"
         });
         return;
       }
@@ -59,19 +54,15 @@ export function ReportUpload() {
     e.preventDefault();
     
     if (!file) {
-      uiToast({
-        title: "No file selected",
-        description: "Please select a PDF file to upload",
-        variant: "destructive",
+      toast.error("No file selected", {
+        description: "Please select a PDF file to upload"
       });
       return;
     }
     
     if (!title.trim()) {
-      uiToast({
-        title: "Title required",
-        description: "Please provide a title for the report",
-        variant: "destructive",
+      toast.error("Title required", {
+        description: "Please provide a title for the report"
       });
       return;
     }
@@ -87,9 +78,8 @@ export function ReportUpload() {
       setProgress(40);
       console.log("Upload complete, report:", report);
       
-      // Using sonner toast correctly
-      toast("Upload complete", {
-        description: "Your pitch deck has been uploaded successfully",
+      toast.success("Upload complete", {
+        description: "Your pitch deck has been uploaded successfully"
       });
       
       // Start analysis
@@ -97,9 +87,8 @@ export function ReportUpload() {
       setProgressStage("Analyzing pitch deck with AI...");
       setProgress(50);
       
-      // Using sonner toast correctly
-      toast("Analysis started", {
-        description: "This may take a few minutes depending on the size of your deck",
+      toast.info("Analysis started", {
+        description: "This may take a few minutes depending on the size of your deck"
       });
       
       try {
@@ -108,9 +97,8 @@ export function ReportUpload() {
         setProgress(100);
         console.log("Analysis complete, result:", result);
         
-        // Using sonner toast correctly
-        toast("Analysis complete", {
-          description: "Your pitch deck has been analyzed successfully!",
+        toast.success("Analysis complete", {
+          description: "Your pitch deck has been analyzed successfully!"
         });
         
         // Navigate to the company page
@@ -120,21 +108,23 @@ export function ReportUpload() {
           console.error("No company ID returned from analysis");
           navigate('/dashboard');
         }
-      } catch (analysisError) {
+      } catch (analysisError: any) {
         console.error("Error analyzing report:", analysisError);
-        // Using sonner toast correctly for errors
+        
         toast.error("Analysis failed", {
-          description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck. The file was uploaded but couldn't be analyzed.",
+          description: analysisError instanceof Error ? 
+            analysisError.message : 
+            "Failed to analyze pitch deck. The file was uploaded but couldn't be analyzed."
         });
         
         // Still navigate to dashboard if analysis fails
         navigate('/dashboard');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing report:", error);
-      // Using sonner toast correctly for errors
+      
       toast.error("Upload failed", {
-        description: error instanceof Error ? error.message : "Failed to process pitch deck",
+        description: error instanceof Error ? error.message : "Failed to process pitch deck"
       });
       setProgress(0);
     } finally {
