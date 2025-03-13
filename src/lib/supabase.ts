@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
+import { toast } from "@/hooks/use-toast";
 
 // These are provided by your Supabase project
 const supabaseUrl = 'https://jhtnruktmtjqrfoiyrep.supabase.co';
@@ -183,6 +184,11 @@ export async function analyzeReport(reportId: string) {
     
     if (error) {
       console.error('Error invoking analyze-pdf function:', error);
+      toast({
+        title: "Analysis failed",
+        description: error.message || "There was a problem analyzing the report",
+        variant: "destructive"
+      });
       throw error;
     }
     

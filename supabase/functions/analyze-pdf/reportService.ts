@@ -4,6 +4,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 export async function getReportData(reportId: string, authHeader: string) {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
   const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
+  
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error("Missing Supabase configuration");
+    throw new Error('Supabase configuration is missing');
+  }
+  
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   console.log(`Getting report data for ${reportId}`);
@@ -24,7 +30,7 @@ export async function getReportData(reportId: string, authHeader: string) {
     .select('*')
     .eq('id', reportId)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (reportError || !report) {
     console.error("Report error:", reportError);
