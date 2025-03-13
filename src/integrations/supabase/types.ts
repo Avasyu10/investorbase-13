@@ -16,6 +16,7 @@ export type Database = {
           id: string
           name: string
           overall_score: number
+          report_id: string | null
           updated_at: string
         }
         Insert: {
@@ -24,6 +25,7 @@ export type Database = {
           id?: string
           name: string
           overall_score?: number
+          report_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -32,38 +34,50 @@ export type Database = {
           id?: string
           name?: string
           overall_score?: number
+          report_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {
+          analysis_error: string | null
+          analysis_status: string
           company_id: string | null
           created_at: string
           description: string | null
           id: string
-          pdf_content: string | null
-          pdf_url: string | null
+          pdf_url: string
           title: string
           user_id: string | null
         }
         Insert: {
+          analysis_error?: string | null
+          analysis_status?: string
           company_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
-          pdf_content?: string | null
-          pdf_url?: string | null
+          pdf_url: string
           title: string
           user_id?: string | null
         }
         Update: {
+          analysis_error?: string | null
+          analysis_status?: string
           company_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
-          pdf_content?: string | null
-          pdf_url?: string | null
+          pdf_url?: string
           title?: string
           user_id?: string | null
         }

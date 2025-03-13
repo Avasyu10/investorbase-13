@@ -12,8 +12,9 @@ export type Report = {
   created_at: string;
   user_id?: string;
   company_id?: string;
+  analysis_status: string;
+  analysis_error?: string;
   parsedSegments?: ParsedPdfSegment[];
-  pdf_content?: string;
 };
 
 // Functions to interact with Supabase
@@ -29,7 +30,7 @@ export async function getReports() {
   // Get reports from the reports table for the current user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*')
+    .select('*, companies(id, name, overall_score)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -57,7 +58,7 @@ export async function getReportById(id: string) {
   // Get the report from the reports table
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*')
+    .select('*, companies(id, name, overall_score)')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle();
@@ -73,49 +74,22 @@ export async function getReportById(id: string) {
 
   const report = tableData as Report;
 
-  // If we have direct PDF content in the database
-  if (report.pdf_content) {
-    try {
-      // Convert base64 to blob
-      const binaryString = atob(report.pdf_content);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
-      
-      // Parse the PDF content
-      const parsedSegments = await parsePdfFromBlob(pdfBlob);
-      
-      // Add parsed segments to the report
-      report.parsedSegments = parsedSegments;
-      
-      return report;
-    } catch (error) {
-      console.error('Error parsing PDF content:', error);
-      // Return the report without parsed segments if parsing fails
-      return report;
-    }
-  } else if (report.pdf_url) {
-    try {
-      // Download the file
-      const pdfBlob = await downloadReport(report.pdf_url, user.id);
-      
-      // Parse the PDF content
-      const parsedSegments = await parsePdfFromBlob(pdfBlob);
-      
-      // Add parsed segments to the report
-      report.parsedSegments = parsedSegments;
-      
-      return report;
-    } catch (error) {
-      console.error('Error parsing PDF content:', error);
-      // Return the report without parsed segments if parsing fails
-      return report;
-    }
+  try {
+    // Download the file
+    const pdfBlob = await downloadReport(report.pdf_url, user.id);
+    
+    // Parse the PDF content
+    const parsedSegments = await parsePdfFromBlob(pdfBlob);
+    
+    // Add parsed segments to the report
+    report.parsedSegments = parsedSegments;
+    
+    return report;
+  } catch (error) {
+    console.error('Error parsing PDF content:', error);
+    // Return the report without parsed segments if parsing fails
+    return report;
   }
-
-  return report;
 }
 
 export async function downloadReport(fileUrl: string, userId: string) {
@@ -131,7 +105,62 @@ export async function downloadReport(fileUrl: string, userId: string) {
   return data;
 }
 
-export async function analyzeReportDirect(file: File, title: string, description: string) {
+export async function uploadReport(file: File, title: string, description: string = '') {
+  try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('Uploading report for user:', user.id);
+    
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
+    
+    // Upload the file to storage
+    const { error: uploadError } = await supabase.storage
+      .from('report_pdfs')
+      .upload(filePath, file);
+      
+    if (uploadError) {
+      console.error('Error uploading file to storage:', uploadError);
+      throw uploadError;
+    }
+    
+    console.log('File uploaded to storage successfully, saving record to database');
+    
+    // Insert a record in the reports table
+    const { data: report, error: insertError } = await supabase
+      .from('reports')
+      .insert([{
+        title,
+        description,
+        pdf_url: fileName,
+        user_id: user.id,
+        analysis_status: 'pending'
+      }])
+      .select()
+      .single();
+      
+    if (insertError) {
+      console.error('Error inserting report record:', insertError);
+      throw insertError;
+    }
+
+    console.log('Report record created successfully:', report);
+    
+    return report as Report;
+  } catch (error) {
+    console.error('Error uploading report:', error);
+    throw error;
+  }
+}
+
+export async function analyzeReportDirect(file: File, title: string, description: string = '') {
   try {
     // Get the current user
     const { data: { session } } = await supabase.auth.getSession();
@@ -172,18 +201,10 @@ export async function analyzeReportDirect(file: File, title: string, description
     if (error) {
       console.error('Error invoking analyze-pdf-direct function:', error);
       
-      let errorMessage = "There was a problem analyzing the report";
-      
-      // Check if we have a more specific error message
-      if (error.message?.includes('non-2xx status code')) {
-        errorMessage = "The analysis function returned an error. Please try again later.";
-      }
-      
-      // Use a unique toast ID to prevent duplicate toasts
       toast({
         id: "analysis-error-direct-1",
         title: "Analysis failed",
-        description: errorMessage,
+        description: "There was a problem analyzing the report. Please try again later.",
         variant: "destructive"
       });
       
@@ -194,7 +215,6 @@ export async function analyzeReportDirect(file: File, title: string, description
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
-      // Use a unique toast ID to prevent duplicate toasts
       toast({
         id: "analysis-error-direct-2",
         title: "Analysis failed",
@@ -218,7 +238,6 @@ export async function analyzeReportDirect(file: File, title: string, description
     console.error('Error analyzing report directly:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
-    // Prevent duplicate toasts
     if (!errorMessage.includes("analysis failed")) {
       toast({
         id: "analysis-error-direct-3",

@@ -16,7 +16,7 @@ export default function AnalysisSummary() {
   }, [companyId, navigate]);
 
   const viewResults = () => {
-    navigate(`/companies/${companyId}`);
+    navigate(`/company/${companyId}`);
   };
 
   return (

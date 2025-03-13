@@ -13,6 +13,7 @@ function mapDbCompanyToApi(company: any) {
     updatedAt: company.updated_at || company.created_at,
     score: company.overall_score, // For backward compatibility
     assessmentPoints: company.assessment_points || [],
+    reportId: company.report_id,
   };
 }
 
@@ -45,16 +46,31 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
+      // Get user id to fetch only their companies
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Query companies through reports to ensure we only get companies for the current user
       const { data, error } = await supabase
-        .from('companies')
-        .select('*')
+        .from('reports')
+        .select('companies(*)')
+        .eq('user_id', user.id)
+        .not('company_id', 'is', null)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      return data.map(mapDbCompanyToApi);
+      // Extract companies from the response and filter out nulls
+      const companiesData = data
+        .map(item => item.companies)
+        .filter(company => company !== null);
+
+      return companiesData.map(mapDbCompanyToApi);
     },
     meta: {
       onError: (err: any) => {

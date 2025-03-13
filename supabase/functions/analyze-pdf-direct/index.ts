@@ -1,364 +1,346 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../analyze-pdf/cors.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate OpenAI API key
+    // Validate request
     if (!OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ 
-          error: 'OPENAI_API_KEY is not configured',
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    // Parse request data
-    let reqData;
-    try {
-      reqData = await req.json();
-    } catch (e) {
-      console.error("Error parsing request JSON:", e);
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid request format. Expected JSON.",
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-
-    const { title, description, pdfBase64 } = reqData;
-    
-    if (!pdfBase64) {
-      console.error("Missing PDF content in request");
-      return new Response(
-        JSON.stringify({ 
-          error: "PDF content is required",
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-
-    // Get authorization header from request
-    const authHeader = req.headers.get('Authorization');
+    // Get authorization header from request for authenticated Supabase client
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.error("Missing Authorization header");
-      return new Response(
-        JSON.stringify({ 
-          error: 'Authorization header is required',
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401 
-        }
-      );
+      throw new Error("Authorization header is required");
     }
 
-    console.log("Auth header present, proceeding with analysis");
+    // Parse request
+    const { title, description, pdfBase64 } = await req.json();
     
-    // Create Supabase client for this request
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Supabase credentials are not configured");
-      return new Response(
-        JSON.stringify({ 
-          error: 'Supabase credentials are not configured',
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+    if (!title || !pdfBase64) {
+      throw new Error("Title and PDF data are required");
     }
 
-    // Import dynamically to avoid issues in edge function context
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.29.0");
-    
-    // Create auth client with user's token
-    const token = authHeader.replace('Bearer ', '');
+    // Create authenticated Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
+      global: { headers: { Authorization: authHeader } },
     });
 
-    // Get user details for verification
+    // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-
+    
     if (userError || !user) {
-      console.error("Auth error:", userError);
-      return new Response(
-        JSON.stringify({ 
-          error: userError?.message || 'User not authenticated',
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401 
-        }
-      );
+      throw new Error("Authentication failed: " + (userError?.message || "User not found"));
     }
 
     // Analyze the PDF with OpenAI
-    console.log("Starting OpenAI analysis");
+    console.log("Analyzing PDF with OpenAI...");
+    const analysisResult = await analyzeWithOpenAI(pdfBase64);
     
-    // Create system prompt for analyzing pitch decks
-    const systemPrompt = `
-      You are an expert in analyzing pitch decks for startups. Analyze the PDF content and provide a detailed assessment.
-      Your analysis should cover the following aspects:
-      1. Problem - Does the pitch deck clearly define the problem they're solving?
-      2. Market - Is the target market well-defined and sizeable?
-      3. Solution - Is the proposed solution compelling and feasible?
-      4. Business Model - Is the business model viable and scalable?
-      5. Team - Does the team have the necessary skills and experience?
-      6. Financials - Are the financial projections reasonable?
-      7. Traction - Is there evidence of traction or customer validation?
-      8. Competitive Landscape - Is there awareness of competitors and differentiation?
-
-      For each section, provide a score from 0-5 and list strengths and weaknesses.
-      Provide an overall score from 0-5 for the entire pitch deck.
-      Also include 2-5 key assessment points summarizing the entire pitch deck.
-
-      Format your response as a valid JSON object with the following structure:
+    // Create a unique filename for storage
+    const fileName = `${Date.now()}.pdf`;
+    const filePath = `${user.id}/${fileName}`;
+    
+    // Upload the PDF to storage
+    console.log("Uploading PDF to storage...");
+    const { error: uploadError } = await uploadPdfToStorage(supabase, pdfBase64, filePath);
+    
+    if (uploadError) {
+      throw new Error("Failed to upload PDF: " + uploadError.message);
+    }
+    
+    // Save report and analysis data to the database
+    console.log("Saving analysis results to database...");
+    const { companyId, error: saveError } = await saveAnalysisResults(
+      supabase, 
+      analysisResult,
       {
-        "overallScore": 3.5,
-        "assessmentPoints": ["Point 1", "Point 2", "Point 3"],
-        "sections": [
-          {
-            "type": "PROBLEM",
-            "title": "Problem Statement",
-            "score": 4.0,
-            "description": "Summary of this section...",
-            "strengths": ["Strength 1", "Strength 2"],
-            "weaknesses": ["Weakness 1", "Weakness 2"]
-          },
-          ...
-        ]
+        title,
+        description,
+        pdfUrl: fileName,
+        userId: user.id,
       }
-    `;
-
-    // Call OpenAI API
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Here's the content of the pitch deck: ${pdfBase64.substring(0, 100000)}` }
-        ],
-        temperature: 0.5,
-        max_tokens: 4000
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("OpenAI API error:", error);
-      return new Response(
-        JSON.stringify({ 
-          error: `Failed to analyze PDF: ${error}`,
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-
-    const openaiResponse = await response.json();
+    );
     
-    if (!openaiResponse.choices || !openaiResponse.choices[0]?.message?.content) {
-      console.error("Invalid response from OpenAI:", openaiResponse);
-      return new Response(
-        JSON.stringify({ 
-          error: "Failed to parse OpenAI response",
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+    if (saveError) {
+      throw new Error("Failed to save analysis results: " + saveError.message);
     }
 
-    // Parse the OpenAI response content to get the analysis
-    let analysis;
-    try {
-      const content = openaiResponse.choices[0].message.content;
-      analysis = JSON.parse(content);
-    } catch (e) {
-      console.error("Error parsing OpenAI response:", e);
-      return new Response(
-        JSON.stringify({ 
-          error: "Failed to parse analysis result",
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-
-    // Save the analysis results to the database
-    console.log("Saving analysis results to database");
-
-    // Create a company record
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .insert({
-        name: title || 'Unnamed Company',
-        overall_score: analysis.overallScore,
-        assessment_points: analysis.assessmentPoints || []
-      })
-      .select()
-      .single();
-
-    if (companyError) {
-      console.error("Error creating company:", companyError);
-      return new Response(
-        JSON.stringify({ 
-          error: `Failed to create company record: ${companyError.message}`,
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-
-    // Create a report record
-    const { data: report, error: reportError } = await supabase
-      .from('reports')
-      .insert({
-        title: title || 'Unnamed Report',
-        description: description || '',
-        user_id: user.id,
-        company_id: company.id,
-        pdf_content: pdfBase64
-      })
-      .select()
-      .single();
-
-    if (reportError) {
-      console.error("Error creating report:", reportError);
-      return new Response(
-        JSON.stringify({ 
-          error: `Failed to create report record: ${reportError.message}`,
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-
-    // Create sections and their details
-    if (analysis.sections && Array.isArray(analysis.sections)) {
-      for (const section of analysis.sections) {
-        // Create section
-        const { data: sectionRecord, error: sectionError } = await supabase
-          .from('sections')
-          .insert({
-            company_id: company.id,
-            type: section.type || 'UNKNOWN',
-            title: section.title || 'Unnamed Section',
-            description: section.description || '',
-            score: section.score || 0
-          })
-          .select()
-          .single();
-
-        if (sectionError) {
-          console.error("Error creating section:", sectionError);
-          continue;
-        }
-
-        // Add strengths
-        if (section.strengths && Array.isArray(section.strengths)) {
-          for (const strength of section.strengths) {
-            await supabase
-              .from('section_details')
-              .insert({
-                section_id: sectionRecord.id,
-                detail_type: 'strength',
-                content: strength
-              });
-          }
-        }
-
-        // Add weaknesses
-        if (section.weaknesses && Array.isArray(section.weaknesses)) {
-          for (const weakness of section.weaknesses) {
-            await supabase
-              .from('section_details')
-              .insert({
-                section_id: sectionRecord.id,
-                detail_type: 'weakness',
-                content: weakness
-              });
-          }
-        }
-      }
-    }
-
+    // Return success response
     return new Response(
       JSON.stringify({ 
         success: true, 
-        companyId: company.id,
-        message: "Pitch deck analyzed successfully" 
+        companyId,
+        message: "PDF analyzed and saved successfully" 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200 
       }
     );
   } catch (error) {
-    console.error("Unexpected error in analyze-pdf-direct function:", error);
+    console.error("Error in analyze-pdf-direct function:", error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "An unexpected error occurred",
         success: false
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500 
       }
     );
   }
 });
+
+// Helper function to analyze PDF with OpenAI
+async function analyzeWithOpenAI(pdfBase64: string) {
+  // Analysis prompt for pitch deck evaluation
+  const prompt = `
+    You have to act as an expert VC analyst. You have years of experience in analysing and assessing investment opportunities. You look past what's written in the deck and can call out the bullshit whenever you see it. You don't sugarcoat stuff and always provide sound reasoning for your judgement.
+
+    Analyze the following pitch deck sections:
+
+    1. Problem and Market Opportunity
+    2. Solution (Product)
+    3. Competitive Landscape
+    4. Traction
+    5. Business Model
+    6. Go-to-Market Strategy
+    7. Team
+    8. Financials
+    9. The Ask
+
+    For each section, provide:
+    - A brief description (1-2 sentences)
+    - A score from 1-5 (where 5 is excellent)
+    - 2-3 strengths
+    - 2-3 weaknesses or areas for improvement
+    
+    Output in JSON format following this structure:
+    {
+      "sections": [
+        {
+          "type": "PROBLEM",
+          "title": "Problem Statement",
+          "score": 4,
+          "description": "Brief description here",
+          "strengths": ["Strength 1", "Strength 2"],
+          "weaknesses": ["Weakness 1", "Weakness 2"]
+        },
+        ... (repeat for all sections)
+      ],
+      "overallScore": 3.5,
+      "assessmentPoints": ["Key point 1", "Key point 2", "Key point 3"]
+    }
+  `;
+
+  try {
+    // Call OpenAI API for analysis
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system", 
+            content: prompt
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Please analyze this pitch deck PDF"
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:application/pdf;base64,${pdfBase64}`
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0.5,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    // Check for HTTP errors
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: { message: errorText } };
+      }
+      
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const openaiData = await openaiResponse.json();
+    const content = openaiData.choices[0].message.content;
+    
+    // Parse the JSON response
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Error analyzing with OpenAI:", error);
+    throw error;
+  }
+}
+
+// Upload PDF to Supabase Storage
+async function uploadPdfToStorage(supabase: any, pdfBase64: string, filePath: string) {
+  try {
+    // Convert base64 to Uint8Array
+    const binaryString = atob(pdfBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Upload to storage
+    const { error } = await supabase.storage
+      .from('report_pdfs')
+      .upload(filePath, bytes, {
+        contentType: 'application/pdf',
+        upsert: false
+      });
+    
+    return { error };
+  } catch (error) {
+    console.error("Error uploading PDF to storage:", error);
+    return { error };
+  }
+}
+
+// Save analysis results to database
+async function saveAnalysisResults(
+  supabase: any, 
+  analysis: any, 
+  reportData: { title: string; description?: string; pdfUrl: string; userId: string }
+) {
+  try {
+    // Insert report first
+    const { data: report, error: reportError } = await supabase
+      .from('reports')
+      .insert({
+        title: reportData.title,
+        description: reportData.description || '',
+        pdf_url: reportData.pdfUrl,
+        user_id: reportData.userId,
+        analysis_status: 'completed'
+      })
+      .select()
+      .single();
+    
+    if (reportError) {
+      throw reportError;
+    }
+    
+    // Insert company with reference to report
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        name: reportData.title,
+        overall_score: analysis.overallScore || 0,
+        assessment_points: analysis.assessmentPoints || [],
+        report_id: report.id
+      })
+      .select()
+      .single();
+    
+    if (companyError) {
+      throw companyError;
+    }
+    
+    // Update report with company_id
+    const { error: updateReportError } = await supabase
+      .from('reports')
+      .update({ company_id: company.id })
+      .eq('id', report.id);
+    
+    if (updateReportError) {
+      throw updateReportError;
+    }
+    
+    // Insert sections
+    for (const section of analysis.sections) {
+      const { data: savedSection, error: sectionError } = await supabase
+        .from('sections')
+        .insert({
+          company_id: company.id,
+          title: section.title,
+          type: section.type,
+          score: section.score || 0,
+          description: section.description || ''
+        })
+        .select()
+        .single();
+      
+      if (sectionError) {
+        throw sectionError;
+      }
+      
+      // Insert section details (strengths and weaknesses)
+      const detailsToInsert = [];
+      
+      if (section.strengths && Array.isArray(section.strengths)) {
+        for (const strength of section.strengths) {
+          detailsToInsert.push({
+            section_id: savedSection.id,
+            detail_type: 'strength',
+            content: strength
+          });
+        }
+      }
+      
+      if (section.weaknesses && Array.isArray(section.weaknesses)) {
+        for (const weakness of section.weaknesses) {
+          detailsToInsert.push({
+            section_id: savedSection.id,
+            detail_type: 'weakness',
+            content: weakness
+          });
+        }
+      }
+      
+      if (detailsToInsert.length > 0) {
+        const { error: detailsError } = await supabase
+          .from('section_details')
+          .insert(detailsToInsert);
+        
+        if (detailsError) {
+          throw detailsError;
+        }
+      }
+    }
+    
+    return { companyId: company.id, error: null };
+  } catch (error) {
+    console.error("Error saving analysis results:", error);
+    return { companyId: null, error };
+  }
+}
