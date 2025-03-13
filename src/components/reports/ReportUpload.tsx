@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -138,8 +139,8 @@ export function ReportUpload() {
     }
     
     if (!title.trim()) {
-      toast.error("Title required", {
-        description: "Please provide a title for the report"
+      toast.error("Company name required", {
+        description: "Please provide a company name for the report"
       });
       return;
     }
@@ -219,12 +220,12 @@ export function ReportUpload() {
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">Company Name</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter a title for this pitch deck"
+              placeholder="Enter your company name"
               disabled={isUploading || isAnalyzing}
               required
             />
