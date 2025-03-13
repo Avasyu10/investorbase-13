@@ -10,7 +10,7 @@ export function SectionDetail() {
   const { company } = useCompanyDetails(companyId ? Number(companyId) : undefined);
   const { section, isLoading } = useSectionDetails(
     companyId ? Number(companyId) : undefined,
-    sectionId
+    sectionId ? Number(sectionId) : undefined
   );
 
   if (isLoading) {
@@ -69,11 +69,11 @@ export function SectionDetail() {
               key={s.id}
               to={`/company/${companyId}/section/${s.id}`}
               className={`flex items-center px-4 py-3 text-sm hover:bg-muted transition-colors ${
-                s.id === sectionId ? "bg-muted font-medium" : ""
+                Number(s.id) === Number(sectionId) ? "bg-muted font-medium" : ""
               }`}
             >
               <span className="flex-1">{s.title}</span>
-              {s.id === sectionId && <ChevronRight className="h-4 w-4" />}
+              {Number(s.id) === Number(sectionId) && <ChevronRight className="h-4 w-4" />}
             </Link>
           ))}
         </nav>

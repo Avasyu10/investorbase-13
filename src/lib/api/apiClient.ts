@@ -7,6 +7,7 @@ import {
   CompanyListItem, 
   CompanyDetailed, 
   SectionDetailed,
+  SectionBase,
   PaginatedResponse,
   CompanyCreateRequest,
   CompanyUpdateRequest,

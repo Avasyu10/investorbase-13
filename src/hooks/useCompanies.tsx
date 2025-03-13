@@ -64,7 +64,7 @@ export function useCompanyDetails(companyId: number | undefined) {
   };
 }
 
-export function useSectionDetails(companyId: number | undefined, sectionId: string | undefined) {
+export function useSectionDetails(companyId: number | undefined, sectionId: number | undefined) {
   const {
     data: section,
     isLoading,

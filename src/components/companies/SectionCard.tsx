@@ -1,10 +1,10 @@
 
-import { SectionData } from "@/lib/companyData";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { SectionBase } from "@/lib/api/apiContract";
 
 interface SectionCardProps {
-  section: SectionData;
+  section: SectionBase | any;
   onClick: () => void;
 }
 

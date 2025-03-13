@@ -5,13 +5,14 @@ import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
+import { SectionBase } from "@/lib/api/apiContract";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId ? Number(companyId) : undefined);
 
-  const handleSectionClick = (sectionId: string) => {
+  const handleSectionClick = (sectionId: number) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
   };
 
@@ -72,7 +73,7 @@ export function CompanyDetails() {
         {company.sections.map((section) => (
           <SectionCard 
             key={section.id} 
-            section={section} 
+            section={section as unknown as any} 
             onClick={() => handleSectionClick(section.id)} 
           />
         ))}
