@@ -23,7 +23,7 @@ export type Report = {
 // Functions to interact with Supabase
 
 export async function getReports() {
-  const user = supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     console.log('No authenticated user found');
@@ -34,6 +34,7 @@ export async function getReports() {
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -51,11 +52,18 @@ export async function getReports() {
 }
 
 export async function getReportById(id: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
   // Get the report from the reports table
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (tableError) {
@@ -71,14 +79,7 @@ export async function getReportById(id: string) {
 
   try {
     // Download the file
-    const user = await supabase.auth.getUser();
-    const userId = user.data.user?.id;
-    
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-    
-    const pdfBlob = await downloadReport(report.pdf_url, userId);
+    const pdfBlob = await downloadReport(report.pdf_url, user.id);
     
     // Parse the PDF content
     const parsedSegments = await parsePdfFromBlob(pdfBlob);
