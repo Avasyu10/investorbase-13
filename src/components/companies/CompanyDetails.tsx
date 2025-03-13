@@ -54,22 +54,22 @@ export function CompanyDetails() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">{company.name}</h1>
-        <div className="flex items-center mt-4 mb-6">
-          <span className="text-2xl font-bold mr-4">Overall Score: {company.overallScore}/5</span>
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center mt-3 sm:mt-4 mb-4 sm:mb-6">
+          <span className="text-xl sm:text-2xl font-bold mb-2 sm:mb-0 sm:mr-4">Overall Score: {company.overallScore}/5</span>
           <Progress 
             value={company.overallScore * 20} 
-            className="h-3 flex-1" 
+            className="h-2 sm:h-3 flex-1" 
           />
         </div>
 
         <ScoreAssessment company={company} />
       </div>
       
-      <h2 className="text-2xl font-semibold mb-4">Section Metrics</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">Section Metrics</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {company.sections.map((section) => (
           <SectionCard 
             key={section.id} 

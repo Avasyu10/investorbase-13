@@ -11,11 +11,11 @@ interface SectionCardProps {
 export function SectionCard({ section, onClick }: SectionCardProps) {
   return (
     <Card 
-      className="cursor-pointer transition-all hover:shadow-md"
+      className="cursor-pointer transition-all hover:shadow-md h-full"
       onClick={onClick}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">{section.title}</CardTitle>
+        <CardTitle className="text-base sm:text-lg">{section.title}</CardTitle>
         <CardDescription>Score: {section.score}/5</CardDescription>
       </CardHeader>
       <CardContent>
@@ -23,7 +23,7 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
           value={section.score * 20} 
           className="h-2 mb-2" 
         />
-        <p className="text-sm text-muted-foreground truncate">
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
           {section.description}
         </p>
       </CardContent>

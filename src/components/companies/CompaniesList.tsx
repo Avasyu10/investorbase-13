@@ -63,21 +63,21 @@ export function CompaniesList() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Companies</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Select a company to view detailed metrics
           </p>
         </div>
         
-        <div className="mt-4 md:mt-0">
+        <div className="mt-4 sm:mt-0">
           <Select
             value={sortBy}
             onValueChange={(value) => setSortBy(value as SortOption)}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <ListFilter className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
@@ -89,7 +89,7 @@ export function CompaniesList() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {sortedCompanies.length > 0 ? (
           sortedCompanies.map((company) => (
             <Card 
@@ -98,7 +98,7 @@ export function CompaniesList() {
               onClick={() => handleCompanyClick(company.id)}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xl">{company.name}</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
                 <CardDescription>Overall Score: {company.score}/5</CardDescription>
               </CardHeader>
               <CardContent>
@@ -106,14 +106,14 @@ export function CompaniesList() {
                   value={company.score * 20} 
                   className="h-2 mb-2" 
                 />
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Click to view detailed metrics
                 </p>
               </CardContent>
             </Card>
           ))
         ) : (
-          <div className="col-span-3 text-center py-12">
+          <div className="col-span-1 sm:col-span-3 text-center py-8 sm:py-12">
             <p className="text-muted-foreground">No companies found</p>
           </div>
         )}
