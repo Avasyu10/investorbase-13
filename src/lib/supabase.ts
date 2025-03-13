@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -189,7 +188,7 @@ export async function analyzeReport(reportId: string) {
       
       // Check if we have a more specific error message
       if (error.message?.includes('non-2xx status code')) {
-        errorMessage = "The analysis function returned an error. Check if you have access to this report.";
+        errorMessage = "The analysis function returned an error. Please try again later.";
       }
       
       toast({
@@ -204,11 +203,24 @@ export async function analyzeReport(reportId: string) {
     if (!data || data.error) {
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
+      
+      let userMessage = errorMessage;
+      
+      // Make error messages more user-friendly
+      if (errorMessage.includes('belongs to another user') || errorMessage.includes('access denied')) {
+        userMessage = "You don't have permission to analyze this report.";
+      } else if (errorMessage.includes('not found')) {
+        userMessage = "The report could not be found. It may have been deleted.";
+      } else if (errorMessage.includes('PDF file is empty')) {
+        userMessage = "The PDF file appears to be corrupted or empty.";
+      }
+      
       toast({
         title: "Analysis failed",
-        description: errorMessage,
+        description: userMessage,
         variant: "destructive"
       });
+      
       throw new Error(errorMessage);
     }
     
@@ -228,7 +240,7 @@ export async function analyzeReport(reportId: string) {
     if (!errorMessage.includes("analysis failed")) {
       toast({
         title: "Analysis failed",
-        description: errorMessage,
+        description: "Could not analyze the report. Please try again later.",
         variant: "destructive"
       });
     }

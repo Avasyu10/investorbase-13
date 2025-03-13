@@ -36,24 +36,20 @@ export async function getReportData(reportId: string, authHeader: string) {
 
   console.log(`Authenticated as user: ${user.id}`);
 
-  // Debugging the report lookup
-  console.log(`Looking for report with id ${reportId} for user ${user.id}`);
-
-  // Get report details from database with more detailed logging
-  const { data: reports, error: reportsError } = await supabase
+  // First, check if the report exists at all (for better error messages)
+  const { data: allReports, error: allReportsError } = await supabase
     .from('reports')
-    .select('*')
+    .select('id')
     .eq('id', reportId);
-  
-  if (reportsError) {
-    console.error("Error fetching reports:", reportsError);
-    throw new Error('Database error: ' + reportsError.message);
+    
+  if (allReportsError) {
+    console.error("Error checking if report exists:", allReportsError);
+    throw new Error('Database error: ' + allReportsError.message);
   }
   
-  console.log(`Found ${reports?.length || 0} reports with this ID`);
-  
-  if (reports && reports.length > 0) {
-    console.log(`Report owner: ${reports[0].user_id}, Current user: ${user.id}`);
+  if (!allReports || allReports.length === 0) {
+    console.error(`Report with ID ${reportId} does not exist`);
+    throw new Error('Report not found');
   }
 
   // Now get the specific report with user_id filter
@@ -70,8 +66,8 @@ export async function getReportData(reportId: string, authHeader: string) {
   }
 
   if (!report) {
-    console.error(`Report not found for id ${reportId} and user ${user.id}`);
-    throw new Error('Report not found or access denied');
+    console.error(`Access denied: Report ${reportId} belongs to another user`);
+    throw new Error('Access denied: This report belongs to another user');
   }
 
   console.log(`Found report: ${report.title}, downloading PDF from storage`);

@@ -128,7 +128,16 @@ serve(async (req) => {
     } catch (error) {
       console.error("Operation error:", error);
       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-      const status = errorMessage.includes("access denied") || errorMessage.includes("not found") ? 404 : 500;
+      
+      // Determine appropriate status code
+      let status = 500;
+      if (errorMessage.includes("not found")) {
+        status = 404;
+      } else if (errorMessage.includes("access denied")) {
+        status = 403;
+      } else if (errorMessage.includes("not authenticated") || errorMessage.includes("Authentication failed")) {
+        status = 401;
+      }
       
       return new Response(
         JSON.stringify({ 
