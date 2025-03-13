@@ -14,6 +14,13 @@ export async function getReportData(reportId: string, authHeader: string) {
 
   console.log(`Getting report data for reportId: ${reportId}`);
 
+  // Validate reportId format - check if it's a valid UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!reportId || !uuidRegex.test(reportId)) {
+    console.error(`Invalid reportId format: "${reportId}"`);
+    throw new Error(`Invalid report ID format. Expected a UUID, got: ${reportId}`);
+  }
+
   // Extract token from authorization header
   const token = authHeader.replace('Bearer ', '');
   if (!token) {
@@ -39,7 +46,7 @@ export async function getReportData(reportId: string, authHeader: string) {
   // Check if the report exists at all (for better error messages)
   const { data: allReports, error: allReportsError } = await supabase
     .from('reports')
-    .select('id, title, user_id')
+    .select('id, title, user_id, pdf_url')
     .eq('id', reportId);
     
   if (allReportsError) {
@@ -61,6 +68,12 @@ export async function getReportData(reportId: string, authHeader: string) {
   }
 
   const report = allReports.find(r => r.user_id === user.id);
+  
+  if (!report.pdf_url) {
+    console.error(`Report ${reportId} does not have a PDF URL`);
+    throw new Error(`Report is missing PDF file reference`);
+  }
+  
   console.log(`Found user's report: ${report.title}, accessing PDF from storage`);
 
   // Build the correct storage path

@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -174,6 +173,22 @@ export async function analyzeReport(reportId: string) {
     
     console.log('Calling analyze-pdf function with report ID:', reportId);
     
+    // Add validation for reportId format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!reportId || !uuidRegex.test(reportId)) {
+      const errorMessage = `Invalid report ID format: ${reportId}`;
+      console.error(errorMessage);
+      
+      toast({
+        id: "invalid-report-id",
+        title: "Invalid Report ID",
+        description: "The report ID format is invalid. Please try again with a valid report.",
+        variant: "destructive"
+      });
+      
+      throw new Error(errorMessage);
+    }
+    
     // Call the edge function using the Supabase client
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
       body: { reportId },
@@ -216,6 +231,8 @@ export async function analyzeReport(reportId: string) {
         userMessage = "The report could not be found. It may have been deleted.";
       } else if (errorMessage.includes('PDF file is empty')) {
         userMessage = "The PDF file appears to be corrupted or empty.";
+      } else if (errorMessage.includes('Invalid report ID format')) {
+        userMessage = "The report ID format is invalid.";
       }
       
       // Use a unique toast ID to prevent duplicate toasts

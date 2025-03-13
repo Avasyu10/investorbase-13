@@ -64,11 +64,29 @@ serve(async (req) => {
     }
 
     const { reportId } = reqData;
+    
+    // Enhanced reportId validation
     if (!reportId) {
       console.error("Missing reportId in request");
       return new Response(
         JSON.stringify({ 
           error: "Report ID is required",
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
+    // Validate that reportId is a valid UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(reportId)) {
+      console.error(`Invalid reportId format: "${reportId}"`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Invalid report ID format. Expected a UUID, got: ${reportId}`,
           success: false
         }),
         { 
@@ -137,6 +155,8 @@ serve(async (req) => {
         status = 403;
       } else if (errorMessage.includes("not authenticated") || errorMessage.includes("Authentication failed")) {
         status = 401;
+      } else if (errorMessage.includes("Invalid report ID format")) {
+        status = 400;
       }
       
       return new Response(
