@@ -97,28 +97,10 @@ serve(async (req) => {
     }
 
     console.log(`Processing report ${reportId}`);
-
-    // Get authorization header from request
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error("Missing Authorization header");
-      return new Response(
-        JSON.stringify({ 
-          error: 'Authorization header is required',
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401 
-        }
-      );
-    }
-
-    console.log("Auth header present, proceeding with report data retrieval");
     
     try {
-      // Get report data and verify access
-      const { supabase, report, user, pdfBase64 } = await getReportData(reportId, authHeader);
+      // Get report data without authentication
+      const { supabase, report, pdfBase64 } = await getReportData(reportId);
       
       console.log("Successfully retrieved report data, analyzing with OpenAI");
       
@@ -157,10 +139,6 @@ serve(async (req) => {
       if (errorMessage.includes("not found")) {
         status = 404;
         console.error(`Report not found for id ${reportId}`);
-      } else if (errorMessage.includes("belongs to another user") || errorMessage.includes("access denied")) {
-        status = 403;
-      } else if (errorMessage.includes("not authenticated") || errorMessage.includes("Authentication failed")) {
-        status = 401;
       } else if (errorMessage.includes("Invalid report ID format")) {
         status = 400;
       }

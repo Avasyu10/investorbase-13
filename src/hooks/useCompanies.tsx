@@ -46,31 +46,17 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      // Get user id to fetch only their companies
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      // Query companies through reports to ensure we only get companies for the current user
+      // Query all companies without user filtering
       const { data, error } = await supabase
-        .from('reports')
-        .select('companies(*)')
-        .eq('user_id', user.id)
-        .not('company_id', 'is', null)
+        .from('companies')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      // Extract companies from the response and filter out nulls
-      const companiesData = data
-        .map(item => item.companies)
-        .filter(company => company !== null);
-
-      return companiesData.map(mapDbCompanyToApi);
+      return data.map(mapDbCompanyToApi);
     },
     meta: {
       onError: (err: any) => {

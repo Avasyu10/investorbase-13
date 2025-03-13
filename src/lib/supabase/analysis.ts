@@ -4,13 +4,6 @@ import { toast } from "@/hooks/use-toast";
 
 export async function analyzeReport(reportId: string) {
   try {
-    // Get the current session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('User not authenticated');
-    }
-    
     console.log('Calling analyze-pdf function with report ID:', reportId);
     
     // Add validation for reportId format
@@ -29,12 +22,9 @@ export async function analyzeReport(reportId: string) {
       throw new Error(errorMessage);
     }
     
-    // Call the edge function using the Supabase client
+    // Call the edge function without authentication
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-      body: { reportId },
-      headers: {
-        Authorization: `Bearer ${session.access_token}`
-      }
+      body: { reportId }
     });
     
     if (error) {

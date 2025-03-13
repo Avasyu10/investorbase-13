@@ -20,18 +20,10 @@ export type Report = {
 // Functions to interact with Supabase
 
 export async function getReports() {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    console.log('No authenticated user found');
-    return [];
-  }
-
-  // Get reports from the reports table for the current user
+  // Get reports from the reports table without user filtering
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies(id, name, overall_score)')
-    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -44,23 +36,16 @@ export async function getReports() {
     return tableData as Report[];
   }
 
-  console.log('No reports found for this user');
+  console.log('No reports found');
   return [];
 }
 
 export async function getReportById(id: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
-  // Get the report from the reports table
+  // Get the report from the reports table without user filtering
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies(id, name, overall_score)')
     .eq('id', id)
-    .eq('user_id', user.id)
     .maybeSingle();
 
   if (tableError) {
@@ -75,8 +60,8 @@ export async function getReportById(id: string) {
   const report = tableData as Report;
 
   try {
-    // Download the file
-    const pdfBlob = await downloadReport(report.pdf_url, user.id);
+    // Download the file (no user filtering)
+    const pdfBlob = await downloadReport(report.pdf_url);
     
     // Parse the PDF content
     const parsedSegments = await parsePdfFromBlob(pdfBlob);
@@ -92,14 +77,27 @@ export async function getReportById(id: string) {
   }
 }
 
-export async function downloadReport(fileUrl: string, userId: string) {
+export async function downloadReport(fileUrl: string) {
+  // Download without user filtering
   const { data, error } = await supabase.storage
     .from('report_pdfs')
-    .download(`${userId}/${fileUrl}`);
+    .download(fileUrl);
 
   if (error) {
-    console.error('Error downloading report:', error);
-    throw error;
+    // Try with the old path structure (with user ID)
+    const parts = fileUrl.split('/');
+    const simpleFileName = parts[parts.length - 1];
+    
+    const { data: fallbackData, error: fallbackError } = await supabase.storage
+      .from('report_pdfs')
+      .download(simpleFileName);
+      
+    if (fallbackError) {
+      console.error('Error downloading report:', error);
+      throw error;
+    }
+    
+    return fallbackData;
   }
 
   return data;
@@ -107,24 +105,16 @@ export async function downloadReport(fileUrl: string, userId: string) {
 
 export async function uploadReport(file: File, title: string, description: string = '') {
   try {
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    console.log('Uploading report for user:', user.id);
+    console.log('Uploading report');
     
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${user.id}/${fileName}`;
     
-    // Upload the file to storage
+    // Upload the file to storage without user path
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
-      .upload(filePath, file);
+      .upload(fileName, file);
       
     if (uploadError) {
       console.error('Error uploading file to storage:', uploadError);
@@ -133,14 +123,13 @@ export async function uploadReport(file: File, title: string, description: strin
     
     console.log('File uploaded to storage successfully, saving record to database');
     
-    // Insert a record in the reports table
+    // Insert a record in the reports table without user_id
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
         title,
         description,
         pdf_url: fileName,
-        user_id: user.id,
         analysis_status: 'pending'
       }])
       .select()
@@ -162,13 +151,6 @@ export async function uploadReport(file: File, title: string, description: strin
 
 export async function analyzeReportDirect(file: File, title: string, description: string = '') {
   try {
-    // Get the current user
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('User not authenticated');
-    }
-    
     console.log('Converting file to base64...');
     
     // Convert file to base64
@@ -186,15 +168,12 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('File converted to base64, calling analyze-pdf-direct function');
     
-    // Call the edge function using the Supabase client
+    // Call the edge function without authentication
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
         description, 
         pdfBase64: base64String 
-      },
-      headers: {
-        Authorization: `Bearer ${session.access_token}`
       }
     });
     
