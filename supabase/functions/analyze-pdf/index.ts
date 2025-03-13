@@ -96,6 +96,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Auth header present, proceeding with report data retrieval");
+    
     try {
       // Get report data and verify access
       const { supabase, report, user, pdfBase64 } = await getReportData(reportId, authHeader);

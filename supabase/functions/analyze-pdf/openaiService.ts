@@ -65,91 +65,96 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
     console.log("Calling OpenAI API for analysis");
     console.log(`PDF base64 length: ${pdfBase64.length}`);
     
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system", 
-            content: prompt
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Please analyze this pitch deck PDF"
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${pdfBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        temperature: 0.5,
-        response_format: { type: "json_object" }
-      })
-    });
-
-    // Check for HTTP errors in the OpenAI response
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch (e) {
-        errorData = { error: { message: errorText } };
-      }
-      
-      console.error("OpenAI API error:", errorData);
-      
-      // Provide more specific error messages based on status codes
-      if (openaiResponse.status === 401) {
-        throw new Error("OpenAI API key is invalid");
-      } else if (openaiResponse.status === 429) {
-        throw new Error("OpenAI API rate limit exceeded");
-      } else if (openaiResponse.status === 413) {
-        throw new Error("PDF is too large for OpenAI to process");
-      } else {
-        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
-      }
-    }
-
-    const openaiData = await openaiResponse.json();
-    console.log("Received OpenAI response");
-
-    // Parse the analysis result
     try {
-      const content = openaiData.choices[0].message.content;
-      if (!content) {
-        throw new Error("Empty response from OpenAI");
+      const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system", 
+              content: prompt
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Please analyze this pitch deck PDF"
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:application/pdf;base64,${pdfBase64}`
+                  }
+                }
+              ]
+            }
+          ],
+          temperature: 0.5,
+          response_format: { type: "json_object" }
+        })
+      });
+
+      // Check for HTTP errors in the OpenAI response
+      if (!openaiResponse.ok) {
+        const errorText = await openaiResponse.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: { message: errorText } };
+        }
+        
+        console.error("OpenAI API error:", errorData);
+        
+        // Provide more specific error messages based on status codes
+        if (openaiResponse.status === 401) {
+          throw new Error("OpenAI API key is invalid");
+        } else if (openaiResponse.status === 429) {
+          throw new Error("OpenAI API rate limit exceeded");
+        } else if (openaiResponse.status === 413) {
+          throw new Error("PDF is too large for OpenAI to process");
+        } else {
+          throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+        }
       }
-      
-      // Try to parse the JSON response
-      const parsedContent = JSON.parse(content);
-      
-      // Validate the response structure
-      if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
-        throw new Error("Invalid analysis structure: missing or empty sections array");
+
+      const openaiData = await openaiResponse.json();
+      console.log("Received OpenAI response");
+
+      // Parse the analysis result
+      try {
+        const content = openaiData.choices[0].message.content;
+        if (!content) {
+          throw new Error("Empty response from OpenAI");
+        }
+        
+        // Try to parse the JSON response
+        const parsedContent = JSON.parse(content);
+        
+        // Validate the response structure
+        if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
+          throw new Error("Invalid analysis structure: missing or empty sections array");
+        }
+        
+        if (typeof parsedContent.overallScore !== 'number') {
+          console.warn("Warning: overallScore is not a number, setting default value");
+          parsedContent.overallScore = 3; // Default score
+        }
+        
+        return parsedContent;
+      } catch (e) {
+        console.error("Error parsing OpenAI response:", e);
+        throw new Error("Failed to parse analysis result: " + (e instanceof Error ? e.message : "Invalid JSON"));
       }
-      
-      if (typeof parsedContent.overallScore !== 'number') {
-        console.warn("Warning: overallScore is not a number, setting default value");
-        parsedContent.overallScore = 3; // Default score
-      }
-      
-      return parsedContent;
-    } catch (e) {
-      console.error("Error parsing OpenAI response:", e);
-      throw new Error("Failed to parse analysis result: " + (e instanceof Error ? e.message : "Invalid JSON"));
+    } catch (fetchError) {
+      console.error("Error fetching from OpenAI:", fetchError);
+      throw new Error(`OpenAI API request failed: ${fetchError.message}`);
     }
   } catch (error) {
     console.error("Error in analyzeWithOpenAI:", error);

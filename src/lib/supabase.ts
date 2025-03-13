@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -183,11 +184,20 @@ export async function analyzeReport(reportId: string) {
     
     if (error) {
       console.error('Error invoking analyze-pdf function:', error);
+      
+      let errorMessage = "There was a problem analyzing the report";
+      
+      // Check if we have a more specific error message
+      if (error.message?.includes('non-2xx status code')) {
+        errorMessage = "The analysis function returned an error. Check if you have access to this report.";
+      }
+      
       toast({
         title: "Analysis failed",
-        description: error.message || "There was a problem analyzing the report",
+        description: errorMessage,
         variant: "destructive"
       });
+      
       throw error;
     }
     
