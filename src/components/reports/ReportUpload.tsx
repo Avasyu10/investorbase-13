@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,13 +15,60 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Company stage options
+const COMPANY_STAGES = [
+  "Pre-seed",
+  "Seed",
+  "Series A",
+  "Series B",
+  "Series C+",
+  "Growth",
+  "Pre-IPO",
+  "Public",
+  "Other"
+];
+
+// Industry options
+const INDUSTRIES = [
+  "SaaS",
+  "FinTech",
+  "HealthTech",
+  "EdTech",
+  "E-commerce",
+  "AI/ML",
+  "Blockchain",
+  "CleanTech",
+  "Consumer",
+  "Enterprise",
+  "Gaming",
+  "Hardware",
+  "Marketplace",
+  "Media",
+  "Mobile",
+  "Real Estate",
+  "Transportation",
+  "Other"
+];
 
 export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
+  const [supplementFile, setSupplementFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [companyStage, setCompanyStage] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,6 +95,39 @@ export function ReportUpload() {
       
       setFile(selectedFile);
     }
+  };
+
+  const handleSupplementFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error("File too large", {
+          description: "Please upload a file smaller than 10MB"
+        });
+        return;
+      }
+      
+      setSupplementFile(selectedFile);
+    }
+  };
+
+  const addFounderLinkedIn = () => {
+    setFounderLinkedIns([...founderLinkedIns, ""]);
+  };
+
+  const removeFounderLinkedIn = (index: number) => {
+    if (founderLinkedIns.length > 1) {
+      const updatedFounders = [...founderLinkedIns];
+      updatedFounders.splice(index, 1);
+      setFounderLinkedIns(updatedFounders);
+    }
+  };
+
+  const updateFounderLinkedIn = (index: number, value: string) => {
+    const updatedFounders = [...founderLinkedIns];
+    updatedFounders[index] = value;
+    setFounderLinkedIns(updatedFounders);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,9 +244,97 @@ export function ReportUpload() {
               rows={3}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label>Founder LinkedIn Profiles</Label>
+            {founderLinkedIns.map((linkedin, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <Input
+                  value={linkedin}
+                  onChange={(e) => updateFounderLinkedIn(index, e.target.value)}
+                  placeholder="LinkedIn profile URL"
+                  disabled={isUploading || isAnalyzing}
+                />
+                {index > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeFounderLinkedIn(index)}
+                    disabled={isUploading || isAnalyzing}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addFounderLinkedIn}
+              disabled={isUploading || isAnalyzing}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Another Founder
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="website">Company Website</Label>
+            <Input
+              id="website"
+              value={companyWebsite}
+              onChange={(e) => setCompanyWebsite(e.target.value)}
+              placeholder="https://example.com"
+              disabled={isUploading || isAnalyzing}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="stage">Stage of Company</Label>
+              <Select 
+                value={companyStage} 
+                onValueChange={setCompanyStage}
+                disabled={isUploading || isAnalyzing}
+              >
+                <SelectTrigger id="stage">
+                  <SelectValue placeholder="Select stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COMPANY_STAGES.map((stage) => (
+                    <SelectItem key={stage} value={stage}>
+                      {stage}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="industry">Industry</Label>
+              <Select 
+                value={industry} 
+                onValueChange={setIndustry}
+                disabled={isUploading || isAnalyzing}
+              >
+                <SelectTrigger id="industry">
+                  <SelectValue placeholder="Select industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDUSTRIES.map((ind) => (
+                    <SelectItem key={ind} value={ind}>
+                      {ind}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           
           <div className="space-y-2">
-            <Label htmlFor="file">PDF File</Label>
+            <Label htmlFor="file">Pitch Deck PDF</Label>
             <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
               <div className="flex flex-col items-center space-y-2">
                 <FileUp className="h-8 w-8 text-muted-foreground" />
@@ -191,6 +360,37 @@ export function ReportUpload() {
                 </Button>
                 <p className="text-xs text-muted-foreground mt-1">
                   PDF files only, max 10MB
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="supplementFile">Supplemental Material (if any)</Label>
+            <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
+              <div className="flex flex-col items-center space-y-2">
+                <FileUp className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {supplementFile ? supplementFile.name : "Drag and drop or click to upload"}
+                </p>
+                <Input
+                  id="supplementFile"
+                  type="file"
+                  className="hidden"
+                  onChange={handleSupplementFileChange}
+                  disabled={isUploading || isAnalyzing}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById("supplementFile")?.click()}
+                  disabled={isUploading || isAnalyzing}
+                >
+                  Select File
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Any file type, max 10MB
                 </p>
               </div>
             </div>
