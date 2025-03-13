@@ -232,7 +232,7 @@ export function ReportUpload() {
           </div>
           
           <div className="space-y-2">
-            <Label>Founder LinkedIn Profiles</Label>
+            <Label>Founder LinkedIn Profiles (Optional)</Label>
             {founderLinkedIns.map((linkedin, index) => (
               <div key={index} className="flex gap-2 mb-2">
                 <Input
@@ -267,7 +267,7 @@ export function ReportUpload() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="website">Company Website</Label>
+            <Label htmlFor="website">Company Website (Optional)</Label>
             <Input
               id="website"
               value={companyWebsite}
