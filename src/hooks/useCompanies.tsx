@@ -15,12 +15,14 @@ export function useCompanies() {
       const response = await api.getCompanies();
       return response.data;
     },
-    onError: (err: ApiError) => {
-      toast({
-        title: 'Error loading companies',
-        description: err.message || 'Failed to load companies data',
-        variant: 'destructive',
-      });
+    meta: {
+      onError: (err: ApiError) => {
+        toast({
+          title: 'Error loading companies',
+          description: err.message || 'Failed to load companies data',
+          variant: 'destructive',
+        });
+      },
     },
   });
 
@@ -44,12 +46,14 @@ export function useCompanyDetails(companyId: number | undefined) {
       return response.data;
     },
     enabled: !!companyId,
-    onError: (err: ApiError) => {
-      toast({
-        title: 'Error loading company',
-        description: err.message || 'Failed to load company details',
-        variant: 'destructive',
-      });
+    meta: {
+      onError: (err: ApiError) => {
+        toast({
+          title: 'Error loading company',
+          description: err.message || 'Failed to load company details',
+          variant: 'destructive',
+        });
+      },
     },
   });
 
@@ -73,12 +77,14 @@ export function useSectionDetails(companyId: number | undefined, sectionId: stri
       return response.data;
     },
     enabled: !!companyId && !!sectionId,
-    onError: (err: ApiError) => {
-      toast({
-        title: 'Error loading section',
-        description: err.message || 'Failed to load section details',
-        variant: 'destructive',
-      });
+    meta: {
+      onError: (err: ApiError) => {
+        toast({
+          title: 'Error loading section',
+          description: err.message || 'Failed to load section details',
+          variant: 'destructive',
+        });
+      },
     },
   });
 

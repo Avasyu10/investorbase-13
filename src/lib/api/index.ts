@@ -1,7 +1,20 @@
 
-import { apiClient } from './apiClient';
-import { mockCompanies, mockCompanyDetails, getMockSectionDetails } from './mockApi';
-import { CompanyListItem, CompanyDetailed, SectionDetailed, ApiResponse } from './apiContract';
+import apiClient from './apiClient';
+import { 
+  mockCompanies, 
+  mockCompanyDetails, 
+  getMockSectionDetails,
+  getMockCompanies
+} from './mockApi';
+import { 
+  ApiResponse, 
+  PaginatedResponse,
+  CompanyListItem, 
+  CompanyDetailed, 
+  SectionDetailed,
+  PaginationParams,
+  CompanyFilterParams
+} from './apiContract';
 
 // Check if we should use mock data or real API
 const USE_MOCK_API = true; // Set to false when ready to connect to real backend
@@ -9,16 +22,18 @@ const USE_MOCK_API = true; // Set to false when ready to connect to real backend
 // API Client that decides whether to use real or mock API
 const api = {
   // Companies
-  getCompanies: async (): Promise<ApiResponse<CompanyListItem[]>> => {
+  getCompanies: async (params?: PaginationParams & CompanyFilterParams): Promise<ApiResponse<CompanyListItem[]>> => {
     if (USE_MOCK_API) {
       // Use mock data
+      const response = await getMockCompanies(params);
       return {
-        data: mockCompanies,
+        data: response.data,
         status: 200,
       };
     }
     // Use real API
-    return apiClient.getCompanies();
+    const response = await apiClient.getCompanies(params);
+    return response as ApiResponse<CompanyListItem[]>;
   },
 
   getCompany: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
@@ -41,10 +56,10 @@ const api = {
   },
 
   // Sections
-  getSection: async (companyId: number, sectionId: string): Promise<ApiResponse<SectionDetailed>> => {
+  getSection: async (companyId: number, sectionId: string | number): Promise<ApiResponse<SectionDetailed>> => {
     if (USE_MOCK_API) {
       // Use mock data
-      const section = getMockSectionDetails(companyId, sectionId);
+      const section = await getMockSectionDetails(companyId, sectionId);
       if (!section) {
         throw {
           status: 404,
