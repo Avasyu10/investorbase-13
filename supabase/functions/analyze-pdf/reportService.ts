@@ -67,11 +67,33 @@ export async function getReportData(reportId: string, authHeader: string) {
     }
   }
 
-  // Check if the specific report exists
+  // Try to get the report without any user filtering first for debugging
+  const { data: anyReport, error: anyReportError } = await supabase
+    .from('reports')
+    .select('id, title, user_id, pdf_url')
+    .eq('id', reportId)
+    .maybeSingle();
+    
+  if (anyReportError) {
+    console.error("Error checking for report existence:", anyReportError);
+  } else if (anyReport) {
+    console.log(`Found report with ID ${reportId} belonging to user ${anyReport.user_id}`);
+    
+    // If report doesn't belong to current user, throw access denied
+    if (anyReport.user_id !== user.id) {
+      console.error(`Access denied: Report belongs to user ${anyReport.user_id}, not ${user.id}`);
+      throw new Error(`Access denied: Report ${reportId} belongs to another user`);
+    }
+  } else {
+    console.error(`Report with ID ${reportId} truly does not exist in the database`);
+  }
+
+  // Now try to get the report with user filtering as intended
   const { data: reportData, error: reportError } = await supabase
     .from('reports')
     .select('id, title, user_id, pdf_url')
     .eq('id', reportId)
+    .eq('user_id', user.id)
     .maybeSingle();
     
   if (reportError) {
@@ -80,30 +102,10 @@ export async function getReportData(reportId: string, authHeader: string) {
   }
   
   if (!reportData) {
-    console.error(`Report with ID ${reportId} not found in the reports table`);
-    
-    // Attempt to fetch without user_id constraint to see if it exists for any user
-    const { data: reportExists } = await supabase
-      .from('reports')
-      .select('id, user_id')
-      .eq('id', reportId)
-      .maybeSingle();
-      
-    if (reportExists) {
-      console.log(`Found report with ID ${reportId}, belongs to user ${reportExists.user_id}`);
-      
-      if (reportExists.user_id !== user.id) {
-        throw new Error(`Access denied: Report ${reportId} belongs to another user`);
-      } else {
-        console.log(`Strange case: Report belongs to current user but wasn't returned in previous query`);
-      }
-    } else {
-      console.error(`Report with ID ${reportId} does not exist in the database at all`);
-      throw new Error(`Report with ID ${reportId} not found`);
-    }
+    console.error(`Report with ID ${reportId} not found for user ${user.id}`);
+    throw new Error(`Report with ID ${reportId} not found`);
   }
 
-  // At this point, we must have reportData or we would have thrown an error
   const report = reportData;
   
   if (!report.pdf_url) {
