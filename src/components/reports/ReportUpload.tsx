@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -88,8 +87,8 @@ export function ReportUpload() {
       setProgress(40);
       console.log("Upload complete, report:", report);
       
-      toast({
-        title: "Upload complete",
+      // Using sonner toast correctly
+      toast("Upload complete", {
         description: "Your pitch deck has been uploaded successfully",
       });
       
@@ -98,8 +97,8 @@ export function ReportUpload() {
       setProgressStage("Analyzing pitch deck with AI...");
       setProgress(50);
       
-      toast({
-        title: "Analysis started",
+      // Using sonner toast correctly
+      toast("Analysis started", {
         description: "This may take a few minutes depending on the size of your deck",
       });
       
@@ -109,8 +108,8 @@ export function ReportUpload() {
         setProgress(100);
         console.log("Analysis complete, result:", result);
         
-        toast({
-          title: "Analysis complete",
+        // Using sonner toast correctly
+        toast("Analysis complete", {
           description: "Your pitch deck has been analyzed successfully!",
         });
         
@@ -123,10 +122,9 @@ export function ReportUpload() {
         }
       } catch (analysisError) {
         console.error("Error analyzing report:", analysisError);
-        toast({
-          title: "Analysis failed",
+        // Using sonner toast correctly for errors
+        toast.error("Analysis failed", {
           description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck. The file was uploaded but couldn't be analyzed.",
-          variant: "destructive",
         });
         
         // Still navigate to dashboard if analysis fails
@@ -134,10 +132,9 @@ export function ReportUpload() {
       }
     } catch (error) {
       console.error("Error processing report:", error);
-      toast({
-        title: "Upload failed",
+      // Using sonner toast correctly for errors
+      toast.error("Upload failed", {
         description: error instanceof Error ? error.message : "Failed to process pitch deck",
-        variant: "destructive",
       });
       setProgress(0);
     } finally {
