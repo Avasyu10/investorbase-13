@@ -1,31 +1,53 @@
 
-import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
-import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from "@/lib/companyData";
+import { useCompanyDetails } from "@/hooks/useCompanies";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
-  const [company, setCompany] = useState(null);
-
-  useEffect(() => {
-    // Simulate API call to fetch company details
-    if (companyId && COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)]) {
-      setCompany(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)]);
-    }
-  }, [companyId]);
+  const { company, isLoading } = useCompanyDetails(companyId ? Number(companyId) : undefined);
 
   const handleSectionClick = (sectionId: string) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
   };
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-gray-200 rounded w-full mb-6"></div>
+          
+          <Card className="mb-8">
+            <CardContent className="p-6">
+              <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-40 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!company) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p>Loading company details...</p>
+        <p>Company not found</p>
       </div>
     );
   }

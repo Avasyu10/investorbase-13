@@ -1,10 +1,10 @@
 
 import { Link } from "react-router-dom";
-import { CompanyDetailedData } from "@/lib/companyData";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CompanyDetailed } from "@/lib/api/apiContract";
 
 interface ScoreAssessmentProps {
-  company: CompanyDetailedData;
+  company: CompanyDetailed;
 }
 
 export function ScoreAssessment({ company }: ScoreAssessmentProps) {

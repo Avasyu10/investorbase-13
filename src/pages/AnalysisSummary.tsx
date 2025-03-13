@@ -6,33 +6,58 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from "@/lib/companyData";
+import { useCompanyDetails } from "@/hooks/useCompanies";
 
 const AnalysisSummary = () => {
   const { companyId } = useParams<{ companyId: string }>();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { company, isLoading: companyLoading } = useCompanyDetails(
+    companyId ? Number(companyId) : undefined
+  );
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!authLoading && !user) {
       navigate('/');
     }
-  }, [user, isLoading, navigate]);
+  }, [user, authLoading, navigate]);
+
+  const isLoading = authLoading || companyLoading;
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="loader"></div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-4 bg-gray-200 rounded w-full"></div>
+                ))}
+              </div>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center">
+                    <div className="h-4 bg-gray-200 rounded w-48 mr-2"></div>
+                    <div className="h-2 bg-gray-200 rounded flex-1"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (!user) return null;
 
-  const company = COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)];
-
   if (!company) {
-    return <div>Company not found</div>;
+    return <div className="container mx-auto px-4 py-8">Company not found</div>;
   }
 
   return (
@@ -82,6 +107,6 @@ const AnalysisSummary = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default AnalysisSummary;

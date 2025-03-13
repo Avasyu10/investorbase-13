@@ -11,44 +11,56 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { ListFilter } from "lucide-react";
-
-// Dummy data for companies and their scores
-const COMPANIES_DATA = [
-  { id: 1, name: "TechFusion AI", score: 4.7 },
-  { id: 2, name: "GreenEnergy Solutions", score: 4.2 },
-  { id: 3, name: "MedTech Innovations", score: 4.8 },
-  { id: 4, name: "FinanceFlow", score: 3.9 },
-  { id: 5, name: "RetailRevolution", score: 4.1 },
-  { id: 6, name: "DataSense Analytics", score: 4.5 },
-  { id: 7, name: "CloudScale Systems", score: 4.3 },
-  { id: 8, name: "EcoTrends Manufacturing", score: 3.8 },
-  { id: 9, name: "HealthAI Solutions", score: 4.6 },
-  { id: 10, name: "CyberShield Security", score: 4.4 },
-  { id: 11, name: "SmartHome Technologies", score: 4.0 },
-  { id: 12, name: "BlockchainX Solutions", score: 3.7 }
-];
+import { useCompanies } from "@/hooks/useCompanies";
+import { CompanyListItem } from "@/lib/api/apiContract";
 
 type SortOption = "name" | "score";
 
 export function CompaniesList() {
   const navigate = useNavigate();
-  const [companiesData] = useState(COMPANIES_DATA);
+  const { companies, isLoading } = useCompanies();
   const [sortBy, setSortBy] = useState<SortOption>("name");
 
   // Sort companies based on the selected option
   const sortedCompanies = useMemo(() => {
-    return [...companiesData].sort((a, b) => {
+    if (!companies) return [];
+    
+    return [...companies].sort((a, b) => {
       if (sortBy === "name") {
         return a.name.localeCompare(b.name);
       } else {
         return b.score - a.score; // Sort by score descending
       }
     });
-  }, [companiesData, sortBy]);
+  }, [companies, sortBy]);
 
   const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-2 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
@@ -78,27 +90,33 @@ export function CompaniesList() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedCompanies.map((company) => (
-          <Card 
-            key={company.id} 
-            className="cursor-pointer transition-all hover:shadow-md"
-            onClick={() => handleCompanyClick(company.id)}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl">{company.name}</CardTitle>
-              <CardDescription>Overall Score: {company.score}/5</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Progress 
-                value={company.score * 20} 
-                className="h-2 mb-2" 
-              />
-              <p className="text-sm text-muted-foreground">
-                Click to view detailed metrics
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {sortedCompanies.length > 0 ? (
+          sortedCompanies.map((company) => (
+            <Card 
+              key={company.id} 
+              className="cursor-pointer transition-all hover:shadow-md"
+              onClick={() => handleCompanyClick(company.id)}
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl">{company.name}</CardTitle>
+                <CardDescription>Overall Score: {company.score}/5</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Progress 
+                  value={company.score * 20} 
+                  className="h-2 mb-2" 
+                />
+                <p className="text-sm text-muted-foreground">
+                  Click to view detailed metrics
+                </p>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-3 text-center py-12">
+            <p className="text-muted-foreground">No companies found</p>
+          </div>
+        )}
       </div>
     </div>
   );
