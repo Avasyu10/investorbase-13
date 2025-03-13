@@ -43,52 +43,7 @@ export async function getReportData(reportId: string, authHeader: string) {
 
   console.log(`Authenticated as user: ${user.id}`);
 
-  // Get all reports (for debugging purposes)
-  const { data: allUserReports, error: allReportsQueryError } = await supabase
-    .from('reports')
-    .select('id, title, user_id, pdf_url');
-  
-  if (allReportsQueryError) {
-    console.error("Error fetching all reports:", allReportsQueryError);
-  } else {
-    console.log(`Total reports in database: ${allUserReports?.length || 0}`);
-    
-    // Log all report IDs for debugging
-    if (allUserReports && allUserReports.length > 0) {
-      console.log("All report IDs in database:", allUserReports.map(r => r.id).join(", "));
-      
-      // Check if our target report exists in the complete list
-      const targetReport = allUserReports.find(r => r.id === reportId);
-      if (targetReport) {
-        console.log(`Target report found in complete list: ${JSON.stringify(targetReport)}`);
-      } else {
-        console.log(`Target report (${reportId}) NOT found in complete list`);
-      }
-    }
-  }
-
-  // Try to get the report without any user filtering first for debugging
-  const { data: anyReport, error: anyReportError } = await supabase
-    .from('reports')
-    .select('id, title, user_id, pdf_url')
-    .eq('id', reportId)
-    .maybeSingle();
-    
-  if (anyReportError) {
-    console.error("Error checking for report existence:", anyReportError);
-  } else if (anyReport) {
-    console.log(`Found report with ID ${reportId} belonging to user ${anyReport.user_id}`);
-    
-    // If report doesn't belong to current user, throw access denied
-    if (anyReport.user_id !== user.id) {
-      console.error(`Access denied: Report belongs to user ${anyReport.user_id}, not ${user.id}`);
-      throw new Error(`Access denied: Report ${reportId} belongs to another user`);
-    }
-  } else {
-    console.error(`Report with ID ${reportId} truly does not exist in the database`);
-  }
-
-  // Now try to get the report with user filtering as intended
+  // Get the specific report with user ID filter
   const { data: reportData, error: reportError } = await supabase
     .from('reports')
     .select('id, title, user_id, pdf_url')
@@ -97,13 +52,27 @@ export async function getReportData(reportId: string, authHeader: string) {
     .maybeSingle();
     
   if (reportError) {
-    console.error("Error fetching specific report:", reportError);
+    console.error("Error fetching report:", reportError);
     throw new Error('Database error: ' + reportError.message);
   }
   
   if (!reportData) {
     console.error(`Report with ID ${reportId} not found for user ${user.id}`);
-    throw new Error(`Report with ID ${reportId} not found`);
+    
+    // Check if report exists but belongs to different user
+    const { data: anyReport } = await supabase
+      .from('reports')
+      .select('id, user_id')
+      .eq('id', reportId)
+      .maybeSingle();
+      
+    if (anyReport) {
+      console.error(`Report exists but belongs to user ${anyReport.user_id}, not ${user.id}`);
+      throw new Error(`Access denied: Report ${reportId} belongs to another user`);
+    } else {
+      console.error(`Report with ID ${reportId} truly does not exist in the database`);
+      throw new Error(`Report with ID ${reportId} not found`);
+    }
   }
 
   const report = reportData;
@@ -115,12 +84,12 @@ export async function getReportData(reportId: string, authHeader: string) {
   
   console.log(`Found user's report: ${report.title}, accessing PDF from storage`);
 
-  // Build the correct storage path - the PDF should be in user.id/report.pdf_url
+  // The storage path should include the user ID
   const storagePath = `${user.id}/${report.pdf_url}`;
   console.log(`Attempting to download PDF from path: ${storagePath}`);
 
-  // Attempt to list files in the storage bucket to debug
-  const { data: bucketFiles, error: bucketError } = await supabase
+  // List files in user's folder to debug
+  const { data: bucketFiles } = await supabase
     .storage
     .from('report_pdfs')
     .list(user.id, {
@@ -128,11 +97,9 @@ export async function getReportData(reportId: string, authHeader: string) {
       sortBy: { column: 'name', order: 'asc' },
     });
     
-  if (bucketError) {
-    console.error("Error listing files in storage bucket:", bucketError);
-  } else {
-    console.log(`Found ${bucketFiles?.length || 0} files in user's storage folder`);
-    if (bucketFiles && bucketFiles.length > 0) {
+  if (bucketFiles) {
+    console.log(`Found ${bucketFiles.length} files in user's storage folder`);
+    if (bucketFiles.length > 0) {
       console.log("Available files:", bucketFiles.map(f => f.name).join(", "));
     }
   }
@@ -147,7 +114,7 @@ export async function getReportData(reportId: string, authHeader: string) {
     console.error("PDF download error:", pdfError);
     console.error(`Failed to access PDF at path: ${storagePath}`);
     
-    // Try alternative paths as fallback (debugging)
+    // Try alternative paths as fallback (for backward compatibility)
     console.log("Attempting alternative storage paths...");
     
     // Try without user ID prefix

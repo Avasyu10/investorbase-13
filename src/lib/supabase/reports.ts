@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, type ParsedPdfSegment } from "../pdf-parser";
 import type { Tables } from "@/integrations/supabase/types";
@@ -65,7 +66,7 @@ export async function getReportById(id: string) {
   const report = tableData as Report;
 
   try {
-    // Download the file
+    // Download the file - pass the user ID for proper path construction
     const pdfBlob = await downloadReport(report.pdf_url, user.id);
     
     // Parse the PDF content
@@ -83,30 +84,32 @@ export async function getReportById(id: string) {
 }
 
 export async function downloadReport(fileUrl: string, userId: string) {
-  console.log(`Downloading report: ${fileUrl} for user: ${userId}`);
+  console.log(`Downloading report from path: ${userId}/${fileUrl}`);
   
-  // Attempt to download with user ID path
+  // The correct path includes the user ID folder
   const { data, error } = await supabase.storage
     .from('report_pdfs')
     .download(`${userId}/${fileUrl}`);
 
   if (error) {
-    console.error('Error downloading report with user ID prefix:', error);
+    console.error('Error downloading report:', error);
     
-    // Try without user ID prefix as fallback
-    console.log('Trying to download without user ID prefix');
-    const { data: altData, error: altError } = await supabase.storage
+    // Try without user ID prefix as fallback (for backward compatibility)
+    console.log('Attempting fallback download without user ID prefix');
+    const { data: fallbackData, error: fallbackError } = await supabase.storage
       .from('report_pdfs')
       .download(fileUrl);
       
-    if (altError) {
-      console.error('Error downloading report without user ID prefix:', altError);
-      throw error; // Throw the original error if both approaches fail
+    if (fallbackError) {
+      console.error('Fallback download also failed:', fallbackError);
+      throw error; // Throw the original error
     }
     
-    return altData;
+    console.log('Fallback download successful');
+    return fallbackData;
   }
 
+  console.log('Download successful');
   return data;
 }
 
@@ -125,9 +128,9 @@ export async function uploadReport(file: File, title: string, description: strin
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     
-    // Important: Store filepath with user ID prefix
+    // Store filepath with user ID prefix
     const filePath = `${user.id}/${fileName}`;
-    console.log('File will be stored at path:', filePath);
+    console.log('Uploading file to path:', filePath);
     
     // Upload the file to storage
     const { error: uploadError } = await supabase.storage

@@ -23,10 +23,11 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
 
   useEffect(() => {
     const loadPdf = async () => {
-      if (!report?.pdf_url) return;
+      if (!report?.pdf_url || !report.user_id) return;
       
       try {
-        const blob = await downloadReport(report.pdf_url, 'reports');
+        // Use the user_id from the report to construct the correct path
+        const blob = await downloadReport(report.pdf_url, report.user_id);
         setPdfBlob(blob);
       } catch (error) {
         console.error("Error loading PDF:", error);
@@ -39,10 +40,11 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   }, [report, pdfBlob]);
 
   const handleDownload = async () => {
-    if (!report) return;
+    if (!report || !report.user_id) return;
     
     try {
-      const blob = pdfBlob || await downloadReport(report.pdf_url, 'reports');
+      // Use the user_id from the report to construct the correct path
+      const blob = pdfBlob || await downloadReport(report.pdf_url, report.user_id);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
