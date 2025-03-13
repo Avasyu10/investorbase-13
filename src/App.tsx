@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,8 @@ import CompanyPage from "./pages/CompanyPage";
 import SectionPage from "./pages/SectionPage";
 import NotFound from "./pages/NotFound";
 import AnalysisSummary from "./pages/AnalysisSummary";
+import UploadReport from "./pages/UploadReport";
+import Report from "./pages/Report";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +29,8 @@ const AppRoutes = () => (
       <Route path="/company/:companyId" element={<CompanyPage />} />
       <Route path="/company/:companyId/section/:sectionId" element={<SectionPage />} />
       <Route path="/company/:companyId/analysis" element={<AnalysisSummary />} />
+      <Route path="/upload" element={<UploadReport />} />
+      <Route path="/report/:reportId" element={<Report />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </>

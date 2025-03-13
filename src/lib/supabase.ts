@@ -17,12 +17,20 @@ export type Report = {
   created_at: string;
   sections?: string[];
   parsedSegments?: ParsedPdfSegment[];
+  user_id?: string;
 };
 
 // Functions to interact with Supabase
 
 export async function getReports() {
-  // First try to get records from the reports table
+  const user = supabase.auth.getUser();
+  
+  if (!user) {
+    console.log('No authenticated user found');
+    return [];
+  }
+
+  // Get reports from the reports table for the current user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
@@ -30,53 +38,20 @@ export async function getReports() {
 
   if (tableError) {
     console.error('Error fetching reports from table:', tableError);
+    throw tableError;
   }
 
-  // If we have records in the reports table, return them
   if (tableData && tableData.length > 0) {
     console.log('Found reports in table:', tableData);
     return tableData as Report[];
   }
 
-  // If no records in table, try to list files from storage
-  console.log('No reports found in table, checking storage...');
-  const { data: storageData, error: storageError } = await supabase
-    .storage
-    .from('reports')
-    .list();
-
-  if (storageError) {
-    console.error('Error listing reports from storage:', storageError);
-    throw storageError;
-  }
-
-  if (!storageData || storageData.length === 0) {
-    console.log('No reports found in storage either');
-    return [];
-  }
-
-  console.log('Found reports in storage:', storageData);
-  
-  // Create report objects from storage files
-  const reports: Report[] = storageData
-    .filter(file => file.name.endsWith('.pdf'))
-    .map(file => {
-      const fileName = file.name.replace('.pdf', '');
-      return {
-        id: file.id,
-        title: fileName.replace(/_/g, ' '),
-        description: `PDF report: ${fileName}`,
-        pdf_url: file.name,
-        created_at: file.created_at || new Date().toISOString(),
-        sections: []
-      };
-    });
-
-  return reports;
+  console.log('No reports found for this user');
+  return [];
 }
 
 export async function getReportById(id: string) {
-  // First try to get the report from the reports table
+  // Get the report from the reports table
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
@@ -85,46 +60,25 @@ export async function getReportById(id: string) {
 
   if (tableError) {
     console.error('Error fetching report from table:', tableError);
+    throw tableError;
   }
 
-  // If we found the report in the table, prepare to return it
-  let report: Report | null = null;
-  if (tableData) {
-    report = tableData as Report;
-  } else {
-    // If not found in table, try to get file details from storage
-    console.log('Report not found in table, checking storage...');
-    const { data: storageData, error: storageError } = await supabase
-      .storage
-      .from('reports')
-      .list();
-
-    if (storageError) {
-      console.error('Error listing reports from storage:', storageError);
-      throw storageError;
-    }
-
-    const file = storageData?.find(file => file.id === id);
-    
-    if (!file) {
-      throw new Error('Report not found');
-    }
-
-    const fileName = file.name.replace('.pdf', '');
-    report = {
-      id: file.id,
-      title: fileName.replace(/_/g, ' '),
-      description: `PDF report: ${fileName}`,
-      pdf_url: file.name,
-      created_at: file.created_at || new Date().toISOString(),
-      sections: []
-    } as Report;
+  if (!tableData) {
+    throw new Error('Report not found');
   }
 
-  // Now parse the PDF content
+  const report = tableData as Report;
+
   try {
     // Download the file
-    const pdfBlob = await downloadReport(report.pdf_url);
+    const user = await supabase.auth.getUser();
+    const userId = user.data.user?.id;
+    
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    
+    const pdfBlob = await downloadReport(report.pdf_url, userId);
     
     // Parse the PDF content
     const parsedSegments = await parsePdfFromBlob(pdfBlob);
@@ -140,8 +94,10 @@ export async function getReportById(id: string) {
   }
 }
 
-export async function downloadReport(fileUrl: string) {
-  const { data, error } = await supabase.storage.from('reports').download(fileUrl);
+export async function downloadReport(fileUrl: string, userId: string) {
+  const { data, error } = await supabase.storage
+    .from('report_pdfs')
+    .download(`${userId}/${fileUrl}`);
 
   if (error) {
     console.error('Error downloading report:', error);
@@ -149,4 +105,83 @@ export async function downloadReport(fileUrl: string) {
   }
 
   return data;
+}
+
+export async function uploadReport(file: File, title: string, description: string) {
+  try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
+    
+    // Upload the file to storage
+    const { error: uploadError } = await supabase.storage
+      .from('report_pdfs')
+      .upload(filePath, file);
+      
+    if (uploadError) {
+      throw uploadError;
+    }
+    
+    // Insert a record in the reports table
+    const { data: report, error: insertError } = await supabase
+      .from('reports')
+      .insert({
+        title,
+        description,
+        pdf_url: fileName,
+        user_id: user.id
+      })
+      .select()
+      .single();
+      
+    if (insertError) {
+      throw insertError;
+    }
+    
+    return report as Report;
+  } catch (error) {
+    console.error('Error uploading report:', error);
+    throw error;
+  }
+}
+
+export async function analyzeReport(reportId: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('User not authenticated');
+    }
+    
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/analyze-pdf`, 
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ reportId })
+      }
+    );
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error analyzing report');
+    }
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error analyzing report:', error);
+    throw error;
+  }
 }

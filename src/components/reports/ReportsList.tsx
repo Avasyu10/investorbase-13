@@ -1,65 +1,83 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { ReportCard } from "./ReportCard";
-import { getReports } from "@/lib/supabase";
-import { Loader } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { getReports, Report } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { FileUp, Plus, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export function ReportsList() {
-  const { data: reports, isLoading, error, refetch } = useQuery({
-    queryKey: ["reports"],
-    queryFn: getReports,
-    retry: 1, // Retry once if it fails
-    refetchOnWindowFocus: false,
-  });
+  const [reports, setReports] = useState<Report[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="flex flex-col items-center space-y-2">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading reports...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    async function fetchReports() {
+      try {
+        setIsLoading(true);
+        const fetchedReports = await getReports();
+        setReports(fetchedReports);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+        toast({
+          title: "Failed to load reports",
+          description: "Please try again later or contact support",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-64 flex-col">
-        <div className="text-center space-y-2">
-          <p className="text-destructive font-medium">Failed to load reports</p>
-          <p className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : "Unknown error occurred"}
-          </p>
-        </div>
-        <button 
-          onClick={() => refetch()} 
-          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
-  if (!reports || reports.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center space-y-2">
-          <p className="font-medium">No reports found</p>
-          <p className="text-sm text-muted-foreground">
-            There are currently no reports available in your account.
-          </p>
-        </div>
-      </div>
-    );
-  }
+    fetchReports();
+  }, [toast]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {reports.map((report) => (
-        <ReportCard key={report.id} report={report} />
-      ))}
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Your Reports</h1>
+          <p className="text-muted-foreground">
+            Access and analyze your pitch deck reports
+          </p>
+        </div>
+        <Button 
+          onClick={() => navigate("/upload")} 
+          className="mt-4 sm:mt-0"
+        >
+          <FileUp className="mr-2 h-4 w-4" />
+          Upload New Deck
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : reports.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {reports.map((report) => (
+            <ReportCard key={report.id} report={report} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 border rounded-lg bg-card/50">
+          <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">No reports found</h3>
+          <p className="mt-2 text-muted-foreground">
+            Upload your first pitch deck to get started
+          </p>
+          <Button 
+            onClick={() => navigate("/upload")} 
+            className="mt-6"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Upload Your First Deck
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
