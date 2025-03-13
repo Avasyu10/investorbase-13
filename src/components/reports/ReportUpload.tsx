@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUp, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -78,28 +79,50 @@ export function ReportUpload() {
 
     try {
       setIsUploading(true);
-      setProgressStage("Uploading file...");
+      setProgressStage("Uploading pitch deck...");
       setProgress(10);
       
       // Upload the report
       const report = await uploadReport(file, title, description);
       setProgress(40);
       
-      // Start analysis
-      setIsAnalyzing(true);
-      setProgressStage("Analyzing pitch deck...");
-      setProgress(50);
-      
-      const result = await analyzeReport(report.id);
-      setProgress(100);
-      
       toast({
-        title: "Analysis complete",
-        description: "Your pitch deck has been analyzed successfully!",
+        title: "Upload complete",
+        description: "Your pitch deck has been uploaded successfully",
       });
       
-      // Navigate to the company page
-      navigate(`/company/${result.companyId}`);
+      // Start analysis
+      setIsAnalyzing(true);
+      setProgressStage("Analyzing pitch deck with AI...");
+      setProgress(50);
+      
+      toast({
+        title: "Analysis started",
+        description: "This may take a few minutes depending on the size of your deck",
+      });
+      
+      try {
+        const result = await analyzeReport(report.id);
+        setProgress(100);
+        
+        toast({
+          title: "Analysis complete",
+          description: "Your pitch deck has been analyzed successfully!",
+        });
+        
+        // Navigate to the company page
+        navigate(`/company/${result.companyId}`);
+      } catch (analysisError) {
+        console.error("Error analyzing report:", analysisError);
+        toast({
+          title: "Analysis failed",
+          description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck. The file was uploaded but couldn't be analyzed.",
+          variant: "destructive",
+        });
+        
+        // Still navigate to dashboard if analysis fails
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error("Error processing report:", error);
       toast({
@@ -188,7 +211,7 @@ export function ReportUpload() {
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground italic mt-1">
-                {isAnalyzing ? "AI analysis may take a few minutes..." : ""}
+                {isAnalyzing ? "AI analysis may take a few minutes. Please be patient..." : ""}
               </p>
             </div>
           )}

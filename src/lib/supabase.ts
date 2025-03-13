@@ -156,31 +156,30 @@ export async function uploadReport(file: File, title: string, description: strin
 
 export async function analyzeReport(reportId: string) {
   try {
+    // Get the current session
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
       throw new Error('User not authenticated');
     }
     
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/analyze-pdf`, 
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ reportId })
-      }
-    );
+    console.log('Calling analyze-pdf function with report ID:', reportId);
     
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Error analyzing report');
+    // Call the edge function using the Supabase client
+    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+      body: { reportId },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+    
+    if (error) {
+      console.error('Error invoking analyze-pdf function:', error);
+      throw error;
     }
     
-    const result = await response.json();
-    return result;
+    console.log('Analysis result:', data);
+    return data;
   } catch (error) {
     console.error('Error analyzing report:', error);
     throw error;
