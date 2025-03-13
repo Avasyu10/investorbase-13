@@ -1,7 +1,7 @@
 
-import { supabase } from "./client";
+import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, type ParsedPdfSegment } from "../pdf-parser";
-import { type Report } from "./types";
+import { type Report } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
 import { analyzeReport } from "./analysis";
 
