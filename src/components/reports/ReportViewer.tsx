@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
@@ -25,7 +26,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       if (!report?.pdf_url) return;
       
       try {
-        const blob = await downloadReport(report.pdf_url);
+        const blob = await downloadReport(report.pdf_url, 'reports');
         setPdfBlob(blob);
       } catch (error) {
         console.error("Error loading PDF:", error);
@@ -41,7 +42,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     if (!report) return;
     
     try {
-      const blob = pdfBlob || await downloadReport(report.pdf_url);
+      const blob = pdfBlob || await downloadReport(report.pdf_url, 'reports');
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

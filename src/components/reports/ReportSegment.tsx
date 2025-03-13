@@ -45,7 +45,7 @@ export function ReportSegment({ segment, pdfUrl, pdfBlob }: ReportSegmentProps) 
         setIsRenderingCanvas(true);
         setRenderAttempted(true);
         
-        const pdf = pdfBlob || await downloadReport(pdfUrl);
+        const pdf = pdfBlob || await downloadReport(pdfUrl, 'reports');
         
         if (!canvasRef.current) return;
         
