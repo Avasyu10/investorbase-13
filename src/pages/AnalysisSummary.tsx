@@ -1,112 +1,67 @@
 
-import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
-import { useCompanyDetails } from "@/hooks/useCompanies";
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
-const AnalysisSummary = () => {
-  const { companyId } = useParams<{ companyId: string }>();
-  const { user, isLoading: authLoading } = useAuth();
+export default function AnalysisSummary() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { company, isLoading: companyLoading } = useCompanyDetails(
-    companyId ? Number(companyId) : undefined
-  );
-
+  const companyId = location.state?.companyId || '';
+  
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/');
+    if (!companyId) {
+      navigate('/dashboard');
     }
-  }, [user, authLoading, navigate]);
+  }, [companyId, navigate]);
 
-  const isLoading = authLoading || companyLoading;
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-4 bg-gray-200 rounded w-full"></div>
-                ))}
-              </div>
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center">
-                    <div className="h-4 bg-gray-200 rounded w-48 mr-2"></div>
-                    <div className="h-2 bg-gray-200 rounded flex-1"></div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) return null;
-
-  if (!company) {
-    return <div className="container mx-auto px-4 py-8">Company not found</div>;
-  }
+  const viewResults = () => {
+    navigate(`/companies/${companyId}`);
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => navigate(`/company/${companyId}`)}
-        className="mb-6"
-      >
-        <ChevronLeft className="mr-1" /> Back to {company.name}
-      </Button>
-      
-      <h1 className="text-3xl font-bold tracking-tight mb-6">{company.name} - Analysis Summary</h1>
-      
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Overall Performance</span>
-            <span className="text-2xl">{company.overallScore}/5</span>
+    <div className="container max-w-5xl mx-auto px-4 py-8">
+      <Card className="rounded-lg border shadow-md">
+        <CardHeader className="bg-green-50 border-b">
+          <CardTitle className="text-center text-green-700">
+            Analysis Complete
           </CardTitle>
-          <Progress value={company.overallScore * 20} className="h-2 mt-2" />
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h3 className="font-medium mb-3">Key Strengths</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              {company.assessmentPoints.map((point, index) => (
-                <li key={index}>{point}</li>
-              ))}
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-3">Section Overview</h3>
-            <div className="space-y-4">
-              {company.sections.map((section) => (
-                <div key={section.id} className="flex items-center">
-                  <span className="w-48 font-medium">{section.title}</span>
-                  <Progress value={section.score * 20} className="flex-1 h-2" />
-                  <span className="ml-4 w-12 text-right">{section.score}/5</span>
-                </div>
-              ))}
+        <CardContent className="p-8 space-y-6">
+          <div className="text-center mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
             </div>
+          </div>
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">Your Pitch Deck Analysis is Ready!</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              We've analyzed your pitch deck and prepared a detailed assessment. Your results include
+              an overall score, section-by-section analysis, strengths, weaknesses, and specific
+              recommendations to improve your pitch.
+            </p>
+          </div>
+
+          <div className="flex justify-center pt-4">
+            <Button onClick={viewResults} size="lg" className="px-8">
+              View Results
+            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-export default AnalysisSummary;

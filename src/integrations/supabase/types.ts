@@ -11,82 +11,93 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          assessment_points: string[] | null
           created_at: string
           id: string
-          logo_url: string | null
           name: string
-          total_score: number
+          overall_score: number
+          updated_at: string
         }
         Insert: {
+          assessment_points?: string[] | null
           created_at?: string
           id?: string
-          logo_url?: string | null
           name: string
-          total_score: number
+          overall_score?: number
+          updated_at?: string
         }
         Update: {
+          assessment_points?: string[] | null
           created_at?: string
           id?: string
-          logo_url?: string | null
           name?: string
-          total_score?: number
+          overall_score?: number
+          updated_at?: string
         }
         Relationships: []
       }
       reports: {
         Row: {
-          created_at: string | null
+          company_id: string | null
+          created_at: string
           description: string | null
           id: string
-          pdf_url: string
-          sections: string[] | null
+          pdf_content: string | null
+          pdf_url: string | null
           title: string
           user_id: string | null
         }
         Insert: {
-          created_at?: string | null
+          company_id?: string | null
+          created_at?: string
           description?: string | null
           id?: string
-          pdf_url: string
-          sections?: string[] | null
+          pdf_content?: string | null
+          pdf_url?: string | null
           title: string
           user_id?: string | null
         }
         Update: {
-          created_at?: string | null
+          company_id?: string | null
+          created_at?: string
           description?: string | null
           id?: string
-          pdf_url?: string
-          sections?: string[] | null
+          pdf_content?: string | null
+          pdf_url?: string | null
           title?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       section_details: {
         Row: {
           content: string
           created_at: string
+          detail_type: string
           id: string
-          score_impact: string | null
           section_id: string
-          title: string
         }
         Insert: {
           content: string
           created_at?: string
+          detail_type: string
           id?: string
-          score_impact?: string | null
           section_id: string
-          title: string
         }
         Update: {
           content?: string
           created_at?: string
+          detail_type?: string
           id?: string
-          score_impact?: string | null
           section_id?: string
-          title?: string
         }
         Relationships: [
           {
@@ -104,27 +115,30 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          max_score: number
-          name: string
           score: number
+          title: string
+          type: string
+          updated_at: string
         }
         Insert: {
           company_id: string
           created_at?: string
           description?: string | null
           id?: string
-          max_score?: number
-          name: string
-          score: number
+          score?: number
+          title: string
+          type: string
+          updated_at?: string
         }
         Update: {
           company_id?: string
           created_at?: string
           description?: string | null
           id?: string
-          max_score?: number
-          name?: string
           score?: number
+          title?: string
+          type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -141,7 +155,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_section_stats: {
+        Args: {
+          section_id: string
+        }
+        Returns: {
+          strength_count: number
+          weakness_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

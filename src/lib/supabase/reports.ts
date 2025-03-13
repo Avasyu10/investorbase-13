@@ -1,13 +1,22 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { parsePdfFromBlob, type ParsedPdfSegment } from "../pdf-parser";
-import type { Tables } from "@/integrations/supabase/types";
+import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
 
-// Define the Report type to match what's being used
-type Report = Tables<"reports"> & {
+// Types for our database
+export type Report = {
+  id: string;
+  title: string;
+  description: string;
+  pdf_url: string;
+  created_at: string;
+  user_id?: string;
+  company_id?: string;
   parsedSegments?: ParsedPdfSegment[];
+  pdf_content?: string;
 };
+
+// Functions to interact with Supabase
 
 export async function getReports() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -20,7 +29,7 @@ export async function getReports() {
   // Get reports from the reports table for the current user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*, companies(name, overall_score)')
+    .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -48,7 +57,7 @@ export async function getReportById(id: string) {
   // Get the report from the reports table
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*, companies(*)')
+    .select('*')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle();
@@ -62,13 +71,54 @@ export async function getReportById(id: string) {
     throw new Error('Report not found');
   }
 
-  return tableData as Report;
+  const report = tableData as Report;
+
+  // If we have direct PDF content in the database
+  if (report.pdf_content) {
+    try {
+      // Convert base64 to blob
+      const binaryString = atob(report.pdf_content);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+      
+      // Parse the PDF content
+      const parsedSegments = await parsePdfFromBlob(pdfBlob);
+      
+      // Add parsed segments to the report
+      report.parsedSegments = parsedSegments;
+      
+      return report;
+    } catch (error) {
+      console.error('Error parsing PDF content:', error);
+      // Return the report without parsed segments if parsing fails
+      return report;
+    }
+  } else if (report.pdf_url) {
+    try {
+      // Download the file
+      const pdfBlob = await downloadReport(report.pdf_url, user.id);
+      
+      // Parse the PDF content
+      const parsedSegments = await parsePdfFromBlob(pdfBlob);
+      
+      // Add parsed segments to the report
+      report.parsedSegments = parsedSegments;
+      
+      return report;
+    } catch (error) {
+      console.error('Error parsing PDF content:', error);
+      // Return the report without parsed segments if parsing fails
+      return report;
+    }
+  }
+
+  return report;
 }
 
 export async function downloadReport(fileUrl: string, userId: string) {
-  console.log(`Downloading report from path: ${userId}/${fileUrl}`);
-  
-  // The correct path includes the user ID folder
   const { data, error } = await supabase.storage
     .from('report_pdfs')
     .download(`${userId}/${fileUrl}`);
@@ -78,52 +128,41 @@ export async function downloadReport(fileUrl: string, userId: string) {
     throw error;
   }
 
-  console.log('Download successful');
   return data;
 }
 
-export async function uploadReport(file: File, title: string, description: string) {
+export async function analyzeReportDirect(file: File, title: string, description: string) {
   try {
     // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    console.log('Uploading and analyzing report for user:', user.id);
-    
-    // Convert file to base64 for direct analysis
-    const reader = new FileReader();
-    
-    // Create a promise to handle the FileReader async operation
-    const pdfBase64Promise = new Promise<string>((resolve, reject) => {
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        // Get the base64 content without the data URL prefix
-        const base64Content = base64.split(',')[1];
-        resolve(base64Content);
-      };
-      reader.onerror = () => reject(new Error('Failed to read the file'));
-      reader.readAsDataURL(file);
-    });
-    
-    const pdfBase64 = await pdfBase64Promise;
-    
-    // Call the analyze-pdf-direct edge function with the base64 content
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
       throw new Error('User not authenticated');
     }
     
-    console.log('Calling analyze-pdf-direct function');
+    console.log('Converting file to base64...');
     
+    // Convert file to base64
+    const base64String = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Extract just the base64 data part
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    
+    console.log('File converted to base64, calling analyze-pdf-direct function');
+    
+    // Call the edge function using the Supabase client
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
         description, 
-        pdfBase64
+        pdfBase64: base64String 
       },
       headers: {
         Authorization: `Bearer ${session.access_token}`
@@ -133,10 +172,18 @@ export async function uploadReport(file: File, title: string, description: strin
     if (error) {
       console.error('Error invoking analyze-pdf-direct function:', error);
       
+      let errorMessage = "There was a problem analyzing the report";
+      
+      // Check if we have a more specific error message
+      if (error.message?.includes('non-2xx status code')) {
+        errorMessage = "The analysis function returned an error. Please try again later.";
+      }
+      
+      // Use a unique toast ID to prevent duplicate toasts
       toast({
-        id: "analysis-error-1",
+        id: "analysis-error-direct-1",
         title: "Analysis failed",
-        description: "There was a problem analyzing the pitch deck. Please try again later.",
+        description: errorMessage,
         variant: "destructive"
       });
       
@@ -147,8 +194,9 @@ export async function uploadReport(file: File, title: string, description: strin
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
+      // Use a unique toast ID to prevent duplicate toasts
       toast({
-        id: "analysis-error-2",
+        id: "analysis-error-direct-2",
         title: "Analysis failed",
         description: errorMessage,
         variant: "destructive"
@@ -160,26 +208,26 @@ export async function uploadReport(file: File, title: string, description: strin
     console.log('Analysis result:', data);
     
     toast({
-      id: "analysis-success",
+      id: "analysis-success-direct",
       title: "Analysis complete",
       description: "Your pitch deck has been successfully analyzed",
     });
     
-    // Get the report details using the company ID
-    const { data: reportData, error: reportError } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('company_id', data.companyId)
-      .maybeSingle();
-      
-    if (reportError) {
-      console.error('Error fetching report record:', reportError);
-      throw reportError;
-    }
-
-    return reportData as Report;
+    return data;
   } catch (error) {
-    console.error('Error uploading and analyzing report:', error);
+    console.error('Error analyzing report directly:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    // Prevent duplicate toasts
+    if (!errorMessage.includes("analysis failed")) {
+      toast({
+        id: "analysis-error-direct-3",
+        title: "Analysis failed",
+        description: "Could not analyze the report. Please try again later.",
+        variant: "destructive"
+      });
+    }
+    
     throw error;
   }
 }

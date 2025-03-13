@@ -268,7 +268,8 @@ serve(async (req) => {
         title: title || 'Unnamed Report',
         description: description || '',
         user_id: user.id,
-        company_id: company.id
+        company_id: company.id,
+        pdf_content: pdfBase64
       })
       .select()
       .single();

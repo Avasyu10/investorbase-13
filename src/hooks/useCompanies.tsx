@@ -6,18 +6,19 @@ import { toast } from '@/hooks/use-toast';
 // Map Supabase DB types to API contract types
 function mapDbCompanyToApi(company: any) {
   return {
-    id: parseInt(company.id),
+    id: company.id,
     name: company.name,
     overallScore: company.overall_score,
     createdAt: company.created_at,
     updatedAt: company.updated_at || company.created_at,
     score: company.overall_score, // For backward compatibility
+    assessmentPoints: company.assessment_points || [],
   };
 }
 
 function mapDbSectionToApi(section: any) {
   return {
-    id: parseInt(section.id),
+    id: section.id,
     type: section.type,
     title: section.title,
     score: section.score,
@@ -103,7 +104,6 @@ export function useCompanyDetails(companyId: string | undefined) {
       return {
         ...mapDbCompanyToApi(companyData),
         sections: sectionsData?.map(mapDbSectionToApi) || [],
-        assessmentPoints: companyData.assessment_points || [],
       };
     },
     enabled: !!companyId,
