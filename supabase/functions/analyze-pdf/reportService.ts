@@ -10,7 +10,11 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error('Supabase configuration is missing');
   }
   
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false // Disable session persistence to prevent the warning
+    }
+  });
 
   console.log(`Getting report data for reportId: ${reportId}`);
 
@@ -21,7 +25,8 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error(`Invalid report ID format. Expected a UUID, got: ${reportId}`);
   }
 
-  // Get the specific report without user ID filter
+  // Get the specific report without any filters (previously had user_id filter)
+  console.log(`Executing query to fetch report with ID: ${reportId}`);
   const { data: reportData, error: reportError } = await supabase
     .from('reports')
     .select('id, title, user_id, pdf_url')
@@ -34,7 +39,22 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   }
   
   if (!reportData) {
+    // Log more information to help debug the issue
     console.error(`Report with ID ${reportId} not found`);
+    
+    // Let's also try a generic query to see if there are any reports at all
+    const { data: allReports, error: allReportsError } = await supabase
+      .from('reports')
+      .select('id')
+      .limit(5);
+      
+    if (allReportsError) {
+      console.error("Error checking for all reports:", allReportsError);
+    } else {
+      console.log(`Found ${allReports.length} reports in the database. First few IDs:`, 
+        allReports.map(r => r.id).join(", "));
+    }
+    
     throw new Error(`Report with ID ${reportId} not found`);
   }
 
