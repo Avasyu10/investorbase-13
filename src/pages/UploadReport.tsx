@@ -41,7 +41,7 @@ const UploadReport = () => {
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight mb-2">Upload New Pitch Deck</h1>
           <p className="text-muted-foreground">
-            Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses
+            Upload a PDF pitch deck or enter a company website URL to get an AI-powered analysis
           </p>
         </div>
         
