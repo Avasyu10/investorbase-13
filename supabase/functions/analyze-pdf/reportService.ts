@@ -113,9 +113,8 @@ export async function getReportData(reportId: string, authHeader: string = '') {
 
   console.log(`PDF downloaded successfully, size: ${pdfData.size} bytes, converting to base64`);
 
-  // Convert PDF to base64
-  const pdfBase64 = await pdfData.arrayBuffer()
-    .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))));
+  // Convert PDF to base64 using a chunked approach to avoid stack overflow
+  const pdfBase64 = await arrayBufferToBase64(await pdfData.arrayBuffer());
 
   if (!pdfBase64 || pdfBase64.length === 0) {
     console.error("PDF base64 conversion failed");
@@ -125,4 +124,18 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   console.log(`PDF base64 conversion successful, length: ${pdfBase64.length}`);
 
   return { supabase, report, pdfBase64 };
+}
+
+// Helper function to convert ArrayBuffer to base64 in chunks to avoid stack overflow
+async function arrayBufferToBase64(buffer: ArrayBuffer): Promise<string> {
+  const uint8Array = new Uint8Array(buffer);
+  const chunkSize = 8192; // Process in smaller chunks
+  let base64String = '';
+  
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.slice(i, i + chunkSize);
+    base64String += String.fromCharCode.apply(null, chunk);
+  }
+  
+  return btoa(base64String);
 }
