@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -24,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 // Company stage options
 const COMPANY_STAGES = [
