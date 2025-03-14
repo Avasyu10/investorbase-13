@@ -26,7 +26,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       .from('companies')
       .insert({
         name: companyName,
-        total_score: overallScore
+        overall_score: overallScore // Changed from total_score to overall_score
       })
       .select()
       .single();
