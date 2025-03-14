@@ -22,11 +22,13 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       console.warn("Error calculating overall score, using default 0");
     }
     
+    console.log(`Inserting company with name: ${companyName}, overall_score: ${overallScore}`);
+    
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
         name: companyName,
-        overall_score: overallScore // Changed from total_score to overall_score
+        overall_score: overallScore
       })
       .select()
       .single();
@@ -63,6 +65,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     if (sectionInserts.length === 0) {
       console.warn("No sections to insert");
     } else {
+      console.log(`Inserting ${sectionInserts.length} sections`);
+      
       const { error: sectionsError } = await supabase
         .from('sections')
         .insert(sectionInserts);
@@ -106,7 +110,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
               section_id: section.id,
               title: "Strength",
               content: strength,
-              score_impact: "positive"
+              detail_type: "strength" // Using detail_type instead of score_impact
             });
           }
         });
@@ -119,7 +123,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
               section_id: section.id,
               title: "Weakness",
               content: weakness,
-              score_impact: "negative"
+              detail_type: "weakness" // Using detail_type instead of score_impact
             });
           }
         });
