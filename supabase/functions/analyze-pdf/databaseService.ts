@@ -56,9 +56,10 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       
       return {
         company_id: company.id,
-        name: section.title || 'Unnamed Section',
+        title: section.title || 'Unnamed Section', // Using 'title' instead of 'name'
         description: section.description || '',
-        score: sectionScore
+        score: sectionScore,
+        type: 'analysis' // Adding type field as it's required in the schema
       };
     });
 
@@ -110,7 +111,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
               section_id: section.id,
               title: "Strength",
               content: strength,
-              detail_type: "strength" // Using detail_type instead of score_impact
+              detail_type: "strength"
             });
           }
         });
@@ -123,7 +124,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
               section_id: section.id,
               title: "Weakness",
               content: weakness,
-              detail_type: "weakness" // Using detail_type instead of score_impact
+              detail_type: "weakness"
             });
           }
         });
