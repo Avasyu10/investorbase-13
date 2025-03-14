@@ -13,15 +13,15 @@ serve(async (req) => {
 
   try {
     // Check environment variables early
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
     
-    if (!OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is not configured");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
       return new Response(
         JSON.stringify({ 
-          error: 'OPENAI_API_KEY is not configured',
+          error: 'GEMINI_API_KEY is not configured',
           success: false
         }),
         { 
@@ -102,12 +102,12 @@ serve(async (req) => {
       // Get report data without authentication
       const { supabase, report, pdfBase64 } = await getReportData(reportId);
       
-      console.log("Successfully retrieved report data, analyzing with OpenAI");
+      console.log("Successfully retrieved report data, analyzing with Gemini");
       
-      // Analyze the PDF with OpenAI
-      const analysis = await analyzeWithOpenAI(pdfBase64, OPENAI_API_KEY);
+      // Analyze the PDF with Gemini (still using the same function name for compatibility)
+      const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY);
       
-      console.log("OpenAI analysis complete, saving results to database");
+      console.log("Gemini analysis complete, saving results to database");
       
       // Save analysis results to database
       const companyId = await saveAnalysisResults(supabase, analysis, report);

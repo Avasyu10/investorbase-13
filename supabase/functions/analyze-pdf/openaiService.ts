@@ -1,4 +1,3 @@
-
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
   const prompt = `
@@ -52,8 +51,8 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
 
   try {
     if (!apiKey) {
-      console.error("OpenAI API key is missing");
-      throw new Error("OpenAI API key is not configured");
+      console.error("Gemini API key is missing");
+      throw new Error("Gemini API key is not configured");
     }
 
     if (!pdfBase64 || pdfBase64.length === 0) {
@@ -61,48 +60,48 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
       throw new Error("Invalid PDF data for analysis");
     }
 
-    // Call OpenAI API for analysis
-    console.log("Calling OpenAI API for analysis");
+    // Call Gemini API for analysis
+    console.log("Calling Gemini API for analysis");
     console.log(`PDF base64 length: ${pdfBase64.length}`);
     
     try {
-      const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      // Construct the Gemini API request
+      const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+      const urlWithApiKey = `${geminiEndpoint}?key=${apiKey}`;
+      
+      const requestBody = {
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              { 
+                inlineData: {
+                  mimeType: "application/pdf",
+                  data: pdfBase64
+                }
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.5,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+
+      const geminiResponse = await fetch(urlWithApiKey, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system", 
-              content: prompt
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Please analyze this pitch deck PDF"
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:application/pdf;base64,${pdfBase64}`
-                  }
-                }
-              ]
-            }
-          ],
-          temperature: 0.5,
-          response_format: { type: "json_object" }
-        })
+        body: JSON.stringify(requestBody)
       });
 
-      // Check for HTTP errors in the OpenAI response
-      if (!openaiResponse.ok) {
-        const errorText = await openaiResponse.text();
+      // Check for HTTP errors in the Gemini response
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
         let errorData;
         try {
           errorData = JSON.parse(errorText);
@@ -110,32 +109,48 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
           errorData = { error: { message: errorText } };
         }
         
-        console.error("OpenAI API error:", errorData);
+        console.error("Gemini API error:", errorData);
         
         // Provide more specific error messages based on status codes
-        if (openaiResponse.status === 401) {
-          throw new Error("OpenAI API key is invalid");
-        } else if (openaiResponse.status === 429) {
-          throw new Error("OpenAI API rate limit exceeded");
-        } else if (openaiResponse.status === 413) {
-          throw new Error("PDF is too large for OpenAI to process");
+        if (geminiResponse.status === 401) {
+          throw new Error("Gemini API key is invalid");
+        } else if (geminiResponse.status === 429) {
+          throw new Error("Gemini API rate limit exceeded");
+        } else if (geminiResponse.status === 413) {
+          throw new Error("PDF is too large for Gemini to process");
         } else {
-          throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+          throw new Error(`Gemini API error: ${errorData.error?.message || 'Unknown error'}`);
         }
       }
 
-      const openaiData = await openaiResponse.json();
-      console.log("Received OpenAI response");
+      const geminiData = await geminiResponse.json();
+      console.log("Received Gemini response");
 
       // Parse the analysis result
       try {
-        const content = openaiData.choices[0].message.content;
+        // Extract the content from Gemini response structure
+        // Gemini returns a different structure than OpenAI
+        if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
+          throw new Error("Empty response from Gemini");
+        }
+        
+        const content = geminiData.candidates[0].content.parts[0].text;
+        
         if (!content) {
-          throw new Error("Empty response from OpenAI");
+          throw new Error("Empty response from Gemini");
+        }
+        
+        // Extract JSON from the response (Gemini might include markdown code blocks)
+        let jsonContent = content;
+        
+        // If the response contains a JSON code block, extract it
+        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          jsonContent = jsonMatch[1];
         }
         
         // Try to parse the JSON response
-        const parsedContent = JSON.parse(content);
+        const parsedContent = JSON.parse(jsonContent);
         
         // Validate the response structure
         if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
@@ -149,15 +164,15 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
         
         return parsedContent;
       } catch (e) {
-        console.error("Error parsing OpenAI response:", e);
+        console.error("Error parsing Gemini response:", e);
         throw new Error("Failed to parse analysis result: " + (e instanceof Error ? e.message : "Invalid JSON"));
       }
     } catch (fetchError) {
-      console.error("Error fetching from OpenAI:", fetchError);
-      throw new Error(`OpenAI API request failed: ${fetchError.message}`);
+      console.error("Error fetching from Gemini:", fetchError);
+      throw new Error(`Gemini API request failed: ${fetchError.message}`);
     }
   } catch (error) {
-    console.error("Error in analyzeWithOpenAI:", error);
+    console.error("Error in analyzeWithGemini:", error);
     throw error;
   }
 }
