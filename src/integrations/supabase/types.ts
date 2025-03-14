@@ -47,6 +47,47 @@ export type Database = {
           },
         ]
       }
+      linkedin_profile_scrapes: {
+        Row: {
+          content: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          report_id: string | null
+          scraped_at: string
+          status: string
+          url: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          report_id?: string | null
+          scraped_at?: string
+          status?: string
+          url: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          report_id?: string | null
+          scraped_at?: string
+          status?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linkedin_profile_scrapes_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           analysis_error: string | null

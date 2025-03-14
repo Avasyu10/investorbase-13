@@ -196,6 +196,62 @@ export function ReportUpload() {
     }
   };
 
+  const scrapeLinkedInProfiles = async (urls: string[], reportId: string) => {
+    if (!urls || urls.length === 0 || !urls[0].trim()) {
+      return null;
+    }
+    
+    // Filter out empty URLs
+    const validUrls = urls.filter(url => url.trim());
+    if (validUrls.length === 0) {
+      return null;
+    }
+    
+    try {
+      setProgressStage("Scraping LinkedIn profiles...");
+      
+      console.log(`Scraping LinkedIn profiles: ${validUrls.join(', ')}`);
+      
+      const { data, error } = await supabase.functions.invoke('scrape-linkedin', {
+        body: { linkedInUrls: validUrls, reportId }
+      });
+      
+      if (error) {
+        console.error("Error scraping LinkedIn profiles:", error);
+        toast.error("LinkedIn profile scraping failed", {
+          description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
+        });
+        return null;
+      }
+      
+      if (!data.success) {
+        console.error("LinkedIn profile scraping failed:", data.error);
+        toast.error("LinkedIn profile scraping failed", {
+          description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
+        });
+        return null;
+      }
+      
+      console.log("LinkedIn profiles scraped successfully, profiles:", data.profiles.length);
+      toast.success("LinkedIn profiles scraped successfully", {
+        description: "LinkedIn profile data will be included in the analysis"
+      });
+      
+      // Format the scraped content for inclusion in the report
+      const formattedContent = data.profiles.map((profile: any) => 
+        `LinkedIn Profile: ${profile.url}\n${profile.content}\n\n`
+      ).join('---\n\n');
+      
+      return formattedContent;
+    } catch (error) {
+      console.error("Error scraping LinkedIn profiles:", error);
+      toast.error("LinkedIn profile scraping failed", {
+        description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
+      });
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -218,20 +274,17 @@ export function ReportUpload() {
       setProgressStage("Processing your submission...");
       setProgress(10);
       
-      // Attempt to scrape the website if URL is provided
-      let scrapedContent = null;
-      if (companyWebsite && companyWebsite.trim()) {
-        setProgress(20);
-        scrapedContent = await scrapeWebsite(companyWebsite);
-      }
+      // Upload the report
+      console.log("Starting upload process");
+      const report = await uploadReport(file, title, "", companyWebsite);
+      setProgress(30);
+      console.log("Upload complete, report:", report);
       
-      // Prepare founder LinkedIn profiles for description
-      const linkedInsText = founderLinkedIns
-        .filter(url => url.trim())
-        .map(url => `- ${url}`)
-        .join('\n');
+      toast.success("Upload complete", {
+        description: "Your pitch deck has been uploaded successfully"
+      });
       
-      // Create a description that includes metadata
+      // Generate description with all metadata
       let description = '';
       
       if (companyStage) {
@@ -242,8 +295,21 @@ export function ReportUpload() {
         description += `Industry: ${industry}\n`;
       }
       
-      if (linkedInsText) {
-        description += `\nFounder LinkedIn Profiles:\n${linkedInsText}\n`;
+      // Attempt to scrape the website if URL is provided
+      let scrapedContent = null;
+      if (companyWebsite && companyWebsite.trim()) {
+        setProgress(40);
+        setIsScrapingWebsite(true);
+        scrapedContent = await scrapeWebsite(companyWebsite);
+        setIsScrapingWebsite(false);
+      }
+      
+      // Scrape LinkedIn profiles if provided
+      let linkedInContent = null;
+      const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
+      if (validLinkedInProfiles.length > 0) {
+        setProgress(50);
+        linkedInContent = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
       }
       
       // Add scraped website content to description if available
@@ -251,18 +317,22 @@ export function ReportUpload() {
         description += `\n\nWebsite Content:\n${scrapedContent}\n`;
       }
       
-      setProgressStage("Uploading pitch deck...");
-      setProgress(30);
+      // Add scraped LinkedIn content to description if available
+      if (linkedInContent) {
+        description += `\n\nFounder LinkedIn Profiles:\n${linkedInContent}\n`;
+      }
       
-      // Upload the report
-      console.log("Starting upload process");
-      const report = await uploadReport(file, title, description, companyWebsite);
-      setProgress(60);
-      console.log("Upload complete, report:", report);
-      
-      toast.success("Upload complete", {
-        description: "Your pitch deck has been uploaded successfully"
-      });
+      // Update the report with the complete description
+      if (description) {
+        const { error: updateError } = await supabase
+          .from('reports')
+          .update({ description })
+          .eq('id', report.id);
+          
+        if (updateError) {
+          console.error("Error updating report description:", updateError);
+        }
+      }
       
       // Start analysis
       setIsAnalyzing(true);
