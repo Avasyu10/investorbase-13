@@ -110,7 +110,6 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
           if (strength && strength.trim()) {
             sectionDetails.push({
               section_id: section.id,
-              title: "Strength",
               content: strength,
               detail_type: "strength"
             });
@@ -123,7 +122,6 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
           if (weakness && weakness.trim()) {
             sectionDetails.push({
               section_id: section.id,
-              title: "Weakness",
               content: weakness,
               detail_type: "weakness"
             });
