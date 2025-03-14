@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,54 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
-import { FileUp, Loader2, Plus, Trash2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-// Company stage options
-const COMPANY_STAGES = [
-  "Pre-seed",
-  "Seed",
-  "Series A",
-  "Series B",
-  "Series C+",
-  "Growth",
-  "Pre-IPO",
-  "Public",
-  "Other"
-];
-
-// Industry options
-const INDUSTRIES = [
-  "SaaS",
-  "FinTech",
-  "HealthTech",
-  "EdTech",
-  "E-commerce",
-  "AI/ML",
-  "Blockchain",
-  "CleanTech",
-  "Consumer",
-  "Enterprise",
-  "Gaming",
-  "Hardware",
-  "Marketplace",
-  "Media",
-  "Mobile",
-  "Real Estate",
-  "Transportation",
-  "Other"
-];
+import { CompanyInfoForm } from "./upload/CompanyInfoForm";
+import { FileUploadZone } from "./upload/FileUploadZone";
+import { ProgressIndicator } from "./upload/ProgressIndicator";
+import { scrapeWebsite } from "./upload/WebsiteService";
+import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedInService";
 
 export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -111,147 +72,6 @@ export function ReportUpload() {
     }
   };
 
-  const addFounderLinkedIn = () => {
-    setFounderLinkedIns([...founderLinkedIns, ""]);
-  };
-
-  const removeFounderLinkedIn = (index: number) => {
-    if (founderLinkedIns.length > 1) {
-      const updatedFounders = [...founderLinkedIns];
-      updatedFounders.splice(index, 1);
-      setFounderLinkedIns(updatedFounders);
-    }
-  };
-
-  const updateFounderLinkedIn = (index: number, value: string) => {
-    const updatedFounders = [...founderLinkedIns];
-    updatedFounders[index] = value;
-    setFounderLinkedIns(updatedFounders);
-  };
-
-  const scrapeWebsite = async (url: string) => {
-    if (!url || !url.trim()) {
-      return null;
-    }
-    
-    // Ensure URL is properly formatted
-    let formattedUrl = url.trim();
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-      formattedUrl = 'https://' + formattedUrl;
-    }
-    
-    try {
-      setIsScrapingWebsite(true);
-      setProgressStage("Scraping company website...");
-      
-      console.log(`Scraping website: ${formattedUrl}`);
-      
-      const { data, error } = await supabase.functions.invoke('scrape-website', {
-        body: { websiteUrl: formattedUrl }
-      });
-      
-      if (error) {
-        console.error("Error scraping website:", error);
-        toast.error("Website scraping failed", {
-          description: "Could not scrape the company website. Continuing without website data."
-        });
-        return null;
-      }
-      
-      if (!data.success) {
-        console.error("Website scraping failed:", data.error);
-        toast.error("Website scraping failed", {
-          description: "Could not scrape the company website. Continuing without website data."
-        });
-        return null;
-      }
-      
-      console.log("Website scraped successfully, content length:", data.scrapedContent.length);
-      toast.success("Website scraped successfully", {
-        description: "Website content will be included in the analysis"
-      });
-      
-      // Store the scraped content in the database for future reference
-      const { error: storeError } = await supabase
-        .from('website_scrapes')
-        .insert({
-          url: formattedUrl,
-          content: data.scrapedContent,
-          scraped_at: new Date().toISOString()
-        });
-      
-      if (storeError) {
-        console.error("Error storing scraped content:", storeError);
-      }
-      
-      return data.scrapedContent;
-    } catch (error) {
-      console.error("Error scraping website:", error);
-      toast.error("Website scraping failed", {
-        description: "Could not scrape the company website. Continuing without website data."
-      });
-      return null;
-    } finally {
-      setIsScrapingWebsite(false);
-    }
-  };
-
-  const scrapeLinkedInProfiles = async (urls: string[], reportId: string) => {
-    if (!urls || urls.length === 0 || !urls[0].trim()) {
-      return null;
-    }
-    
-    // Filter out empty URLs
-    const validUrls = urls.filter(url => url.trim());
-    if (validUrls.length === 0) {
-      return null;
-    }
-    
-    try {
-      setProgressStage("Scraping LinkedIn profiles...");
-      
-      console.log(`Scraping LinkedIn profiles: ${validUrls.join(', ')}`);
-      
-      const { data, error } = await supabase.functions.invoke('scrape-linkedin', {
-        body: { linkedInUrls: validUrls, reportId }
-      });
-      
-      if (error) {
-        console.error("Error scraping LinkedIn profiles:", error);
-        toast.error("LinkedIn profile scraping failed", {
-          description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
-        });
-        return null;
-      }
-      
-      if (!data.success) {
-        console.error("LinkedIn profile scraping failed:", data.error);
-        toast.error("LinkedIn profile scraping failed", {
-          description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
-        });
-        return null;
-      }
-      
-      console.log("LinkedIn profiles scraped successfully, profiles:", data.profiles.length);
-      toast.success("LinkedIn profiles scraped successfully", {
-        description: "LinkedIn profile data will be included in the analysis"
-      });
-      
-      // Format the scraped content for inclusion in the report
-      const formattedContent = data.profiles.map((profile: any) => 
-        `LinkedIn Profile: ${profile.url}\n${profile.content}\n\n`
-      ).join('---\n\n');
-      
-      return formattedContent;
-    } catch (error) {
-      console.error("Error scraping LinkedIn profiles:", error);
-      toast.error("LinkedIn profile scraping failed", {
-        description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
-      });
-      return null;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -300,8 +120,18 @@ export function ReportUpload() {
       if (companyWebsite && companyWebsite.trim()) {
         setProgress(40);
         setIsScrapingWebsite(true);
-        scrapedContent = await scrapeWebsite(companyWebsite);
+        const websiteResult = await scrapeWebsite(companyWebsite);
         setIsScrapingWebsite(false);
+        if (websiteResult?.success) {
+          scrapedContent = websiteResult.scrapedContent;
+          toast.success("Website scraped successfully", {
+            description: "Website content will be included in the analysis"
+          });
+        } else if (websiteResult) {
+          toast.error("Website scraping failed", {
+            description: "Could not scrape the company website. Continuing without website data."
+          });
+        }
       }
       
       // Scrape LinkedIn profiles if provided
@@ -309,7 +139,17 @@ export function ReportUpload() {
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
       if (validLinkedInProfiles.length > 0) {
         setProgress(50);
-        linkedInContent = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
+        const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
+        if (linkedInResult?.success) {
+          linkedInContent = formatLinkedInContent(linkedInResult);
+          toast.success("LinkedIn profiles scraped successfully", {
+            description: "LinkedIn profile data will be included in the analysis"
+          });
+        } else if (linkedInResult) {
+          toast.error("LinkedIn profile scraping failed", {
+            description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
+          });
+        }
       }
       
       // Add scraped website content to description if available
@@ -387,6 +227,8 @@ export function ReportUpload() {
     }
   };
 
+  const isProcessing = isUploading || isAnalyzing;
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -397,194 +239,57 @@ export function ReportUpload() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">Company Name</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter your company name"
-              disabled={isUploading || isAnalyzing}
-              required
+          <CompanyInfoForm
+            title={title}
+            setTitle={setTitle}
+            companyWebsite={companyWebsite}
+            setCompanyWebsite={setCompanyWebsite}
+            companyStage={companyStage}
+            setCompanyStage={setCompanyStage}
+            industry={industry}
+            setIndustry={setIndustry}
+            founderLinkedIns={founderLinkedIns}
+            setFounderLinkedIns={setFounderLinkedIns}
+            isDisabled={isProcessing}
+          />
+          
+          <FileUploadZone
+            id="file"
+            label="Pitch Deck"
+            file={file}
+            onFileChange={handleFileChange}
+            accept=".pdf"
+            description="PDF files only, max 10MB"
+            buttonText="Select PDF"
+            disabled={isProcessing}
+          />
+          
+          <FileUploadZone
+            id="supplementFile"
+            label="Supplemental Material (if any)"
+            file={supplementFile}
+            onFileChange={handleSupplementFileChange}
+            description="Any file type, max 10MB"
+            disabled={isProcessing}
+          />
+          
+          {isProcessing && (
+            <ProgressIndicator
+              progressStage={progressStage}
+              progress={progress}
+              isScrapingWebsite={isScrapingWebsite}
+              isAnalyzing={isAnalyzing}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Founder LinkedIn Profiles (Optional)</Label>
-            {founderLinkedIns.map((linkedin, index) => (
-              <div key={index} className="flex gap-2 mb-2">
-                <Input
-                  value={linkedin}
-                  onChange={(e) => updateFounderLinkedIn(index, e.target.value)}
-                  placeholder="LinkedIn profile URL"
-                  disabled={isUploading || isAnalyzing}
-                />
-                {index > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeFounderLinkedIn(index)}
-                    disabled={isUploading || isAnalyzing}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addFounderLinkedIn}
-              disabled={isUploading || isAnalyzing}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Another Founder
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="website">Company Website (Optional)</Label>
-            <Input
-              id="website"
-              value={companyWebsite}
-              onChange={(e) => setCompanyWebsite(e.target.value)}
-              placeholder="https://example.com"
-              disabled={isUploading || isAnalyzing}
-            />
-            <p className="text-xs text-muted-foreground">
-              If provided, we'll scrape the website to enhance the analysis
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="stage">Stage of Company</Label>
-              <Select 
-                value={companyStage} 
-                onValueChange={setCompanyStage}
-                disabled={isUploading || isAnalyzing}
-              >
-                <SelectTrigger id="stage">
-                  <SelectValue placeholder="Select stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COMPANY_STAGES.map((stage) => (
-                    <SelectItem key={stage} value={stage}>
-                      {stage}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="industry">Industry</Label>
-              <Select 
-                value={industry} 
-                onValueChange={setIndustry}
-                disabled={isUploading || isAnalyzing}
-              >
-                <SelectTrigger id="industry">
-                  <SelectValue placeholder="Select industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDUSTRIES.map((ind) => (
-                    <SelectItem key={ind} value={ind}>
-                      {ind}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="file">Pitch Deck</Label>
-            <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
-              <div className="flex flex-col items-center space-y-2">
-                <FileUp className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  {file ? file.name : "Drag and drop or click to upload"}
-                </p>
-                <Input
-                  id="file"
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={handleFileChange}
-                  disabled={isUploading || isAnalyzing}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById("file")?.click()}
-                  disabled={isUploading || isAnalyzing}
-                >
-                  Select PDF
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1">
-                  PDF files only, max 10MB
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="supplementFile">Supplemental Material (if any)</Label>
-            <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
-              <div className="flex flex-col items-center space-y-2">
-                <FileUp className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  {supplementFile ? supplementFile.name : "Drag and drop or click to upload"}
-                </p>
-                <Input
-                  id="supplementFile"
-                  type="file"
-                  className="hidden"
-                  onChange={handleSupplementFileChange}
-                  disabled={isUploading || isAnalyzing}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById("supplementFile")?.click()}
-                  disabled={isUploading || isAnalyzing}
-                >
-                  Select File
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Any file type, max 10MB
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          {(isUploading || isAnalyzing) && (
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm font-medium">{progressStage}</span>
-                <span className="text-sm text-muted-foreground">{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <p className="text-xs text-muted-foreground italic mt-1">
-                {isScrapingWebsite && "Scraping website content..."}
-                {isAnalyzing && "AI analysis may take a few minutes. Please be patient..."}
-              </p>
-            </div>
           )}
         </CardContent>
         
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={!file || isUploading || isAnalyzing}
+            disabled={!file || isProcessing}
             className="w-full md:w-auto"
           >
-            {isUploading || isAnalyzing ? (
+            {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {isScrapingWebsite ? "Scraping website..." : isAnalyzing ? "Analyzing..." : "Uploading..."}
