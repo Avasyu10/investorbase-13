@@ -7,10 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Brightdata API configuration
-const BRIGHTDATA_API_URL = "https://api.brightdata.com/datasets/v3/trigger";
-const BRIGHTDATA_API_KEY = "8fc2381a0b83bb67f390e931eeaca1a3df926f0778ed4b24fa5608a7e9b4b382";
-const BRIGHTDATA_DATASET_ID = "gd_l1viktl72bvl7bjuj0";
+// RapidAPI configuration
+const RAPIDAPI_HOST = "linkedin-data-api.p.rapidapi.com";
+const RAPIDAPI_KEY = "2ccd2d34c2msh7cc3d6fb000aae8p1349bbjsn62fea1629a93";
+const RAPIDAPI_URL = "https://linkedin-data-api.p.rapidapi.com/get-profile-data-by-url";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -55,133 +55,32 @@ serve(async (req) => {
 
     console.log(`Processing LinkedIn profiles: ${linkedInUrls.join(', ')}`);
     
-    // Create request body for Brightdata API - array of objects with url property
-    const requestBody = linkedInUrls.map(url => ({ url }));
-    
-    console.log(`Calling Brightdata API for ${linkedInUrls.length} profiles with request body:`, JSON.stringify(requestBody));
-    
-    // Make request to Brightdata API - fixed the URL format to match the example
-    const response = await fetch(`${BRIGHTDATA_API_URL}?dataset_id=${BRIGHTDATA_DATASET_ID}&include_errors=true`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${BRIGHTDATA_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Brightdata API error (${response.status}): ${errorText}`);
-      return new Response(
-        JSON.stringify({ 
-          error: `Failed to scrape LinkedIn profiles: ${errorText}`,
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: response.status 
-        }
-      );
-    }
-
-    // Successfully scraped LinkedIn profiles
-    const data = await response.json();
-    console.log("Brightdata API response:", JSON.stringify(data).substring(0, 100) + "...");
-    
-    // Process and clean the scraped profiles
+    // Process each LinkedIn URL
     const profiles = [];
     let hasErrors = false;
     
-    // For each profile URL, process the corresponding scraped data
-    for (let i = 0; i < linkedInUrls.length; i++) {
-      const url = linkedInUrls[i];
-      let content = "";
+    for (const url of linkedInUrls) {
+      if (!url.trim()) continue;
       
       try {
-        // Extract relevant information from the API response
-        // This structure might need adjustment based on actual Brightdata API response
-        if (data[i] && data[i].extraction_results) {
-          // Clean and format the content
-          const profileData = data[i].extraction_results;
-          
-          // Build a structured representation of the profile
-          content = `Name: ${profileData.name || 'Unknown'}\n`;
-          content += `Title: ${profileData.headline || 'Unknown'}\n`;
-          content += `Location: ${profileData.location || 'Unknown'}\n\n`;
-          
-          // Add about section if available
-          if (profileData.about) {
-            content += `About:\n${profileData.about}\n\n`;
+        console.log(`Scraping profile: ${url}`);
+        
+        // Encode the LinkedIn URL
+        const encodedUrl = encodeURIComponent(url);
+        const apiUrl = `${RAPIDAPI_URL}?url=${encodedUrl}`;
+        
+        // Make request to RapidAPI
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'x-rapidapi-host': RAPIDAPI_HOST,
+            'x-rapidapi-key': RAPIDAPI_KEY
           }
-          
-          // Add experience if available
-          if (profileData.experience && Array.isArray(profileData.experience)) {
-            content += "Experience:\n";
-            profileData.experience.forEach((exp: any, index: number) => {
-              content += `${index + 1}. ${exp.title || 'Unknown position'} at ${exp.company || 'Unknown company'}`;
-              if (exp.date_range) content += ` (${exp.date_range})`;
-              content += "\n";
-              if (exp.description) content += `   ${exp.description}\n`;
-            });
-            content += "\n";
-          }
-          
-          // Add education if available
-          if (profileData.education && Array.isArray(profileData.education)) {
-            content += "Education:\n";
-            profileData.education.forEach((edu: any, index: number) => {
-              content += `${index + 1}. ${edu.school || 'Unknown institution'}`;
-              if (edu.degree) content += `, ${edu.degree}`;
-              if (edu.date_range) content += ` (${edu.date_range})`;
-              content += "\n";
-            });
-            content += "\n";
-          }
-          
-          // Add skills if available
-          if (profileData.skills && Array.isArray(profileData.skills)) {
-            content += "Skills: ";
-            content += profileData.skills.join(", ");
-            content += "\n\n";
-          }
-          
-          // Remove any HTML tags that might be present
-          content = content.replace(/<[^>]*>/g, '');
-          
-          profiles.push({
-            url,
-            content
-          });
-          
-          // Store the scraped profile in the database if reportId is provided
-          if (reportId) {
-            // Initialize Supabase client
-            const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-            const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
-            
-            if (supabaseUrl && supabaseKey) {
-              // For Deno, we need to use the createClient function
-              const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.29.0');
-              const supabase = createClient(supabaseUrl, supabaseKey);
-              
-              // Insert the scraped profile into the linkedin_profile_scrapes table
-              const { error: insertError } = await supabase
-                .from('linkedin_profile_scrapes')
-                .insert({
-                  report_id: reportId,
-                  url,
-                  content,
-                  status: 'success'
-                });
-                
-              if (insertError) {
-                console.error(`Error storing LinkedIn profile in database: ${insertError.message}`);
-              }
-            }
-          }
-        } else {
-          console.error(`No extraction results for profile: ${url}`);
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`RapidAPI error (${response.status}): ${errorText}`);
           hasErrors = true;
           
           // Still add to database but mark as error
@@ -201,7 +100,118 @@ serve(async (req) => {
                   url,
                   content: null,
                   status: 'error',
-                  error_message: 'No extraction results'
+                  error_message: `API error: ${response.status} - ${errorText}`
+                });
+            }
+          }
+          continue;
+        }
+
+        // Successfully scraped LinkedIn profile
+        const data = await response.json();
+        console.log(`Successfully scraped profile: ${url}`);
+        
+        // Format the content from the API data
+        let content = "";
+        
+        if (data) {
+          // Build a structured representation of the profile
+          content = `Name: ${data.full_name || 'Unknown'}\n`;
+          content += `Title: ${data.headline || data.occupation || 'Unknown'}\n`;
+          content += `Location: ${data.location || 'Unknown'}\n\n`;
+          
+          // Add about section if available
+          if (data.summary || data.about) {
+            content += `About:\n${data.summary || data.about}\n\n`;
+          }
+          
+          // Add experience if available
+          if (data.experiences && Array.isArray(data.experiences)) {
+            content += "Experience:\n";
+            data.experiences.forEach((exp, index) => {
+              content += `${index + 1}. ${exp.title || 'Unknown position'} at ${exp.company || 'Unknown company'}`;
+              if (exp.date_range || exp.duration) content += ` (${exp.date_range || exp.duration})`;
+              content += "\n";
+              if (exp.description) content += `   ${exp.description}\n`;
+            });
+            content += "\n";
+          }
+          
+          // Add education if available
+          if (data.education && Array.isArray(data.education)) {
+            content += "Education:\n";
+            data.education.forEach((edu, index) => {
+              content += `${index + 1}. ${edu.school || edu.institution || 'Unknown institution'}`;
+              if (edu.degree || edu.field_of_study) {
+                content += `, ${edu.degree || ''} ${edu.field_of_study || ''}`.trim();
+              }
+              if (edu.date_range) content += ` (${edu.date_range})`;
+              content += "\n";
+            });
+            content += "\n";
+          }
+          
+          // Add skills if available
+          if (data.skills && Array.isArray(data.skills)) {
+            content += "Skills: ";
+            content += data.skills.join(", ");
+            content += "\n\n";
+          }
+          
+          // Remove any HTML tags that might be present
+          content = content.replace(/<[^>]*>/g, '');
+          
+          profiles.push({
+            url,
+            content
+          });
+          
+          // Store the scraped profile in the database if reportId is provided
+          if (reportId) {
+            // Initialize Supabase client
+            const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+            const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+            
+            if (supabaseUrl && supabaseKey) {
+              const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.29.0');
+              const supabase = createClient(supabaseUrl, supabaseKey);
+              
+              // Insert the scraped profile into the linkedin_profile_scrapes table
+              const { error: insertError } = await supabase
+                .from('linkedin_profile_scrapes')
+                .insert({
+                  report_id: reportId,
+                  url,
+                  content,
+                  status: 'success'
+                });
+                
+              if (insertError) {
+                console.error(`Error storing LinkedIn profile in database: ${insertError.message}`);
+              }
+            }
+          }
+        } else {
+          console.error(`Invalid or empty response for profile: ${url}`);
+          hasErrors = true;
+          
+          // Store error in database
+          if (reportId) {
+            const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+            const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+            
+            if (supabaseUrl && supabaseKey) {
+              const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.29.0');
+              const supabase = createClient(supabaseUrl, supabaseKey);
+              
+              await supabase
+                .from('linkedin_profile_scrapes')
+                .insert({
+                  report_id: reportId,
+                  url,
+                  content: null,
+                  status: 'error',
+                  error_message: 'Invalid or empty API response'
                 });
             }
           }
