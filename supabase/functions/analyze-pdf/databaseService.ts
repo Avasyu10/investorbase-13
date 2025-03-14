@@ -146,12 +146,11 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     console.log("Section details inserted, updating report");
 
-    // Update report with company_id and analysis results
+    // Update report with company_id (removed the sections field that doesn't exist)
     const { error: updateError } = await supabase
       .from('reports')
       .update({ 
-        sections: analysis.sections.map((s: any) => s.title || ''),
-        company_id: company.id // Link report back to company
+        company_id: company.id // Link report back to company (removed sections field)
       })
       .eq('id', report.id);
 
