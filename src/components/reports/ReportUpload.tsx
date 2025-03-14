@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
-import { Globe, Loader2, Plus, Trash2 } from "lucide-react";
+import { FileUp, Loader2, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 
 // Company stage options
 const COMPANY_STAGES = [
@@ -61,18 +60,55 @@ const INDUSTRIES = [
 ];
 
 export function ReportUpload() {
+  const [file, setFile] = useState<File | null>(null);
+  const [supplementFile, setSupplementFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyStage, setCompanyStage] = useState("");
   const [industry, setIndustry] = useState("");
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
-  const [companyWebsite, setCompanyWebsite] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isScraping, setIsScraping] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
   const navigate = useNavigate();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      
+      if (selectedFile.type !== 'application/pdf') {
+        toast.error("Invalid file type", {
+          description: "Please upload a PDF file"
+        });
+        return;
+      }
+      
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error("File too large", {
+          description: "Please upload a file smaller than 10MB"
+        });
+        return;
+      }
+      
+      setFile(selectedFile);
+    }
+  };
+
+  const handleSupplementFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error("File too large", {
+          description: "Please upload a file smaller than 10MB"
+        });
+        return;
+      }
+      
+      setSupplementFile(selectedFile);
+    }
+  };
 
   const addFounderLinkedIn = () => {
     setFounderLinkedIns([...founderLinkedIns, ""]);
@@ -92,64 +128,12 @@ export function ReportUpload() {
     setFounderLinkedIns(updatedFounders);
   };
 
-  const scrapeWebsite = async (url: string) => {
-    if (!url.trim()) {
-      toast.error("Please enter a valid URL");
-      return null;
-    }
-
-    // Make sure URL has protocol
-    let formattedUrl = url;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      formattedUrl = 'https://' + url;
-    }
-
-    setIsScraping(true);
-    setProgressStage("Scraping website content...");
-    setProgress(10);
-
-    try {
-      // Call the edge function to scrape the website
-      const { data, error } = await supabase.functions.invoke('scrape-website', {
-        body: { url: formattedUrl }
-      });
-
-      if (error) {
-        console.error("Error scraping website:", error);
-        toast.error("Failed to scrape website", {
-          description: "Could not retrieve content from the provided URL"
-        });
-        setIsScraping(false);
-        return null;
-      }
-
-      if (!data || !data.content) {
-        toast.error("Invalid response from scraping service", {
-          description: "No content was retrieved from the website"
-        });
-        setIsScraping(false);
-        return null;
-      }
-
-      setProgress(30);
-      toast.success("Website scraped successfully");
-      return { content: data.content, url: formattedUrl };
-    } catch (error) {
-      console.error("Exception scraping website:", error);
-      toast.error("Failed to scrape website", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred"
-      });
-      setIsScraping(false);
-      return null;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!websiteUrl.trim()) {
-      toast.error("No website URL provided", {
-        description: "Please enter a website URL to analyze"
+    if (!file) {
+      toast.error("No file selected", {
+        description: "Please select a PDF file to upload"
       });
       return;
     }
@@ -163,64 +147,26 @@ export function ReportUpload() {
 
     try {
       setIsUploading(true);
-      
-      // Step 1: Scrape the website
-      setProgressStage("Scraping website content...");
+      setProgressStage("Uploading pitch deck...");
       setProgress(10);
       
-      const scrapedData = await scrapeWebsite(websiteUrl);
-      
-      if (!scrapedData) {
-        setIsUploading(false);
-        return;
-      }
-
-      // Step 2: Create a PDF from the scraped content
-      const blob = new Blob([`Company Website: ${scrapedData.url}\n\n${scrapedData.content}`], { type: 'application/pdf' });
-      const webContentFile = new File([blob], `${title.replace(/\s+/g, '_')}_website_content.pdf`, { type: 'application/pdf' });
-      
-      setProgressStage("Uploading scraped content...");
+      // Upload the report - passing empty string for description since we removed it
+      console.log("Starting upload process");
+      const report = await uploadReport(file, title, "");
       setProgress(40);
+      console.log("Upload complete, report:", report);
       
-      // Step 3: Upload the file with the scraped content
-      const report = await uploadReport(webContentFile, title, "");
-      
-      if (!report) {
-        toast.error("Failed to create report", {
-          description: "Could not upload the scraped content"
-        });
-        setIsUploading(false);
-        return;
-      }
-      
-      // Step 4: Store the scraped content in the database
-      try {
-        const { error: scrapeStorageError } = await supabase.from('website_scrapes').insert({
-          report_id: report.id,
-          url: scrapedData.url,
-          content: scrapedData.content
-        });
-        
-        if (scrapeStorageError) {
-          console.error("Error storing scraped content:", scrapeStorageError);
-          // Non-blocking - continue with analysis
-        }
-      } catch (storageError) {
-        console.error("Exception storing scraped content:", storageError);
-        // Non-blocking - continue with analysis
-      }
-      
-      toast.success("Website content processed", {
-        description: "Website content has been successfully processed"
+      toast.success("Upload complete", {
+        description: "Your pitch deck has been uploaded successfully"
       });
       
-      // Step 5: Start analysis
+      // Start analysis
       setIsAnalyzing(true);
-      setProgressStage("Analyzing content with AI...");
+      setProgressStage("Analyzing pitch deck with AI...");
       setProgress(50);
       
       toast.info("Analysis started", {
-        description: "This may take a few minutes"
+        description: "This may take a few minutes depending on the size of your deck"
       });
       
       try {
@@ -230,7 +176,7 @@ export function ReportUpload() {
         console.log("Analysis complete, result:", result);
         
         toast.success("Analysis complete", {
-          description: "Your website has been analyzed successfully!"
+          description: "Your pitch deck has been analyzed successfully!"
         });
         
         // Navigate to the company page
@@ -253,23 +199,22 @@ export function ReportUpload() {
     } catch (error: any) {
       console.error("Error processing report:", error);
       
-      toast.error("Analysis failed", {
-        description: error instanceof Error ? error.message : "Failed to process website content"
+      toast.error("Upload failed", {
+        description: error instanceof Error ? error.message : "Failed to process pitch deck"
       });
       setProgress(0);
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
-      setIsScraping(false);
     }
   };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Analyze Company Website</CardTitle>
+        <CardTitle>Upload Pitch Deck</CardTitle>
         <CardDescription>
-          Enter a company website URL for analysis. Our AI will evaluate the content and provide feedback.
+          Upload a PDF pitch deck for analysis. Our AI will evaluate the pitch deck and provide feedback.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -281,32 +226,11 @@ export function ReportUpload() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter your company name"
-              disabled={isUploading || isAnalyzing || isScraping}
+              disabled={isUploading || isAnalyzing}
               required
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="websiteUrl">Company Website URL</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-grow">
-                <Globe className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="websiteUrl"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  className="pl-10"
-                  disabled={isUploading || isAnalyzing || isScraping}
-                  required
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Enter the company's website URL for AI to analyze the content
-            </p>
-          </div>
-
           <div className="space-y-2">
             <Label>Founder LinkedIn Profiles (Optional)</Label>
             {founderLinkedIns.map((linkedin, index) => (
@@ -315,7 +239,7 @@ export function ReportUpload() {
                   value={linkedin}
                   onChange={(e) => updateFounderLinkedIn(index, e.target.value)}
                   placeholder="LinkedIn profile URL"
-                  disabled={isUploading || isAnalyzing || isScraping}
+                  disabled={isUploading || isAnalyzing}
                 />
                 {index > 0 && (
                   <Button
@@ -323,7 +247,7 @@ export function ReportUpload() {
                     variant="outline"
                     size="icon"
                     onClick={() => removeFounderLinkedIn(index)}
-                    disabled={isUploading || isAnalyzing || isScraping}
+                    disabled={isUploading || isAnalyzing}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -335,7 +259,7 @@ export function ReportUpload() {
               variant="outline"
               size="sm"
               onClick={addFounderLinkedIn}
-              disabled={isUploading || isAnalyzing || isScraping}
+              disabled={isUploading || isAnalyzing}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Another Founder
@@ -343,17 +267,14 @@ export function ReportUpload() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="website">Company Website (Optional secondary URL)</Label>
+            <Label htmlFor="website">Company Website (Optional)</Label>
             <Input
               id="website"
               value={companyWebsite}
               onChange={(e) => setCompanyWebsite(e.target.value)}
               placeholder="https://example.com"
-              disabled={isUploading || isAnalyzing || isScraping}
+              disabled={isUploading || isAnalyzing}
             />
-            <p className="text-xs text-muted-foreground">
-              Additional website URL if the company has multiple sites
-            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -362,7 +283,7 @@ export function ReportUpload() {
               <Select 
                 value={companyStage} 
                 onValueChange={setCompanyStage}
-                disabled={isUploading || isAnalyzing || isScraping}
+                disabled={isUploading || isAnalyzing}
               >
                 <SelectTrigger id="stage">
                   <SelectValue placeholder="Select stage" />
@@ -382,7 +303,7 @@ export function ReportUpload() {
               <Select 
                 value={industry} 
                 onValueChange={setIndustry}
-                disabled={isUploading || isAnalyzing || isScraping}
+                disabled={isUploading || isAnalyzing}
               >
                 <SelectTrigger id="industry">
                   <SelectValue placeholder="Select industry" />
@@ -398,7 +319,70 @@ export function ReportUpload() {
             </div>
           </div>
           
-          {(isUploading || isAnalyzing || isScraping) && (
+          <div className="space-y-2">
+            <Label htmlFor="file">Pitch Deck</Label>
+            <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
+              <div className="flex flex-col items-center space-y-2">
+                <FileUp className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {file ? file.name : "Drag and drop or click to upload"}
+                </p>
+                <Input
+                  id="file"
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={isUploading || isAnalyzing}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById("file")?.click()}
+                  disabled={isUploading || isAnalyzing}
+                >
+                  Select PDF
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PDF files only, max 10MB
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="supplementFile">Supplemental Material (if any)</Label>
+            <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
+              <div className="flex flex-col items-center space-y-2">
+                <FileUp className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {supplementFile ? supplementFile.name : "Drag and drop or click to upload"}
+                </p>
+                <Input
+                  id="supplementFile"
+                  type="file"
+                  className="hidden"
+                  onChange={handleSupplementFileChange}
+                  disabled={isUploading || isAnalyzing}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById("supplementFile")?.click()}
+                  disabled={isUploading || isAnalyzing}
+                >
+                  Select File
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Any file type, max 10MB
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {(isUploading || isAnalyzing) && (
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium">{progressStage}</span>
@@ -407,7 +391,6 @@ export function ReportUpload() {
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground italic mt-1">
                 {isAnalyzing ? "AI analysis may take a few minutes. Please be patient..." : ""}
-                {isScraping ? "Website scraping in progress. This may take a moment..." : ""}
               </p>
             </div>
           )}
@@ -416,16 +399,16 @@ export function ReportUpload() {
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={!websiteUrl || isUploading || isAnalyzing || isScraping}
+            disabled={!file || isUploading || isAnalyzing}
             className="w-full md:w-auto"
           >
-            {isUploading || isAnalyzing || isScraping ? (
+            {isUploading || isAnalyzing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isAnalyzing ? "Analyzing..." : isScraping ? "Scraping..." : "Processing..."}
+                {isAnalyzing ? "Analyzing..." : "Uploading..."}
               </>
             ) : (
-              "Analyze Website"
+              "Upload & Analyze"
             )}
           </Button>
         </CardFooter>

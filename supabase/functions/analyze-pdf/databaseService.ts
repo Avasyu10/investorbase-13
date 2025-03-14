@@ -147,12 +147,11 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     console.log("Section details inserted, updating report");
 
-    // Update report with analysis results and company ID
+    // Update report with analysis results
     const { error: updateError } = await supabase
       .from('reports')
       .update({ 
-        sections: analysis.sections.map((s: any) => s.title || ''),
-        company_id: company.id
+        sections: analysis.sections.map((s: any) => s.title || '')
       })
       .eq('id', report.id);
 
