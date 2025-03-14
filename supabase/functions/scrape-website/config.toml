@@ -1,0 +1,5 @@
+
+# See https://supabase.com/docs/functions/yaml-configuration
+# app_config = null
+log_level = "debug"
+env = ["JINA_API_KEY"]

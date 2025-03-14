@@ -71,6 +71,7 @@ export function ReportUpload() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
+  const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,13 +148,48 @@ export function ReportUpload() {
 
     try {
       setIsUploading(true);
-      setProgressStage("Uploading pitch deck...");
+      setProgressStage("Processing your submission...");
       setProgress(10);
       
-      // Upload the report - passing empty string for description since we removed it
+      // Check if we need to scrape the website
+      if (companyWebsite && companyWebsite.trim()) {
+        setIsScrapingWebsite(true);
+        setProgressStage("Scraping company website...");
+        setProgress(20);
+        
+        toast.info("Website scraping started", {
+          description: "We're gathering information from the company website"
+        });
+      }
+      
+      // Prepare founder LinkedIn profiles for description
+      const linkedInsText = founderLinkedIns
+        .filter(url => url.trim())
+        .map(url => `- ${url}`)
+        .join('\n');
+      
+      // Create a description that includes metadata
+      let description = '';
+      
+      if (companyStage) {
+        description += `Company Stage: ${companyStage}\n`;
+      }
+      
+      if (industry) {
+        description += `Industry: ${industry}\n`;
+      }
+      
+      if (linkedInsText) {
+        description += `\nFounder LinkedIn Profiles:\n${linkedInsText}\n`;
+      }
+      
+      setProgressStage("Uploading pitch deck...");
+      setProgress(30);
+      
+      // Upload the report
       console.log("Starting upload process");
-      const report = await uploadReport(file, title, "");
-      setProgress(40);
+      const report = await uploadReport(file, title, description, companyWebsite);
+      setProgress(60);
       console.log("Upload complete, report:", report);
       
       toast.success("Upload complete", {
@@ -163,7 +199,7 @@ export function ReportUpload() {
       // Start analysis
       setIsAnalyzing(true);
       setProgressStage("Analyzing pitch deck with AI...");
-      setProgress(50);
+      setProgress(70);
       
       toast.info("Analysis started", {
         description: "This may take a few minutes depending on the size of your deck"
@@ -206,6 +242,7 @@ export function ReportUpload() {
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
+      setIsScrapingWebsite(false);
     }
   };
 
@@ -275,6 +312,9 @@ export function ReportUpload() {
               placeholder="https://example.com"
               disabled={isUploading || isAnalyzing}
             />
+            <p className="text-xs text-muted-foreground">
+              If provided, we'll scrape the website to enhance the analysis
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -390,7 +430,8 @@ export function ReportUpload() {
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground italic mt-1">
-                {isAnalyzing ? "AI analysis may take a few minutes. Please be patient..." : ""}
+                {isScrapingWebsite && "Scraping website content..."}
+                {isAnalyzing && "AI analysis may take a few minutes. Please be patient..."}
               </p>
             </div>
           )}
@@ -405,7 +446,7 @@ export function ReportUpload() {
             {isUploading || isAnalyzing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isAnalyzing ? "Analyzing..." : "Uploading..."}
+                {isScrapingWebsite ? "Scraping website..." : isAnalyzing ? "Analyzing..." : "Uploading..."}
               </>
             ) : (
               "Upload & Analyze"

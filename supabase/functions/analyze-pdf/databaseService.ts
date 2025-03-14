@@ -28,7 +28,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       .from('companies')
       .insert({
         name: companyName,
-        overall_score: overallScore
+        overall_score: overallScore,
+        report_id: report.id // Link company back to the report
       })
       .select()
       .single();
@@ -147,11 +148,12 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     console.log("Section details inserted, updating report");
 
-    // Update report with analysis results
+    // Update report with company_id and analysis results
     const { error: updateError } = await supabase
       .from('reports')
       .update({ 
-        sections: analysis.sections.map((s: any) => s.title || '')
+        sections: analysis.sections.map((s: any) => s.title || ''),
+        company_id: company.id // Link report back to company
       })
       .eq('id', report.id);
 

@@ -108,7 +108,7 @@ export async function downloadReport(fileUrl: string, userId: string) {
   return data;
 }
 
-export async function uploadReport(file: File, title: string, description: string) {
+export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
   try {
     // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -118,6 +118,65 @@ export async function uploadReport(file: File, title: string, description: strin
     }
     
     console.log('Uploading report for user:', user.id);
+    
+    // If website URL is provided, scrape it first
+    let scrapedContent = null;
+    if (websiteUrl && websiteUrl.trim()) {
+      try {
+        console.log('Scraping website:', websiteUrl);
+        const { data, error } = await supabase.functions.invoke('scrape-website', {
+          body: { websiteUrl }
+        });
+        
+        if (error) {
+          console.error('Error scraping website:', error);
+          toast({
+            id: "scraping-error",
+            title: "Website scraping failed",
+            description: "Could not scrape the company website. Continuing without website data.",
+            variant: "destructive"
+          });
+        } else if (data && data.scrapedContent) {
+          scrapedContent = data.scrapedContent;
+          console.log('Website scraped successfully:', scrapedContent.substring(0, 100) + '...');
+          
+          // Store scraped content in database for debugging
+          const { error: storeError } = await supabase
+            .from('website_scrapes')
+            .insert({
+              url: websiteUrl,
+              content: scrapedContent,
+              status: 'success'
+            });
+            
+          if (storeError) {
+            console.error('Error storing scraped content:', storeError);
+          }
+          
+          // Enhance description with scraped content
+          if (description) {
+            description += '\n\nWebsite Content:\n' + scrapedContent;
+          } else {
+            description = 'Website Content:\n' + scrapedContent;
+          }
+        }
+      } catch (scrapingError) {
+        console.error('Error during website scraping:', scrapingError);
+        
+        // Store scraping error in database
+        try {
+          await supabase
+            .from('website_scrapes')
+            .insert({
+              url: websiteUrl,
+              status: 'error',
+              error_message: scrapingError instanceof Error ? scrapingError.message : String(scrapingError)
+            });
+        } catch (storeError) {
+          console.error('Error storing scraping error:', storeError);
+        }
+      }
+    }
     
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
@@ -154,6 +213,20 @@ export async function uploadReport(file: File, title: string, description: strin
     }
 
     console.log('Report record created successfully:', report);
+    
+    // If we scraped a website, update the website_scrapes table with report_id
+    if (scrapedContent && report) {
+      const { error: updateError } = await supabase
+        .from('website_scrapes')
+        .update({ report_id: report.id })
+        .eq('url', websiteUrl)
+        .is('report_id', null);
+        
+      if (updateError) {
+        console.error('Error linking scrape to report:', updateError);
+        // Non-blocking error, continue
+      }
+    }
     
     return report as Report;
   } catch (error) {
@@ -264,6 +337,87 @@ export async function analyzeReport(reportId: string) {
     if (!errorMessage.includes("analysis failed")) {
       toast({
         id: "analysis-error-3",
+        title: "Analysis failed",
+        description: "Could not analyze the report. Please try again later.",
+        variant: "destructive"
+      });
+    }
+    
+    throw error;
+  }
+}
+
+export async function analyzeReportDirect(file: File, title: string, description: string = '') {
+  try {
+    console.log('Converting file to base64...');
+    
+    // Convert file to base64
+    const base64String = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Extract just the base64 data part
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    
+    console.log('File converted to base64, calling analyze-pdf-direct function');
+    
+    // Call the edge function without authentication
+    const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
+      body: { 
+        title, 
+        description, 
+        pdfBase64: base64String 
+      }
+    });
+    
+    if (error) {
+      console.error('Error invoking analyze-pdf-direct function:', error);
+      
+      toast({
+        id: "analysis-error-direct-1",
+        title: "Analysis failed",
+        description: "There was a problem analyzing the report. Please try again later.",
+        variant: "destructive"
+      });
+      
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
+      
+      toast({
+        id: "analysis-error-direct-2",
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Analysis result:', data);
+    
+    toast({
+      id: "analysis-success-direct",
+      title: "Analysis complete",
+      description: "Your pitch deck has been successfully analyzed",
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error analyzing report directly:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    if (!errorMessage.includes("analysis failed")) {
+      toast({
+        id: "analysis-error-direct-3",
         title: "Analysis failed",
         description: "Could not analyze the report. Please try again later.",
         variant: "destructive"
