@@ -58,9 +58,9 @@ serve(async (req) => {
     // Create request body for Brightdata API - array of objects with url property
     const requestBody = linkedInUrls.map(url => ({ url }));
     
-    console.log(`Calling Brightdata API for ${linkedInUrls.length} profiles`);
+    console.log(`Calling Brightdata API for ${linkedInUrls.length} profiles with request body:`, JSON.stringify(requestBody));
     
-    // Make request to Brightdata API
+    // Make request to Brightdata API - fixed the URL format to match the example
     const response = await fetch(`${BRIGHTDATA_API_URL}?dataset_id=${BRIGHTDATA_DATASET_ID}&include_errors=true`, {
       method: 'POST',
       headers: {
@@ -75,7 +75,7 @@ serve(async (req) => {
       console.error(`Brightdata API error (${response.status}): ${errorText}`);
       return new Response(
         JSON.stringify({ 
-          error: `Failed to scrape LinkedIn profiles: ${response.statusText}`,
+          error: `Failed to scrape LinkedIn profiles: ${errorText}`,
           success: false
         }),
         { 

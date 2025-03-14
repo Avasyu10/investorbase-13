@@ -24,11 +24,8 @@ export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): 
   try {
     console.log(`Scraping LinkedIn profiles: ${validUrls.join(', ')}`);
     
-    // Create the request body - array of objects with url property
-    const requestBody = validUrls.map(url => ({ url }));
-    
     const { data, error } = await supabase.functions.invoke('scrape-linkedin', {
-      body: { linkedInUrls: validUrls, reportId, requestBody }
+      body: { linkedInUrls: validUrls, reportId }
     });
     
     if (error) {
