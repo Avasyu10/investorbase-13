@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createClient } from "@/integrations/supabase/client";
 
 // Company stage options
 const COMPANY_STAGES = [
@@ -73,6 +73,7 @@ export function ReportUpload() {
   const [progressStage, setProgressStage] = useState("");
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const navigate = useNavigate();
+  const supabase = createClient();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -129,6 +130,73 @@ export function ReportUpload() {
     setFounderLinkedIns(updatedFounders);
   };
 
+  const scrapeWebsite = async (url: string) => {
+    if (!url || !url.trim()) {
+      return null;
+    }
+    
+    // Ensure URL is properly formatted
+    let formattedUrl = url.trim();
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
+    try {
+      setIsScrapingWebsite(true);
+      setProgressStage("Scraping company website...");
+      
+      console.log(`Scraping website: ${formattedUrl}`);
+      
+      const { data, error } = await supabase.functions.invoke('scrape-website', {
+        body: { websiteUrl: formattedUrl }
+      });
+      
+      if (error) {
+        console.error("Error scraping website:", error);
+        toast.error("Website scraping failed", {
+          description: "Could not scrape the company website. Continuing without website data."
+        });
+        return null;
+      }
+      
+      if (!data.success) {
+        console.error("Website scraping failed:", data.error);
+        toast.error("Website scraping failed", {
+          description: "Could not scrape the company website. Continuing without website data."
+        });
+        return null;
+      }
+      
+      console.log("Website scraped successfully, content length:", data.scrapedContent.length);
+      toast.success("Website scraped successfully", {
+        description: "Website content will be included in the analysis"
+      });
+      
+      // Store the scraped content in the database for future reference
+      const { error: storeError } = await supabase
+        .from('website_scrapes')
+        .insert({
+          url: formattedUrl,
+          content: data.scrapedContent,
+          scraped_at: new Date().toISOString()
+        });
+      
+      if (storeError) {
+        console.error("Error storing scraped content:", storeError);
+      }
+      
+      return data.scrapedContent;
+    } catch (error) {
+      console.error("Error scraping website:", error);
+      toast.error("Website scraping failed", {
+        description: "Could not scrape the company website. Continuing without website data."
+      });
+      return null;
+    } finally {
+      setIsScrapingWebsite(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -151,15 +219,11 @@ export function ReportUpload() {
       setProgressStage("Processing your submission...");
       setProgress(10);
       
-      // Check if we need to scrape the website
+      // Attempt to scrape the website if URL is provided
+      let scrapedContent = null;
       if (companyWebsite && companyWebsite.trim()) {
-        setIsScrapingWebsite(true);
-        setProgressStage("Scraping company website...");
         setProgress(20);
-        
-        toast.info("Website scraping started", {
-          description: "We're gathering information from the company website"
-        });
+        scrapedContent = await scrapeWebsite(companyWebsite);
       }
       
       // Prepare founder LinkedIn profiles for description
@@ -181,6 +245,11 @@ export function ReportUpload() {
       
       if (linkedInsText) {
         description += `\nFounder LinkedIn Profiles:\n${linkedInsText}\n`;
+      }
+      
+      // Add scraped website content to description if available
+      if (scrapedContent) {
+        description += `\n\nWebsite Content:\n${scrapedContent}\n`;
       }
       
       setProgressStage("Uploading pitch deck...");
@@ -225,7 +294,10 @@ export function ReportUpload() {
       } catch (analysisError: any) {
         console.error("Error analyzing report:", analysisError);
         
-        // Error already handled by the analyzeReport function
+        toast.error("Analysis failed", {
+          description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
+        });
+        
         setProgress(0);
         
         // Still navigate to dashboard if analysis fails

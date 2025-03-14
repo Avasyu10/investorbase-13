@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
+import { Toaster } from "sonner";
 
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
@@ -28,6 +29,7 @@ const UploadReport = () => {
 
   return (
     <div className="animate-fade-in">
+      <Toaster position="top-center" />
       <div className="container mx-auto px-4 py-6">
         <Button
           variant="outline"

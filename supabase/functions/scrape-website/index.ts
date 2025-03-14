@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // The JINA AI API endpoint for website scraping
 const JINA_API_URL = "https://r.jina.ai";
-const JINA_API_KEY = "jina_7413d7715601448f819a3d088dd6bec3203DltHhpvri5YXfUey1WofPaAWK";
+const JINA_API_KEY = Deno.env.get("JINA_API_KEY") || "jina_7413d7715601448f819a3d088dd6bec3203DltHhpvri5YXfUey1WofPaAWK";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -54,14 +54,20 @@ serve(async (req) => {
 
     console.log(`Scraping website: ${websiteUrl}`);
 
+    // Ensure URL is properly formatted with protocol
+    let formattedUrl = websiteUrl;
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+
     // Validate URL format
     try {
-      new URL(websiteUrl);
+      new URL(formattedUrl);
     } catch (e) {
-      console.error(`Invalid URL format: "${websiteUrl}"`);
+      console.error(`Invalid URL format: "${formattedUrl}"`);
       return new Response(
         JSON.stringify({ 
-          error: `Invalid URL format: ${websiteUrl}`,
+          error: `Invalid URL format: ${formattedUrl}`,
           success: false
         }),
         { 
@@ -72,10 +78,9 @@ serve(async (req) => {
     }
 
     // Make request to JINA AI
-    const jinaUrl = `${JINA_API_URL}/${websiteUrl}`;
-    console.log(`Calling JINA AI at: ${jinaUrl}`);
+    console.log(`Calling JINA AI at: ${JINA_API_URL}/${formattedUrl}`);
     
-    const response = await fetch(jinaUrl, {
+    const response = await fetch(`${JINA_API_URL}/${formattedUrl}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${JINA_API_KEY}`,
