@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -13,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
-import { FileUp, Globe, Loader2, Plus, Trash2 } from "lucide-react";
+import { Globe, Loader2, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -22,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
 // Company stage options
@@ -61,58 +61,18 @@ const INDUSTRIES = [
 ];
 
 export function ReportUpload() {
-  const [file, setFile] = useState<File | null>(null);
-  const [supplementFile, setSupplementFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [companyStage, setCompanyStage] = useState("");
   const [industry, setIndustry] = useState("");
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
+  const [companyWebsite, setCompanyWebsite] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
-  const [uploadMethod, setUploadMethod] = useState<"file" | "website">("file");
-  const [websiteUrl, setWebsiteUrl] = useState("");
   const navigate = useNavigate();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      
-      if (selectedFile.type !== 'application/pdf') {
-        toast.error("Invalid file type", {
-          description: "Please upload a PDF file"
-        });
-        return;
-      }
-      
-      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error("File too large", {
-          description: "Please upload a file smaller than 10MB"
-        });
-        return;
-      }
-      
-      setFile(selectedFile);
-    }
-  };
-
-  const handleSupplementFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      
-      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error("File too large", {
-          description: "Please upload a file smaller than 10MB"
-        });
-        return;
-      }
-      
-      setSupplementFile(selectedFile);
-    }
-  };
 
   const addFounderLinkedIn = () => {
     setFounderLinkedIns([...founderLinkedIns, ""]);
@@ -187,14 +147,7 @@ export function ReportUpload() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (uploadMethod === "file" && !file) {
-      toast.error("No file selected", {
-        description: "Please select a PDF file to upload"
-      });
-      return;
-    }
-    
-    if (uploadMethod === "website" && !websiteUrl.trim()) {
+    if (!websiteUrl.trim()) {
       toast.error("No website URL provided", {
         description: "Please enter a website URL to analyze"
       });
@@ -211,73 +164,63 @@ export function ReportUpload() {
     try {
       setIsUploading(true);
       
-      let report;
-      let scrapedData = null;
+      // Step 1: Scrape the website
+      setProgressStage("Scraping website content...");
+      setProgress(10);
+      
+      const scrapedData = await scrapeWebsite(websiteUrl);
+      
+      if (!scrapedData) {
+        setIsUploading(false);
+        return;
+      }
 
-      // If website URL is provided, scrape the website
-      if (uploadMethod === "website") {
-        setProgressStage("Scraping website content...");
-        setProgress(10);
-        
-        scrapedData = await scrapeWebsite(websiteUrl);
-        
-        if (!scrapedData) {
-          setIsUploading(false);
-          return;
-        }
-
-        // Create a PDF from the scraped content
-        // For now, we'll create a simple text file as PDF generation is complex
-        const blob = new Blob([`Company Website: ${scrapedData.url}\n\n${scrapedData.content}`], { type: 'application/pdf' });
-        const webContentFile = new File([blob], `${title.replace(/\s+/g, '_')}_website_content.pdf`, { type: 'application/pdf' });
-        
-        setFile(webContentFile);
-        setProgressStage("Uploading scraped content...");
-        setProgress(40);
-        
-        // Upload the file with the scraped content
-        report = await uploadReport(webContentFile, title, "");
-      } else {
-        // Regular file upload
-        setProgressStage("Uploading pitch deck...");
-        setProgress(10);
-        
-        console.log("Starting upload process");
-        report = await uploadReport(file, title, "");
-        setProgress(40);
-        console.log("Upload complete, report:", report);
+      // Step 2: Create a PDF from the scraped content
+      const blob = new Blob([`Company Website: ${scrapedData.url}\n\n${scrapedData.content}`], { type: 'application/pdf' });
+      const webContentFile = new File([blob], `${title.replace(/\s+/g, '_')}_website_content.pdf`, { type: 'application/pdf' });
+      
+      setProgressStage("Uploading scraped content...");
+      setProgress(40);
+      
+      // Step 3: Upload the file with the scraped content
+      const report = await uploadReport(webContentFile, title, "");
+      
+      if (!report) {
+        toast.error("Failed to create report", {
+          description: "Could not upload the scraped content"
+        });
+        setIsUploading(false);
+        return;
       }
       
-      // If we scraped a website, store the scraped content
-      if (scrapedData && report) {
-        try {
-          const { error: scrapeStorageError } = await supabase.from('website_scrapes').insert({
-            report_id: report.id,
-            url: scrapedData.url,
-            content: scrapedData.content
-          });
-          
-          if (scrapeStorageError) {
-            console.error("Error storing scraped content:", scrapeStorageError);
-            // Non-blocking - continue with analysis
-          }
-        } catch (storageError) {
-          console.error("Exception storing scraped content:", storageError);
+      // Step 4: Store the scraped content in the database
+      try {
+        const { error: scrapeStorageError } = await supabase.from('website_scrapes').insert({
+          report_id: report.id,
+          url: scrapedData.url,
+          content: scrapedData.content
+        });
+        
+        if (scrapeStorageError) {
+          console.error("Error storing scraped content:", scrapeStorageError);
           // Non-blocking - continue with analysis
         }
+      } catch (storageError) {
+        console.error("Exception storing scraped content:", storageError);
+        // Non-blocking - continue with analysis
       }
       
-      toast.success("Upload complete", {
-        description: "Your pitch deck has been uploaded successfully"
+      toast.success("Website content processed", {
+        description: "Website content has been successfully processed"
       });
       
-      // Start analysis
+      // Step 5: Start analysis
       setIsAnalyzing(true);
-      setProgressStage("Analyzing pitch deck with AI...");
+      setProgressStage("Analyzing content with AI...");
       setProgress(50);
       
       toast.info("Analysis started", {
-        description: "This may take a few minutes depending on the size of your deck"
+        description: "This may take a few minutes"
       });
       
       try {
@@ -287,7 +230,7 @@ export function ReportUpload() {
         console.log("Analysis complete, result:", result);
         
         toast.success("Analysis complete", {
-          description: "Your pitch deck has been analyzed successfully!"
+          description: "Your website has been analyzed successfully!"
         });
         
         // Navigate to the company page
@@ -310,8 +253,8 @@ export function ReportUpload() {
     } catch (error: any) {
       console.error("Error processing report:", error);
       
-      toast.error("Upload failed", {
-        description: error instanceof Error ? error.message : "Failed to process pitch deck"
+      toast.error("Analysis failed", {
+        description: error instanceof Error ? error.message : "Failed to process website content"
       });
       setProgress(0);
     } finally {
@@ -324,9 +267,9 @@ export function ReportUpload() {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Upload Pitch Deck</CardTitle>
+        <CardTitle>Analyze Company Website</CardTitle>
         <CardDescription>
-          Upload a PDF pitch deck or provide a company website URL for analysis. Our AI will evaluate the content and provide feedback.
+          Enter a company website URL for analysis. Our AI will evaluate the content and provide feedback.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -343,68 +286,26 @@ export function ReportUpload() {
             />
           </div>
           
-          <Tabs defaultValue="file" value={uploadMethod} onValueChange={(value) => setUploadMethod(value as "file" | "website")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="file" disabled={isUploading || isAnalyzing || isScraping}>Upload PDF</TabsTrigger>
-              <TabsTrigger value="website" disabled={isUploading || isAnalyzing || isScraping}>Use Website URL</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="file" className="pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="file">Pitch Deck</Label>
-                <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
-                  <div className="flex flex-col items-center space-y-2">
-                    <FileUp className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      {file ? file.name : "Drag and drop or click to upload"}
-                    </p>
-                    <Input
-                      id="file"
-                      type="file"
-                      accept=".pdf"
-                      className="hidden"
-                      onChange={handleFileChange}
-                      disabled={isUploading || isAnalyzing || isScraping}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => document.getElementById("file")?.click()}
-                      disabled={isUploading || isAnalyzing || isScraping}
-                    >
-                      Select PDF
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      PDF files only, max 10MB
-                    </p>
-                  </div>
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="websiteUrl">Company Website URL</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-grow">
+                <Globe className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="websiteUrl"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="pl-10"
+                  disabled={isUploading || isAnalyzing || isScraping}
+                  required
+                />
               </div>
-            </TabsContent>
-            
-            <TabsContent value="website" className="pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="websiteUrl">Company Website URL</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-grow">
-                    <Globe className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="websiteUrl"
-                      value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      placeholder="https://example.com"
-                      className="pl-10"
-                      disabled={isUploading || isAnalyzing || isScraping}
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter the company's website URL for AI to analyze the content
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Enter the company's website URL for AI to analyze the content
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Label>Founder LinkedIn Profiles (Optional)</Label>
@@ -442,7 +343,7 @@ export function ReportUpload() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="website">Company Website (Optional)</Label>
+            <Label htmlFor="website">Company Website (Optional secondary URL)</Label>
             <Input
               id="website"
               value={companyWebsite}
@@ -450,6 +351,9 @@ export function ReportUpload() {
               placeholder="https://example.com"
               disabled={isUploading || isAnalyzing || isScraping}
             />
+            <p className="text-xs text-muted-foreground">
+              Additional website URL if the company has multiple sites
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -494,39 +398,6 @@ export function ReportUpload() {
             </div>
           </div>
           
-          {uploadMethod === "file" && (
-            <div className="space-y-2">
-              <Label htmlFor="supplementFile">Supplemental Material (if any)</Label>
-              <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
-                <div className="flex flex-col items-center space-y-2">
-                  <FileUp className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {supplementFile ? supplementFile.name : "Drag and drop or click to upload"}
-                  </p>
-                  <Input
-                    id="supplementFile"
-                    type="file"
-                    className="hidden"
-                    onChange={handleSupplementFileChange}
-                    disabled={isUploading || isAnalyzing || isScraping}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById("supplementFile")?.click()}
-                    disabled={isUploading || isAnalyzing || isScraping}
-                  >
-                    Select File
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Any file type, max 10MB
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          
           {(isUploading || isAnalyzing || isScraping) && (
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -545,16 +416,16 @@ export function ReportUpload() {
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={(uploadMethod === "file" && !file) || (uploadMethod === "website" && !websiteUrl) || isUploading || isAnalyzing || isScraping}
+            disabled={!websiteUrl || isUploading || isAnalyzing || isScraping}
             className="w-full md:w-auto"
           >
             {isUploading || isAnalyzing || isScraping ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isAnalyzing ? "Analyzing..." : isScraping ? "Scraping..." : "Uploading..."}
+                {isAnalyzing ? "Analyzing..." : isScraping ? "Scraping..." : "Processing..."}
               </>
             ) : (
-              "Upload & Analyze"
+              "Analyze Website"
             )}
           </Button>
         </CardFooter>
