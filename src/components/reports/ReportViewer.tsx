@@ -3,10 +3,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Download, Loader, Calendar, FileText } from "lucide-react";
+import { Loader, Calendar, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ReportSegment } from "./ReportSegment";
 
 interface ReportViewerProps {
   reportId: string;
@@ -15,6 +13,7 @@ interface ReportViewerProps {
 export function ReportViewer({ reportId }: ReportViewerProps) {
   const { toast } = useToast();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
@@ -23,27 +22,42 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
 
   useEffect(() => {
     const loadPdf = async () => {
-      if (!report?.pdf_url || !report.user_id) return;
+      if (!report?.pdf_url) return;
       
       try {
-        // Use the user_id from the report to construct the correct path
+        // Download the PDF file
         const blob = await downloadReport(report.pdf_url, report.user_id);
         setPdfBlob(blob);
+        
+        // Create a URL for the blob
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
       } catch (error) {
         console.error("Error loading PDF:", error);
+        toast({
+          title: "Failed to load PDF",
+          description: "There was an error loading the document",
+          variant: "destructive",
+        });
       }
     };
     
     if (report && !pdfBlob) {
       loadPdf();
     }
-  }, [report, pdfBlob]);
+    
+    // Cleanup function
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [report, pdfBlob, toast]);
 
   const handleDownload = async () => {
-    if (!report || !report.user_id) return;
+    if (!report) return;
     
     try {
-      // Use the user_id from the report to construct the correct path
       const blob = pdfBlob || await downloadReport(report.pdf_url, report.user_id);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -101,8 +115,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     );
   }
 
-  const reportSegments = report.parsedSegments || [];
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -127,17 +139,23 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         </div>
       </div>
       
-      <p className="text-muted-foreground">{report.description}</p>
+      {report.description && (
+        <p className="text-muted-foreground">{report.description}</p>
+      )}
       
-      <div className="space-y-8">
-        {reportSegments.map((segment) => (
-          <ReportSegment 
-            key={segment.id} 
-            segment={segment}
-            pdfUrl={report.pdf_url}
-            pdfBlob={pdfBlob || undefined}
+      {/* PDF Viewer */}
+      <div className="w-full bg-card border rounded-lg overflow-hidden shadow-sm">
+        {pdfUrl ? (
+          <iframe
+            src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+            className="w-full h-[80vh] border-0"
+            title={`${report.title} PDF`}
           />
-        ))}
+        ) : (
+          <div className="flex justify-center items-center h-[80vh]">
+            <Loader className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -57,33 +56,18 @@ export async function getReportById(id: string) {
     throw new Error('Report not found');
   }
 
-  const report = tableData as Report;
-
-  try {
-    // Download the file (no user filtering)
-    const pdfBlob = await downloadReport(report.pdf_url);
-    
-    // Parse the PDF content
-    const parsedSegments = await parsePdfFromBlob(pdfBlob);
-    
-    // Add parsed segments to the report
-    report.parsedSegments = parsedSegments;
-    
-    return report;
-  } catch (error) {
-    console.error('Error parsing PDF content:', error);
-    // Return the report without parsed segments if parsing fails
-    return report;
-  }
+  return tableData as Report;
 }
 
-export async function downloadReport(fileUrl: string) {
-  // Download without user filtering
+export async function downloadReport(fileUrl: string, userId?: string) {
+  // First try with the provided path
   const { data, error } = await supabase.storage
     .from('report_pdfs')
     .download(fileUrl);
 
   if (error) {
+    console.error('Error with primary path, trying fallback:', error);
+    
     // Try with the old path structure (with user ID)
     const parts = fileUrl.split('/');
     const simpleFileName = parts[parts.length - 1];
@@ -93,8 +77,26 @@ export async function downloadReport(fileUrl: string) {
       .download(simpleFileName);
       
     if (fallbackError) {
-      console.error('Error downloading report:', error);
-      throw error;
+      console.error('Error with fallback path:', fallbackError);
+      
+      // Last attempt: try with user ID if provided
+      if (userId) {
+        const userPath = `${userId}/${fileUrl}`;
+        console.log('Trying with user path:', userPath);
+        
+        const { data: userPathData, error: userPathError } = await supabase.storage
+          .from('report_pdfs')
+          .download(userPath);
+          
+        if (userPathError) {
+          console.error('All download attempts failed:', userPathError);
+          throw userPathError;
+        }
+        
+        return userPathData;
+      }
+      
+      throw fallbackError;
     }
     
     return fallbackData;
