@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
 import { FileUploadZone } from "./upload/FileUploadZone";
@@ -22,7 +22,7 @@ import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedIn
 
 export function ReportUpload() {
   const [file, setFile] = useState<File | null>(null);
-  const [supplementFile, setSupplementFile] = useState<File | null>(null);
+  const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyStage, setCompanyStage] = useState("");
@@ -68,8 +68,26 @@ export function ReportUpload() {
         return;
       }
       
-      setSupplementFile(selectedFile);
+      setSupplementFiles(prev => [...prev, selectedFile]);
     }
+  };
+
+  const removeSupplementFile = (index: number) => {
+    setSupplementFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addLinkedInProfile = () => {
+    setFounderLinkedIns(prev => [...prev, ""]);
+  };
+
+  const removeLinkedInProfile = (index: number) => {
+    setFounderLinkedIns(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateLinkedInProfile = (index: number, value: string) => {
+    setFounderLinkedIns(prev => 
+      prev.map((profile, i) => i === index ? value : profile)
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,6 +133,35 @@ export function ReportUpload() {
         description += `Industry: ${industry}\n`;
       }
       
+      // Upload supplementary files if any
+      if (supplementFiles.length > 0) {
+        setProgress(35);
+        setProgressStage("Uploading supplementary materials...");
+        for (let i = 0; i < supplementFiles.length; i++) {
+          const supplementFile = supplementFiles[i];
+          try {
+            const { error: uploadError } = await supabase.storage
+              .from('supplementary-materials')
+              .upload(`${report.id}/${supplementFile.name}`, supplementFile);
+              
+            if (uploadError) {
+              console.error(`Error uploading supplementary file ${i+1}:`, uploadError);
+              toast.error(`Error uploading supplementary file ${i+1}`, {
+                description: uploadError.message
+              });
+            } else {
+              description += `\n\nSupplementary Material ${i+1}: ${supplementFile.name}\n`;
+            }
+          } catch (err) {
+            console.error(`Error processing supplementary file ${i+1}:`, err);
+          }
+        }
+        
+        toast.success("Supplementary materials uploaded", {
+          description: `${supplementFiles.length} file(s) uploaded successfully`
+        });
+      }
+      
       // Attempt to scrape the website if URL is provided
       let scrapedContent = null;
       if (companyWebsite && companyWebsite.trim()) {
@@ -139,6 +186,7 @@ export function ReportUpload() {
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
       if (validLinkedInProfiles.length > 0) {
         setProgress(50);
+        setProgressStage("Scraping LinkedIn profiles...");
         const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
         if (linkedInResult?.success) {
           linkedInContent = formatLinkedInContent(linkedInResult);
@@ -253,6 +301,45 @@ export function ReportUpload() {
             isDisabled={isProcessing}
           />
           
+          {/* LinkedIn Profiles */}
+          <div className="space-y-2">
+            <h3 className="text-md font-medium">Founder LinkedIn Profiles</h3>
+            {founderLinkedIns.map((profile, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={profile}
+                  onChange={(e) => updateLinkedInProfile(index, e.target.value)}
+                  placeholder="LinkedIn Profile URL"
+                  className="flex-1 p-2 border rounded"
+                  disabled={isProcessing}
+                />
+                {founderLinkedIns.length > 1 && (
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    size="icon"
+                    onClick={() => removeLinkedInProfile(index)}
+                    disabled={isProcessing}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addLinkedInProfile}
+              disabled={isProcessing}
+              className="mt-2"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add LinkedIn Profile
+            </Button>
+          </div>
+          
           <FileUploadZone
             id="file"
             label="Pitch Deck"
@@ -264,14 +351,54 @@ export function ReportUpload() {
             disabled={isProcessing}
           />
           
-          <FileUploadZone
-            id="supplementFile"
-            label="Supplemental Material (if any)"
-            file={supplementFile}
-            onFileChange={handleSupplementFileChange}
-            description="Any file type, max 10MB"
-            disabled={isProcessing}
-          />
+          {/* Multiple Supplementary Files */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-md font-medium">Supplementary Materials</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const fileInput = document.getElementById('supplementFile');
+                  if (fileInput) fileInput.click();
+                }}
+                disabled={isProcessing}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add File
+              </Button>
+            </div>
+            
+            <input
+              id="supplementFile"
+              type="file"
+              onChange={handleSupplementFileChange}
+              className="hidden"
+              disabled={isProcessing}
+            />
+            
+            {supplementFiles.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No supplementary files added</p>
+            ) : (
+              <div className="space-y-2">
+                {supplementFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-md">
+                    <span className="text-sm truncate max-w-[80%]">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeSupplementFile(index)}
+                      disabled={isProcessing}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           
           {isProcessing && (
             <ProgressIndicator

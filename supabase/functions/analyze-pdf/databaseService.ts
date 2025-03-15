@@ -1,4 +1,3 @@
-
 export async function saveAnalysisResults(supabase: any, analysis: any, report: any) {
   try {
     if (!analysis || !analysis.sections || !Array.isArray(analysis.sections)) {
@@ -14,13 +13,9 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     console.log("Creating company record");
     // Create a company entry for the report
     const companyName = report.title || 'Unnamed Company';
-    let overallScore = 0;
     
-    try {
-      overallScore = Math.round((analysis.overallScore || 0) * 20); // Convert 0-5 scale to 0-100
-    } catch (e) {
-      console.warn("Error calculating overall score, using default 0");
-    }
+    // Keep the score in the 1-5 range, don't convert to 0-100
+    const overallScore = analysis.overallScore || 0;
     
     console.log(`Inserting company with name: ${companyName}, overall_score: ${overallScore}`);
     
@@ -48,19 +43,15 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     // Insert sections
     const sectionInserts = analysis.sections.map((section: any) => {
-      let sectionScore = 0;
-      try {
-        sectionScore = Math.round((section.score || 0) * 20); // Convert 0-5 scale to 0-100
-      } catch (e) {
-        console.warn(`Error calculating score for section ${section.title}, using default 0`);
-      }
+      // Keep the score in the 1-5 range, don't convert to 0-100
+      const sectionScore = section.score || 0;
       
       return {
         company_id: company.id,
         title: section.title || 'Unnamed Section', // Using 'title' instead of 'name'
         description: section.description || '',
         score: sectionScore,
-        type: 'analysis' // Adding type field as it's required in the schema
+        type: section.type || 'analysis' // Adding type field as it's required in the schema
       };
     });
 
@@ -150,7 +141,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     const { error: updateError } = await supabase
       .from('reports')
       .update({ 
-        company_id: company.id // Link report back to company (removed sections field)
+        company_id: company.id // Link report back to company
       })
       .eq('id', report.id);
 

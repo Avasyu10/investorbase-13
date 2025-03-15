@@ -1,3 +1,4 @@
+
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
 const prompt = `
@@ -6,7 +7,7 @@ You are an expert VC analyst with years of experience in assessing investment op
 You will perform a deep-dive analysis of a startup based on its pitch deck, research industry data where needed, and provide an unbiased assessment.  
 
 ### **Step 1: High-Level Overview**  
-- Summarize the startup’s potential, strengths, and risks.  
+- Summarize the startup's potential, strengths, and risks.  
 - Identify critical areas requiring scrutiny.  
 
 ### **Step 2: Section-Wise Deep Dive**  
@@ -32,7 +33,7 @@ Analyze each section with a structured breakdown:
 Ensure the output is structured as follows:  
 
 {
-  "overallSummary": "A high-level overview of the startup’s strengths, weaknesses, and potential investment risks.",
+  "overallSummary": "A high-level overview of the startup's strengths, weaknesses, and potential investment risks.",
   "sections": [
     {
       "type": "PROBLEM",

@@ -1,25 +1,18 @@
 
-import React, { useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ChartContainer } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
-
-  useEffect(() => {
-    if (!companyId) {
-      navigate('/dashboard');
-    }
-  }, [companyId, navigate]);
 
   if (isLoading) {
     return (
@@ -170,10 +163,10 @@ function getColorForScore(score: number): string {
   return '#ef4444'; // Red
 }
 
-function getScoreVariant(score: number): 'default' | 'success' | 'warning' | 'destructive' {
-  if (score >= 4) return 'success';
-  if (score >= 2.5) return 'default';
-  if (score >= 1.5) return 'warning';
+function getScoreVariant(score: number): 'default' | 'outline' | 'secondary' | 'destructive' {
+  if (score >= 4) return 'default';
+  if (score >= 2.5) return 'secondary';
+  if (score >= 1.5) return 'outline';
   return 'destructive';
 }
 
