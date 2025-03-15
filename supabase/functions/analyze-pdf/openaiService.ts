@@ -1,4 +1,3 @@
-
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
 const prompt = `
@@ -25,7 +24,7 @@ Analyze each section with a structured breakdown:
 
 ### **For Each Section, Provide:**  
 - **A detailed description (at least 3-4 sentences) explaining key insights.**  
-- **A score from 1 to 5 (where 5 is excellent). DO NOT use percentages or scores out of 100.**  
+- **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
 - **2-3 strengths.**  
 - **2-3 weaknesses or areas for improvement.**  
 
@@ -38,7 +37,7 @@ Ensure the output is structured as follows:
     {
       "type": "PROBLEM",
       "title": "Problem Statement",
-      "score": 4,
+      "score": 4.3,
       "description": "Detailed breakdown of the problem and market opportunity.",
       "strengths": ["Strength 1", "Strength 2"],
       "weaknesses": ["Weakness 1", "Weakness 2"]
@@ -46,17 +45,19 @@ Ensure the output is structured as follows:
     {
       "type": "SOLUTION",
       "title": "Solution (Product)",
-      "score": 3,
+      "score": 3.8,
       "description": "Detailed breakdown of the product and its effectiveness.",
       "strengths": ["Strength 1", "Strength 2"],
       "weaknesses": ["Weakness 1", "Weakness 2"]
     },
     ...
   ],
-  "overallScore": 3.5,
-  "assessmentPoints": ["Key point 1", "Key point 2", "Key point 3"]
+  "overallScore": 3.7,
+  "assessmentPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"]
 }
-  `;
+
+ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential.
+`;
 
   try {
     if (!apiKey) {

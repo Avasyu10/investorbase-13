@@ -8,14 +8,17 @@ interface ScoreAssessmentProps {
 }
 
 export function ScoreAssessment({ company }: ScoreAssessmentProps) {
+  // Format overall score to 1 decimal place
+  const formattedScore = parseFloat(company.overallScore.toFixed(1));
+
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle>Overall Score Assessment</CardTitle>
+        <CardTitle>Overall Score Assessment: {formattedScore}/5</CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="list-disc pl-5 space-y-2">
-          {company.assessmentPoints.length > 0 ? (
+          {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
             company.assessmentPoints.map((point, index) => (
               <li key={index} className="text-muted-foreground">{point}</li>
             ))

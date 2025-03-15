@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -11,8 +12,8 @@ interface SectionCardProps {
 export function SectionCard({ section, onClick }: SectionCardProps) {
   const navigate = useNavigate();
 
-  // Don't multiply the score by 20, keep it as is (1-5 range)
-  const scoreValue = section.score;
+  // Format score to 1 decimal place
+  const scoreValue = parseFloat(section.score.toFixed(1));
 
   const getScoreColor = (score: number) => {
     if (score >= 4) return "bg-green-500";
@@ -29,7 +30,7 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
       <CardContent className="pt-6">
         <h3 className="text-lg font-semibold mb-2 line-clamp-1">{section.title}</h3>
         <div className="flex items-center mb-2">
-          <span className="font-medium text-lg mr-2">{section.score}/5</span>
+          <span className="font-medium text-lg mr-2">{scoreValue}/5</span>
           <Progress 
             value={section.score * 20} 
             className={`h-2 flex-1 ${getScoreColor(section.score)}`} 

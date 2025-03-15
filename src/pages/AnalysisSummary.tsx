@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -42,10 +41,11 @@ export default function AnalysisSummary() {
     );
   }
 
-  // Transform section data for chart visualization
+  const formattedScore = parseFloat(company.overallScore.toFixed(1));
+
   const chartData = company.sections.map(section => ({
     name: section.title,
-    score: section.score,
+    score: parseFloat(section.score.toFixed(1)),
     fill: getColorForScore(section.score)
   }));
 
@@ -65,7 +65,7 @@ export default function AnalysisSummary() {
           <div className="flex justify-between items-center">
             <CardTitle className="text-2xl">{company.name}</CardTitle>
             <Badge variant={getScoreVariant(company.overallScore)}>
-              Score: {company.overallScore}/5
+              Score: {formattedScore}/5
             </Badge>
           </div>
           <CardDescription>Complete analysis summary and recommendations</CardDescription>
@@ -82,7 +82,7 @@ export default function AnalysisSummary() {
           <div className="mb-8">
             <h3 className="text-lg font-medium mb-4">Key Assessment Points</h3>
             <ul className="list-disc pl-5 space-y-2">
-              {company.assessmentPoints.length > 0 ? (
+              {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
                 company.assessmentPoints.map((point, index) => (
                   <li key={index} className="text-muted-foreground">{point}</li>
                 ))
@@ -154,7 +154,6 @@ export default function AnalysisSummary() {
   );
 }
 
-// Helper functions
 function getColorForScore(score: number): string {
   if (score >= 4) return '#22c55e'; // Green
   if (score >= 3) return '#84cc16'; // Lime green

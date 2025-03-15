@@ -1,3 +1,4 @@
+
 export async function saveAnalysisResults(supabase: any, analysis: any, report: any) {
   try {
     if (!analysis || !analysis.sections || !Array.isArray(analysis.sections)) {
@@ -14,8 +15,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     // Create a company entry for the report
     const companyName = report.title || 'Unnamed Company';
     
-    // Keep the score in the 1-5 range, don't convert to 0-100
-    const overallScore = analysis.overallScore || 0;
+    // Parse the overall score to ensure it's a float with one decimal place
+    const overallScore = parseFloat(analysis.overallScore?.toFixed(1)) || 0;
     
     console.log(`Inserting company with name: ${companyName}, overall_score: ${overallScore}`);
     
@@ -24,7 +25,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       .insert({
         name: companyName,
         overall_score: overallScore,
-        report_id: report.id // Link company back to the report
+        report_id: report.id, // Link company back to the report
+        assessment_points: analysis.assessmentPoints || [] // Store assessment points array
       })
       .select()
       .single();
@@ -43,8 +45,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     // Insert sections
     const sectionInserts = analysis.sections.map((section: any) => {
-      // Keep the score in the 1-5 range, don't convert to 0-100
-      const sectionScore = section.score || 0;
+      // Parse the section score to ensure it's a float with one decimal place
+      const sectionScore = parseFloat(section.score?.toFixed(1)) || 0;
       
       return {
         company_id: company.id,

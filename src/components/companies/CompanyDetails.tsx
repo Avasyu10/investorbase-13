@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -52,13 +51,15 @@ export function CompanyDetails() {
     );
   }
 
+  const formattedScore = company.overallScore ? parseFloat(company.overallScore.toFixed(1)) : 0;
+
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
         <div className="flex flex-col sm:flex-row sm:items-center mt-3 sm:mt-4 mb-4 sm:mb-6">
           <span className="text-xl sm:text-2xl font-bold mb-2 sm:mb-0 sm:mr-4">
-            Overall Score: {company.overallScore}/5
+            Overall Score: {formattedScore}/5
           </span>
           <Progress 
             value={company.overallScore * 20} 
