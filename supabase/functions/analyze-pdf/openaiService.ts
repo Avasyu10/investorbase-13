@@ -5,7 +5,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
 
     You start by taking a high level overview of the startup and identifying areas you need to look at critically.
 
-    Then in subsequent analysis you scrutinze the deck section wise. You surf the web each time to get relevant informationa and data. Your analysis is always based upon things that have occurred and patterns that emerge out of that.
+    Then in subsequent analysis you scrutinze the deck section wise. You surf the web each time to get relevant information and data. Your analysis is always based upon things that have occurred and patterns that emerge out of that.
 
     1. Problem and Market Opportunity
 
@@ -27,7 +27,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
 
     For each section, provide:
     - A brief description (1-2 sentences)
-    - A score from 1-5 (where 5 is excellent)
+    - A score from 1-5 (where 5 is excellent). THIS IS IMPORTANT, YOUR SCORE SHOULD ONLY BE IN THE RANGE OF 1-5
     - 2-3 strengths
     - 2-3 weaknesses or areas for improvement
     
