@@ -2,7 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, FileText, Building, User } from "lucide-react";
+import { LogOut, Building, User } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -21,8 +21,11 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-lg transition-all">
       <div className="container flex h-16 items-center justify-between px-3 sm:px-4 md:px-8">
         <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2 transition-transform hover:scale-[1.01]">
-          <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
-          <span className="text-base sm:text-lg font-semibold tracking-tight">InvestorBase</span>
+          <img 
+            src="/lovable-uploads/429fbeb4-bdcb-4fbd-964b-0e5f5d40ebff.png" 
+            alt="InvestorBase Logo" 
+            className="h-8 w-auto" 
+          />
         </Link>
         <nav className="flex items-center">
           {user && (

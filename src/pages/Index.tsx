@@ -1,8 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,9 +34,11 @@ const Index = () => {
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
         <div className="flex justify-center mb-4">
-          <div className="p-3 rounded-full bg-primary/5">
-            <FileText className="h-10 w-10 text-primary" />
-          </div>
+          <img 
+            src="/lovable-uploads/429fbeb4-bdcb-4fbd-964b-0e5f5d40ebff.png" 
+            alt="InvestorBase Logo" 
+            className="h-16 w-auto" 
+          />
         </div>
         
         <h1 className="text-4xl font-bold tracking-tight">InvestorBase</h1>
