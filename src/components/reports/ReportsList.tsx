@@ -4,7 +4,7 @@ import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";
 import { getReports, Report } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { FileUp, Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function ReportsList() {
@@ -43,13 +43,6 @@ export function ReportsList() {
             Access and analyze your pitch deck reports
           </p>
         </div>
-        <Button 
-          onClick={() => navigate("/upload")} 
-          className="mt-4 sm:mt-0"
-        >
-          <FileUp className="mr-2 h-4 w-4" />
-          Upload New Deck
-        </Button>
       </div>
 
       {isLoading ? (
@@ -64,7 +57,7 @@ export function ReportsList() {
         </div>
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
-          <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">No reports found</h3>
           <p className="mt-2 text-muted-foreground">
             Upload your first pitch deck to get started
