@@ -4,7 +4,7 @@ import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";
 import { getReports, Report } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function ReportsList() {
