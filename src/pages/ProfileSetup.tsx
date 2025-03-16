@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -72,14 +71,11 @@ const ProfileSetup = () => {
     try {
       let fundThesisUrl = "";
       
-      // Upload thesis PDF if provided
       if (thesisFile) {
         setUploadingThesis(true);
         
-        // Create a unique filename using the user's ID
         const fileName = `${user.id}/${Date.now()}_${thesisFile.name}`;
         
-        // Upload the file to storage
         const { error: uploadError } = await supabase.storage
           .from('vc-documents')
           .upload(fileName, thesisFile);
@@ -92,7 +88,6 @@ const ProfileSetup = () => {
         setUploadingThesis(false);
       }
       
-      // Insert the profile to the database
       const { error } = await supabase
         .from('vc_profiles')
         .insert({
@@ -112,7 +107,6 @@ const ProfileSetup = () => {
         description: "Your VC profile has been set up successfully",
       });
       
-      // Navigate to dashboard
       navigate('/dashboard');
       
     } catch (error: any) {
@@ -126,13 +120,11 @@ const ProfileSetup = () => {
     }
   };
   
-  // Function to add a new company
   const addCompany = () => {
     const companies = form.getValues().companiesInvested || [];
     form.setValue('companiesInvested', [...companies, ""]);
   };
 
-  // Function to remove a company
   const removeCompany = (index: number) => {
     const companies = form.getValues().companiesInvested || [];
     companies.splice(index, 1);
@@ -154,7 +146,7 @@ const ProfileSetup = () => {
     <div className="container max-w-3xl mx-auto px-4 py-8">
       <Card className="animate-fade-in">
         <CardHeader>
-          <CardTitle className="text-2xl">VC Profile Setup</CardTitle>
+          <CardTitle className="text-2xl">Profile Setup</CardTitle>
           <CardDescription>
             Complete your profile to enhance your investment experience
           </CardDescription>

@@ -7,7 +7,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useState } from "react";
@@ -57,7 +56,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                 )}
               </div>
             </TableHead>
-            <TableHead>Progress</TableHead>
             <TableHead>Date Added</TableHead>
           </TableRow>
         </TableHeader>
@@ -70,9 +68,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
             >
               <TableCell className="font-medium">{company.name}</TableCell>
               <TableCell>{company.overallScore}/5</TableCell>
-              <TableCell>
-                <Progress value={company.overallScore * 20} className="h-2 w-32" />
-              </TableCell>
               <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
             </TableRow>
           ))}

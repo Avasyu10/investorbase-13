@@ -150,6 +150,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
             src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
             className="w-full h-[80vh] border-0"
             title={`${report.title} PDF`}
+            sandbox="allow-scripts allow-same-origin"
           />
         ) : (
           <div className="flex justify-center items-center h-[80vh]">
