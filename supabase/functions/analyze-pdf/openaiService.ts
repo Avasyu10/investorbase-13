@@ -1,3 +1,4 @@
+
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
 const prompt = `
@@ -101,6 +102,10 @@ ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" a
         }
       };
 
+      // Store the prompt that was sent to the model
+      const promptSent = JSON.stringify(requestBody);
+      console.log("Prompt sent to model:", promptSent);
+
       const geminiResponse = await fetch(urlWithApiKey, {
         method: "POST",
         headers: {
@@ -135,6 +140,10 @@ ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" a
 
       const geminiData = await geminiResponse.json();
       console.log("Received Gemini response");
+
+      // Store the raw response received from the model
+      const responseReceived = JSON.stringify(geminiData);
+      console.log("Response received from model:", responseReceived);
 
       // Parse the analysis result
       try {
@@ -171,6 +180,10 @@ ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" a
           console.warn("Warning: overallScore is not a number, setting default value");
           parsedContent.overallScore = 3; // Default score
         }
+        
+        // Add prompt and response to the parsed content
+        parsedContent.promptSent = promptSent;
+        parsedContent.responseReceived = responseReceived;
         
         return parsedContent;
       } catch (e) {

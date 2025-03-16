@@ -26,7 +26,9 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         name: companyName,
         overall_score: overallScore,
         report_id: report.id, // Link company back to the report
-        assessment_points: analysis.assessmentPoints || [] // Store assessment points array
+        assessment_points: analysis.assessmentPoints || [], // Store assessment points array
+        prompt_sent: analysis.promptSent || null, // Store the prompt sent to the LLM
+        response_received: analysis.responseReceived || null // Store the raw response from the LLM
       })
       .select()
       .single();
