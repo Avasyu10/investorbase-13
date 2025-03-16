@@ -45,30 +45,30 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     }
   };
 
-  // Fix sorting logic
+  // Create a properly sorted copy of the companies array
   const sortedCompanies = [...companies].sort((a, b) => {
     if (sortField === 'overallScore') {
       return sortDirection === 'desc' 
         ? b.overallScore - a.overallScore 
         : a.overallScore - b.overallScore;
-    } else if (sortField === 'name') {
-      // Fix name sorting - ensure case insensitive comparison
-      const nameA = a.name.toLowerCase();
-      const nameB = b.name.toLowerCase();
+    } 
+    
+    if (sortField === 'name') {
+      const nameA = String(a.name).toLowerCase();
+      const nameB = String(b.name).toLowerCase();
       return sortDirection === 'asc'
         ? nameA.localeCompare(nameB)
         : nameB.localeCompare(nameA);
-    } else { // createdAt
-      // Fix date sorting by ensuring proper date comparison
-      // First convert string dates to Date objects then to timestamps
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-      
-      // Ensure proper date comparison
-      return sortDirection === 'desc'
-        ? dateB - dateA
-        : dateA - dateB;
-    }
+    } 
+    
+    // createdAt sorting
+    // Ensure we have proper date objects for comparison
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    
+    return sortDirection === 'desc'
+      ? dateB - dateA
+      : dateA - dateB;
   });
 
   // Helper to render sort arrows

@@ -29,11 +29,15 @@ export function CompaniesList() {
     
     return [...companies].sort((a, b) => {
       if (sortBy === "name") {
-        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        const nameA = String(a.name).toLowerCase();
+        const nameB = String(b.name).toLowerCase();
+        return nameA.localeCompare(nameB);
       } else if (sortBy === "score") {
         return b.overallScore - a.overallScore;
       } else {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
       }
     });
   }, [companies, sortBy]);
