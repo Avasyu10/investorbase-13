@@ -10,7 +10,7 @@ import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from "@/lib/companyData";
 const SectionPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { companyId } = useParams();
+  const { companyId, sectionId } = useParams();
   const [companyName, setCompanyName] = useState("");
 
   useEffect(() => {

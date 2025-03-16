@@ -40,11 +40,11 @@ function App() {
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/company/:companyId" element={<CompanyPage />} />
-                  <Route path="/company/:companyId/section/:sectionType" element={<SectionPage />} />
+                  <Route path="/company/:companyId/section/:sectionId" element={<SectionPage />} />
+                  <Route path="/company/:companyId/analysis" element={<AnalysisSummary />} />
                   <Route path="/reports/:id" element={<Report />} />
                   <Route path="/report/:reportId" element={<Report />} />
                   <Route path="/upload" element={<UploadReport />} />
-                  <Route path="/summary/:reportId" element={<AnalysisSummary />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/profile/setup" element={<ProfileSetup />} />
                   <Route path="*" element={<NotFound />} />

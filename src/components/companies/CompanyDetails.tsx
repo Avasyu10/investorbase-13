@@ -13,7 +13,7 @@ export function CompanyDetails() {
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
 
-  const handleSectionClick = (sectionId: number) => {
+  const handleSectionClick = (sectionId: number | string) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
   };
 
