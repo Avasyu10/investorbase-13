@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface CompaniesTableProps {
   companies: CompanyListItem[];
@@ -20,6 +20,47 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
   // Track both the sort field and direction
   const [sortField, setSortField] = useState<'overallScore' | 'name' | 'createdAt'>('overallScore');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  // Create a state to hold sorted companies
+  const [sortedCompanies, setSortedCompanies] = useState<CompanyListItem[]>([]);
+
+  useEffect(() => {
+    // Sort companies whenever the original list, sortField, or sortDirection changes
+    if (companies.length === 0) {
+      setSortedCompanies([]);
+      return;
+    }
+
+    const sorted = [...companies].sort((a, b) => {
+      if (sortField === 'overallScore') {
+        return sortDirection === 'desc' 
+          ? (b.overallScore || 0) - (a.overallScore || 0) 
+          : (a.overallScore || 0) - (b.overallScore || 0);
+      } 
+      
+      if (sortField === 'name') {
+        const nameA = String(a.name || '').toLowerCase();
+        const nameB = String(b.name || '').toLowerCase();
+        return sortDirection === 'asc'
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA);
+      } 
+      
+      // createdAt sorting
+      try {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        
+        return sortDirection === 'desc'
+          ? dateB - dateA
+          : dateA - dateB;
+      } catch (error) {
+        console.error("Error sorting dates:", error);
+        return 0;
+      }
+    });
+
+    setSortedCompanies(sorted);
+  }, [companies, sortField, sortDirection]);
 
   if (companies.length === 0) {
     return (
@@ -44,32 +85,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
       }
     }
   };
-
-  // Create a properly sorted copy of the companies array
-  const sortedCompanies = [...companies].sort((a, b) => {
-    if (sortField === 'overallScore') {
-      return sortDirection === 'desc' 
-        ? b.overallScore - a.overallScore 
-        : a.overallScore - b.overallScore;
-    } 
-    
-    if (sortField === 'name') {
-      const nameA = String(a.name).toLowerCase();
-      const nameB = String(b.name).toLowerCase();
-      return sortDirection === 'asc'
-        ? nameA.localeCompare(nameB)
-        : nameB.localeCompare(nameA);
-    } 
-    
-    // createdAt sorting
-    // Ensure we have proper date objects for comparison
-    const dateA = new Date(a.createdAt).getTime();
-    const dateB = new Date(b.createdAt).getTime();
-    
-    return sortDirection === 'desc'
-      ? dateB - dateA
-      : dateA - dateB;
-  });
 
   // Helper to render sort arrows
   const renderSortArrow = (field: 'overallScore' | 'name' | 'createdAt') => {

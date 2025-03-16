@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -23,23 +24,34 @@ export function CompaniesList() {
   const { companies, isLoading } = useCompanies();
   const [sortBy, setSortBy] = useState<SortOption>("name");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [sortedCompanies, setSortedCompanies] = useState<CompanyListItem[]>([]);
 
-  const sortedCompanies = useMemo(() => {
-    if (!companies) return [];
+  useEffect(() => {
+    if (!companies || companies.length === 0) {
+      setSortedCompanies([]);
+      return;
+    }
     
-    return [...companies].sort((a, b) => {
+    const sorted = [...companies].sort((a, b) => {
       if (sortBy === "name") {
-        const nameA = String(a.name).toLowerCase();
-        const nameB = String(b.name).toLowerCase();
+        const nameA = String(a.name || '').toLowerCase();
+        const nameB = String(b.name || '').toLowerCase();
         return nameA.localeCompare(nameB);
       } else if (sortBy === "score") {
-        return b.overallScore - a.overallScore;
+        return (b.overallScore || 0) - (a.overallScore || 0);
       } else {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA;
+        try {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        } catch (error) {
+          console.error("Error sorting dates:", error);
+          return 0;
+        }
       }
     });
+    
+    setSortedCompanies(sorted);
   }, [companies, sortBy]);
 
   const handleCompanyClick = (companyId: number) => {
