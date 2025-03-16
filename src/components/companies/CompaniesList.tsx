@@ -29,7 +29,7 @@ export function CompaniesList() {
     
     return [...companies].sort((a, b) => {
       if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       } else if (sortBy === "score") {
         return b.overallScore - a.overallScore;
       } else {

@@ -59,29 +59,6 @@ const transformSections = (companies: typeof COMPANIES_DETAILED_DATA_WITH_ASSESS
 // Transform the detailed company data
 export const mockCompanyDetails: Record<number, CompanyDetailed> = transformSections(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT);
 
-// Mock section detailed data generator
-export async function getMockSectionDetails(companyId: number, sectionId: number | string): Promise<SectionDetailed | null> {
-  // Add a small delay to simulate network latency
-  await delay(300);
-  
-  const company = mockCompanyDetails[companyId];
-  if (!company) return null;
-
-  const numericSectionId = typeof sectionId === 'string' 
-    ? Number(sectionId.replace('sec', '')) 
-    : sectionId;
-    
-  const section = company.sections.find(s => s.id === numericSectionId);
-  if (!section) return null;
-
-  return {
-    ...section,
-    detailedContent: getSectionDetailedContent(section.type),
-    strengths: getStrengths(section.type),
-    weaknesses: getWeaknesses(section.type),
-  };
-}
-
 // Mock API function for getting companies with pagination and filtering
 export async function getMockCompanies(
   params?: PaginationParams & CompanyFilterParams
@@ -148,6 +125,29 @@ export async function getMockCompanies(
       limit,
       totalPages: Math.ceil(filteredCompanies.length / limit),
     },
+  };
+}
+
+// Mock section detailed data generator
+export async function getMockSectionDetails(companyId: number, sectionId: number | string): Promise<SectionDetailed | null> {
+  // Add a small delay to simulate network latency
+  await delay(300);
+  
+  const company = mockCompanyDetails[companyId];
+  if (!company) return null;
+
+  const numericSectionId = typeof sectionId === 'string' 
+    ? Number(sectionId.replace('sec', '')) 
+    : sectionId;
+    
+  const section = company.sections.find(s => s.id === numericSectionId);
+  if (!section) return null;
+
+  return {
+    ...section,
+    detailedContent: getSectionDetailedContent(section.type),
+    strengths: getStrengths(section.type),
+    weaknesses: getWeaknesses(section.type),
   };
 }
 
