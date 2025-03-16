@@ -107,9 +107,9 @@ export function CompaniesList() {
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Sort by name</SelectItem>
-              <SelectItem value="score">Sort by score</SelectItem>
-              <SelectItem value="date">Sort by date</SelectItem>
+              <SelectItem value="name">Sort by Name</SelectItem>
+              <SelectItem value="score">Sort by Score</SelectItem>
+              <SelectItem value="date">Sort by Date</SelectItem>
             </SelectContent>
           </Select>
         </div>
