@@ -205,6 +205,42 @@ export type Database = {
           },
         ]
       }
+      vc_profiles: {
+        Row: {
+          areas_of_interest: string[] | null
+          companies_invested: string[] | null
+          created_at: string
+          fund_name: string | null
+          fund_size: string | null
+          fund_thesis_url: string | null
+          id: string
+          investment_stage: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          areas_of_interest?: string[] | null
+          companies_invested?: string[] | null
+          created_at?: string
+          fund_name?: string | null
+          fund_size?: string | null
+          fund_thesis_url?: string | null
+          id: string
+          investment_stage?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          areas_of_interest?: string[] | null
+          companies_invested?: string[] | null
+          created_at?: string
+          fund_name?: string | null
+          fund_size?: string | null
+          fund_thesis_url?: string | null
+          id?: string
+          investment_stage?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       website_scrapes: {
         Row: {
           content: string | null

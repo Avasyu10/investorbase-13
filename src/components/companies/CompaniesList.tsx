@@ -10,16 +10,20 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { ListFilter } from "lucide-react";
+import { ListFilter, Grid, Table as TableIcon } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyListItem } from "@/lib/api/apiContract";
+import { Button } from "@/components/ui/button";
+import { CompaniesTable } from "./CompaniesTable";
 
-type SortOption = "name" | "score";
+type SortOption = "name" | "score" | "date";
+type ViewMode = "grid" | "table";
 
 export function CompaniesList() {
   const navigate = useNavigate();
   const { companies, isLoading } = useCompanies();
   const [sortBy, setSortBy] = useState<SortOption>("name");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // Sort companies based on the selected option
   const sortedCompanies = useMemo(() => {
@@ -28,8 +32,11 @@ export function CompaniesList() {
     return [...companies].sort((a, b) => {
       if (sortBy === "name") {
         return a.name.localeCompare(b.name);
-      } else {
+      } else if (sortBy === "score") {
         return b.overallScore - a.overallScore; // Sort by score descending
+      } else {
+        // Sort by date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
   }, [companies, sortBy]);
@@ -72,7 +79,28 @@ export function CompaniesList() {
           </p>
         </div>
         
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2">
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className={viewMode === "grid" ? "bg-muted" : ""}
+            >
+              <Grid className="h-4 w-4 mr-1" />
+              Grid
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className={viewMode === "table" ? "bg-muted" : ""}
+            >
+              <TableIcon className="h-4 w-4 mr-1" />
+              Table
+            </Button>
+          </div>
+          
           <Select
             value={sortBy}
             onValueChange={(value) => setSortBy(value as SortOption)}
@@ -84,40 +112,45 @@ export function CompaniesList() {
             <SelectContent>
               <SelectItem value="name">Sort by name</SelectItem>
               <SelectItem value="score">Sort by score</SelectItem>
+              <SelectItem value="date">Sort by date</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {sortedCompanies.length > 0 ? (
-          sortedCompanies.map((company) => (
-            <Card 
-              key={company.id} 
-              className="cursor-pointer transition-all hover:shadow-md"
-              onClick={() => handleCompanyClick(company.id)}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
-                <CardDescription>Overall Score: {company.overallScore}/5</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Progress 
-                  value={company.overallScore * 20} 
-                  className="h-2 mb-2" 
-                />
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Click to view detailed metrics
-                </p>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <div className="col-span-1 sm:col-span-3 text-center py-8 sm:py-12">
-            <p className="text-muted-foreground">No companies found</p>
-          </div>
-        )}
-      </div>
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {sortedCompanies.length > 0 ? (
+            sortedCompanies.map((company) => (
+              <Card 
+                key={company.id} 
+                className="cursor-pointer transition-all hover:shadow-md"
+                onClick={() => handleCompanyClick(company.id)}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
+                  <CardDescription>Overall Score: {company.overallScore}/5</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Progress 
+                    value={company.overallScore * 20} 
+                    className="h-2 mb-2" 
+                  />
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Added: {new Date(company.createdAt).toLocaleDateString()}
+                  </p>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-1 sm:col-span-3 text-center py-8 sm:py-12">
+              <p className="text-muted-foreground">No companies found</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <CompaniesTable companies={sortedCompanies} onCompanyClick={handleCompanyClick} />
+      )}
     </div>
   );
 }

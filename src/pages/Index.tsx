@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,11 @@ const Index = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     await signUpWithEmail(email, password);
+    
+    // After signup, navigate to profile setup
+    if (!isLoading) {
+      navigate('/profile/setup');
+    }
   };
 
   return (

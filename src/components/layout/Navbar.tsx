@@ -44,6 +44,18 @@ export function Navbar() {
                 </Button>
               )}
               
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                asChild
+                className="transition-colors hidden sm:flex"
+              >
+                <Link to="/profile">
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </Link>
+              </Button>
+              
               {/* Mobile navigation dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -60,6 +72,12 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={signOut} className="flex items-center">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign out
