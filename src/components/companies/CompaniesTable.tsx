@@ -51,13 +51,17 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         ? b.overallScore - a.overallScore 
         : a.overallScore - b.overallScore;
     } else if (sortField === 'name') {
+      // Use localeCompare for proper string comparison
       return sortDirection === 'asc'
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name);
     } else { // createdAt
+      // Convert string dates to timestamps for comparison
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
       return sortDirection === 'desc'
-        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        ? dateB - dateA
+        : dateA - dateB;
     }
   });
 
