@@ -23,7 +23,7 @@ export async function getReports() {
   // Get reports from the reports table without user filtering
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*, companies(id, name, overall_score)')
+    .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -44,9 +44,10 @@ export async function getReportById(id: string) {
   console.log('Fetching report with ID:', id);
   
   // Get the report from the reports table without user filtering
+  // Fix the relationship specification to avoid ambiguity
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*, companies(id, name, overall_score)')
+    .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
     .eq('id', id)
     .maybeSingle();
 
