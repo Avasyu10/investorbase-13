@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -40,6 +41,8 @@ export async function getReports() {
 }
 
 export async function getReportById(id: string) {
+  console.log('Fetching report with ID:', id);
+  
   // Get the report from the reports table without user filtering
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
@@ -53,13 +56,17 @@ export async function getReportById(id: string) {
   }
 
   if (!tableData) {
+    console.error('Report not found with ID:', id);
     throw new Error('Report not found');
   }
 
+  console.log('Report found:', tableData);
   return tableData as Report;
 }
 
 export async function downloadReport(fileUrl: string, userId?: string) {
+  console.log('Downloading report with URL:', fileUrl);
+  
   // First try with the provided path
   const { data, error } = await supabase.storage
     .from('report_pdfs')

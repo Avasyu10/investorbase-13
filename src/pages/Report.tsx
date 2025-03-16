@@ -7,7 +7,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 
 const Report = () => {
-  const { id } = useParams<{ id: string }>();
+  // Support both /report/:reportId and /reports/:id route patterns
+  const { reportId, id } = useParams<{ reportId?: string; id?: string }>();
+  const reportIdentifier = id || reportId;
+  
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -37,7 +40,7 @@ const Report = () => {
   // Don't render anything while still determining auth status
   if (isAuthenticated === null) return null;
 
-  if (!id) {
+  if (!reportIdentifier) {
     navigate("/dashboard");
     return null;
   }
@@ -53,7 +56,7 @@ const Report = () => {
         Back to reports
       </Button>
       
-      <ReportViewer reportId={id} />
+      <ReportViewer reportId={reportIdentifier} />
     </div>
   );
 };

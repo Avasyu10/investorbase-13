@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getReportById, downloadReport } from "@/lib/supabase";
+import { getReportById, downloadReport } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
 import { Loader, Calendar, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,8 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         // Create a URL for the blob
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
+        
+        console.log("PDF loaded successfully:", url);
       } catch (error) {
         console.error("Error loading PDF:", error);
         toast({
