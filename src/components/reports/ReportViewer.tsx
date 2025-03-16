@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
-import { Loader, Calendar, FileText, Download } from "lucide-react";
+import { Loader, Calendar, FileText, Download, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ReportViewerProps {
@@ -14,6 +14,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   const { toast } = useToast();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
@@ -25,6 +26,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       if (!report?.pdf_url) return;
       
       try {
+        setLoadingPdf(true);
         // Download the PDF file
         const blob = await downloadReport(report.pdf_url, report.user_id);
         setPdfBlob(blob);
@@ -38,13 +40,15 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         console.error("Error loading PDF:", error);
         toast({
           title: "Failed to load PDF",
-          description: "There was an error loading the document",
+          description: "There was an error loading the document. Please try again later.",
           variant: "destructive",
         });
+      } finally {
+        setLoadingPdf(false);
       }
     };
     
-    if (report && !pdfBlob) {
+    if (report && !pdfBlob && !loadingPdf) {
       loadPdf();
     }
     
@@ -54,7 +58,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         URL.revokeObjectURL(pdfUrl);
       }
     };
-  }, [report, pdfBlob, toast]);
+  }, [report, pdfBlob, toast, loadingPdf]);
 
   const handleDownload = async () => {
     if (!report) return;
@@ -108,7 +112,10 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center space-y-2">
-          <p className="text-destructive font-medium">Failed to load report</p>
+          <div className="flex justify-center">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+          </div>
+          <p className="text-destructive font-medium text-xl">Failed to load report</p>
           <p className="text-sm text-muted-foreground">
             {error instanceof Error ? error.message : "There was an error loading this report. Please try again later."}
           </p>

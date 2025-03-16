@@ -5,6 +5,8 @@ import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -13,6 +15,12 @@ export function CompanyDetails() {
 
   const handleSectionClick = (sectionId: number) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
+  };
+
+  const navigateToReport = () => {
+    if (company?.reportId) {
+      navigate(`/reports/${company.reportId}`);
+    }
   };
 
   if (isLoading) {
@@ -66,12 +74,26 @@ export function CompanyDetails() {
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
       <div className="mb-7 sm:mb-9">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
-          <div className="flex items-center mt-2 sm:mt-0">
-            <span className="text-xl sm:text-2xl font-bold text-primary mr-3">
-              {formattedScore}
-            </span>
-            <span className="text-sm text-muted-foreground">/5</span>
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
+          </div>
+          <div className="flex items-center gap-4 mt-2 sm:mt-0">
+            {company.reportId && (
+              <Button 
+                onClick={navigateToReport} 
+                variant="outline" 
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                View Report
+              </Button>
+            )}
+            <div className="flex items-center">
+              <span className="text-xl sm:text-2xl font-bold text-primary mr-3">
+                {formattedScore}
+              </span>
+              <span className="text-sm text-muted-foreground">/5</span>
+            </div>
           </div>
         </div>
         
