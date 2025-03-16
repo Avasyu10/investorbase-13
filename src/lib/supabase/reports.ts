@@ -68,49 +68,72 @@ export async function getReportById(id: string) {
 export async function downloadReport(fileUrl: string, userId?: string) {
   console.log('Downloading report with URL:', fileUrl);
   
-  // First try with the provided path
-  const { data, error } = await supabase.storage
-    .from('report_pdfs')
-    .download(fileUrl);
-
-  if (error) {
-    console.error('Error with primary path, trying fallback:', error);
-    
-    // Try with the old path structure (with user ID)
-    const parts = fileUrl.split('/');
-    const simpleFileName = parts[parts.length - 1];
-    
-    const { data: fallbackData, error: fallbackError } = await supabase.storage
+  try {
+    // First try with the provided path
+    const { data, error } = await supabase.storage
       .from('report_pdfs')
-      .download(simpleFileName);
+      .download(fileUrl);
+
+    if (error) {
+      console.error('Error with primary path, trying fallback:', error);
       
-    if (fallbackError) {
-      console.error('Error with fallback path:', fallbackError);
+      // Try with the old path structure (with user ID)
+      const parts = fileUrl.split('/');
+      const simpleFileName = parts[parts.length - 1];
       
-      // Last attempt: try with user ID if provided
-      if (userId) {
-        const userPath = `${userId}/${fileUrl}`;
-        console.log('Trying with user path:', userPath);
-        
-        const { data: userPathData, error: userPathError } = await supabase.storage
+      try {
+        const { data: fallbackData, error: fallbackError } = await supabase.storage
           .from('report_pdfs')
-          .download(userPath);
+          .download(simpleFileName);
           
-        if (userPathError) {
-          console.error('All download attempts failed:', userPathError);
-          throw userPathError;
+        if (fallbackError) {
+          console.error('Error with fallback path:', fallbackError);
+          
+          // Last attempt: try with user ID if provided
+          if (userId) {
+            const userPath = `${userId}/${fileUrl}`;
+            console.log('Trying with user path:', userPath);
+            
+            try {
+              const { data: userPathData, error: userPathError } = await supabase.storage
+                .from('report_pdfs')
+                .download(userPath);
+                
+              if (userPathError) {
+                console.error('All download attempts failed:', userPathError);
+                throw userPathError;
+              }
+              
+              console.log('Successfully downloaded with user path');
+              return userPathData;
+            } catch (nestedError) {
+              console.error('Failed with user path approach:', nestedError);
+              throw nestedError;
+            }
+          }
+          
+          throw fallbackError;
         }
         
-        return userPathData;
+        console.log('Successfully downloaded with fallback path');
+        return fallbackData;
+      } catch (innerError) {
+        console.error('Error in fallback approach:', innerError);
+        throw innerError;
       }
-      
-      throw fallbackError;
     }
-    
-    return fallbackData;
-  }
 
-  return data;
+    console.log('Successfully downloaded with primary path');
+    return data;
+  } catch (error) {
+    console.error('Failed to download report:', error);
+    toast({
+      title: "Error loading PDF",
+      description: "Could not download the PDF file. Please try again later.",
+      variant: "destructive"
+    });
+    throw error;
+  }
 }
 
 export async function uploadReport(file: File, title: string, description: string = '') {

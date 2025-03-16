@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId],
@@ -22,13 +23,27 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   });
 
   useEffect(() => {
+    // Clean up previous PDF URL when component unmounts or when report changes
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [reportId]);
+
+  useEffect(() => {
     const loadPdf = async () => {
       if (!report?.pdf_url) return;
       
       try {
         setLoadingPdf(true);
+        
         // Download the PDF file
         const blob = await downloadReport(report.pdf_url, report.user_id);
+        if (!blob) {
+          throw new Error("Could not download PDF");
+        }
+        
         setPdfBlob(blob);
         
         // Create a URL for the blob
@@ -51,20 +66,23 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     if (report && !pdfBlob && !loadingPdf) {
       loadPdf();
     }
-    
-    // Cleanup function
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
-    };
   }, [report, pdfBlob, toast, loadingPdf]);
 
   const handleDownload = async () => {
     if (!report) return;
     
     try {
-      const blob = pdfBlob || await downloadReport(report.pdf_url, report.user_id);
+      let blob = pdfBlob;
+      
+      // If we don't have the blob yet, download it
+      if (!blob) {
+        blob = await downloadReport(report.pdf_url, report.user_id);
+      }
+      
+      if (!blob) {
+        throw new Error("Could not download PDF");
+      }
+      
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -95,6 +113,40 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       month: 'long', 
       day: 'numeric' 
     }).format(date);
+  };
+
+  const reloadPdf = async () => {
+    if (!report) return;
+    
+    // Reset state
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+    setPdfBlob(null);
+    
+    // Force reload
+    try {
+      setLoadingPdf(true);
+      const blob = await downloadReport(report.pdf_url, report.user_id);
+      setPdfBlob(blob);
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+      
+      toast({
+        title: "PDF reloaded",
+        description: "The document has been refreshed",
+      });
+    } catch (error) {
+      console.error("Error reloading PDF:", error);
+      toast({
+        title: "Failed to reload PDF",
+        description: "There was an error refreshing the document",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPdf(false);
+    }
   };
 
   if (isLoading) {
@@ -145,6 +197,16 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
             <Download className="mr-2 h-4 w-4" />
             Download PDF
           </Button>
+          {loadingPdf ? null : (
+            <Button 
+              variant="outline" 
+              onClick={reloadPdf} 
+              className="transition-all duration-200 hover:shadow-md"
+            >
+              <Loader className="mr-2 h-4 w-4" />
+              Reload
+            </Button>
+          )}
         </div>
       </div>
       
@@ -156,6 +218,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       <div className="w-full bg-card border rounded-lg overflow-hidden shadow-sm">
         {pdfUrl ? (
           <iframe
+            ref={iframeRef}
             src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
             className="w-full h-[80vh] border-0"
             title={`${report.title} PDF`}
@@ -163,7 +226,24 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
           />
         ) : (
           <div className="flex justify-center items-center h-[80vh]">
-            <Loader className="h-8 w-8 animate-spin text-primary" />
+            {loadingPdf ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading PDF document...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <p className="text-sm text-destructive">Failed to load PDF</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={reloadPdf}
+                >
+                  Try again
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
