@@ -20,41 +20,39 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
   // Track both the sort field and direction
   const [sortField, setSortField] = useState<'overallScore' | 'name' | 'createdAt'>('overallScore');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  // Create a state to hold sorted companies
   const [sortedCompanies, setSortedCompanies] = useState<CompanyListItem[]>([]);
 
+  // Apply sorting whenever companies, sortField, or sortDirection change
   useEffect(() => {
-    // Sort companies whenever the original list, sortField, or sortDirection changes
-    if (companies.length === 0) {
+    if (!companies || companies.length === 0) {
       setSortedCompanies([]);
       return;
     }
 
     const sorted = [...companies].sort((a, b) => {
-      if (sortField === 'overallScore') {
-        return sortDirection === 'desc' 
-          ? (b.overallScore || 0) - (a.overallScore || 0) 
-          : (a.overallScore || 0) - (b.overallScore || 0);
-      } 
-      
       if (sortField === 'name') {
-        const nameA = String(a.name || '').toLowerCase();
-        const nameB = String(b.name || '').toLowerCase();
-        return sortDirection === 'asc'
-          ? nameA.localeCompare(nameB)
+        // Handle name sorting (case-insensitive)
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return sortDirection === 'asc' 
+          ? nameA.localeCompare(nameB) 
           : nameB.localeCompare(nameA);
       } 
       
-      // createdAt sorting
+      if (sortField === 'overallScore') {
+        // Handle score sorting
+        const scoreA = a.overallScore || 0;
+        const scoreB = b.overallScore || 0;
+        return sortDirection === 'desc' ? scoreB - scoreA : scoreA - scoreB;
+      }
+      
+      // Handle date sorting
       try {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
-        
-        return sortDirection === 'desc'
-          ? dateB - dateA
-          : dateA - dateB;
+        return sortDirection === 'desc' ? dateB - dateA : dateA - dateB;
       } catch (error) {
-        console.error("Error sorting dates:", error);
+        console.error("Date sorting error:", error, a.createdAt, b.createdAt);
         return 0;
       }
     });
@@ -62,7 +60,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     setSortedCompanies(sorted);
   }, [companies, sortField, sortDirection]);
 
-  if (companies.length === 0) {
+  if (!companies || companies.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No companies found</p>
@@ -77,12 +75,8 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     } else {
       // If clicking a new field, set it and use default direction
       setSortField(field);
-      // Default to desc for score, asc for name, desc for date
-      if (field === 'name') {
-        setSortDirection('asc');
-      } else {
-        setSortDirection('desc');
-      }
+      // Default to desc for score and date, asc for name
+      setSortDirection(field === 'name' ? 'asc' : 'desc');
     }
   };
 
@@ -103,19 +97,28 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         <TableHeader>
           <TableRow>
             <TableHead>
-              <div className="flex items-center cursor-pointer" onClick={() => toggleSort('name')}>
+              <div 
+                className="flex items-center cursor-pointer" 
+                onClick={() => toggleSort('name')}
+              >
                 Name
                 {renderSortArrow('name')}
               </div>
             </TableHead>
             <TableHead>
-              <div className="flex items-center cursor-pointer" onClick={() => toggleSort('overallScore')}>
+              <div 
+                className="flex items-center cursor-pointer" 
+                onClick={() => toggleSort('overallScore')}
+              >
                 Score
                 {renderSortArrow('overallScore')}
               </div>
             </TableHead>
             <TableHead>
-              <div className="flex items-center cursor-pointer" onClick={() => toggleSort('createdAt')}>
+              <div 
+                className="flex items-center cursor-pointer" 
+                onClick={() => toggleSort('createdAt')}
+              >
                 Date Added
                 {renderSortArrow('createdAt')}
               </div>

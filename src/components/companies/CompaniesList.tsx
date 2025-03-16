@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +21,7 @@ type ViewMode = "grid" | "table";
 export function CompaniesList() {
   const navigate = useNavigate();
   const { companies, isLoading } = useCompanies();
-  const [sortBy, setSortBy] = useState<SortOption>("name");
+  const [sortBy, setSortBy] = useState<SortOption>("score");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [sortedCompanies, setSortedCompanies] = useState<CompanyListItem[]>([]);
 
@@ -34,20 +33,24 @@ export function CompaniesList() {
     
     const sorted = [...companies].sort((a, b) => {
       if (sortBy === "name") {
-        const nameA = String(a.name || '').toLowerCase();
-        const nameB = String(b.name || '').toLowerCase();
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
         return nameA.localeCompare(nameB);
-      } else if (sortBy === "score") {
-        return (b.overallScore || 0) - (a.overallScore || 0);
-      } else {
-        try {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
-          return dateB - dateA;
-        } catch (error) {
-          console.error("Error sorting dates:", error);
-          return 0;
-        }
+      } 
+      
+      if (sortBy === "score") {
+        const scoreA = a.overallScore || 0;
+        const scoreB = b.overallScore || 0;
+        return scoreB - scoreA;
+      }
+      
+      try {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      } catch (error) {
+        console.error("Date sorting error:", error, a.createdAt, b.createdAt);
+        return 0;
       }
     });
     
@@ -56,6 +59,15 @@ export function CompaniesList() {
 
   const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
+  };
+
+  const getTableSortField = (option: SortOption): 'name' | 'overallScore' | 'createdAt' => {
+    switch (option) {
+      case 'name': return 'name';
+      case 'score': return 'overallScore';
+      case 'date': return 'createdAt';
+      default: return 'overallScore';
+    }
   };
 
   if (isLoading) {
@@ -162,7 +174,10 @@ export function CompaniesList() {
           )}
         </div>
       ) : (
-        <CompaniesTable companies={sortedCompanies} onCompanyClick={handleCompanyClick} />
+        <CompaniesTable 
+          companies={sortedCompanies} 
+          onCompanyClick={handleCompanyClick} 
+        />
       )}
     </div>
   );
