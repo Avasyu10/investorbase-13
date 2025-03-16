@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,9 +22,8 @@ export function CompaniesList() {
   const navigate = useNavigate();
   const { companies, isLoading } = useCompanies();
   const [sortBy, setSortBy] = useState<SortOption>("name");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
-  // Sort companies based on the selected option
   const sortedCompanies = useMemo(() => {
     if (!companies) return [];
     
@@ -33,9 +31,8 @@ export function CompaniesList() {
       if (sortBy === "name") {
         return a.name.localeCompare(b.name);
       } else if (sortBy === "score") {
-        return b.overallScore - a.overallScore; // Sort by score descending
+        return b.overallScore - a.overallScore;
       } else {
-        // Sort by date
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
