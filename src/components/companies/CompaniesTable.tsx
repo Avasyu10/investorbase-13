@@ -18,6 +18,7 @@ interface CompaniesTableProps {
 }
 
 export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
+  // Default to 'desc' for showing higher scores first
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   if (companies.length === 0) {
@@ -34,9 +35,9 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
 
   const sortedCompanies = [...companies].sort((a, b) => {
     if (sortDirection === 'desc') {
-      return b.overallScore - a.overallScore; // Higher scores first
+      return b.overallScore - a.overallScore; // Higher scores first (desc order)
     } else {
-      return a.overallScore - b.overallScore; // Lower scores first
+      return a.overallScore - b.overallScore; // Lower scores first (asc order)
     }
   });
 
