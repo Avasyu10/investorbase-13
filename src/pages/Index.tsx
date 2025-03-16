@@ -50,7 +50,7 @@ const Index = () => {
         <h1 className="text-4xl font-bold tracking-tight">InvestorBase</h1>
         
         <p className="text-xl text-muted-foreground mb-6">
-          Access and download your investment reports securely from anywhere.
+          Deal Flow, Reimagined.
         </p>
         
         <Card className="w-full">
