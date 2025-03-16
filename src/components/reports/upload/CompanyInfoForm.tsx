@@ -107,10 +107,11 @@ export function CompanyInfoForm({
       </div>
       
       <div className="space-y-2">
-        <Label>Founder LinkedIn Profiles (Optional)</Label>
+        <Label htmlFor="founderLinkedIn">Founder LinkedIn Profiles (Optional)</Label>
         {founderLinkedIns.map((linkedin, index) => (
           <div key={index} className="flex gap-2 mb-2">
             <Input
+              id={index === 0 ? "founderLinkedIn" : `founderLinkedIn${index}`}
               value={linkedin}
               onChange={(e) => updateFounderLinkedIn(index, e.target.value)}
               placeholder="LinkedIn profile URL"

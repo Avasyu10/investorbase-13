@@ -17,7 +17,8 @@ interface CompaniesTableProps {
 }
 
 export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
-  // Default to 'desc' for showing higher scores first
+  // Track both the sort field and direction
+  const [sortField, setSortField] = useState<'overallScore' | 'name' | 'createdAt'>('overallScore');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   if (companies.length === 0) {
@@ -28,35 +29,72 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     );
   }
 
-  const toggleSortDirection = () => {
-    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+  const toggleSort = (field: 'overallScore' | 'name' | 'createdAt') => {
+    if (sortField === field) {
+      // If clicking the same field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // If clicking a new field, set it and use default direction
+      setSortField(field);
+      // Default to desc for score, asc for name, desc for date
+      if (field === 'name') {
+        setSortDirection('asc');
+      } else {
+        setSortDirection('desc');
+      }
+    }
   };
 
   const sortedCompanies = [...companies].sort((a, b) => {
-    if (sortDirection === 'desc') {
-      return b.overallScore - a.overallScore; // Higher scores first (desc order)
-    } else {
-      return a.overallScore - b.overallScore; // Lower scores first (asc order)
+    if (sortField === 'overallScore') {
+      return sortDirection === 'desc' 
+        ? b.overallScore - a.overallScore 
+        : a.overallScore - b.overallScore;
+    } else if (sortField === 'name') {
+      return sortDirection === 'asc'
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name);
+    } else { // createdAt
+      return sortDirection === 'desc'
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     }
   });
+
+  // Helper to render sort arrows
+  const renderSortArrow = (field: 'overallScore' | 'name' | 'createdAt') => {
+    if (sortField !== field) return null;
+    
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ArrowDown className="h-4 w-4 ml-1" />
+    );
+  };
 
   return (
     <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
             <TableHead>
-              <div className="flex items-center cursor-pointer" onClick={toggleSortDirection}>
-                Score
-                {sortDirection === 'asc' ? (
-                  <ArrowUp className="h-4 w-4 ml-1" />
-                ) : (
-                  <ArrowDown className="h-4 w-4 ml-1" />
-                )}
+              <div className="flex items-center cursor-pointer" onClick={() => toggleSort('name')}>
+                Name
+                {renderSortArrow('name')}
               </div>
             </TableHead>
-            <TableHead>Date Added</TableHead>
+            <TableHead>
+              <div className="flex items-center cursor-pointer" onClick={() => toggleSort('overallScore')}>
+                Score
+                {renderSortArrow('overallScore')}
+              </div>
+            </TableHead>
+            <TableHead>
+              <div className="flex items-center cursor-pointer" onClick={() => toggleSort('createdAt')}>
+                Date Added
+                {renderSortArrow('createdAt')}
+              </div>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

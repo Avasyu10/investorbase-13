@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -301,45 +300,6 @@ export function ReportUpload() {
             isDisabled={isProcessing}
           />
           
-          {/* LinkedIn Profiles */}
-          <div className="space-y-2">
-            <h3 className="text-md font-medium">Founder LinkedIn Profiles</h3>
-            {founderLinkedIns.map((profile, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={profile}
-                  onChange={(e) => updateLinkedInProfile(index, e.target.value)}
-                  placeholder="LinkedIn Profile URL"
-                  className="flex-1 p-2 border rounded"
-                  disabled={isProcessing}
-                />
-                {founderLinkedIns.length > 1 && (
-                  <Button 
-                    type="button" 
-                    variant="destructive" 
-                    size="icon"
-                    onClick={() => removeLinkedInProfile(index)}
-                    disabled={isProcessing}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addLinkedInProfile}
-              disabled={isProcessing}
-              className="mt-2"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add LinkedIn Profile
-            </Button>
-          </div>
-          
           <FileUploadZone
             id="file"
             label="Pitch Deck"
@@ -351,7 +311,6 @@ export function ReportUpload() {
             disabled={isProcessing}
           />
           
-          {/* Multiple Supplementary Files */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <h3 className="text-md font-medium">Supplementary Materials</h3>
