@@ -1,70 +1,46 @@
 
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Report } from "@/lib/supabase";
-import { formatDistanceToNow } from "date-fns";
-import { Calendar, FileText } from "lucide-react";
+import { FileText, Calendar } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface ReportCardProps {
   report: Report;
 }
 
 export function ReportCard({ report }: ReportCardProps) {
-  // Format the date as "X days/months ago"
-  const formattedDate = formatDistanceToNow(new Date(report.created_at), { 
-    addSuffix: true 
-  });
-  
-  // Add status handling
-  let statusDisplay;
-  
-  if (report.analysis_status === 'completed') {
-    statusDisplay = (
-      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-        Completed
-      </span>
-    );
-  } else if (report.analysis_status === 'error') {
-    statusDisplay = (
-      <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
-        Error
-      </span>
-    );
-  } else if (report.analysis_status === 'pending') {
-    statusDisplay = (
-      <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">
-        Processing
-      </span>
-    );
-  }
-  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }).format(date);
+  };
+
   return (
-    <Link to={`/reports/${report.id}`} className="block h-full">
-      <Card className="h-full transition-all duration-200 hover:shadow-md border-2 hover:border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-2">
-            <FileText className="h-5 w-5 mt-0.5 text-muted-foreground" />
-            <div>
-              <h3 className="font-medium leading-tight">{report.title}</h3>
-              
-              {report.description && (
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {report.description}
-                </p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex justify-between pt-2">
-          <div className="flex items-center text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3 mr-1" />
-            {formattedDate}
-          </div>
-          
-          {statusDisplay}
-        </CardFooter>
-      </Card>
-    </Link>
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col">
+      <CardHeader className="pb-2 flex-none">
+        <div className="flex items-start gap-2">
+          <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
+          <CardTitle className="line-clamp-5 min-h-[120px] text-lg">{report.title}</CardTitle>
+        </div>
+        <CardDescription className="flex items-center gap-1 text-xs">
+          <Calendar className="h-3 w-3" />
+          <span>{formatDate(report.created_at)}</span>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <p className="text-sm text-muted-foreground line-clamp-2">{report.description}</p>
+      </CardContent>
+      <CardFooter className="flex-none pb-6">
+        <Button asChild className="w-full transition-all duration-200 hover:shadow-md">
+          <Link to={`/reports/${report.id}`}>
+            View Report
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
