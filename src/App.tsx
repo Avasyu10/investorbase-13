@@ -20,6 +20,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "@/components/ui/toaster";
 import Profile from "@/pages/Profile";
 import ProfileSetup from "@/pages/ProfileSetup";
+import ProfileEdit from "@/pages/ProfileEdit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Create a new query client instance
@@ -47,6 +48,7 @@ function App() {
                   <Route path="/upload" element={<UploadReport />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/profile/setup" element={<ProfileSetup />} />
+                  <Route path="/profile/edit" element={<ProfileEdit />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
