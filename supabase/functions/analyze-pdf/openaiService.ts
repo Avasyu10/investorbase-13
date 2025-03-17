@@ -323,6 +323,7 @@ Analyze each section with a structured breakdown:
 9. **The Ask**  
 
 ### **For Each Section, Provide:**  
+- **Data from Market Research, Latest News, and Trends Across The Industry from the Internet for Comparision and Benchmarking**  
 - **A detailed description (at least 3-4 sentences) explaining key insights.**  
 - **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
 - **5-7 strengths.**  
