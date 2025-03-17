@@ -8,11 +8,12 @@ import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, BarChart2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
-  const { company, isLoading } = useCompanyDetails(companyId);
+  const { company, isLoading, error } = useCompanyDetails(companyId);
 
   const handleSectionClick = (sectionId: number | string) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
@@ -53,10 +54,24 @@ export function CompanyDetails() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive">
+          <AlertDescription>
+            Error loading company details: {error}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   if (!company) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p>Company not found</p>
+        <Alert>
+          <AlertDescription>Company not found</AlertDescription>
+        </Alert>
       </div>
     );
   }
