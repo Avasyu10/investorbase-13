@@ -2,7 +2,9 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
-import { ArrowUpRight, Lightbulb, BarChart2 } from "lucide-react";
+import { ArrowUpRight, Lightbulb, BarChart2, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 interface ScoreAssessmentProps {
   company: CompanyDetailed;
@@ -20,11 +22,20 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
     if (score >= 1.5) return "text-orange-600";
     return "text-red-600";
   };
+  
+  // Get score description
+  const getScoreDescription = (score: number): string => {
+    if (score >= 4.5) return "Excellent - This company is highly appealing for investment with strong performance across key metrics";
+    if (score >= 3.5) return "Very Good - This company shows promising potential with only minor weaknesses";
+    if (score >= 2.5) return "Good - This company has solid fundamentals with some areas needing improvement";
+    if (score >= 1.5) return "Fair - This company requires significant improvements before being investment-ready";
+    return "Poor - This company needs comprehensive restructuring of its approach and strategy";
+  };
 
   // Highlight numbers in assessment points
   const highlightNumbers = (text: string) => {
     return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
-      (match) => `<span class="font-medium ${getScoreColor(formattedScore)}">${match}</span>`);
+      (match) => `<span class="font-medium text-primary">${match}</span>`);
   };
 
   return (
@@ -35,9 +46,23 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
             <BarChart2 className="h-5 w-5" />
             Overall Assessment
           </CardTitle>
-          <span className={`text-xl font-bold ${getScoreColor(formattedScore)}`}>
-            {formattedScore}/5
-          </span>
+          <div className="flex items-center">
+            <span className={`text-xl font-bold ${getScoreColor(formattedScore)}`}>
+              {formattedScore}/5
+            </span>
+            <TooltipProvider>
+              <Tooltip delayDuration={300}>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
+                  <p>{getScoreDescription(formattedScore)}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-5">

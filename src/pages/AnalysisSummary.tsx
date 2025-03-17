@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Maximize } from 'lucide-react';
+import { ChevronLeft, Maximize, HelpCircle } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ReportViewer } from '@/components/reports/ReportViewer';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -80,9 +81,23 @@ export default function AnalysisSummary() {
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <CardTitle className="text-2xl">{company.name}</CardTitle>
-            <Badge variant={getScoreVariant(company.overallScore)}>
-              Score: {formattedScore}/5
-            </Badge>
+            <div className="flex items-center">
+              <Badge variant={getScoreVariant(company.overallScore)}>
+                Score: {formattedScore}/5
+              </Badge>
+              <TooltipProvider>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
+                    <p>{getScoreDescription(company.overallScore)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <CardDescription>Complete analysis summary and market research</CardDescription>
         </CardHeader>
@@ -125,7 +140,7 @@ export default function AnalysisSummary() {
                     tick={{ fontSize: 12 }}
                   />
                   <YAxis domain={[0, 5]} tickCount={6} />
-                  <Tooltip formatter={(value) => [`${value}/5`, 'Score']} />
+                  <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
                   <Bar dataKey="score" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
@@ -147,6 +162,18 @@ export default function AnalysisSummary() {
                         value={section.score * 20} 
                         className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
                       />
+                      <TooltipProvider>
+                        <Tooltip delayDuration={300}>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                              <HelpCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
+                            <p>{getSectionScoreDescription(section.score)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {section.description || 'No description available'}
@@ -205,4 +232,12 @@ function getScoreDescription(score: number): string {
   if (score >= 2.5) return 'Good. The pitch deck is solid but has several areas that need attention.';
   if (score >= 1.5) return 'Fair. The pitch deck requires significant improvements in multiple areas.';
   return 'Poor. The pitch deck needs comprehensive revision before being presented to investors.';
+}
+
+function getSectionScoreDescription(score: number): string {
+  if (score >= 4.5) return "Excellent - This section is expertly handled and provides strong competitive advantage";
+  if (score >= 3.5) return "Very Good - This section is well executed with minor room for improvement";
+  if (score >= 2.5) return "Good - This section is solid but has several areas that need attention";
+  if (score >= 1.5) return "Fair - This section requires significant improvements";
+  return "Poor - This section needs comprehensive revision";
 }

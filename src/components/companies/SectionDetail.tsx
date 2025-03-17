@@ -2,15 +2,17 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, Menu, X, CheckCircle, XCircle, Maximize } from "lucide-react";
+import { ChevronRight, Menu, X, CheckCircle, XCircle, Maximize, ChevronLeft, HelpCircle } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function SectionDetail() {
   const { companyId, sectionId } = useParams<{ companyId: string, sectionId: string }>();
+  const navigate = useNavigate();
   const { company } = useCompanyDetails(companyId);
   const { section, isLoading } = useSectionDetails(companyId, sectionId);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -89,8 +91,29 @@ export function SectionDetail() {
     };
   };
 
+  const getScoreDescription = (score: number): string => {
+    if (score >= 4.5) return "Excellent - This aspect is expertly handled and provides strong competitive advantage";
+    if (score >= 3.5) return "Very Good - This aspect is well executed with minor room for improvement";
+    if (score >= 2.5) return "Good - This aspect is solid but has several areas that need attention";
+    if (score >= 1.5) return "Fair - This aspect requires significant improvements";
+    return "Poor - This aspect needs comprehensive revision";
+  };
+
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)]">
+      {/* Back button - Added at the top */}
+      <div className="absolute top-3 left-3 sm:top-4 sm:left-6 z-50">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(`/company/${companyId}`)}
+          className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span>Back</span>
+        </Button>
+      </div>
+
       <Button 
         variant="outline" 
         size="icon"
@@ -132,7 +155,7 @@ export function SectionDetail() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-3 sm:p-6 w-full">
+      <div className="flex-1 p-3 sm:p-6 w-full pt-14 sm:pt-16">
         <Card className="border-0 shadow-card bg-card/95 backdrop-blur-sm">
           {/* Header */}
           <CardHeader className="pb-4 border-b bg-secondary/20 backdrop-blur-sm">
@@ -154,8 +177,20 @@ export function SectionDetail() {
                   <span className="font-semibold text-sm sm:text-base text-foreground mr-2">Score:</span>
                   <span className={`font-bold text-base sm:text-lg ${getScoreColor(section.score)}`}>{section.score}</span>
                   <span className="text-sm text-muted-foreground ml-1">/5</span>
+                  <TooltipProvider>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                          <HelpCircle className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
+                        <p>{getScoreDescription(section.score)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                <div className="w-24 sm:w-32">
+                <div className="w-24 sm:w-32 flex items-center">
                   <Progress 
                     value={section.score * 20} 
                     className={`h-2.5 ${
