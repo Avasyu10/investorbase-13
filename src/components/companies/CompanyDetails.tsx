@@ -61,6 +61,9 @@ export function CompanyDetails() {
   }
 
   const formattedScore = company.overallScore ? parseFloat(company.overallScore.toFixed(1)) : 0;
+  
+  // Calculate the progress percentage correctly - multiply by 20 to convert 0-5 scale to 0-100
+  const progressPercentage = formattedScore * 20; 
 
   const getScoreColor = (score: number) => {
     if (score >= 4.5) return "score-excellent";
@@ -99,7 +102,7 @@ export function CompanyDetails() {
         
         <div className="mb-5">
           <Progress 
-            value={company.overallScore * 20} 
+            value={progressPercentage} 
             className={`h-2 ${getScoreColor(company.overallScore)}`} 
           />
         </div>
