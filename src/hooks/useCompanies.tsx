@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -14,6 +13,7 @@ function mapDbCompanyToApi(company: any) {
     score: company.overall_score, // For backward compatibility
     assessmentPoints: company.assessment_points || [],
     reportId: company.report_id,
+    description: company.description || '', // Add description field
   };
 }
 
