@@ -21,8 +21,8 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       throw new Error(errorMessage);
     }
     
-    // Set a longer timeout for the edge function call (90 seconds)
-    const timeoutMs = 90000;
+    // Set a timeout for the edge function call (60 seconds)
+    const timeoutMs = 60000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
@@ -88,18 +88,6 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
           variant: "destructive"
         });
         throw new Error('Research timed out. Please try again later.');
-      }
-      
-      // If it's a network error (like 'failed to fetch'), handle it gracefully
-      if (innerError.message && innerError.message.includes('fetch')) {
-        console.error('Network error when calling research function:', innerError);
-        toast({
-          id: "research-network-error",
-          title: "Network error",
-          description: "Could not connect to the research service. Please check your internet connection and try again.",
-          variant: "destructive"
-        });
-        throw new Error('Network error when calling research function. Please try again later.');
       }
       
       // Re-throw other errors

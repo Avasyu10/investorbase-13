@@ -7,8 +7,8 @@ import { toast } from "@/hooks/use-toast";
 import { getLatestResearch } from "@/lib/supabase/research";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface LatestResearchProps {
   companyId: string;
@@ -20,7 +20,6 @@ interface LatestResearchProps {
 export function LatestResearch({ companyId, assessmentPoints, existingResearch, requestedAt }: LatestResearchProps) {
   const [research, setResearch] = useState<string | undefined>(existingResearch);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleRefresh = async () => {
     if (!assessmentPoints || assessmentPoints.length === 0) {
@@ -34,29 +33,15 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
 
     try {
       setIsLoading(true);
-      setError(null);
-      
       // Join assessment points as text for the research prompt
       const assessmentText = assessmentPoints.join("\n\n");
+      const result = await getLatestResearch(companyId, assessmentText);
       
-      // Use mock data if edge function fails (for demo purposes)
-      try {
-        const result = await getLatestResearch(companyId, assessmentText);
-        if (result && result.research) {
-          setResearch(result.research);
-        }
-      } catch (fetchError) {
-        console.error("Error fetching research:", fetchError);
-        setError("Unable to connect to research service. Please try again later.");
-        toast({
-          title: "Research service unavailable",
-          description: "Could not connect to the research service. Using cached data if available.",
-          variant: "destructive"
-        });
+      if (result && result.research) {
+        setResearch(result.research);
       }
     } catch (error) {
       console.error("Error refreshing research:", error);
-      setError("There was a problem processing the research request.");
     } finally {
       setIsLoading(false);
     }
@@ -82,15 +67,12 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     return matches || [];
   };
 
-  // Format section text - remove URLs and citations
+  // Format section text
   const formatSectionText = (text: string) => {
-    // Remove markdown formatting, URLs, and citations
+    // Remove markdown formatting
     return text
       .replace(/\*\*/g, '')  // Remove bold markers
       .replace(/\[(\d+)\]/g, '') // Remove citation markers
-      .replace(/Sources:.+$/gm, '') // Remove "Sources:" and everything after it on the same line
-      .replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
-      .replace(/\(https?:\/\/[^\)]+\)/g, '') // Remove URLs with parentheses
       .trim();
   };
 
@@ -123,14 +105,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6" />
           </div>
-        ) : error ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Research failed</AlertTitle>
-            <AlertDescription>
-              {error}
-            </AlertDescription>
-          </Alert>
         ) : sections.length > 0 ? (
           <div className="space-y-4">
             {sections.map((section, index) => {
