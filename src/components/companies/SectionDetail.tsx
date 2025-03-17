@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -71,11 +72,11 @@ export function SectionDetail() {
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 4.5) return "text-emerald-600";
-    if (score >= 3.5) return "text-blue-600";
-    if (score >= 2.5) return "text-amber-600";
-    if (score >= 1.5) return "text-orange-600";
-    return "text-red-600";
+    if (score >= 4.5) return "text-emerald-700"; // Darker for better contrast
+    if (score >= 3.5) return "text-blue-700";    // Darker for better contrast
+    if (score >= 2.5) return "text-amber-700";   // Darker for better contrast
+    if (score >= 1.5) return "text-orange-700";  // Darker for better contrast
+    return "text-red-700";                       // Darker for better contrast
   };
 
   return (
@@ -90,12 +91,12 @@ export function SectionDetail() {
       </Button>
 
       <div 
-        className={`fixed lg:relative lg:flex w-64 border-r bg-background/95 h-[calc(100vh-4rem)] top-16 z-40 transition-all duration-300 ease-in-out transform ${
+        className={`fixed lg:relative lg:flex w-64 border-r bg-muted/30 h-[calc(100vh-4rem)] top-16 z-40 transition-all duration-300 ease-in-out transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } overflow-y-auto`}
       >
         <div className="p-4 border-b">
-          <h3 className="font-medium">{company.name}</h3>
+          <h3 className="font-medium text-foreground">{company.name}</h3>
           <p className="text-sm text-muted-foreground">Sections</p>
         </div>
         <nav className="flex flex-col w-full">
@@ -103,8 +104,8 @@ export function SectionDetail() {
             <Link
               key={s.id}
               to={`/company/${companyId}/section/${s.id}`}
-              className={`flex items-center px-4 py-3 text-sm hover:bg-muted transition-colors ${
-                Number(s.id) === Number(sectionId) ? "bg-muted font-medium" : ""
+              className={`flex items-center px-4 py-3 text-sm hover:bg-muted/80 transition-colors ${
+                Number(s.id) === Number(sectionId) ? "bg-muted/80 font-medium" : ""
               }`}
               onClick={() => {
                 if (window.innerWidth < 1024) {
@@ -120,27 +121,27 @@ export function SectionDetail() {
       </div>
 
       <div className="flex-1 p-3 sm:p-6 w-full">
-        <Card className="shadow-sm">
-          <CardHeader className="pb-4 border-b bg-muted/30">
+        <Card className="shadow-md border-muted">
+          <CardHeader className="pb-4 border-b bg-secondary/50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-xl sm:text-2xl">{section.title}</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">{section.title}</CardTitle>
               <div className="flex items-center space-x-4 mt-2 sm:mt-0">
                 {company.reportId && (
                   <Button 
                     onClick={() => setShowReportModal(true)}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-background hover:bg-secondary"
                     size="sm"
                   >
                     <Maximize className="h-4 w-4" />
                     View Deck
                   </Button>
                 )}
-                <span className="font-medium text-sm sm:text-base">Score: {section.score}/5</span>
+                <span className="font-medium text-sm sm:text-base text-foreground">Score: {section.score}/5</span>
                 <div className="w-24 sm:w-32">
                   <Progress 
                     value={section.score * 20} 
-                    className={`h-2.5 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`}
+                    className={`h-2.5 ${section.score >= 4 ? 'bg-emerald-200' : section.score >= 2.5 ? 'bg-amber-200' : 'bg-red-200'}`}
                   />
                 </div>
               </div>
@@ -148,56 +149,56 @@ export function SectionDetail() {
           </CardHeader>
           <CardContent className="pt-6 sm:pt-8">
             <div className="space-y-6">
-              <div className="p-4 rounded-lg bg-muted/30 border">
-                <h3 className="text-lg font-medium mb-3">Summary</h3>
+              <div className="p-5 rounded-lg bg-secondary/40 border border-border shadow-sm">
+                <h3 className="text-lg font-medium mb-3 text-foreground">Summary</h3>
                 <p 
-                  className="text-sm sm:text-base leading-relaxed"
+                  className="text-sm sm:text-base leading-relaxed text-foreground"
                   dangerouslySetInnerHTML={{ 
                     __html: section.description.replace(/([\d.]+%|[\d.,]+|[$€£¥][\d.,]+|[\d.,]+[KMBTkmbt])/g, 
-                      match => `<span class="font-medium ${getScoreColor(section.score)}">${match}</span>`) 
+                      match => `<span class="font-semibold ${getScoreColor(section.score)}">${match}</span>`) 
                   }}
                 />
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="p-4 rounded-lg border border-green-200 bg-green-50">
-                  <h4 className="flex items-center gap-2 font-medium text-green-700 mb-3">
-                    <CheckCircle className="h-5 w-5" />
+                <div className="p-5 rounded-lg border border-emerald-300 bg-emerald-50/30 shadow-sm">
+                  <h4 className="flex items-center gap-2 font-medium text-emerald-800 mb-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-700" />
                     <span>Key Strengths</span>
                   </h4>
-                  <ul className="space-y-3 text-sm sm:text-base">
+                  <ul className="space-y-3 text-sm sm:text-base text-foreground">
                     {section.strengths && section.strengths.length > 0 ? (
                       section.strengths.map((strength, idx) => (
                         <li 
                           key={idx} 
-                          className="pl-4 border-l-2 border-green-300"
+                          className="pl-4 border-l-2 border-emerald-400"
                         >
                           {strength}
                         </li>
                       ))
                     ) : (
-                      <li className="pl-4 border-l-2 border-green-300 text-muted-foreground">No strengths data available</li>
+                      <li className="pl-4 border-l-2 border-emerald-400 text-muted-foreground">No strengths data available</li>
                     )}
                   </ul>
                 </div>
                 
-                <div className="p-4 rounded-lg border border-amber-200 bg-amber-50">
-                  <h4 className="flex items-center gap-2 font-medium text-amber-700 mb-3">
-                    <XCircle className="h-5 w-5" />
+                <div className="p-5 rounded-lg border border-amber-300 bg-amber-50/30 shadow-sm">
+                  <h4 className="flex items-center gap-2 font-medium text-amber-800 mb-3">
+                    <XCircle className="h-5 w-5 text-amber-700" />
                     <span>Areas for Improvement</span>
                   </h4>
-                  <ul className="space-y-3 text-sm sm:text-base">
+                  <ul className="space-y-3 text-sm sm:text-base text-foreground">
                     {section.weaknesses && section.weaknesses.length > 0 ? (
                       section.weaknesses.map((weakness, idx) => (
                         <li 
                           key={idx} 
-                          className="pl-4 border-l-2 border-amber-300"
+                          className="pl-4 border-l-2 border-amber-400"
                         >
                           {weakness}
                         </li>
                       ))
                     ) : (
-                      <li className="pl-4 border-l-2 border-amber-300 text-muted-foreground">No weaknesses data available</li>
+                      <li className="pl-4 border-l-2 border-amber-400 text-muted-foreground">No weaknesses data available</li>
                     )}
                   </ul>
                 </div>
