@@ -46,7 +46,7 @@ const Dashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="companies">Companies</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
           </TabsList>
           <TabsContent value="companies">
             <CompaniesList />
