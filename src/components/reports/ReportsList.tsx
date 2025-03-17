@@ -38,9 +38,9 @@ export function ReportsList() {
     <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Your Reports</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Pitch Decks</h1>
           <p className="text-muted-foreground">
-            Access and analyze your pitch deck reports
+            Access your Pitch Decks 
           </p>
         </div>
       </div>
