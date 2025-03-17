@@ -79,7 +79,7 @@ export function CompanyInfoForm({
   setFounderLinkedIns,
   isDisabled
 }: CompanyInfoFormProps) {
-  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
   
   const addFounderLinkedIn = () => {
     setFounderLinkedIns([...founderLinkedIns, ""]);
@@ -101,10 +101,9 @@ export function CompanyInfoForm({
 
   const handleIntroductionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
-    const words = text.trim().split(/\s+/).filter(Boolean);
-    setWordCount(words.length);
+    setCharCount(text.length);
     
-    if (words.length <= 50) {
+    if (text.length <= 50) {
       setBriefIntroduction(text);
     }
   };
@@ -129,14 +128,15 @@ export function CompanyInfoForm({
           id="briefIntroduction"
           value={briefIntroduction}
           onChange={handleIntroductionChange}
-          placeholder="Briefly describe your company (max 50 words)"
+          placeholder="Briefly describe your company (max 50 characters)"
           disabled={isDisabled}
           required
           className="resize-none"
-          rows={3}
+          rows={2}
+          maxLength={50}
         />
-        <p className={`text-xs ${wordCount > 50 ? 'text-red-500' : 'text-muted-foreground'}`}>
-          {wordCount}/50 words
+        <p className={`text-xs ${charCount > 50 ? 'text-red-500' : 'text-muted-foreground'}`}>
+          {charCount}/50 characters
         </p>
       </div>
       
