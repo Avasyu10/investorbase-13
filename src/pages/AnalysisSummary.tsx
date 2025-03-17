@@ -1,18 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Maximize } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ReportViewer } from '@/components/reports/ReportViewer';
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -52,14 +55,26 @@ export default function AnalysisSummary() {
 
   return (
     <div className="container max-w-5xl mx-auto px-4 py-8">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => navigate(`/company/${companyId}`)}
-        className="mb-4"
-      >
-        <ChevronLeft className="mr-1" /> Back to Company Details
-      </Button>
+      <div className="flex justify-between items-center mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/company/${companyId}`)}
+        >
+          <ChevronLeft className="mr-1" /> Back to Company Details
+        </Button>
+        
+        {company.reportId && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowReportModal(true)}
+          >
+            <Maximize className="mr-2 h-4 w-4" />
+            View Deck
+          </Button>
+        )}
+      </div>
 
       <Card className="mb-8">
         <CardHeader className="pb-3">
@@ -151,6 +166,20 @@ export default function AnalysisSummary() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Report Modal */}
+      {company.reportId && (
+        <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+          <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{company.name} - Analysis Report</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto p-1">
+              <ReportViewer reportId={company.reportId} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

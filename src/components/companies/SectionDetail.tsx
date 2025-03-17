@@ -2,16 +2,19 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, Menu, X, CheckCircle, XCircle } from "lucide-react";
+import { ChevronRight, Menu, X, CheckCircle, XCircle, Maximize } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ReportViewer } from "@/components/reports/ReportViewer";
 
 export function SectionDetail() {
   const { companyId, sectionId } = useParams<{ companyId: string, sectionId: string }>();
   const { company } = useCompanyDetails(companyId);
   const { section, isLoading } = useSectionDetails(companyId, sectionId);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   
   useEffect(() => {
     const handleResize = () => {
@@ -135,6 +138,17 @@ export function SectionDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-xl sm:text-2xl">{section.title}</CardTitle>
               <div className="flex items-center space-x-4 mt-2 sm:mt-0">
+                {company.reportId && (
+                  <Button 
+                    onClick={() => setShowReportModal(true)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    size="sm"
+                  >
+                    <Maximize className="h-4 w-4" />
+                    View Deck
+                  </Button>
+                )}
                 <span className="font-medium text-sm sm:text-base">Score: {section.score}/5</span>
                 <div className="w-24 sm:w-32">
                   <Progress 
@@ -200,6 +214,20 @@ export function SectionDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Report Modal */}
+      {company.reportId && (
+        <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+          <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{company.name} - {section.title}</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto p-1">
+              <ReportViewer reportId={company.reportId} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
