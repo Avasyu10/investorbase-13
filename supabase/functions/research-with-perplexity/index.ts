@@ -39,7 +39,7 @@ Focus on:
 2. Recent competitor funding rounds or acquisitions in the last 6 months
 3. Emerging market trends that might impact this business
 4. Recent regulatory changes that could affect this sector
-5. Key industry challenges reported in 2024
+5. Key industry challenges reported in 2024 or 2025
 
 Format each insight with a title, the source information (publication name and date), and a brief summary of the findings. Include URLs to sources where possible. Each insight should be 2-3 sentences maximum.
 
