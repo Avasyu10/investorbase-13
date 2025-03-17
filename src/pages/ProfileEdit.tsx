@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2, Save, Plus, X } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
+import { AreaOfInterestOptions } from "@/lib/constants";
 
 interface VCProfile {
   id: string;
@@ -31,20 +32,7 @@ interface VCProfile {
   updated_at: string;
 }
 
-// Available options for the multiselect fields
-const areaOptions = [
-  { label: "Fintech", value: "Fintech" },
-  { label: "SaaS", value: "SaaS" },
-  { label: "AI", value: "AI" },
-  { label: "Healthcare", value: "Healthcare" },
-  { label: "E-commerce", value: "E-commerce" },
-  { label: "Enterprise", value: "Enterprise" },
-  { label: "Consumer", value: "Consumer" },
-  { label: "Marketplaces", value: "Marketplaces" },
-  { label: "Blockchain", value: "Blockchain" },
-  { label: "Sustainability", value: "Sustainability" }
-];
-
+// Available options for the investment stage multiselect field
 const stageOptions = [
   { label: "Pre-seed", value: "Pre-seed" },
   { label: "Seed", value: "Seed" },
@@ -228,7 +216,7 @@ const ProfileEdit = () => {
                   <MultiSelect
                     placeholder="Select areas"
                     selected={areasOfInterest}
-                    options={areaOptions}
+                    options={AreaOfInterestOptions}
                     onChange={setAreasOfInterest}
                   />
                 </div>
