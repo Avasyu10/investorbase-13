@@ -30,7 +30,7 @@ serve(async (req) => {
     console.log(`Processing research request for company ${companyId}`);
     
     // Create prompt for Perplexity
-    const prompt = `You are a sophisticated VC research analyst. I need you to provide the latest 2023-2024 market research, news articles, funding data, and industry insights relevant to a startup with the following assessment:
+    const prompt = `You are a sophisticated VC research analyst. I need you to provide the latest 2023-2024 and 2024-2025 market research, news articles, funding data, and industry insights relevant to a startup with the following assessment:
 
 ${assessmentText}
 
