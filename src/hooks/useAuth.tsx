@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
-      navigate('/login'); // Changed from '/' to '/login'
+      navigate('/'); // Changed back to '/' to go to the original sign-in/sign-up page
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
