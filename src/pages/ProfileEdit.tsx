@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -16,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Plus, X } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface VCProfile {
   id: string;
@@ -68,7 +68,8 @@ const ProfileEdit = () => {
   const [fundSize, setFundSize] = useState('');
   const [areasOfInterest, setAreasOfInterest] = useState<string[]>([]);
   const [investmentStage, setInvestmentStage] = useState<string[]>([]);
-  const [companiesInvested, setCompaniesInvested] = useState('');
+  const [companiesInvested, setCompaniesInvested] = useState<string[]>([]);
+  const [newCompany, setNewCompany] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -106,11 +107,31 @@ const ProfileEdit = () => {
       setFundSize(profileData.fund_size || '');
       setAreasOfInterest(profileData.areas_of_interest || []);
       setInvestmentStage(profileData.investment_stage || []);
-      setCompaniesInvested(profileData.companies_invested ? profileData.companies_invested.join('\n') : '');
+      setCompaniesInvested(profileData.companies_invested || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddCompany = () => {
+    if (newCompany.trim() !== '') {
+      setCompaniesInvested([...companiesInvested, newCompany.trim()]);
+      setNewCompany('');
+    }
+  };
+
+  const handleRemoveCompany = (index: number) => {
+    const updatedCompanies = [...companiesInvested];
+    updatedCompanies.splice(index, 1);
+    setCompaniesInvested(updatedCompanies);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCompany();
     }
   };
 
@@ -122,12 +143,6 @@ const ProfileEdit = () => {
     try {
       setSaving(true);
       
-      // Convert companies from textarea (line breaks) to array
-      const companiesArray = companiesInvested
-        .split('\n')
-        .map(company => company.trim())
-        .filter(company => company !== '');
-      
       const { error } = await supabase
         .from('vc_profiles')
         .update({
@@ -135,7 +150,7 @@ const ProfileEdit = () => {
           fund_size: fundSize,
           areas_of_interest: areasOfInterest,
           investment_stage: investmentStage,
-          companies_invested: companiesArray,
+          companies_invested: companiesInvested,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -235,14 +250,56 @@ const ProfileEdit = () => {
               <Separator className="mb-4" />
               
               <div className="space-y-2">
-                <Label htmlFor="companies">Companies Invested (one per line)</Label>
-                <textarea
-                  id="companies"
-                  className="w-full min-h-[120px] resize-y px-3 py-2 border rounded-md"
-                  value={companiesInvested}
-                  onChange={(e) => setCompaniesInvested(e.target.value)}
-                  placeholder="List companies, one per line"
-                />
+                <Label htmlFor="companies">Companies Invested</Label>
+                
+                <div className="flex gap-2 items-center mb-2">
+                  <Input
+                    id="new-company"
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Add a company"
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={handleAddCompany}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                
+                <div className="bg-muted/30 rounded-md p-2 min-h-[120px]">
+                  {companiesInvested.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-2 px-3">
+                      No companies added yet. Add companies to your portfolio above.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {companiesInvested.map((company, index) => (
+                        <div 
+                          key={index} 
+                          className="bg-secondary text-secondary-foreground px-3 py-1.5 rounded-md text-sm flex items-center group"
+                        >
+                          {company}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCompany(index)}
+                            className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add companies you've invested in to your portfolio
+                </p>
               </div>
             </div>
           </CardContent>
