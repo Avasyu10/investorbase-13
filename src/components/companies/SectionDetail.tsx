@@ -6,7 +6,6 @@ import { ChevronRight, Menu, X, CheckCircle, XCircle } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export function SectionDetail() {
   const { companyId, sectionId } = useParams<{ companyId: string, sectionId: string }>();
@@ -127,94 +126,46 @@ export function SectionDetail() {
             </div>
           </CardHeader>
           <CardContent className="pt-6 sm:pt-8">
-            <Tabs defaultValue="overview">
-              <TabsList className="mb-6">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="details">Detailed Research</TabsTrigger>
-              </TabsList>
+            <div className="space-y-6">
+              <div className="p-4 rounded-lg bg-muted/30 border">
+                <h3 className="text-lg font-medium mb-3">Summary</h3>
+                <p className="text-sm sm:text-base leading-relaxed">{section.description}</p>
+              </div>
               
-              <TabsContent value="overview" className="space-y-6">
-                <div className="p-4 rounded-lg bg-muted/30 border">
-                  <h3 className="text-lg font-medium mb-3">Summary</h3>
-                  <p className="text-sm sm:text-base leading-relaxed">{section.description}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="p-4 rounded-lg border border-green-200 bg-green-50">
+                  <h4 className="flex items-center gap-2 font-medium text-green-700 mb-3">
+                    <CheckCircle className="h-5 w-5" />
+                    <span>Key Strengths</span>
+                  </h4>
+                  <ul className="space-y-3 text-sm sm:text-base">
+                    {section.strengths && section.strengths.length > 0 ? (
+                      section.strengths.map((strength, idx) => (
+                        <li key={idx} className="pl-4 border-l-2 border-green-300">{strength}</li>
+                      ))
+                    ) : (
+                      <li className="pl-4 border-l-2 border-green-300 text-muted-foreground">No strengths data available</li>
+                    )}
+                  </ul>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="p-4 rounded-lg border border-green-200 bg-green-50">
-                    <h4 className="flex items-center gap-2 font-medium text-green-700 mb-3">
-                      <CheckCircle className="h-5 w-5" />
-                      <span>Key Strengths</span>
-                    </h4>
-                    <ul className="space-y-3 text-sm sm:text-base">
-                      {section.strengths && section.strengths.length > 0 ? (
-                        section.strengths.map((strength, idx) => (
-                          <li key={idx} className="pl-4 border-l-2 border-green-300">{strength}</li>
-                        ))
-                      ) : (
-                        <li className="pl-4 border-l-2 border-green-300 text-muted-foreground">No strengths data available</li>
-                      )}
-                    </ul>
-                  </div>
-                  
-                  <div className="p-4 rounded-lg border border-amber-200 bg-amber-50">
-                    <h4 className="flex items-center gap-2 font-medium text-amber-700 mb-3">
-                      <XCircle className="h-5 w-5" />
-                      <span>Areas for Improvement</span>
-                    </h4>
-                    <ul className="space-y-3 text-sm sm:text-base">
-                      {section.weaknesses && section.weaknesses.length > 0 ? (
-                        section.weaknesses.map((weakness, idx) => (
-                          <li key={idx} className="pl-4 border-l-2 border-amber-300">{weakness}</li>
-                        ))
-                      ) : (
-                        <li className="pl-4 border-l-2 border-amber-300 text-muted-foreground">No weaknesses data available</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="details" className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-3 pb-2 border-b">Market Research & Analysis</h3>
-                  <div className="mb-4 whitespace-pre-wrap text-sm sm:text-base leading-relaxed">
-                    {section.detailedContent ? (
-                      <p>{section.detailedContent}</p>
+                <div className="p-4 rounded-lg border border-amber-200 bg-amber-50">
+                  <h4 className="flex items-center gap-2 font-medium text-amber-700 mb-3">
+                    <XCircle className="h-5 w-5" />
+                    <span>Areas for Improvement</span>
+                  </h4>
+                  <ul className="space-y-3 text-sm sm:text-base">
+                    {section.weaknesses && section.weaknesses.length > 0 ? (
+                      section.weaknesses.map((weakness, idx) => (
+                        <li key={idx} className="pl-4 border-l-2 border-amber-300">{weakness}</li>
+                      ))
                     ) : (
-                      <p className="text-muted-foreground italic">No detailed market research available for this section.</p>
+                      <li className="pl-4 border-l-2 border-amber-300 text-muted-foreground">No weaknesses data available</li>
                     )}
-                  </div>
-                  
-                  <div className="mt-6 space-y-6">
-                    <div className="p-4 rounded-lg border bg-muted/20">
-                      <h4 className="font-medium mb-3">Key Strengths:</h4>
-                      <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
-                        {section.strengths && section.strengths.length > 0 ? (
-                          section.strengths.map((strength, idx) => (
-                            <li key={idx}>{strength}</li>
-                          ))
-                        ) : (
-                          <li className="text-muted-foreground italic">No strength data available</li>
-                        )}
-                      </ul>
-                    </div>
-                    
-                    <div className="p-4 rounded-lg border bg-muted/20">
-                      <h4 className="font-medium mb-3">Areas for Improvement:</h4>
-                      <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
-                        {section.weaknesses && section.weaknesses.length > 0 ? (
-                          section.weaknesses.map((weakness, idx) => (
-                            <li key={idx}>{weakness}</li>
-                          ))
-                        ) : (
-                          <li className="text-muted-foreground italic">No weakness data available</li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
+                  </ul>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
