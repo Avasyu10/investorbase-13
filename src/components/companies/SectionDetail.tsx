@@ -48,8 +48,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">{section.title}</h1>
-        <p className="text-muted-foreground mb-6">{section.description}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{section.title}</h1>
 
         <Card className="shadow-card border-0 mb-6">
           <CardHeader className="bg-secondary/50 border-b pb-4">
