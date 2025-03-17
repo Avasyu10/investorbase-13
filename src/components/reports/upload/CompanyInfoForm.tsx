@@ -79,7 +79,7 @@ export function CompanyInfoForm({
   setFounderLinkedIns,
   isDisabled
 }: CompanyInfoFormProps) {
-  const [charCount, setCharCount] = useState(0);
+  const [charCount, setCharCount] = useState(briefIntroduction ? briefIntroduction.length : 0);
   
   const addFounderLinkedIn = () => {
     setFounderLinkedIns([...founderLinkedIns, ""]);
