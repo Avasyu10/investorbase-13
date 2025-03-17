@@ -1,21 +1,37 @@
 
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { Toaster } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/');
     }
   }, [user, isLoading, navigate]);
+
+  // Reset error when component unmounts or on route change
+  useEffect(() => {
+    return () => {
+      setError(null);
+    };
+  }, []);
+
+  const handleError = (errorMessage: string) => {
+    setError(errorMessage);
+    // Auto-dismiss error after 10 seconds
+    setTimeout(() => setError(null), 10000);
+  };
 
   if (isLoading) {
     return (
@@ -40,6 +56,14 @@ const UploadReport = () => {
           <ChevronLeft className="mr-1" /> Back to Dashboard
         </Button>
         
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight mb-2">Upload New Pitch Deck</h1>
           <p className="text-muted-foreground">
@@ -48,7 +72,7 @@ const UploadReport = () => {
           </p>
         </div>
         
-        <ReportUpload />
+        <ReportUpload onError={handleError} />
       </div>
     </div>
   );
