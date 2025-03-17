@@ -458,6 +458,8 @@ Ensure the output is structured as follows:
 }
 
 ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential. ENSURE EVERY SECTION HAS SUBSTANTIAL EXTERNAL MARKET RESEARCH DATA WITH SPECIFIC NUMBERS - THIS IS THE MOST CRITICAL REQUIREMENT.
+
+IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, or markdown formatting - JUST THE JSON OBJECT.
 `;
 
   try {
@@ -549,7 +551,6 @@ ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" a
       // Parse the analysis result
       try {
         // Extract the content from Gemini response structure
-        // Gemini returns a different structure than OpenAI
         if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
           throw new Error("Empty response from Gemini");
         }
@@ -560,20 +561,68 @@ ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" a
           throw new Error("Empty response from Gemini");
         }
         
-        // Extract JSON from the response (Gemini might include markdown code blocks)
+        console.log("Raw content from Gemini:", content.substring(0, 200) + "...");
+        
+        // Extract JSON from the response
         let jsonContent = content;
         
-        // If the response contains a JSON code block, extract it
-        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-        if (jsonMatch && jsonMatch[1]) {
-          jsonContent = jsonMatch[1];
+        // If the response contains text before the JSON, try to find the start of the JSON object
+        const jsonStart = content.indexOf('{');
+        if (jsonStart > 0) {
+          console.log(`Found JSON start at position ${jsonStart}`);
+          jsonContent = content.substring(jsonStart);
         }
         
+        // If the response contains a JSON code block, extract it
+        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          console.log("Found JSON in code block");
+          jsonContent = jsonMatch[1];
+          
+          // Check if the extracted content starts with '{'
+          if (!jsonContent.trim().startsWith('{')) {
+            const innerJsonStart = jsonContent.indexOf('{');
+            if (innerJsonStart >= 0) {
+              jsonContent = jsonContent.substring(innerJsonStart);
+            }
+          }
+        }
+        
+        console.log("Attempting to parse JSON:", jsonContent.substring(0, 100) + "...");
+        
         // Try to parse the JSON response
-        const parsedContent = JSON.parse(jsonContent);
+        let parsedContent;
+        try {
+          parsedContent = JSON.parse(jsonContent);
+        } catch (jsonError) {
+          console.error("JSON parsing error:", jsonError);
+          
+          // Try to fix common JSON issues
+          let fixedJson = jsonContent;
+          
+          // Fix trailing commas
+          fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
+          
+          // Try to find the end of the JSON object if there's text after it
+          const lastBrace = fixedJson.lastIndexOf('}');
+          if (lastBrace > 0 && lastBrace < fixedJson.length - 1) {
+            fixedJson = fixedJson.substring(0, lastBrace + 1);
+          }
+          
+          console.log("Attempting to parse fixed JSON");
+          try {
+            parsedContent = JSON.parse(fixedJson);
+          } catch (fixedJsonError) {
+            console.error("Failed to parse fixed JSON:", fixedJsonError);
+            
+            // If all else fails, create a simplified but valid result
+            throw new Error("Failed to parse Gemini response as JSON. Raw content: " + content.substring(0, 200) + "...");
+          }
+        }
         
         // Validate the response structure
         if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
+          console.error("Invalid analysis structure: missing or empty sections array");
           throw new Error("Invalid analysis structure: missing or empty sections array");
         }
         

@@ -22,8 +22,8 @@ export async function analyzeReport(reportId: string) {
       throw new Error(errorMessage);
     }
     
-    // Set a timeout for the edge function call (40 seconds)
-    const timeoutMs = 40000;
+    // Set a timeout for the edge function call (60 seconds)
+    const timeoutMs = 60000; // Extended from 40s to 60s since AI analysis can take longer
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
