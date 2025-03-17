@@ -92,7 +92,7 @@ export default function AnalysisSummary() {
                       <HelpCircle className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
+                  <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
                     <p>{getScoreDescription(company.overallScore)}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -169,8 +169,8 @@ export default function AnalysisSummary() {
                               <HelpCircle className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
-                            <p>{getSectionScoreDescription(section.score)}</p>
+                          <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                            <p>{getSectionScoreDescription(section.score, section.title)}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -227,17 +227,78 @@ function getScoreVariant(score: number): 'default' | 'outline' | 'secondary' | '
 }
 
 function getScoreDescription(score: number): string {
-  if (score >= 4.5) return 'Excellent. The pitch deck is highly effective and investment-ready.';
-  if (score >= 3.5) return 'Very good. The pitch deck is strong but has minor areas for improvement.';
-  if (score >= 2.5) return 'Good. The pitch deck is solid but has several areas that need attention.';
-  if (score >= 1.5) return 'Fair. The pitch deck requires significant improvements in multiple areas.';
-  return 'Poor. The pitch deck needs comprehensive revision before being presented to investors.';
+  if (score >= 4.5) return `Outstanding Investment Opportunity (${score}/5): This company demonstrates exceptional market position, business model, and growth metrics. Clear competitive advantages with minimal risk factors. Recommended for immediate investment consideration.`;
+  if (score >= 3.5) return `Strong Investment Candidate (${score}/5): This company shows solid fundamentals with some competitive advantages, though minor concerns exist. Good potential for returns with manageable risk profile. Worth serious investment consideration.`;
+  if (score >= 2.5) return `Moderate Investment Potential (${score}/5): This company has sound basic operations but several areas need improvement. Moderate risk factors exist that could impact growth. Requires careful due diligence before investment.`;
+  if (score >= 1.5) return `High-Risk Investment (${score}/5): Significant flaws in business model, market approach, or financials create substantial concerns. Many improvements needed before being investment-ready. Consider only with extensive restructuring.`;
+  return `Not Recommended (${score}/5): This company shows critical deficiencies across multiple dimensions, presenting unacceptable investment risk. Fundamental business model or execution issues require complete overhaul.`;
 }
 
-function getSectionScoreDescription(score: number): string {
-  if (score >= 4.5) return "Excellent - This section is expertly handled and provides strong competitive advantage";
-  if (score >= 3.5) return "Very Good - This section is well executed with minor room for improvement";
-  if (score >= 2.5) return "Good - This section is solid but has several areas that need attention";
-  if (score >= 1.5) return "Fair - This section requires significant improvements";
-  return "Poor - This section needs comprehensive revision";
+function getSectionScoreDescription(score: number, sectionTitle: string): string {
+  // Get section-specific descriptions
+  const sectionSpecific = getSectionSpecificFeedback(score, sectionTitle);
+  
+  if (score >= 4.5) return `Outstanding (${score}/5): ${sectionSpecific}`;
+  if (score >= 3.5) return `Very Good (${score}/5): ${sectionSpecific}`;
+  if (score >= 2.5) return `Satisfactory (${score}/5): ${sectionSpecific}`;
+  if (score >= 1.5) return `Needs Work (${score}/5): ${sectionSpecific}`;
+  return `Critical Concerns (${score}/5): ${sectionSpecific}`;
+}
+
+function getSectionSpecificFeedback(score: number, sectionTitle: string): string {
+  // Tailor feedback based on section type
+  const sectionLower = sectionTitle.toLowerCase();
+  
+  if (sectionLower.includes("market") || sectionLower.includes("opportunity")) {
+    if (score >= 3.5) return "The market analysis shows strong growth potential with well-validated TAM/SAM/SOM figures and clear understanding of market trends.";
+    if (score >= 2.5) return "The market analysis presents reasonable market size and growth figures but lacks depth in competitive positioning or trend analysis.";
+    return "The market analysis lacks credible data, has unrealistic market size projections, or misses critical market trends and dynamics.";
+  }
+  
+  if (sectionLower.includes("team") || sectionLower.includes("management")) {
+    if (score >= 3.5) return "The team demonstrates strong relevant experience, complementary skill sets, and proven execution ability in this domain.";
+    if (score >= 2.5) return "The team has adequate experience but may lack specific expertise or track record in key business areas.";
+    return "The team lacks critical experience or capabilities needed for success, with significant gaps in leadership or domain expertise.";
+  }
+  
+  if (sectionLower.includes("product") || sectionLower.includes("solution")) {
+    if (score >= 3.5) return "The product shows clear differentiation, addresses a specific need, and has demonstrable competitive advantages.";
+    if (score >= 2.5) return "The product addresses a real problem but has limited differentiation or hasn't fully validated product-market fit.";
+    return "The product lacks unique selling proposition, faces significant technical challenges, or doesn't effectively solve the stated problem.";
+  }
+  
+  if (sectionLower.includes("finance") || sectionLower.includes("financial")) {
+    if (score >= 3.5) return "Financial projections are realistic with clear unit economics, reasonable growth assumptions, and well-planned capital needs.";
+    if (score >= 2.5) return "Financial model is structurally sound but contains optimistic assumptions or lacks detail in key operational metrics.";
+    return "Financial projections lack credibility, contain major inconsistencies, or fail to demonstrate a path to profitability.";
+  }
+  
+  if (sectionLower.includes("traction") || sectionLower.includes("metrics")) {
+    if (score >= 3.5) return "Strong validated traction with growing user/customer base, improving engagement metrics, and solid revenue growth.";
+    if (score >= 2.5) return "Shows early traction with some customer validation, but limited operating history or inconsistent growth metrics.";
+    return "Limited or unverifiable traction, concerning churn rates, or inability to demonstrate product-market fit with actual usage data.";
+  }
+  
+  if (sectionLower.includes("go-to-market") || sectionLower.includes("strategy") || sectionLower.includes("marketing")) {
+    if (score >= 3.5) return "Well-defined customer acquisition strategy with clear channels, realistic CAC projections, and proven conversion metrics.";
+    if (score >= 2.5) return "Basic customer acquisition approach is outlined but lacks detail on specific channels, conversion rates, or scaling strategies.";
+    return "Go-to-market strategy is vague, lacks proven channels, or shows unrealistic customer acquisition cost assumptions.";
+  }
+  
+  if (sectionLower.includes("competition") || sectionLower.includes("competitive")) {
+    if (score >= 3.5) return "Thorough competitive analysis with clear differentiation strategy and realistic assessment of market positioning.";
+    if (score >= 2.5) return "Identifies major competitors but has gaps in competitive differentiation strategy or underestimates competitive threats.";
+    return "Fails to identify key competitors, lacks meaningful differentiation, or underestimates barriers to entry and competitive responses.";
+  }
+  
+  if (sectionLower.includes("business model")) {
+    if (score >= 3.5) return "Clear, sustainable revenue model with strong unit economics, reasonable pricing strategy, and multiple potential revenue streams.";
+    if (score >= 2.5) return "Viable revenue model but with concerns about scalability, pricing power, or long-term margin potential.";
+    return "Unclear path to sustainable revenue, problematic unit economics, or unproven business model requiring significant validation.";
+  }
+  
+  // Default feedback for any other section type
+  if (score >= 3.5) return "This aspect is well-handled with strong execution and clear strategic alignment.";
+  if (score >= 2.5) return "This aspect meets basic requirements but has room for improvement in execution and strategic alignment.";
+  return "This aspect shows significant weaknesses that require substantial revision to meet investor expectations.";
 }

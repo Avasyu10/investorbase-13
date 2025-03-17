@@ -25,11 +25,11 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   
   // Get score description
   const getScoreDescription = (score: number): string => {
-    if (score >= 4.5) return "Excellent - This company is highly appealing for investment with strong performance across key metrics";
-    if (score >= 3.5) return "Very Good - This company shows promising potential with only minor weaknesses";
-    if (score >= 2.5) return "Good - This company has solid fundamentals with some areas needing improvement";
-    if (score >= 1.5) return "Fair - This company requires significant improvements before being investment-ready";
-    return "Poor - This company needs comprehensive restructuring of its approach and strategy";
+    if (score >= 4.5) return `Outstanding Investment Opportunity (${score}/5): This company demonstrates exceptional market position, business model, and growth metrics. Clear competitive advantages with minimal risk factors. Recommended for immediate investment consideration.`;
+    if (score >= 3.5) return `Strong Investment Candidate (${score}/5): This company shows solid fundamentals with some competitive advantages, though minor concerns exist. Good potential for returns with manageable risk profile. Worth serious investment consideration.`;
+    if (score >= 2.5) return `Moderate Investment Potential (${score}/5): This company has sound basic operations but several areas need improvement. Moderate risk factors exist that could impact growth. Requires careful due diligence before investment.`;
+    if (score >= 1.5) return `High-Risk Investment (${score}/5): Significant flaws in business model, market approach, or financials create substantial concerns. Many improvements needed before being investment-ready. Consider only with extensive restructuring.`;
+    return `Not Recommended (${score}/5): This company shows critical deficiencies across multiple dimensions, presenting unacceptable investment risk. Fundamental business model or execution issues require complete overhaul.`;
   };
 
   // Highlight numbers in assessment points
@@ -57,7 +57,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
                     <HelpCircle className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
+                <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
                   <p>{getScoreDescription(formattedScore)}</p>
                 </TooltipContent>
               </Tooltip>

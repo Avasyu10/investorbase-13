@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -81,7 +80,6 @@ export function SectionDetail() {
     return "text-red-600 font-medium";                      
   };
 
-  // Updated function to highlight numbers with golden color instead of using dynamic coloring based on score
   const highlightNumbers = (text: string) => {
     return {
       __html: text.replace(
@@ -92,16 +90,81 @@ export function SectionDetail() {
   };
 
   const getScoreDescription = (score: number): string => {
-    if (score >= 4.5) return "Excellent - This aspect is expertly handled and provides strong competitive advantage";
-    if (score >= 3.5) return "Very Good - This aspect is well executed with minor room for improvement";
-    if (score >= 2.5) return "Good - This aspect is solid but has several areas that need attention";
-    if (score >= 1.5) return "Fair - This aspect requires significant improvements";
-    return "Poor - This aspect needs comprehensive revision";
+    const sectionLower = section.title.toLowerCase();
+    
+    if (sectionLower.includes("market") || sectionLower.includes("opportunity")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Exceptional market analysis with comprehensive TAM/SAM/SOM breakdown, strong validation of growth trends, and clear competitive positioning.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Solid market analysis with reliable growth forecasts and good understanding of target segments and market dynamics.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Adequate market sizing but needs more rigorous validation of assumptions and deeper competitive landscape analysis.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Market analysis lacks credibility with optimistic projections and insufficient understanding of market dynamics.`;
+      return `Critical Concerns (${score}/5): Market analysis contains serious flaws in sizing, growth assumptions, or fails to identify key market constraints.`;
+    }
+    
+    if (sectionLower.includes("team") || sectionLower.includes("management")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Exceptional founding team with proven track record of success in this domain and complementary skill sets.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Strong team with relevant industry experience and demonstrated ability to execute in key business areas.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Core team has basic qualifications but lacks specific expertise in critical areas or startup experience.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Team has significant gaps in leadership, technical expertise, or domain knowledge needed for success.`;
+      return `Critical Concerns (${score}/5): Team lacks fundamental capabilities or experience needed to execute the business plan effectively.`;
+    }
+    
+    if (sectionLower.includes("product") || sectionLower.includes("solution")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Product demonstrates superior innovation with strong technical moat and proven product-market fit.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Well-developed product with clear value proposition and validated customer problem-solution fit.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Product addresses a real need but has limited differentiation or protection from competitors.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Product concept requires significant development with unclear unique selling proposition.`;
+      return `Critical Concerns (${score}/5): Product has fundamental flaws in concept, feasibility, or market alignment.`;
+    }
+    
+    if (sectionLower.includes("finance") || sectionLower.includes("financial")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Financial model shows exceptional clarity with realistic projections, strong unit economics, and clear path to profitability.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Sound financial planning with reasonable assumptions and well-articulated capital requirements.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Basic financial model with some optimistic assumptions needing further validation.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Financial projections contain significant inconsistencies or unrealistic assumptions about growth or costs.`;
+      return `Critical Concerns (${score}/5): Financial model lacks credibility with fundamental flaws in revenue model or cost structure.`;
+    }
+    
+    if (sectionLower.includes("traction") || sectionLower.includes("metrics")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Exceptional growth metrics with strong customer retention, rapidly increasing revenue, and validated demand.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Solid traction with growing user base, revenue, and engagement metrics showing product-market fit.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Shows early signs of traction but limited operating history and needs more validation at scale.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Limited traction with concerning customer acquisition or retention metrics.`;
+      return `Critical Concerns (${score}/5): Minimal or no verifiable traction, with major concerns about customer interest or validation.`;
+    }
+    
+    if (sectionLower.includes("go-to-market") || sectionLower.includes("strategy") || sectionLower.includes("marketing")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Exceptional marketing strategy with proven channels, optimized CAC, and clear scaling plan.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Well-defined go-to-market strategy with identified channels and realistic customer acquisition costs.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Basic marketing approach outlined but lacking detail on specific channels or conversion metrics.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Marketing strategy is vague with unrealistic customer acquisition assumptions.`;
+      return `Critical Concerns (${score}/5): Go-to-market plan is fundamentally flawed or missing critical elements for successful customer acquisition.`;
+    }
+    
+    if (sectionLower.includes("competition") || sectionLower.includes("competitive")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Comprehensive competitive analysis with clear positioning strategy and sustainable competitive advantages.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Solid understanding of competitive landscape with realistic assessment of threats and differentiators.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Identifies major competitors but lacks detailed analysis of competitive responses or future threats.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Incomplete competitive analysis with overestimated differentiation or underestimated threats.`;
+      return `Critical Concerns (${score}/5): Severely underestimates competition or fails to identify key competitors and barriers to entry.`;
+    }
+    
+    if (sectionLower.includes("business model")) {
+      if (score >= 4.5) return `Outstanding (${score}/5): Business model shows exceptional unit economics, multiple revenue streams, and sustainable competitive advantage.`;
+      if (score >= 3.5) return `Very Good (${score}/5): Strong business model with clear revenue mechanics, sensible pricing, and good margin potential.`;
+      if (score >= 2.5) return `Satisfactory (${score}/5): Workable business model but concerns about scalability, pricing power, or long-term margins.`;
+      if (score >= 1.5) return `Needs Work (${score}/5): Business model has significant flaws in revenue generation, pricing, or customer value.`;
+      return `Critical Concerns (${score}/5): Fundamentally flawed business model with unrealistic revenue assumptions or value creation mechanism.`;
+    }
+    
+    if (score >= 4.5) return `Outstanding (${score}/5): This section demonstrates exceptional quality with industry-leading practices, providing significant competitive advantage.`;
+    if (score >= 3.5) return `Very Good (${score}/5): This section is well executed with minor opportunities for enhancement. Shows solid understanding of investor expectations.`;
+    if (score >= 2.5) return `Satisfactory (${score}/5): Several aspects need improvement, though the foundation is adequate. Some key elements require further development.`;
+    if (score >= 1.5) return `Needs Work (${score}/5): Significant deficiencies exist that would concern potential investors. Requires substantial revisions.`;
+    return `Critical Concerns (${score}/5): This section fails to meet basic standards and requires complete overhaul. Major red flags for investors.`;
   };
 
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)]">
-      {/* Back button - Added at the top */}
       <div className="absolute top-3 left-3 sm:top-4 sm:left-6 z-50">
         <Button
           variant="ghost"
@@ -123,7 +186,6 @@ export function SectionDetail() {
         {sidebarOpen ? <X /> : <Menu />}
       </Button>
 
-      {/* Sidebar */}
       <div 
         className={`fixed lg:relative lg:flex w-64 border-r bg-background/95 backdrop-blur-sm h-[calc(100vh-4rem)] top-16 z-40 transition-all duration-300 ease-in-out transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -154,10 +216,8 @@ export function SectionDetail() {
         </nav>
       </div>
 
-      {/* Main content */}
       <div className="flex-1 p-3 sm:p-6 w-full pt-14 sm:pt-16">
         <Card className="border-0 shadow-card bg-card/95 backdrop-blur-sm">
-          {/* Header */}
           <CardHeader className="pb-4 border-b bg-secondary/20 backdrop-blur-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">{section.title}</CardTitle>
@@ -184,7 +244,7 @@ export function SectionDetail() {
                           <HelpCircle className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" align="center" className="max-w-[260px] text-xs">
+                      <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
                         <p>{getScoreDescription(section.score)}</p>
                       </TooltipContent>
                     </Tooltip>
@@ -205,10 +265,8 @@ export function SectionDetail() {
             </div>
           </CardHeader>
 
-          {/* Content */}
           <CardContent className="pt-6 sm:pt-8">
             <div className="space-y-6">
-              {/* Summary section with enhanced styling */}
               <div className="p-6 rounded-lg bg-background border border-border shadow-md">
                 <h3 className="text-lg font-semibold mb-4 text-foreground">Summary</h3>
                 <p 
@@ -217,9 +275,7 @@ export function SectionDetail() {
                 />
               </div>
               
-              {/* Strengths and weaknesses with premium styling */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Strengths card */}
                 <div className="p-6 rounded-lg bg-gradient-to-br from-emerald-50/70 to-emerald-100/40 dark:from-emerald-950/40 dark:to-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 shadow-md">
                   <h4 className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-400 mb-4">
                     <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-500" />
@@ -243,7 +299,6 @@ export function SectionDetail() {
                   </ul>
                 </div>
                 
-                {/* Weaknesses card */}
                 <div className="p-6 rounded-lg bg-gradient-to-br from-amber-50/70 to-amber-100/40 dark:from-amber-950/40 dark:to-amber-900/20 border border-amber-200 dark:border-amber-800/50 shadow-md">
                   <h4 className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-400 mb-4">
                     <XCircle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
@@ -272,7 +327,6 @@ export function SectionDetail() {
         </Card>
       </div>
 
-      {/* Report Modal */}
       {company.reportId && (
         <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
           <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col bg-background/95 backdrop-blur-md border border-border/80">

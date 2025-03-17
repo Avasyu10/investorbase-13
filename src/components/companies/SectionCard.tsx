@@ -27,11 +27,11 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
   };
   
   const getScoreDescription = (score: number): string => {
-    if (score >= 4.5) return "Excellent - This aspect is expertly handled and provides strong competitive advantage";
-    if (score >= 3.5) return "Very Good - This aspect is well executed with minor room for improvement";
-    if (score >= 2.5) return "Good - This aspect is solid but has several areas that need attention";
-    if (score >= 1.5) return "Fair - This aspect requires significant improvements";
-    return "Poor - This aspect needs comprehensive revision";
+    if (score >= 4.5) return `Outstanding (${score}/5): This section demonstrates exceptional quality with industry-leading practices, providing significant competitive advantage. No major improvements needed.`;
+    if (score >= 3.5) return `Very Good (${score}/5): This section is well executed but has minor opportunities for enhancement. Shows solid understanding of investor expectations.`;
+    if (score >= 2.5) return `Satisfactory (${score}/5): Several aspects need improvement, though the foundation is adequate. Some key elements require further development to meet investor standards.`;
+    if (score >= 1.5) return `Needs Work (${score}/5): Significant deficiencies exist that would concern potential investors. Requires substantial revisions to meet market expectations.`;
+    return `Critical Concerns (${score}/5): This section fails to meet basic standards and requires complete overhaul. Major red flags for investors that need immediate attention.`;
   };
 
   return (
