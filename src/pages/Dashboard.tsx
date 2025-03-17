@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, BarChart } from "lucide-react";
+import { FileUp } from "lucide-react";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
@@ -47,34 +47,12 @@ const Dashboard = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="companies">Companies</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="market">
-              <BarChart className="mr-2 h-4 w-4" />
-              Market Research
-            </TabsTrigger>
           </TabsList>
           <TabsContent value="companies">
             <CompaniesList />
           </TabsContent>
           <TabsContent value="reports">
             <ReportsList />
-          </TabsContent>
-          <TabsContent value="market">
-            <div className="bg-secondary/30 rounded-lg p-6 text-center">
-              <h2 className="text-xl font-semibold mb-4">Market Research Hub</h2>
-              <p className="mb-4 text-muted-foreground">
-                Market insights and benchmarking data will appear here after you upload and analyze pitch decks.
-                Each analysis will include extensive market research, competitive benchmarking, and industry trends.
-              </p>
-              {activeTab === "market" && (
-                <Button 
-                  onClick={() => navigate("/upload")} 
-                  variant="outline"
-                >
-                  <FileUp className="mr-2 h-4 w-4" />
-                  Upload Deck for Analysis
-                </Button>
-              )}
-            </div>
           </TabsContent>
         </Tabs>
       </div>
