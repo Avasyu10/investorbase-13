@@ -316,7 +316,7 @@ const ProfileEdit = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Add your Fund's Website or public URL
+                  Add your Fund's Website or Public URL
                 </p>
               </div>
             </div>
