@@ -137,22 +137,25 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedCompanies.map((company) => (
-            <TableRow 
-              key={company.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => onCompanyClick(company.id)}
-            >
-              <TableCell className="font-medium">{company.name}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {company.description || "No description available"}
-              </TableCell>
-              <TableCell className={getScoreColorClass(company.overallScore)}>
-                {company.overallScore}/5
-              </TableCell>
-              <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
-            </TableRow>
-          ))}
+          {sortedCompanies.map((company) => {
+            console.log("Company in table:", company.name, "Description:", company.description);
+            return (
+              <TableRow 
+                key={company.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => onCompanyClick(company.id)}
+              >
+                <TableCell className="font-medium">{company.name}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {company.description || "No description available"}
+                </TableCell>
+                <TableCell className={getScoreColorClass(company.overallScore)}>
+                  {company.overallScore}/5
+                </TableCell>
+                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
