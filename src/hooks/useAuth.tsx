@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -137,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
-      navigate('/');
+      navigate('/login'); // Changed from '/' to '/login'
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
