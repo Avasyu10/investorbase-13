@@ -79,12 +79,12 @@ export function SectionDetail() {
     return "text-red-600 font-medium";                      
   };
 
-  // Function to highlight numbers in the description text
+  // Updated function to highlight numbers with golden color instead of using dynamic coloring based on score
   const highlightNumbers = (text: string) => {
     return {
       __html: text.replace(
         /([\d.]+%|[\d.,]+|[$€£¥][\d.,]+|[\d.,]+[KMBTkmbt])/g,
-        match => `<span class="${getScoreColor(section.score)}">${match}</span>`
+        match => `<span class="text-primary font-medium">${match}</span>`
       )
     };
   };
