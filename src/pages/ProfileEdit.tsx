@@ -169,185 +169,193 @@ const ProfileEdit = () => {
 
   if (loading) {
     return (
-      <div className="container max-w-3xl mx-auto px-4 py-8 flex justify-center">
+      <div className="container max-w-3xl mx-auto px-4 py-8 flex justify-center dark">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container max-w-3xl mx-auto px-4 py-8">
-      <Card>
-        <form onSubmit={handleSubmit}>
-          <CardHeader>
-            <CardTitle>Edit Profile</CardTitle>
-            <CardDescription>Update your VC profile information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Fund Details</h3>
-              <Separator className="mb-4" />
-              
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fund-name">Fund Name</Label>
-                  <Input
-                    id="fund-name"
-                    value={fundName}
-                    onChange={(e) => setFundName(e.target.value)}
-                    placeholder="Your Fund Name"
-                  />
-                </div>
+    <div className="dark bg-background min-h-screen">
+      <div className="container max-w-3xl mx-auto px-4 py-8">
+        <Card className="border-none shadow-lg bg-card">
+          <form onSubmit={handleSubmit}>
+            <CardHeader className="border-b border-border/30">
+              <CardTitle className="text-xl text-foreground">Edit Profile</CardTitle>
+              <CardDescription className="text-muted-foreground">Update your investor profile information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-primary">Fund Details</h3>
+                <Separator className="mb-4 bg-border/30" />
                 
-                <div className="space-y-2">
-                  <Label htmlFor="fund-size">Fund Size</Label>
-                  <Input
-                    id="fund-size"
-                    value={fundSize}
-                    onChange={(e) => setFundSize(e.target.value)}
-                    placeholder="e.g. $10M-$50M"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Investment Focus</h3>
-              <Separator className="mb-4" />
-              
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="areas">Areas of Interest</Label>
-                  <MultiSelect
-                    placeholder="Select areas"
-                    selected={areasOfInterest}
-                    options={AreaOfInterestOptions}
-                    onChange={setAreasOfInterest}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="stages">Investment Stages</Label>
-                  <MultiSelect
-                    placeholder="Select stages"
-                    selected={investmentStage}
-                    options={stageOptions}
-                    onChange={setInvestmentStage}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Portfolio</h3>
-              <Separator className="mb-4" />
-              
-              <div className="space-y-2">
-                <Label htmlFor="companies">Companies Invested</Label>
-                
-                <div className="flex gap-2 items-center mb-2">
-                  <Input
-                    id="new-company"
-                    value={newCompany}
-                    onChange={(e) => setNewCompany(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Add a company"
-                    className="flex-1"
-                  />
-                  <Button 
-                    type="button" 
-                    onClick={handleAddCompany}
-                    size="sm"
-                    variant="secondary"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-                
-                <div className="bg-muted/30 rounded-md p-2 min-h-[120px]">
-                  {companiesInvested.length === 0 ? (
-                    <p className="text-muted-foreground text-sm py-2 px-3">
-                      No companies added yet. Add companies to your portfolio above.
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {companiesInvested.map((company, index) => (
-                        <div 
-                          key={index} 
-                          className="bg-secondary text-secondary-foreground px-3 py-1.5 rounded-md text-sm flex items-center group"
-                        >
-                          {company}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCompany(index)}
-                            className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Add companies you've invested in to your portfolio
-                </p>
-              </div>
-            </div>
-            
-            {/* New section for Website URL */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Online Presence</h3>
-              <Separator className="mb-4" />
-              
-              <div className="space-y-2">
-                <Label htmlFor="website-url">Public URL</Label>
-                <div className="flex">
-                  <div className="bg-muted flex items-center px-3 rounded-l-md border border-r-0 border-input">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fund-name" className="text-foreground">Fund Name</Label>
+                    <Input
+                      id="fund-name"
+                      value={fundName}
+                      onChange={(e) => setFundName(e.target.value)}
+                      placeholder="Your Fund Name"
+                      className="bg-secondary/30 border-border/30 focus-visible:ring-primary"
+                    />
                   </div>
-                  <Input
-                    id="website-url"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="https://www.yourdomain.com"
-                    className="rounded-l-none"
-                  />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fund-size" className="text-foreground">Fund Size</Label>
+                    <Input
+                      id="fund-size"
+                      value={fundSize}
+                      onChange={(e) => setFundSize(e.target.value)}
+                      placeholder="e.g. $10M-$50M"
+                      className="bg-secondary/30 border-border/30 focus-visible:ring-primary"
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Add your Fund's Website or Public URL
-                </p>
               </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/profile')}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+              
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-primary">Investment Focus</h3>
+                <Separator className="mb-4 bg-border/30" />
+                
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="areas" className="text-foreground">Areas of Interest</Label>
+                    <MultiSelect
+                      placeholder="Select areas"
+                      selected={areasOfInterest}
+                      options={AreaOfInterestOptions}
+                      onChange={setAreasOfInterest}
+                      className="bg-secondary/30 border-border/30"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="stages" className="text-foreground">Investment Stages</Label>
+                    <MultiSelect
+                      placeholder="Select stages"
+                      selected={investmentStage}
+                      options={stageOptions}
+                      onChange={setInvestmentStage}
+                      className="bg-secondary/30 border-border/30"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-primary">Portfolio</h3>
+                <Separator className="mb-4 bg-border/30" />
+                
+                <div className="space-y-2">
+                  <Label htmlFor="companies" className="text-foreground">Companies Invested</Label>
+                  
+                  <div className="flex gap-2 items-center mb-2">
+                    <Input
+                      id="new-company"
+                      value={newCompany}
+                      onChange={(e) => setNewCompany(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Add a company"
+                      className="flex-1 bg-secondary/30 border-border/30 focus-visible:ring-primary"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={handleAddCompany}
+                      size="sm"
+                      variant="secondary"
+                      className="hover:bg-primary hover:text-primary-foreground"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-secondary/20 rounded-md p-2 min-h-[120px]">
+                    {companiesInvested.length === 0 ? (
+                      <p className="text-muted-foreground text-sm py-2 px-3">
+                        No companies added yet. Add companies to your portfolio above.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {companiesInvested.map((company, index) => (
+                          <div 
+                            key={index} 
+                            className="bg-secondary/40 text-foreground px-3 py-1.5 rounded-md text-sm flex items-center group border border-border/30"
+                          >
+                            {company}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCompany(index)}
+                              className="ml-2 text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add companies you've invested in to your portfolio
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-primary">Online Presence</h3>
+                <Separator className="mb-4 bg-border/30" />
+                
+                <div className="space-y-2">
+                  <Label htmlFor="website-url" className="text-foreground">Public URL</Label>
+                  <div className="flex">
+                    <div className="bg-secondary/50 flex items-center px-3 rounded-l-md border border-r-0 border-border/30">
+                      <Globe className="h-4 w-4 text-primary" />
+                    </div>
+                    <Input
+                      id="website-url"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="https://www.yourdomain.com"
+                      className="rounded-l-none bg-secondary/30 border-border/30 focus-visible:ring-primary"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add your Fund's Website or Public URL
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between border-t border-border/30 pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/profile')}
+                className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={saving}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 };
