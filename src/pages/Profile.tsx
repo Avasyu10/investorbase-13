@@ -231,11 +231,11 @@ const Profile = () => {
           
           {/* New section for Website URL */}
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Online Presence</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Public URL</h3>
             <Separator className="mb-4" />
             
             <div>
-              <p className="text-sm font-medium mb-2">Website</p>
+              <p className="text-sm font-medium mb-2">URL:</p>
               {profile.website_url ? (
                 <a 
                   href={profile.website_url}
