@@ -60,7 +60,7 @@ const ProfileEdit = () => {
   const [investmentStage, setInvestmentStage] = useState<string[]>([]);
   const [companiesInvested, setCompaniesInvested] = useState<string[]>([]);
   const [newCompany, setNewCompany] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('https://www.google.com');
+  const [websiteUrl, setWebsiteUrl] = useState('Your Website');
 
   useEffect(() => {
     if (!user) {
@@ -99,7 +99,7 @@ const ProfileEdit = () => {
       setAreasOfInterest(profileData.areas_of_interest || []);
       setInvestmentStage(profileData.investment_stage || []);
       setCompaniesInvested(profileData.companies_invested || []);
-      setWebsiteUrl(profileData.website_url || 'https://www.google.com');
+      setWebsiteUrl(profileData.website_url || 'Your Website');
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -302,7 +302,7 @@ const ProfileEdit = () => {
               <Separator className="mb-4" />
               
               <div className="space-y-2">
-                <Label htmlFor="website-url">Website URL</Label>
+                <Label htmlFor="website-url">Public URL</Label>
                 <div className="flex">
                   <div className="bg-muted flex items-center px-3 rounded-l-md border border-r-0 border-input">
                     <Globe className="h-4 w-4 text-muted-foreground" />
@@ -316,7 +316,7 @@ const ProfileEdit = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Add your fund's website or public profile
+                  Add your Fund's Website or public URL
                 </p>
               </div>
             </div>
