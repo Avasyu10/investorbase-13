@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -68,7 +69,7 @@ export default function AnalysisSummary() {
               Score: {formattedScore}/5
             </Badge>
           </div>
-          <CardDescription>Complete analysis summary and recommendations</CardDescription>
+          <CardDescription>Complete analysis summary and market research</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-6">
@@ -81,15 +82,15 @@ export default function AnalysisSummary() {
 
           <div className="mb-8">
             <h3 className="text-lg font-medium mb-4">Key Assessment Points</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
-                company.assessmentPoints.map((point, index) => (
+            {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
+              <ul className="list-disc pl-5 space-y-2">
+                {company.assessmentPoints.map((point, index) => (
                   <li key={index} className="text-muted-foreground">{point}</li>
-                ))
-              ) : (
-                <li className="text-muted-foreground">No assessment points available</li>
-              )}
-            </ul>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground italic">No assessment points available</p>
+            )}
           </div>
 
           <div className="mb-8">
@@ -109,7 +110,7 @@ export default function AnalysisSummary() {
                     tick={{ fontSize: 12 }}
                   />
                   <YAxis domain={[0, 5]} tickCount={6} />
-                  <Tooltip />
+                  <Tooltip formatter={(value) => [`${value}/5`, 'Score']} />
                   <Bar dataKey="score" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
@@ -129,7 +130,7 @@ export default function AnalysisSummary() {
                       <span className="font-medium mr-2">Score: {section.score}/5</span>
                       <Progress 
                         value={section.score * 20} 
-                        className="h-2 flex-1" 
+                        className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
                       />
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">
@@ -141,7 +142,7 @@ export default function AnalysisSummary() {
                       className="p-0 h-auto mt-2"
                       onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
                     >
-                      View Details →
+                      View Research Details →
                     </Button>
                   </CardContent>
                 </Card>

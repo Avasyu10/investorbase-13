@@ -137,6 +137,7 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
     queryFn: async () => {
       if (!companyId || !sectionId) return null;
       
+      // Get the section data with full description
       const { data: sectionData, error: sectionError } = await supabase
         .from('sections')
         .select('*')
@@ -147,6 +148,8 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       if (sectionError) throw sectionError;
       if (!sectionData) return null;
       
+      console.log("Retrieved section data:", sectionData);
+      
       // Get strengths and weaknesses
       const { data: detailsData, error: detailsError } = await supabase
         .from('section_details')
@@ -155,6 +158,8 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         
       if (detailsError) throw detailsError;
       
+      console.log("Retrieved section details:", detailsData);
+      
       const strengths = detailsData
         .filter(detail => detail.detail_type === 'strength')
         .map(detail => detail.content);
@@ -162,8 +167,18 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       const weaknesses = detailsData
         .filter(detail => detail.detail_type === 'weakness')
         .map(detail => detail.content);
-        
-      return mapDbSectionDetailedToApi(sectionData, strengths, weaknesses);
+      
+      // Get the detailed content from the description field for now
+      const detailedContent = sectionData.description || '';
+      
+      console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
+      
+      return {
+        ...mapDbSectionToApi(sectionData),
+        strengths,
+        weaknesses,
+        detailedContent,
+      };
     },
     enabled: !!companyId && !!sectionId,
     meta: {

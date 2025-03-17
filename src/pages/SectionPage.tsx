@@ -1,28 +1,25 @@
 
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from "@/lib/companyData";
+import { useCompanyDetails } from "@/hooks/useCompanies";
 
 const SectionPage = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { companyId, sectionId } = useParams();
-  const [companyName, setCompanyName] = useState("");
+  const { companyId } = useParams();
+  const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!authLoading && !user) {
       navigate('/');
     }
-    
-    // Get company name
-    if (companyId && COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)]) {
-      setCompanyName(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT[Number(companyId)].name);
-    }
-  }, [user, isLoading, navigate, companyId]);
+  }, [user, authLoading, navigate]);
+
+  const isLoading = authLoading || companyLoading;
 
   if (isLoading) {
     return (
@@ -43,7 +40,7 @@ const SectionPage = () => {
           onClick={() => navigate(`/company/${companyId}`)}
           className="mb-4"
         >
-          <ChevronLeft className="mr-1" /> Back to {companyName}
+          <ChevronLeft className="mr-1" /> Back to {company?.name || 'Company'}
         </Button>
       </div>
       <SectionDetail />

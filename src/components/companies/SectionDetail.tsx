@@ -130,7 +130,7 @@ export function SectionDetail() {
             <Tabs defaultValue="overview">
               <TabsList className="mb-6">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="details">Detailed Research</TabsTrigger>
               </TabsList>
               
               <TabsContent value="overview" className="space-y-6">
@@ -146,9 +146,13 @@ export function SectionDetail() {
                       <span>Key Strengths</span>
                     </h4>
                     <ul className="space-y-3 text-sm sm:text-base">
-                      {section.strengths.map((strength, idx) => (
-                        <li key={idx} className="pl-4 border-l-2 border-green-300">{strength}</li>
-                      ))}
+                      {section.strengths && section.strengths.length > 0 ? (
+                        section.strengths.map((strength, idx) => (
+                          <li key={idx} className="pl-4 border-l-2 border-green-300">{strength}</li>
+                        ))
+                      ) : (
+                        <li className="pl-4 border-l-2 border-green-300 text-muted-foreground">No strengths data available</li>
+                      )}
                     </ul>
                   </div>
                   
@@ -158,9 +162,13 @@ export function SectionDetail() {
                       <span>Areas for Improvement</span>
                     </h4>
                     <ul className="space-y-3 text-sm sm:text-base">
-                      {section.weaknesses.map((weakness, idx) => (
-                        <li key={idx} className="pl-4 border-l-2 border-amber-300">{weakness}</li>
-                      ))}
+                      {section.weaknesses && section.weaknesses.length > 0 ? (
+                        section.weaknesses.map((weakness, idx) => (
+                          <li key={idx} className="pl-4 border-l-2 border-amber-300">{weakness}</li>
+                        ))
+                      ) : (
+                        <li className="pl-4 border-l-2 border-amber-300 text-muted-foreground">No weaknesses data available</li>
+                      )}
                     </ul>
                   </div>
                 </div>
@@ -168,27 +176,39 @@ export function SectionDetail() {
               
               <TabsContent value="details" className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-3 pb-2 border-b">Detailed Analysis</h3>
-                  <p className="mb-3 text-sm sm:text-base leading-relaxed">
-                    {section.detailedContent}
-                  </p>
+                  <h3 className="text-lg font-medium mb-3 pb-2 border-b">Market Research & Analysis</h3>
+                  <div className="mb-4 whitespace-pre-wrap text-sm sm:text-base leading-relaxed">
+                    {section.detailedContent ? (
+                      <p>{section.detailedContent}</p>
+                    ) : (
+                      <p className="text-muted-foreground italic">No detailed market research available for this section.</p>
+                    )}
+                  </div>
                   
                   <div className="mt-6 space-y-6">
                     <div className="p-4 rounded-lg border bg-muted/20">
                       <h4 className="font-medium mb-3">Key Strengths:</h4>
                       <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
-                        {section.strengths.map((strength, idx) => (
-                          <li key={idx}>{strength}</li>
-                        ))}
+                        {section.strengths && section.strengths.length > 0 ? (
+                          section.strengths.map((strength, idx) => (
+                            <li key={idx}>{strength}</li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground italic">No strength data available</li>
+                        )}
                       </ul>
                     </div>
                     
                     <div className="p-4 rounded-lg border bg-muted/20">
                       <h4 className="font-medium mb-3">Areas for Improvement:</h4>
                       <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base leading-relaxed">
-                        {section.weaknesses.map((weakness, idx) => (
-                          <li key={idx}>{weakness}</li>
-                        ))}
+                        {section.weaknesses && section.weaknesses.length > 0 ? (
+                          section.weaknesses.map((weakness, idx) => (
+                            <li key={idx}>{weakness}</li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground italic">No weakness data available</li>
+                        )}
                       </ul>
                     </div>
                   </div>

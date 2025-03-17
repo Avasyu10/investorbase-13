@@ -44,7 +44,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
         ) : (
           <div className="flex gap-3 items-start">
             <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-muted-foreground">The AI analysis provides a comprehensive overview of the company's strengths and areas for improvement, helping you make informed investment decisions.</p>
+            <p className="text-sm text-muted-foreground">No assessment points available. The AI analysis typically provides a comprehensive overview of the company's strengths and areas for improvement, helping you make informed investment decisions.</p>
           </div>
         )}
       </CardContent>
