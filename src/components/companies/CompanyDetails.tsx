@@ -112,7 +112,7 @@ export function CompanyDetails() {
         <ScoreAssessment company={company} />
       </div>
       
-      {/* Latest Research Section - positioned between Assessment and Section Metrics */}
+      {/* Latest Research Section */}
       <LatestResearch 
         companyId={company.id.toString()} 
         assessmentPoints={company.assessmentPoints || []}
