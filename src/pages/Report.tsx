@@ -53,7 +53,7 @@ const Report = () => {
         onClick={() => navigate("/dashboard")}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to reports
+        Back to Pitch Decks
       </Button>
       
       <ReportViewer reportId={reportIdentifier} />
