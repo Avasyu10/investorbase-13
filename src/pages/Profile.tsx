@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Download, Edit } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { AreaOfInterestOptions } from "@/lib/constants";
 
 interface VCProfile {
   id: string;
@@ -34,6 +35,12 @@ const Profile = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<VCProfile | null>(null);
+
+  // Function to get label by value
+  const getAreaOfInterestLabel = (value: string) => {
+    const option = AreaOfInterestOptions.find(opt => opt.value === value);
+    return option ? option.label : value;
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -178,7 +185,9 @@ const Profile = () => {
                 <div className="flex flex-wrap gap-2">
                   {profile.areas_of_interest && profile.areas_of_interest.length > 0 ? (
                     profile.areas_of_interest.map((area, index) => (
-                      <Badge key={index} variant="secondary">{area}</Badge>
+                      <Badge key={index} variant="secondary">
+                        {getAreaOfInterestLabel(area)}
+                      </Badge>
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground">No areas specified</p>
