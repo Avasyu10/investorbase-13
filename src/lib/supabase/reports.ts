@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -185,107 +186,66 @@ export async function analyzeReportDirect(file: File, title: string, description
   try {
     console.log('Converting file to base64...');
     
-    // First validate file size before trying to convert to base64
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      throw new Error("File too large for direct analysis. Maximum size is 10MB.");
-    }
-    
-    // Convert file to base64 with progress tracking and timeout protection
+    // Convert file to base64
     const base64String = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      
-      // Add timeout to prevent hanging
-      const timeout = setTimeout(() => {
-        reader.abort();
-        reject(new Error("Timeout converting file to base64"));
-      }, 30000); // 30 second timeout
-      
       reader.onload = () => {
-        clearTimeout(timeout);
         const result = reader.result as string;
         // Extract just the base64 data part
         const base64 = result.split(',')[1];
         resolve(base64);
       };
-      
-      reader.onerror = () => {
-        clearTimeout(timeout);
-        reject(reader.error || new Error("Failed to read file"));
-      };
-      
+      reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(file);
     });
     
     console.log('File converted to base64, calling analyze-pdf-direct function');
     
-    // Call the edge function with timeout protection
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout for analysis
+    // Call the edge function without authentication
+    const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
+      body: { 
+        title, 
+        description, 
+        pdfBase64: base64String 
+      }
+    });
     
-    try {
-      // Call the edge function without authentication
-      const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
-        body: { 
-          title, 
-          description, 
-          pdfBase64: base64String 
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (error) {
-        console.error('Error invoking analyze-pdf-direct function:', error);
-        
-        let errorMessage = "There was a problem analyzing the report";
-        if (error.message?.includes('aborted')) {
-          errorMessage = "Analysis timed out. Your PDF might be too large or complex.";
-        }
-        
-        toast({
-          id: "analysis-error-direct-1",
-          title: "Analysis failed",
-          description: errorMessage,
-          variant: "destructive"
-        });
-        
-        throw error;
-      }
-      
-      if (!data || data.error) {
-        const errorMessage = data?.error || "Unknown error occurred during analysis";
-        console.error('API returned error:', errorMessage);
-        
-        toast({
-          id: "analysis-error-direct-2",
-          title: "Analysis failed",
-          description: errorMessage,
-          variant: "destructive"
-        });
-        
-        throw new Error(errorMessage);
-      }
-      
-      console.log('Analysis result:', data);
+    if (error) {
+      console.error('Error invoking analyze-pdf-direct function:', error);
       
       toast({
-        id: "analysis-success-direct",
-        title: "Analysis complete",
-        description: "Your pitch deck has been successfully analyzed",
+        id: "analysis-error-direct-1",
+        title: "Analysis failed",
+        description: "There was a problem analyzing the report. Please try again later.",
+        variant: "destructive"
       });
       
-      return data;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
-        console.error('Analysis request timed out');
-        throw new Error('Analysis timed out. The PDF might be too large or complex.');
-      }
-      
-      throw fetchError;
+      throw error;
     }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
+      
+      toast({
+        id: "analysis-error-direct-2",
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Analysis result:', data);
+    
+    toast({
+      id: "analysis-success-direct",
+      title: "Analysis complete",
+      description: "Your pitch deck has been successfully analyzed",
+    });
+    
+    return data;
   } catch (error) {
     console.error('Error analyzing report directly:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

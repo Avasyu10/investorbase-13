@@ -22,89 +22,69 @@ export async function analyzeReport(reportId: string) {
       throw new Error(errorMessage);
     }
     
-    // Call the edge function with a timeout setting
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    // Call the edge function without authentication
+    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+      body: { reportId }
+    });
     
-    try {
-      // Call the edge function without authentication but with a signal for timeout
-      const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-        body: { reportId },
-        signal: controller.signal,
-      });
+    if (error) {
+      console.error('Error invoking analyze-pdf function:', error);
       
-      clearTimeout(timeoutId);
+      let errorMessage = "There was a problem analyzing the report";
       
-      if (error) {
-        console.error('Error invoking analyze-pdf function:', error);
-        
-        let errorMessage = "There was a problem analyzing the report";
-        
-        // Check if we have a more specific error message
-        if (error.message?.includes('non-2xx status code')) {
-          errorMessage = "The analysis function returned an error. Please try again later.";
-        } else if (error.message?.includes('aborted')) {
-          errorMessage = "The analysis timed out. Your PDF might be too large or complex.";
-        }
-        
-        // Use a unique toast ID to prevent duplicate toasts
-        toast({
-          id: "analysis-error-1",
-          title: "Analysis failed",
-          description: errorMessage,
-          variant: "destructive"
-        });
-        
-        throw error;
+      // Check if we have a more specific error message
+      if (error.message?.includes('non-2xx status code')) {
+        errorMessage = "The analysis function returned an error. Please try again later.";
       }
       
-      if (!data || data.error) {
-        const errorMessage = data?.error || "Unknown error occurred during analysis";
-        console.error('API returned error:', errorMessage);
-        
-        let userMessage = errorMessage;
-        
-        // Make error messages more user-friendly
-        if (errorMessage.includes('belongs to another user') || errorMessage.includes('access denied')) {
-          userMessage = "You don't have permission to analyze this report.";
-        } else if (errorMessage.includes('not found')) {
-          userMessage = "The report could not be found. It may have been deleted.";
-        } else if (errorMessage.includes('PDF file is empty')) {
-          userMessage = "The PDF file appears to be corrupted or empty.";
-        } else if (errorMessage.includes('Invalid report ID format')) {
-          userMessage = "The report ID format is invalid.";
-        }
-        
-        // Use a unique toast ID to prevent duplicate toasts
-        toast({
-          id: "analysis-error-2",
-          title: "Analysis failed",
-          description: userMessage,
-          variant: "destructive"
-        });
-        
-        throw new Error(errorMessage);
-      }
-      
-      console.log('Analysis result:', data);
-      
+      // Use a unique toast ID to prevent duplicate toasts
       toast({
-        id: "analysis-success",
-        title: "Analysis complete",
-        description: "Your pitch deck has been successfully analyzed",
+        id: "analysis-error-1",
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
       });
       
-      return data;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
       
-      if (fetchError.name === 'AbortError') {
-        console.error('Analysis request timed out');
-        throw new Error('Analysis timed out. The PDF might be too large or complex.');
+      let userMessage = errorMessage;
+      
+      // Make error messages more user-friendly
+      if (errorMessage.includes('belongs to another user') || errorMessage.includes('access denied')) {
+        userMessage = "You don't have permission to analyze this report.";
+      } else if (errorMessage.includes('not found')) {
+        userMessage = "The report could not be found. It may have been deleted.";
+      } else if (errorMessage.includes('PDF file is empty')) {
+        userMessage = "The PDF file appears to be corrupted or empty.";
+      } else if (errorMessage.includes('Invalid report ID format')) {
+        userMessage = "The report ID format is invalid.";
       }
       
-      throw fetchError;
+      // Use a unique toast ID to prevent duplicate toasts
+      toast({
+        id: "analysis-error-2",
+        title: "Analysis failed",
+        description: userMessage,
+        variant: "destructive"
+      });
+      
+      throw new Error(errorMessage);
     }
+    
+    console.log('Analysis result:', data);
+    
+    toast({
+      id: "analysis-success",
+      title: "Analysis complete",
+      description: "Your pitch deck has been successfully analyzed",
+    });
+    
+    return data;
   } catch (error) {
     console.error('Error analyzing report:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

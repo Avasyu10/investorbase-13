@@ -16,7 +16,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
   // Improve data handling with better defaults
   global: {
-    fetch: (url, options) => fetch(url, options),
+    fetch: (...args) => fetch(...args),
     headers: { 'x-app-version': '1.0.0' },
   },
 });

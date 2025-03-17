@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,8 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { uploadReport, analyzeReportDirect } from "@/lib/supabase/reports"; // Import direct analyze method
-import { analyzeReport } from "@/lib/supabase/analysis";
+import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
@@ -113,38 +111,7 @@ export function ReportUpload() {
       setProgressStage("Processing your submission...");
       setProgress(10);
       
-      // Try direct analysis method first if file is small enough (under 5MB)
-      // This can help prevent Edge Function timeouts for larger files
-      const useDirectMethod = file.size < 5 * 1024 * 1024;
-      let result;
-
-      if (useDirectMethod) {
-        try {
-          console.log("Using direct analysis method for smaller file");
-          setProgressStage("Analyzing pitch deck directly...");
-          setProgress(30);
-          setIsAnalyzing(true);
-          
-          result = await analyzeReportDirect(file, title, "");
-          
-          if (result?.companyId) {
-            toast.success("Analysis complete", {
-              description: "Your pitch deck has been analyzed successfully!"
-            });
-            
-            // Navigate to the company page
-            navigate(`/company/${result.companyId}`);
-            return;
-          }
-        } catch (directError) {
-          console.error("Direct analysis failed, falling back to regular upload:", directError);
-          // If direct method fails, we'll continue with the regular upload process
-          setIsAnalyzing(false);
-          setProgress(10);
-        }
-      }
-
-      // Regular upload process
+      // Upload the report
       console.log("Starting upload process");
       const report = await uploadReport(file, title, "", companyWebsite);
       setProgress(30);
@@ -169,8 +136,8 @@ export function ReportUpload() {
       if (supplementFiles.length > 0) {
         setProgress(35);
         setProgressStage("Uploading supplementary materials...");
-        
-        const supplementUploadPromises = supplementFiles.map(async (supplementFile, i) => {
+        for (let i = 0; i < supplementFiles.length; i++) {
+          const supplementFile = supplementFiles[i];
           try {
             const { error: uploadError } = await supabase.storage
               .from('supplementary-materials')
@@ -181,84 +148,53 @@ export function ReportUpload() {
               toast.error(`Error uploading supplementary file ${i+1}`, {
                 description: uploadError.message
               });
-              return null;
             } else {
-              return `\n\nSupplementary Material ${i+1}: ${supplementFile.name}\n`;
+              description += `\n\nSupplementary Material ${i+1}: ${supplementFile.name}\n`;
             }
           } catch (err) {
             console.error(`Error processing supplementary file ${i+1}:`, err);
-            return null;
           }
-        });
-        
-        const supplementResults = await Promise.allSettled(supplementUploadPromises);
-        const successfulUploads = supplementResults
-          .filter(result => result.status === 'fulfilled' && result.value)
-          .map(result => (result as PromiseFulfilledResult<string>).value);
-        
-        description += successfulUploads.join('');
-        
-        const uploadCount = successfulUploads.length;
-        if (uploadCount > 0) {
-          toast.success("Supplementary materials uploaded", {
-            description: `${uploadCount} file(s) uploaded successfully`
-          });
         }
+        
+        toast.success("Supplementary materials uploaded", {
+          description: `${supplementFiles.length} file(s) uploaded successfully`
+        });
       }
       
-      // Try-catch blocks for each step to prevent full process failure
-      
-      // Website scraping
+      // Attempt to scrape the website if URL is provided
       let scrapedContent = null;
       if (companyWebsite && companyWebsite.trim()) {
-        try {
-          setProgress(40);
-          setIsScrapingWebsite(true);
-          const websiteResult = await scrapeWebsite(companyWebsite);
-          setIsScrapingWebsite(false);
-          
-          if (websiteResult?.success) {
-            scrapedContent = websiteResult.scrapedContent;
-            toast.success("Website scraped successfully", {
-              description: "Website content will be included in the analysis"
-            });
-          } else if (websiteResult) {
-            toast.error("Website scraping failed", {
-              description: "Could not scrape the company website. Continuing without website data."
-            });
-          }
-        } catch (scrapeError) {
-          console.error("Error during website scraping:", scrapeError);
-          setIsScrapingWebsite(false);
+        setProgress(40);
+        setIsScrapingWebsite(true);
+        const websiteResult = await scrapeWebsite(companyWebsite);
+        setIsScrapingWebsite(false);
+        if (websiteResult?.success) {
+          scrapedContent = websiteResult.scrapedContent;
+          toast.success("Website scraped successfully", {
+            description: "Website content will be included in the analysis"
+          });
+        } else if (websiteResult) {
           toast.error("Website scraping failed", {
-            description: "Error scraping website. Continuing without website data."
+            description: "Could not scrape the company website. Continuing without website data."
           });
         }
       }
       
-      // LinkedIn scraping
+      // Scrape LinkedIn profiles if provided
       let linkedInContent = null;
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
       if (validLinkedInProfiles.length > 0) {
-        try {
-          setProgress(50);
-          setProgressStage("Scraping LinkedIn profiles...");
-          const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
-          
-          if (linkedInResult?.success) {
-            linkedInContent = formatLinkedInContent(linkedInResult);
-            toast.success("LinkedIn profiles scraped successfully", {
-              description: "LinkedIn profile data will be included in the analysis"
-            });
-          } else if (linkedInResult) {
-            toast.error("LinkedIn profile scraping failed", {
-              description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
-            });
-          }
-        } catch (linkedInError) {
-          console.error("Error during LinkedIn scraping:", linkedInError);
+        setProgress(50);
+        setProgressStage("Scraping LinkedIn profiles...");
+        const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
+        if (linkedInResult?.success) {
+          linkedInContent = formatLinkedInContent(linkedInResult);
+          toast.success("LinkedIn profiles scraped successfully", {
+            description: "LinkedIn profile data will be included in the analysis"
+          });
+        } else if (linkedInResult) {
           toast.error("LinkedIn profile scraping failed", {
-            description: "Error scraping LinkedIn profiles. Continuing without LinkedIn data."
+            description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
           });
         }
       }
@@ -275,21 +211,17 @@ export function ReportUpload() {
       
       // Update the report with the complete description
       if (description) {
-        try {
-          const { error: updateError } = await supabase
-            .from('reports')
-            .update({ description })
-            .eq('id', report.id);
-            
-          if (updateError) {
-            console.error("Error updating report description:", updateError);
-          }
-        } catch (updateError) {
-          console.error("Exception updating report description:", updateError);
+        const { error: updateError } = await supabase
+          .from('reports')
+          .update({ description })
+          .eq('id', report.id);
+          
+        if (updateError) {
+          console.error("Error updating report description:", updateError);
         }
       }
       
-      // Start analysis with improved error handling
+      // Start analysis
       setIsAnalyzing(true);
       setProgressStage("Analyzing pitch deck with AI...");
       setProgress(70);
@@ -300,20 +232,7 @@ export function ReportUpload() {
       
       try {
         console.log("Starting analysis with report ID:", report.id);
-        
-        // Set a timeout to navigate to dashboard if analysis takes too long
-        const analysisTimeout = setTimeout(() => {
-          if (isAnalyzing) {
-            toast.info("Analysis is taking longer than expected", {
-              description: "You can check the dashboard later for results"
-            });
-            navigate('/dashboard');
-          }
-        }, 120000); // 2 minutes timeout
-        
-        result = await analyzeReport(report.id);
-        clearTimeout(analysisTimeout);
-        
+        const result = await analyzeReport(report.id);
         setProgress(100);
         console.log("Analysis complete, result:", result);
         
@@ -348,11 +267,6 @@ export function ReportUpload() {
         description: error instanceof Error ? error.message : "Failed to process pitch deck"
       });
       setProgress(0);
-      
-      // Reset state to allow retry
-      setIsUploading(false);
-      setIsAnalyzing(false);
-      setIsScrapingWebsite(false);
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
