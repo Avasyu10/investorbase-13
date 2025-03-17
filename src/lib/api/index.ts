@@ -17,7 +17,7 @@ import {
 } from './apiContract';
 
 // Check if we should use mock data or real API
-const USE_MOCK_API = true; // Set to true to use mock data while database is empty
+const USE_MOCK_API = false;
 
 // API Client that decides whether to use real or mock API
 const api = {
