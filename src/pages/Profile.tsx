@@ -12,7 +12,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Edit } from "lucide-react";
+import { Loader2, Download, Edit, Globe } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AreaOfInterestOptions } from "@/lib/constants";
@@ -25,6 +25,7 @@ interface VCProfile {
   investment_stage: string[];
   companies_invested: string[];
   fund_thesis_url: string | null;
+  website_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -224,6 +225,29 @@ const Profile = () => {
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground">No companies specified</p>
+              )}
+            </div>
+          </div>
+          
+          {/* New section for Website URL */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Online Presence</h3>
+            <Separator className="mb-4" />
+            
+            <div>
+              <p className="text-sm font-medium mb-2">Website</p>
+              {profile.website_url ? (
+                <a 
+                  href={profile.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-primary hover:underline"
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Visit Website
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground">No website specified</p>
               )}
             </div>
           </div>

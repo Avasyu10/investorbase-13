@@ -222,6 +222,7 @@ export type Database = {
           id: string
           investment_stage: string[] | null
           updated_at: string
+          website_url: string | null
         }
         Insert: {
           areas_of_interest?: string[] | null
@@ -233,6 +234,7 @@ export type Database = {
           id: string
           investment_stage?: string[] | null
           updated_at?: string
+          website_url?: string | null
         }
         Update: {
           areas_of_interest?: string[] | null
@@ -244,6 +246,7 @@ export type Database = {
           id?: string
           investment_stage?: string[] | null
           updated_at?: string
+          website_url?: string | null
         }
         Relationships: []
       }

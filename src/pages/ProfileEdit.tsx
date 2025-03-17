@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Plus, X } from "lucide-react";
+import { Loader2, Save, Plus, X, Globe } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
 import { AreaOfInterestOptions } from "@/lib/constants";
@@ -28,6 +29,7 @@ interface VCProfile {
   investment_stage: string[];
   companies_invested: string[];
   fund_thesis_url: string | null;
+  website_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +60,7 @@ const ProfileEdit = () => {
   const [investmentStage, setInvestmentStage] = useState<string[]>([]);
   const [companiesInvested, setCompaniesInvested] = useState<string[]>([]);
   const [newCompany, setNewCompany] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('https://www.google.com');
 
   useEffect(() => {
     if (!user) {
@@ -96,6 +99,7 @@ const ProfileEdit = () => {
       setAreasOfInterest(profileData.areas_of_interest || []);
       setInvestmentStage(profileData.investment_stage || []);
       setCompaniesInvested(profileData.companies_invested || []);
+      setWebsiteUrl(profileData.website_url || 'https://www.google.com');
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -139,6 +143,7 @@ const ProfileEdit = () => {
           areas_of_interest: areasOfInterest,
           investment_stage: investmentStage,
           companies_invested: companiesInvested,
+          website_url: websiteUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -287,6 +292,31 @@ const ProfileEdit = () => {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Add companies you've invested in to your portfolio
+                </p>
+              </div>
+            </div>
+            
+            {/* New section for Website URL */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Online Presence</h3>
+              <Separator className="mb-4" />
+              
+              <div className="space-y-2">
+                <Label htmlFor="website-url">Website URL</Label>
+                <div className="flex">
+                  <div className="bg-muted flex items-center px-3 rounded-l-md border border-r-0 border-input">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <Input
+                    id="website-url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://www.yourdomain.com"
+                    className="rounded-l-none"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add your fund's website or public profile
                 </p>
               </div>
             </div>
