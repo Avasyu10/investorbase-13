@@ -9,7 +9,10 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return (
     <NextThemesProvider 
       {...props}
+      attribute="class"
+      defaultTheme="dark"
       forcedTheme="dark" // Force dark theme across the entire application
+      enableSystem={false}
     >
       {children}
     </NextThemesProvider>

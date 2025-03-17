@@ -47,6 +47,10 @@
     --sidebar-ring: 220 85% 30%;
   }
 
+  :root, html {
+    @apply dark;
+  }
+
   .dark {
     --background: 230 35% 7%;
     --foreground: 220 10% 97%;
@@ -93,7 +97,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans dark;
     font-family: 'Inter', sans-serif;
   }
 }
@@ -123,10 +127,10 @@
 
 /* Glass morphism effects */
 .glass {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .glass-dark {

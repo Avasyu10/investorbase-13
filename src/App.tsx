@@ -33,12 +33,11 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <ThemeProvider>
-            <main className="min-h-screen flex flex-col">
+            <main className="min-h-screen flex flex-col dark bg-background text-foreground">
               <Navbar />
               <div className="flex-1">
                 <Routes>
                   <Route path="/" element={<Index />} />
-                  {/* Redirect /login to the root path which has the original form */}
                   <Route path="/login" element={<Navigate to="/" replace />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/dashboard" element={<Dashboard />} />
