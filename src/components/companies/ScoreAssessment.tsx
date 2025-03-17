@@ -5,6 +5,7 @@ import { CompanyDetailed } from "@/lib/api/apiContract";
 import { ArrowUpRight, Lightbulb, BarChart2, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface ScoreAssessmentProps {
   company: CompanyDetailed;
@@ -14,6 +15,9 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   // Format overall score to 1 decimal place
   const formattedScore = parseFloat(company.overallScore.toFixed(1));
   
+  // Calculate progress percentage (0-100 scale) from score (0-5 scale)
+  const progressPercentage = formattedScore * 20;
+  
   // Get score color class
   const getScoreColor = (score: number) => {
     if (score >= 4.5) return "text-emerald-600";
@@ -21,6 +25,15 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
     if (score >= 2.5) return "text-amber-600";
     if (score >= 1.5) return "text-orange-600";
     return "text-red-600";
+  };
+  
+  // Get progress bar color class
+  const getProgressColor = (score: number) => {
+    if (score >= 4.5) return "score-excellent";
+    if (score >= 3.5) return "score-good"; 
+    if (score >= 2.5) return "score-average";
+    if (score >= 1.5) return "score-poor";
+    return "score-critical";
   };
   
   // Get score description

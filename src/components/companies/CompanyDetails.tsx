@@ -60,10 +60,11 @@ export function CompanyDetails() {
     );
   }
 
-  const formattedScore = company.overallScore ? parseFloat(company.overallScore.toFixed(1)) : 0;
+  // Format score to 1 decimal place
+  const formattedScore = parseFloat(company.overallScore.toFixed(1));
   
-  // Calculate the progress percentage correctly - multiply by 20 to convert 0-5 scale to 0-100
-  const progressPercentage = formattedScore * 20; 
+  // Calculate progress percentage (0-100 scale) from score (0-5 scale)
+  const progressPercentage = formattedScore * 20;
 
   const getScoreColor = (score: number) => {
     if (score >= 4.5) return "score-excellent";
