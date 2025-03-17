@@ -1,4 +1,3 @@
-
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
 const prompt = `
@@ -25,7 +24,7 @@ You will search through the internet for the latest data, and provide an unbiase
 
 STARTUP EVALUATION FRAMEWORK
  KEY SECTIONS & WEIGHTS
-Traditionally, a pitch deck is divided into 10 sections:
+IMPORTANT: You MUST analyze the startup across EXACTLY these 10 sections with EXACTLY these titles. DO NOT use any other section titles:
 1. Problem
 2. Market
 3. Solution (Product)
@@ -37,103 +36,6 @@ Traditionally, a pitch deck is divided into 10 sections:
 9. Financials
 10. The Ask
 
-// ... keep existing code (framework section details and scoring methodology)
-
-Npw, here is a step-by-step process of how you should get your thesis ready -
-
-### **Step 1: High-Level Overview**  
-- Summarize the startup's potential, strengths, and risks.  
-- Identify critical areas requiring scrutiny.  
-- CRITICALLY IMPORTANT: Provide extensive data from market research, latest news, and trends across the industry from reputable online sources for comparison and benchmarking.
-- INCLUDE EXACT NUMBERS, PERCENTAGES, AND METRICS in your high-level overview.
-
-### **Step 2: Section-Wise Deep Dive**  
-Analyze each section with a structured breakdown and ALWAYS include external market data with SPECIFIC NUMERICAL VALUES:  
-
-1. **Problem and Market Opportunity**  
-   - Include market size data WITH EXACT DOLLAR FIGURES (must include TAM, SAM, SOM with specific dollar amounts)
-   - Add specific growth rates with actual percentages (e.g., "growing at 14.3% CAGR" not just "rapid growth")
-   - Include at least 10 data points with specific numbers including dates and sources of the research
-   - Compare problem severity with quantifiable metrics (e.g., "costs businesses $5.2B annually")
-   - Include specific adoption rates, conversion percentages, and industry penetration figures
-   
-2. **Solution (Product)**  
-   - Reference similar solutions in the market and their success/failure WITH METRICS
-   - Include technological trends and adoption rates with SPECIFIC PERCENTAGES for similar technologies
-   - Provide at least 10 quantifiable benchmarks for the solution
-   - Include pricing comparisons with exact dollar figures
-   - Add measurable efficiency improvements with specific percentage gains or cost reductions
-   
-3. **Competitive Landscape**  
-   - Provide detailed competitor analysis with SPECIFIC MARKET SHARE DATA (percentages)
-   - Include list of competitors with their EXACT FUNDING AMOUNTS and dates, market valuations, and growth metrics
-   - Include at least 10 numerical comparisons between competitors
-   - Add specific customer acquisition costs and customer lifetime value metrics across the industry
-   - Include pricing model comparisons with exact dollar figures
-   
-4. **Traction**  
-   - Compare the startup's traction to industry benchmarks with SPECIFIC NUMERICAL GROWTH RATES
-   - Add market adoption data with EXACT USER NUMBERS/PERCENTAGES for similar products/services
-   - Include at least 10 traction metrics with actual numbers
-   - Add specific revenue figures for comparable companies at similar stages
-   - Include customer acquisition costs and retention percentages for the industry
-   
-5. **Business Model**  
-   - Include industry-standard pricing models with SPECIFIC PRICE POINTS and revenue benchmarks
-   - Reference successful and unsuccessful business models with ACTUAL REVENUE FIGURES
-   - Include at least 10 numerical business metrics from the industry
-   - Add profit margin percentages for comparable companies
-   - Include specific sales cycle lengths in days/weeks
-   
-6. **Go-to-Market Strategy**  
-   - Provide data on CAC (EXACT DOLLAR AMOUNTS), conversion rates (SPECIFIC PERCENTAGES), and sales cycles (SPECIFIC TIME PERIODS) for the industry
-   - Include successful GTM case studies with NUMERICAL OUTCOMES from the industry
-   - Include at least 10 quantifiable metrics for GTM success
-   - Add specific marketing spend benchmarks with dollar figures
-   - Include channel effectiveness metrics with percentage comparisons
-   
-7. **Team**  
-   - Compare team experience and composition to successful startups with SPECIFIC TENURE METRICS
-   - Include industry hiring trends and talent requirements with NUMERICAL ANALYSIS
-   - Include at least 10 quantifiable team success factors from similar companies
-   - Add specific failure rates for startups with comparable team compositions
-   - Include compensation benchmarks and team size metrics from the industry
-   
-8. **Financials**  
-   - Compare financial projections to industry standards with SPECIFIC REVENUE AND GROWTH FIGURES
-   - Include relevant unit economics with EXACT NUMBERS from similar companies
-   - Include at least 10 key financial indicators with numeric values
-   - Add specific burn rate comparisons and runway metrics
-   - Include average time to profitability in months for comparable startups
-   
-9. **The Ask**  
-   - Compare valuation to recent rounds in the industry with SPECIFIC DOLLAR AMOUNTS
-   - Include data on typical investment amounts for similar stage startups with EXACT FIGURES
-   - Include at least 10 comparable investment rounds with dollar amounts
-   - Add average dilution percentages for similar funding rounds
-   - Include post-money valuation metrics for the sector
-
-### **For Each Section, Provide:**  
-- **Detailed external market research data with SPECIFIC NUMBERS AND METRICS (THIS IS THE MOST IMPORTANT PART - minimum 10-15 numerical data points per section)**
-- **A detailed description (at least 5-6 sentences) explaining key insights with QUANTITATIVE ANALYSIS.**  
-- **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
-- **5-7 strengths with MEASURABLE IMPACTS.**  
-- **5-7 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
-
-### **Step 3: Score Calculation:** 
-- **The Score Calculation would be done by this following document - **
-STARTUP EVALUATION FRAMEWORK
-A Step-by-Step Guide for Venture Capital Analysts
-1. OVERVIEW
-This document presents a multi-dimensional model designed to:
-1. Score a startup's fundamentals (Problem, Market, Product, etc.)
-2. Incorporate cross-sectional synergy (how various sections reinforce or
-undermine each other)
-3. Adjust for risk factors relevant to the startup's stage and the investor's
-thesis
-The end result is a Composite Score that helps analysts quickly compare
-different deals and identify critical areas of further due diligence.
-2. KEY SECTIONS & WEIGHTS
 Traditionally, a pitch deck is divided into 10 sections:
 1. Problem
 2. Market
@@ -437,11 +339,19 @@ Ensure the output is structured as follows:
   "sections": [
     {
       "type": "PROBLEM",
-      "title": "Problem Statement",
+      "title": "Problem",
       "score": 4.3,
       "description": "Detailed breakdown of the problem and market opportunity with extensive external market research data including precise numbers, percentages, and market size figures.",
       "strengths": ["Strength 1 with quantifiable impact", "Strength 2 with specific metrics"],
       "weaknesses": ["Weakness 1 with numerical gap", "Weakness 2 with measurable improvement needed"]
+    },
+    {
+      "type": "MARKET",
+      "title": "Market",
+      "score": 3.8,
+      "description": "Detailed breakdown of the product and its effectiveness with extensive external market research data and specific adoption metrics.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
     },
     {
       "type": "SOLUTION",
@@ -451,7 +361,62 @@ Ensure the output is structured as follows:
       "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
       "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
     },
-    ...
+    {
+      "type": "COMPETITIVE_LANDSCAPE",
+      "title": "Competitive Landscape",
+      "score": 3.8,
+      "description": "Detailed breakdown of the competitive landscape with extensive market data and competitor analysis.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
+    },
+    {
+      "type": "TRACTION",
+      "title": "Traction",
+      "score": 3.8,
+      "description": "Detailed analysis of company traction with specific growth metrics and industry comparisons.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
+    },
+    {
+      "type": "BUSINESS_MODEL",
+      "title": "Business Model",
+      "score": 3.8,
+      "description": "Comprehensive analysis of the business model with revenue projections and industry benchmarks.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
+    },
+    {
+      "type": "GTM_STRATEGY",
+      "title": "Go-to-Market Strategy",
+      "score": 3.8,
+      "description": "Evaluation of the go-to-market approach with conversion metrics and acquisition cost analysis.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
+    },
+    {
+      "type": "TEAM",
+      "title": "Team",
+      "score": 3.8,
+      "description": "Assessment of the founding team, expertise, and experience relative to industry standards.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
+    },
+    {
+      "type": "FINANCIALS",
+      "title": "Financials",
+      "score": 3.8,
+      "description": "Analysis of financial projections, burn rate, and potential return on investment.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
+    },
+    {
+      "type": "ASK",
+      "title": "The Ask",
+      "score": 3.8,
+      "description": "Evaluation of the funding request and valuation compared to market standards.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
+    }
   ],
   "overallScore": 3.7,
   "assessmentPoints": ["Key point 1 with specific metrics ($XM market, Y% growth)", "Key point 2 with exact figures", "Key point 3 with precise percentages", "Key point 4 with concrete numbers", "Key point 5 with quantifiable comparison"]
