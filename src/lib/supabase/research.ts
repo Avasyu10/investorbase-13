@@ -63,12 +63,24 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       if (error) {
         console.error('Error invoking research-with-perplexity function:', error);
         
-        toast({
-          id: "research-error-1",
-          title: "Research failed",
-          description: "There was a problem fetching the latest research.",
-          variant: "destructive"
-        });
+        // Don't show toast errors if we already have existing data - we can use that instead
+        if (!existingData?.perplexity_response) {
+          toast({
+            id: "research-error-1",
+            title: "Research update failed",
+            description: "Using existing research data. Latest updates couldn't be fetched.",
+            variant: "default"
+          });
+        }
+        
+        // If we have existing data, return it instead of failing
+        if (existingData?.perplexity_response) {
+          console.log('Falling back to existing research data due to edge function error');
+          return {
+            research: existingData.perplexity_response,
+            requestedAt: existingData.perplexity_requested_at
+          };
+        }
         
         throw error;
       }
@@ -77,12 +89,24 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         const errorMessage = data?.error || "Unknown error occurred during research";
         console.error('API returned error:', errorMessage);
         
-        toast({
-          id: "research-error-2",
-          title: "Research failed",
-          description: "The research service could not process your request.",
-          variant: "destructive"
-        });
+        // Don't show toast errors if we already have existing data - we can use that instead
+        if (!existingData?.perplexity_response) {
+          toast({
+            id: "research-error-2",
+            title: "Research update failed",
+            description: "Using existing research data. Latest updates couldn't be processed.",
+            variant: "default"
+          });
+        }
+        
+        // If we have existing data, return it instead of failing
+        if (existingData?.perplexity_response) {
+          console.log('Falling back to existing research data due to API error');
+          return {
+            research: existingData.perplexity_response,
+            requestedAt: existingData.perplexity_requested_at
+          };
+        }
         
         throw new Error(errorMessage);
       }
@@ -120,12 +144,26 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       // Handle timeout specifically
       if (innerError.name === 'AbortError') {
         console.error('Research timed out after', timeoutMs / 1000, 'seconds');
-        toast({
-          id: "research-timeout",
-          title: "Research timed out",
-          description: "The research is taking longer than expected. Please try again later.",
-          variant: "destructive"
-        });
+        
+        // Don't show toast errors if we already have existing data - we can use that instead
+        if (!existingData?.perplexity_response) {
+          toast({
+            id: "research-timeout",
+            title: "Research timed out",
+            description: "The research is taking longer than expected. Using existing data.",
+            variant: "default"
+          });
+        }
+        
+        // If we have existing data, return it instead of failing
+        if (existingData?.perplexity_response) {
+          console.log('Falling back to existing research data due to timeout');
+          return {
+            research: existingData.perplexity_response,
+            requestedAt: existingData.perplexity_requested_at
+          };
+        }
+        
         throw new Error('Research timed out. Please try again later.');
       }
       
@@ -134,17 +172,35 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
     }
   } catch (error) {
     console.error('Error getting latest research:', error);
+    
+    // Get the existing data as a last resort fallback
+    try {
+      const { data: lastResortData } = await supabase
+        .from('companies')
+        .select('perplexity_response, perplexity_requested_at')
+        .eq('id', companyId)
+        .single();
+        
+      if (lastResortData?.perplexity_response) {
+        console.log('Using last resort fallback to existing research data');
+        return {
+          research: lastResortData.perplexity_response,
+          requestedAt: lastResortData.perplexity_requested_at
+        };
+      }
+    } catch (fallbackError) {
+      console.error('Error in last resort fallback:', fallbackError);
+    }
+    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
-    // Prevent duplicate toasts by checking error message
-    if (!errorMessage.includes("research failed") && !errorMessage.includes("timed out")) {
-      toast({
-        id: "research-error-3",
-        title: "Research failed",
-        description: "Could not retrieve the latest research. Please try again later.",
-        variant: "destructive"
-      });
-    }
+    // Only show a toast error if we couldn't retrieve any data at all
+    toast({
+      id: "research-error-3",
+      title: "Research failed",
+      description: "Could not retrieve research data. Please try again later.",
+      variant: "destructive"
+    });
     
     throw error;
   }

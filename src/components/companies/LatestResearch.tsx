@@ -20,6 +20,7 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
   const [research, setResearch] = useState<string | undefined>(existingResearch);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fetchTrigger, setFetchTrigger] = useState<number>(0);
+  const [hasError, setHasError] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
   const handleFetchResearch = async () => {
@@ -29,6 +30,7 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
 
     try {
       setIsLoading(true);
+      setHasError(false);
       // Join assessment points as text for the research prompt
       const assessmentText = assessmentPoints.join("\n\n");
       const result = await getLatestResearch(companyId, assessmentText);
@@ -48,6 +50,7 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
       }
     } catch (error) {
       console.error("Error fetching research:", error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
@@ -67,6 +70,7 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
   useEffect(() => {
     if (existingResearch && existingResearch !== research) {
       setResearch(existingResearch);
+      setHasError(false);
     }
   }, [existingResearch]);
 
@@ -160,6 +164,14 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
                 </div>
               );
             })}
+            
+            {hasError && (
+              <div className="mt-2 py-2 px-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-xs text-yellow-700">
+                  Using cached research data. Real-time updates couldn't be fetched.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
