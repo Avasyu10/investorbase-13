@@ -89,6 +89,18 @@ export function SectionDetail() {
     };
   };
 
+  const formatDescriptionAsBullets = (description: string): string[] => {
+    if (!description) return [];
+    
+    const sentences = description
+      .replace(/\*/g, '')
+      .split(/(?:\.|\n|•)\s+/)
+      .filter(s => s.trim().length > 10)
+      .map(s => s.trim());
+    
+    return sentences;
+  };
+
   const getScoreDescription = (score: number): string => {
     const sectionLower = section.title.toLowerCase();
     
@@ -192,11 +204,11 @@ export function SectionDetail() {
         } overflow-y-auto`}
       >
         <div className="p-4 border-b bg-secondary/30">
-          <h3 className="font-medium text-foreground">{company.name}</h3>
+          <h3 className="font-medium text-foreground">{company?.name}</h3>
           <p className="text-sm text-muted-foreground">Sections</p>
         </div>
         <nav className="flex flex-col w-full">
-          {company.sections.map((s) => (
+          {company?.sections.map((s) => (
             <Link
               key={s.id}
               to={`/company/${companyId}/section/${s.id}`}
@@ -220,9 +232,9 @@ export function SectionDetail() {
         <Card className="border-0 shadow-card bg-card/95 backdrop-blur-sm">
           <CardHeader className="pb-4 border-b bg-secondary/20 backdrop-blur-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">{section.title}</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">{section?.title}</CardTitle>
               <div className="flex items-center space-x-4 mt-2 sm:mt-0">
-                {company.reportId && (
+                {company?.reportId && (
                   <Button 
                     onClick={() => setShowReportModal(true)}
                     variant="outline"
@@ -235,7 +247,7 @@ export function SectionDetail() {
                 )}
                 <div className="flex items-center">
                   <span className="font-semibold text-sm sm:text-base text-foreground mr-2">Score:</span>
-                  <span className={`font-bold text-base sm:text-lg ${getScoreColor(section.score)}`}>{section.score}</span>
+                  <span className={`font-bold text-base sm:text-lg ${getScoreColor(section?.score || 0)}`}>{section?.score}</span>
                   <span className="text-sm text-muted-foreground ml-1">/5</span>
                   <TooltipProvider>
                     <Tooltip delayDuration={300}>
@@ -245,18 +257,18 @@ export function SectionDetail() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                        <p>{getScoreDescription(section.score)}</p>
+                        <p>{getScoreDescription(section?.score || 0)}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
                 <div className="w-24 sm:w-32 flex items-center">
                   <Progress 
-                    value={section.score * 20} 
+                    value={(section?.score || 0) * 20} 
                     className={`h-2.5 ${
-                      section.score >= 4 ? 'bg-emerald-100 [&>div]:bg-emerald-600' : 
-                      section.score >= 3 ? 'bg-blue-100 [&>div]:bg-blue-600' : 
-                      section.score >= 2 ? 'bg-amber-100 [&>div]:bg-amber-600' : 
+                      (section?.score || 0) >= 4 ? 'bg-emerald-100 [&>div]:bg-emerald-600' : 
+                      (section?.score || 0) >= 3 ? 'bg-blue-100 [&>div]:bg-blue-600' : 
+                      (section?.score || 0) >= 2 ? 'bg-amber-100 [&>div]:bg-amber-600' : 
                       'bg-red-100 [&>div]:bg-red-600'
                     }`}
                   />
@@ -269,10 +281,15 @@ export function SectionDetail() {
             <div className="space-y-6">
               <div className="p-6 rounded-lg bg-background border border-border shadow-md">
                 <h3 className="text-lg font-semibold mb-4 text-foreground">Summary</h3>
-                <p 
-                  className="text-sm sm:text-base leading-relaxed text-foreground/90"
-                  dangerouslySetInnerHTML={highlightNumbers(section.description)} 
-                />
+                <ul className="list-disc pl-5 space-y-2">
+                  {formatDescriptionAsBullets(section?.description || '').map((point, idx) => (
+                    <li 
+                      key={idx} 
+                      className="text-sm sm:text-base text-foreground/90"
+                      dangerouslySetInnerHTML={highlightNumbers(point)}
+                    />
+                  ))}
+                </ul>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -282,7 +299,7 @@ export function SectionDetail() {
                     <span>Key Strengths</span>
                   </h4>
                   <ul className="space-y-3 text-sm sm:text-base">
-                    {section.strengths && section.strengths.length > 0 ? (
+                    {section?.strengths && section.strengths.length > 0 ? (
                       section.strengths.map((strength, idx) => (
                         <li 
                           key={idx} 
@@ -305,7 +322,7 @@ export function SectionDetail() {
                     <span>Areas for Improvement</span>
                   </h4>
                   <ul className="space-y-3 text-sm sm:text-base">
-                    {section.weaknesses && section.weaknesses.length > 0 ? (
+                    {section?.weaknesses && section.weaknesses.length > 0 ? (
                       section.weaknesses.map((weakness, idx) => (
                         <li 
                           key={idx} 
@@ -327,11 +344,11 @@ export function SectionDetail() {
         </Card>
       </div>
 
-      {company.reportId && (
+      {company?.reportId && (
         <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
           <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col bg-background/95 backdrop-blur-md border border-border/80">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">{company.name} - {section.title}</DialogTitle>
+              <DialogTitle className="text-xl font-semibold">{company.name} - {section?.title}</DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-auto p-1">
               <ReportViewer reportId={company.reportId} />

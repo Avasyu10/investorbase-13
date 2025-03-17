@@ -73,6 +73,20 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         description: "Latest market research has been loaded successfully",
       });
       
+      // After successful research fetch, get the updated company data
+      const { data: updatedCompany, error: companyError } = await supabase
+        .from('companies')
+        .select('perplexity_response')
+        .eq('id', companyId)
+        .single();
+        
+      if (companyError) {
+        console.error('Error fetching updated company data:', companyError);
+      } else if (updatedCompany) {
+        // Update the research with the fresh data from database
+        data.research = updatedCompany.perplexity_response;
+      }
+      
       return data;
     } catch (innerError) {
       // Clear the timeout to prevent potential memory leaks

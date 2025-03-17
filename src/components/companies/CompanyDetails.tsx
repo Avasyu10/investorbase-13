@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -7,11 +6,13 @@ import { LatestResearch } from "./LatestResearch";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2 } from "lucide-react";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { company, isLoading } = useCompanyDetails(companyId);
 
   const handleSectionClick = (sectionId: number | string) => {
@@ -22,6 +23,12 @@ export function CompanyDetails() {
     if (company?.reportId) {
       navigate(`/reports/${company.reportId}`);
     }
+  };
+
+  const onResearchFetched = () => {
+    queryClient.invalidateQueries({
+      queryKey: ['company', companyId],
+    });
   };
 
   if (isLoading) {
@@ -61,10 +68,8 @@ export function CompanyDetails() {
     );
   }
 
-  // Format score to 1 decimal place
   const formattedScore = parseFloat(company.overallScore.toFixed(1));
   
-  // Calculate progress percentage (0-100 scale) from score (0-5 scale)
   const progressPercentage = formattedScore * 20;
 
   const getScoreColor = (score: number) => {
@@ -112,12 +117,12 @@ export function CompanyDetails() {
         <ScoreAssessment company={company} />
       </div>
       
-      {/* Latest Research Section */}
       <LatestResearch 
         companyId={company.id.toString()} 
         assessmentPoints={company.assessmentPoints || []}
         existingResearch={company.perplexityResponse}
         requestedAt={company.perplexityRequestedAt}
+        onSuccess={onResearchFetched}
       />
       
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
