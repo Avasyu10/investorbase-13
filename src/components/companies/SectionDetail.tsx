@@ -68,6 +68,26 @@ export function SectionDetail() {
     );
   }
 
+  // Function to highlight numbers in text
+  const highlightNumbers = (text: string) => {
+    // This regex matches:
+    // - Numbers with optional decimal points (e.g., 12, 12.34)
+    // - Numbers with % sign (e.g., 12%, 12.34%)
+    // - Dollar amounts (e.g., $12, $12.34)
+    // - Numbers with K, M, B, T suffixes (e.g., 12K, $12M)
+    return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
+      (match) => `<span class="font-medium ${getScoreColor(section.score)}">${match}</span>`);
+  };
+
+  // Get color based on score
+  const getScoreColor = (score: number) => {
+    if (score >= 4.5) return "text-emerald-600";
+    if (score >= 3.5) return "text-blue-600";
+    if (score >= 2.5) return "text-amber-600";
+    if (score >= 1.5) return "text-orange-600";
+    return "text-red-600";
+  };
+
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)]">
       <Button 
@@ -129,7 +149,10 @@ export function SectionDetail() {
             <div className="space-y-6">
               <div className="p-4 rounded-lg bg-muted/30 border">
                 <h3 className="text-lg font-medium mb-3">Summary</h3>
-                <p className="text-sm sm:text-base leading-relaxed">{section.description}</p>
+                <p 
+                  className="text-sm sm:text-base leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: highlightNumbers(section.description) }}
+                />
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -141,7 +164,11 @@ export function SectionDetail() {
                   <ul className="space-y-3 text-sm sm:text-base">
                     {section.strengths && section.strengths.length > 0 ? (
                       section.strengths.map((strength, idx) => (
-                        <li key={idx} className="pl-4 border-l-2 border-green-300">{strength}</li>
+                        <li 
+                          key={idx} 
+                          className="pl-4 border-l-2 border-green-300"
+                          dangerouslySetInnerHTML={{ __html: highlightNumbers(strength) }}
+                        />
                       ))
                     ) : (
                       <li className="pl-4 border-l-2 border-green-300 text-muted-foreground">No strengths data available</li>
@@ -157,7 +184,11 @@ export function SectionDetail() {
                   <ul className="space-y-3 text-sm sm:text-base">
                     {section.weaknesses && section.weaknesses.length > 0 ? (
                       section.weaknesses.map((weakness, idx) => (
-                        <li key={idx} className="pl-4 border-l-2 border-amber-300">{weakness}</li>
+                        <li 
+                          key={idx} 
+                          className="pl-4 border-l-2 border-amber-300"
+                          dangerouslySetInnerHTML={{ __html: highlightNumbers(weakness) }}
+                        />
                       ))
                     ) : (
                       <li className="pl-4 border-l-2 border-amber-300 text-muted-foreground">No weaknesses data available</li>

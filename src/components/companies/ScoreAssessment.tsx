@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
-import { ArrowUpRight, Lightbulb } from "lucide-react";
+import { ArrowUpRight, Lightbulb, BarChart2 } from "lucide-react";
 
 interface ScoreAssessmentProps {
   company: CompanyDetailed;
@@ -21,11 +21,20 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
     return "text-red-600";
   };
 
+  // Highlight numbers in assessment points
+  const highlightNumbers = (text: string) => {
+    return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
+      (match) => `<span class="font-medium ${getScoreColor(formattedScore)}">${match}</span>`);
+  };
+
   return (
     <Card className="mb-8 shadow-card border-0">
       <CardHeader className="bg-secondary/50 border-b pb-4">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <BarChart2 className="h-5 w-5" />
+            Overall Assessment
+          </CardTitle>
           <span className={`text-xl font-bold ${getScoreColor(formattedScore)}`}>
             {formattedScore}/5
           </span>
@@ -37,14 +46,21 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
             {company.assessmentPoints.map((point, index) => (
               <div key={index} className="flex gap-3 items-start">
                 <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-muted-foreground">{point}</p>
+                <p 
+                  className="text-sm text-muted-foreground" 
+                  dangerouslySetInnerHTML={{ __html: highlightNumbers(point) }}
+                />
               </div>
             ))}
           </div>
         ) : (
           <div className="flex gap-3 items-start">
             <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-muted-foreground">No assessment points available. The AI analysis typically provides a comprehensive overview of the company's strengths and areas for improvement, helping you make informed investment decisions.</p>
+            <p className="text-sm text-muted-foreground">
+              No assessment points available. The AI analysis typically provides a comprehensive overview 
+              of the company's strengths and areas for improvement, including quantitative metrics to help 
+              you make informed investment decisions.
+            </p>
           </div>
         )}
       </CardContent>

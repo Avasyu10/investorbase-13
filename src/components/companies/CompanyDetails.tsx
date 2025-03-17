@@ -6,7 +6,7 @@ import { ScoreAssessment } from "./ScoreAssessment";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
+import { FileText, BarChart2 } from "lucide-react";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -107,7 +107,10 @@ export function CompanyDetails() {
         <ScoreAssessment company={company} />
       </div>
       
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5">Section Metrics</h2>
+      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+        <BarChart2 className="h-5 w-5 text-primary" />
+        Section Metrics
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {company.sections.map((section) => (
           <SectionCard 
