@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -119,12 +119,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Sign up successful",
         description: "Please check your email for the confirmation link.",
       });
+      
+      return true;
     } catch (error: any) {
       toast({
         title: "Sign up failed",
         description: error.message,
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsLoading(false);
     }

@@ -28,10 +28,10 @@ const Index = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signUpWithEmail(email, password);
+    const success = await signUpWithEmail(email, password);
     
-    // After signup, navigate to profile setup
-    if (!isLoading) {
+    // Only navigate to profile setup if signup was successful
+    if (success) {
       navigate('/profile/setup');
     }
   };
