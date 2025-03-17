@@ -101,16 +101,18 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
 
   // Helper to get assessment summary
   const getAssessmentSummary = (company: CompanyListItem) => {
-    if (!company.assessmentPoints || company.assessmentPoints.length === 0) {
-      return "No assessment data available";
+    // First check if there is a summary in the description field of the first report
+    // Fall back to assessment points if available
+    if ('assessmentPoints' in company && company.assessmentPoints && company.assessmentPoints.length > 0) {
+      // Return up to 2 assessment points with ellipsis if more exist
+      const points = company.assessmentPoints.slice(0, 2);
+      const summary = points.join(', ');
+      return company.assessmentPoints.length > 2 
+        ? `${summary}, ...` 
+        : summary;
     }
     
-    // Return up to 2 assessment points with ellipsis if more exist
-    const points = company.assessmentPoints.slice(0, 2);
-    const summary = points.join(', ');
-    return company.assessmentPoints.length > 2 
-      ? `${summary}, ...` 
-      : summary;
+    return "No summary available";
   };
 
   return (

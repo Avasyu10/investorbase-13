@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -28,6 +27,7 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
+  const [briefIntroduction, setBriefIntroduction] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyStage, setCompanyStage] = useState("");
   const [industry, setIndustry] = useState("");
@@ -111,6 +111,13 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       return;
     }
 
+    if (!briefIntroduction.trim()) {
+      toast.error("Brief introduction required", {
+        description: "Please provide a brief introduction for your company"
+      });
+      return;
+    }
+
     try {
       setIsUploading(true);
       setProgressStage("Processing your submission...");
@@ -118,7 +125,7 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       
       // Upload the report
       console.log("Starting upload process");
-      const report = await uploadReport(file, title, "", companyWebsite);
+      const report = await uploadReport(file, title, briefIntroduction, companyWebsite);
       setProgress(30);
       console.log("Upload complete, report:", report);
       
@@ -127,7 +134,7 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       });
       
       // Generate description with all metadata
-      let description = '';
+      let description = briefIntroduction + '\n\n';
       
       if (companyStage) {
         description += `Company Stage: ${companyStage}\n`;
@@ -305,6 +312,8 @@ export function ReportUpload({ onError }: ReportUploadProps) {
           <CompanyInfoForm
             title={title}
             setTitle={setTitle}
+            briefIntroduction={briefIntroduction}
+            setBriefIntroduction={setBriefIntroduction}
             companyWebsite={companyWebsite}
             setCompanyWebsite={setCompanyWebsite}
             companyStage={companyStage}

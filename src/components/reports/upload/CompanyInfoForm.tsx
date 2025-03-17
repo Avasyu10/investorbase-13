@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -50,6 +51,8 @@ const INDUSTRIES = [
 interface CompanyInfoFormProps {
   title: string;
   setTitle: (value: string) => void;
+  briefIntroduction: string;
+  setBriefIntroduction: (value: string) => void;
   companyWebsite: string;
   setCompanyWebsite: (value: string) => void;
   companyStage: string;
@@ -64,6 +67,8 @@ interface CompanyInfoFormProps {
 export function CompanyInfoForm({
   title,
   setTitle,
+  briefIntroduction,
+  setBriefIntroduction,
   companyWebsite,
   setCompanyWebsite,
   companyStage,
@@ -74,6 +79,8 @@ export function CompanyInfoForm({
   setFounderLinkedIns,
   isDisabled
 }: CompanyInfoFormProps) {
+  const [wordCount, setWordCount] = useState(0);
+  
   const addFounderLinkedIn = () => {
     setFounderLinkedIns([...founderLinkedIns, ""]);
   };
@@ -92,6 +99,16 @@ export function CompanyInfoForm({
     setFounderLinkedIns(updatedFounders);
   };
 
+  const handleIntroductionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const text = e.target.value;
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    setWordCount(words.length);
+    
+    if (words.length <= 50) {
+      setBriefIntroduction(text);
+    }
+  };
+
   return (
     <>
       <div className="space-y-2">
@@ -104,6 +121,23 @@ export function CompanyInfoForm({
           disabled={isDisabled}
           required
         />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="briefIntroduction">Brief Introduction</Label>
+        <Textarea
+          id="briefIntroduction"
+          value={briefIntroduction}
+          onChange={handleIntroductionChange}
+          placeholder="Briefly describe your company (max 50 words)"
+          disabled={isDisabled}
+          required
+          className="resize-none"
+          rows={3}
+        />
+        <p className={`text-xs ${wordCount > 50 ? 'text-red-500' : 'text-muted-foreground'}`}>
+          {wordCount}/50 words
+        </p>
       </div>
       
       <div className="space-y-2">

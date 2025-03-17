@@ -1,4 +1,3 @@
-
 /**
  * API Contract
  * 
@@ -16,6 +15,7 @@ export interface BaseEntity {
 export interface CompanyBase extends BaseEntity {
   name: string;
   overallScore: number; // 0-5 scale
+  assessmentPoints?: string[]; // Add this property to ensure it's available
 }
 
 export interface CompanyListItem extends CompanyBase {
