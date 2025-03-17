@@ -10,10 +10,17 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error('Supabase configuration is missing');
   }
   
+  // Create supabase client with auth header if provided
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      persistSession: false // Disable session persistence to prevent the warning
-    }
+      persistSession: false, // Disable session persistence to prevent the warning
+      autoRefreshToken: false
+    },
+    global: authHeader ? {
+      headers: {
+        Authorization: authHeader
+      }
+    } : undefined
   });
 
   console.log(`Getting report data for reportId: ${reportId}`);
@@ -25,13 +32,31 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error(`Invalid report ID format. Expected a UUID, got: ${reportId}`);
   }
 
-  // Get the specific report without any filters (previously had user_id filter)
+  // Get the current user if auth header was provided
+  let userId = null;
+  if (authHeader) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error("Error getting authenticated user:", userError);
+    } else if (user) {
+      userId = user.id;
+      console.log(`Request made by authenticated user: ${userId}`);
+    }
+  }
+
+  // Get the specific report with user_id filter if available
   console.log(`Executing query to fetch report with ID: ${reportId}`);
-  const { data: reportData, error: reportError } = await supabase
+  const query = supabase
     .from('reports')
     .select('id, title, user_id, pdf_url')
-    .eq('id', reportId)
-    .maybeSingle();
+    .eq('id', reportId);
+
+  // Apply user_id filter if available
+  if (userId) {
+    query.eq('user_id', userId);
+  }
+
+  const { data: reportData, error: reportError } = await query.maybeSingle();
     
   if (reportError) {
     console.error("Error fetching report:", reportError);
@@ -40,7 +65,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   
   if (!reportData) {
     // Log more information to help debug the issue
-    console.error(`Report with ID ${reportId} not found`);
+    console.error(`Report with ID ${reportId} not found or not accessible to current user`);
     
     // Let's also try a generic query to see if there are any reports at all
     const { data: allReports, error: allReportsError } = await supabase
@@ -55,7 +80,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
         allReports.map(r => r.id).join(", "));
     }
     
-    throw new Error(`Report with ID ${reportId} not found`);
+    throw new Error(`Report with ID ${reportId} not found or not accessible to the current user`);
   }
 
   const report = reportData;

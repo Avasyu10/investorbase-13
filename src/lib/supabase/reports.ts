@@ -18,47 +18,86 @@ export type Report = {
 };
 
 // Functions to interact with Supabase
-
 export async function getReports() {
-  // Get reports from the reports table without user filtering
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    console.error('Error fetching user:', authError);
+    toast({
+      title: "Authentication required",
+      description: "You must be logged in to access reports.",
+      variant: "destructive"
+    });
+    return [];
+  }
+
+  // Get reports from the reports table for the current user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (tableError) {
     console.error('Error fetching reports from table:', tableError);
-    throw tableError;
+    toast({
+      title: "Error loading reports",
+      description: "There was a problem retrieving your reports.",
+      variant: "destructive"
+    });
+    return [];
   }
 
   if (tableData && tableData.length > 0) {
-    console.log('Found reports in table:', tableData);
+    console.log(`Found ${tableData.length} reports for user ${user.id}`);
     return tableData as Report[];
   }
 
-  console.log('No reports found');
+  console.log('No reports found for this user');
   return [];
 }
 
 export async function getReportById(id: string) {
   console.log('Fetching report with ID:', id);
   
-  // Get the report from the reports table without user filtering
-  // Fix the relationship specification to avoid ambiguity
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    console.error('Error fetching user:', authError);
+    toast({
+      title: "Authentication required",
+      description: "You must be logged in to access this report.",
+      variant: "destructive"
+    });
+    throw new Error('User not authenticated');
+  }
+  
+  // Get the report from the reports table for the current user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
     .eq('id', id)
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (tableError) {
     console.error('Error fetching report from table:', tableError);
+    toast({
+      title: "Error loading report",
+      description: "There was a problem retrieving this report.",
+      variant: "destructive"
+    });
     throw tableError;
   }
 
   if (!tableData) {
-    console.error('Report not found with ID:', id);
-    throw new Error('Report not found');
+    console.error(`Report with ID ${id} not found or not accessible to this user`);
+    toast({
+      title: "Report not found",
+      description: "The requested report does not exist or you don't have permission to access it.",
+      variant: "destructive"
+    });
+    throw new Error('Report not found or access denied');
   }
 
   console.log('Report found:', tableData);
@@ -68,62 +107,64 @@ export async function getReportById(id: string) {
 export async function downloadReport(fileUrl: string, userId?: string) {
   console.log('Downloading report with URL:', fileUrl);
   
+  // Get current authenticated user
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    console.error('Error fetching user:', authError);
+    toast({
+      title: "Authentication required",
+      description: "You must be logged in to download this report.",
+      variant: "destructive"
+    });
+    throw new Error('User not authenticated');
+  }
+  
+  // If userId is not provided, use current user's ID
+  const currentUserId = userId || user.id;
+  
   try {
-    // First try with the provided path
+    // First try with the user's path
+    const userPath = `${currentUserId}/${fileUrl}`;
+    console.log('Trying with user path:', userPath);
+    
     const { data, error } = await supabase.storage
       .from('report_pdfs')
-      .download(fileUrl);
-
+      .download(userPath);
+    
     if (error) {
-      console.error('Error with primary path, trying fallback:', error);
+      console.error('Error with user path, trying fallback:', error);
       
-      // Try with the old path structure (with user ID)
-      const parts = fileUrl.split('/');
-      const simpleFileName = parts[parts.length - 1];
-      
-      try {
-        const { data: fallbackData, error: fallbackError } = await supabase.storage
+      // Try with the raw path as fallback
+      const { data: fallbackData, error: fallbackError } = await supabase.storage
+        .from('report_pdfs')
+        .download(fileUrl);
+        
+      if (fallbackError) {
+        console.error('Error with fallback path:', fallbackError);
+        
+        // Last attempt: try with just the filename
+        const parts = fileUrl.split('/');
+        const simpleFileName = parts[parts.length - 1];
+        
+        const { data: simpleData, error: simpleError } = await supabase.storage
           .from('report_pdfs')
           .download(simpleFileName);
           
-        if (fallbackError) {
-          console.error('Error with fallback path:', fallbackError);
-          
-          // Last attempt: try with user ID if provided
-          if (userId) {
-            const userPath = `${userId}/${fileUrl}`;
-            console.log('Trying with user path:', userPath);
-            
-            try {
-              const { data: userPathData, error: userPathError } = await supabase.storage
-                .from('report_pdfs')
-                .download(userPath);
-                
-              if (userPathError) {
-                console.error('All download attempts failed:', userPathError);
-                throw userPathError;
-              }
-              
-              console.log('Successfully downloaded with user path');
-              return userPathData;
-            } catch (nestedError) {
-              console.error('Failed with user path approach:', nestedError);
-              throw nestedError;
-            }
-          }
-          
-          throw fallbackError;
+        if (simpleError) {
+          console.error('All download attempts failed:', simpleError);
+          throw simpleError;
         }
         
-        console.log('Successfully downloaded with fallback path');
-        return fallbackData;
-      } catch (innerError) {
-        console.error('Error in fallback approach:', innerError);
-        throw innerError;
+        console.log('Successfully downloaded with simple filename');
+        return simpleData;
       }
+      
+      console.log('Successfully downloaded with fallback path');
+      return fallbackData;
     }
 
-    console.log('Successfully downloaded with primary path');
+    console.log('Successfully downloaded with user path');
     return data;
   } catch (error) {
     console.error('Failed to download report:', error);
@@ -140,29 +181,49 @@ export async function uploadReport(file: File, title: string, description: strin
   try {
     console.log('Uploading report');
     
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Error fetching user:', authError);
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to upload a report.",
+        variant: "destructive"
+      });
+      throw new Error('User not authenticated');
+    }
+    
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
     
-    // Upload the file to storage without user path
+    // Upload the file to storage with user path
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
-      .upload(fileName, file);
+      .upload(filePath, file);
       
     if (uploadError) {
       console.error('Error uploading file to storage:', uploadError);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload the file. Please try again later.",
+        variant: "destructive"
+      });
       throw uploadError;
     }
     
     console.log('File uploaded to storage successfully, saving record to database');
     
-    // Insert a record in the reports table without user_id
+    // Insert a record in the reports table with user_id
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
         title,
         description,
         pdf_url: fileName,
+        user_id: user.id,
         analysis_status: 'pending'
       }])
       .select()
@@ -170,6 +231,11 @@ export async function uploadReport(file: File, title: string, description: strin
       
     if (insertError) {
       console.error('Error inserting report record:', insertError);
+      toast({
+        title: "Database error",
+        description: "Could not save report information. Please try again later.",
+        variant: "destructive"
+      });
       throw insertError;
     }
 
@@ -186,6 +252,19 @@ export async function analyzeReportDirect(file: File, title: string, description
   try {
     console.log('Converting file to base64...');
     
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Error fetching user:', authError);
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to analyze a report.",
+        variant: "destructive"
+      });
+      throw new Error('User not authenticated');
+    }
+    
     // Convert file to base64
     const base64String = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -201,12 +280,28 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('File converted to base64, calling analyze-pdf-direct function');
     
-    // Call the edge function without authentication
+    // Get auth token for the edge function
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('Error getting auth session:', sessionError);
+      toast({
+        title: "Authentication error",
+        description: "Could not verify your session. Please try again later.",
+        variant: "destructive"
+      });
+      throw new Error('Session error');
+    }
+    
+    // Call the edge function with authentication
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
         description, 
         pdfBase64: base64String 
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
       }
     });
     
@@ -259,6 +354,79 @@ export async function analyzeReportDirect(file: File, title: string, description
       });
     }
     
+    throw error;
+  }
+}
+
+// Function to get latest research that respects user authentication
+export async function getLatestResearch(companyId: string, assessmentText: string) {
+  try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Error fetching user:', authError);
+      throw new Error('User not authenticated');
+    }
+    
+    // First check if the company belongs to the current user
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id, report_id')
+      .eq('id', companyId)
+      .maybeSingle();
+      
+    if (companyError) {
+      console.error('Error checking company ownership:', companyError);
+      throw companyError;
+    }
+    
+    if (!company) {
+      throw new Error('Company not found');
+    }
+    
+    // Check if the company's report belongs to the current user
+    if (company.report_id) {
+      const { data: report, error: reportError } = await supabase
+        .from('reports')
+        .select('user_id')
+        .eq('id', company.report_id)
+        .maybeSingle();
+        
+      if (reportError) {
+        console.error('Error checking report ownership:', reportError);
+        throw reportError;
+      }
+      
+      if (!report || report.user_id !== user.id) {
+        throw new Error('You do not have permission to access this company');
+      }
+    }
+    
+    // Now we can safely call the research function
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      throw new Error('Session error');
+    }
+    
+    const { data, error } = await supabase.functions.invoke('research-with-perplexity', {
+      body: { 
+        companyId,
+        assessmentText
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting latest research:', error);
     throw error;
   }
 }
