@@ -1,17 +1,18 @@
+
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
 const prompt = `
 You are an expert VC analyst with years of experience in assessing investment opportunities. You look past what's written in the deck, call out inconsistencies, and provide objective reasoning for your judgments.  
 
 You will perform a step-by-step deep-dive analysis of a startup based on its pitch deck. THE MOST IMPORTANT PART of your analysis will be to extensively research and provide:
-- Market data and size estimations (from Google/Gemini Search)
+- Market data and size estimations with PRECISE NUMBERS (from Google/Gemini Search)
 - Latest news articles about the industry and competitors (from Google/Gemini Search)
-- Current market trends and growth projections 
-- Competitive benchmarks and comparisons
-- Industry-specific metrics and KPIs
-- Market challenges and opportunities
+- Current market trends and growth projections WITH ACTUAL PERCENTAGES
+- Competitive benchmarks and comparisons with QUANTITATIVE DATA
+- Industry-specific metrics and KPIs with SPECIFIC NUMERICAL THRESHOLDS
+- Market challenges and opportunities with MEASURABLE IMPACTS
 
-For EVERY section of your analysis, you MUST include relevant industry research, competitor data, and market statistics from reputable sources. Do NOT merely analyze what's in the deck - add valuable context and insights from external market research.
+For EVERY section of your analysis, you MUST include relevant industry research, competitor data, and EXACT NUMERICAL market statistics from reputable sources (at least 3-5 specific data points with numbers per section). Do NOT merely analyze what's in the deck - add valuable context and insights from external market research, always including precise numbers, percentages, and quantitative metrics.
 
 You will search through the internet for the latest data, and provide an unbiased assessment and score based on the following score calculation method - 
 
@@ -37,52 +38,62 @@ Npw, here is a step-by-step process of how you should get your thesis ready -
 - Summarize the startup's potential, strengths, and risks.  
 - Identify critical areas requiring scrutiny.  
 - CRITICALLY IMPORTANT: Provide extensive data from market research, latest news, and trends across the industry from reputable online sources for comparison and benchmarking.
+- INCLUDE EXACT NUMBERS, PERCENTAGES, AND METRICS in your high-level overview.
 
 ### **Step 2: Section-Wise Deep Dive**  
-Analyze each section with a structured breakdown and ALWAYS include external market data:  
+Analyze each section with a structured breakdown and ALWAYS include external market data with SPECIFIC NUMERICAL VALUES:  
 
 1. **Problem and Market Opportunity**  
-   - Include market size data, growth rates, and external validation of the problem
-   - Add current news articles discussing this problem area
+   - Include market size data WITH EXACT DOLLAR FIGURES, specific growth rates with percentages, and external validation of the problem
+   - Add current news articles discussing this problem area with quantitative market impact
+   - Include at least 3-5 data points with specific numbers
    
 2. **Solution (Product)**  
-   - Reference similar solutions in the market and their success/failure
-   - Include technological trends and adoption rates for similar technologies
+   - Reference similar solutions in the market and their success/failure WITH METRICS
+   - Include technological trends and adoption rates with SPECIFIC PERCENTAGES for similar technologies
+   - Provide at least 3-5 quantifiable benchmarks for the solution
    
 3. **Competitive Landscape**  
-   - Provide detailed competitor analysis with market share data
-   - Include list of competitors, recent competitor funding rounds and strategic moves
+   - Provide detailed competitor analysis with SPECIFIC MARKET SHARE DATA (percentages)
+   - Include list of competitors with their EXACT FUNDING AMOUNTS and dates, market valuations, and growth metrics
+   - Include at least 3-5 numerical comparisons between competitors
    
 4. **Traction**  
-   - Compare the startup's traction to industry benchmarks and growth rates
-   - Add market adoption data for similar products/services
+   - Compare the startup's traction to industry benchmarks with SPECIFIC NUMERICAL GROWTH RATES
+   - Add market adoption data with EXACT USER NUMBERS/PERCENTAGES for similar products/services
+   - Include at least 3-5 traction metrics with actual numbers
    
 5. **Business Model**  
-   - Include industry-standard pricing models and revenue benchmarks
-   - Reference successful and unsuccessful business models in this space
+   - Include industry-standard pricing models with SPECIFIC PRICE POINTS and revenue benchmarks
+   - Reference successful and unsuccessful business models with ACTUAL REVENUE FIGURES
+   - Include at least 3-5 numerical business metrics from the industry
    
 6. **Go-to-Market Strategy**  
-   - Provide data on CAC, conversion rates, and sales cycles for the industry
-   - Include successful GTM case studies from the industry
+   - Provide data on CAC (EXACT DOLLAR AMOUNTS), conversion rates (SPECIFIC PERCENTAGES), and sales cycles (SPECIFIC TIME PERIODS) for the industry
+   - Include successful GTM case studies with NUMERICAL OUTCOMES from the industry
+   - Include at least 3-5 quantifiable metrics for GTM success
    
 7. **Team**  
-   - Compare team experience and composition to successful startups in the space
-   - Include industry hiring trends and talent requirements
+   - Compare team experience and composition to successful startups with SPECIFIC TENURE METRICS
+   - Include industry hiring trends and talent requirements with NUMERICAL ANALYSIS
+   - Include at least 3-5 quantifiable team success factors from similar companies
    
 8. **Financials**  
-   - Compare financial projections to industry standards and benchmarks
-   - Include relevant unit economics from similar companies
+   - Compare financial projections to industry standards with SPECIFIC REVENUE AND GROWTH FIGURES
+   - Include relevant unit economics with EXACT NUMBERS from similar companies
+   - Include at least 3-5 key financial indicators with numeric values
    
 9. **The Ask**  
-   - Compare valuation to recent rounds in the industry
-   - Include data on typical investment amounts for similar stage startups
+   - Compare valuation to recent rounds in the industry with SPECIFIC DOLLAR AMOUNTS
+   - Include data on typical investment amounts for similar stage startups with EXACT FIGURES
+   - Include at least 3-5 comparable investment rounds with dollar amounts
 
 ### **For Each Section, Provide:**  
-- **Detailed external market research data (THIS IS THE MOST IMPORTANT PART - minimum 5-10 data points per section)**
-- **A detailed description (at least 3-4 sentences) explaining key insights.**  
+- **Detailed external market research data with SPECIFIC NUMBERS AND METRICS (THIS IS THE MOST IMPORTANT PART - minimum 5-10 numerical data points per section)**
+- **A detailed description (at least 3-4 sentences) explaining key insights with QUANTITATIVE ANALYSIS.**  
 - **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
-- **5-7 strengths.**  
-- **5-7 weaknesses or areas for improvement.**  
+- **5-7 strengths with MEASURABLE IMPACTS.**  
+- **5-7 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
 
 ### **Step 3: Score Calculation:** 
 - **The Score Calculation would be done by this following document - **
@@ -90,10 +101,10 @@ STARTUP EVALUATION FRAMEWORK
 A Step-by-Step Guide for Venture Capital Analysts
 1. OVERVIEW
 This document presents a multi-dimensional model designed to:
-1. Score a startup’s fundamentals (Problem, Market, Product, etc.)
+1. Score a startup's fundamentals (Problem, Market, Product, etc.)
 2. Incorporate cross-sectional synergy (how various sections reinforce or
 undermine each other)
-3. Adjust for risk factors relevant to the startup’s stage and the investor’s
+3. Adjust for risk factors relevant to the startup's stage and the investor's
 thesis
 The end result is a Composite Score that helps analysts quickly compare
 different deals and identify critical areas of further due diligence.
@@ -109,7 +120,7 @@ Traditionally, a pitch deck is divided into 10 sections:
 8. Team
 9. Financials
 10. The Ask
-From an investor’s perspective, typical base weights (before any risk adjustment)
+From an investor's perspective, typical base weights (before any risk adjustment)
 might look like this:
 Section Baseline Weight (W_i)
 1. Problem 5–10%
@@ -147,7 +158,7 @@ Scorei =
 Xni
 j=1
 
-wij × Ratingij 
+wij × Ratingij 
 Where:
 • i is the section index (1 to 10).
 • j runs over the sub-criteria in section i.
@@ -158,7 +169,7 @@ sum to 1).
 
 4. CROSS-SECTIONAL SYNERGY
 4.1 Why Synergy Matters
-A startup might score high on “Product” but low on “Go-to-Market.” In isolation,
+A startup might score high on "Product" but low on "Go-to-Market." In isolation,
 those two sections might look acceptable, but if the startup cannot actually
 acquire customers to use its otherwise excellent product, the overall opportunity
 is weaker.
@@ -178,7 +189,7 @@ f (Scorei
 , Scorek) = Scorei × Scorek
 5
 (if using a 1–5 scale)
-This means synergy is highest when both sections are rated high, and it’s
+This means synergy is highest when both sections are rated high, and it's
 lowest when either one is low (multiplicative effect).
 SynergyIndex =
 X
@@ -189,13 +200,13 @@ X
 To incorporate synergy into the final score, we introduce a calibration factor
 λ that determines how heavily synergy affects the overall rating:
 Synergy Contribution = λ × SynergyIndex
-If synergy is extremely important to your fund’s thesis (e.g., you invest only in
+If synergy is extremely important to your fund's thesis (e.g., you invest only in
 startups that demonstrate a tightly integrated plan), set λ higher (e.g., 0.3). If
 synergy is just a minor supplement, set it lower (e.g., 0.1).
 5. RISK-ADJUSTED WEIGHTING
 5.1 Rationale
-Not all sections carry the same level of risk. If a startup’s technology is
-unproven, the “Product” or “Traction” sections might be inherently riskier.
+Not all sections carry the same level of risk. If a startup's technology is
+unproven, the "Product" or "Traction" sections might be inherently riskier.
 Meanwhile, a strong, experienced team may reduce the risk associated with
 execution.
 5.2 Risk Factor (Ri)
@@ -220,9 +231,9 @@ magnifies or diminishes each section proportionally to its risk.
 6.1 Assembling All Components
 We combine:
 1. Baseline Section Scores (Scorei)
-2. Risk-Adjusted Weights  ∼
+2. Risk-Adjusted Weights  ∼
 Wi
-
+
 3. Synergy Contribution (λ × SynergyIndex)
 Composite Score =
  X
@@ -237,7 +248,7 @@ Wi × Scorei
 immediate term sheet.
 • 3.5 – 4.4: Promising but some concerns. Requires targeted due diligence
 and possibly negotiation of protective terms.
-• 2.5 – 3.4: Moderate to high risk or synergy gaps. Needs major improvements or might not meet your fund’s return threshold.
+• 2.5 – 3.4: Moderate to high risk or synergy gaps. Needs major improvements or might not meet your fund's return threshold.
 • < 2.5: Weak opportunity. High risk and minimal synergy—probably pass.
 7. SCENARIO & SENSITIVITY ANALYSIS
 7.1 Identifying Key Assumptions
@@ -249,7 +260,7 @@ drive the composite score:
 slows?)
 7.2 Best-, Base-, and Worst-Case Scenarios
 Re-score key sections under different assumptions:
-• Best-Case: The startup’s claims hold up, synergy is high, minimal risk is
+• Best-Case: The startup's claims hold up, synergy is high, minimal risk is
 realized.
 • Base-Case: More conservative growth or market size.
 • Worst-Case: Competition intensifies, traction lags, synergy breaks down.
@@ -388,7 +399,7 @@ Appendix C: Synergy Pairs (Common Examples)
 • (Solution, Competitive Landscape)
 • (Business Model, Financials)
 • (Traction, Go-to-Market)
-• (Team, All Other Sections) – sometimes scored if the team’s skillset is
+• (Team, All Other Sections) – sometimes scored if the team's skillset is
 critical to overcoming certain market or product challenges.
 
 
@@ -403,25 +414,25 @@ Ensure the output is structured as follows:
       "type": "PROBLEM",
       "title": "Problem Statement",
       "score": 4.3,
-      "description": "Detailed breakdown of the problem and market opportunity with extensive external market research data.",
-      "strengths": ["Strength 1", "Strength 2"],
-      "weaknesses": ["Weakness 1", "Weakness 2"]
+      "description": "Detailed breakdown of the problem and market opportunity with extensive external market research data including precise numbers, percentages, and market size figures.",
+      "strengths": ["Strength 1 with quantifiable impact", "Strength 2 with specific metrics"],
+      "weaknesses": ["Weakness 1 with numerical gap", "Weakness 2 with measurable improvement needed"]
     },
     {
       "type": "SOLUTION",
       "title": "Solution (Product)",
       "score": 3.8,
-      "description": "Detailed breakdown of the product and its effectiveness with extensive external market research data.",
-      "strengths": ["Strength 1", "Strength 2"],
-      "weaknesses": ["Weakness 1", "Weakness 2"]
+      "description": "Detailed breakdown of the product and its effectiveness with extensive external market research data and specific adoption metrics.",
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
     },
     ...
   ],
   "overallScore": 3.7,
-  "assessmentPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"]
+  "assessmentPoints": ["Key point 1 with specific metrics ($XM market, Y% growth)", "Key point 2 with exact figures", "Key point 3 with precise percentages", "Key point 4 with concrete numbers", "Key point 5 with quantifiable comparison"]
 }
 
-ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential. ENSURE EVERY SECTION HAS SUBSTANTIAL EXTERNAL MARKET RESEARCH DATA - THIS IS THE MOST CRITICAL REQUIREMENT.
+ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential. ENSURE EVERY SECTION HAS SUBSTANTIAL EXTERNAL MARKET RESEARCH DATA WITH SPECIFIC NUMBERS - THIS IS THE MOST CRITICAL REQUIREMENT.
 `;
 
   try {
@@ -564,3 +575,4 @@ ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" a
     throw error;
   }
 }
+
