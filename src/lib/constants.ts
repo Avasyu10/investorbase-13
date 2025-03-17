@@ -43,10 +43,10 @@ export const SECTION_TYPES = {
 };
 
 export const SECTION_TITLES = {
-  [SECTION_TYPES.PROBLEM]: "Problem",
+  [SECTION_TYPES.PROBLEM]: "Problem and Market Opportunity",
   [SECTION_TYPES.MARKET]: "Market",
-  [SECTION_TYPES.SOLUTION]: "Solution (Product)",
-  [SECTION_TYPES.PRODUCT]: "Solution (Product)",
+  [SECTION_TYPES.SOLUTION]: "Solution",
+  [SECTION_TYPES.PRODUCT]: "Product",
   [SECTION_TYPES.COMPETITIVE_LANDSCAPE]: "Competitive Landscape",
   [SECTION_TYPES.TRACTION]: "Traction",
   [SECTION_TYPES.BUSINESS_MODEL]: "Business Model",
