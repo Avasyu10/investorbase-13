@@ -67,24 +67,27 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       
       console.log('Research result:', data);
       
-      toast({
-        id: "research-success",
-        title: "Research complete",
-        description: "Latest market research has been loaded successfully",
-      });
-      
-      // After successful research fetch, get the updated company data
+      // After successful research fetch, immediately get the updated company data
+      // to ensure we have the latest perplexity_response
       const { data: updatedCompany, error: companyError } = await supabase
         .from('companies')
-        .select('perplexity_response')
+        .select('perplexity_response, perplexity_requested_at')
         .eq('id', companyId)
         .single();
         
       if (companyError) {
         console.error('Error fetching updated company data:', companyError);
-      } else if (updatedCompany) {
+      } else if (updatedCompany && updatedCompany.perplexity_response) {
         // Update the research with the fresh data from database
+        console.log('Updated research data from database:', updatedCompany.perplexity_response);
         data.research = updatedCompany.perplexity_response;
+        data.requestedAt = updatedCompany.perplexity_requested_at;
+        
+        toast({
+          id: "research-success",
+          title: "Research complete",
+          description: "Latest market research has been loaded successfully",
+        });
       }
       
       return data;

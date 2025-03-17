@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowUpRight, BookText, RotateCw } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { AlertCircle, ArrowUpRight, BookText } from "lucide-react";
 import { getLatestResearch } from "@/lib/supabase/research";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -13,19 +12,15 @@ interface LatestResearchProps {
   assessmentPoints: string[];
   existingResearch?: string;
   requestedAt?: string;
+  onSuccess?: () => void;
 }
 
-export function LatestResearch({ companyId, assessmentPoints, existingResearch, requestedAt }: LatestResearchProps) {
+export function LatestResearch({ companyId, assessmentPoints, existingResearch, requestedAt, onSuccess }: LatestResearchProps) {
   const [research, setResearch] = useState<string | undefined>(existingResearch);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleRefresh = async () => {
+  const handleFetchResearch = async () => {
     if (!assessmentPoints || assessmentPoints.length === 0) {
-      toast({
-        title: "Cannot fetch research",
-        description: "No assessment data available to base research on.",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -37,9 +32,13 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
       
       if (result && result.research) {
         setResearch(result.research);
+        // Call the onSuccess callback to notify parent component
+        if (onSuccess) {
+          onSuccess();
+        }
       }
     } catch (error) {
-      console.error("Error refreshing research:", error);
+      console.error("Error fetching research:", error);
     } finally {
       setIsLoading(false);
     }
@@ -76,6 +75,13 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
       .replace(/\n+$/, '') // Remove trailing newlines
       .trim();
   };
+
+  // Auto-fetch research if not already available
+  React.useEffect(() => {
+    if (!research && !isLoading && assessmentPoints && assessmentPoints.length > 0) {
+      handleFetchResearch();
+    }
+  }, [companyId, assessmentPoints, research, isLoading]);
 
   const sections = research ? extractTextContent(research) : [];
   const urls = research ? extractUrls(research) : [];
@@ -124,8 +130,7 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
             <AlertCircle className="h-12 w-12 mb-4 opacity-30" />
             <p className="mb-2">No research data is available yet.</p>
             <p className="text-sm mb-4">Click the button below to fetch market insights.</p>
-            <Button onClick={handleRefresh} className="gap-2">
-              <RotateCw className="h-4 w-4" />
+            <Button onClick={handleFetchResearch} className="gap-2">
               Fetch Research Data
             </Button>
           </div>

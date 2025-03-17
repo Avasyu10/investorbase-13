@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -8,12 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { company, isLoading } = useCompanyDetails(companyId);
+  const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
 
   const handleSectionClick = (sectionId: number | string) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
@@ -26,10 +29,19 @@ export function CompanyDetails() {
   };
 
   const onResearchFetched = () => {
+    console.log("Research fetched successfully, invalidating company query");
+    setHasResearchUpdated(true);
     queryClient.invalidateQueries({
       queryKey: ['company', companyId],
     });
   };
+
+  // Handle research update state - clear the flag once we have fresh data
+  useEffect(() => {
+    if (hasResearchUpdated && company?.perplexityResponse) {
+      setHasResearchUpdated(false);
+    }
+  }, [company?.perplexityResponse, hasResearchUpdated]);
 
   if (isLoading) {
     return (
