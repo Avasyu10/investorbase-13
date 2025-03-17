@@ -55,4 +55,3 @@ export const SECTION_TITLES = {
   [SECTION_TYPES.FINANCIALS]: "Financials",
   [SECTION_TYPES.ASK]: "The Ask"
 };
-
