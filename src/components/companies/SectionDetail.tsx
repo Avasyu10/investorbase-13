@@ -6,154 +6,6 @@ import { ChevronRight, Menu, X, CheckCircle, XCircle } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { SECTION_TYPES } from "@/lib/constants";
-
-// Default strengths and weaknesses by section type
-const DEFAULT_STRENGTHS = {
-  [SECTION_TYPES.PROBLEM]: [
-    "Clear identification of target audience pain points",
-    "Problem has significant economic impact",
-    "Issue affects a large addressable market",
-    "Problem is persistent and not easily solved by existing solutions",
-    "Strong evidence from market research supporting the problem statement"
-  ],
-  [SECTION_TYPES.MARKET]: [
-    "Large total addressable market with clear growth potential",
-    "Well-defined customer segments with specific needs",
-    "Market has strong growth forecasts from trusted sources",
-    "Limited regulatory barriers to entry",
-    "Clear market trends supporting the business opportunity"
-  ],
-  [SECTION_TYPES.SOLUTION]: [
-    "Innovative approach with clear differentiation",
-    "Strong alignment with identified customer needs",
-    "Solution solves the core problem effectively",
-    "Potential for intellectual property protection",
-    "Scalable solution architecture"
-  ],
-  [SECTION_TYPES.COMPETITIVE_LANDSCAPE]: [
-    "Comprehensive competitor analysis with clear positioning",
-    "Identified sustainable competitive advantages",
-    "Deep understanding of market leaders' strengths and weaknesses",
-    "Clear differentiation from existing solutions",
-    "Awareness of potential new market entrants"
-  ],
-  [SECTION_TYPES.TRACTION]: [
-    "Strong user growth metrics compared to industry standards",
-    "Impressive customer retention and engagement statistics",
-    "Promising conversion metrics throughout the funnel",
-    "Positive customer testimonials and case studies",
-    "Clear evidence of product-market fit"
-  ],
-  [SECTION_TYPES.BUSINESS_MODEL]: [
-    "Clear and sustainable revenue streams",
-    "Compelling unit economics with strong margins",
-    "Multiple monetization opportunities identified",
-    "Competitive and well-researched pricing strategy",
-    "Clear path to profitability"
-  ],
-  [SECTION_TYPES.GTM_STRATEGY]: [
-    "Well-defined customer acquisition channels with proof of effectiveness",
-    "Reasonable customer acquisition costs relative to LTV",
-    "Strategic partnership approach to accelerate growth",
-    "Clear go-to-market milestones with measurable KPIs",
-    "Appropriate sales approach for target market segments"
-  ],
-  [SECTION_TYPES.TEAM]: [
-    "Strong relevant industry experience among founders",
-    "Complementary skill sets within the leadership team",
-    "Proven execution capabilities from past ventures",
-    "Ability to attract key talent in competitive areas",
-    "Strong advisory board with industry connections"
-  ],
-  [SECTION_TYPES.FINANCIALS]: [
-    "Realistic financial projections based on market benchmarks",
-    "Clear understanding of unit economics and cost structures",
-    "Well-planned cash flow management strategy",
-    "Appropriate capital allocation priorities",
-    "Reasonable valuation expectations"
-  ],
-  [SECTION_TYPES.ASK]: [
-    "Clear funding requirements aligned with growth milestones",
-    "Well-articulated use of funds with specific allocations",
-    "Strategic approach to investor relationships",
-    "Reasonable valuation expectations with supporting rationale",
-    "Clear exit strategy for investors"
-  ]
-};
-
-const DEFAULT_WEAKNESSES = {
-  [SECTION_TYPES.PROBLEM]: [
-    "Needs more quantitative evidence of problem impact",
-    "Further segmentation of problem by customer type would strengthen the case",
-    "Additional validation from potential customers needed",
-    "Consider addressing seasonal or cyclical aspects of the problem",
-    "Analysis of why existing solutions have failed to address the problem"
-  ],
-  [SECTION_TYPES.MARKET]: [
-    "More detailed analysis of market segmentation needed",
-    "Further assessment of market entry barriers",
-    "Additional research on customer willingness to pay",
-    "More competitive analysis of market saturation",
-    "Deeper analysis of market cycles and seasonal variations"
-  ],
-  [SECTION_TYPES.SOLUTION]: [
-    "Technical implementation challenges need more detailed assessment",
-    "Additional differentiation from indirect competitors recommended",
-    "Further scalability considerations should be addressed",
-    "More detailed roadmap for product evolution needed",
-    "Deeper analysis of potential regulatory hurdles"
-  ],
-  [SECTION_TYPES.COMPETITIVE_LANDSCAPE]: [
-    "More proactive monitoring of emerging competitors needed",
-    "Deeper analysis of potential market entrants from adjacent industries",
-    "Strengthened response strategy to competitive threats",
-    "More detailed analysis of indirect competitors",
-    "Assessment of competitive pricing pressures"
-  ],
-  [SECTION_TYPES.TRACTION]: [
-    "Customer retention metrics need improvement",
-    "Expand early customer testimonials for more credibility",
-    "More evidence needed for sustainable product-market fit",
-    "Cohort analysis would strengthen growth claims",
-    "Additional metrics on customer satisfaction and NPS"
-  ],
-  [SECTION_TYPES.BUSINESS_MODEL]: [
-    "Further validation of pricing model with target customers",
-    "Strengthened analysis of long-term sustainability",
-    "More consideration of additional revenue diversification",
-    "Further analysis of pricing sensitivity in target markets",
-    "More detailed channel economics and distribution costs"
-  ],
-  [SECTION_TYPES.GTM_STRATEGY]: [
-    "Refine channel economics for primary acquisition methods",
-    "Strengthen partnership strategy with clear benefits analysis",
-    "Develop more detailed marketing plan with specific KPIs",
-    "Address potential scaling challenges in GTM approach",
-    "Consider regional expansion strategy and localization needs"
-  ],
-  [SECTION_TYPES.TEAM]: [
-    "Consider strengthening advisory board with specific expertise",
-    "Address key skill gaps in technical or domain leadership",
-    "Develop clearer organizational scaling plan",
-    "More details needed on talent acquisition strategy",
-    "Consider succession planning for key leadership roles"
-  ],
-  [SECTION_TYPES.FINANCIALS]: [
-    "Refine cash flow projections with more conservative scenarios",
-    "Strengthen unit economics analysis with market benchmarks",
-    "Develop more detailed milestone-based budgeting",
-    "More detailed breakdown of operating expenses needed",
-    "Consider sensitivity analysis for key financial assumptions"
-  ],
-  [SECTION_TYPES.ASK]: [
-    "Provide more detailed breakdown of capital allocation",
-    "Strengthen alignment between funding and key milestones",
-    "Refine valuation justification with comparable analysis",
-    "More detailed timeline for achieving key metrics post-funding",
-    "Clearer articulation of investor role beyond capital"
-  ]
-};
 
 export function SectionDetail() {
   const { companyId, sectionId } = useParams<{ companyId: string, sectionId: string }>();
@@ -236,57 +88,6 @@ export function SectionDetail() {
     return "text-red-600";
   };
 
-  // Get at least 5 strengths for the section
-  const getEnhancedStrengths = (): string[] => {
-    let strengths = section.strengths || [];
-    const sectionType = section.type as keyof typeof DEFAULT_STRENGTHS;
-    
-    // If we have less than 4 strengths, add some default ones
-    if (strengths.length < 4 && DEFAULT_STRENGTHS[sectionType]) {
-      // Filter out any default strengths that are already present
-      const existingStrengthsLower = strengths.map(s => s.toLowerCase());
-      const additionalStrengths = DEFAULT_STRENGTHS[sectionType].filter(
-        s => !existingStrengthsLower.some(existing => existing.includes(s.toLowerCase()))
-      );
-      
-      // Add additional strengths until we reach 5 or run out of defaults
-      let i = 0;
-      while (strengths.length < 5 && i < additionalStrengths.length) {
-        strengths.push(additionalStrengths[i]);
-        i++;
-      }
-    }
-    
-    return strengths;
-  };
-
-  // Get at least 5 weaknesses for the section
-  const getEnhancedWeaknesses = (): string[] => {
-    let weaknesses = section.weaknesses || [];
-    const sectionType = section.type as keyof typeof DEFAULT_WEAKNESSES;
-    
-    // If we have less than 4 weaknesses, add some default ones
-    if (weaknesses.length < 4 && DEFAULT_WEAKNESSES[sectionType]) {
-      // Filter out any default weaknesses that are already present
-      const existingWeaknessesLower = weaknesses.map(w => w.toLowerCase());
-      const additionalWeaknesses = DEFAULT_WEAKNESSES[sectionType].filter(
-        w => !existingWeaknessesLower.some(existing => existing.includes(w.toLowerCase()))
-      );
-      
-      // Add additional weaknesses until we reach 5 or run out of defaults
-      let i = 0;
-      while (weaknesses.length < 5 && i < additionalWeaknesses.length) {
-        weaknesses.push(additionalWeaknesses[i]);
-        i++;
-      }
-    }
-    
-    return weaknesses;
-  };
-
-  const enhancedStrengths = getEnhancedStrengths();
-  const enhancedWeaknesses = getEnhancedWeaknesses();
-
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)]">
       <Button 
@@ -361,8 +162,8 @@ export function SectionDetail() {
                     <span>Key Strengths</span>
                   </h4>
                   <ul className="space-y-3 text-sm sm:text-base">
-                    {enhancedStrengths.length > 0 ? (
-                      enhancedStrengths.map((strength, idx) => (
+                    {section.strengths && section.strengths.length > 0 ? (
+                      section.strengths.map((strength, idx) => (
                         <li 
                           key={idx} 
                           className="pl-4 border-l-2 border-green-300"
@@ -381,8 +182,8 @@ export function SectionDetail() {
                     <span>Areas for Improvement</span>
                   </h4>
                   <ul className="space-y-3 text-sm sm:text-base">
-                    {enhancedWeaknesses.length > 0 ? (
-                      enhancedWeaknesses.map((weakness, idx) => (
+                    {section.weaknesses && section.weaknesses.length > 0 ? (
+                      section.weaknesses.map((weakness, idx) => (
                         <li 
                           key={idx} 
                           className="pl-4 border-l-2 border-amber-300"

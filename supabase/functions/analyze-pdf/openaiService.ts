@@ -117,8 +117,8 @@ Analyze each section with a structured breakdown and ALWAYS include external mar
 - **Detailed external market research data with SPECIFIC NUMBERS AND METRICS (THIS IS THE MOST IMPORTANT PART - minimum 10-15 numerical data points per section)**
 - **A detailed description (at least 5-6 sentences) explaining key insights with QUANTITATIVE ANALYSIS.**  
 - **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
-- **At least 5 strengths with MEASURABLE IMPACTS (YOU MUST PROVIDE AT LEAST 5).**  
-- **At least 5 weaknesses or areas for improvement with QUANTIFIABLE GAPS (YOU MUST PROVIDE AT LEAST 5).**  
+- **5-7 strengths with MEASURABLE IMPACTS.**  
+- **5-7 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
 
 ### **Step 3: Score Calculation:** 
 - **The Score Calculation would be done by this following document - **
@@ -437,212 +437,27 @@ Ensure the output is structured as follows:
   "sections": [
     {
       "type": "PROBLEM",
-      "title": "Problem",
+      "title": "Problem Statement",
       "score": 4.3,
       "description": "Detailed breakdown of the problem and market opportunity with extensive external market research data including precise numbers, percentages, and market size figures.",
-      "strengths": [
-        "Strength 1 with quantifiable impact", 
-        "Strength 2 with specific metrics", 
-        "Strength 3 with measurable advantage", 
-        "Strength 4 with compelling numbers", 
-        "Strength 5 with concrete data points"
-      ],
-      "weaknesses": [
-        "Weakness 1 with numerical gap", 
-        "Weakness 2 with measurable improvement needed", 
-        "Weakness 3 with specific deficiency", 
-        "Weakness 4 with quantified opportunity", 
-        "Weakness 5 with precise issue identified"
-      ]
-    },
-    {
-      "type": "MARKET",
-      "title": "Market",
-      "score": 3.8,
-      "description": "Detailed breakdown of the market with extensive external market research data and specific adoption metrics.",
-      "strengths": [
-        "Strength 1 with quantifiable advantage", 
-        "Strength 2 with specific numerical benefit", 
-        "Strength 3 with measured opportunity size", 
-        "Strength 4 with concrete market evidence", 
-        "Strength 5 with precise growth metrics"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable gap", 
-        "Weakness 2 with specific numerical challenge", 
-        "Weakness 3 with measured shortcoming", 
-        "Weakness 4 with documented risk factor", 
-        "Weakness 5 with numerical comparison to competitors"
-      ]
+      "strengths": ["Strength 1 with quantifiable impact", "Strength 2 with specific metrics"],
+      "weaknesses": ["Weakness 1 with numerical gap", "Weakness 2 with measurable improvement needed"]
     },
     {
       "type": "SOLUTION",
       "title": "Solution (Product)",
       "score": 3.8,
       "description": "Detailed breakdown of the product and its effectiveness with extensive external market research data and specific adoption metrics.",
-      "strengths": [
-        "Strength 1 with quantifiable advantage", 
-        "Strength 2 with specific numerical benefit", 
-        "Strength 3 with measured performance metrics", 
-        "Strength 4 with concrete technical advantages", 
-        "Strength 5 with specific efficiency gains"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable gap", 
-        "Weakness 2 with specific numerical challenge", 
-        "Weakness 3 with measured technical limitations", 
-        "Weakness 4 with documented scalability concerns", 
-        "Weakness 5 with specific development needs"
-      ]
+      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
+      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
     },
-    {
-      "type": "COMPETITIVE_LANDSCAPE",
-      "title": "Competitive Landscape",
-      "score": 3.8,
-      "description": "Detailed breakdown of the competitive landscape with extensive market research on competitors.",
-      "strengths": [
-        "Strength 1 with quantifiable competitive advantage", 
-        "Strength 2 with specific differentiation metrics", 
-        "Strength 3 with measured market position", 
-        "Strength 4 with concrete barriers to entry", 
-        "Strength 5 with specific IP advantages"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable competitive gap", 
-        "Weakness 2 with specific threat metrics", 
-        "Weakness 3 with measured position against competitors", 
-        "Weakness 4 with documented vulnerability", 
-        "Weakness 5 with specific competitive pressure points"
-      ]
-    },
-    {
-      "type": "TRACTION",
-      "title": "Traction",
-      "score": 3.8,
-      "description": "Detailed breakdown of the company's traction with extensive external growth and user acquisition metrics.",
-      "strengths": [
-        "Strength 1 with quantifiable growth metrics", 
-        "Strength 2 with specific user acquisition data", 
-        "Strength 3 with measured retention figures", 
-        "Strength 4 with concrete engagement statistics", 
-        "Strength 5 with specific revenue validation"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable growth challenges", 
-        "Weakness 2 with specific scaling issues", 
-        "Weakness 3 with measured conversion gaps", 
-        "Weakness 4 with documented churn concerns", 
-        "Weakness 5 with specific expansion limitations"
-      ]
-    },
-    {
-      "type": "BUSINESS_MODEL",
-      "title": "Business Model",
-      "score": 3.8,
-      "description": "Detailed breakdown of the business model with extensive external market research data.",
-      "strengths": [
-        "Strength 1 with quantifiable revenue metrics", 
-        "Strength 2 with specific margin calculations", 
-        "Strength 3 with measured pricing advantages", 
-        "Strength 4 with concrete LTV figures", 
-        "Strength 5 with specific monetization efficiencies"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable revenue challenges", 
-        "Weakness 2 with specific cost concerns", 
-        "Weakness 3 with measured pricing pressures", 
-        "Weakness 4 with documented scalability issues", 
-        "Weakness 5 with specific unit economics concerns"
-      ]
-    },
-    {
-      "type": "GTM_STRATEGY",
-      "title": "Go-to-Market Strategy",
-      "score": 3.8,
-      "description": "Detailed breakdown of the GTM strategy with extensive external channel and acquisition cost research.",
-      "strengths": [
-        "Strength 1 with quantifiable channel metrics", 
-        "Strength 2 with specific CAC figures", 
-        "Strength 3 with measured conversion rates", 
-        "Strength 4 with concrete partnership advantages", 
-        "Strength 5 with specific time-to-market efficiencies"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable channel challenges", 
-        "Weakness 2 with specific acquisition cost concerns", 
-        "Weakness 3 with measured competition barriers", 
-        "Weakness 4 with documented positioning issues", 
-        "Weakness 5 with specific market education needs"
-      ]
-    },
-    {
-      "type": "TEAM",
-      "title": "Team",
-      "score": 3.8,
-      "description": "Detailed breakdown of the team's capabilities with extensive external industry experience and success metrics.",
-      "strengths": [
-        "Strength 1 with quantifiable experience metrics", 
-        "Strength 2 with specific domain expertise", 
-        "Strength 3 with measured past successes", 
-        "Strength 4 with concrete skill complementary data", 
-        "Strength 5 with specific industry connections"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable experience gaps", 
-        "Weakness 2 with specific skill deficiencies", 
-        "Weakness 3 with measured scaling challenges", 
-        "Weakness 4 with documented hiring needs", 
-        "Weakness 5 with specific advisory requirements"
-      ]
-    },
-    {
-      "type": "FINANCIALS",
-      "title": "Financials",
-      "score": 3.8,
-      "description": "Detailed breakdown of the financial plan with extensive external benchmark data and unit economics research.",
-      "strengths": [
-        "Strength 1 with quantifiable forecast accuracy", 
-        "Strength 2 with specific unit economics advantages", 
-        "Strength 3 with measured cashflow efficiency", 
-        "Strength 4 with concrete expense control", 
-        "Strength 5 with specific capital efficiency metrics"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable projection risks", 
-        "Weakness 2 with specific cost management concerns", 
-        "Weakness 3 with measured margin pressures", 
-        "Weakness 4 with documented runway limitations", 
-        "Weakness 5 with specific financial assumption challenges"
-      ]
-    },
-    {
-      "type": "ASK",
-      "title": "The Ask",
-      "score": 3.8,
-      "description": "Detailed breakdown of the funding request with extensive external comparable round and valuation research.",
-      "strengths": [
-        "Strength 1 with quantifiable valuation justification", 
-        "Strength 2 with specific use of funds clarity", 
-        "Strength 3 with measured milestone alignment", 
-        "Strength 4 with concrete ROI projections", 
-        "Strength 5 with specific investor value-add"
-      ],
-      "weaknesses": [
-        "Weakness 1 with quantifiable valuation concerns", 
-        "Weakness 2 with specific funding allocation issues", 
-        "Weakness 3 with measured milestone risk factors", 
-        "Weakness 4 with documented dilution considerations", 
-        "Weakness 5 with specific exit timeline uncertainties"
-      ]
-    }
+    ...
   ],
   "overallScore": 3.7,
   "assessmentPoints": ["Key point 1 with specific metrics ($XM market, Y% growth)", "Key point 2 with exact figures", "Key point 3 with precise percentages", "Key point 4 with concrete numbers", "Key point 5 with quantifiable comparison"]
 }
 
-ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential. ENSURE EVERY SECTION HAS SUBSTANTIAL EXTERNAL MARKET RESEARCH DATA WITH SPECIFIC NUMBERS - THIS IS THE MOST CRITICAL REQUIREMENT. 
-
-MOST IMPORTANTLY, MAKE SURE EACH SECTION HAS EXACTLY 5 STRENGTHS AND 5 WEAKNESSES - THIS IS NON-NEGOTIABLE.
+ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential. ENSURE EVERY SECTION HAS SUBSTANTIAL EXTERNAL MARKET RESEARCH DATA WITH SPECIFIC NUMBERS - THIS IS THE MOST CRITICAL REQUIREMENT.
 `;
 
   try {
@@ -766,57 +581,6 @@ MOST IMPORTANTLY, MAKE SURE EACH SECTION HAS EXACTLY 5 STRENGTHS AND 5 WEAKNESSE
           console.warn("Warning: overallScore is not a number, setting default value");
           parsedContent.overallScore = 3; // Default score
         }
-        
-        // Ensure each section has exactly 5 strengths and 5 weaknesses
-        parsedContent.sections.forEach(section => {
-          // Process strengths
-          if (!section.strengths || !Array.isArray(section.strengths)) {
-            section.strengths = [];
-          }
-          
-          if (section.strengths.length < 5) {
-            const defaultStrengths = DEFAULT_STRENGTHS[section.type] || [
-              "Strong market positioning",
-              "Clear value proposition for customers",
-              "Effective solution to a significant problem",
-              "Scalable business model",
-              "Experienced management team"
-            ];
-            
-            while (section.strengths.length < 5) {
-              const nextDefaultIndex = section.strengths.length;
-              if (nextDefaultIndex < defaultStrengths.length) {
-                section.strengths.push(defaultStrengths[nextDefaultIndex]);
-              } else {
-                section.strengths.push(`Additional strength ${section.strengths.length + 1}`);
-              }
-            }
-          }
-          
-          // Process weaknesses
-          if (!section.weaknesses || !Array.isArray(section.weaknesses)) {
-            section.weaknesses = [];
-          }
-          
-          if (section.weaknesses.length < 5) {
-            const defaultWeaknesses = DEFAULT_WEAKNESSES[section.type] || [
-              "Need for more market validation",
-              "Potential scalability challenges",
-              "Competition from established players",
-              "Execution risks in go-to-market strategy",
-              "Funding requirements for sustained growth"
-            ];
-            
-            while (section.weaknesses.length < 5) {
-              const nextDefaultIndex = section.weaknesses.length;
-              if (nextDefaultIndex < defaultWeaknesses.length) {
-                section.weaknesses.push(defaultWeaknesses[nextDefaultIndex]);
-              } else {
-                section.weaknesses.push(`Additional area for improvement ${section.weaknesses.length + 1}`);
-              }
-            }
-          }
-        });
         
         // Add prompt and response to the parsed content
         parsedContent.promptSent = promptSent;
