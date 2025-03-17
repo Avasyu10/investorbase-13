@@ -477,7 +477,7 @@ ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" a
     
     try {
       // Construct the Gemini API request
-      const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+      const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
       const urlWithApiKey = `${geminiEndpoint}?key=${apiKey}`;
       
       const requestBody = {

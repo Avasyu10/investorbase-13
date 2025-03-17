@@ -99,22 +99,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     return "text-red-600";
   };
 
-  // Helper to get assessment summary
-  const getAssessmentSummary = (company: CompanyListItem) => {
-    // First check if there is a summary in the description field of the first report
-    // Fall back to assessment points if available
-    if ('assessmentPoints' in company && company.assessmentPoints && company.assessmentPoints.length > 0) {
-      // Return up to 2 assessment points with ellipsis if more exist
-      const points = company.assessmentPoints.slice(0, 2);
-      const summary = points.join(', ');
-      return company.assessmentPoints.length > 2 
-        ? `${summary}, ...` 
-        : summary;
-    }
-    
-    return "No summary available";
-  };
-
   return (
     <div className="border rounded-md">
       <Table>
@@ -130,7 +114,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
               </div>
             </TableHead>
             <TableHead className="w-2/5">
-              Summary
+              About
             </TableHead>
             <TableHead className="w-1/6">
               <div 
@@ -153,22 +137,25 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedCompanies.map((company) => (
-            <TableRow 
-              key={company.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => onCompanyClick(company.id)}
-            >
-              <TableCell className="font-medium">{company.name}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {getAssessmentSummary(company)}
-              </TableCell>
-              <TableCell className={getScoreColorClass(company.overallScore)}>
-                {company.overallScore}/5
-              </TableCell>
-              <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
-            </TableRow>
-          ))}
+          {sortedCompanies.map((company) => {
+            console.log("Company in table:", company.name, "Description:", company.description);
+            return (
+              <TableRow 
+                key={company.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => onCompanyClick(company.id)}
+              >
+                <TableCell className="font-medium">{company.name}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {company.description || "No description available"}
+                </TableCell>
+                <TableCell className={getScoreColorClass(company.overallScore)}>
+                  {company.overallScore}/5
+                </TableCell>
+                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

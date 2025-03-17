@@ -16,6 +16,7 @@ export interface CompanyBase extends BaseEntity {
   name: string;
   overallScore: number; // 0-5 scale
   assessmentPoints?: string[]; // Add this property to ensure it's available
+  description?: string; // Ensure description field is in the base company interface
 }
 
 export interface CompanyListItem extends CompanyBase {
