@@ -2,12 +2,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RotateCw, Clock, AlertCircle, ArrowUpRight, BookText } from "lucide-react";
+import { AlertCircle, ArrowUpRight, BookText, RotateCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { getLatestResearch } from "@/lib/supabase/research";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDistanceToNow } from "date-fns";
-import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface LatestResearchProps {
@@ -67,12 +65,15 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     return matches || [];
   };
 
-  // Format section text
+  // Format section text - improved to better handle sources
   const formatSectionText = (text: string) => {
-    // Remove markdown formatting
     return text
       .replace(/\*\*/g, '')  // Remove bold markers
       .replace(/\[(\d+)\]/g, '') // Remove citation markers
+      .replace(/Sources:[\s\S]*$/, '') // Remove "Sources:" and everything after it
+      .replace(/https?:\/\/[^\s]+/g, '') // Remove any URLs
+      .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
+      .replace(/\n+$/, '') // Remove trailing newlines
       .trim();
   };
 
@@ -82,17 +83,9 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
   return (
     <Card className="mb-8 shadow-card border-0">
       <CardHeader className="bg-secondary/50 border-b pb-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <BookText className="h-5 w-5" />
-            <CardTitle className="text-xl font-semibold">Latest Research</CardTitle>
-          </div>
-          {requestedAt && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>Updated {formatDistanceToNow(new Date(requestedAt), { addSuffix: true })}</span>
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <BookText className="h-5 w-5" />
+          <CardTitle className="text-xl font-semibold">Latest Research</CardTitle>
         </div>
       </CardHeader>
       
@@ -139,46 +132,39 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
         )}
       </CardContent>
       
-      {research && (
-        <CardFooter className="flex justify-between border-t pt-4">
-          <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2" disabled={isLoading}>
-            <RotateCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Updating...' : 'Refresh Research'}
-          </Button>
-          
-          {urls.length > 0 && (
-            <Sheet>
-              <SheetTrigger asChild>
-                <button className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors">
-                  Sources <ArrowUpRight className="h-3.5 w-3.5" />
-                </button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Research Sources</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6 space-y-4">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    The following sources were used in compiling this research:
-                  </p>
-                  <ul className="space-y-2 list-disc pl-5">
-                    {urls.map((url, index) => (
-                      <li key={index} className="text-sm">
-                        <a 
-                          href={url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-primary break-all hover:underline"
-                        >
-                          {url}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </SheetContent>
-            </Sheet>
-          )}
+      {research && urls.length > 0 && (
+        <CardFooter className="flex justify-end border-t pt-4">
+          <Sheet>
+            <SheetTrigger asChild>
+              <button className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors">
+                Sources <ArrowUpRight className="h-3.5 w-3.5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Research Sources</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6 space-y-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  The following sources were used in compiling this research:
+                </p>
+                <ul className="space-y-2 list-disc pl-5">
+                  {urls.map((url, index) => (
+                    <li key={index} className="text-sm">
+                      <a 
+                        href={url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-primary break-all hover:underline"
+                      >
+                        {url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </SheetContent>
+          </Sheet>
         </CardFooter>
       )}
     </Card>
