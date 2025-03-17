@@ -13,7 +13,6 @@ function mapDbCompanyToApi(company: any) {
     updatedAt: company.updated_at || company.created_at,
     score: company.overall_score, // For backward compatibility
     assessmentPoints: company.assessment_points || [],
-    description: company.description || '', // Ensure description is properly mapped
     reportId: company.report_id,
   };
 }
@@ -47,8 +46,6 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      console.log('Fetching companies data');
-      
       // Query all companies without user filtering
       const { data, error } = await supabase
         .from('companies')
@@ -56,15 +53,10 @@ export function useCompanies() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching companies:', error);
         throw error;
       }
 
-      console.log('Companies data from DB:', data);
-      const mappedCompanies = data.map(mapDbCompanyToApi);
-      console.log('Mapped companies with descriptions:', mappedCompanies);
-      
-      return mappedCompanies;
+      return data.map(mapDbCompanyToApi);
     },
     meta: {
       onError: (err: any) => {
