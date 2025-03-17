@@ -40,9 +40,16 @@ export function ReportsList() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">Pitch Decks</h1>
           <p className="text-muted-foreground">
-            Access your Pitch Decks 
+            Access your Pitch Decks for analysis and review
           </p>
         </div>
+        <Button 
+          onClick={() => navigate("/upload")} 
+          className="mt-4 sm:mt-0"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Upload New Deck
+        </Button>
       </div>
 
       {isLoading ? (

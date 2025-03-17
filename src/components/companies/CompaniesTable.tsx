@@ -91,12 +91,34 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     );
   };
 
+  // Helper to get score color class
+  const getScoreColorClass = (score: number) => {
+    if (score >= 4) return "text-green-600 font-medium";
+    if (score >= 3) return "text-blue-600";
+    if (score >= 2) return "text-yellow-600"; 
+    return "text-red-600";
+  };
+
+  // Helper to get assessment summary
+  const getAssessmentSummary = (company: CompanyListItem) => {
+    if (!company.assessmentPoints || company.assessmentPoints.length === 0) {
+      return "No assessment data available";
+    }
+    
+    // Return up to 2 assessment points with ellipsis if more exist
+    const points = company.assessmentPoints.slice(0, 2);
+    const summary = points.join(', ');
+    return company.assessmentPoints.length > 2 
+      ? `${summary}, ...` 
+      : summary;
+  };
+
   return (
     <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>
+            <TableHead className="w-1/4">
               <div 
                 className="flex items-center cursor-pointer" 
                 onClick={() => toggleSort('name')}
@@ -105,7 +127,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                 {renderSortArrow('name')}
               </div>
             </TableHead>
-            <TableHead>
+            <TableHead className="w-2/5">
+              Summary
+            </TableHead>
+            <TableHead className="w-1/6">
               <div 
                 className="flex items-center cursor-pointer" 
                 onClick={() => toggleSort('overallScore')}
@@ -114,7 +139,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                 {renderSortArrow('overallScore')}
               </div>
             </TableHead>
-            <TableHead>
+            <TableHead className="w-1/6">
               <div 
                 className="flex items-center cursor-pointer" 
                 onClick={() => toggleSort('createdAt')}
@@ -133,7 +158,12 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
               onClick={() => onCompanyClick(company.id)}
             >
               <TableCell className="font-medium">{company.name}</TableCell>
-              <TableCell>{company.overallScore}/5</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {getAssessmentSummary(company)}
+              </TableCell>
+              <TableCell className={getScoreColorClass(company.overallScore)}>
+                {company.overallScore}/5
+              </TableCell>
               <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
             </TableRow>
           ))}
