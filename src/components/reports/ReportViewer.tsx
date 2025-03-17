@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
@@ -142,12 +142,12 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-2xl font-bold tracking-tight">{report.title}</h1>
+            <h2 className="text-xl font-bold tracking-tight">{report.title}</h2>
           </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
             <Calendar className="h-4 w-4" />
@@ -172,18 +172,17 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       {/* PDF Viewer */}
       <div className="w-full bg-card border rounded-lg overflow-hidden shadow-sm">
         {pdfUrl ? (
-          // Using object tag instead of iframe for better PDF handling
           <object
             data={pdfUrl}
             type="application/pdf"
-            className="w-full h-[80vh]"
+            className="w-full h-[70vh]"
           >
             <p>It appears your browser doesn't support embedded PDFs. You can 
               <a href={pdfUrl} target="_blank" rel="noopener noreferrer"> download the PDF</a> instead.
             </p>
           </object>
         ) : (
-          <div className="flex justify-center items-center h-[80vh]">
+          <div className="flex justify-center items-center h-[70vh]">
             {loadingPdf ? (
               <div className="flex flex-col items-center gap-3">
                 <Loader className="h-8 w-8 animate-spin text-primary" />
