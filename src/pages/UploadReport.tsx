@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,42 @@ import { Toaster } from "sonner";
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [isPageMounted, setIsPageMounted] = useState(true);
 
   useEffect(() => {
+    setIsPageMounted(true);
+    
     if (!isLoading && !user) {
       navigate('/');
     }
+    
+    // Clean up function to handle page unmounting
+    return () => {
+      setIsPageMounted(false);
+    };
   }, [user, isLoading, navigate]);
+
+  // Handle page error boundary
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error("Global error caught:", event.error);
+      
+      // Only show error if the page is still mounted
+      if (isPageMounted) {
+        // Use sonner toast for error notification
+        const { toast } = require("sonner");
+        toast.error("An error occurred", {
+          description: "Please try again or contact support if the problem persists"
+        });
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+    };
+  }, [isPageMounted]);
 
   if (isLoading) {
     return (
