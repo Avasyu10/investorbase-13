@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,7 +20,11 @@ import { ProgressIndicator } from "./upload/ProgressIndicator";
 import { scrapeWebsite } from "./upload/WebsiteService";
 import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedInService";
 
-export function ReportUpload() {
+interface ReportUploadProps {
+  onError?: (errorMessage: string) => void;
+}
+
+export function ReportUpload({ onError }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
@@ -254,6 +259,11 @@ export function ReportUpload() {
           description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
         });
         
+        // Call the onError prop if provided
+        if (onError) {
+          onError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
+        }
+        
         setProgress(0);
         
         // Still navigate to dashboard if analysis fails
@@ -266,6 +276,12 @@ export function ReportUpload() {
       toast.error("Upload failed", {
         description: error instanceof Error ? error.message : "Failed to process pitch deck"
       });
+      
+      // Call the onError prop if provided
+      if (onError) {
+        onError(error instanceof Error ? error.message : "Failed to process pitch deck");
+      }
+      
       setProgress(0);
     } finally {
       setIsUploading(false);
