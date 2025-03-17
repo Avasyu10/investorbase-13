@@ -14,6 +14,9 @@ function mapDbCompanyToApi(company: any) {
     score: company.overall_score, // For backward compatibility
     assessmentPoints: company.assessment_points || [],
     reportId: company.report_id,
+    perplexityResponse: company.perplexity_response,
+    perplexityPrompt: company.perplexity_prompt,
+    perplexityRequestedAt: company.perplexity_requested_at
   };
 }
 

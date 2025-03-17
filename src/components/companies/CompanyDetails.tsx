@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
+import { LatestResearch } from "./LatestResearch";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,14 @@ export function CompanyDetails() {
 
         <ScoreAssessment company={company} />
       </div>
+      
+      {/* Latest Research Section */}
+      <LatestResearch 
+        companyId={company.id.toString()} 
+        assessmentPoints={company.assessmentPoints || []}
+        existingResearch={company.perplexityResponse}
+        requestedAt={company.perplexityRequestedAt}
+      />
       
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
         <BarChart2 className="h-5 w-5 text-primary" />

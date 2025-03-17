@@ -113,6 +113,70 @@ serve(async (req) => {
       const companyId = await saveAnalysisResults(supabase, analysis, report);
 
       console.log(`Analysis complete, created company with ID: ${companyId}`);
+      
+      // Try to trigger the Perplexity research after the main analysis
+      // But don't fail the main job if research fails
+      try {
+        if (analysis.assessmentPoints && analysis.assessmentPoints.length > 0) {
+          console.log("Initiating market research with Perplexity API");
+          
+          // Check if we have the Perplexity API key
+          const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+          
+          if (!PERPLEXITY_API_KEY) {
+            console.log("Skipping market research - PERPLEXITY_API_KEY not configured");
+          } else {
+            // Run this in background so it doesn't block completion
+            const doResearch = async () => {
+              try {
+                console.log("Starting Perplexity research in background");
+                
+                // Prepare the data for the research API
+                const assessmentText = analysis.assessmentPoints.join("\n\n");
+                
+                // Call the research function
+                const researchResponse = await fetch(`${SUPABASE_URL}/functions/v1/research-with-perplexity`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    companyId,
+                    assessmentText
+                  })
+                });
+                
+                if (!researchResponse.ok) {
+                  const errorText = await researchResponse.text();
+                  console.error(`Research failed (${researchResponse.status}): ${errorText}`);
+                } else {
+                  console.log("Research completed successfully");
+                }
+              } catch (researchError) {
+                console.error("Error in background research task:", researchError);
+              }
+            };
+            
+            // Start the research but don't wait for it to complete
+            if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+              console.log("Using EdgeRuntime.waitUntil for background processing");
+              EdgeRuntime.waitUntil(doResearch());
+            } else {
+              console.log("EdgeRuntime not available, starting research without waitUntil");
+              // Just start the research but don't await it
+              doResearch().catch(err => console.error("Background research failed:", err));
+            }
+            
+            console.log("Research task initiated in background");
+          }
+        } else {
+          console.log("Skipping market research - no assessment points available");
+        }
+      } catch (researchSetupError) {
+        console.error("Error setting up research task:", researchSetupError);
+        // Don't fail the main job due to research failure
+      }
 
       return new Response(
         JSON.stringify({ 

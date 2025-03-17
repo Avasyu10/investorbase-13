@@ -16,6 +16,9 @@ export type Database = {
           id: string
           name: string
           overall_score: number
+          perplexity_prompt: string | null
+          perplexity_requested_at: string | null
+          perplexity_response: string | null
           prompt_sent: string | null
           report_id: string | null
           response_received: string | null
@@ -27,6 +30,9 @@ export type Database = {
           id?: string
           name: string
           overall_score?: number
+          perplexity_prompt?: string | null
+          perplexity_requested_at?: string | null
+          perplexity_response?: string | null
           prompt_sent?: string | null
           report_id?: string | null
           response_received?: string | null
@@ -38,6 +44,9 @@ export type Database = {
           id?: string
           name?: string
           overall_score?: number
+          perplexity_prompt?: string | null
+          perplexity_requested_at?: string | null
+          perplexity_response?: string | null
           prompt_sent?: string | null
           report_id?: string | null
           response_received?: string | null

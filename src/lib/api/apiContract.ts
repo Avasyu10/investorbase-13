@@ -16,6 +16,9 @@ export interface CompanyBase extends BaseEntity {
   name: string;
   overallScore: number; // 0-5 scale
   assessmentPoints?: string[]; // Add this property to ensure it's available
+  perplexityResponse?: string; // Latest research from Perplexity
+  perplexityPrompt?: string; // Prompt sent to Perplexity
+  perplexityRequestedAt?: string; // When the research was requested
 }
 
 export interface CompanyListItem extends CompanyBase {
@@ -46,6 +49,7 @@ export interface SectionBase extends BaseEntity {
 export interface CompanyDetailed extends CompanyBase {
   sections: SectionBase[];
   assessmentPoints: string[];
+  perplexityResponse?: string;
 }
 
 export interface SectionDetailed extends SectionBase {

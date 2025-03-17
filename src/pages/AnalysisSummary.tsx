@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Maximize, HelpCircle } from 'lucide-react';
+import { ChevronLeft, Maximize, HelpCircle, Newspaper } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
+import { LatestResearch } from '@/components/companies/LatestResearch';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -121,6 +122,38 @@ export default function AnalysisSummary() {
             ) : (
               <p className="text-muted-foreground italic">No assessment points available</p>
             )}
+          </div>
+
+          {/* Latest Market Research Section */}
+          <div className="mb-8">
+            <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <Newspaper className="h-4 w-4 text-primary" />
+              Latest Market Research
+            </h3>
+            
+            <Card className="border border-muted">
+              <CardContent className="p-4">
+                {company.perplexityResponse ? (
+                  <div className="text-sm prose prose-sm max-w-none">
+                    <div dangerouslySetInnerHTML={{ __html: company.perplexityResponse.replace(/\n\n/g, '<br/><br/>') }} />
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground">
+                      No market research data available yet. Visit the company details page to generate research.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => navigate(`/company/${companyId}`)}
+                    >
+                      Go to Company Details
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <div className="mb-8">
