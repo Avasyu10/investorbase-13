@@ -21,8 +21,8 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       throw new Error(errorMessage);
     }
     
-    // Set a timeout for the edge function call (30 seconds)
-    const timeoutMs = 30000;
+    // Set a timeout for the edge function call (60 seconds)
+    const timeoutMs = 60000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
