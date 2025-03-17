@@ -99,26 +99,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     return "text-red-600";
   };
 
-  // Helper to get assessment summary
-  const getAssessmentSummary = (company: CompanyListItem) => {
-    // First check if there's a description field that contains the brief introduction
-    if (company.description) {
-      return company.description;
-    }
-    
-    // Fall back to assessment points if available
-    if ('assessmentPoints' in company && company.assessmentPoints && company.assessmentPoints.length > 0) {
-      // Return up to 2 assessment points with ellipsis if more exist
-      const points = company.assessmentPoints.slice(0, 2);
-      const summary = points.join(', ');
-      return company.assessmentPoints.length > 2 
-        ? `${summary}, ...` 
-        : summary;
-    }
-    
-    return "No summary available";
-  };
-
   return (
     <div className="border rounded-md">
       <Table>
@@ -134,7 +114,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
               </div>
             </TableHead>
             <TableHead className="w-2/5">
-              Summary
+              About
             </TableHead>
             <TableHead className="w-1/6">
               <div 
@@ -165,7 +145,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
             >
               <TableCell className="font-medium">{company.name}</TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {getAssessmentSummary(company)}
+                {company.description || "No description available"}
               </TableCell>
               <TableCell className={getScoreColorClass(company.overallScore)}>
                 {company.overallScore}/5
