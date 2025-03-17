@@ -17,6 +17,9 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
 
   // Format score to 1 decimal place
   const scoreValue = parseFloat(section.score.toFixed(1));
+  
+  // Calculate progress percentage (0-100 scale) from score (0-5 scale)
+  const progressPercentage = scoreValue * 20;
 
   const getScoreColor = (score: number) => {
     if (score >= 4.5) return "score-excellent";
@@ -61,7 +64,7 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
         
         <div className="mb-4">
           <Progress 
-            value={section.score * 20} 
+            value={progressPercentage} 
             className={`h-1.5 ${getScoreColor(section.score)}`} 
           />
         </div>
