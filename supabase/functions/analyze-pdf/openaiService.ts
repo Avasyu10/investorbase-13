@@ -11,8 +11,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
     console.log('Initializing Gemini API');
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Using the Gemini Pro Vision model which can handle image data
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Create a more structured prompt focused on extracting numerical data
     // Sections should include quantitative analysis, market size, financial projections, etc.
