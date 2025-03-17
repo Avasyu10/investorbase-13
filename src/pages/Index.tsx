@@ -41,7 +41,7 @@ const Index = () => {
       <div className="max-w-md w-full space-y-6 animate-fade-in">
         <div className="flex justify-center mb-4">
           <img 
-            src="/lovable-uploads/429fbeb4-bdcb-4fbd-964b-0e5f5d40ebff.png" 
+            src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
             alt="InvestorBase Logo" 
             className="h-16 w-auto" 
           />

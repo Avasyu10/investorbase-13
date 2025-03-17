@@ -22,7 +22,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between px-3 sm:px-4 md:px-8">
         <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2 transition-transform hover:scale-[1.01]">
           <img 
-            src="/lovable-uploads/429fbeb4-bdcb-4fbd-964b-0e5f5d40ebff.png" 
+            src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
             alt="InvestorBase Logo" 
             className="h-8 w-auto" 
           />
