@@ -5,13 +5,14 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import { useCompanyDetails } from "@/hooks/useCompanies";
+import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 
 const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { companyId } = useParams();
+  const { companyId, sectionId } = useParams();
   const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
+  const { section, isLoading: sectionLoading } = useSectionDetails(companyId, sectionId);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -19,7 +20,7 @@ const SectionPage = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const isLoading = authLoading || companyLoading;
+  const isLoading = authLoading || companyLoading || sectionLoading;
 
   if (isLoading) {
     return (
@@ -43,7 +44,7 @@ const SectionPage = () => {
           <ChevronLeft className="mr-1" /> Back to {company?.name || 'Company'}
         </Button>
       </div>
-      <SectionDetail />
+      <SectionDetail section={section} isLoading={sectionLoading} />
     </div>
   );
 };

@@ -21,6 +21,28 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       throw new Error(errorMessage);
     }
     
+    // First check if we already have the latest data in the database
+    const { data: existingData, error: existingError } = await supabase
+      .from('companies')
+      .select('perplexity_response, perplexity_requested_at')
+      .eq('id', companyId)
+      .single();
+      
+    if (!existingError && existingData?.perplexity_response) {
+      // If we already have recent data (less than 10 minutes old), return it immediately
+      const requestedAt = existingData.perplexity_requested_at ? new Date(existingData.perplexity_requested_at) : null;
+      const now = new Date();
+      const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+      
+      if (requestedAt && requestedAt > tenMinutesAgo) {
+        console.log('Using existing research data from database (less than 10 minutes old)');
+        return {
+          research: existingData.perplexity_response,
+          requestedAt: existingData.perplexity_requested_at
+        };
+      }
+    }
+    
     // Set a timeout for the edge function call (60 seconds)
     const timeoutMs = 60000;
     const controller = new AbortController();
@@ -67,8 +89,8 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       
       console.log('Research result:', data);
       
-      // After successful research fetch, immediately get the updated company data
-      // to ensure we have the latest perplexity_response
+      // Fetch the freshest data from the database after the function completes
+      // This ensures we have the most up-to-date perplexity_response
       const { data: updatedCompany, error: companyError } = await supabase
         .from('companies')
         .select('perplexity_response, perplexity_requested_at')

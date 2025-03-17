@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowUpRight, BookText } from "lucide-react";
 import { getLatestResearch } from "@/lib/supabase/research";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LatestResearchProps {
   companyId: string;
@@ -18,6 +19,8 @@ interface LatestResearchProps {
 export function LatestResearch({ companyId, assessmentPoints, existingResearch, requestedAt, onSuccess }: LatestResearchProps) {
   const [research, setResearch] = useState<string | undefined>(existingResearch);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [fetchTrigger, setFetchTrigger] = useState<number>(0);
+  const queryClient = useQueryClient();
 
   const handleFetchResearch = async () => {
     if (!assessmentPoints || assessmentPoints.length === 0) {
@@ -32,6 +35,12 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
       
       if (result && result.research) {
         setResearch(result.research);
+        
+        // Invalidate the company query to refresh data
+        queryClient.invalidateQueries({
+          queryKey: ['company', companyId],
+        });
+        
         // Call the onSuccess callback to notify parent component
         if (onSuccess) {
           onSuccess();
@@ -42,6 +51,28 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Effect to trigger research fetching when needed
+  useEffect(() => {
+    const shouldFetchResearch = !research && !isLoading && assessmentPoints?.length > 0;
+    
+    if (shouldFetchResearch || fetchTrigger > 0) {
+      console.log("Auto-fetching research data");
+      handleFetchResearch();
+    }
+  }, [companyId, assessmentPoints, research, isLoading, fetchTrigger]);
+
+  // If the existingResearch prop changes (from parent), update state
+  useEffect(() => {
+    if (existingResearch && existingResearch !== research) {
+      setResearch(existingResearch);
+    }
+  }, [existingResearch]);
+
+  // Manual refresh option
+  const handleRefresh = () => {
+    setFetchTrigger(prev => prev + 1);
   };
 
   // Extract text content without URLs for main display
@@ -76,22 +107,27 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
       .trim();
   };
 
-  // Auto-fetch research if not already available
-  React.useEffect(() => {
-    if (!research && !isLoading && assessmentPoints && assessmentPoints.length > 0) {
-      handleFetchResearch();
-    }
-  }, [companyId, assessmentPoints, research, isLoading]);
-
   const sections = research ? extractTextContent(research) : [];
   const urls = research ? extractUrls(research) : [];
 
   return (
     <Card className="mb-8 shadow-card border-0">
       <CardHeader className="bg-secondary/50 border-b pb-4">
-        <div className="flex items-center gap-2">
-          <BookText className="h-5 w-5" />
-          <CardTitle className="text-xl font-semibold">Latest Research</CardTitle>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <BookText className="h-5 w-5" />
+            <CardTitle className="text-xl font-semibold">Latest Research</CardTitle>
+          </div>
+          {research && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleRefresh} 
+              disabled={isLoading}
+            >
+              Refresh
+            </Button>
+          )}
         </div>
       </CardHeader>
       
