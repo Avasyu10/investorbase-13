@@ -2,70 +2,68 @@
 import { useState, useEffect } from "react";
 import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";
-import { getReports, Report } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export function ReportsList() {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check authentication status
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
-      
-      if (!user) {
+    // Check authentication status and fetch reports
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get current user session
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsAuthenticated(!!user);
+        
+        if (!user) {
+          console.log('No authenticated user found');
+          toast({
+            title: "Authentication required",
+            description: "Please sign in to view your reports",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
+        }
+        
+        // Fetch reports for the current user (RLS will filter automatically)
+        const { data: tableData, error: tableError } = await supabase
+          .from('reports')
+          .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
+          .order('created_at', { ascending: false });
+
+        if (tableError) {
+          console.error('Error fetching reports from table:', tableError);
+          throw tableError;
+        }
+
+        console.log('Found reports for current user:', tableData);
+        setReports(tableData || []);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
         toast({
-          title: "Authentication required",
-          description: "Please sign in to view your reports",
+          title: "Failed to load reports",
+          description: "Please try again later or contact support",
           variant: "destructive",
         });
-        navigate('/login');
-        return;
+      } finally {
+        setIsLoading(false);
       }
-      
-      fetchReports();
     };
     
-    checkAuth();
+    fetchData();
   }, [navigate, toast]);
 
-  async function fetchReports() {
-    try {
-      setIsLoading(true);
-      // This will automatically be filtered by RLS when using supabase client
-      const { data: tableData, error: tableError } = await supabase
-        .from('reports')
-        .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
-        .order('created_at', { ascending: false });
-
-      if (tableError) {
-        console.error('Error fetching reports from table:', tableError);
-        throw tableError;
-      }
-
-      console.log('Found reports for current user:', tableData);
-      setReports(tableData || []);
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-      toast({
-        title: "Failed to load reports",
-        description: "Please try again later or contact support",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isLoading) {
     return null; // Don't show anything if not authenticated
   }
 

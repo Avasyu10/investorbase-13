@@ -1,28 +1,73 @@
 
 import { CompaniesList } from "@/components/companies/CompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
-import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp } from "lucide-react";
+import { FileUp, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
-  const { user, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("companies");
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/');
-    }
-  }, [user, isLoading, navigate]);
+    const checkAuth = async () => {
+      try {
+        setIsLoading(true);
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (!user) {
+          console.log("No authenticated user found, redirecting to login");
+          navigate('/');
+          return;
+        }
+        
+        setUser(user);
+        console.log("Authenticated user:", user.email);
+      } catch (error) {
+        console.error("Authentication error:", error);
+        toast({
+          title: "Authentication error",
+          description: "Please sign in again",
+          variant: "destructive",
+        });
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        navigate('/');
+      } else if (event === 'SIGNED_IN' && session) {
+        setUser(session.user);
+      }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, toast]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="loader"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

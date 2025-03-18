@@ -7,15 +7,46 @@ import { Link } from "react-router-dom";
 import { Loader } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signInWithEmail, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await signInWithEmail(email, password);
+    setIsLoading(true);
+    
+    try {
+      // Use the supabase client directly for login
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Successfully signed in",
+        description: "Welcome back!",
+      });
+      
+      // Let the auth state change event handle redirect
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Could not sign in. Please check your credentials.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

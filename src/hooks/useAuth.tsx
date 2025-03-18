@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
@@ -63,8 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
+          navigate('/dashboard');
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
+          navigate('/');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Session token refreshed');
         }
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, [toast, navigate]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
@@ -91,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Welcome back!",
       });
       
-      navigate('/dashboard');
+      // Navigation will be handled by onAuthStateChange
     } catch (error: any) {
       toast({
         title: "Sign in failed",
@@ -138,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
-      navigate('/'); // Changed back to '/' to go to the original sign-in/sign-up page
+      // Navigation will be handled by onAuthStateChange
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
