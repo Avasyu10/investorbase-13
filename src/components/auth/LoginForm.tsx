@@ -1,13 +1,13 @@
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Loader } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
+import { Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LoginFormProps {
@@ -15,28 +15,22 @@ interface LoginFormProps {
 }
 
 const LoginForm = ({ redirectTo = '/dashboard' }: LoginFormProps) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { signInWithEmail, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { signInWithEmail, user } = useAuth();
   
-  // Get the intended destination from props or location state
+  // Use either the provided redirectTo prop or get it from the location state
   const from = redirectTo || location.state?.from || '/dashboard';
-
-  // Check if the user is already logged in
+  
+  // Check if user is already logged in initially
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkSession = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error checking session:", error);
-          return;
-        }
+        setLoading(true);
+        const { data } = await supabase.auth.getSession();
         
         if (data.session) {
           console.log("User already logged in, redirecting to:", from);
@@ -45,14 +39,14 @@ const LoginForm = ({ redirectTo = '/dashboard' }: LoginFormProps) => {
       } catch (err) {
         console.error("Error in auth check:", err);
       } finally {
-        setAuthChecked(true);
+        setLoading(false);
       }
     };
     
-    checkAuth();
-  }, [navigate, from]);
+    checkSession();
+  }, [from, navigate]);
 
-  // If user is already logged in, redirect to the intended destination
+  // Redirect if user state changes
   useEffect(() => {
     if (user) {
       console.log("User detected in state, redirecting to:", from);
@@ -60,91 +54,77 @@ const LoginForm = ({ redirectTo = '/dashboard' }: LoginFormProps) => {
     }
   }, [user, navigate, from]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
     
     try {
+      console.log("Logging in, will redirect to:", from);
       await signInWithEmail(email, password);
-      // After successful login, navigate manually to avoid refresh loops
+      
+      // Let's manually navigate after successful login to ensure we go to the right place
+      // We use replace to avoid adding to the history stack
       navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
       // The toast is already shown in signInWithEmail
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Show loading state before auth check completes
-  if (!authChecked) {
-    return (
-      <Card className="w-full max-w-md mx-auto overflow-hidden transition-all duration-300 transform shadow-lg animate-fade-in">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold tracking-tight">Checking authentication...</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center py-8">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="w-full max-w-md mx-auto overflow-hidden transition-all duration-300 transform shadow-lg animate-fade-in">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold tracking-tight">Sign in</CardTitle>
-        <CardDescription>
-          Enter your credentials to access your account
-        </CardDescription>
+    <Card className="mx-auto max-w-md">
+      <CardHeader>
+        <CardTitle>Log In</CardTitle>
+        <CardDescription>Enter your email and password to log in to your account.</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+      <CardContent>
+        <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="example@example.com"
+              placeholder="your.email@example.com"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              {/* <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                Forgot password?
+              </Link> */}
+            </div>
             <Input
               id="password"
               type="password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
           <Button 
             type="submit" 
-            className="w-full transition-all duration-200 hover:shadow-md" 
-            disabled={isLoading}
+            className="w-full"
+            disabled={loading}
           >
-            {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <Loader className="h-4 w-4 animate-spin" />
-                <span>Signing in...</span>
-              </div>
-            ) : (
-              <span>Sign in</span>
-            )}
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Log In
           </Button>
-          <p className="text-sm text-center text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
+        </form>
+      </CardContent>
+      <CardFooter className="flex flex-col">
+        <p className="text-center text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-primary hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </CardFooter>
     </Card>
   );
 };

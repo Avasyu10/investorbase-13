@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +23,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { toast } = useToast();
 
+  const updateAuthState = (newSession: Session | null) => {
+    const sessionChanged = (!!newSession) !== (!!session);
+    const userChanged = (!!newSession?.user) !== (!!user);
+    
+    if (sessionChanged || userChanged) {
+      console.log('Auth state updated:', newSession?.user?.email);
+      setSession(newSession);
+      setUser(newSession?.user || null);
+    }
+  };
+
   useEffect(() => {
     const fetchInitialSession = async () => {
       try {
@@ -37,20 +47,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (session) {
-          setSession(session);
-          setUser(session.user);
+          updateAuthState(session);
           console.log('Restored session for user:', session.user.email);
         } else {
-          // Clear any stale user/session state
-          setSession(null);
-          setUser(null);
+          updateAuthState(null);
           console.log('No active session found');
         }
       } catch (error) {
         console.error('Session restoration error:', error);
-        // Clear auth state on error
-        setSession(null);
-        setUser(null);
+        updateAuthState(null);
         toast({
           title: "Authentication error",
           description: "There was a problem with your authentication status",
@@ -67,27 +72,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.email);
         
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
+        updateAuthState(currentSession);
         setIsLoading(false);
         
-        // Handle sign-in: Don't redirect automatically if already on the upload page
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
           
-          // Don't redirect if we're already on the upload page to prevent refresh loops
           const currentPath = location.pathname;
           if (currentPath === '/upload') {
             console.log('Already on upload page, not redirecting');
             return;
           }
           
-          // For other paths, redirect as normal
           const returnTo = location.state?.from || '/dashboard';
           console.log('Redirecting to:', returnTo);
           navigate(returnTo, { replace: true });
         } 
-        // Handle sign-out
         else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           navigate('/', { replace: true });
@@ -114,22 +114,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Login successful but no user returned");
       }
       
-      setUser(data.user);
-      setSession(data.session);
-      
       toast({
         title: "Successfully signed in",
         description: "Welcome back!",
       });
-      
-      // Note: The navigation is now handled in LoginForm to prevent double redirects
     } catch (error: any) {
       toast({
         title: "Sign in failed",
         description: error.message,
         variant: "destructive",
       });
-      throw error; // Rethrow to allow the caller to handle the error
+      throw error;
     } finally {
       setIsLoading(false);
     }
