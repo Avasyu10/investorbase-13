@@ -2,12 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowUpRight, BookText, Sparkle, RefreshCw, ExternalLink } from "lucide-react";
+import { AlertCircle, ArrowUpRight, BookText, Sparkle, ExternalLink } from "lucide-react";
 import { getLatestResearch } from "@/lib/supabase/research";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 
 interface LatestResearchProps {
   companyId: string;
@@ -22,6 +29,8 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fetchTrigger, setFetchTrigger] = useState<number>(0);
   const [hasError, setHasError] = useState<boolean>(false);
+  const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
   const handleFetchResearch = async () => {
@@ -74,11 +83,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
       setHasError(false);
     }
   }, [existingResearch]);
-
-  // Manual refresh option
-  const handleRefresh = () => {
-    setFetchTrigger(prev => prev + 1);
-  };
 
   // Extract text content without URLs for main display
   const extractTextContent = (content: string) => {
@@ -142,8 +146,8 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
   const urls = research ? extractUrls(research) : [];
 
   const getBadgeColor = (index: number) => {
-    const colors = ["bg-blue-100 text-blue-800", "bg-purple-100 text-purple-800", "bg-green-100 text-green-800", 
-                    "bg-amber-100 text-amber-800", "bg-rose-100 text-rose-800"];
+    const colors = ["bg-primary/10 text-primary", "bg-accent/10 text-primary", "bg-primary/20 text-primary", 
+                    "bg-accent/20 text-primary", "bg-primary/15 text-primary"];
     return colors[index % colors.length];
   };
 
@@ -156,25 +160,18 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     return 'News';
   };
 
+  const handleArticleClick = (article: any) => {
+    setSelectedArticle(article);
+    setIsDialogOpen(true);
+  };
+
   return (
-    <Card className="mb-8 shadow-md border bg-white overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b pb-4 flex flex-row justify-between items-center">
+    <Card className="mb-8 shadow-md border bg-card overflow-hidden">
+      <CardHeader className="bg-muted/50 border-b pb-4">
         <div className="flex items-center gap-2">
-          <Sparkle className="h-5 w-5 text-indigo-500" />
-          <CardTitle className="text-xl font-semibold text-slate-800">Market Insights</CardTitle>
+          <Sparkle className="h-5 w-5 text-primary" />
+          <CardTitle className="text-xl font-semibold">Latest Research</CardTitle>
         </div>
-        {research && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh} 
-            disabled={isLoading}
-            className="flex items-center gap-1.5 bg-white"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
-          </Button>
-        )}
       </CardHeader>
       
       <CardContent className="pt-5 px-4 sm:px-6">
@@ -182,11 +179,11 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
           <div className="space-y-5">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex flex-col space-y-2 animate-pulse">
-                <div className="h-5 bg-gray-200 rounded w-3/4 mb-1"></div>
-                <div className="h-3 bg-gray-100 rounded w-1/3 mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-5 bg-muted rounded w-3/4 mb-1"></div>
+                <div className="h-3 bg-muted/50 rounded w-1/3 mb-3"></div>
+                <div className="h-4 bg-muted rounded w-full"></div>
+                <div className="h-4 bg-muted rounded w-full"></div>
+                <div className="h-4 bg-muted rounded w-3/4"></div>
               </div>
             ))}
           </div>
@@ -208,28 +205,41 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
               const pubInfo = extractPublicationInfo(content);
               const category = getCategoryFromTitle(formattedTitle);
               
+              const article = {
+                title: formattedTitle,
+                content: formattedContent,
+                url,
+                publication: pubInfo.publication,
+                date: pubInfo.date,
+                category
+              };
+              
               return (
-                <div key={index} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300">
+                <div 
+                  key={index} 
+                  className="bg-card rounded-lg p-4 border border-border shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer"
+                  onClick={() => handleArticleClick(article)}
+                >
                   <div className="flex justify-between items-start mb-2">
-                    <Badge className={`${getBadgeColor(index)} font-medium px-2 py-0.5 text-xs`}>
+                    <Badge variant="outline" className={`${getBadgeColor(index)} font-medium px-2 py-0.5 text-xs`}>
                       {category}
                     </Badge>
                     {pubInfo.date && (
-                      <span className="text-xs text-gray-500">{pubInfo.date}</span>
+                      <span className="text-xs text-muted-foreground">{pubInfo.date}</span>
                     )}
                   </div>
                   
-                  <h3 className="text-sm font-bold text-gray-800 mb-1.5 line-clamp-2">
+                  <h3 className="text-sm font-bold text-foreground mb-1.5 line-clamp-2">
                     {formattedTitle}
                   </h3>
                   
                   {pubInfo.publication && (
-                    <div className="text-xs text-indigo-600 font-medium mb-2">
+                    <div className="text-xs text-primary font-medium mb-2">
                       {pubInfo.publication}
                     </div>
                   )}
                   
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-3">
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
                     {formattedContent}
                   </p>
                   
@@ -238,7 +248,8 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
                       href={url} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1.5 mt-1 transition-colors"
+                      className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1.5 mt-1 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       Read more <ExternalLink className="h-3 w-3" />
                     </a>
@@ -248,8 +259,8 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
             })}
             
             {hasError && (
-              <div className="mt-2 py-2 px-3 bg-yellow-50 border border-yellow-200 rounded-md md:col-span-2">
-                <p className="text-xs text-yellow-700">
+              <div className="mt-2 py-2 px-3 bg-destructive/10 border border-destructive/20 rounded-md md:col-span-2">
+                <p className="text-xs text-destructive">
                   Using cached research data. Real-time updates couldn't be fetched.
                 </p>
               </div>
@@ -258,20 +269,20 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
             <AlertCircle className="h-12 w-12 mb-4 opacity-30" />
-            <p className="mb-2">No market insights available yet.</p>
+            <p className="mb-2">No research available yet.</p>
             <p className="text-sm mb-4">Click the button below to fetch the latest industry research.</p>
-            <Button onClick={handleFetchResearch} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-              Fetch Market Insights
+            <Button onClick={handleFetchResearch} className="gap-2">
+              Fetch Latest Research
             </Button>
           </div>
         )}
       </CardContent>
       
       {research && urls.length > 0 && (
-        <CardFooter className="flex justify-end border-t pt-4 bg-gray-50 px-6">
+        <CardFooter className="flex justify-end border-t pt-4 bg-muted/30 px-6">
           <Sheet>
             <SheetTrigger asChild>
-              <button className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center gap-1.5 transition-colors">
+              <button className="text-sm text-primary font-medium hover:text-primary/80 flex items-center gap-1.5 transition-colors">
                 View All Sources <ArrowUpRight className="h-3.5 w-3.5" />
               </button>
             </SheetTrigger>
@@ -302,6 +313,50 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
           </Sheet>
         </CardFooter>
       )}
+
+      {/* Modal Dialog for Article Details */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{selectedArticle?.title}</DialogTitle>
+            {selectedArticle?.publication && (
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-sm font-medium text-primary">{selectedArticle.publication}</span>
+                {selectedArticle.date && (
+                  <span className="text-sm text-muted-foreground">{selectedArticle.date}</span>
+                )}
+              </div>
+            )}
+          </DialogHeader>
+          
+          <div className="mt-2">
+            {selectedArticle?.category && (
+              <Badge variant="outline" className="mb-4 bg-primary/10 text-primary">
+                {selectedArticle.category}
+              </Badge>
+            )}
+            
+            <div className="space-y-4">
+              <p className="text-foreground leading-relaxed whitespace-pre-line">
+                {selectedArticle?.content}
+              </p>
+              
+              {selectedArticle?.url && (
+                <div className="pt-4 border-t border-border">
+                  <a
+                    href={selectedArticle.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                  >
+                    View Original Source <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
