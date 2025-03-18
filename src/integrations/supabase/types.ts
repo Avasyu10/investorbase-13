@@ -23,6 +23,7 @@ export type Database = {
           report_id: string | null
           response_received: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           assessment_points?: string[] | null
@@ -37,6 +38,7 @@ export type Database = {
           report_id?: string | null
           response_received?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           assessment_points?: string[] | null
@@ -51,6 +53,7 @@ export type Database = {
           report_id?: string | null
           response_received?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
