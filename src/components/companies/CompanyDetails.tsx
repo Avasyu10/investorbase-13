@@ -8,7 +8,7 @@ import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart2, FileText, Newspaper } from "lucide-react";
+import { FileText, BarChart2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function CompanyDetails() {
@@ -129,19 +129,13 @@ export function CompanyDetails() {
         <ScoreAssessment company={company} />
       </div>
       
-      <div className="mb-8">
-        <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-          <Newspaper className="h-5 w-5 text-primary" />
-          Market Intelligence
-        </h2>
-        <LatestResearch 
-          companyId={company.id.toString()} 
-          assessmentPoints={company.assessmentPoints || []}
-          existingResearch={company.perplexityResponse}
-          requestedAt={company.perplexityRequestedAt}
-          onSuccess={onResearchFetched}
-        />
-      </div>
+      <LatestResearch 
+        companyId={company.id.toString()} 
+        assessmentPoints={company.assessmentPoints || []}
+        existingResearch={company.perplexityResponse}
+        requestedAt={company.perplexityRequestedAt}
+        onSuccess={onResearchFetched}
+      />
       
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
         <BarChart2 className="h-5 w-5 text-primary" />
