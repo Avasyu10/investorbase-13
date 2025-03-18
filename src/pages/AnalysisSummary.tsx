@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Maximize, HelpCircle } from 'lucide-react';
+import { ChevronLeft, Maximize, HelpCircle, Download } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -10,14 +11,130 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ReportViewer } from '@/components/reports/ReportViewer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { generatePDF } from '@/lib/pdf-generator';
+import { LatestResearch } from '@/components/companies/LatestResearch';
+import { SectionDetail } from '@/components/companies/SectionDetail';
+import { getLatestResearch } from '@/lib/supabase/research';
+import { supabase } from '@/integrations/supabase/client';
+
+// Interface for section with strengths and weaknesses
+interface SectionWithDetails {
+  id: string;
+  title: string;
+  score: number;
+  description: string;
+  strengths: string[];
+  weaknesses: string[];
+}
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
   const [showReportModal, setShowReportModal] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [research, setResearch] = useState<string | undefined>(undefined);
+  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
+  const [isLoadingResearch, setIsLoadingResearch] = useState(false);
+  const [sectionsWithDetails, setSelectionsWithDetails] = useState<SectionWithDetails[]>([]);
+  const [isLoadingSectionDetails, setIsLoadingSectionDetails] = useState(false);
 
-  if (isLoading) {
+  // Fetch research data for the PDF export
+  useEffect(() => {
+    if (company && company.assessmentPoints && company.assessmentPoints.length > 0) {
+      const loadResearch = async () => {
+        try {
+          setIsLoadingResearch(true);
+          const assessmentText = company.assessmentPoints.join("\n\n");
+          const result = await getLatestResearch(companyId || '', assessmentText);
+          
+          if (result && result.research) {
+            setResearch(result.research);
+          }
+        } catch (error) {
+          console.error("Error fetching research for PDF:", error);
+        } finally {
+          setIsLoadingResearch(false);
+        }
+      };
+      
+      if (!research) {
+        loadResearch();
+      }
+    }
+  }, [company, companyId, research]);
+
+  // Fetch section details (strengths and weaknesses) for all sections
+  useEffect(() => {
+    const loadSectionDetails = async () => {
+      if (!company || !company.sections || company.sections.length === 0) return;
+      
+      setIsLoadingSectionDetails(true);
+      
+      try {
+        const sectionsWithDetailsData = await Promise.all(
+          company.sections.map(async (section) => {
+            const { data: detailsData, error: detailsError } = await supabase
+              .from('section_details')
+              .select('*')
+              .eq('section_id', section.id);
+              
+            if (detailsError) {
+              console.error("Error fetching section details:", detailsError);
+              return {
+                ...section,
+                strengths: [],
+                weaknesses: []
+              };
+            }
+            
+            const strengths = detailsData
+              .filter(detail => detail.detail_type === 'strength')
+              .map(detail => detail.content);
+              
+            const weaknesses = detailsData
+              .filter(detail => detail.detail_type === 'weakness')
+              .map(detail => detail.content);
+            
+            return {
+              id: section.id,
+              title: section.title,
+              score: section.score,
+              description: section.description || '',
+              strengths,
+              weaknesses
+            };
+          })
+        );
+        
+        setSelectionsWithDetails(sectionsWithDetailsData);
+      } catch (error) {
+        console.error("Error loading section details:", error);
+      } finally {
+        setIsLoadingSectionDetails(false);
+      }
+    };
+    
+    loadSectionDetails();
+  }, [company]);
+
+  const handleDownloadReport = async () => {
+    if (company) {
+      // Expand all sections for PDF generation
+      if (company.sections) {
+        setExpandedSectionId('all');
+      }
+      
+      // Give time for DOM to update with all expanded sections
+      setTimeout(async () => {
+        await generatePDF('report-content', `${company.name} - Assessment Report`);
+        // Reset expanded sections
+        setExpandedSectionId(null);
+      }, 500);
+    }
+  };
+
+  if (isLoading || isLoadingSectionDetails) {
     return (
       <div className="container max-w-5xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-6">
@@ -64,134 +181,210 @@ export default function AnalysisSummary() {
           <ChevronLeft className="mr-1" /> Back to Company Details
         </Button>
         
-        {company.reportId && (
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowReportModal(true)}
+            onClick={handleDownloadReport}
+            className="flex items-center gap-2"
           >
-            <Maximize className="mr-2 h-4 w-4" />
-            View Deck
+            <Download className="h-4 w-4" />
+            Download Report
           </Button>
-        )}
+          
+          {company.reportId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReportModal(true)}
+            >
+              <Maximize className="mr-2 h-4 w-4" />
+              View Deck
+            </Button>
+          )}
+        </div>
       </div>
 
-      <Card className="mb-8">
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl">{company.name}</CardTitle>
-            <div className="flex items-center">
-              <Badge variant={getScoreVariant(company.overallScore)}>
-                Score: {formattedScore}/5
-              </Badge>
-              <TooltipProvider>
-                <Tooltip delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                    <p>{getScoreDescription(company.overallScore)}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+      <div id="report-content" ref={reportRef}>
+        <Card className="mb-8">
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl">{company.name}</CardTitle>
+              <div className="flex items-center">
+                <Badge variant={getScoreVariant(company.overallScore)}>
+                  Score: {formattedScore}/5
+                </Badge>
+                <TooltipProvider>
+                  <Tooltip delayDuration={300}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                      <p>{getScoreDescription(company.overallScore)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
-          </div>
-          <CardDescription>Complete analysis summary and market research</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Overall Performance</h3>
-            <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {getScoreDescription(company.overallScore)}
-            </p>
-          </div>
+            <CardDescription>Complete analysis summary and market research</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Overall Performance Section - Page 1 */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">Overall Performance</h3>
+              <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {getScoreDescription(company.overallScore)}
+              </p>
+            </div>
 
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Key Assessment Points</h3>
-            {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
-              <ul className="list-disc pl-5 space-y-2">
-                {company.assessmentPoints.map((point, index) => (
-                  <li key={index} className="text-muted-foreground">{point}</li>
+            <div className="mb-8">
+              <h3 className="text-lg font-medium mb-4">Key Assessment Points</h3>
+              {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
+                <ul className="list-disc pl-5 space-y-2">
+                  {company.assessmentPoints.map((point, index) => (
+                    <li key={index} className="text-muted-foreground">{point}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground italic">No assessment points available</p>
+              )}
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium mb-4">Section Performance Analysis</h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={70} 
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis domain={[0, 5]} tickCount={6} />
+                    <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
+                    <Bar dataKey="score" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Latest Research Section - Page 2 */}
+            <div className={`${expandedSectionId === 'all' ? '' : 'hidden-in-pdf'} mb-8 research-content`}>
+              <h3 className="text-lg font-medium mb-4">Latest Market Research</h3>
+              {research ? (
+                <div className="space-y-4">
+                  {research.split(/#{3,}\s+/).filter(section => section.trim().length > 0).map((section, index) => {
+                    const lines = section.split('\n');
+                    const title = lines[0].replace(/^[#\s]+/, '');
+                    const content = lines.slice(1).join('\n')
+                      .replace(/\*\*/g, '')
+                      .replace(/\[(\d+)\]/g, '')
+                      .replace(/Sources:[\s\S]*$/, '')
+                      .replace(/https?:\/\/[^\s]+/g, '')
+                      .replace(/\n\s*\n/g, '\n')
+                      .replace(/\n+$/, '')
+                      .trim();
+                    
+                    if (!title.trim()) return null;
+                    
+                    return (
+                      <div key={index} className="space-y-1">
+                        <h4 className="text-sm font-semibold">{title}</h4>
+                        <p className="text-sm text-muted-foreground">{content}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">No research data available</p>
+              )}
+            </div>
+
+            {/* Detailed Section Breakdown - Pages 3+ */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {sectionsWithDetails.map((section) => (
+                  <Card key={section.id} className="overflow-hidden">
+                    <CardHeader className="bg-muted/50 pb-2">
+                      <CardTitle className="text-base">{section.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="flex items-center mb-2">
+                        <span className="font-medium mr-2">Score: {section.score}/5</span>
+                        <Progress 
+                          value={section.score * 20} 
+                          className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
+                        />
+                        <TooltipProvider>
+                          <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                                <HelpCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                              <p>{getSectionScoreDescription(section.score, section.title)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {section.description || 'No description available'}
+                      </p>
+                      
+                      {/* Hidden section details for PDF */}
+                      {expandedSectionId === 'all' && (
+                        <div className="mt-4 section-detail hidden-in-pdf">
+                          <h4 className="text-sm font-semibold mb-2">Strengths</h4>
+                          <ul className="space-y-1 list-disc pl-5 mb-3">
+                            {section.strengths && section.strengths.length > 0 ? (
+                              section.strengths.map((strength, idx) => (
+                                <li key={idx} className="text-sm text-emerald-700">{strength}</li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-muted-foreground italic">No strengths recorded</li>
+                            )}
+                          </ul>
+                          
+                          <h4 className="text-sm font-semibold mb-2">Weaknesses</h4>
+                          <ul className="space-y-1 list-disc pl-5">
+                            {section.weaknesses && section.weaknesses.length > 0 ? (
+                              section.weaknesses.map((weakness, idx) => (
+                                <li key={idx} className="text-sm text-rose-700">{weakness}</li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-muted-foreground italic">No weaknesses recorded</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        className="p-0 h-auto mt-2"
+                        onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
+                      >
+                        View Research Details →
+                      </Button>
+                    </CardContent>
+                  </Card>
                 ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground italic">No assessment points available</p>
-            )}
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Section Performance Analysis</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={70} 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis domain={[0, 5]} tickCount={6} />
-                  <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
-                  <Bar dataKey="score" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
+              </div>
             </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {company.sections.map((section) => (
-                <Card key={section.id} className="overflow-hidden">
-                  <CardHeader className="bg-muted/50 pb-2">
-                    <CardTitle className="text-base">{section.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="flex items-center mb-2">
-                      <span className="font-medium mr-2">Score: {section.score}/5</span>
-                      <Progress 
-                        value={section.score * 20} 
-                        className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
-                      />
-                      <TooltipProvider>
-                        <Tooltip delayDuration={300}>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
-                              <HelpCircle className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                            <p>{getSectionScoreDescription(section.score, section.title)}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {section.description || 'No description available'}
-                    </p>
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="p-0 h-auto mt-2"
-                      onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
-                    >
-                      View Research Details →
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Report Modal */}
       {company.reportId && (
