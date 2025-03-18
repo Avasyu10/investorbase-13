@@ -12,8 +12,13 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      persistSession: false // Disable session persistence to prevent the warning
-    }
+      persistSession: false, // Disable session persistence to prevent the warning
+    },
+    global: {
+      headers: {
+        'Access-Control-Allow-Origin': '*', // Allow all origins
+      },
+    },
   });
 
   console.log(`Getting report data for reportId: ${reportId}`);
@@ -25,7 +30,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error(`Invalid report ID format. Expected a UUID, got: ${reportId}`);
   }
 
-  // Get the specific report without any filters (previously had user_id filter)
+  // Get the specific report without any filters or restrictions
   console.log(`Executing query to fetch report with ID: ${reportId}`);
   const { data: reportData, error: reportError } = await supabase
     .from('reports')
@@ -67,7 +72,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   
   console.log(`Found report: ${report.title}, accessing PDF from storage`);
 
-  // Try different storage paths to accommodate both formats
+  // Try multiple paths to access the PDF without restrictions
   let pdfData;
   let pdfError;
 
@@ -84,19 +89,30 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     pdfError = directResult.error;
     console.log("Direct path failed, trying alternative paths...");
     
-    // Second try: With user_id if present
-    if (report.user_id) {
-      const userPath = `${report.user_id}/${report.pdf_url}`;
-      console.log(`Trying path with user_id: ${userPath}`);
+    // Try alternative paths without user_id restriction
+    const alternativePaths = [
+      // Try the filename directly
+      report.pdf_url,
+      // Try with user_id if present
+      report.user_id ? `${report.user_id}/${report.pdf_url}` : null,
+      // Try just the filename part if it contains slashes
+      report.pdf_url.includes('/') ? report.pdf_url.split('/').pop() : null,
+    ].filter(Boolean);
+    
+    for (const path of alternativePaths) {
+      if (!path) continue;
       
-      const userResult = await supabase
+      console.log(`Trying alternative path: ${path}`);
+      const pathResult = await supabase
         .storage
         .from('report_pdfs')
-        .download(userPath);
+        .download(path);
         
-      if (!userResult.error) {
-        pdfData = userResult.data;
+      if (!pathResult.error) {
+        pdfData = pathResult.data;
         pdfError = null;
+        console.log(`Successfully downloaded using path: ${path}`);
+        break;
       }
     }
   }
