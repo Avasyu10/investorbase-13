@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -6,7 +7,7 @@ import { LatestResearch } from "./LatestResearch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2 } from "lucide-react";
+import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 
@@ -24,6 +25,15 @@ export function CompanyDetails() {
   const navigateToReport = () => {
     if (company?.reportId) {
       navigate(`/reports/${company.reportId}`);
+    }
+  };
+
+  const navigateToSupplementaryMaterials = () => {
+    if (company?.hasSupplementaryMaterials) {
+      navigate(`/company/${companyId}/supplementary`);
+    } else {
+      // Show a toast or some indication that there are no supplementary materials
+      alert("No Supplementary Material for this Company");
     }
   };
 
@@ -108,6 +118,14 @@ export function CompanyDetails() {
                 View Deck
               </Button>
             )}
+            <Button 
+              onClick={navigateToSupplementaryMaterials} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Files className="h-4 w-4" />
+              Supplementary Material
+            </Button>
             <div className="flex items-center">
               <span className="text-xl sm:text-2xl font-bold text-primary mr-3">
                 {formattedScore}

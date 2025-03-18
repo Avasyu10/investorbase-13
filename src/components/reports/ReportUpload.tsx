@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -64,6 +65,14 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const handleSupplementFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
+      
+      // Added check for PDF file type for supplementary materials
+      if (selectedFile.type !== 'application/pdf') {
+        toast.error("Invalid file type", {
+          description: "Please upload a PDF file"
+        });
+        return;
+      }
       
       if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
         toast.error("File too large", {
@@ -350,13 +359,14 @@ export function ReportUpload({ onError }: ReportUploadProps) {
             <input
               id="supplementFile"
               type="file"
+              accept=".pdf"
               onChange={handleSupplementFileChange}
               className="hidden"
               disabled={isProcessing}
             />
             
             {supplementFiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No supplementary files added</p>
+              <p className="text-sm text-muted-foreground">No supplementary files added (PDF only, max 10MB)</p>
             ) : (
               <div className="space-y-2">
                 {supplementFiles.map((file, index) => (
@@ -407,4 +417,3 @@ export function ReportUpload({ onError }: ReportUploadProps) {
     </Card>
   );
 }
-
