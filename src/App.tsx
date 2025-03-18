@@ -26,7 +26,14 @@ import ProfileEdit from "@/pages/ProfileEdit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Create a new query client instance
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (

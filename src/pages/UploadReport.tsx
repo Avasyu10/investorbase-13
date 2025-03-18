@@ -15,11 +15,15 @@ const UploadReport = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [validSession, setValidSession] = useState(false);
 
   useEffect(() => {
     // Extra check for session to ensure authentication
     const checkAuth = async () => {
       try {
+        setCheckingAuth(true);
+        console.log("Checking authentication in UploadReport");
+        
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -29,11 +33,17 @@ const UploadReport = () => {
         }
         
         if (!data.session) {
-          console.log("No active session found, redirecting to login");
-          navigate('/login');
+          console.log("No active session found, need to redirect to login");
+          // Store the current location so we can redirect back after login
+          navigate('/login', { state: { from: '/upload' } });
+          return;
         }
+        
+        console.log("Valid session found in UploadReport");
+        setValidSession(true);
       } catch (err) {
         console.error("Exception checking auth:", err);
+        setError("Unexpected error during authentication check");
       } finally {
         setCheckingAuth(false);
       }
@@ -41,11 +51,12 @@ const UploadReport = () => {
     
     if (!isLoading) {
       if (!user) {
-        console.log("No authenticated user, redirecting to login");
-        navigate('/login');
-      } else {
-        // Double-check the session
+        console.log("No authenticated user in UploadReport, checking session");
         checkAuth();
+      } else {
+        console.log("User is authenticated in UploadReport");
+        setValidSession(true);
+        setCheckingAuth(false);
       }
     }
   }, [user, isLoading, navigate]);
@@ -66,7 +77,7 @@ const UploadReport = () => {
     // Only redirect to login for actual authentication errors, not other errors
     if (errorMessage.toLowerCase().includes("not authenticated") || 
         errorMessage.toLowerCase().includes("authentication required")) {
-      navigate('/login');
+      navigate('/login', { state: { from: '/upload' } });
     }
     // Don't redirect for other types of errors
   };
@@ -80,8 +91,7 @@ const UploadReport = () => {
     );
   }
 
-  if (!user) {
-    // Extra safeguard - this should be handled by the redirect in useEffect
+  if (!validSession && !user) {
     return (
       <div className="flex flex-col justify-center items-center h-64">
         <Alert variant="destructive" className="max-w-md">
@@ -92,7 +102,7 @@ const UploadReport = () => {
         <Button 
           variant="default" 
           className="mt-4"
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/login', { state: { from: '/upload' } })}
         >
           Go to Login
         </Button>

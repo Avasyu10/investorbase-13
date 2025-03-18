@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,8 +71,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user || null);
         setIsLoading(false);
         
+        // Only handle redirects for specific events
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
+          
+          // Don't redirect automatically if we're already on the upload page
+          // This prevents unwanted redirects when re-authenticating from the upload page
+          const currentPath = location.pathname;
+          if (currentPath === '/upload') {
+            console.log('Already on upload page, not redirecting');
+            return;
+          }
           
           const returnTo = location.state?.from || '/dashboard';
           console.log('Redirecting to:', returnTo);
@@ -79,10 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           navigate('/');
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Session token refreshed');
-        } else if (event === 'USER_UPDATED') {
-          console.log('User updated');
         }
       }
     );

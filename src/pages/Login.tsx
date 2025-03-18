@@ -5,10 +5,11 @@ import { useLocation } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const location = useLocation();
+  const from = location.state?.from || '/dashboard';
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <LoginForm />
+      <LoginForm redirectTo={from} />
     </div>
   );
 };

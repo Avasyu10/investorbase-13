@@ -10,7 +10,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-const LoginForm = () => {
+interface LoginFormProps {
+  redirectTo?: string;
+}
+
+const LoginForm = ({ redirectTo = '/dashboard' }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,8 +24,8 @@ const LoginForm = () => {
   const location = useLocation();
   const { signInWithEmail, user } = useAuth();
   
-  // Get the intended destination from location state or default to dashboard
-  const from = location.state?.from || '/dashboard';
+  // Get the intended destination from props or location state
+  const from = redirectTo || location.state?.from || '/dashboard';
 
   // Check if the user is already logged in
   useEffect(() => {
