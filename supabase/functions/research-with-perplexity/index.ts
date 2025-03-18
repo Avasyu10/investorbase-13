@@ -29,7 +29,7 @@ serve(async (req) => {
 
     console.log(`Processing research request for company ${companyId}`);
     
-    // Create prompt for Perplexity
+    // Create prompt for Perplexity with modified instructions for source links
     const prompt = `You are a sophisticated VC research analyst. I need you to provide the latest 2023-2024 and 2024-2025 market research, news articles, funding data, and industry insights relevant to a startup with the following assessment:
 
 ${assessmentText}
@@ -41,7 +41,13 @@ Focus on:
 4. Recent regulatory changes that could affect this sector
 5. Key industry challenges reported in 2024 or 2025
 
-Format each insight with a title, the source information (publication name and date), and a brief summary of the findings. Include URLs to sources where possible. Each insight should be 2-3 sentences maximum.
+FORMAT INSTRUCTIONS:
+- Format each insight with a clear, news-style headline
+- For each insight, include the source publication name and date
+- Keep each insight to 2-3 sentences maximum
+- VERY IMPORTANT: At the end of each insight, add a hyperlink to the source in the format "[source](URL)" where URL is the actual source URL
+- Structure your insights like news articles, with the most important information first
+- Each insight should be separated by a clear break
 
 Provide at least 5-7 different research points from different sources. Focus on FACTUAL DATA rather than opinions, with SPECIFIC NUMBERS AND FIGURES wherever possible.`;
 
@@ -59,7 +65,7 @@ Provide at least 5-7 different research points from different sources. Focus on 
         messages: [
           {
             role: 'system',
-            content: 'You are a VC research analyst. Provide factual, recent market insights with specific data points from reliable sources. Include source URLs where possible.'
+            content: 'You are a VC research analyst. Provide factual, recent market insights with specific data points from reliable sources. Always include source URLs at the end of each insight as a markdown hyperlink in the format "[source](URL)".'
           },
           {
             role: 'user',
