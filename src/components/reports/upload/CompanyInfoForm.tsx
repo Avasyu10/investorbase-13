@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -60,7 +59,9 @@ interface CompanyInfoFormProps {
   industry: string;
   setIndustry: (value: string) => void;
   founderLinkedIns: string[];
-  setFounderLinkedIns: (value: string[]) => void;
+  updateLinkedInProfile: (index: number, value: string) => void;
+  addLinkedInProfile: () => void;
+  removeLinkedInProfile: (index: number) => void;
   isDisabled: boolean;
 }
 
@@ -76,29 +77,13 @@ export function CompanyInfoForm({
   industry,
   setIndustry,
   founderLinkedIns,
-  setFounderLinkedIns,
+  updateLinkedInProfile,
+  addLinkedInProfile,
+  removeLinkedInProfile,
   isDisabled
 }: CompanyInfoFormProps) {
   const [charCount, setCharCount] = useState(briefIntroduction ? briefIntroduction.length : 0);
   
-  const addFounderLinkedIn = () => {
-    setFounderLinkedIns([...founderLinkedIns, ""]);
-  };
-
-  const removeFounderLinkedIn = (index: number) => {
-    if (founderLinkedIns.length > 1) {
-      const updatedFounders = [...founderLinkedIns];
-      updatedFounders.splice(index, 1);
-      setFounderLinkedIns(updatedFounders);
-    }
-  };
-
-  const updateFounderLinkedIn = (index: number, value: string) => {
-    const updatedFounders = [...founderLinkedIns];
-    updatedFounders[index] = value;
-    setFounderLinkedIns(updatedFounders);
-  };
-
   const handleIntroductionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     setCharCount(text.length);
@@ -147,7 +132,7 @@ export function CompanyInfoForm({
             <Input
               id={index === 0 ? "founderLinkedIn" : `founderLinkedIn${index}`}
               value={linkedin}
-              onChange={(e) => updateFounderLinkedIn(index, e.target.value)}
+              onChange={(e) => updateLinkedInProfile(index, e.target.value)}
               placeholder="LinkedIn profile URL"
               disabled={isDisabled}
             />
@@ -156,7 +141,7 @@ export function CompanyInfoForm({
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => removeFounderLinkedIn(index)}
+                onClick={() => removeLinkedInProfile(index)}
                 disabled={isDisabled}
               >
                 <Trash2 className="h-4 w-4" />
@@ -168,7 +153,7 @@ export function CompanyInfoForm({
           type="button"
           variant="outline"
           size="sm"
-          onClick={addFounderLinkedIn}
+          onClick={addLinkedInProfile}
           disabled={isDisabled}
         >
           <Plus className="h-4 w-4 mr-2" />

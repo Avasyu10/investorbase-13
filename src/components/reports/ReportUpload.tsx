@@ -10,8 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2, Plus, X } from "lucide-react";
 import { uploadReport, analyzeReport } from "@/lib/supabase/reports";
-import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
 import { FileUploadZone } from "./upload/FileUploadZone";
