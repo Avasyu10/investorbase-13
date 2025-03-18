@@ -29,26 +29,21 @@ serve(async (req) => {
 
     console.log(`Processing research request for company ${companyId}`);
     
-    // Create prompt for Perplexity - updated to focus on news articles
-    const prompt = `You are a sophisticated VC research analyst. Format your response as 5-7 recent news articles relevant to a startup with the following assessment:
+    // Create prompt for Perplexity
+    const prompt = `You are a sophisticated VC research analyst. I need you to provide the latest 2023-2024 and 2024-2025 market research, news articles, funding data, and industry insights relevant to a startup with the following assessment:
 
 ${assessmentText}
 
-For each news article, provide:
-1. A compelling headline (format with ### to make it a heading)
-2. Publication name and date (in parentheses)
-3. A 2-3 sentence summary that includes SPECIFIC FIGURES, NUMBERS or DATA POINTS when relevant
-4. The direct source URL for the article at the end of each summary, formatted as [Source](url)
+Focus on:
+1. Latest market size and growth projections for this sector (with exact figures)
+2. Recent competitor funding rounds or acquisitions in the last 6 months
+3. Emerging market trends that might impact this business
+4. Recent regulatory changes that could affect this sector
+5. Key industry challenges reported in 2024 or 2025
 
-Focus on these types of news:
-- Recent market trends (2023-2024) with exact market size figures
-- Funding announcements in this sector (with specific amounts)
-- New regulations or policy changes affecting this industry
-- Major product launches or technological breakthroughs
-- Competitor movements or significant partnerships
-- Recent market research reports with key findings
+Format each insight with a title, the source information (publication name and date), and a brief summary of the findings. Include URLs to sources where possible. Each insight should be 2-3 sentences maximum.
 
-Make each article engaging and newsworthy. Prioritize RECENT news from the last 6 months. Include FACTUAL DATA rather than opinions, with SPECIFIC NUMBERS AND FIGURES wherever possible.`;
+Provide at least 5-7 different research points from different sources. Focus on FACTUAL DATA rather than opinions, with SPECIFIC NUMBERS AND FIGURES wherever possible.`;
 
     console.log("Sending request to Perplexity API");
     
@@ -64,7 +59,7 @@ Make each article engaging and newsworthy. Prioritize RECENT news from the last 
         messages: [
           {
             role: 'system',
-            content: 'You are a VC research analyst. Provide factual, recent news articles with specific data points from reliable sources. Include source URLs where possible. Format each article with a headline, publication info, and summary.'
+            content: 'You are a VC research analyst. Provide factual, recent market insights with specific data points from reliable sources. Include source URLs where possible.'
           },
           {
             role: 'user',
