@@ -103,7 +103,7 @@ export function CompanyInfoForm({
     const text = e.target.value;
     setCharCount(text.length);
     
-    if (text.length <= 50) {
+    if (text.length <= 500) {
       setBriefIntroduction(text);
     }
   };
@@ -123,20 +123,19 @@ export function CompanyInfoForm({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="briefIntroduction">Brief Introduction</Label>
+        <Label htmlFor="briefIntroduction">Brief Introduction (Optional)</Label>
         <Textarea
           id="briefIntroduction"
           value={briefIntroduction}
           onChange={handleIntroductionChange}
-          placeholder="Briefly describe your company (max 50 characters)"
+          placeholder="Briefly describe your company (max 500 characters)"
           disabled={isDisabled}
-          required
           className="resize-none"
-          rows={2}
-          maxLength={50}
+          rows={4}
+          maxLength={500}
         />
-        <p className={`text-xs ${charCount > 50 ? 'text-red-500' : 'text-muted-foreground'}`}>
-          {charCount}/50 characters
+        <p className={`text-xs ${charCount > 500 ? 'text-red-500' : 'text-muted-foreground'}`}>
+          {charCount}/500 characters
         </p>
       </div>
       
