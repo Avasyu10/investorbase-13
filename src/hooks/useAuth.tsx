@@ -1,8 +1,9 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
@@ -21,7 +22,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
 
   const updateAuthState = (newSession: Session | null) => {
     const sessionChanged = (!!newSession) !== (!!session);
@@ -56,10 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Session restoration error:', error);
         updateAuthState(null);
-        toast({
-          title: "Authentication error",
-          description: "There was a problem with your authentication status",
-          variant: "destructive",
+        toast.error("Authentication error", {
+          description: "There was a problem with your authentication status"
         });
       } finally {
         setIsLoading(false);
@@ -84,6 +82,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
           
+          // Don't redirect if we're on the login page and the user intended to go to /upload
+          if (currentPath === '/login' && location.state?.from === '/upload') {
+            console.log('Redirecting to upload page after login');
+            navigate('/upload', { replace: true });
+            return;
+          }
+          
           const returnTo = location.state?.from || '/dashboard';
           console.log('Redirecting to:', returnTo);
           navigate(returnTo, { replace: true });
@@ -98,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast, navigate, location]);
+  }, [navigate, location]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
@@ -114,15 +119,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Login successful but no user returned");
       }
       
-      toast({
-        title: "Successfully signed in",
-        description: "Welcome back!",
+      toast.success("Successfully signed in", {
+        description: "Welcome back!"
       });
     } catch (error: any) {
-      toast({
-        title: "Sign in failed",
-        description: error.message,
-        variant: "destructive",
+      toast.error("Sign in failed", {
+        description: error.message
       });
       throw error;
     } finally {
@@ -148,17 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(data.session);
       }
       
-      toast({
-        title: "Sign up successful",
-        description: "Please check your email for the confirmation link.",
+      toast.success("Sign up successful", {
+        description: "Please check your email for the confirmation link."
       });
       
       return true;
     } catch (error: any) {
-      toast({
-        title: "Sign up failed",
-        description: error.message,
-        variant: "destructive",
+      toast.error("Sign up failed", {
+        description: error.message
       });
       return false;
     } finally {
@@ -172,15 +171,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
-      toast({
-        title: "Signed out",
-        description: "You've been successfully signed out.",
+      toast.success("Signed out", {
+        description: "You've been successfully signed out."
       });
     } catch (error: any) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive",
+      toast.error("Error signing out", {
+        description: error.message
       });
     } finally {
       setIsLoading(false);

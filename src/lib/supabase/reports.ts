@@ -1,6 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // Types for our database
 export type Report = {
@@ -20,10 +21,10 @@ export type Report = {
 
 export async function getReports() {
   // Check for authenticated user
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
   
-  if (!user) {
-    console.log('No authenticated user found');
+  if (!session) {
+    console.log('No authenticated session found');
     return [];
   }
 
@@ -51,10 +52,10 @@ export async function getReportById(id: string) {
   console.log('Fetching report with ID:', id);
   
   // Check for authenticated user
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
   
-  if (!user) {
-    console.log('No authenticated user found');
+  if (!session) {
+    console.log('No authenticated session found');
     throw new Error('User not authenticated');
   }
   
@@ -83,10 +84,10 @@ export async function downloadReport(fileUrl: string, userId?: string) {
   console.log('Downloading report with URL:', fileUrl);
   
   // Check for authenticated user
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
   
-  if (!user) {
-    console.log('No authenticated user found');
+  if (!session) {
+    console.log('No authenticated session found');
     throw new Error('User not authenticated');
   }
   
@@ -94,7 +95,7 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     // First try with the user ID included in path
     const { data, error } = await supabase.storage
       .from('report_pdfs')
-      .download(`${user.id}/${fileUrl}`);
+      .download(`${session.user.id}/${fileUrl}`);
 
     if (error) {
       console.error('Error with primary path, trying fallback:', error);
@@ -109,7 +110,7 @@ export async function downloadReport(fileUrl: string, userId?: string) {
           console.error('Error with fallback path:', fallbackError);
           
           // Last attempt with the provided userId if different from current
-          if (userId && userId !== user.id) {
+          if (userId && userId !== session.user.id) {
             const userPath = `${userId}/${fileUrl}`;
             console.log('Trying with alternate user path:', userPath);
             
@@ -146,11 +147,11 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     return data;
   } catch (error) {
     console.error('Failed to download report:', error);
-    toast({
-      title: "Error loading PDF",
-      description: "Could not download the PDF file. Please try again later.",
-      variant: "destructive"
-    });
+    toast.error("Error loading PDF",
+      {
+        description: "Could not download the PDF file. Please try again later."
+      }
+    );
     throw error;
   }
 }
@@ -158,14 +159,14 @@ export async function downloadReport(fileUrl: string, userId?: string) {
 export async function uploadReport(file: File, title: string, description: string = '', websiteUrl?: string) {
   try {
     // Check for authenticated user
-    const { data, error: authError } = await supabase.auth.getUser();
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
     
-    if (authError || !data.user) {
+    if (authError || !session) {
       console.error('Authentication error:', authError);
       throw new Error('User not authenticated');
     }
     
-    const user = data.user;
+    const user = session.user;
     console.log('Uploading report for user:', user.id);
     
     // Create a unique filename
@@ -212,13 +213,70 @@ export async function uploadReport(file: File, title: string, description: strin
   }
 }
 
+export async function analyzeReport(reportId: string) {
+  try {
+    console.log('Starting analysis for report:', reportId);
+    
+    // Call the analyze-pdf edge function
+    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+      body: { reportId }
+    });
+    
+    if (error) {
+      console.error('Error invoking analyze-pdf function:', error);
+      
+      // Update report status to failed
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error.message
+        })
+        .eq('id', reportId);
+        
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
+      
+      // Update report status to failed
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: errorMessage
+        })
+        .eq('id', reportId);
+        
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Analysis result:', data);
+    
+    // Update report status to completed
+    await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'completed',
+        company_id: data.companyId
+      })
+      .eq('id', reportId);
+    
+    return data;
+  } catch (error) {
+    console.error('Error analyzing report:', error);
+    throw error;
+  }
+}
+
 export async function analyzeReportDirect(file: File, title: string, description: string = '') {
   try {
-    // Check for authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
+    // Get the current user
+    const { data: { session } } = await supabase.auth.getSession();
     
-    if (!user) {
-      console.log('No authenticated user found');
+    if (!session) {
       throw new Error('User not authenticated');
     }
     
@@ -239,24 +297,21 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('File converted to base64, calling analyze-pdf-direct function');
     
-    // Call the edge function with user ID included
+    // Call the edge function including user ID
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
         description, 
         pdfBase64: base64String,
-        userId: user.id
+        userId: session.user.id
       }
     });
     
     if (error) {
       console.error('Error invoking analyze-pdf-direct function:', error);
       
-      toast({
-        id: "analysis-error-direct-1",
-        title: "Analysis failed",
-        description: "There was a problem analyzing the report. Please try again later.",
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: "There was a problem analyzing the report. Please try again later."
       });
       
       throw error;
@@ -266,11 +321,8 @@ export async function analyzeReportDirect(file: File, title: string, description
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
-      toast({
-        id: "analysis-error-direct-2",
-        title: "Analysis failed",
-        description: errorMessage,
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: errorMessage
       });
       
       throw new Error(errorMessage);
@@ -278,10 +330,8 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('Analysis result:', data);
     
-    toast({
-      id: "analysis-success-direct",
-      title: "Analysis complete",
-      description: "Your pitch deck has been successfully analyzed",
+    toast.success("Analysis complete", {
+      description: "Your pitch deck has been successfully analyzed"
     });
     
     return data;
@@ -290,11 +340,8 @@ export async function analyzeReportDirect(file: File, title: string, description
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
     if (!errorMessage.includes("analysis failed")) {
-      toast({
-        id: "analysis-error-direct-3",
-        title: "Analysis failed",
-        description: "Could not analyze the report. Please try again later.",
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: "Could not analyze the report. Please try again later."
       });
     }
     

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { uploadReport, analyzeReport } from "@/lib/supabase";
+import { uploadReport, analyzeReport } from "@/lib/supabase/reports";
 import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
@@ -39,26 +38,38 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [hasValidSession, setHasValidSession] = useState(false);
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
 
-  // Check authentication status on component mount
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        console.log('No active session found in ReportUpload');
-        if (onError) {
-          onError("Authentication required. Please sign in.");
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session) {
+          console.log('Active session found in ReportUpload');
+          setHasValidSession(true);
+        } else {
+          console.log('No active session found in ReportUpload');
+          if (onError) {
+            onError("Authentication required. Please sign in.");
+          }
+          navigate('/login', { state: { from: '/upload' } });
         }
-        navigate('/login');
+      } catch (error) {
+        console.error('Error checking auth in ReportUpload:', error);
+        if (onError) {
+          onError("Authentication error. Please try again.");
+        }
+      } finally {
+        setSessionChecked(true);
       }
     };
     
-    if (!isLoading && !user) {
-      checkAuth();
-    }
-  }, [user, isLoading, navigate, onError]);
+    checkAuth();
+  }, [navigate, onError]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -118,13 +129,12 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check authentication again just before submission
     const { data: authData } = await supabase.auth.getSession();
     if (!authData.session) {
       toast.error("Authentication required", {
         description: "Please sign in to upload reports"
       });
-      navigate('/login');
+      navigate('/login', { state: { from: '/upload' } });
       return;
     }
     
@@ -301,12 +311,11 @@ export function ReportUpload({ onError }: ReportUploadProps) {
     } catch (error: any) {
       console.error("Error processing report:", error);
       
-      // Check if it's an authentication error
       if (error.message && error.message.includes("not authenticated")) {
         toast.error("Authentication required", {
           description: "Please sign in to upload reports"
         });
-        navigate('/login');
+        navigate('/login', { state: { from: '/upload' } });
       } else {
         toast.error("Upload failed", {
           description: error instanceof Error ? error.message : "Failed to process pitch deck"
@@ -327,12 +336,30 @@ export function ReportUpload({ onError }: ReportUploadProps) {
 
   const isProcessing = isUploading || isAnalyzing;
 
-  // If still checking auth status, show a loading indicator
-  if (isLoading) {
+  if (!sessionChecked || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">Checking authentication...</span>
+      </div>
+    );
+  }
+
+  if (!hasValidSession && !user) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription>You need to be logged in to upload reports.</AlertDescription>
+        </Alert>
+        <Button 
+          variant="default" 
+          className="mt-4"
+          onClick={() => navigate('/login', { state: { from: '/upload' } })}
+        >
+          Go to Login
+        </Button>
       </div>
     );
   }
@@ -359,7 +386,9 @@ export function ReportUpload({ onError }: ReportUploadProps) {
             industry={industry}
             setIndustry={setIndustry}
             founderLinkedIns={founderLinkedIns}
-            setFounderLinkedIns={setFounderLinkedIns}
+            updateLinkedInProfile={updateLinkedInProfile}
+            addLinkedInProfile={addLinkedInProfile}
+            removeLinkedInProfile={removeLinkedInProfile}
             isDisabled={isProcessing}
           />
           
