@@ -231,6 +231,7 @@ export default function AnalysisSummary() {
             <CardDescription>Complete analysis summary and market research</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Overall Performance Section - Page 1 */}
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-2">Overall Performance</h3>
               <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
@@ -276,7 +277,7 @@ export default function AnalysisSummary() {
               </div>
             </div>
 
-            {/* This section will be hidden in the UI but included in the PDF */}
+            {/* Latest Research Section - Page 2 */}
             <div className={`${expandedSectionId === 'all' ? '' : 'hidden-in-pdf'} mb-8 research-content`}>
               <h3 className="text-lg font-medium mb-4">Latest Market Research</h3>
               {research ? (
@@ -308,6 +309,7 @@ export default function AnalysisSummary() {
               )}
             </div>
 
+            {/* Detailed Section Breakdown - Pages 3+ */}
             <div>
               <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
