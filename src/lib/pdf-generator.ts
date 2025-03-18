@@ -1,4 +1,3 @@
-
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from '@/hooks/use-toast';
@@ -33,6 +32,13 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
           (el as HTMLElement).style.display = 'block';
         });
         
+        // Make all research content visible
+        const researchContent = clonedDoc.querySelector('.research-content');
+        if (researchContent) {
+          (researchContent as HTMLElement).style.display = 'block';
+          (researchContent as HTMLElement).classList.remove('hidden-in-pdf');
+        }
+        
         // Preserve original colors in PDF
         const preserveColors = (el: Element) => {
           // Keep original background colors
@@ -63,12 +69,26 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
           reportContent.style.padding = '0';
           reportContent.style.margin = '0';
         }
+
+        // Ensure each section is treated as its own page to prevent text breaking
+        const sections = clonedDoc.querySelectorAll('h3, .section-detail, .research-content');
+        sections.forEach((section) => {
+          (section as HTMLElement).style.pageBreakInside = 'avoid';
+          (section as HTMLElement).style.breakInside = 'avoid';
+        });
+        
+        // Ensure research section gets its own page
+        const researchSection = clonedDoc.querySelector('.research-content');
+        if (researchSection) {
+          (researchSection as HTMLElement).style.pageBreakBefore = 'always';
+        }
         
         // Apply professional formatting to the PDF content
         const allElements = clonedDoc.querySelectorAll('*');
         allElements.forEach((el) => {
           // Ensure no elements break across pages
           (el as HTMLElement).style.pageBreakInside = 'avoid';
+          (el as HTMLElement).style.breakInside = 'avoid';
           
           if (el.tagName === 'H3') {
             (el as HTMLElement).style.fontSize = '18px';
@@ -116,13 +136,6 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
           (titleElement as HTMLElement).style.borderBottom = '2px solid #4b5563';
           (titleElement as HTMLElement).style.marginBottom = '25px';
           (titleElement as HTMLElement).style.color = '#f3f4f6';
-        }
-        
-        // Apply page break before "Latest Research" section
-        const researchHeader = clonedDoc.querySelector('.research-content h3');
-        if (researchHeader) {
-          (researchHeader.parentNode as HTMLElement).style.pageBreakBefore = 'always';
-          (researchHeader.parentNode as HTMLElement).style.paddingTop = '20px';
         }
         
         // Setup the detailed sections layout - convert to a two-column layout
@@ -186,6 +199,7 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
     // Remove white margins from pages
     pdf.setDrawColor(17, 24, 39); // Dark background color
     pdf.setFillColor(17, 24, 39); // Dark background color
+    pdf.rect(0, 0, imgWidth, pageHeight, 'F');
     
     // Add the canvas image to fill the entire page without margins
     pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, imgWidth, imgHeight);

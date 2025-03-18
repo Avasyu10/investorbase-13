@@ -45,11 +45,16 @@ export default function AnalysisSummary() {
       const loadResearch = async () => {
         try {
           setIsLoadingResearch(true);
-          const assessmentText = company.assessmentPoints.join("\n\n");
-          const result = await getLatestResearch(companyId || '', assessmentText);
-          
-          if (result && result.research) {
-            setResearch(result.research);
+          // Use existing research if available, otherwise fetch it
+          if (company.perplexityResponse) {
+            setResearch(company.perplexityResponse);
+          } else {
+            const assessmentText = company.assessmentPoints.join("\n\n");
+            const result = await getLatestResearch(companyId || '', assessmentText);
+            
+            if (result && result.research) {
+              setResearch(result.research);
+            }
           }
         } catch (error) {
           console.error("Error fetching research for PDF:", error);
@@ -277,8 +282,8 @@ export default function AnalysisSummary() {
               </div>
             </div>
 
-            {/* Latest Research Section - Page 2 */}
-            <div className={`${expandedSectionId === 'all' ? '' : 'hidden-in-pdf'} mb-8 research-content`}>
+            {/* Latest Research Section - always visible in PDF */}
+            <div className="research-content mb-8">
               <h3 className="text-lg font-medium mb-4">Latest Market Research</h3>
               {research ? (
                 <div className="space-y-4">
@@ -311,7 +316,7 @@ export default function AnalysisSummary() {
 
             {/* Detailed Section Breakdown - Pages 3+ */}
             <div>
-              <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
+              <h3 className="text-lg font-medium mb-4 pdf-page-break">Detailed Section Breakdown</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sectionsWithDetails.map((section) => (
                   <Card key={section.id} className="overflow-hidden">
@@ -342,8 +347,8 @@ export default function AnalysisSummary() {
                         {section.description || 'No description available'}
                       </p>
                       
-                      {/* Hidden section details for PDF */}
-                      {expandedSectionId === 'all' && (
+                      {/* When PDF export is triggered, show section details */}
+                      {(expandedSectionId === 'all' || expandedSectionId === section.id) && (
                         <div className="mt-4 section-detail hidden-in-pdf">
                           <h4 className="text-sm font-semibold mb-2">Strengths</h4>
                           <ul className="space-y-1 list-disc pl-5 mb-3">

@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -191,6 +190,11 @@
   display: none;
 }
 
+.research-content {
+  page-break-before: always !important;
+  break-before: always !important;
+}
+
 @media print {
   .hidden-in-pdf {
     display: block !important;
@@ -198,7 +202,8 @@
   
   /* Force page breaks */
   .pdf-page-break {
-    page-break-before: always;
+    page-break-before: always !important;
+    break-before: always !important;
   }
   
   /* Ensure colors print correctly */
@@ -211,20 +216,22 @@
   /* Prevent content from breaking across pages */
   .section-detail, 
   h3, h4, p, 
-  .card, 
-  .research-section {
+  .card,
+  .research-content,
+  li, 
+  ul {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
   
-  /* Ensure list items don't break across pages */
-  li {
-    page-break-inside: avoid;
-  }
-  
-  /* Force page breaks for sections */
+  /* Ensure research section shows fully */
   .research-content {
-    page-break-before: always;
+    display: block !important;
+    visibility: visible !important;
+    page-break-before: always !important;
+    break-before: always !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   /* Remove white spaces */
