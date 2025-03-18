@@ -1,7 +1,21 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookText, TrendingUp, TrendingDown, Building2, Users, DollarSign, BarChart3, Target } from "lucide-react";
+import { 
+  BookText, 
+  TrendingUp, 
+  TrendingDown, 
+  Target, 
+  BarChart3, 
+  DollarSign, 
+  Lightbulb,
+  LineChart,
+  Users,
+  Building2,
+  CheckCircle,
+  AlertTriangle,
+  Globe
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
 
@@ -58,6 +72,35 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
            text.toLowerCase().includes('players');
   };
 
+  // Function to determine if a bullet point relates to growth or opportunity
+  const isGrowth = (text: string) => {
+    return text.toLowerCase().includes('growth') || 
+           text.toLowerCase().includes('opportunity') ||
+           text.toLowerCase().includes('expansion') ||
+           text.toLowerCase().includes('potential') ||
+           text.toLowerCase().includes('future');
+  };
+
+  // Function to determine if a bullet point is about product or technology
+  const isProduct = (text: string) => {
+    return text.toLowerCase().includes('product') || 
+           text.toLowerCase().includes('technology') ||
+           text.toLowerCase().includes('solution') ||
+           text.toLowerCase().includes('platform') ||
+           text.toLowerCase().includes('feature');
+  };
+
+  // Get appropriate icon for each type of insight
+  const getInsightIcon = (text: string) => {
+    if (isMetric(text)) return <DollarSign className="h-5 w-5 text-emerald-500 shrink-0" />;
+    if (isCompetitive(text)) return <Target className="h-5 w-5 text-blue-500 shrink-0" />;
+    if (isGrowth(text)) return <LineChart className="h-5 w-5 text-violet-500 shrink-0" />;
+    if (isProduct(text)) return <Lightbulb className="h-5 w-5 text-amber-500 shrink-0" />;
+    
+    // Default icon
+    return <CheckCircle className="h-5 w-5 text-primary/70 shrink-0" />;
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -78,24 +121,27 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
           </CardHeader>
           <CardContent className="pt-5">
             <div className="grid grid-cols-1 gap-4">
-              {contentBullets.map((bullet, index) => (
-                <div
-                  key={index}
-                  className={`flex items-start gap-3 p-3 rounded-lg transition-colors
-                    ${isMetric(bullet) ? 'bg-primary/5 hover:bg-primary/10' : 
-                      isCompetitive(bullet) ? 'bg-blue-500/5 hover:bg-blue-500/10' : 
-                      'hover:bg-secondary/10'}`}
-                >
-                  {isMetric(bullet) ? (
-                    <DollarSign className="h-5 w-5 mt-0.5 text-emerald-500 shrink-0" />
-                  ) : isCompetitive(bullet) ? (
-                    <Target className="h-5 w-5 mt-0.5 text-blue-500 shrink-0" />
-                  ) : (
-                    <BarChart3 className="h-5 w-5 mt-0.5 text-primary/70 shrink-0" />
-                  )}
-                  <span className="text-sm leading-relaxed">{bullet}</span>
+              {section.score === 0.5 ? (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/10">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
+                  <span className="text-sm leading-relaxed font-medium">This section appears to be missing from the pitch deck. Consider adding it to improve the overall quality of your presentation.</span>
                 </div>
-              ))}
+              ) : (
+                contentBullets.map((bullet, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-start gap-3 p-4 rounded-lg transition-colors border border-transparent
+                      ${isMetric(bullet) ? 'bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/20' : 
+                        isCompetitive(bullet) ? 'bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/20' : 
+                        isGrowth(bullet) ? 'bg-violet-500/5 hover:bg-violet-500/10 hover:border-violet-500/20' :
+                        isProduct(bullet) ? 'bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/20' :
+                        'bg-primary/5 hover:bg-primary/10 hover:border-primary/20'}`}
+                  >
+                    {getInsightIcon(bullet)}
+                    <span className="text-sm leading-relaxed">{bullet}</span>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -110,16 +156,20 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
               </div>
             </CardHeader>
             <CardContent className="pt-5">
-              <ul className="space-y-3">
-                {section.strengths.map((strength, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <div className="mt-1.5 shrink-0 rounded-full bg-emerald-100 p-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    </div>
-                    <span className="text-sm">{strength}</span>
-                  </li>
-                ))}
-              </ul>
+              {section.strengths.length > 0 ? (
+                <ul className="space-y-3">
+                  {section.strengths.map((strength, index) => (
+                    <li key={index} className="flex items-start gap-2 group">
+                      <div className="mt-1.5 shrink-0 rounded-full bg-emerald-100 p-1 group-hover:bg-emerald-200 transition-colors">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      </div>
+                      <span className="text-sm">{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No strengths identified for this section.</p>
+              )}
             </CardContent>
           </Card>
           
@@ -134,8 +184,8 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
             <CardContent className="pt-5">
               <ul className="space-y-3">
                 {section.weaknesses.map((weakness, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <div className="mt-1.5 shrink-0 rounded-full bg-rose-100 p-1">
+                  <li key={index} className="flex items-start gap-2 group">
+                    <div className="mt-1.5 shrink-0 rounded-full bg-rose-100 p-1 group-hover:bg-rose-200 transition-colors">
                       <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                     </div>
                     <span className="text-sm">{weakness}</span>
