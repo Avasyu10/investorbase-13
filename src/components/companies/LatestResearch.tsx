@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,19 +40,16 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     try {
       setIsLoading(true);
       setHasError(false);
-      // Join assessment points as text for the research prompt
       const assessmentText = assessmentPoints.join("\n\n");
       const result = await getLatestResearch(companyId, assessmentText);
       
       if (result && result.research) {
         setResearch(result.research);
         
-        // Invalidate the company query to refresh data
         queryClient.invalidateQueries({
           queryKey: ['company', companyId],
         });
         
-        // Call the onSuccess callback to notify parent component
         if (onSuccess) {
           onSuccess();
         }
@@ -66,7 +62,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     }
   };
 
-  // Effect to trigger research fetching when needed
   useEffect(() => {
     const shouldFetchResearch = !research && !isLoading && assessmentPoints?.length > 0;
     
@@ -76,7 +71,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     }
   }, [companyId, assessmentPoints, research, isLoading, fetchTrigger]);
 
-  // If the existingResearch prop changes (from parent), update state
   useEffect(() => {
     if (existingResearch && existingResearch !== research) {
       setResearch(existingResearch);
@@ -84,17 +78,13 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     }
   }, [existingResearch]);
 
-  // Extract text content without URLs for main display
   const extractTextContent = (content: string) => {
     if (!content) return [];
     
-    // Split by sections (### headers)
     const sections = content.split(/#{3,}\s+/);
-    // Remove empty sections
     return sections.filter(section => section.trim().length > 0);
   };
 
-  // Extract all URLs from the research content
   const extractUrls = (content: string) => {
     if (!content) return [];
     
@@ -104,28 +94,24 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     return matches || [];
   };
 
-  // Format section text - improved to better handle sources
   const formatSectionText = (text: string) => {
     return text
-      .replace(/\*\*/g, '')  // Remove bold markers
-      .replace(/\[(\d+)\]/g, '') // Remove citation markers
-      .replace(/Sources:[\s\S]*$/, '') // Remove "Sources:" and everything after it
-      .replace(/https?:\/\/[^\s]+/g, '') // Remove any URLs
-      .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
-      .replace(/\n+$/, '') // Remove trailing newlines
+      .replace(/\*\*/g, '')  
+      .replace(/\[(\d+)\]/g, '') 
+      .replace(/Sources:[\s\S]*$/, '') 
+      .replace(/https?:\/\/[^\s]+/g, '') 
+      .replace(/\n\s*\n/g, '\n') 
+      .replace(/\n+$/, '') 
       .trim();
   };
 
-  // Get the first URL in a section
   const getSectionUrl = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const matches = text.match(urlRegex);
     return matches ? matches[0] : '';
   };
 
-  // Extract publication date from section text
   const extractPublicationInfo = (text: string) => {
-    // Look for patterns like (Publication Name, Date)
     const dateRegex = /\(([^,]+),\s*([^)]+)\)/;
     const match = text.match(dateRegex);
     
@@ -141,9 +127,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
       date: ''
     };
   };
-
-  const sections = research ? extractTextContent(research) : [];
-  const urls = research ? extractUrls(research) : [];
 
   const getBadgeColor = (index: number) => {
     const colors = ["bg-primary/10 text-primary", "bg-accent/10 text-primary", "bg-primary/20 text-primary", 
@@ -164,6 +147,9 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     setSelectedArticle(article);
     setIsDialogOpen(true);
   };
+
+  const sections = research ? extractTextContent(research) : [];
+  const urls = research ? extractUrls(research) : [];
 
   return (
     <Card className="mb-8 shadow-md border bg-card overflow-hidden">
@@ -190,14 +176,11 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
         ) : sections.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {sections.map((section, index) => {
-              // Get section title from the first line
               const lines = section.split('\n');
               const title = lines[0].replace(/^[#\s]+/, '');
               
-              // Skip empty sections
               if (!title.trim()) return null;
               
-              // Get content (rest of the lines)
               const content = lines.slice(1).join('\n');
               const url = getSectionUrl(section);
               const formattedTitle = formatSectionText(title);
@@ -242,18 +225,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-3">
                     {formattedContent}
                   </p>
-                  
-                  {url && (
-                    <a 
-                      href={url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1.5 mt-1 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Read more <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
                 </div>
               );
             })}
@@ -306,7 +277,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
         </CardFooter>
       )}
 
-      {/* Modal Dialog for Article Details */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
