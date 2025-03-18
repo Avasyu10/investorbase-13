@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,37 +89,30 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     return sections.filter(section => section.trim().length > 0);
   };
 
-  // Format section text - improved to handle source links
+  // Extract all URLs from the research content
+  const extractUrls = (content: string) => {
+    if (!content) return [];
+    
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const matches = content.match(urlRegex);
+    
+    return matches || [];
+  };
+
+  // Format section text - improved to better handle sources
   const formatSectionText = (text: string) => {
-    // Replace markdown links with HTML links
-    let formattedText = text.replace(/\*\*/g, '')  // Remove bold markers
+    return text
+      .replace(/\*\*/g, '')  // Remove bold markers
       .replace(/\[(\d+)\]/g, '') // Remove citation markers
       .replace(/Sources:[\s\S]*$/, '') // Remove "Sources:" and everything after it
+      .replace(/https?:\/\/[^\s]+/g, '') // Remove any URLs
       .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
       .replace(/\n+$/, '') // Remove trailing newlines
       .trim();
-      
-    return formattedText;
-  };
-
-  // Process markdown links in the content
-  const processMarkdownLinks = (text: string) => {
-    // Find markdown links in the format [text](url)
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    return text.replace(linkRegex, (match, text, url) => {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${text}</a>`;
-    });
-  };
-
-  // Extract source URL from a section
-  const extractSourceUrl = (text: string) => {
-    // Find markdown links in the format [text](url)
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/;
-    const match = text.match(linkRegex);
-    return match ? match[2] : null; // Return the URL if found
   };
 
   const sections = research ? extractTextContent(research) : [];
+  const urls = research ? extractUrls(research) : [];
 
   return (
     <Card className="mb-8 shadow-card border-0">
@@ -126,7 +120,7 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <BookText className="h-5 w-5" />
-            <CardTitle className="text-xl font-semibold">Latest Market News</CardTitle>
+            <CardTitle className="text-xl font-semibold">Latest Research</CardTitle>
           </div>
           {research && (
             <Button 
@@ -162,32 +156,11 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
               
               // Get content (rest of the lines)
               const content = lines.slice(1).join('\n');
-              const sourceUrl = extractSourceUrl(content);
-              
-              // Format text for display
-              let formattedTitle = formatSectionText(title);
-              let formattedContent = formatSectionText(content);
-              
-              // Remove the markdown link syntax but keep the text
-              const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-              formattedContent = formattedContent.replace(linkRegex, '');
               
               return (
                 <div key={index} className="space-y-1">
-                  <h3 className="text-sm font-semibold">{formattedTitle}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {formattedContent}
-                    {sourceUrl && (
-                      <a 
-                        href={sourceUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="ml-1 text-primary hover:underline inline-flex items-center"
-                      >
-                        (source<ArrowUpRight className="h-3 w-3 ml-0.5" />)
-                      </a>
-                    )}
-                  </p>
+                  <h3 className="text-sm font-semibold">{formatSectionText(title)}</h3>
+                  <p className="text-sm text-muted-foreground">{formatSectionText(content)}</p>
                 </div>
               );
             })}
@@ -203,21 +176,21 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
         ) : (
           <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
             <AlertCircle className="h-12 w-12 mb-4 opacity-30" />
-            <p className="mb-2">No market news data is available yet.</p>
+            <p className="mb-2">No research data is available yet.</p>
             <p className="text-sm mb-4">Click the button below to fetch market insights.</p>
             <Button onClick={handleFetchResearch} className="gap-2">
-              Fetch Market News
+              Fetch Research Data
             </Button>
           </div>
         )}
       </CardContent>
       
-      {research && (
+      {research && urls.length > 0 && (
         <CardFooter className="flex justify-end border-t pt-4">
           <Sheet>
             <SheetTrigger asChild>
               <button className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors">
-                All Sources <ArrowUpRight className="h-3.5 w-3.5" />
+                Sources <ArrowUpRight className="h-3.5 w-3.5" />
               </button>
             </SheetTrigger>
             <SheetContent>
@@ -229,27 +202,18 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
                   The following sources were used in compiling this research:
                 </p>
                 <ul className="space-y-2 list-disc pl-5">
-                  {sections.map((section, index) => {
-                    const sourceUrl = extractSourceUrl(section);
-                    if (!sourceUrl) return null;
-                    
-                    // Get a title for the source
-                    const lines = section.split('\n');
-                    const title = lines[0].replace(/^[#\s]+/, '').trim();
-                    
-                    return (
-                      <li key={index} className="text-sm">
-                        <a 
-                          href={sourceUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-primary hover:underline"
-                        >
-                          {title || sourceUrl}
-                        </a>
-                      </li>
-                    );
-                  })}
+                  {urls.map((url, index) => (
+                    <li key={index} className="text-sm">
+                      <a 
+                        href={url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-primary break-all hover:underline"
+                      >
+                        {url}
+                      </a>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </SheetContent>
