@@ -32,7 +32,7 @@ export function FileUploadZone({
         <div className="flex flex-col items-center space-y-2">
           <FileUp className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            {file ? file.name : "Drag and drop or click to upload"}
+            {file ? file.name : "Click to Upload"}
           </p>
           <Input
             id={id}
