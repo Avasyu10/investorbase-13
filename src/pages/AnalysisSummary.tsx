@@ -48,12 +48,16 @@ export default function AnalysisSummary() {
           // Use existing research if available, otherwise fetch it
           if (company.perplexityResponse) {
             setResearch(company.perplexityResponse);
+            console.log("Using existing research from company data:", 
+              company.perplexityResponse.substring(0, 50) + "...");
           } else {
             const assessmentText = company.assessmentPoints.join("\n\n");
             const result = await getLatestResearch(companyId || '', assessmentText);
             
             if (result && result.research) {
               setResearch(result.research);
+              console.log("Fetched new research data:", 
+                result.research.substring(0, 50) + "...");
             }
           }
         } catch (error) {
@@ -130,12 +134,30 @@ export default function AnalysisSummary() {
         setExpandedSectionId('all');
       }
       
+      // Ensure we have the latest research from the database
+      try {
+        if (!research && companyId) {
+          const { data, error } = await supabase
+            .from('companies')
+            .select('perplexity_response')
+            .eq('id', companyId)
+            .single();
+            
+          if (!error && data && data.perplexity_response) {
+            setResearch(data.perplexity_response);
+            console.log("Loaded research data from database for PDF generation");
+          }
+        }
+      } catch (err) {
+        console.error("Error getting latest research before PDF generation:", err);
+      }
+      
       // Give time for DOM to update with all expanded sections
       setTimeout(async () => {
-        await generatePDF('report-content', `${company.name} - Assessment Report`);
+        await generatePDF('report-content', `${company.name} - Assessment Report`, companyId);
         // Reset expanded sections
         setExpandedSectionId(null);
-      }, 500);
+      }, 800); // Increased timeout to ensure all content is loaded
     }
   };
 
@@ -319,7 +341,7 @@ export default function AnalysisSummary() {
               <h3 className="text-lg font-medium mb-4 pdf-page-break">Detailed Section Breakdown</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sectionsWithDetails.map((section) => (
-                  <Card key={section.id} className="overflow-hidden">
+                  <Card key={section.id} className="overflow-hidden section-detail">
                     <CardHeader className="bg-muted/50 pb-2">
                       <CardTitle className="text-base">{section.title}</CardTitle>
                     </CardHeader>
@@ -347,32 +369,30 @@ export default function AnalysisSummary() {
                         {section.description || 'No description available'}
                       </p>
                       
-                      {/* When PDF export is triggered, show section details */}
-                      {(expandedSectionId === 'all' || expandedSectionId === section.id) && (
-                        <div className="mt-4 section-detail hidden-in-pdf">
-                          <h4 className="text-sm font-semibold mb-2">Strengths</h4>
-                          <ul className="space-y-1 list-disc pl-5 mb-3">
-                            {section.strengths && section.strengths.length > 0 ? (
-                              section.strengths.map((strength, idx) => (
-                                <li key={idx} className="text-sm text-emerald-700">{strength}</li>
-                              ))
-                            ) : (
-                              <li className="text-sm text-muted-foreground italic">No strengths recorded</li>
-                            )}
-                          </ul>
-                          
-                          <h4 className="text-sm font-semibold mb-2">Weaknesses</h4>
-                          <ul className="space-y-1 list-disc pl-5">
-                            {section.weaknesses && section.weaknesses.length > 0 ? (
-                              section.weaknesses.map((weakness, idx) => (
-                                <li key={idx} className="text-sm text-rose-700">{weakness}</li>
-                              ))
-                            ) : (
-                              <li className="text-sm text-muted-foreground italic">No weaknesses recorded</li>
-                            )}
-                          </ul>
-                        </div>
-                      )}
+                      {/* Always include section details in the DOM for PDF export but hide them in the UI */}
+                      <div className={`mt-4 section-detail ${expandedSectionId === 'all' || expandedSectionId === section.id ? '' : 'hidden-in-pdf'}`}>
+                        <h4 className="text-sm font-semibold mb-2">Strengths</h4>
+                        <ul className="space-y-1 list-disc pl-5 mb-3">
+                          {section.strengths && section.strengths.length > 0 ? (
+                            section.strengths.map((strength, idx) => (
+                              <li key={idx} className="text-sm text-emerald-700">{strength}</li>
+                            ))
+                          ) : (
+                            <li className="text-sm text-muted-foreground italic">No strengths recorded</li>
+                          )}
+                        </ul>
+                        
+                        <h4 className="text-sm font-semibold mb-2">Weaknesses</h4>
+                        <ul className="space-y-1 list-disc pl-5">
+                          {section.weaknesses && section.weaknesses.length > 0 ? (
+                            section.weaknesses.map((weakness, idx) => (
+                              <li key={idx} className="text-sm text-rose-700">{weakness}</li>
+                            ))
+                          ) : (
+                            <li className="text-sm text-muted-foreground italic">No weaknesses recorded</li>
+                          )}
+                        </ul>
+                      </div>
                       
                       <Button 
                         variant="link" 
