@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -17,7 +18,7 @@ export type Report = {
   created_at: string;
   sections?: string[];
   parsedSegments?: ParsedPdfSegment[];
-  user_id?: string;
+  user_id: string;
   analysis_status?: string;
   analysis_error?: string;
 };
@@ -36,7 +37,6 @@ export async function getReports() {
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
-    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -65,7 +65,6 @@ export async function getReportById(id: string) {
     .from('reports')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
     .maybeSingle();
 
   if (tableError) {
@@ -98,16 +97,39 @@ export async function getReportById(id: string) {
 }
 
 export async function downloadReport(fileUrl: string, userId: string) {
-  const { data, error } = await supabase.storage
-    .from('report_pdfs')
-    .download(`${userId}/${fileUrl}`);
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
 
-  if (error) {
+  try {
+    // First attempt: Try with the user ID path structure
+    const { data, error } = await supabase.storage
+      .from('report_pdfs')
+      .download(`${user.id}/${fileUrl}`);
+
+    if (error) {
+      console.error('Error with user path, trying fallback:', error);
+      
+      // Second attempt: Try direct path (for files uploaded before RLS implementation)
+      const { data: directData, error: directError } = await supabase.storage
+        .from('report_pdfs')
+        .download(fileUrl);
+        
+      if (directError) {
+        console.error('All download attempts failed:', directError);
+        throw directError;
+      }
+      
+      return directData;
+    }
+
+    return data;
+  } catch (error) {
     console.error('Error downloading report:', error);
     throw error;
   }
-
-  return data;
 }
 
 export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
@@ -185,7 +207,7 @@ export async function uploadReport(file: File, title: string, description: strin
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
     
-    // Upload the file to storage
+    // Upload the file to storage with user ID in the path for RLS
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
       .upload(filePath, file);
@@ -197,14 +219,15 @@ export async function uploadReport(file: File, title: string, description: strin
     
     console.log('File uploaded to storage successfully, saving record to database');
     
-    // Insert a record in the reports table
+    // Insert a record in the reports table with user_id
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
         title,
         description,
         pdf_url: fileName,
-        user_id: user.id
+        user_id: user.id,
+        analysis_status: 'pending'
       }])
       .select()
       .single();
@@ -297,6 +320,13 @@ export async function analyzeReport(reportId: string) {
 
 export async function analyzeReportDirect(file: File, title: string, description: string = '') {
   try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     console.log('Converting file to base64...');
     
     // Convert file to base64
@@ -314,12 +344,13 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('File converted to base64, calling analyze-pdf-direct function');
     
-    // Call the edge function without authentication
+    // Call the edge function including user ID
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
         description, 
-        pdfBase64: base64String 
+        pdfBase64: base64String,
+        userId: user.id
       }
     });
     

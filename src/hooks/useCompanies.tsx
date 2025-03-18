@@ -16,7 +16,8 @@ function mapDbCompanyToApi(company: any) {
     reportId: company.report_id,
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
-    perplexityRequestedAt: company.perplexity_requested_at
+    perplexityRequestedAt: company.perplexity_requested_at,
+    userId: company.user_id
   };
 }
 
@@ -49,7 +50,15 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      // Query all companies without user filtering
+      // Check for authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user found');
+        return [];
+      }
+      
+      // RLS will automatically filter for the current user's companies
       const { data, error } = await supabase
         .from('companies')
         .select('*')
@@ -89,6 +98,15 @@ export function useCompanyDetails(companyId: string | undefined) {
     queryFn: async () => {
       if (!companyId) return null;
       
+      // Check for authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user found');
+        return null;
+      }
+      
+      // RLS will ensure only companies owned by the user are returned
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
@@ -98,6 +116,7 @@ export function useCompanyDetails(companyId: string | undefined) {
       if (companyError) throw companyError;
       if (!companyData) return null;
       
+      // RLS will filter sections to only those of companies owned by the user
       const { data: sectionsData, error: sectionsError } = await supabase
         .from('sections')
         .select('*')
@@ -140,7 +159,15 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
     queryFn: async () => {
       if (!companyId || !sectionId) return null;
       
-      // Get the section data with full description
+      // Check for authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user found');
+        return null;
+      }
+      
+      // RLS will filter sections to only those of companies owned by the user
       const { data: sectionData, error: sectionError } = await supabase
         .from('sections')
         .select('*')
@@ -153,7 +180,7 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       
       console.log("Retrieved section data:", sectionData);
       
-      // Get strengths and weaknesses
+      // RLS will filter section_details to only those of sections owned by the user
       const { data: detailsData, error: detailsError } = await supabase
         .from('section_details')
         .select('*')

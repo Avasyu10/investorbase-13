@@ -10,7 +10,7 @@ export type Report = {
   description: string;
   pdf_url: string;
   created_at: string;
-  user_id?: string;
+  user_id: string;
   company_id?: string;
   analysis_status: string;
   analysis_error?: string;
@@ -20,7 +20,15 @@ export type Report = {
 // Functions to interact with Supabase
 
 export async function getReports() {
-  // Get reports from the reports table without user filtering
+  // Check for authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    console.log('No authenticated user found');
+    return [];
+  }
+
+  // Get reports from the reports table (RLS will filter for current user)
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
@@ -36,15 +44,22 @@ export async function getReports() {
     return tableData as Report[];
   }
 
-  console.log('No reports found');
+  console.log('No reports found for this user');
   return [];
 }
 
 export async function getReportById(id: string) {
   console.log('Fetching report with ID:', id);
   
-  // Get the report from the reports table without user filtering
-  // Fix the relationship specification to avoid ambiguity
+  // Check for authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    console.log('No authenticated user found');
+    throw new Error('User not authenticated');
+  }
+  
+  // Get the report from the reports table (RLS will ensure user can only access their own)
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
@@ -68,31 +83,36 @@ export async function getReportById(id: string) {
 export async function downloadReport(fileUrl: string, userId?: string) {
   console.log('Downloading report with URL:', fileUrl);
   
+  // Check for authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    console.log('No authenticated user found');
+    throw new Error('User not authenticated');
+  }
+  
   try {
-    // First try with the provided path
+    // First try with the user ID included in path
     const { data, error } = await supabase.storage
       .from('report_pdfs')
-      .download(fileUrl);
+      .download(`${user.id}/${fileUrl}`);
 
     if (error) {
       console.error('Error with primary path, trying fallback:', error);
       
-      // Try with the old path structure (with user ID)
-      const parts = fileUrl.split('/');
-      const simpleFileName = parts[parts.length - 1];
-      
+      // Try with direct path (for files uploaded before RLS implementation)
       try {
         const { data: fallbackData, error: fallbackError } = await supabase.storage
           .from('report_pdfs')
-          .download(simpleFileName);
+          .download(fileUrl);
           
         if (fallbackError) {
           console.error('Error with fallback path:', fallbackError);
           
-          // Last attempt: try with user ID if provided
-          if (userId) {
+          // Last attempt with the provided userId if different from current
+          if (userId && userId !== user.id) {
             const userPath = `${userId}/${fileUrl}`;
-            console.log('Trying with user path:', userPath);
+            console.log('Trying with alternate user path:', userPath);
             
             try {
               const { data: userPathData, error: userPathError } = await supabase.storage
@@ -104,10 +124,10 @@ export async function downloadReport(fileUrl: string, userId?: string) {
                 throw userPathError;
               }
               
-              console.log('Successfully downloaded with user path');
+              console.log('Successfully downloaded with alternate user path');
               return userPathData;
             } catch (nestedError) {
-              console.error('Failed with user path approach:', nestedError);
+              console.error('Failed with alternate user path approach:', nestedError);
               throw nestedError;
             }
           }
@@ -138,16 +158,25 @@ export async function downloadReport(fileUrl: string, userId?: string) {
 
 export async function uploadReport(file: File, title: string, description: string = '') {
   try {
-    console.log('Uploading report');
+    // Check for authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.log('No authenticated user found');
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('Uploading report for user:', user.id);
     
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
     
-    // Upload the file to storage without user path
+    // Upload the file to storage with user ID in path for RLS
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
-      .upload(fileName, file);
+      .upload(filePath, file);
       
     if (uploadError) {
       console.error('Error uploading file to storage:', uploadError);
@@ -156,13 +185,14 @@ export async function uploadReport(file: File, title: string, description: strin
     
     console.log('File uploaded to storage successfully, saving record to database');
     
-    // Insert a record in the reports table without user_id
+    // Insert a record in the reports table with user_id
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
         title,
         description,
         pdf_url: fileName,
+        user_id: user.id,
         analysis_status: 'pending'
       }])
       .select()
@@ -184,6 +214,14 @@ export async function uploadReport(file: File, title: string, description: strin
 
 export async function analyzeReportDirect(file: File, title: string, description: string = '') {
   try {
+    // Check for authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.log('No authenticated user found');
+      throw new Error('User not authenticated');
+    }
+    
     console.log('Converting file to base64...');
     
     // Convert file to base64
@@ -201,12 +239,13 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('File converted to base64, calling analyze-pdf-direct function');
     
-    // Call the edge function without authentication
+    // Call the edge function with user ID included
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
         description, 
-        pdfBase64: base64String 
+        pdfBase64: base64String,
+        userId: user.id
       }
     });
     

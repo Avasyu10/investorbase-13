@@ -1,7 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
-export async function getReportData(reportId: string, authHeader: string = '') {
+export async function getReportData(reportId: string, userId: string | null = null, authHeader: string = '') {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
   const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
   
@@ -25,13 +25,18 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error(`Invalid report ID format. Expected a UUID, got: ${reportId}`);
   }
 
-  // Get the specific report without any filters (previously had user_id filter)
-  console.log(`Executing query to fetch report with ID: ${reportId}`);
-  const { data: reportData, error: reportError } = await supabase
+  // Get the specific report with user_id filter if provided
+  let query = supabase
     .from('reports')
     .select('id, title, user_id, pdf_url')
-    .eq('id', reportId)
-    .maybeSingle();
+    .eq('id', reportId);
+    
+  // Add user_id filter if provided (used for RLS)
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+  
+  const { data: reportData, error: reportError } = await query.maybeSingle();
     
   if (reportError) {
     console.error("Error fetching report:", reportError);
@@ -40,12 +45,12 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   
   if (!reportData) {
     // Log more information to help debug the issue
-    console.error(`Report with ID ${reportId} not found`);
+    console.error(`Report with ID ${reportId} not found${userId ? ` for user ${userId}` : ''}`);
     
     // Let's also try a generic query to see if there are any reports at all
     const { data: allReports, error: allReportsError } = await supabase
       .from('reports')
-      .select('id')
+      .select('id, user_id')
       .limit(5);
       
     if (allReportsError) {
@@ -55,7 +60,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
         allReports.map(r => r.id).join(", "));
     }
     
-    throw new Error(`Report with ID ${reportId} not found`);
+    throw new Error(`Report with ID ${reportId} not found${userId ? ` for user ${userId}` : ''}`);
   }
 
   const report = reportData;
@@ -71,33 +76,34 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   let pdfData;
   let pdfError;
 
-  // First try: Direct path
-  console.log(`Attempting to download PDF from path: ${report.pdf_url}`);
-  const directResult = await supabase
-    .storage
-    .from('report_pdfs')
-    .download(report.pdf_url);
-
-  if (!directResult.error) {
-    pdfData = directResult.data;
-  } else {
-    pdfError = directResult.error;
-    console.log("Direct path failed, trying alternative paths...");
-    
-    // Second try: With user_id if present
-    if (report.user_id) {
-      const userPath = `${report.user_id}/${report.pdf_url}`;
-      console.log(`Trying path with user_id: ${userPath}`);
+  // First try: Path with user_id (new format with RLS)
+  if (report.user_id) {
+    console.log(`Attempting to download PDF from path: ${report.user_id}/${report.pdf_url}`);
+    const userPathResult = await supabase
+      .storage
+      .from('report_pdfs')
+      .download(`${report.user_id}/${report.pdf_url}`);
       
-      const userResult = await supabase
-        .storage
-        .from('report_pdfs')
-        .download(userPath);
-        
-      if (!userResult.error) {
-        pdfData = userResult.data;
-        pdfError = null;
-      }
+    if (!userPathResult.error) {
+      pdfData = userPathResult.data;
+    } else {
+      pdfError = userPathResult.error;
+      console.log("User path failed, trying alternative paths...");
+    }
+  }
+  
+  // Second try: Direct path (old format)
+  if (!pdfData) {
+    console.log(`Trying direct path: ${report.pdf_url}`);
+    const directResult = await supabase
+      .storage
+      .from('report_pdfs')
+      .download(report.pdf_url);
+
+    if (!directResult.error) {
+      pdfData = directResult.data;
+    } else {
+      pdfError = pdfError || directResult.error;
     }
   }
 

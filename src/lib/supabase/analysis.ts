@@ -4,6 +4,23 @@ import { toast } from "@/hooks/use-toast";
 
 export async function analyzeReport(reportId: string) {
   try {
+    // Check for authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      const errorMessage = 'User not authenticated';
+      console.error(errorMessage);
+      
+      toast({
+        id: "auth-required",
+        title: "Authentication Required",
+        description: "Please sign in to analyze reports.",
+        variant: "destructive"
+      });
+      
+      throw new Error(errorMessage);
+    }
+    
     console.log('Calling analyze-pdf function with report ID:', reportId);
     
     // Add validation for reportId format
@@ -28,9 +45,12 @@ export async function analyzeReport(reportId: string) {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
-      // Call the edge function with abort controller
+      // Call the edge function with abort controller and user ID
       const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-        body: { reportId }
+        body: { 
+          reportId,
+          userId: user.id 
+        }
       });
       
       // Clear the timeout as we got a response

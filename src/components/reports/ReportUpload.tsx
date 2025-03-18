@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -97,6 +98,17 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check authentication first
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error("Authentication required", {
+        description: "Please sign in to upload reports"
+      });
+      navigate('/login');
+      return;
+    }
+    
     if (!file) {
       toast.error("No file selected", {
         description: "Please select a PDF file to upload"
@@ -151,9 +163,11 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         for (let i = 0; i < supplementFiles.length; i++) {
           const supplementFile = supplementFiles[i];
           try {
+            const filePath = `${report.id}/${supplementFile.name}`;
+            
             const { error: uploadError } = await supabase.storage
               .from('supplementary-materials')
-              .upload(`${report.id}/${supplementFile.name}`, supplementFile);
+              .upload(filePath, supplementFile);
               
             if (uploadError) {
               console.error(`Error uploading supplementary file ${i+1}:`, uploadError);
