@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export async function analyzeReport(reportId: string) {
   try {
@@ -11,11 +11,8 @@ export async function analyzeReport(reportId: string) {
       const errorMessage = 'User not authenticated';
       console.error(errorMessage);
       
-      toast({
-        id: "auth-required",
-        title: "Authentication Required",
-        description: "Please sign in to analyze reports.",
-        variant: "destructive"
+      toast.error("Authentication Required", {
+        description: "Please sign in to analyze reports."
       });
       
       throw new Error(errorMessage);
@@ -29,11 +26,8 @@ export async function analyzeReport(reportId: string) {
       const errorMessage = `Invalid report ID format: ${reportId}`;
       console.error(errorMessage);
       
-      toast({
-        id: "invalid-report-id",
-        title: "Invalid Report ID",
-        description: "The report ID format is invalid. Please try again with a valid report.",
-        variant: "destructive"
+      toast.error("Invalid Report ID", {
+        description: "The report ID format is invalid. Please try again with a valid report."
       });
       
       throw new Error(errorMessage);
@@ -66,11 +60,8 @@ export async function analyzeReport(reportId: string) {
           errorMessage = "The analysis function returned an error. Please try again later.";
         }
         
-        toast({
-          id: "analysis-error-1",
-          title: "Analysis failed",
-          description: errorMessage,
-          variant: "destructive"
+        toast.error("Analysis failed", {
+          description: errorMessage
         });
         
         throw error;
@@ -93,11 +84,8 @@ export async function analyzeReport(reportId: string) {
           userMessage = "The report ID format is invalid.";
         }
         
-        toast({
-          id: "analysis-error-2",
-          title: "Analysis failed",
-          description: userMessage,
-          variant: "destructive"
+        toast.error("Analysis failed", {
+          description: userMessage
         });
         
         throw new Error(errorMessage);
@@ -105,10 +93,8 @@ export async function analyzeReport(reportId: string) {
       
       console.log('Analysis result:', data);
       
-      toast({
-        id: "analysis-success",
-        title: "Analysis complete",
-        description: "Your pitch deck has been successfully analyzed",
+      toast.success("Analysis complete", {
+        description: "Your pitch deck has been successfully analyzed"
       });
       
       return data;
@@ -119,11 +105,8 @@ export async function analyzeReport(reportId: string) {
       // Handle timeout specifically
       if (innerError.name === 'AbortError') {
         console.error('Analysis timed out after', timeoutMs / 1000, 'seconds');
-        toast({
-          id: "analysis-timeout",
-          title: "Analysis timed out",
-          description: "The analysis is taking longer than expected. Please try again with a smaller file or try later.",
-          variant: "destructive"
+        toast.error("Analysis timed out", {
+          description: "The analysis is taking longer than expected. Please try again with a smaller file or try later."
         });
         throw new Error('Analysis timed out. Please try with a smaller file or try again later.');
       }
@@ -137,11 +120,8 @@ export async function analyzeReport(reportId: string) {
     
     // Prevent duplicate toasts by checking error message
     if (!errorMessage.includes("analysis failed") && !errorMessage.includes("timed out")) {
-      toast({
-        id: "analysis-error-3",
-        title: "Analysis failed",
-        description: "Could not analyze the report. Please try again later.",
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: "Could not analyze the report. Please try again later."
       });
     }
     

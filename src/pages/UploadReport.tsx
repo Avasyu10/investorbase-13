@@ -31,9 +31,8 @@ const UploadReport = () => {
         console.log("Authenticated user:", user.email);
       } catch (error) {
         console.error("Authentication error:", error);
-        toast("Authentication error - Please sign in again", {
-          description: "Your session may have expired",
-          variant: "destructive",
+        toast.error("Authentication error - Please sign in again", {
+          description: "Your session may have expired"
         });
         navigate('/');
       } finally {
@@ -59,9 +58,8 @@ const UploadReport = () => {
   }, [navigate]);
 
   const handleError = (errorMessage: string) => {
-    toast("Upload error", {
-      description: errorMessage,
-      variant: "destructive",
+    toast.error("Upload error", {
+      description: errorMessage
     });
   };
 
