@@ -3,10 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, AlertCircle } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 type SupplementaryFile = {
   name: string;
@@ -20,6 +29,7 @@ const SupplementaryMaterials = () => {
   const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
   const [files, setFiles] = useState<SupplementaryFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [noFilesDialogOpen, setNoFilesDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -57,9 +67,13 @@ const SupplementaryMaterials = () => {
           
           const fileObjects = await Promise.all(filePromises);
           setFiles(fileObjects.filter(file => file.url));
+        } else {
+          // Show modal if no files found
+          setNoFilesDialogOpen(true);
         }
       } catch (err) {
         console.error("Error processing supplementary files:", err);
+        toast.error("Failed to load supplementary materials");
       } finally {
         setIsLoading(false);
       }
@@ -89,6 +103,11 @@ const SupplementaryMaterials = () => {
     a.click();
   };
 
+  const handleCloseNoFilesDialog = () => {
+    setNoFilesDialogOpen(false);
+    navigate(-1);
+  };
+
   if (authLoading || companyLoading || isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -115,12 +134,14 @@ const SupplementaryMaterials = () => {
           Supplementary Materials for {company.name}
         </h1>
         
-        {files.length === 0 ? (
-          <div className="bg-muted p-8 rounded-lg text-center">
-            <p className="text-lg text-muted-foreground">
-              No Supplementary Material for this Company
-            </p>
-          </div>
+        {files.length === 0 && !noFilesDialogOpen ? (
+          <Alert variant="default" className="bg-muted">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No Supplementary Materials</AlertTitle>
+            <AlertDescription>
+              No supplementary materials are available for this company.
+            </AlertDescription>
+          </Alert>
         ) : (
           <div className="grid gap-4">
             {files.map((file, index) => (
@@ -140,6 +161,22 @@ const SupplementaryMaterials = () => {
             ))}
           </div>
         )}
+        
+        <Dialog open={noFilesDialogOpen} onOpenChange={setNoFilesDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>No Supplementary Materials</DialogTitle>
+              <DialogDescription>
+                There are no supplementary materials available for {company.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={handleCloseNoFilesDialog}>
+                Return to Company Details
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

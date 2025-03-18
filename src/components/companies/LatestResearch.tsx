@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +59,13 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
     } catch (error) {
       console.error("Error fetching research:", error);
       setHasError(true);
+      
+      // Use toast instead of built-in error handling to prevent multiple toasts
+      toast.dismiss("research-error"); // Dismiss any existing error toasts
+      toast.error("Research update failed", {
+        id: "research-error",
+        description: "Could not fetch latest research. Please try again later."
+      });
     } finally {
       setIsLoading(false);
     }

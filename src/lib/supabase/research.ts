@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export async function getLatestResearch(companyId: string, assessmentText: string) {
   try {
@@ -11,11 +11,9 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       const errorMessage = `Invalid parameters: companyId or assessmentText is missing`;
       console.error(errorMessage);
       
-      toast({
+      toast.error("Invalid Research Parameters", {
         id: "invalid-research-params",
-        title: "Invalid Research Parameters",
-        description: "The research request is missing required parameters.",
-        variant: "destructive"
+        description: "The research request is missing required parameters."
       });
       
       throw new Error(errorMessage);
@@ -26,7 +24,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       .from('companies')
       .select('perplexity_response, perplexity_requested_at')
       .eq('id', companyId)
-      .single();
+      .maybeSingle();
       
     if (!existingError && existingData?.perplexity_response) {
       // If we already have recent data (less than 10 minutes old), return it immediately
@@ -72,14 +70,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
           };
         }
         
-        // Only show toast error if we don't have existing data
-        toast({
-          id: "research-error-1",
-          title: "Research update failed",
-          description: "Could not fetch latest research. Please try again later.",
-          variant: "destructive"
-        });
-        
+        // Only throw the error, don't show toast (toast will be shown in the component)
         throw error;
       }
       
@@ -96,14 +87,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
           };
         }
         
-        // Only show toast error if we don't have existing data
-        toast({
-          id: "research-error-2",
-          title: "Research update failed",
-          description: "Could not process latest research. Please try again later.",
-          variant: "destructive"
-        });
-        
+        // Only throw the error, don't show toast (toast will be shown in the component)
         throw new Error(errorMessage);
       }
       
@@ -115,7 +99,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         .from('companies')
         .select('perplexity_response, perplexity_requested_at')
         .eq('id', companyId)
-        .single();
+        .maybeSingle();
         
       if (companyError) {
         console.error('Error fetching updated company data:', companyError);
@@ -125,9 +109,8 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         data.research = updatedCompany.perplexity_response;
         data.requestedAt = updatedCompany.perplexity_requested_at;
         
-        toast({
+        toast.success("Research complete", {
           id: "research-success",
-          title: "Research complete",
           description: "Latest market research has been loaded successfully",
         });
       }
@@ -150,14 +133,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
           };
         }
         
-        // Only show toast error if we don't have existing data
-        toast({
-          id: "research-timeout",
-          title: "Research timed out",
-          description: "The research request timed out. Please try again later.",
-          variant: "destructive"
-        });
-        
+        // Only throw the error, don't show toast (toast will be shown in the component)
         throw new Error('Research timed out. Please try again later.');
       }
       
@@ -173,7 +149,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         .from('companies')
         .select('perplexity_response, perplexity_requested_at')
         .eq('id', companyId)
-        .single();
+        .maybeSingle();
         
       if (lastResortData?.perplexity_response) {
         console.log('Using last resort fallback to existing research data');
@@ -187,14 +163,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       console.error('Error in last resort fallback:', fallbackError);
     }
     
-    // Only show a toast error if we couldn't retrieve any data at all
-    toast({
-      id: "research-error-3",
-      title: "Research failed",
-      description: "Could not retrieve research data. Please try again later.",
-      variant: "destructive"
-    });
-    
+    // Throw the error without showing toast (toast will be shown in the component)
     throw error;
   }
 }
