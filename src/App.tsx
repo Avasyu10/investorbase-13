@@ -23,6 +23,7 @@ import Profile from "@/pages/Profile";
 import ProfileSetup from "@/pages/ProfileSetup";
 import ProfileEdit from "@/pages/ProfileEdit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 
 // Create a new query client instance
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ function App() {
                   <Route path="/company/:companyId" element={<CompanyPage />} />
                   <Route path="/company/:companyId/section/:sectionId" element={<SectionPage />} />
                   <Route path="/company/:companyId/analysis" element={<AnalysisSummary />} />
+                  <Route path="/company/:companyId/supplementary" element={<SupplementaryMaterials />} />
                   <Route path="/reports/:id" element={<Report />} />
                   <Route path="/report/:reportId" element={<Report />} />
                   <Route path="/upload" element={<UploadReport />} />
