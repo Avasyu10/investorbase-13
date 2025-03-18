@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
@@ -30,9 +31,8 @@ const UploadReport = () => {
         console.log("Authenticated user:", user.email);
       } catch (error) {
         console.error("Authentication error:", error);
-        toast({
-          title: "Authentication error",
-          description: "Please sign in again",
+        toast("Authentication error - Please sign in again", {
+          description: "Your session may have expired",
           variant: "destructive",
         });
         navigate('/');
@@ -59,8 +59,7 @@ const UploadReport = () => {
   }, [navigate]);
 
   const handleError = (errorMessage: string) => {
-    toast({
-      title: "Upload error",
+    toast("Upload error", {
       description: errorMessage,
       variant: "destructive",
     });

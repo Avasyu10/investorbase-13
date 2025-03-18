@@ -74,8 +74,7 @@ export function useCompanies() {
     },
     meta: {
       onError: (err: any) => {
-        toast({
-          title: 'Error loading companies',
+        toast("Error loading companies", {
           description: err.message || 'Failed to load companies data',
           variant: 'destructive',
         });
@@ -147,8 +146,7 @@ export function useCompanyDetails(companyId: string | undefined) {
     enabled: !!companyId,
     meta: {
       onError: (err: any) => {
-        toast({
-          title: 'Error loading company',
+        toast("Error loading company", {
           description: err.message || 'Failed to load company details',
           variant: 'destructive',
         });
@@ -227,8 +225,7 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
     enabled: !!companyId && !!sectionId,
     meta: {
       onError: (err: any) => {
-        toast({
-          title: 'Error loading section',
+        toast("Error loading section", {
           description: err.message || 'Failed to load section details',
           variant: 'destructive',
         });
