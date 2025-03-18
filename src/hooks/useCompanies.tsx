@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 // Map Supabase DB types to API contract types
 function mapDbCompanyToApi(company: any) {
@@ -16,8 +16,7 @@ function mapDbCompanyToApi(company: any) {
     reportId: company.report_id,
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
-    perplexityRequestedAt: company.perplexity_requested_at,
-    userId: company.user_id
+    perplexityRequestedAt: company.perplexity_requested_at
   };
 }
 
@@ -50,32 +49,24 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      // Check for authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No authenticated user found');
-        return [];
-      }
-      
-      // Make a direct query with the supabase client to allow RLS to automatically filter results
+      // Query all companies without user filtering
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error("Error fetching companies:", error);
         throw error;
       }
 
-      console.log(`Found ${data.length} companies for user ${user.id}`);
       return data.map(mapDbCompanyToApi);
     },
     meta: {
       onError: (err: any) => {
-        toast.error("Error loading companies", {
-          description: err.message || 'Failed to load companies data'
+        toast({
+          title: 'Error loading companies',
+          description: err.message || 'Failed to load companies data',
+          variant: 'destructive',
         });
       },
     },
@@ -98,44 +89,22 @@ export function useCompanyDetails(companyId: string | undefined) {
     queryFn: async () => {
       if (!companyId) return null;
       
-      // Check for authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No authenticated user found');
-        return null;
-      }
-      
-      // Direct use of supabase client to leverage RLS
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
         .eq('id', companyId)
         .maybeSingle();
         
-      if (companyError) {
-        console.error("Error fetching company:", companyError);
-        throw companyError;
-      }
+      if (companyError) throw companyError;
+      if (!companyData) return null;
       
-      if (!companyData) {
-        console.log(`Company ${companyId} not found or does not belong to user ${user.id}`);
-        return null;
-      }
-      
-      // RLS will filter sections to only those of companies owned by the user
       const { data: sectionsData, error: sectionsError } = await supabase
         .from('sections')
         .select('*')
         .eq('company_id', companyId)
         .order('created_at', { ascending: true });
         
-      if (sectionsError) {
-        console.error("Error fetching sections:", sectionsError);
-        throw sectionsError;
-      }
-      
-      console.log(`Found ${sectionsData?.length || 0} sections for company ${companyId}`);
+      if (sectionsError) throw sectionsError;
       
       return {
         ...mapDbCompanyToApi(companyData),
@@ -145,8 +114,10 @@ export function useCompanyDetails(companyId: string | undefined) {
     enabled: !!companyId,
     meta: {
       onError: (err: any) => {
-        toast.error("Error loading company", {
-          description: err.message || 'Failed to load company details'
+        toast({
+          title: 'Error loading company',
+          description: err.message || 'Failed to load company details',
+          variant: 'destructive',
         });
       },
     },
@@ -169,15 +140,7 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
     queryFn: async () => {
       if (!companyId || !sectionId) return null;
       
-      // Check for authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No authenticated user found');
-        return null;
-      }
-      
-      // RLS will filter sections to only those of companies owned by the user
+      // Get the section data with full description
       const { data: sectionData, error: sectionError } = await supabase
         .from('sections')
         .select('*')
@@ -190,7 +153,7 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       
       console.log("Retrieved section data:", sectionData);
       
-      // RLS will filter section_details to only those of sections owned by the user
+      // Get strengths and weaknesses
       const { data: detailsData, error: detailsError } = await supabase
         .from('section_details')
         .select('*')
@@ -223,8 +186,10 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
     enabled: !!companyId && !!sectionId,
     meta: {
       onError: (err: any) => {
-        toast.error("Error loading section", {
-          description: err.message || 'Failed to load section details'
+        toast({
+          title: 'Error loading section',
+          description: err.message || 'Failed to load section details',
+          variant: 'destructive',
         });
       },
     },

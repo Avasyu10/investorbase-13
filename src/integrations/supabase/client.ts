@@ -13,17 +13,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: 'supabase.auth.token',
   },
-  // Global fetch configuration
+  // Improve data handling with better defaults
   global: {
+    fetch: (url, options) => fetch(url, options),
     headers: { 'x-app-version': '1.0.0' },
-  },
-  // Realtime configuration
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
   },
 });

@@ -1,9 +1,9 @@
 
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { toast } from "sonner";
+import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -21,19 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
-  const isProcessingRef = useRef<boolean>(false);
-
-  const updateAuthState = (newSession: Session | null) => {
-    const sessionChanged = (!!newSession) !== (!!session);
-    const userChanged = (!!newSession?.user) !== (!!user);
-    
-    if (sessionChanged || userChanged) {
-      console.log('Auth state updated:', newSession?.user?.email);
-      setSession(newSession);
-      setUser(newSession?.user || null);
-    }
-  };
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchInitialSession = async () => {
@@ -48,17 +36,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (session) {
-          updateAuthState(session);
+          setSession(session);
+          setUser(session.user);
           console.log('Restored session for user:', session.user.email);
-        } else {
-          updateAuthState(null);
-          console.log('No active session found');
         }
       } catch (error) {
         console.error('Session restoration error:', error);
-        updateAuthState(null);
-        toast.error("Authentication error", {
-          description: "There was a problem with your authentication status"
+        toast({
+          title: "Authentication error",
+          description: "There was a problem with your authentication status",
+          variant: "destructive",
         });
       } finally {
         setIsLoading(false);
@@ -69,79 +56,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log('Auth state changed:', event, currentSession?.user?.email);
-        
-        updateAuthState(currentSession);
+        console.log('Auth state changed:', event);
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
         setIsLoading(false);
-        
-        // Don't redirect if in an upload or processing operation
-        if (isProcessingRef.current) {
-          console.log('Processing in progress, skipping auth-related redirect');
-          return;
-        }
         
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
-          
-          const currentPath = location.pathname;
-          if (currentPath === '/upload') {
-            console.log('Already on upload page, not redirecting');
-            return;
-          }
-          
-          // Don't redirect if we're on the login page and the user intended to go to /upload
-          if (currentPath === '/login' && location.state?.from === '/upload') {
-            console.log('Redirecting to upload page after login');
-            navigate('/upload', { replace: true });
-            return;
-          }
-          
-          const returnTo = location.state?.from || '/dashboard';
-          console.log('Redirecting to:', returnTo);
-          navigate(returnTo, { replace: true });
-        } 
-        else if (event === 'SIGNED_OUT') {
+        } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
-          navigate('/', { replace: true });
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Session token refreshed');
         }
       }
     );
 
-    // Check URL for processing indicator
-    if (location.pathname === '/upload') {
-      const searchParams = new URLSearchParams(location.search);
-      if (searchParams.get('processing') === 'true') {
-        isProcessingRef.current = true;
-      }
-    }
-
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, location]);
+  }, [toast]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { error, data } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
       
-      if (!data.user) {
-        throw new Error("Login successful but no user returned");
-      }
+      toast({
+        title: "Successfully signed in",
+        description: "Welcome back!",
+      });
       
-      toast.success("Successfully signed in", {
-        description: "Welcome back!"
-      });
+      navigate('/dashboard');
     } catch (error: any) {
-      toast.error("Sign in failed", {
-        description: error.message
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive",
       });
-      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUpWithEmail = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { error, data } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -160,19 +116,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
       
-      if (data?.user) {
-        setUser(data.user);
-        setSession(data.session);
-      }
-      
-      toast.success("Sign up successful", {
-        description: "Please check your email for the confirmation link."
+      toast({
+        title: "Sign up successful",
+        description: "Please check your email for the confirmation link.",
       });
       
       return true;
     } catch (error: any) {
-      toast.error("Sign up failed", {
-        description: error.message
+      toast({
+        title: "Sign up failed",
+        description: error.message,
+        variant: "destructive",
       });
       return false;
     } finally {
@@ -184,14 +138,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      toast.success("Signed out", {
-        description: "You've been successfully signed out."
+      navigate('/'); // Changed back to '/' to go to the original sign-in/sign-up page
+      toast({
+        title: "Signed out",
+        description: "You've been successfully signed out.",
       });
     } catch (error: any) {
-      toast.error("Error signing out", {
-        description: error.message
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

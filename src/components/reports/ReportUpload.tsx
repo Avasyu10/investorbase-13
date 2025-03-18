@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,23 +10,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2, Plus, X } from "lucide-react";
-import { uploadReport, analyzeReport } from "@/lib/supabase/reports";
+import { uploadReport, analyzeReport } from "@/lib/supabase";
+import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
 import { FileUploadZone } from "./upload/FileUploadZone";
 import { ProgressIndicator } from "./upload/ProgressIndicator";
-import { useAuth } from "@/hooks/useAuth";
 import { scrapeWebsite } from "./upload/WebsiteService";
 import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedInService";
 
 interface ReportUploadProps {
   onError?: (errorMessage: string) => void;
-  onProcessingStateChange?: (isProcessing: boolean) => void;
 }
 
-export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadProps) {
+export function ReportUpload({ onError }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
@@ -40,54 +37,7 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
-  const [sessionChecked, setSessionChecked] = useState(false);
-  const [hasValidSession, setHasValidSession] = useState(false);
-  const [allowRedirect, setAllowRedirect] = useState(true);
   const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        
-        if (data.session) {
-          console.log('Active session found in ReportUpload');
-          setHasValidSession(true);
-        } else {
-          console.log('No active session found in ReportUpload');
-          if (onError) {
-            onError("Authentication required. Please sign in.");
-          }
-          navigate('/login', { state: { from: '/upload' } });
-        }
-      } catch (error) {
-        console.error('Error checking auth in ReportUpload:', error);
-        if (onError) {
-          onError("Authentication error. Please try again.");
-        }
-      } finally {
-        setSessionChecked(true);
-      }
-    };
-    
-    checkAuth();
-  }, [navigate, onError]);
-
-  useEffect(() => {
-    const isProcessing = isUploading || isAnalyzing;
-    if (onProcessingStateChange) {
-      onProcessingStateChange(isProcessing);
-    }
-  }, [isUploading, isAnalyzing, onProcessingStateChange]);
-
-  useEffect(() => {
-    if (isUploading || isAnalyzing) {
-      setAllowRedirect(false);
-    } else {
-      setAllowRedirect(true);
-    }
-  }, [isUploading, isAnalyzing]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -147,15 +97,6 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { data: authData } = await supabase.auth.getSession();
-    if (!authData.session) {
-      toast.error("Authentication required", {
-        description: "Please sign in to upload reports"
-      });
-      navigate('/login', { state: { from: '/upload' } });
-      return;
-    }
-    
     if (!file) {
       toast.error("No file selected", {
         description: "Please select a PDF file to upload"
@@ -179,10 +120,10 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
 
     try {
       setIsUploading(true);
-      setAllowRedirect(false); // Prevent redirects while processing
       setProgressStage("Processing your submission...");
       setProgress(10);
       
+      // Upload the report
       console.log("Starting upload process");
       const report = await uploadReport(file, title, briefIntroduction, companyWebsite);
       setProgress(30);
@@ -192,6 +133,7 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
         description: "Your pitch deck has been uploaded successfully"
       });
       
+      // Generate description with all metadata
       let description = briefIntroduction + '\n\n';
       
       if (companyStage) {
@@ -202,17 +144,16 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
         description += `Industry: ${industry}\n`;
       }
       
+      // Upload supplementary files if any
       if (supplementFiles.length > 0) {
         setProgress(35);
         setProgressStage("Uploading supplementary materials...");
         for (let i = 0; i < supplementFiles.length; i++) {
           const supplementFile = supplementFiles[i];
           try {
-            const filePath = `${report.id}/${supplementFile.name}`;
-            
             const { error: uploadError } = await supabase.storage
               .from('supplementary-materials')
-              .upload(filePath, supplementFile);
+              .upload(`${report.id}/${supplementFile.name}`, supplementFile);
               
             if (uploadError) {
               console.error(`Error uploading supplementary file ${i+1}:`, uploadError);
@@ -232,6 +173,7 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
         });
       }
       
+      // Attempt to scrape the website if URL is provided
       let scrapedContent = null;
       if (companyWebsite && companyWebsite.trim()) {
         setProgress(40);
@@ -250,6 +192,7 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
         }
       }
       
+      // Scrape LinkedIn profiles if provided
       let linkedInContent = null;
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
       if (validLinkedInProfiles.length > 0) {
@@ -268,14 +211,17 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
         }
       }
       
+      // Add scraped website content to description if available
       if (scrapedContent) {
         description += `\n\nWebsite Content:\n${scrapedContent}\n`;
       }
       
+      // Add scraped LinkedIn content to description if available
       if (linkedInContent) {
         description += `\n\nFounder LinkedIn Profiles:\n${linkedInContent}\n`;
       }
       
+      // Update the report with the complete description
       if (description) {
         const { error: updateError } = await supabase
           .from('reports')
@@ -287,6 +233,7 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
         }
       }
       
+      // Start analysis
       setIsAnalyzing(true);
       setProgressStage("Analyzing pitch deck with AI...");
       setProgress(70);
@@ -305,8 +252,7 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
           description: "Your pitch deck has been analyzed successfully!"
         });
         
-        // Only navigate after analysis is fully complete
-        setAllowRedirect(true);
+        // Navigate to the company page
         if (result && result.companyId) {
           navigate(`/company/${result.companyId}`);
         } else {
@@ -320,72 +266,38 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
           description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
         });
         
+        // Call the onError prop if provided
         if (onError) {
           onError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
         }
         
         setProgress(0);
-        setAllowRedirect(true);
+        
+        // Still navigate to dashboard if analysis fails
         navigate('/dashboard');
         return;
       }
     } catch (error: any) {
       console.error("Error processing report:", error);
       
-      if (error.message && error.message.includes("not authenticated")) {
-        toast.error("Authentication required", {
-          description: "Please sign in to upload reports"
-        });
-        navigate('/login', { state: { from: '/upload' } });
-      } else {
-        toast.error("Upload failed", {
-          description: error instanceof Error ? error.message : "Failed to process pitch deck"
-        });
-      }
+      toast.error("Upload failed", {
+        description: error instanceof Error ? error.message : "Failed to process pitch deck"
+      });
       
+      // Call the onError prop if provided
       if (onError) {
         onError(error instanceof Error ? error.message : "Failed to process pitch deck");
       }
       
       setProgress(0);
-      setAllowRedirect(true);
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
       setIsScrapingWebsite(false);
-      // Don't set allowRedirect here to avoid navigation issues
     }
   };
 
   const isProcessing = isUploading || isAnalyzing;
-
-  if (!sessionChecked || isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Checking authentication...</span>
-      </div>
-    );
-  }
-
-  if (!hasValidSession && !user) {
-    return (
-      <div className="flex flex-col justify-center items-center h-64">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Required</AlertTitle>
-          <AlertDescription>You need to be logged in to upload reports.</AlertDescription>
-        </Alert>
-        <Button 
-          variant="default" 
-          className="mt-4"
-          onClick={() => navigate('/login', { state: { from: '/upload' } })}
-        >
-          Go to Login
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -409,9 +321,7 @@ export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadP
             industry={industry}
             setIndustry={setIndustry}
             founderLinkedIns={founderLinkedIns}
-            updateLinkedInProfile={updateLinkedInProfile}
-            addLinkedInProfile={addLinkedInProfile}
-            removeLinkedInProfile={removeLinkedInProfile}
+            setFounderLinkedIns={setFounderLinkedIns}
             isDisabled={isProcessing}
           />
           

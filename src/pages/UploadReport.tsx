@@ -1,85 +1,79 @@
 
-import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
+import { Toaster } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const UploadReport = () => {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        setIsLoading(true);
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (error) {
-          throw error;
-        }
-        
-        if (!user) {
-          console.log("No authenticated user found, redirecting to login");
-          navigate('/');
-          return;
-        }
-        
-        setUser(user);
-        console.log("Authenticated user:", user.email);
-      } catch (error) {
-        console.error("Authentication error:", error);
-        toast.error("Authentication error - Please sign in again", {
-          description: "Your session may have expired"
-        });
-        navigate('/');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkAuth();
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        navigate('/');
-      } else if (event === 'SIGNED_IN' && session) {
-        setUser(session.user);
-      }
-    });
-    
+    if (!isLoading && !user) {
+      navigate('/');
+    }
+  }, [user, isLoading, navigate]);
+
+  // Reset error when component unmounts or on route change
+  useEffect(() => {
     return () => {
-      subscription.unsubscribe();
+      setError(null);
     };
-  }, [navigate]);
+  }, []);
 
   const handleError = (errorMessage: string) => {
-    toast.error("Upload error", {
-      description: errorMessage
-    });
+    setError(errorMessage);
+    // Auto-dismiss error after 10 seconds
+    setTimeout(() => setError(null), 10000);
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="loader"></div>
       </div>
     );
   }
 
-  if (!user) {
-    navigate('/');
-    return null;
-  }
+  if (!user) return null;
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <h1 className="text-3xl font-bold mb-8">Upload Pitch Deck</h1>
-      <ReportUpload onError={handleError} />
+    <div className="animate-fade-in">
+      <Toaster position="top-center" />
+      <div className="container mx-auto px-4 py-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/dashboard')}
+          className="mb-6"
+        >
+          <ChevronLeft className="mr-1" /> Back to Dashboard
+        </Button>
+        
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight mb-2">Upload New Pitch Deck</h1>
+          <p className="text-muted-foreground">
+            Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses.
+            Adding your company website will enhance the analysis with additional context.
+          </p>
+        </div>
+        
+        <ReportUpload onError={handleError} />
+      </div>
     </div>
   );
 };

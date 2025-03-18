@@ -2,52 +2,23 @@
 import { useState, useEffect } from "react";
 import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";
+import { getReports, Report } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export function ReportsList() {
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check authentication status and fetch reports
-    const fetchData = async () => {
+    async function fetchReports() {
       try {
         setIsLoading(true);
-        
-        // Get current user session
-        const { data: { user } } = await supabase.auth.getUser();
-        setIsAuthenticated(!!user);
-        
-        if (!user) {
-          console.log('No authenticated user found');
-          toast({
-            title: "Authentication required",
-            description: "Please sign in to view your reports",
-            variant: "destructive",
-          });
-          navigate('/');
-          return;
-        }
-        
-        // Fetch reports for the current user (RLS will filter automatically)
-        const { data: tableData, error: tableError } = await supabase
-          .from('reports')
-          .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
-          .order('created_at', { ascending: false });
-
-        if (tableError) {
-          console.error('Error fetching reports from table:', tableError);
-          throw tableError;
-        }
-
-        console.log('Found reports for current user:', tableData);
-        setReports(tableData || []);
+        const fetchedReports = await getReports();
+        setReports(fetchedReports);
       } catch (error) {
         console.error("Error fetching reports:", error);
         toast({
@@ -58,14 +29,10 @@ export function ReportsList() {
       } finally {
         setIsLoading(false);
       }
-    };
-    
-    fetchData();
-  }, [navigate, toast]);
+    }
 
-  if (!isAuthenticated && !isLoading) {
-    return null; // Don't show anything if not authenticated
-  }
+    fetchReports();
+  }, [toast]);
 
   return (
     <div className="container mx-auto px-4 py-6">

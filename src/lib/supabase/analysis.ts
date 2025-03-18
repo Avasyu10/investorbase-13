@@ -1,23 +1,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 export async function analyzeReport(reportId: string) {
   try {
-    // Check for authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      const errorMessage = 'User not authenticated';
-      console.error(errorMessage);
-      
-      toast.error("Authentication Required", {
-        description: "Please sign in to analyze reports."
-      });
-      
-      throw new Error(errorMessage);
-    }
-    
     console.log('Calling analyze-pdf function with report ID:', reportId);
     
     // Add validation for reportId format
@@ -26,8 +12,11 @@ export async function analyzeReport(reportId: string) {
       const errorMessage = `Invalid report ID format: ${reportId}`;
       console.error(errorMessage);
       
-      toast.error("Invalid Report ID", {
-        description: "The report ID format is invalid. Please try again with a valid report."
+      toast({
+        id: "invalid-report-id",
+        title: "Invalid Report ID",
+        description: "The report ID format is invalid. Please try again with a valid report.",
+        variant: "destructive"
       });
       
       throw new Error(errorMessage);
@@ -39,12 +28,9 @@ export async function analyzeReport(reportId: string) {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
-      // Call the edge function with abort controller and user ID
+      // Call the edge function with abort controller
       const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-        body: { 
-          reportId,
-          userId: user.id 
-        }
+        body: { reportId }
       });
       
       // Clear the timeout as we got a response
@@ -60,8 +46,11 @@ export async function analyzeReport(reportId: string) {
           errorMessage = "The analysis function returned an error. Please try again later.";
         }
         
-        toast.error("Analysis failed", {
-          description: errorMessage
+        toast({
+          id: "analysis-error-1",
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive"
         });
         
         throw error;
@@ -84,8 +73,11 @@ export async function analyzeReport(reportId: string) {
           userMessage = "The report ID format is invalid.";
         }
         
-        toast.error("Analysis failed", {
-          description: userMessage
+        toast({
+          id: "analysis-error-2",
+          title: "Analysis failed",
+          description: userMessage,
+          variant: "destructive"
         });
         
         throw new Error(errorMessage);
@@ -93,8 +85,10 @@ export async function analyzeReport(reportId: string) {
       
       console.log('Analysis result:', data);
       
-      toast.success("Analysis complete", {
-        description: "Your pitch deck has been successfully analyzed"
+      toast({
+        id: "analysis-success",
+        title: "Analysis complete",
+        description: "Your pitch deck has been successfully analyzed",
       });
       
       return data;
@@ -105,8 +99,11 @@ export async function analyzeReport(reportId: string) {
       // Handle timeout specifically
       if (innerError.name === 'AbortError') {
         console.error('Analysis timed out after', timeoutMs / 1000, 'seconds');
-        toast.error("Analysis timed out", {
-          description: "The analysis is taking longer than expected. Please try again with a smaller file or try later."
+        toast({
+          id: "analysis-timeout",
+          title: "Analysis timed out",
+          description: "The analysis is taking longer than expected. Please try again with a smaller file or try later.",
+          variant: "destructive"
         });
         throw new Error('Analysis timed out. Please try with a smaller file or try again later.');
       }
@@ -120,8 +117,11 @@ export async function analyzeReport(reportId: string) {
     
     // Prevent duplicate toasts by checking error message
     if (!errorMessage.includes("analysis failed") && !errorMessage.includes("timed out")) {
-      toast.error("Analysis failed", {
-        description: "Could not analyze the report. Please try again later."
+      toast({
+        id: "analysis-error-3",
+        title: "Analysis failed",
+        description: "Could not analyze the report. Please try again later.",
+        variant: "destructive"
       });
     }
     
