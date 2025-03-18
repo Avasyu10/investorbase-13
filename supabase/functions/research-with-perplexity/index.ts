@@ -29,21 +29,26 @@ serve(async (req) => {
 
     console.log(`Processing research request for company ${companyId}`);
     
-    // Create prompt for Perplexity
-    const prompt = `You are a sophisticated VC research analyst. I need you to provide the latest 2023-2024 and 2024-2025 market research, news articles, funding data, and industry insights relevant to a startup with the following assessment:
+    // Create prompt for Perplexity - enhanced for news-style format
+    const prompt = `You are a sophisticated business news editor. I need you to provide the latest 2023-2024 and 2024-2025 market research, news articles, funding data, and industry insights relevant to a startup with the following assessment:
 
 ${assessmentText}
 
-Focus on:
-1. Latest market size and growth projections for this sector (with exact figures)
-2. Recent competitor funding rounds or acquisitions in the last 6 months
-3. Emerging market trends that might impact this business
-4. Recent regulatory changes that could affect this sector
-5. Key industry challenges reported in 2024 or 2025
+Format your response as a collection of 5-7 news articles with:
 
-Format each insight with a title, the source information (publication name and date), and a brief summary of the findings. Include URLs to sources where possible. Each insight should be 2-3 sentences maximum.
+1. A clear, concise headline for each article (formatted as an H3 heading with ###)
+2. A brief 2-3 sentence summary of the news (focus on SPECIFIC NUMBERS, STATISTICS, and FACTUAL DATA)
+3. Include the source name and publication date in the content
+4. Include the full URL to the source at the end of each article
 
-Provide at least 5-7 different research points from different sources. Focus on FACTUAL DATA rather than opinions, with SPECIFIC NUMBERS AND FIGURES wherever possible.`;
+Focus on these areas:
+- Latest market size and growth projections (with exact figures)
+- Recent competitor funding rounds or acquisitions in the last 6 months
+- Emerging market trends that will impact this business
+- Recent regulatory changes affecting this sector
+- Key industry challenges reported in 2024-2025
+
+For each article, provide CONCRETE DATA POINTS like specific market sizes, growth percentages, funding amounts, etc. Each article should read like a professional news snippet that a business executive would find valuable.`;
 
     console.log("Sending request to Perplexity API");
     
@@ -59,7 +64,7 @@ Provide at least 5-7 different research points from different sources. Focus on 
         messages: [
           {
             role: 'system',
-            content: 'You are a VC research analyst. Provide factual, recent market insights with specific data points from reliable sources. Include source URLs where possible.'
+            content: 'You are a business news editor. Create news-style articles with specific data points from reliable sources. Format with clear headlines (H3), concise content, source attribution, and links. Focus on recent market data, competitor activities, and industry trends.'
           },
           {
             role: 'user',
