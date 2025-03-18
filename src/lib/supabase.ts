@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -132,82 +131,25 @@ export async function downloadReport(fileUrl: string, userId: string) {
   }
 }
 
-export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
+export async function uploadReport(file: File, title: string, description: string = '', websiteUrl?: string) {
   try {
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
+    // Check for authenticated user
+    const { data, error: authError } = await supabase.auth.getUser();
     
-    if (!user) {
+    if (authError || !data.user) {
+      console.error('Authentication error:', authError);
       throw new Error('User not authenticated');
     }
     
+    const user = data.user;
     console.log('Uploading report for user:', user.id);
-    
-    // If website URL is provided, scrape it first
-    let scrapedContent = null;
-    if (websiteUrl && websiteUrl.trim()) {
-      try {
-        console.log('Scraping website:', websiteUrl);
-        const { data, error } = await supabase.functions.invoke('scrape-website', {
-          body: { websiteUrl }
-        });
-        
-        if (error) {
-          console.error('Error scraping website:', error);
-          toast({
-            id: "scraping-error",
-            title: "Website scraping failed",
-            description: "Could not scrape the company website. Continuing without website data.",
-            variant: "destructive"
-          });
-        } else if (data && data.scrapedContent) {
-          scrapedContent = data.scrapedContent;
-          console.log('Website scraped successfully:', scrapedContent.substring(0, 100) + '...');
-          
-          // Store scraped content in database for debugging
-          const { error: storeError } = await supabase
-            .from('website_scrapes')
-            .insert({
-              url: websiteUrl,
-              content: scrapedContent,
-              status: 'success'
-            });
-            
-          if (storeError) {
-            console.error('Error storing scraped content:', storeError);
-          }
-          
-          // Enhance description with scraped content
-          if (description) {
-            description += '\n\nWebsite Content:\n' + scrapedContent;
-          } else {
-            description = 'Website Content:\n' + scrapedContent;
-          }
-        }
-      } catch (scrapingError) {
-        console.error('Error during website scraping:', scrapingError);
-        
-        // Store scraping error in database
-        try {
-          await supabase
-            .from('website_scrapes')
-            .insert({
-              url: websiteUrl,
-              status: 'error',
-              error_message: scrapingError instanceof Error ? scrapingError.message : String(scrapingError)
-            });
-        } catch (storeError) {
-          console.error('Error storing scraping error:', storeError);
-        }
-      }
-    }
     
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
     
-    // Upload the file to storage with user ID in the path for RLS
+    // Upload the file to storage with user ID in path for RLS
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
       .upload(filePath, file);
@@ -238,20 +180,6 @@ export async function uploadReport(file: File, title: string, description: strin
     }
 
     console.log('Report record created successfully:', report);
-    
-    // If we scraped a website, update the website_scrapes table with report_id
-    if (scrapedContent && report) {
-      const { error: updateError } = await supabase
-        .from('website_scrapes')
-        .update({ report_id: report.id })
-        .eq('url', websiteUrl)
-        .is('report_id', null);
-        
-      if (updateError) {
-        console.error('Error linking scrape to report:', updateError);
-        // Non-blocking error, continue
-      }
-    }
     
     return report as Report;
   } catch (error) {

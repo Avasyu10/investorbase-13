@@ -100,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: error.message,
         variant: "destructive",
       });
+      throw error; // Rethrow to allow the caller to handle the error
     } finally {
       setIsLoading(false);
     }

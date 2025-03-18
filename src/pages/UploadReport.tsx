@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
@@ -17,6 +17,7 @@ const UploadReport = () => {
   useEffect(() => {
     // If not loading and no user, redirect to login
     if (!isLoading && !user) {
+      console.log("No authenticated user, redirecting to login");
       navigate('/login');
     }
   }, [user, isLoading, navigate]);
@@ -37,12 +38,31 @@ const UploadReport = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="loader"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading authentication state...</span>
       </div>
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    // Extra safeguard - this should be handled by the redirect in useEffect
+    return (
+      <div className="flex flex-col justify-center items-center h-64">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription>You need to be logged in to upload reports.</AlertDescription>
+        </Alert>
+        <Button 
+          variant="default" 
+          className="mt-4"
+          onClick={() => navigate('/login')}
+        >
+          Go to Login
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
