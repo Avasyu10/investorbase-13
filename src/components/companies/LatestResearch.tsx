@@ -257,14 +257,6 @@ export function LatestResearch({ companyId, assessmentPoints, existingResearch, 
                 </div>
               );
             })}
-            
-            {hasError && (
-              <div className="mt-2 py-2 px-3 bg-destructive/10 border border-destructive/20 rounded-md md:col-span-2">
-                <p className="text-xs text-destructive">
-                  Using cached research data. Real-time updates couldn't be fetched.
-                </p>
-              </div>
-            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
