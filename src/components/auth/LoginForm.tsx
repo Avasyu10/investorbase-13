@@ -19,6 +19,9 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signInWithEmail, user } = useAuth();
+  
+  // Get the intended destination from location state or default to dashboard
+  const from = location.state?.from || '/dashboard';
 
   // Check if the user is already logged in
   useEffect(() => {
@@ -32,8 +35,8 @@ const LoginForm = () => {
         }
         
         if (data.session) {
-          console.log("User already logged in, redirecting to dashboard");
-          navigate('/dashboard');
+          console.log("User already logged in, redirecting to:", from);
+          navigate(from);
         }
       } catch (err) {
         console.error("Error in auth check:", err);
@@ -43,15 +46,15 @@ const LoginForm = () => {
     };
     
     checkAuth();
-  }, [navigate]);
+  }, [navigate, from]);
 
-  // If user is already logged in, redirect to dashboard
+  // If user is already logged in, redirect to the intended destination
   useEffect(() => {
     if (user) {
-      console.log("User detected in state, redirecting to dashboard");
-      navigate('/dashboard');
+      console.log("User detected in state, redirecting to:", from);
+      navigate(from);
     }
-  }, [user, navigate]);
+  }, [user, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,7 +62,7 @@ const LoginForm = () => {
     
     try {
       await signInWithEmail(email, password);
-      // signInWithEmail will handle redirection via the auth state change
+      // The redirect will be handled by the auth state change effect
     } catch (error: any) {
       console.error("Login error:", error);
       // The toast is already shown in signInWithEmail

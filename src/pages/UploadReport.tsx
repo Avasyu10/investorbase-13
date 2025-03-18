@@ -63,11 +63,12 @@ const UploadReport = () => {
     // Auto-dismiss error after 10 seconds
     setTimeout(() => setError(null), 10000);
     
-    // If it's an authentication error, redirect to login
-    if (errorMessage.toLowerCase().includes("authentication") || 
-        errorMessage.toLowerCase().includes("not authenticated")) {
+    // Only redirect to login for actual authentication errors, not other errors
+    if (errorMessage.toLowerCase().includes("not authenticated") || 
+        errorMessage.toLowerCase().includes("authentication required")) {
       navigate('/login');
     }
+    // Don't redirect for other types of errors
   };
 
   if (isLoading || checkingAuth) {
