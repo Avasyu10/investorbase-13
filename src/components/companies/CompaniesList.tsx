@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +26,9 @@ export function CompaniesList() {
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [sortedCompanies, setSortedCompanies] = useState<CompanyListItem[]>([]);
 
+  // Fixed the infinite update loop by properly handling dependencies
   useEffect(() => {
-    if (!companies || companies.length === 0) {
+    if (!companies) {
       setSortedCompanies([]);
       return;
     }
@@ -55,7 +57,7 @@ export function CompaniesList() {
     });
     
     setSortedCompanies(sorted);
-  }, [companies, sortBy]);
+  }, [companies, sortBy]); // Only depend on companies and sortBy
 
   const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
