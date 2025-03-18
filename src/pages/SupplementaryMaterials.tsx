@@ -1,9 +1,8 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, AlertCircle, Download, FileText, Loader } from "lucide-react";
+import { ChevronLeft, AlertCircle, Download, FileText, Loader, Maximize2, Eye } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -37,6 +36,63 @@ const SupplementaryMaterials = () => {
   const [noFilesDialogOpen, setNoFilesDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  
+  // New state for the file viewer modal
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<SupplementaryFile | null>(null);
+
+  // Function to open the file viewer
+  const openFileViewer = (file: SupplementaryFile) => {
+    setSelectedFile(file);
+    setViewerOpen(true);
+  };
+
+  // Function to determine if the file is viewable in browser
+  const isViewableInBrowser = (file: SupplementaryFile) => {
+    const fileType = file.type || '';
+    return fileType.startsWith('image/') || 
+           fileType === 'application/pdf' || 
+           fileType === 'text/plain' ||
+           fileType === 'text/html';
+  };
+
+  // Function to get the appropriate component for viewing the file
+  const getFileViewerComponent = () => {
+    if (!selectedFile) return null;
+    
+    const fileType = selectedFile.type || '';
+    
+    if (fileType.startsWith('image/')) {
+      return (
+        <div className="flex justify-center">
+          <img 
+            src={selectedFile.url} 
+            alt={selectedFile.name} 
+            className="max-w-full max-h-[70vh] object-contain"
+          />
+        </div>
+      );
+    } else if (fileType === 'application/pdf') {
+      return (
+        <iframe 
+          src={`${selectedFile.url}#toolbar=0`}
+          className="w-full h-[70vh]"
+          title={selectedFile.name}
+        />
+      );
+    } else {
+      // For other file types, offer to download instead
+      return (
+        <div className="text-center p-8">
+          <FileText className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+          <p className="mb-4">This file type cannot be previewed directly.</p>
+          <Button onClick={() => handleDownload(selectedFile)}>
+            <Download className="mr-2 h-4 w-4" /> Download File
+          </Button>
+        </div>
+      );
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -272,12 +328,21 @@ const SupplementaryMaterials = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {isViewableInBrowser(file) && (
+                    <Button 
+                      onClick={() => openFileViewer(file)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Eye className="mr-2 h-4 w-4" /> View
+                    </Button>
+                  )}
                   <Button 
                     onClick={() => window.open(file.url, '_blank')}
                     variant="outline"
                     size="sm"
                   >
-                    View
+                    <Maximize2 className="mr-2 h-4 w-4" /> Open
                   </Button>
                   <Button 
                     onClick={() => handleDownload(file)}
@@ -291,6 +356,30 @@ const SupplementaryMaterials = () => {
             ))}
           </div>
         )}
+        
+        {/* File Viewer Modal */}
+        <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+          <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{selectedFile?.name}</DialogTitle>
+            </DialogHeader>
+            
+            <div className="mt-2">
+              {getFileViewerComponent()}
+            </div>
+            
+            <DialogFooter className="mt-4">
+              {selectedFile && (
+                <Button onClick={() => handleDownload(selectedFile)} variant="outline">
+                  <Download className="mr-2 h-4 w-4" /> Download
+                </Button>
+              )}
+              <Button onClick={() => setViewerOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         
         {/* Debug info in development mode (add ?debug=true to URL) */}
         {window.location.search.includes('debug=true') && debugInfo && (
