@@ -44,51 +44,34 @@ const SupplementaryMaterials = () => {
   useEffect(() => {
     // Set loading state immediately to true
     setIsLoading(true);
+    setError(null); // Reset error state
     
     // Only proceed with fetching if company data is available
     if (!companyLoading && company) {
       const fetchSupplementaryFiles = async () => {
         try {
-          // Function to check if the bucket exists and create it if it doesn't
-          const ensureBucketExists = async () => {
+          console.log("Starting to fetch supplementary files for company:", company.name);
+          
+          // Function to check if the bucket exists
+          const checkBucketExists = async () => {
             try {
               console.log("Checking if supplementary-materials bucket exists");
               
-              // Check if the bucket exists
               const { data: buckets, error: bucketsError } = await supabase.storage
                 .listBuckets();
                 
               if (bucketsError) {
                 console.error("Error listing buckets:", bucketsError);
-                return false;
+                throw new Error(`Failed to list buckets: ${bucketsError.message}`);
               }
               
               const bucketExists = buckets?.some(bucket => bucket.name === 'supplementary-materials');
+              console.log("Bucket exists:", bucketExists);
               
-              if (!bucketExists) {
-                console.log("Bucket doesn't exist, creating it");
-                
-                // Create the bucket
-                const { data, error } = await supabase.storage
-                  .createBucket('supplementary-materials', {
-                    public: false,
-                    fileSizeLimit: 10485760 // 10MB
-                  });
-                  
-                if (error) {
-                  console.error("Error creating bucket:", error);
-                  return false;
-                }
-                
-                console.log("Created bucket:", data);
-              } else {
-                console.log("Bucket already exists");
-              }
-              
-              return true;
+              return bucketExists;
             } catch (err) {
-              console.error("Error in ensureBucketExists:", err);
-              return false;
+              console.error("Error in checkBucketExists:", err);
+              throw err;
             }
           };
 
@@ -114,7 +97,7 @@ const SupplementaryMaterials = () => {
                 
               if (error) {
                 console.error("Error getting report ID:", error);
-                return null;
+                throw new Error(`Failed to get report ID: ${error.message}`);
               }
               
               if (data?.id) {
@@ -126,16 +109,14 @@ const SupplementaryMaterials = () => {
               return null;
             } catch (err) {
               console.error("Error in getReportIdForCompany:", err);
-              return null;
+              throw err;
             }
           };
           
-          // Make sure the bucket exists
-          const bucketExists = await ensureBucketExists();
+          // Check if the bucket exists
+          const bucketExists = await checkBucketExists();
           if (!bucketExists) {
-            setError("Error ensuring storage bucket exists");
-            setIsLoading(false);
-            return;
+            throw new Error("The supplementary materials storage bucket does not exist");
           }
           
           // Get the report ID
@@ -159,9 +140,7 @@ const SupplementaryMaterials = () => {
             
           if (error) {
             console.error("Error fetching supplementary files:", error);
-            setError(`Error loading files: ${error.message}`);
-            setIsLoading(false);
-            return;
+            throw new Error(`Error loading files: ${error.message}`);
           }
           
           console.log("Files data from Supabase:", data);
@@ -181,7 +160,7 @@ const SupplementaryMaterials = () => {
                 return { name: file.name, url: '' };
               }
               
-              console.log(`Signed URL created: ${url?.signedUrl?.substring(0, 50)}...`);
+              console.log(`Signed URL created for ${file.name}`);
               
               return {
                 name: file.name,
@@ -209,8 +188,11 @@ const SupplementaryMaterials = () => {
           }
         } catch (err) {
           console.error("Error processing supplementary files:", err);
-          setError(`Error processing files: ${err instanceof Error ? err.message : 'Unknown error'}`);
-          toast.error("Failed to load supplementary materials");
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          setError(errorMessage);
+          toast.error("Failed to load supplementary materials", {
+            description: errorMessage
+          });
         } finally {
           setIsLoading(false);
         }
