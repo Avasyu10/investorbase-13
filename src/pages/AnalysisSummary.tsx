@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Maximize, HelpCircle } from 'lucide-react';
+import { ChevronLeft, Maximize, HelpCircle, Download } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -10,12 +11,20 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ReportViewer } from '@/components/reports/ReportViewer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { generatePDF } from '@/lib/pdf-generator';
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
   const [showReportModal, setShowReportModal] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadReport = async () => {
+    if (company) {
+      await generatePDF('report-content', `${company.name} - Assessment Report`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -64,134 +73,148 @@ export default function AnalysisSummary() {
           <ChevronLeft className="mr-1" /> Back to Company Details
         </Button>
         
-        {company.reportId && (
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowReportModal(true)}
+            onClick={handleDownloadReport}
+            className="flex items-center gap-2"
           >
-            <Maximize className="mr-2 h-4 w-4" />
-            View Deck
+            <Download className="h-4 w-4" />
+            Download Report
           </Button>
-        )}
+          
+          {company.reportId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReportModal(true)}
+            >
+              <Maximize className="mr-2 h-4 w-4" />
+              View Deck
+            </Button>
+          )}
+        </div>
       </div>
 
-      <Card className="mb-8">
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl">{company.name}</CardTitle>
-            <div className="flex items-center">
-              <Badge variant={getScoreVariant(company.overallScore)}>
-                Score: {formattedScore}/5
-              </Badge>
-              <TooltipProvider>
-                <Tooltip delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                    <p>{getScoreDescription(company.overallScore)}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+      <div id="report-content" ref={reportRef}>
+        <Card className="mb-8">
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl">{company.name}</CardTitle>
+              <div className="flex items-center">
+                <Badge variant={getScoreVariant(company.overallScore)}>
+                  Score: {formattedScore}/5
+                </Badge>
+                <TooltipProvider>
+                  <Tooltip delayDuration={300}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                      <p>{getScoreDescription(company.overallScore)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
-          </div>
-          <CardDescription>Complete analysis summary and market research</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Overall Performance</h3>
-            <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {getScoreDescription(company.overallScore)}
-            </p>
-          </div>
+            <CardDescription>Complete analysis summary and market research</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">Overall Performance</h3>
+              <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {getScoreDescription(company.overallScore)}
+              </p>
+            </div>
 
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Key Assessment Points</h3>
-            {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
-              <ul className="list-disc pl-5 space-y-2">
-                {company.assessmentPoints.map((point, index) => (
-                  <li key={index} className="text-muted-foreground">{point}</li>
+            <div className="mb-8">
+              <h3 className="text-lg font-medium mb-4">Key Assessment Points</h3>
+              {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
+                <ul className="list-disc pl-5 space-y-2">
+                  {company.assessmentPoints.map((point, index) => (
+                    <li key={index} className="text-muted-foreground">{point}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground italic">No assessment points available</p>
+              )}
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-lg font-medium mb-4">Section Performance Analysis</h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={70} 
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis domain={[0, 5]} tickCount={6} />
+                    <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
+                    <Bar dataKey="score" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {company.sections.map((section) => (
+                  <Card key={section.id} className="overflow-hidden">
+                    <CardHeader className="bg-muted/50 pb-2">
+                      <CardTitle className="text-base">{section.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="flex items-center mb-2">
+                        <span className="font-medium mr-2">Score: {section.score}/5</span>
+                        <Progress 
+                          value={section.score * 20} 
+                          className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
+                        />
+                        <TooltipProvider>
+                          <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                                <HelpCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                              <p>{getSectionScoreDescription(section.score, section.title)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {section.description || 'No description available'}
+                      </p>
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        className="p-0 h-auto mt-2"
+                        onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
+                      >
+                        View Research Details →
+                      </Button>
+                    </CardContent>
+                  </Card>
                 ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground italic">No assessment points available</p>
-            )}
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Section Performance Analysis</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={70} 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis domain={[0, 5]} tickCount={6} />
-                  <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
-                  <Bar dataKey="score" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
+              </div>
             </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {company.sections.map((section) => (
-                <Card key={section.id} className="overflow-hidden">
-                  <CardHeader className="bg-muted/50 pb-2">
-                    <CardTitle className="text-base">{section.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="flex items-center mb-2">
-                      <span className="font-medium mr-2">Score: {section.score}/5</span>
-                      <Progress 
-                        value={section.score * 20} 
-                        className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
-                      />
-                      <TooltipProvider>
-                        <Tooltip delayDuration={300}>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
-                              <HelpCircle className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                            <p>{getSectionScoreDescription(section.score, section.title)}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {section.description || 'No description available'}
-                    </p>
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="p-0 h-auto mt-2"
-                      onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
-                    >
-                      View Research Details →
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Report Modal */}
       {company.reportId && (
