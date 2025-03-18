@@ -4,12 +4,12 @@ import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { LatestResearch } from "./LatestResearch";
-import { useCompanyDetails } from "@/hooks/useCompanies";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useCompanyDetails } from "@/hooks/useCompanies";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
