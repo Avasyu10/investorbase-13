@@ -39,9 +39,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session);
           setUser(session.user);
           console.log('Restored session for user:', session.user.email);
+        } else {
+          // Clear any stale user/session state
+          setSession(null);
+          setUser(null);
+          console.log('No active session found');
         }
       } catch (error) {
         console.error('Session restoration error:', error);
+        // Clear auth state on error
+        setSession(null);
+        setUser(null);
         toast({
           title: "Authentication error",
           description: "There was a problem with your authentication status",
@@ -56,7 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log('Auth state changed:', event);
+        console.log('Auth state changed:', event, currentSession?.user?.email);
+        
         setSession(currentSession);
         setUser(currentSession?.user || null);
         setIsLoading(false);
@@ -69,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           navigate('/');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Session token refreshed');
+        } else if (event === 'USER_UPDATED') {
+          console.log('User updated');
         }
       }
     );
@@ -81,12 +92,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+      
+      if (!data.user) {
+        throw new Error("Login successful but no user returned");
+      }
+      
+      // Update state immediately
+      setUser(data.user);
+      setSession(data.session);
       
       toast({
         title: "Successfully signed in",
@@ -109,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUpWithEmail = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -118,6 +137,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) throw error;
+      
+      if (data?.user) {
+        // Update state immediately for auto-confirmed users
+        setUser(data.user);
+        setSession(data.session);
+      }
       
       toast({
         title: "Sign up successful",
@@ -141,6 +166,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
+      // Clear auth state immediately
+      setUser(null);
+      setSession(null);
       // Navigation will be handled by onAuthStateChange
       toast({
         title: "Signed out",

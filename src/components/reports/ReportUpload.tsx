@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,25 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const [progressStage, setProgressStage] = useState("");
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        console.log('No active session found in ReportUpload');
+        if (onError) {
+          onError("Authentication required. Please sign in.");
+        }
+        navigate('/login');
+      }
+    };
+    
+    if (!isLoading && !user) {
+      checkAuth();
+    }
+  }, [user, isLoading, navigate, onError]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -99,7 +118,9 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
+    // Check authentication again just before submission
+    const { data: authData } = await supabase.auth.getSession();
+    if (!authData.session) {
       toast.error("Authentication required", {
         description: "Please sign in to upload reports"
       });
@@ -280,9 +301,17 @@ export function ReportUpload({ onError }: ReportUploadProps) {
     } catch (error: any) {
       console.error("Error processing report:", error);
       
-      toast.error("Upload failed", {
-        description: error instanceof Error ? error.message : "Failed to process pitch deck"
-      });
+      // Check if it's an authentication error
+      if (error.message && error.message.includes("not authenticated")) {
+        toast.error("Authentication required", {
+          description: "Please sign in to upload reports"
+        });
+        navigate('/login');
+      } else {
+        toast.error("Upload failed", {
+          description: error instanceof Error ? error.message : "Failed to process pitch deck"
+        });
+      }
       
       if (onError) {
         onError(error instanceof Error ? error.message : "Failed to process pitch deck");
@@ -297,6 +326,16 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   };
 
   const isProcessing = isUploading || isAnalyzing;
+
+  // If still checking auth status, show a loading indicator
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Checking authentication...</span>
+      </div>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

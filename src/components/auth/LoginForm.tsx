@@ -8,19 +8,47 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const { signInWithEmail, user } = useAuth();
 
+  // Check if the user is already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error checking session:", error);
+          return;
+        }
+        
+        if (data.session) {
+          console.log("User already logged in, redirecting to dashboard");
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        console.error("Error in auth check:", err);
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
+
   // If user is already logged in, redirect to dashboard
   useEffect(() => {
     if (user) {
+      console.log("User detected in state, redirecting to dashboard");
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -31,18 +59,28 @@ const LoginForm = () => {
     
     try {
       await signInWithEmail(email, password);
-      // Auth state change will handle redirection
+      // signInWithEmail will handle redirection via the auth state change
     } catch (error: any) {
       console.error("Login error:", error);
-      toast({
-        title: "Sign in failed",
-        description: error.message || "Could not sign in. Please check your credentials.",
-        variant: "destructive",
-      });
+      // The toast is already shown in signInWithEmail
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading state before auth check completes
+  if (!authChecked) {
+    return (
+      <Card className="w-full max-w-md mx-auto overflow-hidden transition-all duration-300 transform shadow-lg animate-fade-in">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">Checking authentication...</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto overflow-hidden transition-all duration-300 transform shadow-lg animate-fade-in">

@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -136,8 +137,13 @@ export async function uploadReport(file: File, title: string, description: strin
     // Check for authenticated user
     const { data, error: authError } = await supabase.auth.getUser();
     
-    if (authError || !data.user) {
+    if (authError) {
       console.error('Authentication error:', authError);
+      throw new Error('User not authenticated');
+    }
+    
+    if (!data.user) {
+      console.error('No authenticated user found');
       throw new Error('User not authenticated');
     }
     
