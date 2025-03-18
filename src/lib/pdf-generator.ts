@@ -55,29 +55,20 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
         // Apply color preservation to all elements
         preserveColors(clonedDoc.getElementById(elementId) as Element);
         
-        // Set the background of the report to match dark theme - with NO WHITE SPACE
+        // Set the background of the report to match dark theme
         const reportContent = clonedDoc.getElementById(elementId);
         if (reportContent) {
           reportContent.style.backgroundColor = '#111827';
           reportContent.style.color = '#f3f4f6';
           reportContent.style.padding = '0';
           reportContent.style.margin = '0';
-          reportContent.style.width = '100%';
-          reportContent.style.maxWidth = '100%';
         }
-        
-        // Ensure body and html have dark background too to eliminate white space
-        clonedDoc.body.style.backgroundColor = '#111827';
-        clonedDoc.documentElement.style.backgroundColor = '#111827';
-        clonedDoc.body.style.margin = '0';
-        clonedDoc.body.style.padding = '0';
         
         // Apply professional formatting to the PDF content
         const allElements = clonedDoc.querySelectorAll('*');
         allElements.forEach((el) => {
-          // Critical: Ensure NO elements break across pages
+          // Ensure no elements break across pages
           (el as HTMLElement).style.pageBreakInside = 'avoid';
-          (el as HTMLElement).style.breakInside = 'avoid';
           
           if (el.tagName === 'H3') {
             (el as HTMLElement).style.fontSize = '18px';
@@ -99,8 +90,6 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
             (el as HTMLElement).style.fontSize = '14px';
             (el as HTMLElement).style.lineHeight = '1.6';
             (el as HTMLElement).style.marginBottom = '8px';
-            (el as HTMLElement).style.pageBreakInside = 'avoid';
-            (el as HTMLElement).style.breakInside = 'avoid';
           }
           
           if (el.tagName === 'LI') {
@@ -108,16 +97,12 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
             (el as HTMLElement).style.lineHeight = '1.5';
             (el as HTMLElement).style.marginBottom = '6px';
             (el as HTMLElement).style.textAlign = 'left';
-            (el as HTMLElement).style.pageBreakInside = 'avoid';
-            (el as HTMLElement).style.breakInside = 'avoid';
           }
           
           if (el.tagName === 'UL') {
             (el as HTMLElement).style.paddingLeft = '20px';
             (el as HTMLElement).style.marginBottom = '14px';
             (el as HTMLElement).style.textAlign = 'left';
-            (el as HTMLElement).style.pageBreakInside = 'avoid';
-            (el as HTMLElement).style.breakInside = 'avoid';
           }
         });
         
@@ -133,23 +118,14 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
           (titleElement as HTMLElement).style.color = '#f3f4f6';
         }
         
-        // Force page break before "Latest Research" section and prevent breaking
-        const researchContent = clonedDoc.querySelector('.research-content');
-        if (researchContent) {
-          (researchContent as HTMLElement).style.pageBreakBefore = 'always';
-          (researchContent as HTMLElement).style.pageBreakInside = 'avoid';
-          (researchContent as HTMLElement).style.breakInside = 'avoid';
-          (researchContent as HTMLElement).style.paddingTop = '20px';
-          
-          // Make sure all sections in research are together
-          const researchSections = researchContent.querySelectorAll('.space-y-1');
-          researchSections.forEach((section) => {
-            (section as HTMLElement).style.pageBreakInside = 'avoid';
-            (section as HTMLElement).style.breakInside = 'avoid';
-          });
+        // Apply page break before "Latest Research" section
+        const researchHeader = clonedDoc.querySelector('.research-content h3');
+        if (researchHeader) {
+          (researchHeader.parentNode as HTMLElement).style.pageBreakBefore = 'always';
+          (researchHeader.parentNode as HTMLElement).style.paddingTop = '20px';
         }
         
-        // Setup the detailed sections layout - convert to a two-column layout with ONE PAGE per pair
+        // Setup the detailed sections layout - convert to a two-column layout
         const detailedSections = clonedDoc.querySelectorAll('.section-detail');
         detailedSections.forEach((el, index) => {
           // Start new page after every two sections (index 0 and 1 on first page, 2 and 3 on second page, etc.)
@@ -166,7 +142,6 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
           (el as HTMLElement).style.marginBottom = '25px';
           (el as HTMLElement).style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
           (el as HTMLElement).style.pageBreakInside = 'avoid'; // Prevent section from breaking across pages
-          (el as HTMLElement).style.breakInside = 'avoid'; // Modern browsers
           
           // Ensure headers in sections stand out
           const sectionHeaders = el.querySelectorAll('h4');
@@ -191,13 +166,6 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
           weaknessItems.forEach(item => {
             (item as HTMLElement).style.color = '#f43f5e'; // Rose color for weaknesses
           });
-          
-          // Ensure lists within sections don't break
-          const sectionLists = el.querySelectorAll('ul');
-          sectionLists.forEach(list => {
-            (list as HTMLElement).style.pageBreakInside = 'avoid';
-            (list as HTMLElement).style.breakInside = 'avoid';
-          });
         });
       }
     });
@@ -215,10 +183,9 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
       compress: true,
     });
     
-    // Remove margins by filling the entire page with the dark background
+    // Remove white margins from pages
     pdf.setDrawColor(17, 24, 39); // Dark background color
     pdf.setFillColor(17, 24, 39); // Dark background color
-    pdf.rect(0, 0, imgWidth, pageHeight, 'F'); // Fill entire first page
     
     // Add the canvas image to fill the entire page without margins
     pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, imgWidth, imgHeight);
@@ -233,7 +200,7 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
       pageNumber++;
       position -= pageHeight;
       
-      // Fill the new page with the background color - prevent white margins
+      // Fill the new page with the background color
       pdf.setDrawColor(17, 24, 39);
       pdf.setFillColor(17, 24, 39);
       pdf.rect(0, 0, imgWidth, pageHeight, 'F');
