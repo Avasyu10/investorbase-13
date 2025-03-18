@@ -23,6 +23,30 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
       useCORS: true, // Enable CORS to load external images
       logging: false,
       backgroundColor: '#ffffff',
+      windowWidth: element.scrollWidth,
+      windowHeight: element.scrollHeight,
+      // Make sure to capture all content
+      onclone: (clonedDoc) => {
+        // Find all elements with class hidden-in-pdf within the cloned document and show them
+        const hiddenElements = clonedDoc.querySelectorAll('.hidden-in-pdf');
+        hiddenElements.forEach((el) => {
+          (el as HTMLElement).style.display = 'block';
+        });
+        
+        // Make sure all sections in report are visible
+        const sectionElements = clonedDoc.querySelectorAll('.section-detail');
+        sectionElements.forEach((el) => {
+          (el as HTMLElement).style.maxHeight = 'none';
+          (el as HTMLElement).style.overflow = 'visible';
+        });
+        
+        // Make sure all research content is visible
+        const researchElements = clonedDoc.querySelectorAll('.research-content');
+        researchElements.forEach((el) => {
+          (el as HTMLElement).style.maxHeight = 'none';
+          (el as HTMLElement).style.overflow = 'visible';
+        });
+      }
     });
 
     // Calculate dimensions
@@ -36,6 +60,8 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
     
     // Create PDF document
     const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    // Add first page
     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
     
     // Add more pages if needed

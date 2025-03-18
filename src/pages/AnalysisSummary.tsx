@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ReportViewer } from '@/components/reports/ReportViewer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generatePDF } from '@/lib/pdf-generator';
+import { LatestResearch } from '@/components/companies/LatestResearch';
+import { SectionDetail } from '@/components/companies/SectionDetail';
+import { getLatestResearch } from '@/lib/supabase/research';
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -19,10 +22,48 @@ export default function AnalysisSummary() {
   const { company, isLoading } = useCompanyDetails(companyId);
   const [showReportModal, setShowReportModal] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
+  const [research, setResearch] = useState<string | undefined>(undefined);
+  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
+  const [isLoadingResearch, setIsLoadingResearch] = useState(false);
+
+  // Fetch research data for the PDF export
+  useEffect(() => {
+    if (company && company.assessmentPoints && company.assessmentPoints.length > 0) {
+      const loadResearch = async () => {
+        try {
+          setIsLoadingResearch(true);
+          const assessmentText = company.assessmentPoints.join("\n\n");
+          const result = await getLatestResearch(companyId || '', assessmentText);
+          
+          if (result && result.research) {
+            setResearch(result.research);
+          }
+        } catch (error) {
+          console.error("Error fetching research for PDF:", error);
+        } finally {
+          setIsLoadingResearch(false);
+        }
+      };
+      
+      if (!research) {
+        loadResearch();
+      }
+    }
+  }, [company, companyId, research]);
 
   const handleDownloadReport = async () => {
     if (company) {
-      await generatePDF('report-content', `${company.name} - Assessment Report`);
+      // Expand all sections for PDF generation
+      if (company.sections) {
+        setExpandedSectionId('all');
+      }
+      
+      // Give time for DOM to update with all expanded sections
+      setTimeout(async () => {
+        await generatePDF('report-content', `${company.name} - Assessment Report`);
+        // Reset expanded sections
+        setExpandedSectionId(null);
+      }, 500);
     }
   };
 
@@ -168,6 +209,38 @@ export default function AnalysisSummary() {
               </div>
             </div>
 
+            {/* This section will be hidden in the UI but included in the PDF */}
+            <div className={`${expandedSectionId === 'all' ? '' : 'hidden-in-pdf'} mb-8 research-content`}>
+              <h3 className="text-lg font-medium mb-4">Latest Market Research</h3>
+              {research ? (
+                <div className="space-y-4">
+                  {research.split(/#{3,}\s+/).filter(section => section.trim().length > 0).map((section, index) => {
+                    const lines = section.split('\n');
+                    const title = lines[0].replace(/^[#\s]+/, '');
+                    const content = lines.slice(1).join('\n')
+                      .replace(/\*\*/g, '')
+                      .replace(/\[(\d+)\]/g, '')
+                      .replace(/Sources:[\s\S]*$/, '')
+                      .replace(/https?:\/\/[^\s]+/g, '')
+                      .replace(/\n\s*\n/g, '\n')
+                      .replace(/\n+$/, '')
+                      .trim();
+                    
+                    if (!title.trim()) return null;
+                    
+                    return (
+                      <div key={index} className="space-y-1">
+                        <h4 className="text-sm font-semibold">{title}</h4>
+                        <p className="text-sm text-muted-foreground">{content}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">No research data available</p>
+              )}
+            </div>
+
             <div>
               <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -199,6 +272,34 @@ export default function AnalysisSummary() {
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {section.description || 'No description available'}
                       </p>
+                      
+                      {/* Hidden section details for PDF */}
+                      {expandedSectionId === 'all' && (
+                        <div className="mt-4 section-detail hidden-in-pdf">
+                          <h4 className="text-sm font-semibold mb-2">Strengths</h4>
+                          <ul className="space-y-1 list-disc pl-5 mb-3">
+                            {section.strengths && section.strengths.length > 0 ? (
+                              section.strengths.map((strength, idx) => (
+                                <li key={idx} className="text-sm text-emerald-700">{strength}</li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-muted-foreground italic">No strengths recorded</li>
+                            )}
+                          </ul>
+                          
+                          <h4 className="text-sm font-semibold mb-2">Weaknesses</h4>
+                          <ul className="space-y-1 list-disc pl-5">
+                            {section.weaknesses && section.weaknesses.length > 0 ? (
+                              section.weaknesses.map((weakness, idx) => (
+                                <li key={idx} className="text-sm text-rose-700">{weakness}</li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-muted-foreground italic">No weaknesses recorded</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                      
                       <Button 
                         variant="link" 
                         size="sm" 
