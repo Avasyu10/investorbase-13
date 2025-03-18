@@ -1,3 +1,4 @@
+
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from '@/hooks/use-toast';
@@ -21,7 +22,7 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
       scale: 2, // Higher scale for better quality
       useCORS: true, // Enable CORS to load external images
       logging: false,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#111827', // Match the dark theme background
       windowWidth: element.scrollWidth,
       windowHeight: element.scrollHeight,
       // Make sure to capture all content
@@ -47,65 +48,81 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
             (el as HTMLElement).style.color = color;
           }
           
-          // Process all children
+          // Process all children recursively
           Array.from(el.children).forEach(preserveColors);
         };
         
         // Apply color preservation to all elements
         preserveColors(clonedDoc.getElementById(elementId) as Element);
         
+        // Set the background of the report to match dark theme
+        const reportContent = clonedDoc.getElementById(elementId);
+        if (reportContent) {
+          reportContent.style.backgroundColor = '#111827';
+          reportContent.style.color = '#f3f4f6';
+          reportContent.style.padding = '0';
+          reportContent.style.margin = '0';
+        }
+        
         // Apply professional formatting to the PDF content
         const allElements = clonedDoc.querySelectorAll('*');
         allElements.forEach((el) => {
+          // Ensure no elements break across pages
+          (el as HTMLElement).style.pageBreakInside = 'avoid';
+          
           if (el.tagName === 'H3') {
-            (el as HTMLElement).style.fontSize = '16px';
+            (el as HTMLElement).style.fontSize = '18px';
             (el as HTMLElement).style.fontWeight = 'bold';
             (el as HTMLElement).style.marginTop = '15px';
-            (el as HTMLElement).style.marginBottom = '8px';
+            (el as HTMLElement).style.marginBottom = '10px';
             (el as HTMLElement).style.paddingBottom = '5px';
-            // Keep original color but ensure border
-            (el as HTMLElement).style.borderBottom = '1px solid #eeeeee';
+            (el as HTMLElement).style.borderBottom = '1px solid #374151';
           }
           
           if (el.tagName === 'H4') {
-            (el as HTMLElement).style.fontSize = '14px';
+            (el as HTMLElement).style.fontSize = '16px';
             (el as HTMLElement).style.fontWeight = 'bold';
             (el as HTMLElement).style.marginTop = '12px';
-            (el as HTMLElement).style.marginBottom = '6px';
+            (el as HTMLElement).style.marginBottom = '8px';
           }
           
           if (el.tagName === 'P') {
-            (el as HTMLElement).style.fontSize = '12px';
-            (el as HTMLElement).style.lineHeight = '1.5';
+            (el as HTMLElement).style.fontSize = '14px';
+            (el as HTMLElement).style.lineHeight = '1.6';
+            (el as HTMLElement).style.marginBottom = '8px';
           }
           
           if (el.tagName === 'LI') {
-            (el as HTMLElement).style.fontSize = '12px';
+            (el as HTMLElement).style.fontSize = '14px';
             (el as HTMLElement).style.lineHeight = '1.5';
-            (el as HTMLElement).style.marginBottom = '4px';
+            (el as HTMLElement).style.marginBottom = '6px';
+            (el as HTMLElement).style.textAlign = 'left';
           }
           
           if (el.tagName === 'UL') {
             (el as HTMLElement).style.paddingLeft = '20px';
-            (el as HTMLElement).style.marginBottom = '12px';
+            (el as HTMLElement).style.marginBottom = '14px';
+            (el as HTMLElement).style.textAlign = 'left';
           }
         });
         
         // Ensure title is properly styled
         const titleElement = clonedDoc.querySelector('.text-2xl');
         if (titleElement) {
-          (titleElement as HTMLElement).style.fontSize = '22px';
+          (titleElement as HTMLElement).style.fontSize = '24px';
           (titleElement as HTMLElement).style.fontWeight = 'bold';
           (titleElement as HTMLElement).style.textAlign = 'center';
-          (titleElement as HTMLElement).style.padding = '15px 0';
-          (titleElement as HTMLElement).style.borderBottom = '2px solid #333';
-          (titleElement as HTMLElement).style.marginBottom = '20px';
+          (titleElement as HTMLElement).style.padding = '20px 0';
+          (titleElement as HTMLElement).style.borderBottom = '2px solid #4b5563';
+          (titleElement as HTMLElement).style.marginBottom = '25px';
+          (titleElement as HTMLElement).style.color = '#f3f4f6';
         }
         
         // Apply page break before "Latest Research" section
         const researchHeader = clonedDoc.querySelector('.research-content h3');
         if (researchHeader) {
           (researchHeader.parentNode as HTMLElement).style.pageBreakBefore = 'always';
+          (researchHeader.parentNode as HTMLElement).style.paddingTop = '20px';
         }
         
         // Setup the detailed sections layout - convert to a two-column layout
@@ -119,71 +136,86 @@ export async function generatePDF(elementId: string, fileName: string): Promise<
           // Style each section as a card with original colors preserved
           (el as HTMLElement).style.maxHeight = 'none';
           (el as HTMLElement).style.overflow = 'visible';
-          (el as HTMLElement).style.padding = '15px';
-          (el as HTMLElement).style.borderRadius = '5px';
-          (el as HTMLElement).style.marginTop = '10px';
-          (el as HTMLElement).style.marginBottom = '20px';
-          (el as HTMLElement).style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+          (el as HTMLElement).style.padding = '20px';
+          (el as HTMLElement).style.borderRadius = '6px';
+          (el as HTMLElement).style.marginTop = '15px';
+          (el as HTMLElement).style.marginBottom = '25px';
+          (el as HTMLElement).style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+          (el as HTMLElement).style.pageBreakInside = 'avoid'; // Prevent section from breaking across pages
           
           // Ensure headers in sections stand out
           const sectionHeaders = el.querySelectorAll('h4');
           sectionHeaders.forEach(header => {
-            (header as HTMLElement).style.fontSize = '14px';
+            (header as HTMLElement).style.fontSize = '16px';
             (header as HTMLElement).style.fontWeight = '600';
-            (header as HTMLElement).style.marginTop = '10px';
-            (header as HTMLElement).style.marginBottom = '5px';
-            (header as HTMLElement).style.borderBottom = '1px solid #eaeaea';
-            (header as HTMLElement).style.paddingBottom = '3px';
+            (header as HTMLElement).style.marginTop = '12px';
+            (header as HTMLElement).style.marginBottom = '8px';
+            (header as HTMLElement).style.borderBottom = '1px solid #374151';
+            (header as HTMLElement).style.paddingBottom = '5px';
+            (header as HTMLElement).style.color = '#f3f4f6';
+          });
+          
+          // Style strengths with green color
+          const strengthItems = el.querySelectorAll('.text-emerald-700');
+          strengthItems.forEach(item => {
+            (item as HTMLElement).style.color = '#10b981'; // Emerald color for strengths
+          });
+          
+          // Style weaknesses with red color
+          const weaknessItems = el.querySelectorAll('.text-rose-700');
+          weaknessItems.forEach(item => {
+            (item as HTMLElement).style.color = '#f43f5e'; // Rose color for weaknesses
           });
         });
       }
     });
 
-    // Calculate dimensions
+    // Calculate dimensions for A4 with no margins
     const imgWidth = 210; // A4 width in mm
     const pageHeight = 297; // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    // Calculate number of pages
-    let heightLeft = imgHeight;
-    let position = 0;
+    // Create PDF document with no margins
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    });
     
-    // Create PDF document
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    // Remove white margins from pages
+    pdf.setDrawColor(17, 24, 39); // Dark background color
+    pdf.setFillColor(17, 24, 39); // Dark background color
     
-    // Add a header to the PDF
-    const addHeader = (pageNumber: number) => {
-      pdf.setFontSize(10);
-      pdf.setTextColor(128, 128, 128);
-      const reportDate = new Date().toLocaleDateString();
-      pdf.text(`Generated on ${reportDate}`, 10, 10);
-      pdf.text('Company Assessment Report', imgWidth - 70, 10);
-    };
-    
-    // Add a footer with page numbers
-    const addFooter = (pageNumber: number) => {
-      pdf.setFontSize(10);
-      pdf.setTextColor(128, 128, 128);
-      pdf.text(`Page ${pageNumber}`, imgWidth - 20, pageHeight - 10);
-    };
-    
-    // Add first page
-    addHeader(1);
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 15, imgWidth, imgHeight);
-    addFooter(1);
+    // Add the canvas image to fill the entire page without margins
+    pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, imgWidth, imgHeight);
     
     // Add more pages if needed
-    heightLeft -= pageHeight - 20; // Adjust for header and footer
+    let heightLeft = imgHeight - pageHeight;
+    let position = -pageHeight;
     let pageNumber = 1;
     
     while (heightLeft > 0) {
-      pageNumber++;
-      position = heightLeft - imgHeight + 20; // Adjust for header
       pdf.addPage();
-      addHeader(pageNumber);
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-      addFooter(pageNumber);
-      heightLeft -= (pageHeight - 20); // Adjust for header and footer
+      pageNumber++;
+      position -= pageHeight;
+      
+      // Fill the new page with the background color
+      pdf.setDrawColor(17, 24, 39);
+      pdf.setFillColor(17, 24, 39);
+      pdf.rect(0, 0, imgWidth, pageHeight, 'F');
+      
+      // Add the rest of the content
+      pdf.addImage(
+        canvas.toDataURL('image/png', 1.0), 
+        'PNG', 
+        0, // Left margin = 0
+        position, // Position based on previous page
+        imgWidth, // Full width
+        imgHeight // Full height of content
+      );
+      
+      heightLeft -= pageHeight;
     }
     
     // Save the PDF

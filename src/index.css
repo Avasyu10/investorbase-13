@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -204,10 +205,32 @@
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
   
-  /* Ensure section cards maintain their style */
-  .section-detail {
-    break-inside: avoid;
+  /* Prevent content from breaking across pages */
+  .section-detail, 
+  h3, h4, p, 
+  .card, 
+  .research-section {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Ensure list items don't break across pages */
+  li {
+    page-break-inside: avoid;
+  }
+  
+  /* Force page breaks for sections */
+  .research-content {
+    page-break-before: always;
+  }
+  
+  /* Remove white spaces */
+  body, html, #root, .container, .card {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #111827 !important;
   }
 }
