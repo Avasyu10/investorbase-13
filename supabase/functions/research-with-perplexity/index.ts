@@ -35,24 +35,24 @@ serve(async (req) => {
 ${assessmentText}
 
 Format each insight like a NEWS ARTICLE with:
-1. A compelling headline (make it specific and attention-grabbing)
+1. A compelling headline (make it specific and directly related to this company's business model)
 2. Publication information in parentheses (e.g., "Bloomberg, June 2024")
-3. 2-3 concise sentences with concrete facts, figures, and insights
+3. 2-3 concise sentences with concrete facts, figures, and insights DIRECTLY APPLICABLE to this specific company
 4. ALWAYS include a URL to a real, reputable news source at the end
 
-Focus on these categories and provide AT LEAST ONE article for each:
-- Market Size & Growth: Latest projections with SPECIFIC numbers and growth percentages
-- Recent Funding: Notable investment rounds or acquisitions in this sector (past 6 months)
-- Market Trends: Emerging patterns that will impact this business (use data points)
-- Regulatory Updates: Recent policy changes affecting this industry
-- Industry Challenges: Obstacles reported by similar companies
+Focus on these categories and provide EXACTLY ONE article for each:
+- Market Size & Growth: Latest projections with SPECIFIC numbers and growth percentages directly relevant to this company
+- Recent Funding: Notable investment rounds or acquisitions in this exact sector (past 6 months)
+- Market Trends: Emerging patterns that will specifically impact this business (use data points)
+- Regulatory Updates: Recent policy changes directly affecting this industry
+- Industry Challenges: Obstacles reported by similar companies in this specific market
 
 Each news item should be formatted with a ### prefix, like:
-### [COMPELLING HEADLINE]
-(Publication Name, Date) Key insights with concrete facts and figures. More specific details about the topic. Additional context about why this matters to the industry.
+### [COMPELLING HEADLINE SPECIFIC TO THIS COMPANY]
+(Publication Name, Date) Key insights with concrete facts and figures RELEVANT TO THIS COMPANY. More specific details about how this directly impacts this business. Additional context about why this particularly matters to this company's strategy.
 Source: [URL]
 
-Provide 6-8 diverse articles total. Make each headline unique and insightful. Focus on RECENT, FACTUAL data that would be valuable to investors.`;
+Provide exactly 5 diverse articles total, one per category. Make each headline unique and insightful. Focus on RECENT, FACTUAL data that would be valuable to investors assessing THIS SPECIFIC COMPANY.`;
 
     console.log("Sending request to Perplexity API");
     
@@ -68,7 +68,7 @@ Provide 6-8 diverse articles total. Make each headline unique and insightful. Fo
         messages: [
           {
             role: 'system',
-            content: 'You are a financial journalist writing market research news articles. Provide factual, recent insights with specific data points from reliable sources. Format as news articles with headlines, publication info, and source URLs.'
+            content: 'You are a financial journalist writing market research news articles. Provide factual, recent insights with specific data points from reliable sources. Focus exclusively on information directly relevant to the company being analyzed.'
           },
           {
             role: 'user',

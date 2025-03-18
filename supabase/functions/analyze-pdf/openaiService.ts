@@ -11,7 +11,13 @@ You will perform a step-by-step deep-dive analysis of a startup based on its pit
 - Industry-specific metrics and KPIs with SPECIFIC NUMERICAL THRESHOLDS and industry averages
 - Market challenges and opportunities with MEASURABLE IMPACTS in dollars or percentages
 
-For EVERY section of your analysis, you MUST include AT MINIMUM 10-15 relevant industry research points, competitor data, and EXACT NUMERICAL market statistics from reputable sources with specific dates when the research was published. Do NOT merely analyze what's in the deck - at least 70% of your analysis should be based on external market research and data not found in the pitch deck.
+For EVERY section of your analysis, you MUST include 4-7 relevant insights that are DIRECTLY RELATED to the startup being analyzed. EVERY insight must be highly relevant to the specific company in the pitch deck, not general industry information. 
+
+Each insight MUST include AT LEAST ONE of the following:
+- EXACT NUMERICAL DATA directly relevant to the company's business model or market
+- SPECIFIC COMPETITOR information that directly impacts this company's position
+- CONCRETE EVIDENCE from the pitch deck that supports or contradicts the company's claims
+- PRECISE financial metrics or projections that are directly applicable to this company
 
 YOU MUST INCLUDE:
 - Precise dollar amounts for market sizes (e.g., "$4.7 billion" not "billions")
@@ -55,74 +61,65 @@ Npw, here is a step-by-step process of how you should get your thesis ready -
    - Weaknesses: ["Critical oversight: [section name] is missing", "Incomplete pitch deck structure"]
    - Detailed content: Must include warning about missing section
 3. If present:
-Analyze each section with a structured breakdown and ALWAYS include external market data with SPECIFIC NUMERICAL VALUES:  
+Analyze each section with a structured breakdown and ALWAYS include external market data with SPECIFIC NUMERICAL VALUES DIRECTLY RELEVANT TO THIS COMPANY:  
 
 1. **Problem and Market Opportunity**  
    - Include market size data WITH EXACT DOLLAR FIGURES (must include TAM, SAM, SOM with specific dollar amounts)
    - Add specific growth rates with actual percentages (e.g., "growing at 14.3% CAGR" not just "rapid growth")
-   - Include at least 10 data points with specific numbers including dates and sources of the research
-   - Compare problem severity with quantifiable metrics (e.g., "costs businesses $5.2B annually")
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's specific problem and market
    - Include specific adoption rates, conversion percentages, and industry penetration figures
    
 2. **Solution (Product)**  
    - Reference similar solutions in the market and their success/failure WITH METRICS
-   - Include technological trends and adoption rates with SPECIFIC PERCENTAGES for similar technologies
-   - Provide at least 10 quantifiable benchmarks for the solution
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's specific solution/product
    - Include pricing comparisons with exact dollar figures
    - Add measurable efficiency improvements with specific percentage gains or cost reductions
    
 3. **Competitive Landscape**  
    - Provide detailed competitor analysis with SPECIFIC MARKET SHARE DATA (percentages)
    - Include list of competitors with their EXACT FUNDING AMOUNTS and dates, market valuations, and growth metrics
-   - Include at least 10 numerical comparisons between competitors
-   - Add specific customer acquisition costs and customer lifetime value metrics across the industry
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's competitive position
    - Include pricing model comparisons with exact dollar figures
    
 4. **Traction**  
    - Compare the startup's traction to industry benchmarks with SPECIFIC NUMERICAL GROWTH RATES
    - Add market adoption data with EXACT USER NUMBERS/PERCENTAGES for similar products/services
-   - Include at least 10 traction metrics with actual numbers
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's traction metrics
    - Add specific revenue figures for comparable companies at similar stages
-   - Include customer acquisition costs and retention percentages for the industry
    
 5. **Business Model**  
    - Include industry-standard pricing models with SPECIFIC PRICE POINTS and revenue benchmarks
    - Reference successful and unsuccessful business models with ACTUAL REVENUE FIGURES
-   - Include at least 10 numerical business metrics from the industry
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's business model
    - Add profit margin percentages for comparable companies
-   - Include specific sales cycle lengths in days/weeks
    
 6. **Go-to-Market Strategy**  
    - Provide data on CAC (EXACT DOLLAR AMOUNTS), conversion rates (SPECIFIC PERCENTAGES), and sales cycles (SPECIFIC TIME PERIODS) for the industry
    - Include successful GTM case studies with NUMERICAL OUTCOMES from the industry
-   - Include at least 10 quantifiable metrics for GTM success
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's GTM strategy
    - Add specific marketing spend benchmarks with dollar figures
-   - Include channel effectiveness metrics with percentage comparisons
    
 7. **Team**  
    - Compare team experience and composition to successful startups with SPECIFIC TENURE METRICS
    - Include industry hiring trends and talent requirements with NUMERICAL ANALYSIS
-   - Include at least 10 quantifiable team success factors from similar companies
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's team composition
    - Add specific failure rates for startups with comparable team compositions
-   - Include compensation benchmarks and team size metrics from the industry
    
 8. **Financials**  
    - Compare financial projections to industry standards with SPECIFIC REVENUE AND GROWTH FIGURES
    - Include relevant unit economics with EXACT NUMBERS from similar companies
-   - Include at least 10 key financial indicators with numeric values
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's financial projections
    - Add specific burn rate comparisons and runway metrics
-   - Include average time to profitability in months for comparable startups
    
 9. **The Ask**  
    - Compare valuation to recent rounds in the industry with SPECIFIC DOLLAR AMOUNTS
    - Include data on typical investment amounts for similar stage startups with EXACT FIGURES
-   - Include at least 10 comparable investment rounds with dollar amounts
+   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's funding request
    - Add average dilution percentages for similar funding rounds
-   - Include post-money valuation metrics for the sector
 
 ### **For Each Section, Provide:**  
-- **Detailed external market research data with SPECIFIC NUMBERS AND METRICS (THIS IS THE MOST IMPORTANT PART - minimum 10-15 numerical data points per section)**
-- **A detailed description (at least 5-6 sentences) explaining key insights with QUANTITATIVE ANALYSIS.**  
+- **A concise description (2-3 sentences) explaining the key insights.**  
+- **EXACTLY 4-7 key insights that are DIRECTLY RELEVANT to the company being analyzed, each with SPECIFIC NUMERICAL DATA.**
 - **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
 - **For present sections ONLY: 5-7 strengths with MEASURABLE IMPACTS (DO NOT include ANY strengths for missing sections with a score of 0.5).**  
 - **5-7 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
