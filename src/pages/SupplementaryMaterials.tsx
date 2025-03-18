@@ -24,6 +24,9 @@ type SupplementaryFile = {
   type?: string; 
 };
 
+// The correct bucket name as shown in your Supabase dashboard
+const STORAGE_BUCKET_NAME = "Supplementary Materials";
+
 const SupplementaryMaterials = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
@@ -55,7 +58,7 @@ const SupplementaryMaterials = () => {
           // Function to check if the bucket exists
           const checkBucketExists = async () => {
             try {
-              console.log("Checking if supplementary-materials bucket exists");
+              console.log(`Checking if ${STORAGE_BUCKET_NAME} bucket exists`);
               
               const { data: buckets, error: bucketsError } = await supabase.storage
                 .listBuckets();
@@ -65,7 +68,8 @@ const SupplementaryMaterials = () => {
                 throw new Error(`Failed to list buckets: ${bucketsError.message}`);
               }
               
-              const bucketExists = buckets?.some(bucket => bucket.name === 'supplementary-materials');
+              // Compare with the actual bucket name (case sensitive)
+              const bucketExists = buckets?.some(bucket => bucket.name === STORAGE_BUCKET_NAME);
               console.log("Bucket exists:", bucketExists);
               
               return bucketExists;
@@ -116,7 +120,7 @@ const SupplementaryMaterials = () => {
           // Check if the bucket exists
           const bucketExists = await checkBucketExists();
           if (!bucketExists) {
-            throw new Error("The supplementary materials storage bucket does not exist");
+            throw new Error(`The ${STORAGE_BUCKET_NAME} storage bucket does not exist`);
           }
           
           // Get the report ID
@@ -133,9 +137,9 @@ const SupplementaryMaterials = () => {
           
           console.log("Fetching supplementary files for report:", reportId);
           
-          // List all files in the supplementary-materials folder for this report
+          // List all files in the storage bucket for this report - use the correct bucket name
           const { data, error } = await supabase.storage
-            .from('supplementary-materials')
+            .from(STORAGE_BUCKET_NAME)
             .list(`${reportId}`);
             
           if (error) {
@@ -152,7 +156,7 @@ const SupplementaryMaterials = () => {
               console.log(`Creating signed URL for file: ${reportId}/${file.name}`);
               
               const { data: url, error: urlError } = await supabase.storage
-                .from('supplementary-materials')
+                .from(STORAGE_BUCKET_NAME)
                 .createSignedUrl(`${reportId}/${file.name}`, 3600); // 1 hour expiry
                 
               if (urlError) {
