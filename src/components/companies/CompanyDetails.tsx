@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -36,7 +35,6 @@ export function CompanyDetails() {
     });
   };
 
-  // Handle research update state - clear the flag once we have fresh data
   useEffect(() => {
     if (hasResearchUpdated && company?.perplexityResponse) {
       setHasResearchUpdated(false);
