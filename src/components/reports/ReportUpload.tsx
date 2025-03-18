@@ -23,9 +23,10 @@ import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedIn
 
 interface ReportUploadProps {
   onError?: (errorMessage: string) => void;
+  onProcessingStateChange?: (isProcessing: boolean) => void;
 }
 
-export function ReportUpload({ onError }: ReportUploadProps) {
+export function ReportUpload({ onError, onProcessingStateChange }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
@@ -41,6 +42,7 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [hasValidSession, setHasValidSession] = useState(false);
+  const [allowRedirect, setAllowRedirect] = useState(true);
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
 
@@ -71,6 +73,21 @@ export function ReportUpload({ onError }: ReportUploadProps) {
     
     checkAuth();
   }, [navigate, onError]);
+
+  useEffect(() => {
+    const isProcessing = isUploading || isAnalyzing;
+    if (onProcessingStateChange) {
+      onProcessingStateChange(isProcessing);
+    }
+  }, [isUploading, isAnalyzing, onProcessingStateChange]);
+
+  useEffect(() => {
+    if (isUploading || isAnalyzing) {
+      setAllowRedirect(false);
+    } else {
+      setAllowRedirect(true);
+    }
+  }, [isUploading, isAnalyzing]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -162,6 +179,7 @@ export function ReportUpload({ onError }: ReportUploadProps) {
 
     try {
       setIsUploading(true);
+      setAllowRedirect(false); // Prevent redirects while processing
       setProgressStage("Processing your submission...");
       setProgress(10);
       
@@ -287,6 +305,8 @@ export function ReportUpload({ onError }: ReportUploadProps) {
           description: "Your pitch deck has been analyzed successfully!"
         });
         
+        // Only navigate after analysis is fully complete
+        setAllowRedirect(true);
         if (result && result.companyId) {
           navigate(`/company/${result.companyId}`);
         } else {
@@ -305,7 +325,7 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         }
         
         setProgress(0);
-        
+        setAllowRedirect(true);
         navigate('/dashboard');
         return;
       }
@@ -328,10 +348,12 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       }
       
       setProgress(0);
+      setAllowRedirect(true);
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
       setIsScrapingWebsite(false);
+      // Don't set allowRedirect here to avoid navigation issues
     }
   };
 

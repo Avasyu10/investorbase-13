@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -13,11 +13,19 @@ import { supabase } from "@/integrations/supabase/client";
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [validSession, setValidSession] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    // Check URL for processing indicator
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('processing') === 'true') {
+      setIsProcessing(true);
+    }
+
     // Extra check for session to ensure authentication
     const checkAuth = async () => {
       try {
@@ -34,8 +42,11 @@ const UploadReport = () => {
         
         if (!data.session) {
           console.log("No active session found in UploadReport");
-          // Store the current location so we can redirect back after login
-          navigate('/login', { state: { from: '/upload' } });
+          // Don't redirect if we're already processing something
+          if (!isProcessing) {
+            // Store the current location so we can redirect back after login
+            navigate('/login', { state: { from: '/upload' } });
+          }
           return;
         }
         
@@ -59,7 +70,7 @@ const UploadReport = () => {
         setCheckingAuth(false);
       }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, location.search, isProcessing]);
 
   // Reset error when component unmounts or on route change
   useEffect(() => {
@@ -78,9 +89,26 @@ const UploadReport = () => {
     if (errorMessage.toLowerCase().includes("not authenticated") || 
         errorMessage.toLowerCase().includes("authentication required")) {
       // We're storing the intended destination to redirect back after successful login
-      navigate('/login', { state: { from: '/upload' } });
+      if (!isProcessing) {
+        navigate('/login', { state: { from: '/upload' } });
+      }
     }
     // Don't redirect for other types of errors
+  };
+
+  const handleProcessingStateChange = (processing: boolean) => {
+    setIsProcessing(processing);
+    
+    // Update URL with processing state for page refreshes
+    const url = new URL(window.location.href);
+    if (processing) {
+      url.searchParams.set('processing', 'true');
+    } else {
+      url.searchParams.delete('processing');
+    }
+    
+    // Update URL without triggering navigation
+    window.history.replaceState({}, '', url.toString());
   };
 
   if (isLoading || checkingAuth) {
@@ -92,7 +120,7 @@ const UploadReport = () => {
     );
   }
 
-  if (!validSession && !user) {
+  if (!validSession && !user && !isProcessing) {
     return (
       <div className="flex flex-col justify-center items-center h-64">
         <Alert variant="destructive" className="max-w-md">
@@ -118,8 +146,17 @@ const UploadReport = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => {
+            if (!isProcessing) {
+              navigate('/dashboard');
+            } else {
+              toast.warning("Analysis in progress", {
+                description: "Please wait for the analysis to complete before navigating away."
+              });
+            }
+          }}
           className="mb-6"
+          disabled={isProcessing}
         >
           <ChevronLeft className="mr-1" /> Back to Dashboard
         </Button>
@@ -140,7 +177,10 @@ const UploadReport = () => {
           </p>
         </div>
         
-        <ReportUpload onError={handleError} />
+        <ReportUpload 
+          onError={handleError} 
+          onProcessingStateChange={handleProcessingStateChange}
+        />
       </div>
     </div>
   );

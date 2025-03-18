@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const isProcessingRef = useRef<boolean>(false);
 
   const updateAuthState = (newSession: Session | null) => {
     const sessionChanged = (!!newSession) !== (!!session);
@@ -73,6 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateAuthState(currentSession);
         setIsLoading(false);
         
+        // Don't redirect if in an upload or processing operation
+        if (isProcessingRef.current) {
+          console.log('Processing in progress, skipping auth-related redirect');
+          return;
+        }
+        
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
           
@@ -99,6 +106,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     );
+
+    // Check URL for processing indicator
+    if (location.pathname === '/upload') {
+      const searchParams = new URLSearchParams(location.search);
+      if (searchParams.get('processing') === 'true') {
+        isProcessingRef.current = true;
+      }
+    }
 
     return () => {
       subscription.unsubscribe();
