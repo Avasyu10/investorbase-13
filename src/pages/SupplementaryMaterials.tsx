@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, AlertCircle, Download } from "lucide-react";
+import { ChevronLeft, AlertCircle, Download, FileText } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 type SupplementaryFile = {
   name: string;
   url: string;
+  size?: number;
+  type?: string; 
 };
 
 const SupplementaryMaterials = () => {
@@ -31,6 +33,7 @@ const SupplementaryMaterials = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [noFilesDialogOpen, setNoFilesDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -39,21 +42,121 @@ const SupplementaryMaterials = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
+    // Function to check if the bucket exists and create it if it doesn't
+    const ensureBucketExists = async () => {
+      try {
+        console.log("Checking if supplementary-materials bucket exists");
+        
+        // Check if the bucket exists
+        const { data: buckets, error: bucketsError } = await supabase.storage
+          .listBuckets();
+          
+        if (bucketsError) {
+          console.error("Error listing buckets:", bucketsError);
+          return false;
+        }
+        
+        const bucketExists = buckets?.some(bucket => bucket.name === 'supplementary-materials');
+        
+        if (!bucketExists) {
+          console.log("Bucket doesn't exist, creating it");
+          
+          // Create the bucket
+          const { data, error } = await supabase.storage
+            .createBucket('supplementary-materials', {
+              public: false,
+              fileSizeLimit: 10485760 // 10MB
+            });
+            
+          if (error) {
+            console.error("Error creating bucket:", error);
+            return false;
+          }
+          
+          console.log("Created bucket:", data);
+        } else {
+          console.log("Bucket already exists");
+        }
+        
+        return true;
+      } catch (err) {
+        console.error("Error in ensureBucketExists:", err);
+        return false;
+      }
+    };
+
+    // Function to get the report ID associated with the company
+    const getReportIdForCompany = async () => {
+      if (!companyId) return null;
+      
+      try {
+        // Try to get the report ID from the company object first
+        if (company?.reportId) {
+          console.log("Using reportId from company object:", company.reportId);
+          return company.reportId;
+        }
+        
+        // If not found in the company object, try to get it from the reports table
+        console.log("Looking up reportId from reports table for company:", companyId);
+        
+        const { data, error } = await supabase
+          .from('reports')
+          .select('id')
+          .eq('company_id', companyId)
+          .maybeSingle();
+          
+        if (error) {
+          console.error("Error getting report ID:", error);
+          return null;
+        }
+        
+        if (data?.id) {
+          console.log("Found reportId in reports table:", data.id);
+          return data.id;
+        }
+        
+        console.log("No reportId found for company", companyId);
+        return null;
+      } catch (err) {
+        console.error("Error in getReportIdForCompany:", err);
+        return null;
+      }
+    };
+
     const fetchSupplementaryFiles = async () => {
-      if (!company || !company.reportId) {
-        console.log("No company or reportId available");
+      if (!company) {
+        console.log("No company available");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Make sure the bucket exists
+      const bucketExists = await ensureBucketExists();
+      if (!bucketExists) {
+        setError("Error ensuring storage bucket exists");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Get the report ID
+      const reportId = await getReportIdForCompany();
+      
+      setDebugInfo(prev => prev + `\nCompany: ${company.name}\nReport ID: ${reportId}`);
+      
+      if (!reportId) {
+        console.log("No reportId available for company:", company.name);
         setNoFilesDialogOpen(true);
         setIsLoading(false);
         return;
       }
       
-      console.log("Fetching supplementary files for report:", company.reportId);
+      console.log("Fetching supplementary files for report:", reportId);
       
       try {
         // List all files in the supplementary-materials folder for this report
         const { data, error } = await supabase.storage
           .from('supplementary-materials')
-          .list(`${company.reportId}`);
+          .list(`${reportId}`);
           
         if (error) {
           console.error("Error fetching supplementary files:", error);
@@ -63,15 +166,16 @@ const SupplementaryMaterials = () => {
         }
         
         console.log("Files data from Supabase:", data);
+        setDebugInfo(prev => prev + `\nFiles found: ${data?.length || 0}`);
         
         if (data && data.length > 0) {
           // Create file objects with signed URLs
           const filePromises = data.map(async (file) => {
-            console.log(`Creating signed URL for file: ${company.reportId}/${file.name}`);
+            console.log(`Creating signed URL for file: ${reportId}/${file.name}`);
             
             const { data: url, error: urlError } = await supabase.storage
               .from('supplementary-materials')
-              .createSignedUrl(`${company.reportId}/${file.name}`, 3600); // 1 hour expiry
+              .createSignedUrl(`${reportId}/${file.name}`, 3600); // 1 hour expiry
               
             if (urlError) {
               console.error(`Error creating signed URL for ${file.name}:`, urlError);
@@ -82,7 +186,9 @@ const SupplementaryMaterials = () => {
             
             return {
               name: file.name,
-              url: url?.signedUrl || ''
+              url: url?.signedUrl || '',
+              size: file.metadata?.size,
+              type: file.metadata?.mimetype
             };
           });
           
@@ -90,6 +196,7 @@ const SupplementaryMaterials = () => {
           const validFiles = fileObjects.filter(file => file.url);
           
           console.log(`Found ${validFiles.length} valid files with URLs`);
+          setDebugInfo(prev => prev + `\nValid files: ${validFiles.length}`);
           setFiles(validFiles);
           
           if (validFiles.length === 0) {
@@ -110,43 +217,10 @@ const SupplementaryMaterials = () => {
       }
     };
     
-    if (company) {
+    if (company && !isLoading) {
       fetchSupplementaryFiles();
     }
-  }, [company]);
-
-  // Check if the supplementary-materials bucket exists and create it if it doesn't
-  useEffect(() => {
-    const checkAndCreateBucket = async () => {
-      try {
-        // Attempt to get bucket details to see if it exists
-        const { data: bucketData, error: bucketError } = await supabase.storage
-          .getBucket('supplementary-materials');
-          
-        if (bucketError) {
-          console.log("Supplementary materials bucket might not exist, attempting to create it");
-          // Try to create the bucket
-          const { data, error } = await supabase.storage
-            .createBucket('supplementary-materials', {
-              public: false,
-              fileSizeLimit: 10485760 // 10MB
-            });
-            
-          if (error) {
-            console.error("Error creating supplementary materials bucket:", error);
-          } else {
-            console.log("Created supplementary materials bucket:", data);
-          }
-        } else {
-          console.log("Supplementary materials bucket exists:", bucketData);
-        }
-      } catch (err) {
-        console.error("Error checking/creating bucket:", err);
-      }
-    };
-    
-    checkAndCreateBucket();
-  }, []);
+  }, [company, companyId]);
 
   const handleBackClick = () => {
     navigate(-1); // Navigate to the previous page in history
@@ -221,7 +295,17 @@ const SupplementaryMaterials = () => {
                 key={index}
                 className="flex items-center justify-between p-4 bg-card rounded-md border shadow-sm"
               >
-                <span className="font-medium">{file.name}</span>
+                <div className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
+                  <div>
+                    <span className="font-medium">{file.name}</span>
+                    {file.size && (
+                      <p className="text-sm text-muted-foreground">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button 
                     onClick={() => window.open(file.url, '_blank')}
@@ -240,6 +324,14 @@ const SupplementaryMaterials = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        
+        {/* Debug info in development mode (add ?debug=true to URL) */}
+        {window.location.search.includes('debug=true') && debugInfo && (
+          <div className="mt-8 p-4 bg-muted rounded border">
+            <h3 className="font-bold">Debug Info:</h3>
+            <pre className="whitespace-pre-wrap text-xs">{debugInfo}</pre>
           </div>
         )}
         
