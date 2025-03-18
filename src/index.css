@@ -188,7 +188,7 @@
 
 /* PDF-specific styles */
 .hidden-in-pdf {
-  display: none;
+  display: none !important;
 }
 
 @media print {
@@ -199,6 +199,7 @@
   /* Force page breaks */
   .pdf-page-break {
     page-break-before: always;
+    break-before: page;
   }
   
   /* Ensure colors print correctly */
@@ -208,23 +209,29 @@
     color-adjust: exact !important;
   }
   
-  /* Prevent content from breaking across pages */
+  /* Critical: Prevent content from breaking across pages */
   .section-detail, 
   h3, h4, p, 
   .card, 
-  .research-section {
+  .research-section,
+  .space-y-1,
+  .space-y-4 div {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
   
   /* Ensure list items don't break across pages */
-  li {
-    page-break-inside: avoid;
+  li, ul {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   /* Force page breaks for sections */
   .research-content {
-    page-break-before: always;
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   /* Remove white spaces */
@@ -232,5 +239,11 @@
     margin: 0 !important;
     padding: 0 !important;
     background-color: #111827 !important;
+  }
+  
+  /* No content breaks */
+  p, h1, h2, h3, h4, h5, h6, ul, ol, pre, table, blockquote, article, section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

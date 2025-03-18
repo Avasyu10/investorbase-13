@@ -170,6 +170,37 @@ export default function AnalysisSummary() {
     fill: getColorForScore(section.score)
   }));
 
+  // Format research content for display in PDF
+  const formatResearchForPDF = () => {
+    if (!research) return null;
+    
+    return (
+      <div className="space-y-4">
+        {research.split(/#{3,}\s+/).filter(section => section.trim().length > 0).map((section, index) => {
+          const lines = section.split('\n');
+          const title = lines[0].replace(/^[#\s]+/, '');
+          const content = lines.slice(1).join('\n')
+            .replace(/\*\*/g, '')
+            .replace(/\[(\d+)\]/g, '')
+            .replace(/Sources:[\s\S]*$/, '')
+            .replace(/https?:\/\/[^\s]+/g, '')
+            .replace(/\n\s*\n/g, '\n')
+            .replace(/\n+$/, '')
+            .trim();
+          
+          if (!title.trim()) return null;
+          
+          return (
+            <div key={index} className="space-y-1">
+              <h4 className="text-sm font-semibold">{title}</h4>
+              <p className="text-sm text-muted-foreground">{content}</p>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="container max-w-5xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-4">
@@ -278,35 +309,46 @@ export default function AnalysisSummary() {
             </div>
 
             {/* Latest Research Section - Page 2 */}
-            <div className={`${expandedSectionId === 'all' ? '' : 'hidden-in-pdf'} mb-8 research-content`}>
+            <div className="mb-8 research-content">
               <h3 className="text-lg font-medium mb-4">Latest Market Research</h3>
-              {research ? (
-                <div className="space-y-4">
-                  {research.split(/#{3,}\s+/).filter(section => section.trim().length > 0).map((section, index) => {
-                    const lines = section.split('\n');
-                    const title = lines[0].replace(/^[#\s]+/, '');
-                    const content = lines.slice(1).join('\n')
-                      .replace(/\*\*/g, '')
-                      .replace(/\[(\d+)\]/g, '')
-                      .replace(/Sources:[\s\S]*$/, '')
-                      .replace(/https?:\/\/[^\s]+/g, '')
-                      .replace(/\n\s*\n/g, '\n')
-                      .replace(/\n+$/, '')
-                      .trim();
-                    
-                    if (!title.trim()) return null;
-                    
-                    return (
-                      <div key={index} className="space-y-1">
-                        <h4 className="text-sm font-semibold">{title}</h4>
-                        <p className="text-sm text-muted-foreground">{content}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-muted-foreground italic">No research data available</p>
-              )}
+              {/* For normal view */}
+              <div className={expandedSectionId === 'all' ? 'hidden' : ''}>
+                {research ? (
+                  <div className="space-y-4">
+                    {research.split(/#{3,}\s+/).filter(section => section.trim().length > 0).slice(0, 3).map((section, index) => {
+                      const lines = section.split('\n');
+                      const title = lines[0].replace(/^[#\s]+/, '');
+                      const content = lines.slice(1).join('\n')
+                        .replace(/\*\*/g, '')
+                        .replace(/\[(\d+)\]/g, '')
+                        .replace(/Sources:[\s\S]*$/, '')
+                        .replace(/https?:\/\/[^\s]+/g, '')
+                        .replace(/\n\s*\n/g, '\n')
+                        .replace(/\n+$/, '')
+                        .trim();
+                      
+                      if (!title.trim()) return null;
+                      
+                      return (
+                        <div key={index} className="space-y-1">
+                          <h4 className="text-sm font-semibold">{title}</h4>
+                          <p className="text-sm text-muted-foreground">{content}</p>
+                        </div>
+                      );
+                    })}
+                    {research.split(/#{3,}\s+/).filter(section => section.trim().length > 0).length > 3 && (
+                      <p className="text-sm text-muted-foreground italic">View report to see more research sections...</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">No research data available</p>
+                )}
+              </div>
+
+              {/* For PDF view - This will show ALL research content in the PDF */}
+              <div className={`${expandedSectionId !== 'all' ? 'hidden-in-pdf' : ''}`}>
+                {formatResearchForPDF()}
+              </div>
             </div>
 
             {/* Detailed Section Breakdown - Pages 3+ */}
@@ -342,8 +384,8 @@ export default function AnalysisSummary() {
                         {section.description || 'No description available'}
                       </p>
                       
-                      {/* Hidden section details for PDF */}
-                      {expandedSectionId === 'all' && (
+                      {/* Section details for PDF */}
+                      {(expandedSectionId === 'all' || expandedSectionId === section.id) && (
                         <div className="mt-4 section-detail hidden-in-pdf">
                           <h4 className="text-sm font-semibold mb-2">Strengths</h4>
                           <ul className="space-y-1 list-disc pl-5 mb-3">
