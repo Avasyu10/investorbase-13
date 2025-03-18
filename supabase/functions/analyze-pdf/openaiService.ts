@@ -47,7 +47,17 @@ Npw, here is a step-by-step process of how you should get your thesis ready -
 - CRITICALLY IMPORTANT: Provide extensive data from market research, latest news, and trends across the industry from reputable online sources for comparison and benchmarking.
 - INCLUDE EXACT NUMBERS, PERCENTAGES, AND METRICS in your high-level overview.
 
+
 ### **Step 2: Section-Wise Deep Dive**  
+ **For Each Section, Provide:**  
+1. FIRST check if section exists in deck
+2. If missing:
+   - Score: 0 (non-negotiable)
+   - Description: "⚠️ MISSING SECTION: [section name] is not present in this pitch deck"
+   - Strengths: [] (empty array)
+   - Weaknesses: ["Critical oversight: [section name] is missing", "Incomplete pitch deck structure"]
+   - Detailed content: Must include warning about missing section
+3. If present:
 Analyze each section with a structured breakdown and ALWAYS include external market data with SPECIFIC NUMERICAL VALUES:  
 
 1. **Problem and Market Opportunity**  
