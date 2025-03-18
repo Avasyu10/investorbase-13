@@ -15,6 +15,17 @@ import { generatePDF } from '@/lib/pdf-generator';
 import { LatestResearch } from '@/components/companies/LatestResearch';
 import { SectionDetail } from '@/components/companies/SectionDetail';
 import { getLatestResearch } from '@/lib/supabase/research';
+import { supabase } from '@/integrations/supabase/client';
+
+// Interface for section with strengths and weaknesses
+interface SectionWithDetails {
+  id: string;
+  title: string;
+  score: number;
+  description: string;
+  strengths: string[];
+  weaknesses: string[];
+}
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -25,6 +36,8 @@ export default function AnalysisSummary() {
   const [research, setResearch] = useState<string | undefined>(undefined);
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
   const [isLoadingResearch, setIsLoadingResearch] = useState(false);
+  const [sectionsWithDetails, setSelectionsWithDetails] = useState<SectionWithDetails[]>([]);
+  const [isLoadingSectionDetails, setIsLoadingSectionDetails] = useState(false);
 
   // Fetch research data for the PDF export
   useEffect(() => {
@@ -51,6 +64,60 @@ export default function AnalysisSummary() {
     }
   }, [company, companyId, research]);
 
+  // Fetch section details (strengths and weaknesses) for all sections
+  useEffect(() => {
+    const loadSectionDetails = async () => {
+      if (!company || !company.sections || company.sections.length === 0) return;
+      
+      setIsLoadingSectionDetails(true);
+      
+      try {
+        const sectionsWithDetailsData = await Promise.all(
+          company.sections.map(async (section) => {
+            const { data: detailsData, error: detailsError } = await supabase
+              .from('section_details')
+              .select('*')
+              .eq('section_id', section.id);
+              
+            if (detailsError) {
+              console.error("Error fetching section details:", detailsError);
+              return {
+                ...section,
+                strengths: [],
+                weaknesses: []
+              };
+            }
+            
+            const strengths = detailsData
+              .filter(detail => detail.detail_type === 'strength')
+              .map(detail => detail.content);
+              
+            const weaknesses = detailsData
+              .filter(detail => detail.detail_type === 'weakness')
+              .map(detail => detail.content);
+            
+            return {
+              id: section.id,
+              title: section.title,
+              score: section.score,
+              description: section.description || '',
+              strengths,
+              weaknesses
+            };
+          })
+        );
+        
+        setSelectionsWithDetails(sectionsWithDetailsData);
+      } catch (error) {
+        console.error("Error loading section details:", error);
+      } finally {
+        setIsLoadingSectionDetails(false);
+      }
+    };
+    
+    loadSectionDetails();
+  }, [company]);
+
   const handleDownloadReport = async () => {
     if (company) {
       // Expand all sections for PDF generation
@@ -67,7 +134,7 @@ export default function AnalysisSummary() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingSectionDetails) {
     return (
       <div className="container max-w-5xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-6">
@@ -244,7 +311,7 @@ export default function AnalysisSummary() {
             <div>
               <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {company.sections.map((section) => (
+                {sectionsWithDetails.map((section) => (
                   <Card key={section.id} className="overflow-hidden">
                     <CardHeader className="bg-muted/50 pb-2">
                       <CardTitle className="text-base">{section.title}</CardTitle>
