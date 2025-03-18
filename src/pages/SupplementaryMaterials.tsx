@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, AlertCircle, Download, FileText, Loader, Maximize2, Eye } from "lucide-react";
+import { ChevronLeft, AlertCircle, Download, FileText, Loader, Eye } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -337,13 +337,6 @@ const SupplementaryMaterials = () => {
                       <Eye className="mr-2 h-4 w-4" /> View
                     </Button>
                   )}
-                  <Button 
-                    onClick={() => window.open(file.url, '_blank')}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Maximize2 className="mr-2 h-4 w-4" /> Open
-                  </Button>
                   <Button 
                     onClick={() => handleDownload(file)}
                     variant="outline"
