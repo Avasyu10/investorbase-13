@@ -1,12 +1,10 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import { Toaster } from "sonner";
-import { toast } from "sonner";
+import { Toaster, toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,13 +19,11 @@ const UploadReport = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    // Check URL for processing indicator
     const searchParams = new URLSearchParams(location.search);
     if (searchParams.get('processing') === 'true') {
       setIsProcessing(true);
     }
 
-    // Extra check for session to ensure authentication
     const checkAuth = async () => {
       try {
         setCheckingAuth(true);
@@ -43,9 +39,7 @@ const UploadReport = () => {
         
         if (!data.session) {
           console.log("No active session found in UploadReport");
-          // Don't redirect if we're already processing something
           if (!isProcessing) {
-            // Store the current location so we can redirect back after login
             navigate('/login', { state: { from: '/upload' } });
           }
           return;
@@ -73,7 +67,6 @@ const UploadReport = () => {
     }
   }, [user, isLoading, navigate, location.search, isProcessing]);
 
-  // Reset error when component unmounts or on route change
   useEffect(() => {
     return () => {
       setError(null);
@@ -83,24 +76,19 @@ const UploadReport = () => {
   const handleError = (errorMessage: string) => {
     console.error("Error in UploadReport:", errorMessage);
     setError(errorMessage);
-    // Auto-dismiss error after 10 seconds
     setTimeout(() => setError(null), 10000);
     
-    // Only redirect to login for actual authentication errors, not other errors
     if (errorMessage.toLowerCase().includes("not authenticated") || 
         errorMessage.toLowerCase().includes("authentication required")) {
-      // We're storing the intended destination to redirect back after successful login
       if (!isProcessing) {
         navigate('/login', { state: { from: '/upload' } });
       }
     }
-    // Don't redirect for other types of errors
   };
 
   const handleProcessingStateChange = (processing: boolean) => {
     setIsProcessing(processing);
     
-    // Update URL with processing state for page refreshes
     const url = new URL(window.location.href);
     if (processing) {
       url.searchParams.set('processing', 'true');
@@ -108,7 +96,6 @@ const UploadReport = () => {
       url.searchParams.delete('processing');
     }
     
-    // Update URL without triggering navigation
     window.history.replaceState({}, '', url.toString());
   };
 
