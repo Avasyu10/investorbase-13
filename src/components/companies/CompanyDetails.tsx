@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -29,12 +28,7 @@ export function CompanyDetails() {
   };
 
   const navigateToSupplementaryMaterials = () => {
-    if (company?.hasSupplementaryMaterials) {
-      navigate(`/company/${companyId}/supplementary`);
-    } else {
-      // Show a toast or some indication that there are no supplementary materials
-      alert("No Supplementary Material for this Company");
-    }
+    navigate(`/company/${companyId}/supplementary`);
   };
 
   const onResearchFetched = () => {
