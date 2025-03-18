@@ -56,6 +56,9 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
     return <div>Section not found</div>;
   }
 
+  // Check if section is missing (score of 0.5 indicates a missing section)
+  const isSectionMissing = section.score === 0.5;
+
   // Format the detailed content as bullet points and categorize them
   const contentBullets = formatDescriptionAsBullets(section.detailedContent);
   
@@ -121,7 +124,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
           </CardHeader>
           <CardContent className="pt-5">
             <div className="grid grid-cols-1 gap-4">
-              {section.score === 0.5 ? (
+              {isSectionMissing ? (
                 <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/10">
                   <AlertTriangle className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
                   <span className="text-sm leading-relaxed font-medium">This section appears to be missing from the pitch deck. Consider adding it to improve the overall quality of your presentation.</span>
@@ -147,16 +150,16 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Strengths Card */}
-          <Card className="shadow-card border-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent">
-            <CardHeader className="border-b pb-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-emerald-500" />
-                <CardTitle className="text-xl font-semibold">Strengths</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5">
-              {section.strengths.length > 0 ? (
+          {/* Strengths Card - Only show if section is not missing */}
+          {!isSectionMissing && section.strengths.length > 0 && (
+            <Card className="shadow-card border-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent">
+              <CardHeader className="border-b pb-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-emerald-500" />
+                  <CardTitle className="text-xl font-semibold">Strengths</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-5">
                 <ul className="space-y-3">
                   {section.strengths.map((strength, index) => (
                     <li key={index} className="flex items-start gap-2 group">
@@ -167,13 +170,11 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">No strengths identified for this section.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
           
-          {/* Weaknesses Card */}
+          {/* Weaknesses Card - Always show this */}
           <Card className="shadow-card border-0 bg-gradient-to-br from-rose-500/10 via-rose-500/5 to-transparent">
             <CardHeader className="border-b pb-4">
               <div className="flex items-center gap-2">
