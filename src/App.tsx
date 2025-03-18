@@ -25,12 +25,22 @@ import ProfileSetup from "@/pages/ProfileSetup";
 import ProfileEdit from "@/pages/ProfileEdit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Create a new query client instance
+// Create a new query client instance with optimized settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      // Reduce retries to minimize unnecessary requests
+      retry: 0,
+      // Don't refetch on window focus to avoid page refreshes
       refetchOnWindowFocus: false,
+      // Increase stale time to reduce unnecessary refetches
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      // Cache data for longer
+      gcTime: 1000 * 60 * 10, // 10 minutes
+    },
+    mutations: {
+      // Don't retry mutations automatically
+      retry: 0,
     },
   },
 });

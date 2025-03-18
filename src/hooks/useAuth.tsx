@@ -71,24 +71,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user || null);
         setIsLoading(false);
         
-        // Only handle redirects for specific events
+        // Handle sign-in: Don't redirect automatically if already on the upload page
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
           
-          // Don't redirect automatically if we're already on the upload page
-          // This prevents unwanted redirects when re-authenticating from the upload page
+          // Don't redirect if we're already on the upload page to prevent refresh loops
           const currentPath = location.pathname;
           if (currentPath === '/upload') {
             console.log('Already on upload page, not redirecting');
             return;
           }
           
+          // For other paths, redirect as normal
           const returnTo = location.state?.from || '/dashboard';
           console.log('Redirecting to:', returnTo);
           navigate(returnTo, { replace: true });
-        } else if (event === 'SIGNED_OUT') {
+        } 
+        // Handle sign-out
+        else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
-          navigate('/');
+          navigate('/', { replace: true });
         }
       }
     );
@@ -120,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Welcome back!",
       });
       
-      navigate('/dashboard');
+      // Note: The navigation is now handled in LoginForm to prevent double redirects
     } catch (error: any) {
       toast({
         title: "Sign in failed",

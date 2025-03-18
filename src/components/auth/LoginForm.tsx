@@ -40,7 +40,7 @@ const LoginForm = ({ redirectTo = '/dashboard' }: LoginFormProps) => {
         
         if (data.session) {
           console.log("User already logged in, redirecting to:", from);
-          navigate(from);
+          navigate(from, { replace: true });
         }
       } catch (err) {
         console.error("Error in auth check:", err);
@@ -56,7 +56,7 @@ const LoginForm = ({ redirectTo = '/dashboard' }: LoginFormProps) => {
   useEffect(() => {
     if (user) {
       console.log("User detected in state, redirecting to:", from);
-      navigate(from);
+      navigate(from, { replace: true });
     }
   }, [user, navigate, from]);
 
@@ -66,7 +66,8 @@ const LoginForm = ({ redirectTo = '/dashboard' }: LoginFormProps) => {
     
     try {
       await signInWithEmail(email, password);
-      // The redirect will be handled by the auth state change effect
+      // After successful login, navigate manually to avoid refresh loops
+      navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
       // The toast is already shown in signInWithEmail

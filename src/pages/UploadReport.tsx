@@ -33,7 +33,7 @@ const UploadReport = () => {
         }
         
         if (!data.session) {
-          console.log("No active session found, need to redirect to login");
+          console.log("No active session found in UploadReport");
           // Store the current location so we can redirect back after login
           navigate('/login', { state: { from: '/upload' } });
           return;
@@ -77,6 +77,7 @@ const UploadReport = () => {
     // Only redirect to login for actual authentication errors, not other errors
     if (errorMessage.toLowerCase().includes("not authenticated") || 
         errorMessage.toLowerCase().includes("authentication required")) {
+      // We're storing the intended destination to redirect back after successful login
       navigate('/login', { state: { from: '/upload' } });
     }
     // Don't redirect for other types of errors
