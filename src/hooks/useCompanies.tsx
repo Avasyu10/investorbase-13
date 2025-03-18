@@ -58,16 +58,18 @@ export function useCompanies() {
         return [];
       }
       
-      // RLS will automatically filter for the current user's companies
+      // Make a direct query with the supabase client to allow RLS to automatically filter results
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error("Error fetching companies:", error);
         throw error;
       }
 
+      console.log(`Found ${data.length} companies for user ${user.id}`);
       return data.map(mapDbCompanyToApi);
     },
     meta: {
@@ -106,15 +108,22 @@ export function useCompanyDetails(companyId: string | undefined) {
         return null;
       }
       
-      // RLS will ensure only companies owned by the user are returned
+      // Direct use of supabase client to leverage RLS
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
         .eq('id', companyId)
         .maybeSingle();
         
-      if (companyError) throw companyError;
-      if (!companyData) return null;
+      if (companyError) {
+        console.error("Error fetching company:", companyError);
+        throw companyError;
+      }
+      
+      if (!companyData) {
+        console.log(`Company ${companyId} not found or does not belong to user ${user.id}`);
+        return null;
+      }
       
       // RLS will filter sections to only those of companies owned by the user
       const { data: sectionsData, error: sectionsError } = await supabase
@@ -123,7 +132,12 @@ export function useCompanyDetails(companyId: string | undefined) {
         .eq('company_id', companyId)
         .order('created_at', { ascending: true });
         
-      if (sectionsError) throw sectionsError;
+      if (sectionsError) {
+        console.error("Error fetching sections:", sectionsError);
+        throw sectionsError;
+      }
+      
+      console.log(`Found ${sectionsData?.length || 0} sections for company ${companyId}`);
       
       return {
         ...mapDbCompanyToApi(companyData),

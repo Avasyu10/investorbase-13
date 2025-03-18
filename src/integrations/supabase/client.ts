@@ -13,10 +13,22 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: 'supabase.auth.token',
   },
   // Improve data handling with better defaults
   global: {
-    fetch: (url, options) => fetch(url, options),
+    fetch: (url, options) => {
+      // Add a timestamp to bust cache
+      const bustedUrl = new URL(url.toString());
+      bustedUrl.searchParams.set('_t', Date.now().toString());
+      return fetch(bustedUrl.toString(), options);
+    },
     headers: { 'x-app-version': '1.0.0' },
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
   },
 });

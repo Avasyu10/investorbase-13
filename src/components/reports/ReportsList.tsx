@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";
-import { getReports, Report } from "@/lib/supabase";
+import { getReports, Report } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -40,8 +40,19 @@ export function ReportsList() {
   async function fetchReports() {
     try {
       setIsLoading(true);
-      const fetchedReports = await getReports();
-      setReports(fetchedReports);
+      // This will automatically be filtered by RLS when using supabase client
+      const { data: tableData, error: tableError } = await supabase
+        .from('reports')
+        .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
+        .order('created_at', { ascending: false });
+
+      if (tableError) {
+        console.error('Error fetching reports from table:', tableError);
+        throw tableError;
+      }
+
+      console.log('Found reports for current user:', tableData);
+      setReports(tableData || []);
     } catch (error) {
       console.error("Error fetching reports:", error);
       toast({
