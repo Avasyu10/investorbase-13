@@ -15,8 +15,9 @@ const UploadReport = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If not loading and no user, redirect to login
     if (!isLoading && !user) {
-      navigate('/');
+      navigate('/login');
     }
   }, [user, isLoading, navigate]);
 
