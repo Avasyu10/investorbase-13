@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -55,31 +54,7 @@ const SupplementaryMaterials = () => {
         try {
           console.log("Starting to fetch supplementary files for company:", company.name);
           
-          // Function to check if the bucket exists
-          const checkBucketExists = async () => {
-            try {
-              console.log(`Checking if ${STORAGE_BUCKET_NAME} bucket exists`);
-              
-              const { data: buckets, error: bucketsError } = await supabase.storage
-                .listBuckets();
-                
-              if (bucketsError) {
-                console.error("Error listing buckets:", bucketsError);
-                throw new Error(`Failed to list buckets: ${bucketsError.message}`);
-              }
-              
-              // Compare with the actual bucket name (case sensitive)
-              const bucketExists = buckets?.some(bucket => bucket.name === STORAGE_BUCKET_NAME);
-              console.log("Bucket exists:", bucketExists);
-              
-              return bucketExists;
-            } catch (err) {
-              console.error("Error in checkBucketExists:", err);
-              throw err;
-            }
-          };
-
-          // Function to get the report ID associated with the company
+          // Get the report ID associated with the company
           const getReportIdForCompany = async () => {
             if (!companyId) return null;
             
@@ -117,12 +92,6 @@ const SupplementaryMaterials = () => {
             }
           };
           
-          // Check if the bucket exists
-          const bucketExists = await checkBucketExists();
-          if (!bucketExists) {
-            throw new Error(`The ${STORAGE_BUCKET_NAME} storage bucket does not exist`);
-          }
-          
           // Get the report ID
           const reportId = await getReportIdForCompany();
           
@@ -137,13 +106,21 @@ const SupplementaryMaterials = () => {
           
           console.log("Fetching supplementary files for report:", reportId);
           
-          // List all files in the storage bucket for this report - use the correct bucket name
+          // Try to list files directly without checking bucket existence first
+          // This approach is more direct and less prone to errors with bucket name casing
+          console.log(`Listing files from bucket: ${STORAGE_BUCKET_NAME}, path: ${reportId}`);
           const { data, error } = await supabase.storage
             .from(STORAGE_BUCKET_NAME)
             .list(`${reportId}`);
             
           if (error) {
             console.error("Error fetching supplementary files:", error);
+            
+            // Specially handle bucket not found errors
+            if (error.message.includes("not found") || error.message.includes("does not exist")) {
+              throw new Error(`The storage bucket "${STORAGE_BUCKET_NAME}" does not exist`);
+            }
+            
             throw new Error(`Error loading files: ${error.message}`);
           }
           
