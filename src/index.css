@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -183,31 +184,4 @@
 
 .shadow-card {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-/* PDF-specific styles */
-.hidden-in-pdf {
-  display: none;
-}
-
-@media print {
-  .hidden-in-pdf {
-    display: block !important;
-  }
-  
-  /* Force page breaks */
-  .pdf-page-break {
-    page-break-before: always;
-  }
-  
-  /* Ensure colors print correctly */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  
-  /* Ensure section cards maintain their style */
-  .section-detail {
-    break-inside: avoid;
-  }
 }
