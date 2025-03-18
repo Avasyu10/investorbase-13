@@ -29,6 +29,10 @@ const Report = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  const handleBackClick = () => {
+    navigate(-1); // Navigate to the previous page in history
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -50,10 +54,10 @@ const Report = () => {
       <Button 
         variant="ghost" 
         className="mb-6 -ml-2 transition-colors" 
-        onClick={() => navigate("/dashboard")}
+        onClick={handleBackClick}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Pitch Decks
+        Back
       </Button>
       
       <ReportViewer reportId={reportIdentifier} />

@@ -2,7 +2,7 @@
 import { CompanyDetails } from "@/components/companies/CompanyDetails";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
@@ -26,16 +26,20 @@ const CompanyPage = () => {
 
   if (!user) return null;
 
+  const handleBackClick = () => {
+    navigate(-1); // Navigate to the previous page in history
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-4">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate('/dashboard')}
+          onClick={handleBackClick}
           className="mb-4"
         >
-          <ChevronLeft className="mr-1" /> Back to Companies
+          <ChevronLeft className="mr-1" /> Back
         </Button>
       </div>
       <CompanyDetails />

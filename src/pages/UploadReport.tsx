@@ -33,6 +33,10 @@ const UploadReport = () => {
     setTimeout(() => setError(null), 10000);
   };
 
+  const handleBackClick = () => {
+    navigate(-1); // Navigate to the previous page in history
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -50,10 +54,10 @@ const UploadReport = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate('/dashboard')}
+          onClick={handleBackClick}
           className="mb-6"
         >
-          <ChevronLeft className="mr-1" /> Back to Dashboard
+          <ChevronLeft className="mr-1" /> Back
         </Button>
         
         {error && (

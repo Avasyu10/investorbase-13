@@ -22,6 +22,10 @@ const SectionPage = () => {
 
   const isLoading = authLoading || companyLoading || sectionLoading;
 
+  const handleBackClick = () => {
+    navigate(-1); // Navigate to the previous page in history
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -38,10 +42,10 @@ const SectionPage = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/company/${companyId}`)}
+          onClick={handleBackClick}
           className="mb-4"
         >
-          <ChevronLeft className="mr-1" /> Back to {company?.name || 'Company'}
+          <ChevronLeft className="mr-1" /> Back
         </Button>
       </div>
       <SectionDetail section={section} isLoading={sectionLoading} />
