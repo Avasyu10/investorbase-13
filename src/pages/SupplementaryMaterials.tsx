@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -23,8 +24,8 @@ type SupplementaryFile = {
   type?: string; 
 };
 
-// The correct bucket name as shown in your Supabase dashboard
-const STORAGE_BUCKET_NAME = "Supplementary Materials";
+// The correct bucket name as used in ReportUpload.tsx
+const STORAGE_BUCKET_NAME = "supplementary-materials";
 
 const SupplementaryMaterials = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -106,17 +107,16 @@ const SupplementaryMaterials = () => {
           
           console.log("Fetching supplementary files for report:", reportId);
           
-          // Try to list files directly without checking bucket existence first
-          // This approach is more direct and less prone to errors with bucket name casing
+          // Directly try to list files from the bucket without checking existence
           console.log(`Listing files from bucket: ${STORAGE_BUCKET_NAME}, path: ${reportId}`);
           const { data, error } = await supabase.storage
             .from(STORAGE_BUCKET_NAME)
-            .list(`${reportId}`);
+            .list(reportId);
             
           if (error) {
             console.error("Error fetching supplementary files:", error);
             
-            // Specially handle bucket not found errors
+            // Handle bucket not found errors
             if (error.message.includes("not found") || error.message.includes("does not exist")) {
               throw new Error(`The storage bucket "${STORAGE_BUCKET_NAME}" does not exist`);
             }

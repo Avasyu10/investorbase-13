@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -66,7 +65,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       
-      // Added check for PDF file type for supplementary materials
       if (selectedFile.type !== 'application/pdf') {
         toast.error("Invalid file type", {
           description: "Please upload a PDF file"
@@ -125,8 +123,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       setProgressStage("Processing your submission...");
       setProgress(10);
       
-      // Upload the report
-      console.log("Starting upload process");
       const report = await uploadReport(file, title, briefIntroduction, companyWebsite);
       setProgress(30);
       console.log("Upload complete, report:", report);
@@ -135,7 +131,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         description: "Your pitch deck has been uploaded successfully"
       });
       
-      // Generate description with all metadata
       let description = briefIntroduction ? briefIntroduction + '\n\n' : '';
       
       if (companyStage) {
@@ -146,7 +141,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         description += `Industry: ${industry}\n`;
       }
       
-      // Upload supplementary files if any
       if (supplementFiles.length > 0) {
         setProgress(35);
         setProgressStage("Uploading supplementary materials...");
@@ -175,7 +169,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         });
       }
       
-      // Attempt to scrape the website if URL is provided
       let scrapedContent = null;
       if (companyWebsite && companyWebsite.trim()) {
         setProgress(40);
@@ -194,7 +187,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         }
       }
       
-      // Scrape LinkedIn profiles if provided
       let linkedInContent = null;
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
       if (validLinkedInProfiles.length > 0) {
@@ -213,17 +205,14 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         }
       }
       
-      // Add scraped website content to description if available
       if (scrapedContent) {
         description += `\n\nWebsite Content:\n${scrapedContent}\n`;
       }
       
-      // Add scraped LinkedIn content to description if available
       if (linkedInContent) {
         description += `\n\nFounder LinkedIn Profiles:\n${linkedInContent}\n`;
       }
       
-      // Update the report with the complete description
       if (description) {
         const { error: updateError } = await supabase
           .from('reports')
@@ -235,7 +224,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         }
       }
       
-      // Start analysis
       setIsAnalyzing(true);
       setProgressStage("Analyzing pitch deck with AI...");
       setProgress(70);
@@ -254,7 +242,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
           description: "Your pitch deck has been analyzed successfully!"
         });
         
-        // Navigate to the company page
         if (result && result.companyId) {
           navigate(`/company/${result.companyId}`);
         } else {
@@ -268,14 +255,12 @@ export function ReportUpload({ onError }: ReportUploadProps) {
           description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
         });
         
-        // Call the onError prop if provided
         if (onError) {
           onError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
         }
         
         setProgress(0);
         
-        // Still navigate to dashboard if analysis fails
         navigate('/dashboard');
         return;
       }
@@ -286,7 +271,6 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         description: error instanceof Error ? error.message : "Failed to process pitch deck"
       });
       
-      // Call the onError prop if provided
       if (onError) {
         onError(error instanceof Error ? error.message : "Failed to process pitch deck");
       }
