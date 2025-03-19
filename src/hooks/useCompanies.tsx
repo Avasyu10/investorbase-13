@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -41,26 +40,33 @@ function mapDbSectionDetailedToApi(section: any, strengths: string[], weaknesses
   };
 }
 
-export function useCompanies() {
+export function useCompanies(page: number = 1, pageSize: number = 20) {
   const {
-    data: companies,
+    data: companiesData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['companies'],
+    queryKey: ['companies', page, pageSize],
     queryFn: async () => {
-      // Optimize query with pagination and select only needed fields
-      const { data, error } = await supabase
+      // Calculate offset based on page number and page size
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      // Query with pagination
+      const { data, error, count } = await supabase
         .from('companies')
-        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at')
+        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at', { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(20); // Limit to 20 companies for better performance
+        .range(from, to);
 
       if (error) {
         throw error;
       }
 
-      return data.map(mapDbCompanyToApi);
+      return {
+        companies: data.map(mapDbCompanyToApi),
+        totalCount: count || 0
+      };
     },
     meta: {
       onError: (err: any) => {
@@ -74,7 +80,8 @@ export function useCompanies() {
   });
 
   return {
-    companies: companies || [],
+    companies: companiesData?.companies || [],
+    totalCount: companiesData?.totalCount || 0,
     isLoading,
     error,
   };

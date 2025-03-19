@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,16 +15,30 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { Button } from "@/components/ui/button";
 import { CompaniesTable } from "./CompaniesTable";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 type SortOption = "name" | "score" | "date";
 type ViewMode = "grid" | "table";
 
 export function CompaniesList() {
   const navigate = useNavigate();
-  const { companies, isLoading } = useCompanies();
+  const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>("score");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const pageSize = 20;
+  
+  const { companies, totalCount, isLoading } = useCompanies(currentPage, pageSize);
   const [sortedCompanies, setSortedCompanies] = useState<CompanyListItem[]>([]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   useEffect(() => {
     if (!companies || companies.length === 0) {
@@ -68,6 +83,47 @@ export function CompaniesList() {
       case 'date': return 'createdAt';
       default: return 'overallScore';
     }
+  };
+
+  // Handle page change
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    
+    // Always show first page
+    pages.push(1);
+    
+    // Calculate start and end of page range to show
+    let startPage = Math.max(2, currentPage - 1);
+    let endPage = Math.min(totalPages - 1, currentPage + 1);
+    
+    // Add ellipsis after first page if needed
+    if (startPage > 2) {
+      pages.push(-1); // -1 is a flag for ellipsis
+    }
+    
+    // Add pages in the middle
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    // Add ellipsis before last page if needed
+    if (endPage < totalPages - 1) {
+      pages.push(-2); // -2 is a flag for ellipsis
+    }
+    
+    // Always show last page if there's more than one page
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+    
+    return pages;
   };
 
   if (isLoading) {
@@ -179,6 +235,44 @@ export function CompaniesList() {
           onCompanyClick={handleCompanyClick} 
         />
       )}
+      
+      {totalPages > 1 && (
+        <Pagination className="mt-8">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              />
+            </PaginationItem>
+            
+            {getPageNumbers().map((pageNum, index) => (
+              <PaginationItem key={index}>
+                {pageNum === -1 || pageNum === -2 ? (
+                  <PaginationEllipsis />
+                ) : (
+                  <PaginationLink
+                    isActive={pageNum === currentPage}
+                    onClick={() => goToPage(pageNum)}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                )}
+              </PaginationItem>
+            ))}
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 }
+
+// Using a properly typed import for PaginationEllipsis
+import { PaginationEllipsis } from "@/components/ui/pagination";
