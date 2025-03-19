@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -15,8 +16,7 @@ function mapDbCompanyToApi(company: any) {
     reportId: company.report_id,
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
-    perplexityRequestedAt: company.perplexity_requested_at,
-    userId: company.user_id
+    perplexityRequestedAt: company.perplexity_requested_at
   };
 }
 
@@ -50,10 +50,9 @@ export function useCompanies() {
     queryKey: ['companies'],
     queryFn: async () => {
       // Optimize query with pagination and select only needed fields
-      // RLS will automatically filter to show only the user's companies
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, user_id')
+        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at')
         .order('created_at', { ascending: false })
         .limit(20); // Limit to 20 companies for better performance
 
@@ -91,7 +90,6 @@ export function useCompanyDetails(companyId: string | undefined) {
     queryFn: async () => {
       if (!companyId) return null;
       
-      // RLS will automatically enforce access control
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
