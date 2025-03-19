@@ -11,7 +11,7 @@ You will perform a step-by-step deep-dive analysis of a startup based on its pit
 - Industry-specific metrics and KPIs with SPECIFIC NUMERICAL THRESHOLDS and industry averages
 - Market challenges and opportunities with MEASURABLE IMPACTS in dollars or percentages
 
-For EVERY section of your analysis, you MUST include 4-7 relevant insights that are DIRECTLY RELATED to the startup being analyzed. EVERY insight must be highly relevant to the specific company in the pitch deck, not general industry information. 
+For EVERY section of your analysis, you MUST include 4-7 relevant insights that are VERY CLOSELY RELATED to the startup being analyzed. EVERY insight must be highly relevant to the specific company in the pitch deck, not general industry information. 
 
 Each insight MUST include AT LEAST ONE of the following:
 - EXACT NUMERICAL DATA directly relevant to the company's business model or market
