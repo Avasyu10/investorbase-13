@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -53,6 +54,20 @@ export function CompanyDetails() {
     }
   }, [company?.perplexityResponse, hasResearchUpdated]);
 
+  useEffect(() => {
+    // Log information about the company data when it changes
+    if (company) {
+      console.log(`Company loaded: ${company.name}, ID: ${company.id}`);
+      console.log(`Sections count: ${company.sections?.length || 0}`);
+      
+      if (!company.sections || company.sections.length === 0) {
+        console.warn('No sections available for this company');
+      } else {
+        console.log('First section:', company.sections[0]);
+      }
+    }
+  }, [company]);
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -101,6 +116,14 @@ export function CompanyDetails() {
     if (score >= 1.5) return "score-poor";
     return "score-critical";
   };
+
+  // Check if sections exist and log debug information
+  const hasSections = company.sections && company.sections.length > 0;
+  console.log(`Rendering company ${company.id} with ${hasSections ? company.sections.length : 0} sections`);
+  
+  if (!hasSections) {
+    console.warn('No sections available to render in section metrics');
+  }
 
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
@@ -159,15 +182,22 @@ export function CompanyDetails() {
         <BarChart2 className="h-5 w-5 text-primary" />
         Section Metrics
       </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {company.sections.map((section) => (
-          <SectionCard 
-            key={section.id} 
-            section={section} 
-            onClick={() => handleSectionClick(section.id)} 
-          />
-        ))}
-      </div>
+      
+      {!hasSections ? (
+        <div className="p-6 bg-muted rounded-lg text-center">
+          <p className="text-muted-foreground">No section metrics available for this company.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {company.sections.map((section) => (
+            <SectionCard 
+              key={section.id} 
+              section={section} 
+              onClick={() => handleSectionClick(section.id)} 
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

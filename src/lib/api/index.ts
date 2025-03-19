@@ -17,6 +17,7 @@ import {
 } from './apiContract';
 
 // Check if we should use mock data or real API
+// Set to false to ensure we're using real API in production
 const USE_MOCK_API = false;
 
 // API Client that decides whether to use real or mock API
