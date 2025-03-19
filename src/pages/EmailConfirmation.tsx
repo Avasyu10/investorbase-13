@@ -20,6 +20,13 @@ const EmailConfirmation = () => {
   const navigate = useNavigate();
   const email = localStorage.getItem('pendingConfirmationEmail') || '';
 
+  // Redirect if no pending email
+  useEffect(() => {
+    if (!email && !isLoading) {
+      navigate('/signup');
+    }
+  }, [email, isLoading, navigate]);
+
   // Check confirmation status periodically
   useEffect(() => {
     let intervalId: number;
@@ -57,10 +64,10 @@ const EmailConfirmation = () => {
 
   // Redirect if user is already confirmed
   useEffect(() => {
-    if (user?.email_confirmed_at) {
+    if (user?.email_confirmed_at && !isLoading) {
       navigate('/profile/setup');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isLoading]);
 
   const handleResendConfirmation = async () => {
     if (!email) {

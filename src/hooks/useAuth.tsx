@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,14 +64,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
+          
           // Check if user has a confirmed email
           if (currentSession?.user?.email_confirmed_at) {
-            // Clear the pendingConfirmationEmail when signed in with confirmed email
+            // Email is confirmed - clear pending confirmation and navigate to profile setup
             localStorage.removeItem('pendingConfirmationEmail');
-            // Only navigate to profile setup if email is confirmed
-            navigate('/profile/setup');
+            
+            // Only navigate to profile setup if we're not already there or on a deeper path
+            if (location.pathname !== '/profile/setup' && !location.pathname.startsWith('/dashboard')) {
+              navigate('/profile/setup');
+            }
           } else if (localStorage.getItem('pendingConfirmationEmail')) {
-            // If email is not confirmed but we have a pending confirmation, stay on confirmation page
+            // If email is not confirmed and we have a pending confirmation
+            // Always navigate to confirmation page
             navigate('/email-confirmation');
           }
         } else if (event === 'SIGNED_OUT') {
@@ -97,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast, navigate]);
+  }, [toast, navigate, location.pathname]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
@@ -114,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Welcome back!",
       });
       
-      navigate('/dashboard');
+      // Navigation will be handled by the auth state change listener
     } catch (error: any) {
       toast({
         title: "Sign in failed",
