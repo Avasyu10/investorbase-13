@@ -75,10 +75,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
+          navigate('/');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Session token refreshed');
         } else if (event === 'USER_UPDATED') {
           console.log('User updated');
+          
+          // Check if email was just confirmed
+          if (currentSession?.user?.email_confirmed_at && localStorage.getItem('pendingConfirmationEmail')) {
+            toast({
+              title: "Email confirmed",
+              description: "Your email has been confirmed successfully!",
+            });
+            localStorage.removeItem('pendingConfirmationEmail');
+            navigate('/profile/setup');
+          }
         }
       }
     );

@@ -38,7 +38,7 @@ const SignupForm = () => {
     if (success) {
       // Store the email for the confirmation page
       localStorage.setItem('pendingConfirmationEmail', email);
-      // Navigate to the confirmation page instead of profile setup
+      // Navigate to the confirmation page
       navigate('/email-confirmation');
     }
   };
