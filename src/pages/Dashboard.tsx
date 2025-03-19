@@ -15,7 +15,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!isLoading && !user) {
+      console.log("User not authenticated, redirecting to login");
       navigate('/login', { state: { from: '/dashboard' } });
+    } else if (user) {
+      console.log("Dashboard loaded for user:", user.id);
     }
   }, [user, isLoading, navigate]);
 

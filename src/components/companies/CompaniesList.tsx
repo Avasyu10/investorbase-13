@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { ListFilter, Grid, Table as TableIcon } from "lucide-react";
+import { ListFilter, Grid, Table as TableIcon, AlertTriangle } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from "@/components/ui/pagination";
+import { useToast } from "@/hooks/use-toast";
 
 type SortOption = "name" | "score" | "date";
 type ViewMode = "grid" | "table";
@@ -46,13 +48,25 @@ export function CompaniesList() {
   const [sortBy, setSortBy] = useState<SortOption>("date");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const pageSize = 20;
+  const { toast } = useToast();
   
-  const { companies, totalCount, isLoading } = useCompanies(
+  const { companies, totalCount, isLoading, error } = useCompanies(
     currentPage, 
     pageSize, 
     getSortField(sortBy),
     getSortOrder(sortBy)
   );
+
+  useEffect(() => {
+    if (error) {
+      console.error("Error fetching companies:", error);
+      toast({
+        title: "Error fetching companies",
+        description: "There was a problem loading your companies. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -117,6 +131,21 @@ export function CompaniesList() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Error Loading Companies</h2>
+          <p className="text-muted-foreground mb-4">There was a problem fetching your company data.</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log(`Rendering ${companies.length} companies, total: ${totalCount}`);
+
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
@@ -169,76 +198,84 @@ export function CompaniesList() {
         </div>
       </div>
       
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {companies.length > 0 ? (
-            companies.map((company) => (
-              <Card 
-                key={company.id} 
-                className="cursor-pointer transition-all hover:shadow-md"
-                onClick={() => handleCompanyClick(company.id)}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
-                  <CardDescription>Overall Score: {company.overallScore}/5</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Progress 
-                    value={company.overallScore * 20} 
-                    className="h-2 mb-2" 
-                  />
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Added: {new Date(company.createdAt).toLocaleDateString()}
-                  </p>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-1 sm:col-span-3 text-center py-8 sm:py-12">
-              <p className="text-muted-foreground">No companies found</p>
+      {companies.length > 0 ? (
+        <>
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {companies.map((company) => (
+                <Card 
+                  key={company.id} 
+                  className="cursor-pointer transition-all hover:shadow-md"
+                  onClick={() => handleCompanyClick(company.id)}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
+                    <CardDescription>Overall Score: {company.overallScore}/5</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Progress 
+                      value={company.overallScore * 20} 
+                      className="h-2 mb-2" 
+                    />
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Added: {new Date(company.createdAt).toLocaleDateString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          ) : (
+            <CompaniesTable 
+              companies={companies} 
+              onCompanyClick={handleCompanyClick} 
+            />
           )}
-        </div>
+          
+          {totalPages > 1 && (
+            <Pagination className="mt-8">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  />
+                </PaginationItem>
+                
+                {getPageNumbers().map((pageNum, index) => (
+                  <PaginationItem key={index}>
+                    {pageNum === -1 || pageNum === -2 ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        isActive={pageNum === currentPage}
+                        onClick={() => goToPage(pageNum)}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </>
       ) : (
-        <CompaniesTable 
-          companies={companies} 
-          onCompanyClick={handleCompanyClick} 
-        />
-      )}
-      
-      {totalPages > 1 && (
-        <Pagination className="mt-8">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-              />
-            </PaginationItem>
-            
-            {getPageNumbers().map((pageNum, index) => (
-              <PaginationItem key={index}>
-                {pageNum === -1 || pageNum === -2 ? (
-                  <PaginationEllipsis />
-                ) : (
-                  <PaginationLink
-                    isActive={pageNum === currentPage}
-                    onClick={() => goToPage(pageNum)}
-                  >
-                    {pageNum}
-                  </PaginationLink>
-                )}
-              </PaginationItem>
-            ))}
-            
-            <PaginationItem>
-              <PaginationNext 
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <div className="text-center py-16 border rounded-lg bg-muted/20">
+          <h3 className="text-lg font-medium mb-2">No companies found</h3>
+          <p className="text-muted-foreground mb-6">
+            You don't have any companies yet or your search returned no results.
+          </p>
+          <Button onClick={() => navigate("/upload")}>
+            Upload New Pitch Deck
+          </Button>
+        </div>
       )}
     </div>
   );

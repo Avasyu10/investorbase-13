@@ -49,45 +49,59 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
   } = useQuery({
     queryKey: ['companies', page, pageSize, sortBy, sortOrder],
     queryFn: async () => {
-      // Calculate offset based on page number and page size
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-      
-      // Convert UI sort field to database column name
-      let dbSortField = sortBy;
-      if (sortBy === 'name' || sortBy === 'overallScore') {
-        dbSortField = sortBy === 'overallScore' ? 'overall_score' : 'name';
-      }
-      
-      // Get the authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign in to view companies',
-          variant: 'destructive',
-        });
-        return { companies: [], totalCount: 0 };
-      }
-      
-      // Query with RLS - this will only return companies the user has access to
-      const { data, error, count } = await supabase
-        .from('companies')
-        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id', { count: 'exact' })
-        .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
-        .order(dbSortField, { ascending: sortOrder === 'asc' })
-        .range(from, to);
+      try {
+        // Calculate offset based on page number and page size
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        
+        // Convert UI sort field to database column name
+        let dbSortField = sortBy;
+        if (sortBy === 'name' || sortBy === 'overallScore') {
+          dbSortField = sortBy === 'overallScore' ? 'overall_score' : 'name';
+        }
+        
+        // Get the authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast({
+            title: 'Authentication required',
+            description: 'Please sign in to view companies',
+            variant: 'destructive',
+          });
+          return { companies: [], totalCount: 0 };
+        }
+        
+        console.log('Fetching companies for user:', user.id);
+        
+        // Query with RLS - this will only return companies the user has access to
+        const { data, error, count } = await supabase
+          .from('companies')
+          .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id', { count: 'exact' })
+          .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
+          .order(dbSortField, { ascending: sortOrder === 'asc' })
+          .range(from, to);
 
-      if (error) {
-        console.error("Error fetching companies:", error);
-        throw error;
-      }
+        if (error) {
+          console.error("Error fetching companies:", error);
+          throw error;
+        }
+        
+        console.log(`Retrieved ${data.length} companies out of ${count} total`);
+        
+        // Log the first few companies to help with debugging
+        if (data.length > 0) {
+          console.log('Sample company data:', data[0]);
+        }
 
-      return {
-        companies: data.map(mapDbCompanyToApi),
-        totalCount: count || 0
-      };
+        return {
+          companies: data.map(mapDbCompanyToApi),
+          totalCount: count || 0
+        };
+      } catch (err) {
+        console.error("Error in useCompanies:", err);
+        throw err;
+      }
     },
     meta: {
       onError: (err: any) => {
