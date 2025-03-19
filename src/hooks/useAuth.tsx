@@ -63,8 +63,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
-          // Clear the pendingConfirmationEmail when signed in
-          localStorage.removeItem('pendingConfirmationEmail');
+          // Check if user has a confirmed email
+          if (currentSession?.user?.email_confirmed_at) {
+            // Clear the pendingConfirmationEmail when signed in with confirmed email
+            localStorage.removeItem('pendingConfirmationEmail');
+            // Only navigate to profile setup if email is confirmed
+            navigate('/profile/setup');
+          } else if (localStorage.getItem('pendingConfirmationEmail')) {
+            // If email is not confirmed but we have a pending confirmation, stay on confirmation page
+            navigate('/email-confirmation');
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
         } else if (event === 'TOKEN_REFRESHED') {
@@ -78,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, [toast, navigate]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
