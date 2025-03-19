@@ -52,7 +52,7 @@ Each news item should be formatted with a ### prefix, like:
 (Publication Name, Date) Key insights with concrete facts and figures RELEVANT TO THIS COMPANY. More specific details about how this directly impacts this business. Additional context about why this particularly matters to this company's strategy.
 Source: [URL]
 
-Provide exactly 5 diverse articles total, one per category. Make each headline unique and insightful. Focus on RECENT, FACTUAL data that would be valuable to investors assessing THIS SPECIFIC COMPANY.`;
+Provide exactly 6-8 diverse articles total, one per category. Make each headline unique and insightful. Focus on RECENT, FACTUAL data that would be valuable to investors assessing THIS SPECIFIC COMPANY.`;
 
     console.log("Sending request to Perplexity API");
     
