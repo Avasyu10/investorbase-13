@@ -41,6 +41,7 @@ export const SECTION_TYPES = {
   ASK: "ASK"
 };
 
+// Ensure these match exactly with what we expect in the Gemini response
 export const SECTION_TITLES = {
   [SECTION_TYPES.PROBLEM]: "Problem Statement",
   [SECTION_TYPES.MARKET]: "Market Opportunity",
@@ -53,3 +54,7 @@ export const SECTION_TITLES = {
   [SECTION_TYPES.FINANCIALS]: "Financial Overview & Projections",
   [SECTION_TYPES.ASK]: "The Ask & Next Steps"
 };
+
+// Array of all expected section types for validation
+export const EXPECTED_SECTION_TYPES = Object.values(SECTION_TYPES);
+

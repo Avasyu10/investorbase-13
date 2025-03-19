@@ -1,3 +1,4 @@
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
@@ -216,8 +217,8 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           }
         ],
         generationConfig: {
-          temperature: 0.5,
-          topP: 0.8,
+          temperature: 0.0, // Setting temperature to 0 for maximum consistency
+          topP: 1.0,
           topK: 40,
           maxOutputTokens: 8192 // Increasing token limit to allow for more detailed market research
         }
@@ -397,7 +398,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
               type: expectedType,
               title: title,
               score: 1.0,
-              description: `⚠�� MISSING SECTION: ${title} is not present in this pitch deck`,
+              description: `⚠️ MISSING SECTION: ${title} is not present in this pitch deck`,
               strengths: [],
               weaknesses: [
                 `Critical oversight: ${title} is missing`,
@@ -417,7 +418,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           // Calculate the average score from all sections
           const sectionScores = parsedContent.sections.map(section => section.score || 0);
           const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
-          const averageScore = totalScore / expectedSectionTypes.length; // Use expected section count (10)
+          const averageScore = totalScore / expectedSectionTypes.length; // Always use 10 as the divisor
           
           // Apply normalization formula: MIN(averageScore * 1.25, 5.0)
           const normalizedScore = Math.min(averageScore * 1.25, 5.0);
@@ -434,7 +435,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           // Get average of section scores to verify
           const sectionScores = parsedContent.sections.map(section => section.score || 0);
           const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
-          const averageScore = totalScore / expectedSectionTypes.length;
+          const averageScore = totalScore / expectedSectionTypes.length; // Always use 10 as the divisor
           
           // Apply normalization formula: MIN(averageScore * 1.25, 5.0)
           const expectedNormalizedScore = Math.min(averageScore * 1.25, 5.0);
