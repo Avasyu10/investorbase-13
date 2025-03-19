@@ -184,8 +184,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       
       toast({
-        title: "Confirmation Link Sent",
-        description: "Please continue the sign-up process by following the confirmation link sent to your email.",
+        title: "Sign up successful",
+        description: "Please check your email for the confirmation link.",
       });
       
       return true;

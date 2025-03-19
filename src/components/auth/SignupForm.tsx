@@ -61,13 +61,24 @@ const SignupForm = () => {
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="fullName">Your Name</Label>
+            <Label htmlFor="fullName">Full Name</Label>
             <Input 
               id="fullName" 
               type="text" 
-              placeholder="Name" 
+              placeholder="John Doe" 
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="username">Username (optional)</Label>
+            <Input 
+              id="username" 
+              type="text" 
+              placeholder="johndoe" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
             />
           </div>
         
