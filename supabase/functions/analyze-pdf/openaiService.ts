@@ -138,7 +138,14 @@ thesis
 The end result is a Composite Score that helps analysts quickly compare
 different deals and identify critical areas of further due diligence.
 
-// ... keep existing code (evaluation framework details)
+### **IMPORTANT - SCORE NORMALIZATION:**
+- After calculating the final overall score, you MUST apply the following normalization formula:
+- **Normalized Score = MIN(original_score * 1.25, 5.0)**
+- This compensates for the rigorous evaluation criteria and ensures a more balanced distribution of scores.
+- The normalized score (after applying this formula) should be what appears in the "overallScore" field of your response.
+- The individual section scores should NOT be normalized - only the final overall score.
+- The normalized score must still use one decimal point precision (e.g., 4.2)
+- If the formula would result in a score higher than 5.0, cap it at exactly 5.0
 
 ### **Output Format (JSON):**  
 Ensure the output is structured as follows:  
