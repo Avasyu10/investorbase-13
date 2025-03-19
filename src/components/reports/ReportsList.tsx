@@ -6,16 +6,29 @@ import { getReports, Report } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export function ReportsList() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchReports() {
       try {
+        if (!user) {
+          toast({
+            title: "Authentication required",
+            description: "Please sign in to view reports",
+            variant: "destructive",
+          });
+          setReports([]);
+          setIsLoading(false);
+          return;
+        }
+        
         setIsLoading(true);
         const fetchedReports = await getReports();
         setReports(fetchedReports);
@@ -32,7 +45,27 @@ export function ReportsList() {
     }
 
     fetchReports();
-  }, [toast]);
+  }, [toast, user]);
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center py-12 border rounded-lg bg-card/50">
+          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">Authentication Required</h3>
+          <p className="mt-2 text-muted-foreground">
+            Please sign in to view your reports
+          </p>
+          <Button 
+            onClick={() => navigate("/")} 
+            className="mt-6"
+          >
+            Go to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6">

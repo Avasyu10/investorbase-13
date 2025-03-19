@@ -2,9 +2,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ReportViewer } from "@/components/reports/ReportViewer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const Report = () => {
   // Support both /report/:reportId and /reports/:id route patterns
@@ -13,21 +13,13 @@ const Report = () => {
   
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Handle authentication check without immediate redirection
-    if (!isLoading) {
-      setIsAuthenticated(!!user);
+    // If user is not authenticated and we're done loading, redirect to login
+    if (!isLoading && !user) {
+      navigate('/login', { state: { from: `/report/${reportIdentifier}` } });
     }
-  }, [user, isLoading]);
-
-  // If explicitly not authenticated (not just loading), redirect
-  useEffect(() => {
-    if (isAuthenticated === false) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
+  }, [user, isLoading, navigate, reportIdentifier]);
 
   const handleBackClick = () => {
     navigate(-1); // Navigate to the previous page in history
@@ -35,14 +27,17 @@ const Report = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="loader"></div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
-  // Don't render anything while still determining auth status
-  if (isAuthenticated === null) return null;
+  if (!user) {
+    return null; // Will redirect in useEffect
+  }
 
   if (!reportIdentifier) {
     navigate("/dashboard");

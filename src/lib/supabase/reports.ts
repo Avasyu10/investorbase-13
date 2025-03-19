@@ -20,10 +20,24 @@ export type Report = {
 // Functions to interact with Supabase
 
 export async function getReports() {
-  // Get reports from the reports table without user filtering
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    console.error('User not authenticated');
+    toast({
+      title: "Authentication required",
+      description: "Please sign in to view reports",
+      variant: "destructive"
+    });
+    return [];
+  }
+
+  // Get reports from the reports table filtered by user_id
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -43,12 +57,25 @@ export async function getReports() {
 export async function getReportById(id: string) {
   console.log('Fetching report with ID:', id);
   
-  // Get the report from the reports table without user filtering
-  // Fix the relationship specification to avoid ambiguity
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    console.error('User not authenticated');
+    toast({
+      title: "Authentication required",
+      description: "Please sign in to view reports",
+      variant: "destructive"
+    });
+    throw new Error('Authentication required');
+  }
+  
+  // Get the report from the reports table filtered by id and user_id
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
     .eq('id', id)
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (tableError) {
@@ -58,7 +85,7 @@ export async function getReportById(id: string) {
 
   if (!tableData) {
     console.error('Report not found with ID:', id);
-    throw new Error('Report not found');
+    throw new Error('Report not found or you do not have permission to access it');
   }
 
   console.log('Report found:', tableData);
@@ -140,6 +167,19 @@ export async function uploadReport(file: File, title: string, description: strin
   try {
     console.log('Uploading report');
     
+    // Get the authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('User not authenticated');
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upload reports",
+        variant: "destructive"
+      });
+      throw new Error('Authentication required');
+    }
+    
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
@@ -156,14 +196,15 @@ export async function uploadReport(file: File, title: string, description: strin
     
     console.log('File uploaded to storage successfully, saving record to database');
     
-    // Insert a record in the reports table without user_id
+    // Insert a record in the reports table with user_id set to the current user's ID
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
         title,
         description,
         pdf_url: fileName,
-        analysis_status: 'pending'
+        analysis_status: 'pending',
+        user_id: user.id  // Set the user_id
       }])
       .select()
       .single();
