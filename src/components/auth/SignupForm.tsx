@@ -65,7 +65,7 @@ const SignupForm = () => {
             <Input 
               id="fullName" 
               type="text" 
-              placeholder="Name..." 
+              placeholder="Name" 
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
