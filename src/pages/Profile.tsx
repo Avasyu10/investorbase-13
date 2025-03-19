@@ -275,7 +275,7 @@ const Profile = () => {
                       onClick={viewThesis}
                     >
                       <Eye className="mr-2 h-4 w-4" />
-                      View PDF
+                      View
                     </Button>
                   </div>
                 </div>
