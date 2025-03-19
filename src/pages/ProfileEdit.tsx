@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -60,7 +59,7 @@ const ProfileEdit = () => {
   const [investmentStage, setInvestmentStage] = useState<string[]>([]);
   const [companiesInvested, setCompaniesInvested] = useState<string[]>([]);
   const [newCompany, setNewCompany] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('Your Website');
+  const [websiteUrl, setWebsiteUrl] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -99,7 +98,7 @@ const ProfileEdit = () => {
       setAreasOfInterest(profileData.areas_of_interest || []);
       setInvestmentStage(profileData.investment_stage || []);
       setCompaniesInvested(profileData.companies_invested || []);
-      setWebsiteUrl(profileData.website_url || 'Your Website');
+      setWebsiteUrl(profileData.website_url || '');
     } catch (error) {
       console.error("Error:", error);
     } finally {

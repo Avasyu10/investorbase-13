@@ -12,10 +12,11 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Edit, Globe } from "lucide-react";
+import { Loader2, Download, Edit, Globe, Eye } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AreaOfInterestOptions } from "@/lib/constants";
+import PdfViewerModal from "@/components/ui/pdf-viewer-modal";
 
 interface VCProfile {
   id: string;
@@ -36,6 +37,8 @@ const Profile = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<VCProfile | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [pdfViewUrl, setPdfViewUrl] = useState<string | null>(null);
 
   // Function to get label by value
   const getAreaOfInterestLabel = (value: string) => {
@@ -104,6 +107,48 @@ const Profile = () => {
     }
   };
 
+  const viewThesis = async () => {
+    if (!profile?.fund_thesis_url) return;
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('vc-documents')
+        .download(profile.fund_thesis_url);
+        
+      if (error) throw error;
+      
+      // Create a blob URL for viewing
+      const url = URL.createObjectURL(data);
+      setPdfViewUrl(url);
+      setIsPdfModalOpen(true);
+      
+    } catch (error: any) {
+      toast({
+        title: "Failed to view document",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Clean up blob URL when component unmounts or when modal closes
+  useEffect(() => {
+    return () => {
+      if (pdfViewUrl) {
+        URL.revokeObjectURL(pdfViewUrl);
+      }
+    };
+  }, []);
+
+  // Close the PDF modal and clean up the blob URL
+  const handleCloseModal = () => {
+    setIsPdfModalOpen(false);
+    if (pdfViewUrl) {
+      URL.revokeObjectURL(pdfViewUrl);
+      setPdfViewUrl(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container max-w-3xl mx-auto px-4 py-8 flex justify-center">
@@ -162,15 +207,24 @@ const Profile = () => {
               {profile.fund_thesis_url && (
                 <div>
                   <p className="text-sm font-medium">Fund Thesis</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-1"
-                    onClick={downloadThesis}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Download PDF
-                  </Button>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={downloadThesis}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={viewThesis}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View PDF
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -229,30 +283,45 @@ const Profile = () => {
             </div>
           </div>
           
-          {/* New section for Website URL */}
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Public URL</h3>
             <Separator className="mb-4" />
             
             <div>
-              <p className="text-sm font-medium mb-2">URL:</p>
               {profile.website_url ? (
-                <a 
-                  href={profile.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-primary hover:underline"
-                >
-                  <Globe className="h-4 w-4 mr-2" />
-                  Visit Website
-                </a>
+                <div>
+                  <a 
+                    href={profile.website_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-primary hover:underline"
+                  >
+                    <Globe className="h-4 w-4 mr-2" />
+                    Visit Website
+                  </a>
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No website specified</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/profile/edit')}
+                >
+                  <Globe className="mr-2 h-4 w-4" />
+                  Add URL
+                </Button>
               )}
             </div>
           </div>
         </CardContent>
       </Card>
+      
+      {/* PDF Viewer Modal */}
+      <PdfViewerModal 
+        isOpen={isPdfModalOpen}
+        onClose={handleCloseModal}
+        pdfUrl={pdfViewUrl}
+        title="Fund Thesis"
+      />
     </div>
   );
 };
