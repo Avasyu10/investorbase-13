@@ -57,4 +57,3 @@ export const SECTION_TITLES = {
 
 // Array of all expected section types for validation
 export const EXPECTED_SECTION_TYPES = Object.values(SECTION_TYPES);
-

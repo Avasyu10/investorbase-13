@@ -90,8 +90,6 @@ export async function saveAnalysisResults(supabase, analysis, report) {
     // Prepare company data
     const companyData = {
       name: report.title,
-      description: analysis.overallSummary,
-      industry: null,  // Can be updated later
       overall_score: analysis.overallScore,
       report_id: report.id,
       user_id: report.user_id,
