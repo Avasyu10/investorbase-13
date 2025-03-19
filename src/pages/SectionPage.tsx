@@ -48,9 +48,11 @@ const SectionPage = () => {
           <ChevronLeft className="mr-1" /> Back
         </Button>
       </div>
-      <SectionDetail section={section} isLoading={sectionLoading} />
+      <div className="container mx-auto px-4">
+        <SectionDetail section={section} isLoading={sectionLoading} />
+      </div>
     </div>
   );
-};
+}
 
 export default SectionPage;

@@ -28,14 +28,40 @@ interface SectionDetailProps {
 const formatDescriptionAsBullets = (description: string): string[] => {
   if (!description) return [];
   
-  // Split on periods, semicolons, exclamation marks, question marks, line breaks
-  const sentences = description.split(/(?<=[.;!?\n])\s+/);
+  // Instead of splitting on every period, try to identify complete thoughts
+  // This regex looks for sentence endings followed by spaces or line breaks
+  const regex = /(?<=[.!?])\s+(?=[A-Z])/g;
   
-  // Filter out empty sentences and trim each one
+  // Split by the regex to get complete sentences
+  let sentences = description.split(regex);
+  
+  // If we have very few sentences, try another approach for more granular points
+  if (sentences.length <= 2 && description.length > 200) {
+    // Try splitting on semicolons and line breaks too
+    sentences = description.split(/(?<=[.;!?\n])\s+(?=[A-Z])/);
+  }
+  
+  // Process each sentence
   return sentences
     .map(s => s.trim())
-    .filter(s => s.length > 10) // Minimum length to be considered a point
-    .map(s => s.endsWith('.') || s.endsWith(';') || s.endsWith('!') || s.endsWith('?') ? s : s + '.');
+    .filter(s => s.length > 5) // Minimum length to be considered a point
+    .map(s => {
+      // Ensure each sentence ends with proper punctuation
+      if (s.endsWith('.') || s.endsWith('!') || s.endsWith('?') || s.endsWith(';')) {
+        return s;
+      }
+      return s + '.';
+    })
+    // Fix any split sentence fragments by joining them with the next one if they're too short
+    .reduce((result: string[], current, index, array) => {
+      if (current.length < 30 && index < array.length - 1) {
+        // Current sentence is too short, join it with the next one
+        array[index + 1] = current + ' ' + array[index + 1];
+        return result;
+      }
+      result.push(current);
+      return result;
+    }, []);
 };
 
 export function SectionDetail({ section, isLoading }: SectionDetailProps) {
@@ -57,10 +83,10 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   }
 
   // Check if section is missing (score of 0.5 indicates a missing section)
-  const isSectionMissing = section.score === 0.5;
+  const isSectionMissing = section?.score === 0.5;
 
   // Format the detailed content as bullet points and categorize them
-  const contentBullets = formatDescriptionAsBullets(section.detailedContent);
+  const contentBullets = section ? formatDescriptionAsBullets(section.detailedContent) : [];
   
   // Function to determine if a bullet point is a metric/statistic
   const isMetric = (text: string) => {
@@ -107,7 +133,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{section.title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{section?.title}</h1>
 
         <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
           <CardHeader className="border-b pb-4">
@@ -117,7 +143,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
                 <CardTitle className="text-xl font-semibold">Key Insights</CardTitle>
               </div>
               <div className="flex items-center">
-                <span className="text-xl font-bold mr-1">{section.score.toFixed(1)}</span>
+                <span className="text-xl font-bold mr-1">{section?.score.toFixed(1)}</span>
                 <span className="text-sm text-muted-foreground">/5</span>
               </div>
             </div>
@@ -151,7 +177,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Strengths Card - Only show if section is not missing */}
-          {!isSectionMissing && section.strengths.length > 0 && (
+          {!isSectionMissing && section?.strengths.length > 0 && (
             <Card className="shadow-card border-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent">
               <CardHeader className="border-b pb-4">
                 <div className="flex items-center gap-2">
@@ -184,7 +210,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
             </CardHeader>
             <CardContent className="pt-5">
               <ul className="space-y-3">
-                {section.weaknesses.map((weakness, index) => (
+                {section?.weaknesses.map((weakness, index) => (
                   <li key={index} className="flex items-start gap-2 group">
                     <div className="mt-1.5 shrink-0 rounded-full bg-rose-100 p-1 group-hover:bg-rose-200 transition-colors">
                       <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
