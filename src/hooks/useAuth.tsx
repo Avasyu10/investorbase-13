@@ -54,12 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // If this was a signup confirmation, clear the pending confirmation
             localStorage.removeItem('pendingConfirmationEmail');
             
-            // Navigate to profile setup
-            navigate('/profile/setup');
-            toast({
-              title: "Email confirmed",
-              description: "Your email has been confirmed successfully!",
-            });
+            // Only redirect if we're on the email confirmation page
+            if (location.pathname === '/email-confirmation') {
+              navigate('/profile/setup');
+              toast({
+                title: "Email confirmed",
+                description: "Your email has been confirmed successfully!",
+              });
+            }
           }
         } else {
           // Normal session fetch if not from email confirmation
