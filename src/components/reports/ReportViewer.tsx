@@ -5,6 +5,7 @@ import { getReportById, downloadReport } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
 import { Loader, Calendar, FileText, Download, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ReportViewerProps {
   reportId: string;
@@ -12,13 +13,26 @@ interface ReportViewerProps {
 
 export function ReportViewer({ reportId }: ReportViewerProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   
   const { data: report, isLoading, error } = useQuery({
-    queryKey: ["report", reportId],
+    queryKey: ["report", reportId, user?.id],
     queryFn: () => getReportById(reportId),
+    enabled: !!reportId && !!user,
+    retry: 1, // Don't retry too many times if access is denied
+    meta: {
+      onError: (err: any) => {
+        console.error("Error fetching report:", err);
+        toast({
+          title: "Error loading report",
+          description: err.message || "Failed to load report data",
+          variant: "destructive",
+        });
+      },
+    },
   });
 
   useEffect(() => {
@@ -32,13 +46,14 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
 
   useEffect(() => {
     const loadPdf = async () => {
-      if (!report?.pdf_url) return;
+      if (!report?.pdf_url || !user?.id) return;
       
       try {
         setLoadingPdf(true);
+        console.log("Loading PDF for report:", report.title);
         
         // Download the PDF file
-        const blob = await downloadReport(report.pdf_url, report.user_id);
+        const blob = await downloadReport(report.pdf_url, user.id);
         if (!blob) {
           throw new Error("Could not download PDF");
         }
@@ -65,17 +80,17 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     if (report && !pdfBlob && !loadingPdf) {
       loadPdf();
     }
-  }, [report, pdfBlob, toast, loadingPdf]);
+  }, [report, pdfBlob, toast, loadingPdf, user]);
 
   const handleDownload = async () => {
-    if (!report) return;
+    if (!report || !user) return;
     
     try {
       let blob = pdfBlob;
       
       // If we don't have the blob yet, download it
       if (!blob) {
-        blob = await downloadReport(report.pdf_url, report.user_id);
+        blob = await downloadReport(report.pdf_url, user.id);
       }
       
       if (!blob) {

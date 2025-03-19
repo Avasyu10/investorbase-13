@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -69,15 +70,42 @@ export async function getReportById(id: string) {
     throw new Error('Authentication required');
   }
   
-  // Get the report from the reports table - strictly enforcing user_id filter
-  const { data: tableData, error: tableError } = await supabase
+  // First try to get reports directly owned by the user
+  let { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
+    .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (tableError) {
+  // If report not found by user_id, check if user has access through company ownership
+  if (!tableData && !tableError) {
+    console.log('Report not found by direct ownership, checking company access');
+    
+    // Get reports where the user owns the associated company
+    const { data: companyReportData, error: companyReportError } = await supabase
+      .from('reports')
+      .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
+      .eq('id', id)
+      .not('company_id', 'is', null)
+      .maybeSingle();
+    
+    if (companyReportError) {
+      console.error('Error checking company report access:', companyReportError);
+      throw companyReportError;
+    }
+    
+    // If we found a report and the company exists and is owned by the user
+    if (companyReportData && 
+        companyReportData.companies && 
+        companyReportData.companies.user_id === user.id) {
+      console.log('User has access through company ownership');
+      tableData = companyReportData;
+    } else {
+      console.error('Report not found or user does not have access');
+      throw new Error('Report not found or you do not have permission to access it');
+    }
+  } else if (tableError) {
     console.error('Error fetching report from table:', tableError);
     throw tableError;
   }

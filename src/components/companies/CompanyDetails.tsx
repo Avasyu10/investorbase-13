@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
+import { toast } from "@/hooks/use-toast";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -23,7 +24,14 @@ export function CompanyDetails() {
 
   const navigateToReport = () => {
     if (company?.reportId) {
+      console.log('Navigating to report:', company.reportId);
       navigate(`/reports/${company.reportId}`);
+    } else {
+      toast({
+        title: "No report available",
+        description: "This company doesn't have an associated report",
+        variant: "destructive"
+      });
     }
   };
 
@@ -82,7 +90,7 @@ export function CompanyDetails() {
     );
   }
 
-  const formattedScore = parseFloat(company.overallScore.toFixed(1));
+  const formattedScore = company ? parseFloat(company.overallScore.toFixed(1)) : 0;
   
   const progressPercentage = formattedScore * 20;
 
