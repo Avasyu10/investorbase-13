@@ -29,17 +29,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         setIsLoading(true);
         
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Check if we have a hash fragment in the URL (from email confirmation)
+        const hasAccessToken = window.location.hash.includes('access_token=');
+        const hasType = window.location.hash.includes('type=signup') || window.location.hash.includes('type=recovery');
         
-        if (error) {
-          console.error('Error fetching session:', error);
-          throw error;
-        }
-        
-        if (session) {
-          setSession(session);
-          setUser(session.user);
-          console.log('Restored session for user:', session.user.email);
+        // If this is a callback from email confirmation
+        if (hasAccessToken && hasType) {
+          console.log('Detected auth callback in URL');
+          // Let Supabase handle the URL params
+          const { data, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error('Error handling auth callback:', error);
+            throw error;
+          }
+          
+          if (data?.session) {
+            console.log('Session established from URL callback');
+            setSession(data.session);
+            setUser(data.session.user);
+            
+            // Clear the hash fragment after processing
+            window.location.hash = '';
+            
+            // If this was a signup confirmation, clear the pending confirmation
+            localStorage.removeItem('pendingConfirmationEmail');
+            
+            // Navigate to profile setup
+            navigate('/profile/setup');
+            toast({
+              title: "Email confirmed",
+              description: "Your email has been confirmed successfully!",
+            });
+          }
+        } else {
+          // Normal session fetch if not from email confirmation
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('Error fetching session:', error);
+            throw error;
+          }
+          
+          if (session) {
+            setSession(session);
+            setUser(session.user);
+            console.log('Restored session for user:', session.user.email);
+          }
         }
       } catch (error) {
         console.error('Session restoration error:', error);

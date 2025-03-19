@@ -16,22 +16,35 @@ const EmailConfirmation = () => {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const email = localStorage.getItem('pendingConfirmationEmail') || '';
 
+  // Check if we're coming from an email confirmation link
+  useEffect(() => {
+    const hasAccessToken = window.location.hash.includes('access_token=');
+    const hasType = window.location.hash.includes('type=signup') || window.location.hash.includes('type=recovery');
+    
+    if (hasAccessToken && hasType) {
+      setIsConfirmed(true);
+      console.log('Detected confirmation callback in URL. Waiting for auth state to update.');
+      // The rest will be handled by the AuthProvider
+    }
+  }, []);
+
   // Redirect if no pending email
   useEffect(() => {
-    if (!email && !isLoading) {
+    if (!email && !isLoading && !isConfirmed) {
       navigate('/signup');
     }
-  }, [email, isLoading, navigate]);
+  }, [email, isLoading, navigate, isConfirmed]);
 
   // Check confirmation status periodically
   useEffect(() => {
     let intervalId: number;
     
-    if (email && !user?.email_confirmed_at) {
+    if (email && !user?.email_confirmed_at && !isConfirmed) {
       intervalId = window.setInterval(async () => {
         setIsCheckingStatus(true);
         
@@ -40,6 +53,7 @@ const EmailConfirmation = () => {
           
           if (data?.user?.email_confirmed_at) {
             // Email is confirmed
+            setIsConfirmed(true);
             toast({
               title: "Email confirmed",
               description: "Your email has been confirmed successfully!",
@@ -47,6 +61,7 @@ const EmailConfirmation = () => {
             
             // Clear interval and redirect to profile setup
             clearInterval(intervalId);
+            localStorage.removeItem('pendingConfirmationEmail');
             navigate('/profile/setup');
           }
         } catch (error) {
@@ -60,14 +75,14 @@ const EmailConfirmation = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [email, user, toast, navigate]);
+  }, [email, user, toast, navigate, isConfirmed]);
 
   // Redirect if user is already confirmed
   useEffect(() => {
-    if (user?.email_confirmed_at && !isLoading) {
+    if ((user?.email_confirmed_at || isConfirmed) && !isLoading) {
       navigate('/profile/setup');
     }
-  }, [user, navigate, isLoading]);
+  }, [user, navigate, isLoading, isConfirmed]);
 
   const handleResendConfirmation = async () => {
     if (!email) {
@@ -116,6 +131,22 @@ const EmailConfirmation = () => {
     
     navigate('/signup');
   };
+
+  // Show loading state when the app is processing the confirmation URL
+  if (isConfirmed) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[calc(100vh-4rem)]">
+        <Card className="w-full max-w-md mx-auto overflow-hidden shadow-lg">
+          <CardContent className="p-6 flex flex-col items-center justify-center space-y-4 py-12">
+            <CheckCircle2 className="h-16 w-16 text-green-500 animate-pulse" />
+            <h2 className="text-xl font-medium">Email confirmed successfully!</h2>
+            <p className="text-center text-muted-foreground">Redirecting to profile setup...</p>
+            <Loader className="h-6 w-6 animate-spin text-primary mt-4" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
