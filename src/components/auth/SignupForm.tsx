@@ -7,19 +7,43 @@ import { Loader } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 const SignupForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const { signUpWithEmail, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const success = await signUpWithEmail(email, password);
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const success = await signUpWithEmail(email, password, {
+      full_name: fullName,
+      username: username || email.split('@')[0]
+    });
     
     if (success) {
       navigate('/profile/setup');
+    }
+  };
+
+  const generateUsername = () => {
+    if (email && !username) {
+      const suggestedUsername = email.split('@')[0];
+      setUsername(suggestedUsername);
     }
   };
 
@@ -28,11 +52,33 @@ const SignupForm = () => {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
         <CardDescription>
-          Enter your email below to create your account
+          Enter your details below to create your account
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input 
+              id="fullName" 
+              type="text" 
+              placeholder="John Doe" 
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="username">Username (optional)</Label>
+            <Input 
+              id="username" 
+              type="text" 
+              placeholder="johndoe" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </div>
+        
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input 
@@ -41,9 +87,11 @@ const SignupForm = () => {
               placeholder="your@email.com" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={generateUsername}
               required
             />
           </div>
+          
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input 

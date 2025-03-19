@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<boolean>;
+  signUpWithEmail: (email: string, password: string, metadata?: Record<string, string>) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -103,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = async (email: string, password: string, metadata?: Record<string, string>) => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signUp({
@@ -111,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: metadata || {}
         }
       });
 
@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
-      navigate('/'); // Changed back to '/' to go to the original sign-in/sign-up page
+      navigate('/');
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
