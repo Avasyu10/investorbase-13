@@ -127,7 +127,7 @@ Analyze each section with a structured breakdown and ALWAYS include external mar
 - **4-5 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
 
 ### **Step 3: Score Calculation:** 
-- **The Score Calculation of the total Score would be the numerical average of scores of all the sections i.e. (Sum of scores of all the sections)/10 **
+- **The Score Calculation of the total Score would be the numerical average of scores of all the sections i.e. (Sum of scores of all the sections)/Total Number of Sections **
 
 ### **IMPORTANT - SCORE NORMALIZATION:**
 - After calculating the total score (the average of all section scores), you MUST apply the following normalization formula:
