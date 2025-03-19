@@ -2,7 +2,7 @@
 import { CompaniesList } from "@/components/companies/CompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
