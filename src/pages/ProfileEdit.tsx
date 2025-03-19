@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -15,9 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Plus, X, Globe } from "lucide-react";
+import { Loader2, Save, Plus, X, Globe, Trash, FileUp } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { Textarea } from "@/components/ui/textarea";
+import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { AreaOfInterestOptions } from "@/lib/constants";
 
 interface VCProfile {
@@ -60,6 +60,12 @@ const ProfileEdit = () => {
   const [companiesInvested, setCompaniesInvested] = useState<string[]>([]);
   const [newCompany, setNewCompany] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  
+  // File upload state
+  const [thesisFile, setThesisFile] = useState<File | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [deleteThesis, setDeleteThesis] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) {
@@ -126,6 +132,83 @@ const ProfileEdit = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setThesisFile(files[0]);
+      setDeleteThesis(false);
+    }
+  };
+
+  const handleDeleteThesis = () => {
+    setDeleteThesis(true);
+    setThesisFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    toast({
+      title: "File will be deleted",
+      description: "The file will be deleted when you save changes",
+    });
+  };
+
+  const uploadThesisFile = async (): Promise<string | null> => {
+    if (!user || !thesisFile) return null;
+
+    setIsUploadingFile(true);
+    try {
+      if (profile?.fund_thesis_url && !deleteThesis && !thesisFile) {
+        return profile.fund_thesis_url;
+      }
+
+      if (deleteThesis || !thesisFile) {
+        if (profile?.fund_thesis_url) {
+          const { error: deleteError } = await supabase.storage
+            .from('vc-documents')
+            .remove([profile.fund_thesis_url]);
+            
+          if (deleteError) {
+            console.error("Error deleting file:", deleteError);
+            throw deleteError;
+          }
+        }
+        return null;
+      }
+
+      if (profile?.fund_thesis_url) {
+        const { error: deleteError } = await supabase.storage
+          .from('vc-documents')
+          .remove([profile.fund_thesis_url]);
+          
+        if (deleteError) {
+          console.error("Error deleting existing file:", deleteError);
+        }
+      }
+
+      const fileExt = thesisFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('vc-documents')
+        .upload(fileName, thesisFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (uploadError) {
+        console.error("Error uploading file:", uploadError);
+        throw uploadError;
+      }
+      
+      return fileName;
+    } catch (error) {
+      console.error("Error handling file:", error);
+      throw error;
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -133,6 +216,12 @@ const ProfileEdit = () => {
     
     try {
       setSaving(true);
+      
+      let fundThesisUrl = profile?.fund_thesis_url || null;
+      
+      if (thesisFile || deleteThesis) {
+        fundThesisUrl = await uploadThesisFile();
+      }
       
       const { error } = await supabase
         .from('vc_profiles')
@@ -143,6 +232,7 @@ const ProfileEdit = () => {
           investment_stage: investmentStage,
           companies_invested: companiesInvested,
           website_url: websiteUrl,
+          fund_thesis_url: fundThesisUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -209,6 +299,50 @@ const ProfileEdit = () => {
                       placeholder="e.g. $10M-$50M"
                       className="bg-secondary/30 border-border/30 focus-visible:ring-primary"
                     />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fund-thesis" className="text-foreground">Fund Thesis PDF</Label>
+                    
+                    {profile?.fund_thesis_url && !deleteThesis ? (
+                      <div className="mt-2 flex flex-wrap gap-2 items-center">
+                        <div className="flex items-center bg-secondary/40 border border-border/30 rounded-md px-3 py-1.5">
+                          <span className="text-sm">Current file: {profile.fund_thesis_url.split('/').pop()}</span>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={handleDeleteThesis}
+                            className="ml-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 p-1 h-auto"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <span className="text-sm text-muted-foreground">or</span>
+                        <FileUploadZone
+                          id="fund-thesis"
+                          label=""
+                          file={thesisFile}
+                          onFileChange={handleFileChange}
+                          accept=".pdf"
+                          description="Upload a new PDF file (max 10MB)"
+                          buttonText="Upload New PDF"
+                        />
+                      </div>
+                    ) : (
+                      <FileUploadZone
+                        id="fund-thesis"
+                        label=""
+                        file={thesisFile}
+                        onFileChange={handleFileChange}
+                        accept=".pdf"
+                        description="Upload a PDF file (max 10MB)"
+                        buttonText="Upload PDF"
+                      />
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Upload your fund's thesis document to share with startups
+                    </p>
                   </div>
                 </div>
               </div>
@@ -336,10 +470,10 @@ const ProfileEdit = () => {
               </Button>
               <Button 
                 type="submit"
-                disabled={saving}
+                disabled={saving || isUploadingFile}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {saving ? (
+                {(saving || isUploadingFile) ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving
