@@ -55,7 +55,7 @@ Npw, here is a step-by-step process of how you should get your thesis ready -
  **For Each Section, Provide:**  
 1. FIRST check if section exists in deck
 2. If missing:
-   - Score: 1.0 (non-negotiable)
+   - Score: 1.0 (THIS IS NON-NEGOTIABLE)
    - Description: "⚠️ MISSING SECTION: [section name] is not present in this pitch deck"
    - Strengths: [] (empty array - IMPORTANT: DO NOT include ANY strengths for missing sections)
    - Weaknesses: ["Critical oversight: [section name] is missing", "Incomplete pitch deck structure"]
