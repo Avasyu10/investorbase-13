@@ -55,7 +55,7 @@ Npw, here is a step-by-step process of how you should get your thesis ready -
  **For Each Section, Provide:**  
 1. FIRST check if section exists in deck
 2. If missing:
-   - Score: 0.5 (non-negotiable)
+   - Score: 1.0 (non-negotiable)
    - Description: "⚠️ MISSING SECTION: [section name] is not present in this pitch deck"
    - Strengths: [] (empty array - IMPORTANT: DO NOT include ANY strengths for missing sections)
    - Weaknesses: ["Critical oversight: [section name] is missing", "Incomplete pitch deck structure"]
@@ -121,8 +121,8 @@ Analyze each section with a structured breakdown and ALWAYS include external mar
 - **A concise description (2-3 sentences) explaining the key insights.**  
 - **EXACTLY 4-7 key insights that are DIRECTLY RELEVANT to the company being analyzed, each with SPECIFIC NUMERICAL DATA.**
 - **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
-- **For present sections ONLY: 5-7 strengths with MEASURABLE IMPACTS (DO NOT include ANY strengths for missing sections with a score of 0.5).**  
-- **5-7 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
+- **For present sections ONLY: 4-5 strengths with MEASURABLE IMPACTS (DO NOT include ANY strengths for missing sections with a score of 1.0).**  
+- **4-5 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
 
 ### **Step 3: Score Calculation:** 
 - **The Score Calculation would be done by this following document - **
