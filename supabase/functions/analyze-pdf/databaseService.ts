@@ -139,10 +139,10 @@ export async function saveAnalysisResults(supabase, analysis, report) {
       
       console.log(`Processing section: ${section.type} with score ${section.score}`);
       
-      // Create section
+      // Create section - Update to use section_type instead of type
       const sectionData = {
         company_id: company.id,
-        section_type: section.type,
+        section_type: section.type, // Using section_type instead of type
         title: section.title || LOCAL_SECTION_TITLES[section.type] || section.type,
         score: section.score,
         description: section.description

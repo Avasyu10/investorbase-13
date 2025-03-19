@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -28,7 +27,7 @@ function mapDbCompanyToApi(company: any) {
 function mapDbSectionToApi(section: any) {
   return {
     id: section.id,
-    type: section.type,
+    type: section.section_type || section.type, // Map from section_type, fallback to type for backward compatibility
     title: section.title,
     score: section.score,
     description: section.description || '',
