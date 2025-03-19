@@ -222,6 +222,7 @@ export type Database = {
           description: string | null
           id: string
           score: number
+          section_type: string | null
           title: string
           type: string
           updated_at: string
@@ -232,6 +233,7 @@ export type Database = {
           description?: string | null
           id?: string
           score?: number
+          section_type?: string | null
           title: string
           type: string
           updated_at?: string
@@ -242,6 +244,7 @@ export type Database = {
           description?: string | null
           id?: string
           score?: number
+          section_type?: string | null
           title?: string
           type?: string
           updated_at?: string

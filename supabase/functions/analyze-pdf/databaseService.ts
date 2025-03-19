@@ -87,11 +87,9 @@ export async function saveAnalysisResults(supabase, analysis, report) {
     // Always use our calculated score to ensure consistency
     analysis.overallScore = roundedNormalizedScore;
     
-    // Prepare company data
+    // Prepare company data - removed description field which doesn't exist
     const companyData = {
       name: report.title,
-      description: analysis.overallSummary,
-      industry: null,  // Can be updated later
       overall_score: analysis.overallScore,
       report_id: report.id,
       user_id: report.user_id,
@@ -144,7 +142,8 @@ export async function saveAnalysisResults(supabase, analysis, report) {
       // Create section
       const sectionData = {
         company_id: company.id,
-        section_type: section.type,
+        type: section.type,  // Keep the type field for backward compatibility
+        section_type: section.type, // Use section_type as well to ensure compatibility
         title: section.title || LOCAL_SECTION_TITLES[section.type] || section.type,
         score: section.score,
         description: section.description
