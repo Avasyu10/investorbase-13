@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,103 +21,71 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
+  PaginationEllipsis
 } from "@/components/ui/pagination";
 
 type SortOption = "name" | "score" | "date";
 type ViewMode = "grid" | "table";
 
+const getSortField = (option: SortOption): string => {
+  switch (option) {
+    case 'name': return 'name';
+    case 'score': return 'overall_score';
+    case 'date': return 'created_at';
+    default: return 'created_at';
+  }
+};
+
+const getSortOrder = (option: SortOption): 'asc' | 'desc' => {
+  return option === 'name' ? 'asc' : 'desc';
+};
+
 export function CompaniesList() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<SortOption>("score");
+  const [sortBy, setSortBy] = useState<SortOption>("date");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const pageSize = 20;
   
-  const { companies, totalCount, isLoading } = useCompanies(currentPage, pageSize);
-  const [sortedCompanies, setSortedCompanies] = useState<CompanyListItem[]>([]);
+  const { companies, totalCount, isLoading } = useCompanies(
+    currentPage, 
+    pageSize, 
+    getSortField(sortBy),
+    getSortOrder(sortBy)
+  );
 
-  // Calculate total pages
   const totalPages = Math.ceil(totalCount / pageSize);
-
-  useEffect(() => {
-    if (!companies || companies.length === 0) {
-      setSortedCompanies([]);
-      return;
-    }
-    
-    const sorted = [...companies].sort((a, b) => {
-      if (sortBy === "name") {
-        const nameA = (a.name || '').toLowerCase();
-        const nameB = (b.name || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      } 
-      
-      if (sortBy === "score") {
-        const scoreA = a.overallScore || 0;
-        const scoreB = b.overallScore || 0;
-        return scoreB - scoreA;
-      }
-      
-      try {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA;
-      } catch (error) {
-        console.error("Date sorting error:", error, a.createdAt, b.createdAt);
-        return 0;
-      }
-    });
-    
-    setSortedCompanies(sorted);
-  }, [companies, sortBy]);
 
   const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
   };
 
-  const getTableSortField = (option: SortOption): 'name' | 'overallScore' | 'createdAt' => {
-    switch (option) {
-      case 'name': return 'name';
-      case 'score': return 'overallScore';
-      case 'date': return 'createdAt';
-      default: return 'overallScore';
-    }
-  };
-
-  // Handle page change
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
 
-  // Generate page numbers to display
   const getPageNumbers = () => {
     const pages = [];
     
-    // Always show first page
     pages.push(1);
     
-    // Calculate start and end of page range to show
     let startPage = Math.max(2, currentPage - 1);
     let endPage = Math.min(totalPages - 1, currentPage + 1);
     
-    // Add ellipsis after first page if needed
     if (startPage > 2) {
-      pages.push(-1); // -1 is a flag for ellipsis
+      pages.push(-1);
     }
     
-    // Add pages in the middle
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
     
-    // Add ellipsis before last page if needed
     if (endPage < totalPages - 1) {
-      pages.push(-2); // -2 is a flag for ellipsis
+      pages.push(-2);
     }
     
-    // Always show last page if there's more than one page
     if (totalPages > 1) {
       pages.push(totalPages);
     }
@@ -184,7 +151,10 @@ export function CompaniesList() {
           
           <Select
             value={sortBy}
-            onValueChange={(value) => setSortBy(value as SortOption)}
+            onValueChange={(value) => {
+              setSortBy(value as SortOption);
+              setCurrentPage(1);
+            }}
           >
             <SelectTrigger className="w-full sm:w-[180px]">
               <ListFilter className="mr-2 h-4 w-4" />
@@ -201,8 +171,8 @@ export function CompaniesList() {
       
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {sortedCompanies.length > 0 ? (
-            sortedCompanies.map((company) => (
+          {companies.length > 0 ? (
+            companies.map((company) => (
               <Card 
                 key={company.id} 
                 className="cursor-pointer transition-all hover:shadow-md"
@@ -231,7 +201,7 @@ export function CompaniesList() {
         </div>
       ) : (
         <CompaniesTable 
-          companies={sortedCompanies} 
+          companies={companies} 
           onCompanyClick={handleCompanyClick} 
         />
       )}
@@ -273,6 +243,3 @@ export function CompaniesList() {
     </div>
   );
 }
-
-// Using a properly typed import for PaginationEllipsis
-import { PaginationEllipsis } from "@/components/ui/pagination";

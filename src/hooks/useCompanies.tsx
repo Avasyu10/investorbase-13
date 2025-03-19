@@ -40,23 +40,29 @@ function mapDbSectionDetailedToApi(section: any, strengths: string[], weaknesses
   };
 }
 
-export function useCompanies(page: number = 1, pageSize: number = 20) {
+export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: string = 'created_at', sortOrder: 'asc' | 'desc' = 'desc') {
   const {
     data: companiesData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['companies', page, pageSize],
+    queryKey: ['companies', page, pageSize, sortBy, sortOrder],
     queryFn: async () => {
       // Calculate offset based on page number and page size
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
       
-      // Query with pagination
+      // Convert UI sort field to database column name
+      let dbSortField = sortBy;
+      if (sortBy === 'name' || sortBy === 'overallScore') {
+        dbSortField = sortBy === 'overallScore' ? 'overall_score' : 'name';
+      }
+      
+      // Query with pagination and sorting
       const { data, error, count } = await supabase
         .from('companies')
         .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at', { count: 'exact' })
-        .order('created_at', { ascending: false })
+        .order(dbSortField, { ascending: sortOrder === 'asc' })
         .range(from, to);
 
       if (error) {
