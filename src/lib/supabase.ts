@@ -32,7 +32,7 @@ export async function getReports() {
     return [];
   }
 
-  // Get reports from the reports table for the current user
+  // Get reports from the reports table - strictly enforcing user_id filter
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
@@ -60,7 +60,7 @@ export async function getReportById(id: string) {
     throw new Error('User not authenticated');
   }
 
-  // Get the report from the reports table
+  // Get the report from the reports table - strictly enforcing user_id filter
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
@@ -74,7 +74,7 @@ export async function getReportById(id: string) {
   }
 
   if (!tableData) {
-    throw new Error('Report not found');
+    throw new Error('Report not found or you do not have permission to access it');
   }
 
   const report = tableData as Report;

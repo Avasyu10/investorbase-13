@@ -71,14 +71,16 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
         return { companies: [], totalCount: 0 };
       }
       
-      // Query with pagination and sorting - RLS will automatically filter by user_id
+      // Query with RLS - this will only return companies the user has access to
       const { data, error, count } = await supabase
         .from('companies')
-        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at', { count: 'exact' })
+        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id', { count: 'exact' })
+        .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
         .order(dbSortField, { ascending: sortOrder === 'asc' })
         .range(from, to);
 
       if (error) {
+        console.error("Error fetching companies:", error);
         throw error;
       }
 
@@ -128,14 +130,28 @@ export function useCompanyDetails(companyId: string | undefined) {
         return null;
       }
       
+      // Get the company with RLS enforcement - explicitly checking user_id
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
         .eq('id', companyId)
+        .eq('user_id', user.id) // Explicitly filter by user_id
         .maybeSingle();
         
-      if (companyError) throw companyError;
-      if (!companyData) return null;
+      if (companyError) {
+        console.error("Error fetching company details:", companyError);
+        throw companyError;
+      }
+      
+      if (!companyData) {
+        console.error('Company not found or access denied');
+        toast({
+          title: 'Access denied',
+          description: 'You do not have permission to view this company',
+          variant: 'destructive',
+        });
+        return null;
+      }
       
       const { data: sectionsData, error: sectionsError } = await supabase
         .from('sections')
@@ -186,6 +202,29 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         toast({
           title: 'Authentication required',
           description: 'Please sign in to view section details',
+          variant: 'destructive',
+        });
+        return null;
+      }
+      
+      // First verify the user has access to this company
+      const { data: companyCheck, error: companyCheckError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('id', companyId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (companyCheckError) {
+        console.error("Error checking company access:", companyCheckError);
+        throw companyCheckError;
+      }
+      
+      if (!companyCheck) {
+        console.error('Access denied to company');
+        toast({
+          title: 'Access denied',
+          description: 'You do not have permission to view this section',
           variant: 'destructive',
         });
         return null;

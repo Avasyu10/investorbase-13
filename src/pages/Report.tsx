@@ -4,7 +4,8 @@ import { ReportViewer } from "@/components/reports/ReportViewer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const Report = () => {
   // Support both /report/:reportId and /reports/:id route patterns
@@ -13,6 +14,7 @@ const Report = () => {
   
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
     // If user is not authenticated and we're done loading, redirect to login
@@ -21,11 +23,46 @@ const Report = () => {
     }
   }, [user, isLoading, navigate, reportIdentifier]);
 
+  useEffect(() => {
+    // Check if user is authorized to access this report
+    const checkAuthorization = async () => {
+      if (!user || !reportIdentifier) return;
+      
+      try {
+        setIsAuthorized(null); // Reset while checking
+        
+        // Try to fetch the report - RLS will handle access control
+        const { data, error } = await fetch(`/api/reports/${reportIdentifier}`)
+          .then(res => {
+            if (!res.ok) throw new Error('Not authorized');
+            return res.json();
+          });
+          
+        if (error) throw error;
+        setIsAuthorized(true);
+      } catch (error) {
+        console.error('Authorization check failed:', error);
+        setIsAuthorized(false);
+        toast({
+          title: "Access denied",
+          description: "You do not have permission to view this report",
+          variant: "destructive"
+        });
+        // Redirect after a short delay
+        setTimeout(() => navigate('/dashboard'), 2000);
+      }
+    };
+    
+    if (user && reportIdentifier) {
+      checkAuthorization();
+    }
+  }, [user, reportIdentifier, navigate]);
+
   const handleBackClick = () => {
     navigate(-1); // Navigate to the previous page in history
   };
 
-  if (isLoading) {
+  if (isLoading || isAuthorized === null) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
@@ -39,9 +76,8 @@ const Report = () => {
     return null; // Will redirect in useEffect
   }
 
-  if (!reportIdentifier) {
-    navigate("/dashboard");
-    return null;
+  if (!reportIdentifier || isAuthorized === false) {
+    return null; // Will redirect in useEffect
   }
 
   return (

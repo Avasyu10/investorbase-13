@@ -2,11 +2,11 @@
 import { CompaniesList } from "@/components/companies/CompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp } from "lucide-react";
+import { FileUp, Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
@@ -15,19 +15,19 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      navigate('/');
+      navigate('/login', { state: { from: '/dashboard' } });
     }
   }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="loader"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!user) return null;
+  if (!user) return null; // Will redirect in useEffect
 
   return (
     <div className="animate-fade-in">

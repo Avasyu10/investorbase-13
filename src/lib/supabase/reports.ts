@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -33,7 +32,7 @@ export async function getReports() {
     return [];
   }
 
-  // Get reports from the reports table filtered by user_id
+  // Get reports from the reports table - strictly enforcing user_id filter
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
@@ -70,7 +69,7 @@ export async function getReportById(id: string) {
     throw new Error('Authentication required');
   }
   
-  // Get the report from the reports table filtered by id and user_id
+  // Get the report from the reports table - strictly enforcing user_id filter
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
