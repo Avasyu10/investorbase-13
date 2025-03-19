@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -118,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       toast({
         title: "Sign up successful",
-        description: "Please check your email for the confirmation link.",
+        description: "Please check your email for the confirmation link. You can now login with your credentials.",
       });
       
       return true;

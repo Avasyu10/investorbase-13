@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Loader } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ const SignupForm = () => {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const { signUpWithEmail, isLoading } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,14 +29,16 @@ const SignupForm = () => {
       return;
     }
 
-    const success = await signUpWithEmail(email, password, {
+    await signUpWithEmail(email, password, {
       full_name: fullName,
       username: username || email.split('@')[0]
     });
     
-    if (success) {
-      navigate('/profile/setup');
-    }
+    // Reset form on successful signup
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setUsername('');
   };
 
   const generateUsername = () => {

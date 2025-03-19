@@ -30,9 +30,12 @@ const Index = () => {
     e.preventDefault();
     const success = await signUpWithEmail(email, password);
     
-    // Only navigate to profile setup if signup was successful
     if (success) {
-      navigate('/profile/setup');
+      // Reset form fields
+      setEmail("");
+      setPassword("");
+      // Switch to sign in tab 
+      setActiveTab("signin");
     }
   };
 
