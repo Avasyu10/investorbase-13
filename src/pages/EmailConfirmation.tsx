@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { AlertCircle, CheckCircle2, Loader, Mail, XCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader, Mail, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -131,7 +132,7 @@ const EmailConfirmation = () => {
     navigate('/signup');
   };
 
-  // Show confirmed state when the app is processing the confirmation URL
+  // Show loading state when the app is processing the confirmation URL
   if (isConfirmed) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[calc(100vh-4rem)]">
@@ -239,22 +240,19 @@ const EmailConfirmation = () => {
           </Button>
           
           <Button 
-            onClick={() => navigate('/login')} 
-            variant="default"
-            className="w-full"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to Sign In
-          </Button>
-          
-          <Button 
             onClick={handleCancelSignup} 
             variant="destructive"
-            className="w-full mt-2"
+            className="w-full"
           >
             <XCircle className="mr-2 h-4 w-4" />
             Cancel signup
           </Button>
+          
+          <div className="text-center text-sm pt-2">
+            <Link to="/login" className="font-medium text-primary hover:underline">
+              Back to login
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </div>
