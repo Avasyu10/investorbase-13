@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -62,10 +63,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
+          // Clear the pendingConfirmationEmail when signed in
+          localStorage.removeItem('pendingConfirmationEmail');
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Session token refreshed');
+        } else if (event === 'USER_UPDATED') {
+          console.log('User updated');
         }
       }
     );

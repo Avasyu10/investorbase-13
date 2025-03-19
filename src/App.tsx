@@ -24,6 +24,7 @@ import ProfileSetup from "@/pages/ProfileSetup";
 import ProfileEdit from "@/pages/ProfileEdit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
+import EmailConfirmation from "@/pages/EmailConfirmation";
 
 // Create a new query client instance
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ function App() {
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Navigate to="/" replace />} />
                   <Route path="/signup" element={<Signup />} />
+                  <Route path="/email-confirmation" element={<EmailConfirmation />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/company/:companyId" element={<CompanyPage />} />
                   <Route path="/company/:companyId/section/:sectionId" element={<SectionPage />} />
