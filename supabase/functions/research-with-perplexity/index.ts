@@ -105,6 +105,12 @@ Provide exactly 5 diverse articles total, one per category. Make each headline u
 
     const researchText = responseData.choices[0].message.content;
     
+    // Get the authenticated user from the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authorization header is missing');
+    }
+    
     // Create Supabase client with admin rights
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
@@ -118,6 +124,32 @@ Provide exactly 5 diverse articles total, one per category. Make each headline u
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.3');
     const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // First, verify that the user owns this company
+    const clientSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+    
+    // Get the user ID
+    const { data: { user }, error: userError } = await clientSupabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('Unauthorized: Unable to get user information');
+    }
+    
+    // Verify company ownership
+    const { data: companyData, error: companyError } = await clientSupabase
+      .from('companies')
+      .select('id, user_id')
+      .eq('id', companyId)
+      .single();
+      
+    if (companyError || !companyData) {
+      throw new Error('Company not found or access denied');
+    }
+    
     // Update the company record with the Perplexity data
     const { error: updateError } = await adminSupabase
       .from('companies')
@@ -126,7 +158,8 @@ Provide exactly 5 diverse articles total, one per category. Make each headline u
         perplexity_response: researchText,
         perplexity_requested_at: new Date().toISOString()
       })
-      .eq('id', companyId);
+      .eq('id', companyId)
+      .eq('user_id', user.id); // Ensure user can only update their own companies
 
     if (updateError) {
       console.error("Error updating company record:", updateError);
