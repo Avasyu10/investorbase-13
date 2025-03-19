@@ -49,11 +49,12 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      // Query all companies without user filtering
+      // Optimize query with pagination and select only needed fields
       const { data, error } = await supabase
         .from('companies')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at')
+        .order('created_at', { ascending: false })
+        .limit(20); // Limit to 20 companies for better performance
 
       if (error) {
         throw error;
