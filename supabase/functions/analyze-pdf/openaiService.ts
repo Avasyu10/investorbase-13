@@ -1,3 +1,4 @@
+
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
 const prompt = `
@@ -139,7 +140,7 @@ The end result is a Composite Score that helps analysts quickly compare
 different deals and identify critical areas of further due diligence.
 
 ### **IMPORTANT - SCORE NORMALIZATION:**
-- After calculating the final overall score, you MUST apply the following normalization formula:
+- After calculating the final overall score (the average of all section scores), you MUST apply the following normalization formula:
 - **Normalized Score = MIN(original_score * 1.25, 5.0)**
 - This compensates for the rigorous evaluation criteria and ensures a more balanced distribution of scores.
 - The normalized score (after applying this formula) should be what appears in the "overallScore" field of your response.
