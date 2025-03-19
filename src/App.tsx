@@ -17,7 +17,7 @@ import AnalysisSummary from "@/pages/AnalysisSummary";
 import NotFound from "@/pages/NotFound";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Navbar } from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import { Toaster } from "@/components/ui/toaster";
 import Profile from "@/pages/Profile";
 import ProfileSetup from "@/pages/ProfileSetup";

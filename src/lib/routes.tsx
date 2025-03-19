@@ -1,15 +1,16 @@
-import { Home } from '@/pages/Home';
-import { Login } from '@/pages/Login';
-import { Signup } from '@/pages/Signup';
-import { Dashboard } from '@/pages/Dashboard';
-import { Reports } from '@/pages/Reports';
-import { ReportDetails } from '@/pages/ReportDetails';
+
+import Index from '@/pages/Index';
+import Login from '@/pages/Login';
+import Signup from '@/pages/Signup';
+import Dashboard from '@/pages/Dashboard';
+import Report from '@/pages/Report';
+import UploadReport from '@/pages/UploadReport';
 import { CompaniesList } from '@/components/companies/CompaniesList';
 import { CompanyDetails } from '@/components/companies/CompanyDetails';
-import { SectionDetails } from '@/components/companies/SectionDetails';
-import { ProfileSetup } from '@/pages/ProfileSetup';
-import { ProfileEdit } from '@/pages/ProfileEdit';
-import { SupplementaryMaterials } from '@/components/companies/SupplementaryMaterials';
+import { SectionDetail } from '@/components/companies/SectionDetail';
+import ProfileSetup from '@/pages/ProfileSetup';
+import ProfileEdit from '@/pages/ProfileEdit';
+import SupplementaryMaterials from '@/pages/SupplementaryMaterials';
 import Profile from '@/pages/Profile';
 import UserProfile from '@/pages/UserProfile';
 
@@ -17,7 +18,7 @@ import UserProfile from '@/pages/UserProfile';
 const routes = [
   {
     path: '/',
-    element: <Home />,
+    element: <Index />,
   },
   {
     path: '/login',
@@ -33,11 +34,11 @@ const routes = [
   },
   {
     path: '/reports',
-    element: <Reports />,
+    element: <UploadReport />,
   },
   {
     path: '/reports/:reportId',
-    element: <ReportDetails />,
+    element: <Report />,
   },
   {
     path: '/companies',
@@ -49,7 +50,7 @@ const routes = [
   },
   {
     path: '/company/:companyId/section/:sectionId',
-    element: <SectionDetails />,
+    element: <SectionDetail />,
   },
   {
     path: '/profile/setup',
