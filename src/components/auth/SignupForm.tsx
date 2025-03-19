@@ -36,10 +36,7 @@ const SignupForm = () => {
     });
     
     if (success) {
-      // Store the email for the confirmation page
-      localStorage.setItem('pendingConfirmationEmail', email);
-      // Always navigate to the confirmation page after signup
-      navigate('/email-confirmation');
+      navigate('/profile/setup');
     }
   };
 

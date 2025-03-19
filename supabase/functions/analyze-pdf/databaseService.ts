@@ -90,6 +90,8 @@ export async function saveAnalysisResults(supabase, analysis, report) {
     // Prepare company data
     const companyData = {
       name: report.title,
+      description: analysis.overallSummary,
+      industry: null,  // Can be updated later
       overall_score: analysis.overallScore,
       report_id: report.id,
       user_id: report.user_id,
@@ -139,10 +141,10 @@ export async function saveAnalysisResults(supabase, analysis, report) {
       
       console.log(`Processing section: ${section.type} with score ${section.score}`);
       
-      // Create section - Update to use section_type instead of type
+      // Create section
       const sectionData = {
         company_id: company.id,
-        section_type: section.type, // Using section_type instead of type
+        section_type: section.type,
         title: section.title || LOCAL_SECTION_TITLES[section.type] || section.type,
         score: section.score,
         description: section.description

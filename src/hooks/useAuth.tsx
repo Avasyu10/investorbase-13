@@ -1,8 +1,7 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -21,7 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,52 +27,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         setIsLoading(true);
         
-        // Check if we have a hash fragment in the URL (from email confirmation)
-        const hasAccessToken = window.location.hash.includes('access_token=');
-        const hasType = window.location.hash.includes('type=signup') || window.location.hash.includes('type=recovery');
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        // If this is a callback from email confirmation
-        if (hasAccessToken && hasType) {
-          console.log('Detected auth callback in URL');
-          // Let Supabase handle the URL params
-          const { data, error } = await supabase.auth.getSession();
-          if (error) {
-            console.error('Error handling auth callback:', error);
-            throw error;
-          }
-          
-          if (data?.session) {
-            console.log('Session established from URL callback');
-            setSession(data.session);
-            setUser(data.session.user);
-            
-            // Clear the hash fragment after processing
-            window.location.hash = '';
-            
-            // If this was a signup confirmation, clear the pending confirmation
-            localStorage.removeItem('pendingConfirmationEmail');
-            
-            // Navigate to profile setup
-            navigate('/profile/setup');
-            toast({
-              title: "Email confirmed",
-              description: "Your email has been confirmed successfully!",
-            });
-          }
-        } else {
-          // Normal session fetch if not from email confirmation
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error('Error fetching session:', error);
-            throw error;
-          }
-          
-          if (session) {
-            setSession(session);
-            setUser(session.user);
-            console.log('Restored session for user:', session.user.email);
-          }
+        if (error) {
+          console.error('Error fetching session:', error);
+          throw error;
+        }
+        
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+          console.log('Restored session for user:', session.user.email);
         }
       } catch (error) {
         console.error('Session restoration error:', error);
@@ -99,38 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (event === 'SIGNED_IN') {
           console.log('User signed in:', currentSession?.user?.email);
-          
-          // Check if user has a confirmed email
-          if (currentSession?.user?.email_confirmed_at) {
-            // Email is confirmed - clear pending confirmation and navigate to profile setup
-            localStorage.removeItem('pendingConfirmationEmail');
-            
-            // Only navigate to profile setup if we're not already there or on a deeper path
-            if (location.pathname !== '/profile/setup' && !location.pathname.startsWith('/dashboard')) {
-              navigate('/profile/setup');
-            }
-          } else if (localStorage.getItem('pendingConfirmationEmail')) {
-            // If email is not confirmed and we have a pending confirmation
-            // Always navigate to confirmation page
-            navigate('/email-confirmation');
-          }
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
-          navigate('/');
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Session token refreshed');
-        } else if (event === 'USER_UPDATED') {
-          console.log('User updated');
-          
-          // Check if email was just confirmed
-          if (currentSession?.user?.email_confirmed_at && localStorage.getItem('pendingConfirmationEmail')) {
-            toast({
-              title: "Email confirmed",
-              description: "Your email has been confirmed successfully!",
-            });
-            localStorage.removeItem('pendingConfirmationEmail');
-            navigate('/profile/setup');
-          }
         }
       }
     );
@@ -138,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast, navigate, location.pathname]);
+  }, [toast]);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
@@ -155,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Welcome back!",
       });
       
-      // Navigation will be handled by the auth state change listener
+      navigate('/dashboard');
     } catch (error: any) {
       toast({
         title: "Sign in failed",

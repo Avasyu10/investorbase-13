@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -45,13 +45,6 @@ const ProfileSetup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingThesis, setUploadingThesis] = useState(false);
   const [thesisFile, setThesisFile] = useState<File | null>(null);
-  
-  useEffect(() => {
-    if (user && !user.email_confirmed_at) {
-      localStorage.setItem('pendingConfirmationEmail', user.email || '');
-      navigate('/email-confirmation');
-    }
-  }, [user, navigate]);
   
   const form = useForm<ProfileFormValues>({
     defaultValues: {
@@ -148,14 +141,6 @@ const ProfileSetup = () => {
     { label: "Growth", value: "growth" },
     { label: "Late Stage", value: "late-stage" }
   ];
-
-  if (!user || !user.email_confirmed_at) {
-    return (
-      <div className="container max-w-3xl mx-auto px-4 py-8 flex justify-center items-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="container max-w-3xl mx-auto px-4 py-8">

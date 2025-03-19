@@ -217,7 +217,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           }
         ],
         generationConfig: {
-          temperature: 0.1, // Setting temperature to 0.1 for maximum consistency
+          temperature: 0.0, // Setting temperature to 0 for maximum consistency
           topP: 1.0,
           topK: 40,
           maxOutputTokens: 8192 // Increasing token limit to allow for more detailed market research

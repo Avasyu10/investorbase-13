@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -27,7 +28,7 @@ function mapDbCompanyToApi(company: any) {
 function mapDbSectionToApi(section: any) {
   return {
     id: section.id,
-    type: section.section_type || section.type, // Map from section_type, fallback to type for backward compatibility
+    type: section.type,
     title: section.title,
     score: section.score,
     description: section.description || '',
@@ -148,8 +149,6 @@ export function useCompanyDetails(companyId: string | undefined) {
         return null;
       }
       
-      console.log(`Fetching company details for ID: ${companyId}`);
-      
       // Get the company with RLS enforcement - explicitly checking user_id
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -173,31 +172,16 @@ export function useCompanyDetails(companyId: string | undefined) {
         return null;
       }
       
-      console.log(`Successfully fetched company data for ID ${companyId}:`, companyData);
-      
       // Log the raw overall score from the database
       console.log(`Raw overall_score from DB for company ${companyId}: ${companyData.overall_score}`);
       
-      // Fetch sections for this company
-      console.log(`Fetching sections for company ID: ${companyId}`);
       const { data: sectionsData, error: sectionsError } = await supabase
         .from('sections')
         .select('*')
         .eq('company_id', companyId)
         .order('created_at', { ascending: true });
         
-      if (sectionsError) {
-        console.error("Error fetching sections:", sectionsError);
-        throw sectionsError;
-      }
-      
-      console.log(`Fetched ${sectionsData?.length || 0} sections for company ${companyId}`);
-      
-      if (!sectionsData || sectionsData.length === 0) {
-        console.warn(`No sections found for company ${companyId}. This might be why section metrics aren't displaying.`);
-      } else {
-        console.log('Sample section data:', sectionsData[0]);
-      }
+      if (sectionsError) throw sectionsError;
       
       // Calculate average section score for verification
       if (sectionsData && sectionsData.length > 0) {
@@ -207,18 +191,14 @@ export function useCompanyDetails(companyId: string | undefined) {
         console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${normalizedScore.toFixed(1)}, DB Score=${companyData.overall_score}`);
       }
       
-      const result = {
+      return {
         ...mapDbCompanyToApi(companyData),
         sections: sectionsData?.map(mapDbSectionToApi) || [],
       };
-      
-      console.log(`Returning company with ${result.sections.length} sections`);
-      return result;
     },
     enabled: !!companyId,
     meta: {
       onError: (err: any) => {
-        console.error("Error in useCompanyDetails:", err);
         toast({
           title: 'Error loading company',
           description: err.message || 'Failed to load company details',
