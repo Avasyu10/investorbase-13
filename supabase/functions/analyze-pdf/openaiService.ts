@@ -1,3 +1,4 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
@@ -31,7 +32,7 @@ You will search through the internet for the latest data, and provide an unbiase
 
 STARTUP EVALUATION FRAMEWORK
  KEY SECTIONS & WEIGHTS
-Traditionally, a pitch deck is divided into 10 sections:
+A pitch deck MUST ONLY include these 10 sections and NO OTHERS:
 1. Problem
 2. Market
 3. Solution (Product)
@@ -153,8 +154,8 @@ Ensure the output is structured as follows:
       "weaknesses": ["Weakness 1 with numerical gap", "Weakness 2 with measurable improvement needed"]
     },
     {
-      "type": "SOLUTION",
-      "title": "Solution (Product)",
+      "type": "MARKET",
+      "title": "Market Opportunity",
       "score": 3.8,
       "description": "Detailed breakdown of the product and its effectiveness with extensive external market research data and specific adoption metrics.",
       "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
@@ -165,6 +166,14 @@ Ensure the output is structured as follows:
   "overallScore": 3.7,
   "assessmentPoints": ["Key point 1 with specific metrics ($XM market, Y% growth)", "Key point 2 with exact figures", "Key point 3 with precise percentages", "Key point 4 with concrete numbers", "Key point 5 with quantifiable comparison"]
 }
+
+IMPORTANT RULES:
+1. ONLY include the 10 exact section types mentioned above (Problem, Market, Solution, Competitive Landscape, Traction, Business Model, Go-to-Market Strategy, Team, Financials, The Ask).
+2. DO NOT add any additional sections like "Testimonials" or duplicate sections.
+3. Each section type MUST appear EXACTLY ONCE in your response.
+4. Use the exact "type" field values from this list: PROBLEM, MARKET, SOLUTION, COMPETITIVE_LANDSCAPE, TRACTION, BUSINESS_MODEL, GTM_STRATEGY, TEAM, FINANCIALS, ASK.
+5. For any section that is missing in the deck, set the score to 1.0 and follow the missing section format.
+6. For the "title" field, use the user-friendly titles shown in the section list (e.g., "Problem Statement", "Market Opportunity", etc.)
 
 ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential. ENSURE EVERY SECTION HAS SUBSTANTIAL EXTERNAL MARKET RESEARCH DATA WITH SPECIFIC NUMBERS - THIS IS THE MOST CRITICAL REQUIREMENT.
 
@@ -335,6 +344,72 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           throw new Error("Invalid analysis structure: missing or empty sections array");
         }
         
+        // Define the expected section types
+        const expectedSectionTypes = [
+          "PROBLEM", "MARKET", "SOLUTION", "COMPETITIVE_LANDSCAPE", 
+          "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", 
+          "TEAM", "FINANCIALS", "ASK"
+        ];
+        
+        // Deduplicate sections (keep only the first occurrence of each section type)
+        const processedSections = [];
+        const seenTypes = new Set();
+        
+        for (const section of parsedContent.sections) {
+          // Ensure sections have the correct type
+          if (!expectedSectionTypes.includes(section.type)) {
+            console.warn(`Section with invalid type "${section.type}" found, skipping it`);
+            continue;
+          }
+          
+          // Skip duplicates
+          if (seenTypes.has(section.type)) {
+            console.warn(`Duplicate section of type "${section.type}" found, skipping it`);
+            continue;
+          }
+          
+          seenTypes.add(section.type);
+          processedSections.push(section);
+        }
+        
+        // Add any missing sections from the expected list
+        for (const expectedType of expectedSectionTypes) {
+          if (!seenTypes.has(expectedType)) {
+            console.warn(`Missing section of type "${expectedType}", adding a placeholder`);
+            
+            // Convert type to title
+            let title;
+            switch (expectedType) {
+              case "PROBLEM": title = "Problem Statement"; break;
+              case "MARKET": title = "Market Opportunity"; break;
+              case "SOLUTION": title = "Solution (Product)"; break;
+              case "COMPETITIVE_LANDSCAPE": title = "Competitive Landscape"; break;
+              case "TRACTION": title = "Traction & Milestones"; break;
+              case "BUSINESS_MODEL": title = "Business Model"; break;
+              case "GTM_STRATEGY": title = "Go-to-Market Strategy"; break;
+              case "TEAM": title = "Founder & Team Background"; break;
+              case "FINANCIALS": title = "Financial Overview & Projections"; break;
+              case "ASK": title = "The Ask & Next Steps"; break;
+              default: title = expectedType.charAt(0) + expectedType.slice(1).toLowerCase().replace(/_/g, ' ');
+            }
+            
+            processedSections.push({
+              type: expectedType,
+              title: title,
+              score: 1.0,
+              description: `⚠�� MISSING SECTION: ${title} is not present in this pitch deck`,
+              strengths: [],
+              weaknesses: [
+                `Critical oversight: ${title} is missing`,
+                "Incomplete pitch deck structure"
+              ]
+            });
+          }
+        }
+        
+        // Replace the sections array with our processed one
+        parsedContent.sections = processedSections;
+        
         // Ensure we properly calculate and normalize the score
         if (typeof parsedContent.overallScore !== 'number') {
           console.warn("Warning: overallScore is not a number in API response, calculating it manually");
@@ -342,7 +417,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           // Calculate the average score from all sections
           const sectionScores = parsedContent.sections.map(section => section.score || 0);
           const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
-          const averageScore = totalScore / 10; // Assuming 10 sections as per the prompt
+          const averageScore = totalScore / expectedSectionTypes.length; // Use expected section count (10)
           
           // Apply normalization formula: MIN(averageScore * 1.25, 5.0)
           const normalizedScore = Math.min(averageScore * 1.25, 5.0);
@@ -356,13 +431,21 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           const currentScore = parsedContent.overallScore;
           console.log(`Original score from API: ${currentScore}`);
           
-          // Ensure the score is properly normalized using our formula
-          const normalizedScore = Math.min(currentScore * 1.25, 5.0);
+          // Get average of section scores to verify
+          const sectionScores = parsedContent.sections.map(section => section.score || 0);
+          const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
+          const averageScore = totalScore / expectedSectionTypes.length;
           
-          // Only update if there's a significant difference
-          if (Math.abs(normalizedScore - currentScore) > 0.05) {
-            console.log(`Normalizing score: ${currentScore} → ${normalizedScore.toFixed(1)}`);
-            parsedContent.overallScore = parseFloat(normalizedScore.toFixed(1));
+          // Apply normalization formula: MIN(averageScore * 1.25, 5.0)
+          const expectedNormalizedScore = Math.min(averageScore * 1.25, 5.0);
+          const formattedExpectedScore = parseFloat(expectedNormalizedScore.toFixed(1));
+          
+          console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${formattedExpectedScore}, API Score=${currentScore}`);
+          
+          // If there's a difference, use our calculated score
+          if (Math.abs(currentScore - formattedExpectedScore) > 0.05) {
+            console.log(`Score difference detected: API=${currentScore}, Expected=${formattedExpectedScore}, using calculated score`);
+            parsedContent.overallScore = formattedExpectedScore;
           }
         }
         

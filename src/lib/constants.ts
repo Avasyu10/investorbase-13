@@ -32,7 +32,6 @@ export const SECTION_TYPES = {
   PROBLEM: "PROBLEM",
   MARKET: "MARKET",
   SOLUTION: "SOLUTION", 
-  PRODUCT: "PRODUCT",
   COMPETITIVE_LANDSCAPE: "COMPETITIVE_LANDSCAPE",
   TRACTION: "TRACTION",
   BUSINESS_MODEL: "BUSINESS_MODEL",
@@ -43,16 +42,14 @@ export const SECTION_TYPES = {
 };
 
 export const SECTION_TITLES = {
-  [SECTION_TYPES.PROBLEM]: "Problem",
-  [SECTION_TYPES.MARKET]: "Market",
+  [SECTION_TYPES.PROBLEM]: "Problem Statement",
+  [SECTION_TYPES.MARKET]: "Market Opportunity",
   [SECTION_TYPES.SOLUTION]: "Solution (Product)",
-  [SECTION_TYPES.PRODUCT]: "Product",
   [SECTION_TYPES.COMPETITIVE_LANDSCAPE]: "Competitive Landscape",
-  [SECTION_TYPES.TRACTION]: "Traction",
+  [SECTION_TYPES.TRACTION]: "Traction & Milestones",
   [SECTION_TYPES.BUSINESS_MODEL]: "Business Model",
   [SECTION_TYPES.GTM_STRATEGY]: "Go-to-Market Strategy",
-  [SECTION_TYPES.TEAM]: "Team",
-  [SECTION_TYPES.FINANCIALS]: "Financials",
-  [SECTION_TYPES.ASK]: "The Ask"
+  [SECTION_TYPES.TEAM]: "Founder & Team Background",
+  [SECTION_TYPES.FINANCIALS]: "Financial Overview & Projections",
+  [SECTION_TYPES.ASK]: "The Ask & Next Steps"
 };
-
