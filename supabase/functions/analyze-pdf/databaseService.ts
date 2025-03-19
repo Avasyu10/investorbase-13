@@ -1,5 +1,4 @@
-
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 export async function saveAnalysisResults(supabase, analysis, report) {
   try {
@@ -17,7 +16,7 @@ export async function saveAnalysisResults(supabase, analysis, report) {
     const sectionsWithScores = analysis.sections.filter(section => typeof section.score === 'number');
     if (sectionsWithScores.length > 0) {
       const totalSectionScore = sectionsWithScores.reduce((sum, section) => sum + section.score, 0);
-      const averageScore = totalSectionScore / 10; // Using 10 as the denominator as per the prompt
+      const averageScore = totalSectionScore / sectionsWithScores.length; // Use the count of sections with scores
       
       // Check if the provided score matches the expected normalized score
       const expectedNormalizedScore = Math.min(averageScore * 1.25, 5.0);
