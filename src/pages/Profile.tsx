@@ -31,6 +31,17 @@ interface VCProfile {
   updated_at: string;
 }
 
+// Available options for the investment stage multiselect field
+const stageOptions = [
+  { label: "Pre-seed", value: "Pre-seed" },
+  { label: "Seed", value: "Seed" },
+  { label: "Series A", value: "Series A" },
+  { label: "Series B", value: "Series B" },
+  { label: "Series C+", value: "Series C+" },
+  { label: "Growth", value: "Growth" },
+  { label: "Late Stage", value: "Late Stage" }
+];
+
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -39,10 +50,18 @@ const Profile = () => {
   const [profile, setProfile] = useState<VCProfile | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [pdfViewUrl, setPdfViewUrl] = useState<string | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [newWebsiteUrl, setNewWebsiteUrl] = useState('');
 
   // Function to get label by value
   const getAreaOfInterestLabel = (value: string) => {
     const option = AreaOfInterestOptions.find(opt => opt.value === value);
+    return option ? option.label : value;
+  };
+
+  // Function to get investment stage label by value
+  const getInvestmentStageLabel = (value: string) => {
+    const option = stageOptions.find(opt => opt.value === value);
     return option ? option.label : value;
   };
 
@@ -125,6 +144,40 @@ const Profile = () => {
     } catch (error: any) {
       toast({
         title: "Failed to view document",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveWebsiteUrl = async () => {
+    if (!user || !newWebsiteUrl.trim()) return;
+    
+    try {
+      const { error } = await supabase
+        .from('vc_profiles')
+        .update({ website_url: newWebsiteUrl.trim() })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      if (profile) {
+        setProfile({
+          ...profile,
+          website_url: newWebsiteUrl.trim()
+        });
+      }
+      
+      setShowUrlInput(false);
+      
+      toast({
+        title: "URL saved",
+        description: "Your website URL has been updated",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to save URL",
         description: error.message,
         variant: "destructive",
       });
@@ -255,7 +308,7 @@ const Profile = () => {
                 <div className="flex flex-wrap gap-2">
                   {profile.investment_stage && profile.investment_stage.length > 0 ? (
                     profile.investment_stage.map((stage, index) => (
-                      <Badge key={index} variant="secondary">{stage}</Badge>
+                      <Badge key={index} variant="secondary">{getInvestmentStageLabel(stage)}</Badge>
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground">No stages specified</p>
@@ -300,11 +353,35 @@ const Profile = () => {
                     Visit Website
                   </a>
                 </div>
+              ) : showUrlInput ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newWebsiteUrl}
+                    onChange={(e) => setNewWebsiteUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={saveWebsiteUrl}
+                  >
+                    Save
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowUrlInput(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               ) : (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/profile/edit')}
+                  onClick={() => setShowUrlInput(true)}
                 >
                   <Globe className="mr-2 h-4 w-4" />
                   Add URL
