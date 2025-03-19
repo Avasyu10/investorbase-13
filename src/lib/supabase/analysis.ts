@@ -6,6 +6,20 @@ export async function analyzeReport(reportId: string) {
   try {
     console.log('Calling analyze-pdf function with report ID:', reportId);
     
+    // First check authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('User not authenticated');
+      toast({
+        id: "auth-error",
+        title: "Authentication required",
+        description: "Please sign in to analyze reports",
+        variant: "destructive"
+      });
+      throw new Error('User not authenticated');
+    }
+    
     // Add validation for reportId format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!reportId || !uuidRegex.test(reportId)) {

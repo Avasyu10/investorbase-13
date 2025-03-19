@@ -70,7 +70,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error(`Report is missing PDF file reference`);
   }
   
-  console.log(`Found report: ${report.title}, accessing PDF from storage`);
+  console.log(`Found report: ${report.title}, user_id: ${report.user_id}, accessing PDF from storage`);
 
   // Try multiple paths to access the PDF without restrictions
   let pdfData;

@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -58,7 +59,19 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
         dbSortField = sortBy === 'overallScore' ? 'overall_score' : 'name';
       }
       
-      // Query with pagination and sorting
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view companies',
+          variant: 'destructive',
+        });
+        return { companies: [], totalCount: 0 };
+      }
+      
+      // Query with pagination and sorting - RLS will automatically filter by user_id
       const { data, error, count } = await supabase
         .from('companies')
         .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at', { count: 'exact' })
@@ -102,6 +115,18 @@ export function useCompanyDetails(companyId: string | undefined) {
     queryKey: ['company', companyId],
     queryFn: async () => {
       if (!companyId) return null;
+      
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view company details',
+          variant: 'destructive',
+        });
+        return null;
+      }
       
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -153,6 +178,18 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
     queryKey: ['section', companyId, sectionId],
     queryFn: async () => {
       if (!companyId || !sectionId) return null;
+      
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view section details',
+          variant: 'destructive',
+        });
+        return null;
+      }
       
       // Get the section data with full description
       const { data: sectionData, error: sectionError } = await supabase

@@ -18,7 +18,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     // Parse the overall score to ensure it's a float with one decimal place
     const overallScore = parseFloat(analysis.overallScore?.toFixed(1)) || 0;
     
-    console.log(`Inserting company with name: ${companyName}, overall_score: ${overallScore}`);
+    console.log(`Inserting company with name: ${companyName}, overall_score: ${overallScore}, user_id: ${report.user_id}`);
     
     const { data: company, error: companyError } = await supabase
       .from('companies')
@@ -26,6 +26,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         name: companyName,
         overall_score: overallScore,
         report_id: report.id, // Link company back to the report
+        user_id: report.user_id, // Set the user_id from the report
         assessment_points: analysis.assessmentPoints || [], // Store assessment points array
         prompt_sent: analysis.promptSent || null, // Store the prompt sent to the LLM
         response_received: analysis.responseReceived || null // Store the raw response from the LLM
