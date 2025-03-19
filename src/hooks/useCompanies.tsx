@@ -5,13 +5,18 @@ import { toast } from '@/hooks/use-toast';
 
 // Map Supabase DB types to API contract types
 function mapDbCompanyToApi(company: any) {
+  // Ensure the overall score is properly normalized and formatted
+  const overallScore = typeof company.overall_score === 'number' 
+    ? parseFloat(company.overall_score.toFixed(1))
+    : 0;
+  
   return {
     id: company.id,
     name: company.name,
-    overallScore: company.overall_score,
+    overallScore: overallScore,
     createdAt: company.created_at,
     updatedAt: company.updated_at || company.created_at,
-    score: company.overall_score, // For backward compatibility
+    score: overallScore, // For backward compatibility
     assessmentPoints: company.assessment_points || [],
     reportId: company.report_id,
     perplexityResponse: company.perplexity_response,
@@ -167,6 +172,9 @@ export function useCompanyDetails(companyId: string | undefined) {
         return null;
       }
       
+      // Log the raw overall score from the database
+      console.log(`Raw overall_score from DB for company ${companyId}: ${companyData.overall_score}`);
+      
       const { data: sectionsData, error: sectionsError } = await supabase
         .from('sections')
         .select('*')
@@ -174,6 +182,14 @@ export function useCompanyDetails(companyId: string | undefined) {
         .order('created_at', { ascending: true });
         
       if (sectionsError) throw sectionsError;
+      
+      // Calculate average section score for verification
+      if (sectionsData && sectionsData.length > 0) {
+        const sectionScores = sectionsData.map(section => section.score || 0);
+        const averageScore = sectionScores.reduce((sum, score) => sum + score, 0) / 10; // Using 10 for normalization as per the prompt
+        const normalizedScore = Math.min(averageScore * 1.25, 5.0);
+        console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${normalizedScore.toFixed(1)}, DB Score=${companyData.overall_score}`);
+      }
       
       return {
         ...mapDbCompanyToApi(companyData),

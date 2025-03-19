@@ -335,9 +335,35 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           throw new Error("Invalid analysis structure: missing or empty sections array");
         }
         
+        // Ensure we properly calculate and normalize the score
         if (typeof parsedContent.overallScore !== 'number') {
-          console.warn("Warning: overallScore is not a number, setting default value");
-          parsedContent.overallScore = 3; // Default score
+          console.warn("Warning: overallScore is not a number in API response, calculating it manually");
+          
+          // Calculate the average score from all sections
+          const sectionScores = parsedContent.sections.map(section => section.score || 0);
+          const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
+          const averageScore = totalScore / 10; // Assuming 10 sections as per the prompt
+          
+          // Apply normalization formula: MIN(averageScore * 1.25, 5.0)
+          const normalizedScore = Math.min(averageScore * 1.25, 5.0);
+          
+          // Set the normalized score with one decimal precision
+          parsedContent.overallScore = parseFloat(normalizedScore.toFixed(1));
+          
+          console.log(`Manually calculated score: Average=${averageScore.toFixed(2)}, Normalized=${parsedContent.overallScore}`);
+        } else {
+          // Check if we need to normalize the existing score
+          const currentScore = parsedContent.overallScore;
+          console.log(`Original score from API: ${currentScore}`);
+          
+          // Ensure the score is properly normalized using our formula
+          const normalizedScore = Math.min(currentScore * 1.25, 5.0);
+          
+          // Only update if there's a significant difference
+          if (Math.abs(normalizedScore - currentScore) > 0.05) {
+            console.log(`Normalizing score: ${currentScore} → ${normalizedScore.toFixed(1)}`);
+            parsedContent.overallScore = parseFloat(normalizedScore.toFixed(1));
+          }
         }
         
         // Add prompt and response to the parsed content

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -45,7 +46,9 @@ export default function AnalysisSummary() {
     );
   }
 
+  // Ensure score is properly formatted to one decimal place
   const formattedScore = parseFloat(company.overallScore.toFixed(1));
+  console.log(`Company score: original=${company.overallScore}, formatted=${formattedScore}`);
 
   const chartData = company.sections.map(section => ({
     name: section.title,
