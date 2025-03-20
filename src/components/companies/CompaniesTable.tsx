@@ -83,7 +83,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
               </TableCell>
               <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
               <TableCell>
-                <span className="text-sm text-primary font-medium">Dashboard</span>
+                <span className="text-sm text-gold font-medium">Dashboard</span>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {getAssessmentSummary(company)}
