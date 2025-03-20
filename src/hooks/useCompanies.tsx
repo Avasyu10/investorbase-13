@@ -43,7 +43,7 @@ export function useCompanies(
           const formattedCompanies: CompanyListItem[] = data.map(item => {
             const isFromPublicSubmission = item.report_id && !!item.user_id;
             return {
-              id: parseInt(item.id.split('-')[0], 16),
+              id: item.id ? parseInt(item.id.toString().split('-')[0], 16) : 0,
               name: item.name,
               overallScore: item.overall_score,
               createdAt: item.created_at,
@@ -55,7 +55,6 @@ export function useCompanies(
           });
           
           setCompanies(formattedCompanies);
-          // Fix for TypeScript error: safely access 'count' with a fallback
           setTotalCount(count ?? data.length);
           setError(null);
         } else {
@@ -127,11 +126,25 @@ export function useCompanyDetails(companyId?: string) {
         if (user) {
           console.log('Trying to fetch company details from Supabase for:', companyId);
           try {
-            const { data: companyData, error: companyError } = await supabase
+            // The main issue is here: we're trying to compare a UUID with the numeric ID
+            // Let's fix it by checking the UUID pattern and handling the query correctly
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId);
+            
+            let query = supabase
               .from('companies')
               .select('*, sections(*)')
-              .eq('id', companyId)
-              .maybeSingle();
+              .single();
+              
+            if (isUuid) {
+              // If it's a UUID, use equals
+              query = query.eq('id', companyId);
+            } else {
+              // If it's a numeric ID, we need a different approach
+              // Assuming IDs might be stored in the format that starts with the hex representation
+              query = query.ilike('id', companyId + '%');
+            }
+            
+            const { data: companyData, error: companyError } = await query;
               
             if (companyError) {
               console.error('Error fetching company from Supabase:', companyError);
@@ -141,7 +154,7 @@ export function useCompanyDetails(companyId?: string) {
             if (companyData) {
               console.log('Found company in Supabase:', companyData);
               const formattedCompany: CompanyDetailed = {
-                id: parseInt(companyData.id.split('-')[0], 16),
+                id: companyData.id ? parseInt(companyData.id.toString().split('-')[0], 16) : 0,
                 name: companyData.name,
                 overallScore: companyData.overall_score,
                 createdAt: companyData.created_at,
@@ -173,7 +186,7 @@ export function useCompanyDetails(companyId?: string) {
         }
         
         console.log('Falling back to mock API for company details');
-        // Fix for TypeScript error: Convert the string ID to a number
+        // Try to convert the string ID to a number
         const numericId = parseInt(companyId);
         if (isNaN(numericId)) {
           throw new Error('Invalid company ID');
