@@ -42,9 +42,10 @@ export async function analyzeReport(reportId: string) {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
-      // Call the edge function with abort controller
+      // Call the edge function with abort controller and signal for timeout
       const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-        body: { reportId }
+        body: { reportId },
+        signal: controller.signal
       });
       
       // Clear the timeout as we got a response
@@ -58,6 +59,8 @@ export async function analyzeReport(reportId: string) {
         // Check if we have a more specific error message
         if (error.message?.includes('non-2xx status code')) {
           errorMessage = "The analysis function returned an error. Please try again later.";
+        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('Failed to send')) {
+          errorMessage = "Failed to send a request to the Edge Function. This could be due to network issues or the function being offline.";
         }
         
         toast({
@@ -122,6 +125,18 @@ export async function analyzeReport(reportId: string) {
         throw new Error('Analysis timed out. Please try with a smaller file or try again later.');
       }
       
+      // Handle network errors more specifically
+      if (innerError.message?.includes('Failed to fetch') || innerError.message?.includes('Failed to send')) {
+        console.error('Network error when calling analyze-pdf function:', innerError);
+        toast({
+          id: "network-error",
+          title: "Network Error",
+          description: "Could not connect to the analysis service. This is likely a temporary issue, please try again later.",
+          variant: "destructive"
+        });
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+      
       // Re-throw other errors
       throw innerError;
     }
@@ -130,7 +145,7 @@ export async function analyzeReport(reportId: string) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
     // Prevent duplicate toasts by checking error message
-    if (!errorMessage.includes("analysis failed") && !errorMessage.includes("timed out")) {
+    if (!errorMessage.includes("analysis failed") && !errorMessage.includes("timed out") && !errorMessage.includes("Network error")) {
       toast({
         id: "analysis-error-3",
         title: "Analysis failed",
