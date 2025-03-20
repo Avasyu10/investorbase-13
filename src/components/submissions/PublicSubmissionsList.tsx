@@ -9,6 +9,7 @@ import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { AnalysisModal } from "./AnalysisModal";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeReport } from "@/lib/supabase/analysis";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface PublicSubmission {
   id: string;
@@ -29,6 +30,7 @@ export function PublicSubmissionsList() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState<PublicSubmission | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -125,18 +127,6 @@ export function PublicSubmissionsList() {
           description: "The submission has been successfully analyzed",
         });
         
-        // Check if we got a mock preview-mode response
-        if (result.companyId === "preview-mock-id") {
-          // If in preview mode, just close the modal and inform the user
-          toast({
-            title: "Preview Mode",
-            description: "This is a preview. In the deployed app, you would be redirected to the company page.",
-          });
-          setIsAnalyzing(false);
-          setShowModal(false);
-          return;
-        }
-        
         // Redirect to the company page
         navigate(`/company/${result.companyId}`);
       } else {
@@ -145,16 +135,41 @@ export function PublicSubmissionsList() {
     } catch (error) {
       console.error("Analysis error:", error);
       
-      // Don't display another error toast if one was already shown in the analyzeReport function
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-      if (!errorMessage.includes("Network error") && 
-          !errorMessage.includes("timed out") &&
-          !errorMessage.includes("analysis failed")) {
+      
+      // If this is a network error and we haven't retried too many times, suggest retrying
+      if ((errorMessage.includes("Network error") || 
+           errorMessage.includes("Failed to fetch") ||
+           errorMessage.includes("Failed to send") ||
+           errorMessage.includes("network") ||
+           errorMessage.includes("Connection")) && 
+          retryCount < 2) {
+        
+        setRetryCount(prevCount => prevCount + 1);
+        
         toast({
-          title: "Analysis failed",
-          description: errorMessage,
+          title: "Connection issue",
+          description: "Network connection issue detected. Please try again.",
           variant: "destructive",
         });
+      } else if (retryCount >= 2) {
+        // If we've retried multiple times, suggest a different approach
+        toast({
+          title: "Persistent connection issue",
+          description: "We're having trouble connecting to the analysis service. Please try again later or contact support.",
+          variant: "destructive",
+        });
+      } else {
+        // Don't display another error toast if one was already shown in the analyzeReport function
+        if (!errorMessage.includes("Network error") && 
+            !errorMessage.includes("timed out") &&
+            !errorMessage.includes("analysis failed")) {
+          toast({
+            title: "Analysis failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       }
     } finally {
       setIsAnalyzing(false);
@@ -202,6 +217,19 @@ export function PublicSubmissionsList() {
           </p>
         </div>
       </div>
+
+      <Alert variant="destructive" className="mb-6">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Important Note</AlertTitle>
+        <AlertDescription>
+          If you encounter network errors when analyzing submissions, please ensure that:
+          <ul className="list-disc pl-5 mt-2">
+            <li>Your Edge Functions are properly deployed in Supabase</li>
+            <li>All required API keys (GEMINI_API_KEY) are set in your Supabase project</li>
+            <li>Your browser allows cross-origin requests to Supabase functions</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
 
       {submissions.length > 0 ? (
         <PublicSubmissionsTable 

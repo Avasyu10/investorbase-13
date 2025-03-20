@@ -40,53 +40,45 @@ export async function analyzeReport(reportId: string) {
     const timeoutMs = 60000; // Extended from 40s to 60s since AI analysis can take longer
     
     try {
-      // Call the edge function with proper error handling
+      // Call the edge function with proper error handling and retries
       console.log(`Invoking analyze-pdf function with report ID: ${reportId}`);
       
-      // Determine if we're running in the preview/iFrame environment
-      const isPreviewEnv = window.location.hostname.includes('lovableproject') || 
-                         window.location.hostname.includes('gptengineer');
-                         
-      // In preview environment, we might not be able to access the edge function directly
-      // Use a more robust approach with retries and better error handling
+      // Implement retry logic
       let retryCount = 0;
-      const maxRetries = 2;
+      const maxRetries = 3; // Increased from 2 to 3 for production
       let lastError = null;
       
       while (retryCount <= maxRetries) {
         try {
           if (retryCount > 0) {
             console.log(`Retry attempt ${retryCount} for analyze-pdf function`);
+            // Add a short delay between retries that increases with each attempt
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
           }
           
+          // Call the edge function
           const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-            body: { reportId }
+            body: { reportId },
+            // Set a longer timeout for production environments
+            timeout: timeoutMs
           });
           
           if (error) {
             console.error('Error invoking analyze-pdf function:', error);
             lastError = error;
             
-            // If we're in preview environment and getting network errors, 
-            // inform the user about the limitation
-            if (isPreviewEnv && (error.message?.includes('Failed to fetch') || 
-                               error.message?.includes('Failed to send'))) {
-              toast({
-                id: "preview-limitation",
-                title: "Preview Environment Limitation",
-                description: "Edge functions cannot be called from the preview environment. This would work in your deployed application.",
-                variant: "default"
-              });
+            // Check if this is a recoverable error
+            if (error.message?.includes('Failed to fetch') || 
+                error.message?.includes('Failed to send') ||
+                error.message?.includes('network') ||
+                error.message?.includes('timeout')) {
               
-              // Mock a successful response for preview
-              console.log("Returning mock response due to preview environment");
-              return { 
-                success: true, 
-                companyId: "preview-mock-id",
-                message: "Preview mode - Analysis simulated"
-              };
+              // This is a network error, we can retry
+              retryCount++;
+              continue;
             }
             
+            // For non-network errors, throw immediately
             throw error;
           }
           
@@ -130,26 +122,41 @@ export async function analyzeReport(reportId: string) {
           lastError = retryError;
           
           // Only retry on network errors
-          if (!(retryError.message?.includes('Failed to fetch') || 
-                retryError.message?.includes('Failed to send'))) {
-            throw retryError;
+          if (retryError.message?.includes('Failed to fetch') || 
+              retryError.message?.includes('Failed to send') ||
+              retryError.message?.includes('network') ||
+              retryError.message?.includes('timeout') ||
+              retryError.message?.includes('Connection')) {
+            
+            retryCount++;
+            if (retryCount <= maxRetries) {
+              console.log(`Will retry due to network error: ${retryError.message}`);
+              continue;
+            }
           }
           
-          retryCount++;
-          if (retryCount <= maxRetries) {
-            // Wait before retrying (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-          } else {
-            throw retryError;
-          }
+          // If it's not a network error or we've exhausted retries, throw the error
+          throw retryError;
         }
       }
       
       // If we get here, all retries failed
       throw lastError || new Error('Failed to invoke analyze-pdf function after multiple attempts');
     } catch (innerError) {
+      // Check if this is a CORS error
+      if (innerError.message?.includes('CORS') || innerError.name === 'TypeError') {
+        console.error('Possible CORS or network configuration issue:', innerError);
+        toast({
+          id: "cors-error",
+          title: "Connection Error",
+          description: "Could not connect to the analysis service due to a network configuration issue. Please contact support.",
+          variant: "destructive"
+        });
+        throw new Error('Network configuration error. Please contact support.');
+      }
+      
       // Handle timeout specifically
-      if (innerError.name === 'AbortError') {
+      if (innerError.name === 'AbortError' || innerError.message?.includes('timeout')) {
         console.error('Analysis timed out after', timeoutMs / 1000, 'seconds');
         toast({
           id: "analysis-timeout",
@@ -161,7 +168,11 @@ export async function analyzeReport(reportId: string) {
       }
       
       // Handle network errors more specifically
-      if (innerError.message?.includes('Failed to fetch') || innerError.message?.includes('Failed to send')) {
+      if (innerError.message?.includes('Failed to fetch') || 
+          innerError.message?.includes('Failed to send') ||
+          innerError.message?.includes('network') ||
+          innerError.message?.includes('Connection')) {
+        
         console.error('Network error when calling analyze-pdf function:', innerError);
         toast({
           id: "network-error",
@@ -180,7 +191,11 @@ export async function analyzeReport(reportId: string) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
     // Prevent duplicate toasts by checking error message
-    if (!errorMessage.includes("analysis failed") && !errorMessage.includes("timed out") && !errorMessage.includes("Network error")) {
+    if (!errorMessage.includes("analysis failed") && 
+        !errorMessage.includes("timed out") && 
+        !errorMessage.includes("Network error") &&
+        !errorMessage.includes("Connection")) {
+      
       toast({
         id: "analysis-error-3",
         title: "Analysis failed",
