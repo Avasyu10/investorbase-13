@@ -49,19 +49,9 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
   };
 
   // Set all sources to "Dashboard" with gold color
-  const getSourceInfo = (company: CompanyListItem) => {
-    // Check if it's a public upload (has a reportId with a hyphen and source is dashboard)
-    if (company.reportId && company.reportId.includes('-') && company.source === 'dashboard') {
-      return {
-        label: "Public URL",
-        className: "text-sm text-purple-600 font-medium"
-      };
-    }
-    
-    return {
-      label: "Dashboard",
-      className: "text-sm text-gold font-medium"
-    };
+  const sourceInfo = {
+    label: "Dashboard",
+    className: "text-sm text-gold font-medium"
   };
 
   return (
@@ -88,7 +78,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         </TableHeader>
         <TableBody>
           {companies.map((company) => {
-            const sourceInfo = getSourceInfo(company);
             return (
               <TableRow 
                 key={company.id}
