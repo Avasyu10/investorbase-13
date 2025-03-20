@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -273,11 +274,14 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         }
         
         console.log('Falling back to mock API for section details');
+        // Fix for TypeScript error: Convert the string ID to a number
         const numericCompanyId = parseInt(companyId);
         if (isNaN(numericCompanyId)) {
           throw new Error('Invalid company ID');
         }
 
+        // Here's the fix - we need to ensure sectionId is passed correctly to the API
+        // The API expects sectionId to be either a number or a string, so no conversion needed
         const response = await api.getSection(numericCompanyId, sectionId);
         setSection(response.data);
         setError(null);
