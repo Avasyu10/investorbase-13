@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -71,13 +70,17 @@ export async function analyzeReport(reportId: string) {
             throw new Error('Authentication session not found');
           }
           
+          // Get the API key from the environment
+          // Use the public anon key from our Supabase project
+          const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY";
+          
           // Make a direct fetch request to the function URL
           const response = await fetch(functionUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${session.access_token}`,
-              'apikey': supabase.supabaseKey
+              'apikey': SUPABASE_KEY
             },
             body: JSON.stringify({ reportId })
           });
