@@ -144,7 +144,6 @@ export type Database = {
           company_stage: string | null
           created_at: string
           description: string | null
-          email: string | null
           form_slug: string
           founder_linkedin_profiles: string[] | null
           id: string
@@ -159,7 +158,6 @@ export type Database = {
           company_stage?: string | null
           created_at?: string
           description?: string | null
-          email?: string | null
           form_slug: string
           founder_linkedin_profiles?: string[] | null
           id?: string
@@ -174,7 +172,6 @@ export type Database = {
           company_stage?: string | null
           created_at?: string
           description?: string | null
-          email?: string | null
           form_slug?: string
           founder_linkedin_profiles?: string[] | null
           id?: string
