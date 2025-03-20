@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -147,16 +146,9 @@ export function useCompanyDetails(companyId?: string) {
           if (isNumeric) {
             console.log('Numeric ID detected, fetching by numeric ID using find_company_by_numeric_id function');
             
-            // Convert string to number for the RPC call
-            const numericId = parseInt(companyId, 10);
-            
-            // Make sure the conversion worked and we have a valid number
-            if (isNaN(numericId)) {
-              throw new Error(`Invalid numeric ID: ${companyId}`);
-            }
-            
+            // Convert the numeric string ID to a string for the RPC call - the function expects a text parameter
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
-              numeric_id: numericId.toString() // Pass as string since the RPC function expects a text parameter
+              numeric_id: companyId 
             });
             
             if (error) {
@@ -164,7 +156,9 @@ export function useCompanyDetails(companyId?: string) {
               throw error;
             }
             
-            // Fix: Check if data is an array and has the expected structure
+            console.log('RPC function returned data:', data);
+            
+            // Check if data is an array and has the expected structure
             if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
               // Get the actual company UUID from the result
               const companyUuid = data[0].id;
@@ -184,7 +178,7 @@ export function useCompanyDetails(companyId?: string) {
               
               companyData = fullCompanyData;
             } else {
-              console.log('No company found with numeric ID, or invalid response format');
+              console.log('No company found with numeric ID, or invalid response format:', data);
               companyData = null;
             }
           } else {
@@ -242,7 +236,7 @@ export function useCompanyDetails(companyId?: string) {
         
         // Fall back to mock API if no Supabase data or not authenticated
         console.log('Falling back to mock API for company details');
-        // Fix: Convert string to number before passing to API
+        // Convert string to number before passing to API
         const numericId = parseInt(companyId);
         if (isNaN(numericId)) {
           throw new Error('Invalid company ID');
@@ -296,16 +290,9 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
           if (isNumeric) {
             console.log('Numeric company ID detected, getting UUID first');
             
-            // Convert string to number for the RPC call
-            const numericId = parseInt(companyId, 10);
-            
-            // Make sure the conversion worked and we have a valid number
-            if (isNaN(numericId)) {
-              throw new Error(`Invalid numeric ID: ${companyId}`);
-            }
-            
+            // The function expects a text parameter, no need to convert to number first
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
-              numeric_id: numericId.toString() // Pass as string since the RPC function expects a text parameter
+              numeric_id: companyId
             });
             
             if (error) {
@@ -313,12 +300,15 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
               throw error;
             }
             
-            // Fix: Check if data is an array and has the expected structure
+            console.log('RPC result for company ID:', data);
+            
+            // Check if data is an array and has the expected structure
             if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
               companyUuid = data[0].id;
               console.log('Found company UUID:', companyUuid);
             } else {
               console.error('Company not found with numeric ID:', companyId);
+              console.error('RPC response:', data);
               throw new Error('Company not found');
             }
           } else {
@@ -384,7 +374,7 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         
         // Fall back to mock API if no Supabase data or not authenticated
         console.log('Falling back to mock API for section details');
-        // Fix: Convert string to number before passing to API
+        // Convert string to number before passing to API
         const numericCompanyId = parseInt(companyId);
         if (isNaN(numericCompanyId)) {
           throw new Error('Invalid company ID');
