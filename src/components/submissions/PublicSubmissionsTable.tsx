@@ -8,7 +8,6 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface PublicSubmission {
@@ -95,12 +94,11 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
               </TableCell>
               <TableCell className="text-right">
                 <Button
-                  variant="outline"
+                  className="bg-gold text-gold-foreground hover:bg-gold/90"
                   size="sm"
                   onClick={() => onAnalyze(submission)}
                   disabled={!submission.report_id}
                 >
-                  <Play className="h-4 w-4 mr-1" />
                   Analyze
                 </Button>
               </TableCell>
