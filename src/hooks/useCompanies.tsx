@@ -125,7 +125,7 @@ export function useCompanyDetails(companyId?: string) {
         if (user) {
           console.log('[DEBUG] User authenticated, trying to fetch from Supabase. User ID:', user.id);
           
-          // First, check if the companyId is a full UUID
+          // Check if the ID is a UUID format
           const isUuid = companyId.includes('-');
           const isNumeric = /^\d+$/.test(companyId);
           
@@ -150,51 +150,34 @@ export function useCompanyDetails(companyId?: string) {
             
             companyData = data;
           } else if (isNumeric) {
-            // Try to match the full UUIDs that contain this numeric ID somewhere
-            console.log('[DEBUG] Looking for companies with ID containing:', companyId);
+            // Use a text-based search approach
+            console.log('[DEBUG] Numeric ID detected, using text-based search');
             
-            const { data, error } = await supabase
-              .from('companies')
-              .select('id')
-              .ilike('id', `%${companyId}%`)
-              .limit(1);
+            // Use a direct SQL query with proper casting to avoid the UUID comparison issue
+            const { data, error } = await supabase.rpc('get_company_by_numeric_id', {
+              p_numeric_id: parseInt(companyId)
+            });
             
             if (error) {
-              console.error('[DEBUG] Error searching for companies:', error);
+              console.error('[DEBUG] Error fetching company by numeric ID:', error);
               throw error;
             }
             
-            console.log('[DEBUG] Search results:', data);
+            console.log('[DEBUG] Company lookup result:', data);
             
-            if (data && data.length > 0) {
-              const foundUuid = data[0].id;
-              console.log('[DEBUG] Found matching company with UUID:', foundUuid);
-              
-              // Now get the full company details
-              const { data: fullData, error: fullError } = await supabase
-                .from('companies')
-                .select('*, sections(*)')
-                .eq('id', foundUuid)
-                .maybeSingle();
-                
-              if (fullError) {
-                console.error('[DEBUG] Error fetching full company details:', fullError);
-                throw fullError;
-              }
-              
-              companyData = fullData;
-            } else {
-              console.log('[DEBUG] No company found with ID containing:', companyId);
+            if (Array.isArray(data) && data.length > 0) {
+              companyData = data[0];
+            } else if (data && !Array.isArray(data)) {
+              companyData = data;
             }
           }
           
           if (companyData) {
             console.log('[DEBUG] Company data retrieved:', companyData.name);
             
-            // Create a numeric ID from the first part of the UUID for compatibility
-            let numericId: number = 0;
+            // Extract a numeric ID from the UUID for compatibility with the rest of the app
+            let numericId = 0;
             try {
-              // Extract first segment of UUID and convert to number
               const firstPart = companyData.id.split('-')[0];
               numericId = parseInt(firstPart, 16);
               console.log('[DEBUG] Generated numeric ID from UUID:', numericId);
@@ -203,14 +186,14 @@ export function useCompanyDetails(companyId?: string) {
             }
             
             const formattedCompany: CompanyDetailed = {
-              id: numericId,
+              id: numericId, // Using numeric ID extracted from UUID
               name: companyData.name,
               overallScore: companyData.overall_score,
               createdAt: companyData.created_at,
               updatedAt: companyData.updated_at || companyData.created_at,
               sections: Array.isArray(companyData.sections) ? companyData.sections.map((section: any) => ({
                 id: section.id,
-                type: section.type,
+                type: section.type as any,
                 title: section.title,
                 score: section.score,
                 description: section.description || '',
@@ -224,14 +207,14 @@ export function useCompanyDetails(companyId?: string) {
               reportId: companyData.report_id
             };
             
-            console.log('[DEBUG] Formatted company:', formattedCompany);
+            console.log('[DEBUG] Formatted company:', formattedCompany.name, 'ID:', formattedCompany.id);
             
             setCompany(formattedCompany);
             setError(null);
             setIsLoading(false);
             return;
           } else {
-            console.log('[DEBUG] No company found in Supabase, trying mock data for ID:', companyId);
+            console.log('[DEBUG] No company found in Supabase, trying mock data');
           }
         } else {
           console.log('[DEBUG] No authenticated user, using mock data');
@@ -241,24 +224,15 @@ export function useCompanyDetails(companyId?: string) {
         
         try {
           // For mock API, we need a numeric ID
-          let mockApiId: number;
+          const numericId = parseInt(companyId);
           
-          if (typeof companyId === 'string' && companyId.includes('-')) {
-            // Try to extract a numeric ID from the UUID
-            const firstPart = companyId.split('-')[0];
-            mockApiId = parseInt(firstPart, 16);
-            console.log('[DEBUG] Extracted numeric ID from UUID for mock API:', mockApiId);
-          } else {
-            mockApiId = parseInt(companyId);
-          }
-          
-          if (isNaN(mockApiId)) {
+          if (isNaN(numericId)) {
             console.error('[DEBUG] Could not convert companyId to number for mock API');
             throw new Error('Invalid company ID format');
           }
 
-          console.log('[DEBUG] Calling mock API with ID:', mockApiId);
-          const response = await api.getCompany(mockApiId);
+          console.log('[DEBUG] Calling mock API with ID:', numericId);
+          const response = await api.getCompany(numericId);
           
           setCompany(response.data);
           setError(null);
@@ -462,3 +436,4 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
 
   return { section, isLoading, error };
 }
+
