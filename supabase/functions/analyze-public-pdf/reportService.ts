@@ -74,9 +74,16 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     }
   }
 
-  // Check for the existence of the public_uploads bucket before trying to access it
+  // Define potential storage bucket names to try
+  const potentialBucketNames = ['public_uploads', 'Public Uploads', 'public-uploads', 'public uploads'];
+  
+  console.log("Checking which storage bucket exists...");
+  
+  // List all buckets to find the correct one
+  let availableBuckets: string[] = [];
+  let correctBucketName: string | null = null;
+  
   try {
-    // List all buckets to verify they exist
     const { data: buckets, error: bucketsError } = await supabase
       .storage
       .listBuckets();
@@ -86,20 +93,44 @@ export async function getReportData(reportId: string, authHeader: string = '') {
       throw new Error(`Storage access error: ${bucketsError.message}`);
     }
     
-    console.log("Available buckets:", buckets.map(b => b.name).join(', '));
-    
-    // Check if our bucket exists in the list
-    const publicUploadsBucket = buckets.find(b => b.name === 'public_uploads');
-    
-    if (!publicUploadsBucket) {
-      console.error("The 'public_uploads' bucket was not found!");
-      throw new Error("Storage bucket 'public_uploads' does not exist in this project");
+    if (buckets && buckets.length > 0) {
+      availableBuckets = buckets.map(b => b.name);
+      console.log("Available buckets:", availableBuckets.join(', '));
+      
+      // Find the first matching bucket from our potential names
+      for (const potentialName of potentialBucketNames) {
+        if (availableBuckets.includes(potentialName)) {
+          correctBucketName = potentialName;
+          console.log(`Found matching bucket: '${correctBucketName}'`);
+          break;
+        }
+      }
+      
+      // If none of our potential names match, try a case-insensitive match
+      if (!correctBucketName) {
+        for (const bucketName of availableBuckets) {
+          for (const potentialName of potentialBucketNames) {
+            if (bucketName.toLowerCase() === potentialName.toLowerCase()) {
+              correctBucketName = bucketName;
+              console.log(`Found case-insensitive matching bucket: '${correctBucketName}'`);
+              break;
+            }
+          }
+          if (correctBucketName) break;
+        }
+      }
+    } else {
+      console.log("No storage buckets found!");
     }
-    
-    console.log("Found the 'public_uploads' bucket");
-  } catch (bucketError) {
-    console.error("Error checking buckets:", bucketError);
-    throw new Error(`Cannot access storage: ${bucketError.message}`);
+  } catch (bucketsError) {
+    console.error("Error checking buckets:", bucketsError);
+    // Continue with the default name, we'll handle errors later
+  }
+
+  // If we couldn't find a matching bucket, fall back to 'public_uploads'
+  if (!correctBucketName) {
+    console.warn("Could not find a matching public uploads bucket, falling back to 'public_uploads'");
+    correctBucketName = 'public_uploads';
   }
 
   // Try multiple download approaches sequentially until one succeeds
@@ -117,15 +148,15 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     report.pdf_url.includes('/') ? report.pdf_url.split('/').pop() : null,
   ].filter(Boolean) as string[]; // Remove null paths
   
-  // Add additional paths by listing files in the public_uploads bucket
+  // Add additional paths by listing files in the storage bucket
   try {
     const { data: rootFiles, error: rootListError } = await supabase
       .storage
-      .from('public_uploads')
+      .from(correctBucketName)
       .list();
       
     if (!rootListError && rootFiles && rootFiles.length > 0) {
-      console.log(`Found ${rootFiles.length} files/folders in public_uploads bucket`);
+      console.log(`Found ${rootFiles.length} files/folders in ${correctBucketName} bucket`);
       
       // Extract the filename from the pdf_url
       const fileName = report.pdf_url.split('/').pop() || report.pdf_url;
@@ -140,7 +171,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
             // Also try to list the folder contents
             const { data: folderFiles, error: folderError } = await supabase
               .storage
-              .from('public_uploads')
+              .from(correctBucketName)
               .list(item.name);
               
             if (!folderError && folderFiles && folderFiles.length > 0) {
@@ -154,6 +185,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
             }
           } else if (item.name === fileName) {
             // Direct match in root
+            console.log(`Found exact match in root: ${item.name}`);
             pathsToTry.unshift(item.name);
           }
         }
@@ -172,10 +204,10 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   // Try all possible paths sequentially
   for (const path of uniquePaths) {
     try {
-      console.log(`Attempting to download PDF from path: ${path}`);
+      console.log(`Attempting to download PDF from path: ${path} in bucket: ${correctBucketName}`);
       const { data, error } = await supabase
         .storage
-        .from('public_uploads')
+        .from(correctBucketName)
         .download(path);
         
       if (error) {
@@ -206,7 +238,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     async function findFileRecursively(folder = '') {
       const { data: files, error } = await supabase
         .storage
-        .from('public_uploads')
+        .from(correctBucketName)
         .list(folder);
         
       if (error) {
@@ -246,7 +278,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
       console.log(`Recursive search found the file at: ${foundPath}, attempting download`);
       const { data, error } = await supabase
         .storage
-        .from('public_uploads')
+        .from(correctBucketName)
         .download(foundPath);
         
       if (!error && data && data.size > 0) {
