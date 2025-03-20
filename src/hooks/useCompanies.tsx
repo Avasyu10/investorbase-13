@@ -126,45 +126,54 @@ export function useCompanyDetails(companyId?: string) {
         if (user) {
           console.log('Trying to fetch company details from Supabase for:', companyId);
           try {
-            // The main issue is here: we're trying to compare a UUID with the numeric ID
-            // Let's fix it by checking the UUID pattern and handling the query correctly
+            // Check if the companyId is a UUID or a numeric ID
             const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId);
             
-            let query;
+            let data, error;
             
             if (isUuid) {
-              // If it's a UUID, use equals
-              query = await supabase
+              // If it's a UUID, use eq with the UUID directly
+              const response = await supabase
                 .from('companies')
                 .select('*, sections(*)')
                 .eq('id', companyId)
-                .single();
+                .maybeSingle();
+                
+              data = response.data;
+              error = response.error;
             } else {
-              // If it's a numeric ID, we need a different approach
-              // Assuming IDs might be stored in the format that starts with the hex representation
-              query = await supabase
+              // For numeric IDs, try a different approach with string conversion
+              // First try to convert the companyId to a number to ensure it's valid
+              const numericId = parseInt(companyId);
+              if (isNaN(numericId)) {
+                throw new Error('Invalid company ID format');
+              }
+              
+              // Try to find by numeric ID using text conversion or pattern matching
+              const response = await supabase
                 .from('companies')
                 .select('*, sections(*)')
-                .ilike('id', companyId + '%')
-                .single();
+                .or(`id.eq.${companyId},id.ilike.${companyId}%`)
+                .maybeSingle();
+                
+              data = response.data;
+              error = response.error;
             }
             
-            const { data: companyData, error: companyError } = query;
-              
-            if (companyError) {
-              console.error('Error fetching company from Supabase:', companyError);
-              throw companyError;
+            if (error) {
+              console.error('Error fetching company from Supabase:', error);
+              throw error;
             }
             
-            if (companyData) {
-              console.log('Found company in Supabase:', companyData);
+            if (data) {
+              console.log('Found company in Supabase:', data);
               const formattedCompany: CompanyDetailed = {
-                id: companyData.id ? parseInt(companyData.id.toString().split('-')[0], 16) : 0,
-                name: companyData.name,
-                overallScore: companyData.overall_score,
-                createdAt: companyData.created_at,
-                updatedAt: companyData.updated_at,
-                sections: companyData.sections.map((section: any) => ({
+                id: data.id ? parseInt(data.id.toString().split('-')[0], 16) : 0,
+                name: data.name,
+                overallScore: data.overall_score,
+                createdAt: data.created_at,
+                updatedAt: data.updated_at,
+                sections: data.sections.map((section: any) => ({
                   id: section.id,
                   type: section.type as any,
                   title: section.title,
@@ -173,11 +182,11 @@ export function useCompanyDetails(companyId?: string) {
                   createdAt: section.created_at,
                   updatedAt: section.updated_at
                 })),
-                assessmentPoints: companyData.assessment_points || [],
-                perplexityResponse: companyData.perplexity_response,
-                perplexityPrompt: companyData.perplexity_prompt,
-                perplexityRequestedAt: companyData.perplexity_requested_at,
-                reportId: companyData.report_id
+                assessmentPoints: data.assessment_points || [],
+                perplexityResponse: data.perplexity_response,
+                perplexityPrompt: data.perplexity_prompt,
+                perplexityRequestedAt: data.perplexity_requested_at,
+                reportId: data.report_id
               };
               
               setCompany(formattedCompany);
