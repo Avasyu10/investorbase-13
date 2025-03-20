@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-// This edge function handles uploads from the public form
+// This edge function handles uploads from the public form with no authentication required
 serve(async (req) => {
   try {
     // CORS headers - allow all origins and methods
@@ -42,7 +42,7 @@ serve(async (req) => {
       });
     }
 
-    // Create Supabase client with service role key (no authentication required)
+    // Create Supabase client without auth - using service role key for admin access
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
@@ -54,7 +54,7 @@ serve(async (req) => {
       });
     }
     
-    // Initialize Supabase client with service role key for admin access
+    // Initialize Supabase client with service role key, disabling token refresh and session persistence
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -70,7 +70,7 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const fileData = new Uint8Array(arrayBuffer);
 
-    // Upload file to public_uploads bucket without any auth checks
+    // Upload file to public_uploads bucket - which is now public with no RLS
     const { error: uploadError } = await supabase.storage
       .from('public_uploads')
       .upload(fileName, fileData, {
@@ -91,7 +91,7 @@ serve(async (req) => {
       .from('public_uploads')
       .getPublicUrl(fileName);
 
-    // Insert record in the reports table
+    // Insert record in the reports table without any auth checks
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
