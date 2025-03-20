@@ -87,8 +87,8 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     report.pdf_url.includes('/') ? report.pdf_url : `public_submissions/${report.pdf_url}`,
     // Just the filename without any path
     report.pdf_url.includes('/') ? report.pdf_url.split('/').pop() : null,
-    // Try m8h52364-abzbhy folder (from your examples)
-    `m8h52364-abzbhy/${report.pdf_url.split('/').pop()}`,
+    // Try m8h52364-abzbhy folder (seen in the error message)
+    `m8h52364-abzbhy/${report.pdf_url.split('/').pop() || report.pdf_url}`,
   ].filter(Boolean); // Remove null paths
   
   console.log("Will try these paths to download the PDF:", pathsToTry);
