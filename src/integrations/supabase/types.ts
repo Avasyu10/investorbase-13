@@ -453,6 +453,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_company_by_numeric_id: {
+        Args: {
+          numeric_id: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
       get_section_stats: {
         Args: {
           section_id: string

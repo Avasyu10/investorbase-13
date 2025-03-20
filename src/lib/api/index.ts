@@ -16,8 +16,8 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// Check if we should use mock data or real API
-const USE_MOCK_API = true;  // Temporarily set back to true to provide fallback data while fixing Supabase
+// Set to true to provide fallback data while fixing Supabase issues
+const USE_MOCK_API = true;  
 
 // API Client that decides whether to use real or mock API
 const api = {
