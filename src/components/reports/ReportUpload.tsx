@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -149,8 +150,18 @@ export function ReportUpload({
         formData.append('email', emailForResults);
         formData.append('description', briefIntroduction || '');
         
+        // Get the API key from the Supabase client
+        const supabaseKey = supabase.auth.getSession().then(({ data }) => {
+          return data.session?.access_token || '';
+        });
+        
+        // Use the Edge Function URL with proper authorization headers
         const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${await supabaseKey}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY'
+          },
           body: formData,
         });
         
