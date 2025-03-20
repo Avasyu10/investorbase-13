@@ -12,8 +12,16 @@ serve(async (req) => {
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
     };
 
+    // Debug: Log request details
+    console.log("Request received:", {
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries()),
+    });
+
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
+      console.log("Handling OPTIONS preflight request");
       return new Response(null, {
         headers: corsHeaders,
         status: 204,
@@ -22,21 +30,41 @@ serve(async (req) => {
 
     // Ensure the request is a POST
     if (req.method !== 'POST') {
+      console.log(`Method not allowed: ${req.method}`);
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 405,
       });
     }
 
+    // Debug: Log environment variables (without sensitive values)
+    console.log("Environment variables available:", {
+      SUPABASE_URL: !!Deno.env.get('SUPABASE_URL'),
+      SUPABASE_SERVICE_ROLE_KEY: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+    });
+
     // Parse the request body
+    console.log("Parsing form data...");
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as File | null;
     const title = formData.get('title') as string;
     const email = formData.get('email') as string;
     const description = formData.get('description') as string || '';
+    const websiteUrl = formData.get('websiteUrl') as string || '';
 
-    if (!file || !title || !email) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: file, title, and email' }), {
+    console.log("Form data parsed:", {
+      hasFile: !!file,
+      fileType: file ? file.type : 'none',
+      fileSize: file ? file.size : 0,
+      title: title || 'none',
+      email: email || 'none',
+      hasDescription: !!description,
+      hasWebsiteUrl: !!websiteUrl,
+    });
+
+    if (!title || !email) {
+      console.log("Missing required fields: title and email");
+      return new Response(JSON.stringify({ error: 'Missing required fields: title and email' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
@@ -54,6 +82,7 @@ serve(async (req) => {
       });
     }
     
+    console.log("Creating Supabase client...");
     // Initialize Supabase client with service role key, disabling token refresh and session persistence
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -62,42 +91,55 @@ serve(async (req) => {
       }
     });
 
-    // Create a unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
+    // Process the upload - file is now optional
+    let fileName = '';
+    
+    if (file) {
+      console.log("Uploading file...");
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      fileName = `${Date.now()}.${fileExt}`;
 
-    // Read file as ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer();
-    const fileData = new Uint8Array(arrayBuffer);
+      // Read file as ArrayBuffer
+      const arrayBuffer = await file.arrayBuffer();
+      const fileData = new Uint8Array(arrayBuffer);
 
-    // Upload file to public_uploads bucket - which is now public with no RLS
-    const { error: uploadError } = await supabase.storage
-      .from('public_uploads')
-      .upload(fileName, fileData, {
-        contentType: file.type,
-        upsert: true
-      });
+      // Upload file to public_uploads bucket - which is now public with no RLS
+      const { error: uploadError } = await supabase.storage
+        .from('public_uploads')
+        .upload(fileName, fileData, {
+          contentType: file.type,
+          upsert: true
+        });
 
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      return new Response(JSON.stringify({ error: 'Failed to upload file', details: uploadError.message }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        return new Response(JSON.stringify({ error: 'Failed to upload file', details: uploadError.message }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        });
+      }
+
+      console.log("File uploaded successfully:", fileName);
+    } else {
+      console.log("No file provided - proceeding without file upload");
     }
 
-    // Get public URL for the file
-    const { data: urlData } = await supabase.storage
-      .from('public_uploads')
-      .getPublicUrl(fileName);
+    // Build enhanced description with additional context if website URL was provided
+    let enhancedDescription = description;
+    if (websiteUrl) {
+      enhancedDescription += `\nCompany Website: ${websiteUrl}`;
+    }
+    enhancedDescription += `\nContact Email: ${email}`;
 
     // Insert record in the reports table without any auth checks
+    console.log("Inserting record to database...");
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
         title,
-        description: description + `\nContact Email: ${email}`,
-        pdf_url: fileName,
+        description: enhancedDescription,
+        pdf_url: fileName || null, // Use null if no file was uploaded
         is_public_submission: true,
         submitter_email: email,
         analysis_status: 'pending'
@@ -112,6 +154,8 @@ serve(async (req) => {
         status: 500,
       });
     }
+
+    console.log("Record inserted successfully:", { reportId: report.id });
 
     return new Response(JSON.stringify({ 
       success: true, 

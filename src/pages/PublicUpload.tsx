@@ -3,16 +3,31 @@ import { useState } from "react";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 
 const PublicUpload = () => {
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
 
   const handleError = (errorMessage: string) => {
-    setError(errorMessage);
-    // Auto-dismiss error after 10 seconds
-    setTimeout(() => setError(null), 10000);
+    console.error("Public upload error:", errorMessage);
+    
+    // Extract more details if available
+    const detailsMatch = errorMessage.match(/Upload failed: (.*)/);
+    if (detailsMatch && detailsMatch[1]) {
+      setError("Upload failed");
+      setErrorDetails(detailsMatch[1]);
+    } else {
+      setError(errorMessage);
+      setErrorDetails(null);
+    }
+    
+    // Auto-dismiss error after 30 seconds
+    setTimeout(() => {
+      setError(null);
+      setErrorDetails(null);
+    }, 30000);
   };
 
   const handleSuccess = () => {
@@ -29,9 +44,27 @@ const PublicUpload = () => {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error}
+              {errorDetails && (
+                <div className="mt-2 text-sm bg-red-50 p-2 rounded border border-red-200">
+                  <details>
+                    <summary className="cursor-pointer font-medium">Debug details</summary>
+                    <p className="mt-1 whitespace-pre-wrap">{errorDetails}</p>
+                  </details>
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         )}
+        
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Debug Mode</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            The upload form is in debug mode. Check the browser console for detailed logs.
+          </AlertDescription>
+        </Alert>
         
         {success ? (
           <Alert className="mb-6 bg-green-50 border-green-200">

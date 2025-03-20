@@ -115,13 +115,6 @@ export function ReportUpload({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file) {
-      toast.error("No file selected", {
-        description: "Please select a PDF file to upload"
-      });
-      return;
-    }
-    
     if (!title.trim()) {
       toast.error("Company name required", {
         description: "Please provide a company name for the report"
@@ -143,30 +136,73 @@ export function ReportUpload({
       
       let report;
       if (isPublic) {
+        console.log("Starting public submission process...");
         const formData = new FormData();
-        formData.append('file', file);
+        
+        if (file) {
+          console.log("Adding file to form data:", file.name, file.type, file.size);
+          formData.append('file', file);
+        } else {
+          console.log("No file selected for upload - continuing with text-only submission");
+        }
+        
+        console.log("Adding form fields:", { title, email: emailForResults, descriptionLength: briefIntroduction?.length || 0 });
         formData.append('title', title);
         formData.append('email', emailForResults);
         formData.append('description', briefIntroduction || '');
         
-        const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("Upload error response:", errorData);
-          throw new Error(`Upload failed with status: ${response.status}${errorData.details ? ` - ${errorData.details}` : ''}`);
+        if (companyWebsite && companyWebsite.trim()) {
+          console.log("Adding website URL:", companyWebsite);
+          formData.append('websiteUrl', companyWebsite);
         }
         
-        const result = await response.json();
-        if (!result.success) {
-          throw new Error(result.error || 'Upload failed');
-        }
+        console.log("Sending public upload request to:", "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload");
+        console.log("FormData entries:", [...formData.entries()].map(([key, value]) => {
+          if (value instanceof File) {
+            return [key, `File: ${value.name} (${value.type}, ${value.size} bytes)`];
+          }
+          return [key, value];
+        }));
         
-        report = { id: result.reportId };
-        console.log("Public upload complete, report ID:", report.id);
+        try {
+          const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
+            method: 'POST',
+            body: formData,
+          });
+          
+          console.log("Response received:", {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries([...response.headers.entries()]),
+          });
+          
+          if (!response.ok) {
+            let errorDetails = "Unknown error";
+            try {
+              const errorData = await response.json();
+              console.error("Response error data:", errorData);
+              errorDetails = errorData.details || errorData.message || errorData.error || `Status: ${response.status}`;
+            } catch (parseError) {
+              console.error("Failed to parse error response:", parseError);
+              errorDetails = `Status: ${response.status} (could not parse response)`;
+            }
+            
+            throw new Error(`Upload failed: ${errorDetails}`);
+          }
+          
+          const result = await response.json();
+          console.log("Public upload success response:", result);
+          
+          if (!result.success) {
+            throw new Error(result.error || 'Upload failed');
+          }
+          
+          report = { id: result.reportId };
+          console.log("Public upload complete, report ID:", report.id);
+        } catch (fetchError) {
+          console.error("Fetch error details:", fetchError);
+          throw fetchError;
+        }
       } else {
         report = await uploadReport(file, title, briefIntroduction, companyWebsite);
       }
@@ -342,6 +378,12 @@ export function ReportUpload({
       setProgress(0);
     } catch (error: any) {
       console.error("Error processing report:", error);
+      console.error("Full error object:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause,
+      });
       
       toast.error("Upload failed", {
         description: error instanceof Error ? error.message : "Failed to process pitch deck"
