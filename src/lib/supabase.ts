@@ -380,51 +380,38 @@ export async function uploadPublicReport(file: File, title: string, description:
   try {
     console.log('Uploading public report');
     
-    // Create a unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
+    // Create FormData for direct submission to the edge function
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    formData.append('email', email);
     
-    // Upload the file to the public_uploads bucket (instead of report_pdfs)
-    const { error: uploadError } = await supabase.storage
-      .from('public_uploads')
-      .upload(fileName, file);
-      
-    if (uploadError) {
-      console.error('Error uploading file to storage:', uploadError);
-      throw uploadError;
+    if (description) {
+      formData.append('description', description);
     }
     
-    console.log('File uploaded to storage successfully, saving record to database');
-    
-    // Get the public URL for the uploaded file
-    const { data: urlData } = await supabase.storage
-      .from('public_uploads')
-      .getPublicUrl(fileName);
-      
-    const publicUrl = urlData?.publicUrl || fileName;
-    
-    // Insert a record in the reports table
-    const { data: report, error: insertError } = await supabase
-      .from('reports')
-      .insert([{
-        title,
-        description: description + (email ? `\nContact Email: ${email}` : ''),
-        pdf_url: fileName,
-        is_public_submission: true,
-        submitter_email: email,
-        analysis_status: 'pending'
-      }])
-      .select()
-      .single();
-      
-    if (insertError) {
-      console.error('Error inserting report record:', insertError);
-      throw insertError;
+    if (websiteUrl) {
+      formData.append('websiteUrl', websiteUrl);
     }
-
-    console.log('Public report record created successfully:', report);
     
-    return report;
+    // Use direct fetch to edge function instead of Supabase client
+    const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Upload error response:", errorData);
+      throw new Error(`Upload failed with status: ${response.status}${errorData.details ? ` - ${errorData.details}` : ''}`);
+    }
+    
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Upload failed');
+    }
+    
+    return { id: result.reportId };
   } catch (error) {
     console.error('Error uploading public report:', error);
     throw error;
