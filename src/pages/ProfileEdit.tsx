@@ -16,11 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Plus, X, Globe, FileText, Trash2 } from "lucide-react";
+import { Loader2, Save, Plus, X, Globe } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
 import { AreaOfInterestOptions } from "@/lib/constants";
-import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 
 interface VCProfile {
   id: string;
@@ -63,12 +62,6 @@ const ProfileEdit = () => {
   const [newCompany, setNewCompany] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('Your Website');
 
-  // PDF thesis state
-  const [thesisFile, setThesisFile] = useState<File | null>(null);
-  const [hasExistingThesis, setHasExistingThesis] = useState(false);
-  const [thesisFilename, setThesisFilename] = useState<string | null>(null);
-  const [deletingThesis, setDeletingThesis] = useState(false);
-
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -107,12 +100,6 @@ const ProfileEdit = () => {
       setInvestmentStage(profileData.investment_stage || []);
       setCompaniesInvested(profileData.companies_invested || []);
       setWebsiteUrl(profileData.website_url || 'Your Website');
-      
-      // Set thesis state
-      if (profileData.fund_thesis_url) {
-        setHasExistingThesis(true);
-        setThesisFilename(profileData.fund_thesis_url.split('/').pop() || null);
-      }
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -140,53 +127,6 @@ const ProfileEdit = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setThesisFile(e.target.files[0]);
-    }
-  };
-
-  const handleDeleteThesis = async () => {
-    if (!user || !profile?.fund_thesis_url) return;
-    
-    try {
-      setDeletingThesis(true);
-      
-      // Delete file from storage
-      const { error: storageError } = await supabase.storage
-        .from('vc-documents')
-        .remove([profile.fund_thesis_url]);
-        
-      if (storageError) throw storageError;
-      
-      // Update profile to remove reference
-      const { error: updateError } = await supabase
-        .from('vc_profiles')
-        .update({ fund_thesis_url: null })
-        .eq('id', user.id);
-        
-      if (updateError) throw updateError;
-      
-      // Update state
-      setHasExistingThesis(false);
-      setThesisFilename(null);
-      
-      toast({
-        title: "Thesis deleted",
-        description: "Your fund thesis PDF has been deleted",
-      });
-      
-    } catch (error: any) {
-      toast({
-        title: "Error deleting thesis",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setDeletingThesis(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -194,33 +134,6 @@ const ProfileEdit = () => {
     
     try {
       setSaving(true);
-      
-      let fundThesisUrl = profile?.fund_thesis_url || null;
-      
-      // Upload new thesis file if provided
-      if (thesisFile) {
-        // Delete existing thesis if there is one
-        if (profile?.fund_thesis_url) {
-          const { error: removeError } = await supabase.storage
-            .from('vc-documents')
-            .remove([profile.fund_thesis_url]);
-            
-          if (removeError) throw removeError;
-        }
-        
-        // Upload new file
-        const fileExt = thesisFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `fund-thesis/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('vc-documents')
-          .upload(filePath, thesisFile);
-          
-        if (uploadError) throw uploadError;
-        
-        fundThesisUrl = filePath;
-      }
       
       const { error } = await supabase
         .from('vc_profiles')
@@ -231,7 +144,6 @@ const ProfileEdit = () => {
           investment_stage: investmentStage,
           companies_invested: companiesInvested,
           website_url: websiteUrl,
-          fund_thesis_url: fundThesisUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -252,35 +164,6 @@ const ProfileEdit = () => {
       });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const downloadThesis = async () => {
-    if (!profile?.fund_thesis_url) return;
-    
-    try {
-      const { data, error } = await supabase.storage
-        .from('vc-documents')
-        .download(profile.fund_thesis_url);
-        
-      if (error) throw error;
-      
-      // Create a blob URL and trigger download
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = profile.fund_thesis_url.split('/').pop() || 'fund_thesis.pdf';
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-    } catch (error: any) {
-      toast({
-        title: "Download failed",
-        description: error.message,
-        variant: "destructive",
-      });
     }
   };
 
@@ -327,66 +210,6 @@ const ProfileEdit = () => {
                       placeholder="e.g. $10M-$50M"
                       className="bg-secondary/30 border-border/30 focus-visible:ring-primary"
                     />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Fund Thesis PDF</Label>
-                    {hasExistingThesis ? (
-                      <div className="border bg-secondary/30 border-border/30 rounded-md p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <FileText className="h-5 w-5 text-primary mr-2" />
-                            <span className="text-foreground">{thesisFilename || "Fund Thesis.pdf"}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              size="sm"
-                              onClick={downloadThesis}
-                              className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
-                            >
-                              Download
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={handleDeleteThesis}
-                              disabled={deletingThesis}
-                            >
-                              {deletingThesis ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                              ) : (
-                                <Trash2 className="h-4 w-4 mr-1" />
-                              )}
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <FileUploadZone
-                            id="thesis-upload"
-                            label="Replace with a new thesis"
-                            file={thesisFile}
-                            onFileChange={handleFileChange}
-                            accept=".pdf"
-                            description="PDF files only, max 10MB"
-                            buttonText="Choose new file"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <FileUploadZone
-                        id="thesis-upload"
-                        label="Upload Fund Thesis"
-                        file={thesisFile}
-                        onFileChange={handleFileChange}
-                        accept=".pdf"
-                        description="PDF files only, max 10MB"
-                        buttonText="Choose file"
-                      />
-                    )}
                   </div>
                 </div>
               </div>
