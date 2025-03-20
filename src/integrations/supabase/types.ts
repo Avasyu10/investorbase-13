@@ -139,6 +139,69 @@ export type Database = {
         }
         Relationships: []
       }
+      public_form_submissions: {
+        Row: {
+          company_stage: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          form_slug: string
+          founder_linkedin_profiles: string[] | null
+          id: string
+          industry: string | null
+          pdf_url: string | null
+          report_id: string | null
+          supplementary_materials_urls: string[] | null
+          title: string
+          website_url: string | null
+        }
+        Insert: {
+          company_stage?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          form_slug: string
+          founder_linkedin_profiles?: string[] | null
+          id?: string
+          industry?: string | null
+          pdf_url?: string | null
+          report_id?: string | null
+          supplementary_materials_urls?: string[] | null
+          title: string
+          website_url?: string | null
+        }
+        Update: {
+          company_stage?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          form_slug?: string
+          founder_linkedin_profiles?: string[] | null
+          id?: string
+          industry?: string | null
+          pdf_url?: string | null
+          report_id?: string | null
+          supplementary_materials_urls?: string[] | null
+          title?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_form_submissions_form_slug_fkey"
+            columns: ["form_slug"]
+            isOneToOne: false
+            referencedRelation: "public_submission_forms"
+            referencedColumns: ["form_slug"]
+          },
+          {
+            foreignKeyName: "public_form_submissions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_submission_forms: {
         Row: {
           auto_analyze: boolean

@@ -52,6 +52,17 @@ serve(async (req) => {
     const description = formData.get('description') as string || '';
     const websiteUrl = formData.get('websiteUrl') as string || '';
     const formSlug = formData.get('formSlug') as string || '';
+    const companyStage = formData.get('companyStage') as string || '';
+    const industry = formData.get('industry') as string || '';
+    
+    // Parse LinkedIn profiles if present
+    const linkedInProfilesStr = formData.get('linkedInProfiles') as string || '[]';
+    let linkedInProfiles: string[] = [];
+    try {
+      linkedInProfiles = JSON.parse(linkedInProfilesStr);
+    } catch (e) {
+      console.log("Error parsing LinkedIn profiles, using empty array:", e);
+    }
 
     console.log("Form data parsed:", {
       hasFile: !!file,
@@ -62,6 +73,9 @@ serve(async (req) => {
       hasDescription: !!description,
       hasWebsiteUrl: !!websiteUrl,
       formSlug: formSlug || 'none',
+      companyStage: companyStage || 'none',
+      industry: industry || 'none',
+      linkedInProfiles: linkedInProfiles.length,
     });
 
     if (!title) {
@@ -98,20 +112,82 @@ serve(async (req) => {
       }
     });
 
+    // Determine the correct form slug - use the provided one or default to public-pitch-deck
+    let submissionFormId = null;
+    let autoAnalyze = false;
+    let effectiveFormSlug = formSlug;
+    
+    if (!effectiveFormSlug) {
+      effectiveFormSlug = 'public-pitch-deck';
+    }
+    
+    console.log("Using form slug for submission:", effectiveFormSlug);
+    
+    // Look up the submission form to get the form ID and auto_analyze setting
+    const { data: submissionFormData, error: formLookupError } = await supabase
+      .from('public_submission_forms')
+      .select('id, user_id, auto_analyze')
+      .eq('form_slug', effectiveFormSlug)
+      .maybeSingle();
+    
+    if (formLookupError) {
+      console.error('Error looking up form:', formLookupError);
+    } else if (submissionFormData) {
+      submissionFormId = submissionFormData.id;
+      autoAnalyze = submissionFormData.auto_analyze || false;
+      console.log("Found existing submission form:", submissionFormId, "for user:", submissionFormData.user_id, "auto_analyze:", autoAnalyze);
+    } else {
+      console.log("No form found with slug:", effectiveFormSlug);
+      
+      // If a specific slug was requested but not found, return an error
+      if (formSlug) {
+        return new Response(JSON.stringify({ error: 'Submission form not found' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        });
+      }
+      
+      // For the default case, create a new public form if it doesn't exist
+      const { data: newForm, error: newFormError } = await supabase
+        .from('public_submission_forms')
+        .insert([{
+          form_name: 'Public Pitch Deck Submission',
+          form_slug: 'public-pitch-deck',
+          is_active: true,
+          auto_analyze: false,
+          user_id: '00000000-0000-0000-0000-000000000000' // System user placeholder
+        }])
+        .select()
+        .single();
+        
+      if (newFormError) {
+        console.error('Error creating public submission form:', newFormError);
+      } else if (newForm) {
+        submissionFormId = newForm.id;
+        autoAnalyze = newForm.auto_analyze || false;
+        console.log("Created new public submission form:", submissionFormId, "auto_analyze:", autoAnalyze);
+      }
+    }
+
+    // Set the analysis status based on the form's auto_analyze setting
+    const analysisStatus = autoAnalyze ? 'pending' : 'manual_pending';
+    console.log("Setting analysis status to:", analysisStatus);
+
     // Process the upload - file is now optional
     let fileName = '';
+    let supplementaryMaterialsUrls: string[] = [];
     
     if (file) {
       console.log("Uploading file...");
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
-      fileName = `${Date.now()}.${fileExt}`;
+      fileName = `${effectiveFormSlug}/${Date.now()}.${fileExt}`;
 
       // Read file as ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
       const fileData = new Uint8Array(arrayBuffer);
 
-      // Upload file to public_uploads bucket - which is now public with no RLS
+      // Upload file to public_uploads bucket
       const { error: uploadError } = await supabase.storage
         .from('public_uploads')
         .upload(fileName, fileData, {
@@ -127,7 +203,7 @@ serve(async (req) => {
         });
       }
 
-      console.log("File uploaded successfully:", fileName);
+      console.log("File uploaded successfully to path:", fileName);
     } else {
       console.log("No file provided - proceeding without file upload");
     }
@@ -140,75 +216,15 @@ serve(async (req) => {
     if (email) {
       enhancedDescription += `\nContact Email: ${email}`;
     }
-
-    // Get or create a public submission form
-    console.log("Getting or creating public submission form...");
-    let submissionFormId = null;
-    let autoAnalyze = false;
-    
-    if (formSlug) {
-      console.log("Looking up submission form with slug:", formSlug);
-      const { data: submissionFormData, error: formLookupError } = await supabase
-        .from('public_submission_forms')
-        .select('id, user_id, auto_analyze')
-        .eq('form_slug', formSlug)
-        .maybeSingle();
-      
-      if (formLookupError) {
-        console.error('Error looking up form:', formLookupError);
-        // Continue without form ID - will create record with null form_id
-      } else if (submissionFormData) {
-        submissionFormId = submissionFormData.id;
-        autoAnalyze = submissionFormData.auto_analyze || false;
-        console.log("Found existing submission form:", submissionFormId, "for user:", submissionFormData.user_id, "auto_analyze:", autoAnalyze);
-      } else {
-        console.log("No form found with slug:", formSlug);
-      }
-    } else {
-      // For compatibility with older code that expected a specific public form
-      console.log("No form slug provided, checking for public-pitch-deck form");
-      const { data: publicFormData, error: publicFormError } = await supabase
-        .from('public_submission_forms')
-        .select('id, auto_analyze')
-        .eq('form_slug', 'public-pitch-deck')
-        .maybeSingle();
-        
-      if (!publicFormError && publicFormData) {
-        submissionFormId = publicFormData.id;
-        autoAnalyze = publicFormData.auto_analyze || false;
-        console.log("Using public-pitch-deck form:", submissionFormId, "auto_analyze:", autoAnalyze);
-      } else {
-        // Create a new public submission form
-        console.log("Creating default public form");
-        const { data: newForm, error: newFormError } = await supabase
-          .from('public_submission_forms')
-          .insert([{
-            form_name: 'Public Pitch Deck Submission',
-            form_slug: 'public-pitch-deck',
-            is_active: true,
-            auto_analyze: false,
-            user_id: '00000000-0000-0000-0000-000000000000' // System user placeholder
-          }])
-          .select()
-          .single();
-          
-        if (newFormError) {
-          console.error('Error creating public submission form:', newFormError);
-          // Continue without form ID
-        } else if (newForm) {
-          submissionFormId = newForm.id;
-          autoAnalyze = newForm.auto_analyze || false;
-          console.log("Created new public submission form:", submissionFormId, "auto_analyze:", autoAnalyze);
-        }
-      }
+    if (companyStage) {
+      enhancedDescription += `\nCompany Stage: ${companyStage}`;
+    }
+    if (industry) {
+      enhancedDescription += `\nIndustry: ${industry}`;
     }
 
-    // Set the analysis status based on the form's auto_analyze setting
-    const analysisStatus = autoAnalyze ? 'pending' : 'manual_pending';
-    console.log("Setting analysis status to:", analysisStatus);
-
     // Insert record in the reports table without any auth checks
-    console.log("Inserting record to database...");
+    console.log("Inserting record to reports table...");
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
@@ -231,7 +247,35 @@ serve(async (req) => {
       });
     }
 
-    console.log("Record inserted successfully:", { reportId: report.id, analysisStatus });
+    console.log("Report record inserted successfully:", { reportId: report.id, analysisStatus });
+    
+    // Also insert into our new public_form_submissions table
+    console.log("Inserting record to public_form_submissions table...");
+    const { data: submission, error: submissionError } = await supabase
+      .from('public_form_submissions')
+      .insert([{
+        form_slug: effectiveFormSlug,
+        title,
+        description,
+        email: email || null,
+        website_url: websiteUrl || null,
+        pdf_url: fileName || null,
+        founder_linkedin_profiles: linkedInProfiles,
+        company_stage: companyStage || null,
+        industry: industry || null,
+        supplementary_materials_urls: supplementaryMaterialsUrls,
+        report_id: report.id
+      }])
+      .select()
+      .single();
+      
+    if (submissionError) {
+      console.error('Error inserting submission record:', submissionError);
+      // Non-blocking error - we already have the data in the reports table
+      // so we can continue without failing the request
+    } else {
+      console.log("Submission record inserted successfully:", { submissionId: submission.id });
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
