@@ -1,15 +1,13 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, FileText, Play } from "lucide-react";
+import { Loader2, FileText, Play } from "lucide-react";
 import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { AnalysisModal } from "./AnalysisModal";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeReport } from "@/lib/supabase/analysis";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface PublicSubmission {
   id: string;
@@ -218,19 +216,6 @@ export function PublicSubmissionsList() {
           </p>
         </div>
       </div>
-
-      <Alert variant="destructive" className="mb-6">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Important Note</AlertTitle>
-        <AlertDescription>
-          If you encounter network errors when analyzing submissions, please ensure that:
-          <ul className="list-disc pl-5 mt-2">
-            <li>Your Edge Functions are properly deployed in Supabase</li>
-            <li>All required API keys (GEMINI_API_KEY) are set in your Supabase project</li>
-            <li>Your browser allows cross-origin requests to Supabase functions</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
 
       {submissions.length > 0 ? (
         <PublicSubmissionsTable 
