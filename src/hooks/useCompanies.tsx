@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -82,7 +81,6 @@ export function useCompanies(
           const paginatedData = response.data.data as CompanyListItem[];
           setCompanies(paginatedData);
           const paginationData = response.data.pagination as { total?: number } | undefined;
-          // Fix for TypeScript error: safely access 'total' with a fallback
           setTotalCount(paginationData?.total ?? paginatedData.length);
         } else {
           const data = response.data as CompanyListItem[];
@@ -125,8 +123,10 @@ export function useCompanyDetails(companyId?: string) {
         
         if (user) {
           console.log('Trying to fetch company details from Supabase for:', companyId);
+          
+          // Try different approaches to find the company
           try {
-            // Check if the companyId is a UUID or a numeric ID
+            // First try direct UUID lookup if format matches
             const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId);
             
             if (isUuid) {
@@ -151,8 +151,7 @@ export function useCompanyDetails(companyId?: string) {
                 return;
               }
             } else {
-              // For numeric IDs, we need to cast the comparison or use a different approach
-              // Convert the companyId to a number to ensure it's valid
+              // For numeric IDs, try using the SQL function directly with proper error handling
               const numericId = parseInt(companyId);
               if (isNaN(numericId)) {
                 throw new Error('Invalid company ID format');
@@ -160,30 +159,7 @@ export function useCompanyDetails(companyId?: string) {
               
               console.log('Searching for company with numeric ID:', numericId);
               
-              // First try a direct text match on the numeric part of the ID
-              const { data, error } = await supabase
-                .from('companies')
-                .select('*, sections(*)')
-                .textSearch('id', numericId.toString())
-                .maybeSingle();
-              
-              if (error && error.code !== 'PGRST116') {  // Ignore "No rows returned" error
-                console.error('Error searching for company by numeric ID:', error);
-                // Continue to other methods - don't throw yet
-              }
-              
-              if (data) {
-                console.log('Found company in Supabase with numeric ID search:', data);
-                const formattedCompany = formatCompanyData(data);
-                setCompany(formattedCompany);
-                setError(null);
-                setIsLoading(false);
-                return;
-              }
-              
-              // If text search didn't work, try using custom RPC function
-              // Note: This is a custom function that needs to be created in the database
-              console.log('Trying RPC function with numeric ID:', numericId.toString());
+              // Call the RPC function directly without using @@ operator
               const { data: rpcData, error: rpcError } = await supabase
                 .rpc('find_company_by_numeric_id', { 
                   numeric_id: numericId.toString() 
@@ -191,49 +167,39 @@ export function useCompanyDetails(companyId?: string) {
               
               if (rpcError) {
                 console.error('Error from RPC function:', rpcError);
-                // Continue to fallback
-              }
-              
-              if (rpcData && Array.isArray(rpcData) && rpcData.length > 0 && rpcData[0]?.id) {
-                const companyUuid = rpcData[0].id;
-                console.log('Found company UUID via RPC:', companyUuid);
+              } else if (rpcData) {
+                console.log('RPC function returned:', rpcData);
                 
-                const { data: companyData, error: companyError } = await supabase
-                  .from('companies')
-                  .select('*, sections(*)')
-                  .eq('id', companyUuid)
-                  .maybeSingle();
+                let companyUuid: string | null = null;
                 
-                if (companyError) {
-                  console.error('Error fetching company after RPC:', companyError);
-                } else if (companyData) {
-                  console.log('Found company via RPC:', companyData);
-                  const formattedCompany = formatCompanyData(companyData);
-                  setCompany(formattedCompany);
-                  setError(null);
-                  setIsLoading(false);
-                  return;
+                // Handle different response formats
+                if (Array.isArray(rpcData) && rpcData.length > 0) {
+                  companyUuid = rpcData[0]?.id;
+                  console.log('Found company UUID via RPC (array):', companyUuid);
+                } else if (typeof rpcData === 'object' && rpcData !== null && 'id' in rpcData) {
+                  companyUuid = rpcData.id;
+                  console.log('Found company UUID via RPC (object):', companyUuid);
                 }
-              } else if (rpcData && typeof rpcData === 'object' && 'id' in rpcData) {
-                // Handle case where RPC returns a single object instead of an array
-                const companyUuid = rpcData.id;
-                console.log('Found company UUID via RPC (single object):', companyUuid);
                 
-                const { data: companyData, error: companyError } = await supabase
-                  .from('companies')
-                  .select('*, sections(*)')
-                  .eq('id', companyUuid)
-                  .maybeSingle();
-                
-                if (companyError) {
-                  console.error('Error fetching company after RPC (single object):', companyError);
-                } else if (companyData) {
-                  console.log('Found company via RPC (single object):', companyData);
-                  const formattedCompany = formatCompanyData(companyData);
-                  setCompany(formattedCompany);
-                  setError(null);
-                  setIsLoading(false);
-                  return;
+                if (companyUuid) {
+                  const { data: companyData, error: companyError } = await supabase
+                    .from('companies')
+                    .select('*, sections(*)')
+                    .eq('id', companyUuid)
+                    .maybeSingle();
+                  
+                  if (companyError) {
+                    console.error('Error fetching company details with UUID:', companyError);
+                  } else if (companyData) {
+                    console.log('Successfully fetched company details:', companyData);
+                    const formattedCompany = formatCompanyData(companyData);
+                    setCompany(formattedCompany);
+                    setError(null);
+                    setIsLoading(false);
+                    return;
+                  }
+                } else {
+                  console.log('RPC returned data but no valid UUID was found:', rpcData);
                 }
               }
             }
