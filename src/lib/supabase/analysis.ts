@@ -1,9 +1,10 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export async function analyzeReport(reportId: string) {
   try {
-    console.log('Calling analyze-pdf function with report ID:', reportId);
+    console.log('Calling analyze function with report ID:', reportId);
     
     // First check authentication
     const { data: { user } } = await supabase.auth.getUser();
@@ -11,7 +12,6 @@ export async function analyzeReport(reportId: string) {
     if (!user) {
       console.error('User not authenticated');
       toast({
-        id: "auth-error",
         title: "Authentication required",
         description: "Please sign in to analyze reports",
         variant: "destructive"
@@ -26,7 +26,6 @@ export async function analyzeReport(reportId: string) {
       console.error(errorMessage);
       
       toast({
-        id: "invalid-report-id",
         title: "Invalid Report ID",
         description: "The report ID format is invalid. Please try again with a valid report.",
         variant: "destructive"
@@ -125,7 +124,6 @@ export async function analyzeReport(reportId: string) {
             }
             
             toast({
-              id: "analysis-error-2",
               title: "Analysis failed",
               description: userMessage,
               variant: "destructive"
@@ -137,7 +135,6 @@ export async function analyzeReport(reportId: string) {
           console.log('Analysis result:', data);
           
           toast({
-            id: "analysis-success",
             title: "Analysis complete",
             description: "Your pitch deck has been successfully analyzed",
           });
@@ -173,7 +170,6 @@ export async function analyzeReport(reportId: string) {
       if (innerError.message?.includes('CORS') || innerError.name === 'TypeError') {
         console.error('Possible CORS or network configuration issue:', innerError);
         toast({
-          id: "cors-error",
           title: "Connection Error",
           description: "Could not connect to the analysis service due to a network configuration issue. This may be because the Edge Function is not properly deployed or configured.",
           variant: "destructive"
@@ -185,7 +181,6 @@ export async function analyzeReport(reportId: string) {
       if (innerError.name === 'AbortError' || innerError.message?.includes('timeout')) {
         console.error('Analysis timed out after extended period');
         toast({
-          id: "analysis-timeout",
           title: "Analysis timed out",
           description: "The analysis is taking longer than expected. Please try again with a smaller file or try later.",
           variant: "destructive"
@@ -198,7 +193,6 @@ export async function analyzeReport(reportId: string) {
           innerError.message?.includes('functions-fetch')) {
         console.error('Supabase Function fetch error:', innerError);
         toast({
-          id: "function-fetch-error",
           title: "Edge Function Error",
           description: "Could not connect to the Supabase Edge Function. Please verify that your Edge Functions are properly deployed.",
           variant: "destructive"
@@ -214,7 +208,6 @@ export async function analyzeReport(reportId: string) {
         
         console.error('Network error when calling analyze-pdf function:', innerError);
         toast({
-          id: "network-error",
           title: "Network Error",
           description: "Could not connect to the analysis service. This is likely a temporary issue, please try again later.",
           variant: "destructive"
@@ -236,7 +229,6 @@ export async function analyzeReport(reportId: string) {
         !errorMessage.includes("Connection")) {
       
       toast({
-        id: "analysis-error-3",
         title: "Analysis failed",
         description: "Could not analyze the report. Please try again later.",
         variant: "destructive"
