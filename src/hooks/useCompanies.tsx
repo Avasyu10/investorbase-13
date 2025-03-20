@@ -151,24 +151,58 @@ export function useCompanyDetails(companyId?: string) {
             
             companyData = data;
           } else if (isNumeric) {
-            // For large numeric IDs that might overflow PostgreSQL integer type,
-            // we'll use a bigint parameter and convert to string in SQL
-            console.log('[DEBUG] Numeric ID detected, using bigint for lookup');
+            // For large numeric IDs, we'll use our specialized function
+            console.log('[DEBUG] Numeric ID detected, using find_company_by_numeric_id for lookup');
             
             // Call a custom function that can handle large numeric IDs
-            const { data, error } = await supabase.rpc('find_company_by_numeric_id_bigint', {
+            const { data, error } = await supabase.rpc('find_company_by_numeric_id', {
               numeric_id: companyId
             });
             
             if (error) {
               console.error('[DEBUG] Error fetching company by numeric ID:', error);
-              throw error;
-            }
-            
-            console.log('[DEBUG] Company lookup result:', data);
-            
-            if (Array.isArray(data) && data.length > 0) {
-              // Get the first matching company ID
+              console.error('[DEBUG] Trying alternative method with bigint support');
+              
+              try {
+                // Try the second function which supports larger numbers
+                const { data: bigintData, error: bigintError } = await supabase.rpc('find_company_by_numeric_id_bigint', {
+                  numeric_id: companyId
+                });
+                
+                if (bigintError) {
+                  console.error('[DEBUG] Error with bigint lookup:', bigintError);
+                  throw bigintError;
+                }
+                
+                if (bigintData && Array.isArray(bigintData) && bigintData.length > 0) {
+                  console.log('[DEBUG] Found company with bigint function:', bigintData[0]);
+                  
+                  // Use the UUID to fetch the full company data
+                  const uuid = bigintData[0].id;
+                  console.log('[DEBUG] Found company UUID:', uuid);
+                  
+                  // Now fetch the full company data with that UUID
+                  const { data: companyWithSections, error: companyError } = await supabase
+                    .from('companies')
+                    .select('*, sections(*)')
+                    .eq('id', uuid)
+                    .maybeSingle();
+                    
+                  if (companyError) {
+                    console.error('[DEBUG] Error fetching company details with UUID:', companyError);
+                    throw companyError;
+                  }
+                  
+                  companyData = companyWithSections;
+                } else {
+                  console.error('[DEBUG] No company found with numeric ID (bigint):', companyId);
+                }
+              } catch (bigintLookupError) {
+                console.error('[DEBUG] Failed to find company with bigint method:', bigintLookupError);
+                throw error; // Throw the original error since that's what failed first
+              }
+            } else if (data && Array.isArray(data) && data.length > 0) {
+              // Original function worked
               const uuid = data[0].id;
               console.log('[DEBUG] Found company UUID:', uuid);
               
@@ -240,7 +274,7 @@ export function useCompanyDetails(companyId?: string) {
         
         try {
           console.log('[DEBUG] Calling API with ID:', companyId);
-          // We'll pass the ID directly to the API - it now handles string IDs properly
+          // We'll convert the ID to a number if it's a string ID for the mock API
           const response = await api.getCompany(companyId);
           
           setCompany(response.data);
@@ -445,4 +479,3 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
 
   return { section, isLoading, error };
 }
-

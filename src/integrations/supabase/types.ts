@@ -453,7 +453,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_find_company_by_numeric_id_bigint_function: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       find_company_by_numeric_id: {
+        Args: {
+          numeric_id: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      find_company_by_numeric_id_bigint: {
         Args: {
           numeric_id: string
         }
