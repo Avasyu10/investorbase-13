@@ -29,11 +29,19 @@ export function PublicSubmissionsList() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState<PublicSubmission | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [isPreviewEnv, setIsPreviewEnv] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
+    // Check if we're in a preview environment
+    const checkPreviewEnv = window.location.hostname.includes('lovableproject') || 
+                        window.location.hostname.includes('gptengineer') ||
+                        window.location.hostname.includes('lovable.app') ||
+                        window.location.hostname.includes('preview');
+    setIsPreviewEnv(checkPreviewEnv);
+    
     async function fetchSubmissions() {
       try {
         if (!user) {
@@ -125,9 +133,8 @@ export function PublicSubmissionsList() {
           description: "The submission has been successfully analyzed",
         });
         
-        // Check if we got a mock preview-mode response
-        if (result.companyId === "preview-mock-id") {
-          // If in preview mode, just close the modal and inform the user
+        // Display different UI if we're in preview mode
+        if (isPreviewEnv || result.companyId === "preview-mock-id") {
           toast({
             title: "Preview Mode",
             description: "This is a preview. In the deployed app, you would be redirected to the company page.",
@@ -202,6 +209,18 @@ export function PublicSubmissionsList() {
           </p>
         </div>
       </div>
+
+      {isPreviewEnv && (
+        <div className="mb-6 p-4 border rounded-md bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          <h3 className="text-lg font-medium flex items-center">
+            <AlertTriangle className="mr-2 h-5 w-5" />
+            Preview Environment Limitation
+          </h3>
+          <p className="mt-1">
+            Edge functions cannot be called from the preview environment. Analysis operations will be simulated in preview mode.
+          </p>
+        </div>
+      )}
 
       {submissions.length > 0 ? (
         <PublicSubmissionsTable 
