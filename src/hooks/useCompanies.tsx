@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -150,12 +151,13 @@ export function useCompanyDetails(companyId?: string) {
             
             companyData = data;
           } else if (isNumeric) {
-            // Use a text-based search approach
-            console.log('[DEBUG] Numeric ID detected, using text-based search');
+            // For large numeric IDs that might overflow PostgreSQL integer type,
+            // we'll use a bigint parameter and convert to string in SQL
+            console.log('[DEBUG] Numeric ID detected, using bigint for lookup');
             
-            // Use a direct SQL query with proper casting to avoid the UUID comparison issue
-            const { data, error } = await supabase.rpc('get_company_by_numeric_id', {
-              p_numeric_id: parseInt(companyId)
+            // Call a custom function that can handle large numeric IDs
+            const { data, error } = await supabase.rpc('find_company_by_numeric_id_bigint', {
+              numeric_id: companyId
             });
             
             if (error) {
@@ -166,9 +168,23 @@ export function useCompanyDetails(companyId?: string) {
             console.log('[DEBUG] Company lookup result:', data);
             
             if (Array.isArray(data) && data.length > 0) {
-              companyData = data[0];
-            } else if (data && !Array.isArray(data)) {
-              companyData = data;
+              // Get the first matching company ID
+              const uuid = data[0].id;
+              console.log('[DEBUG] Found company UUID:', uuid);
+              
+              // Now fetch the full company data with that UUID
+              const { data: companyWithSections, error: companyError } = await supabase
+                .from('companies')
+                .select('*, sections(*)')
+                .eq('id', uuid)
+                .maybeSingle();
+                
+              if (companyError) {
+                console.error('[DEBUG] Error fetching company details with UUID:', companyError);
+                throw companyError;
+              }
+              
+              companyData = companyWithSections;
             }
           }
           
@@ -223,16 +239,9 @@ export function useCompanyDetails(companyId?: string) {
         console.log('[DEBUG] Falling back to mock API for company details');
         
         try {
-          // For mock API, we need a numeric ID
-          const numericId = parseInt(companyId);
-          
-          if (isNaN(numericId)) {
-            console.error('[DEBUG] Could not convert companyId to number for mock API');
-            throw new Error('Invalid company ID format');
-          }
-
-          console.log('[DEBUG] Calling mock API with ID:', numericId);
-          const response = await api.getCompany(numericId);
+          console.log('[DEBUG] Calling API with ID:', companyId);
+          // We'll pass the ID directly to the API - it now handles string IDs properly
+          const response = await api.getCompany(companyId);
           
           setCompany(response.data);
           setError(null);
