@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -193,7 +192,7 @@ export function useCompanyDetails(companyId?: string) {
             console.log('[DEBUG] Company data retrieved:', companyData.name);
             
             // Create a numeric ID from the first part of the UUID for compatibility
-            let numericId = 0;
+            let numericId: number = 0;
             try {
               // Extract first segment of UUID and convert to number
               const firstPart = companyData.id.split('-')[0];

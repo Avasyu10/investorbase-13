@@ -1,4 +1,3 @@
-
 import apiClient from './apiClient';
 import { 
   mockCompanies, 
@@ -71,14 +70,25 @@ const api = {
   getCompany: async (companyId: number | string): Promise<ApiResponse<CompanyDetailed>> => {
     console.log('[DEBUG API] getCompany called with ID:', companyId, 'Type:', typeof companyId);
     
+    // Convert string ID to number if needed
+    const numericCompanyId = typeof companyId === 'string' ? parseInt(companyId) : companyId;
+    
+    if (isNaN(numericCompanyId)) {
+      console.error('[DEBUG API] Invalid company ID format:', companyId);
+      throw {
+        status: 400,
+        message: 'Invalid company ID format',
+      };
+    }
+    
     if (USE_MOCK_API) {
       // Use mock data
       console.log('[DEBUG API] Using mock data for getCompany');
-      const company = mockCompanyDetails[companyId];
+      const company = mockCompanyDetails[numericCompanyId];
       console.log('[DEBUG API] Mock company found:', company ? 'Yes' : 'No');
       
       if (!company) {
-        console.error('[DEBUG API] Company not found in mock data for ID:', companyId);
+        console.error('[DEBUG API] Company not found in mock data for ID:', numericCompanyId);
         throw {
           status: 404,
           message: 'Company not found',
@@ -101,31 +111,20 @@ const api = {
         // This would be handled by the apiClient to fetch from Supabase by UUID
       }
       
-      return await apiClient.getCompany(companyId);
+      return await apiClient.getCompany(numericCompanyId);
     } catch (error) {
       // Fallback to mock data if enabled
       if (USE_MOCK_API_FALLBACK) {
         console.log('[DEBUG API] Real API failed, checking mock data as fallback');
         
-        // If companyId is a string that might be a UUID, try to extract a numeric ID for mock data
-        let mockId = typeof companyId === 'number' ? companyId : parseInt(companyId.toString());
+        const company = mockCompanyDetails[numericCompanyId];
         
-        // If parsing failed or this is a UUID, try the first characters as hex
-        if (isNaN(mockId) && typeof companyId === 'string' && companyId.includes('-')) {
-          const hexPart = companyId.split('-')[0];
-          mockId = parseInt(hexPart, 16);
-          console.log('[DEBUG API] Extracted numeric ID from UUID:', mockId);
-        }
-        
-        if (!isNaN(mockId)) {
-          const company = mockCompanyDetails[mockId];
-          if (company) {
-            console.log('[DEBUG API] Found company in mock data using derived ID:', company.name);
-            return {
-              data: company,
-              status: 200,
-            };
-          }
+        if (company) {
+          console.log('[DEBUG API] Found company in mock data using derived ID:', company.name);
+          return {
+            data: company,
+            status: 200,
+          };
         }
         
         console.log('[DEBUG API] Company not found in mock data either');
@@ -136,15 +135,26 @@ const api = {
   },
 
   // Sections
-  getSection: async (companyId: number, sectionId: string | number): Promise<ApiResponse<SectionDetailed>> => {
-    console.log('[DEBUG API] getSection called with companyId:', companyId, 'sectionId:', sectionId);
-    console.log('[DEBUG API] Parameter types - companyId:', typeof companyId, 'sectionId:', typeof sectionId);
+  getSection: async (companyId: number | string, sectionId: string | number): Promise<ApiResponse<SectionDetailed>> => {
+    // Convert string ID to number if needed
+    const numericCompanyId = typeof companyId === 'string' ? parseInt(companyId) : companyId;
+    
+    if (isNaN(numericCompanyId)) {
+      console.error('[DEBUG API] Invalid company ID format for section lookup:', companyId);
+      throw {
+        status: 400,
+        message: 'Invalid company ID format',
+      };
+    }
+    
+    console.log('[DEBUG API] getSection called with companyId:', numericCompanyId, 'sectionId:', sectionId);
+    console.log('[DEBUG API] Parameter types - companyId:', typeof numericCompanyId, 'sectionId:', typeof sectionId);
     
     if (USE_MOCK_API) {
       // Use mock data
       console.log('[DEBUG API] Using mock data for getSection');
       try {
-        const section = await getMockSectionDetails(companyId, sectionId);
+        const section = await getMockSectionDetails(numericCompanyId, sectionId);
         console.log('[DEBUG API] Mock section found:', section ? 'Yes' : 'No');
         
         if (!section) {
@@ -169,13 +179,13 @@ const api = {
     // Use real API
     console.log('[DEBUG API] Using real API for getSection');
     try {
-      return await apiClient.getSection(companyId, sectionId);
+      return await apiClient.getSection(numericCompanyId, sectionId);
     } catch (error) {
       // Fallback to mock data if enabled
       if (USE_MOCK_API_FALLBACK) {
         console.log('[DEBUG API] Real API failed, checking mock data as fallback');
         try {
-          const section = await getMockSectionDetails(companyId, sectionId);
+          const section = await getMockSectionDetails(numericCompanyId, sectionId);
           
           if (section) {
             console.log('[DEBUG API] Found section in mock data:', section.title);
@@ -196,17 +206,28 @@ const api = {
   },
 
   // Analysis
-  getCompanyAnalysis: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
-    console.log('[DEBUG API] getCompanyAnalysis called with ID:', companyId);
+  getCompanyAnalysis: async (companyId: number | string): Promise<ApiResponse<CompanyDetailed>> => {
+    // Convert string ID to number if needed
+    const numericCompanyId = typeof companyId === 'string' ? parseInt(companyId) : companyId;
+    
+    if (isNaN(numericCompanyId)) {
+      console.error('[DEBUG API] Invalid company ID format for analysis:', companyId);
+      throw {
+        status: 400,
+        message: 'Invalid company ID format',
+      };
+    }
+    
+    console.log('[DEBUG API] getCompanyAnalysis called with ID:', numericCompanyId);
     
     if (USE_MOCK_API) {
       // For mock data, analysis is the same as company details
       console.log('[DEBUG API] Using mock data for getCompanyAnalysis');
-      const company = mockCompanyDetails[companyId];
+      const company = mockCompanyDetails[numericCompanyId];
       console.log('[DEBUG API] Mock company analysis found:', company ? 'Yes' : 'No');
       
       if (!company) {
-        console.error('[DEBUG API] Company analysis not found in mock data for ID:', companyId);
+        console.error('[DEBUG API] Company analysis not found in mock data for ID:', numericCompanyId);
         throw {
           status: 404,
           message: 'Company analysis not found',
@@ -223,12 +244,12 @@ const api = {
     // Use real API
     console.log('[DEBUG API] Using real API for getCompanyAnalysis');
     try {
-      return await apiClient.getCompanyAnalysis(companyId);
+      return await apiClient.getCompanyAnalysis(numericCompanyId);
     } catch (error) {
       // Fallback to mock data if enabled
       if (USE_MOCK_API_FALLBACK) {
         console.log('[DEBUG API] Real API failed, checking mock data as fallback');
-        const company = mockCompanyDetails[companyId];
+        const company = mockCompanyDetails[numericCompanyId];
         
         if (company) {
           console.log('[DEBUG API] Found company analysis in mock data:', company.name);
