@@ -35,18 +35,18 @@ export function CompanyInfoCard({
         Company Information
       </h3>
       
-      <Card className="border-0 shadow-subtle">
-        <CardContent className="p-4">
+      <Card className="border-0 shadow-card">
+        <CardContent className="p-4 pt-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-muted-foreground" />
+              <Globe className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Website</p>
                 <a 
                   href={website} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
                 >
                   {website}
                 </a>
@@ -54,7 +54,7 @@ export function CompanyInfoCard({
             </div>
             
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Stage</p>
                 <p className="text-sm text-muted-foreground">{stage}</p>
@@ -62,7 +62,7 @@ export function CompanyInfoCard({
             </div>
             
             <div className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <Briefcase className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Industry</p>
                 <p className="text-sm text-muted-foreground">{industry}</p>
@@ -71,14 +71,14 @@ export function CompanyInfoCard({
           </div>
         </CardContent>
         
-        <CardFooter className="p-4 pt-0 flex justify-end">
+        <CardFooter className="p-4 pt-0 flex justify-end border-t bg-muted/30">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="flex items-center gap-1 text-primary"
+            className="text-sm text-primary font-medium hover:text-primary/80 flex items-center gap-1.5 transition-colors"
             onClick={() => setShowMoreInfo(true)}
           >
-            View More <ExternalLink className="h-3 w-3" />
+            View More <ExternalLink className="h-3.5 w-3.5" />
           </Button>
         </CardFooter>
       </Card>
