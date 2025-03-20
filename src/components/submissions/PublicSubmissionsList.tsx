@@ -163,7 +163,8 @@ export function PublicSubmissionsList() {
         // Don't display another error toast if one was already shown in the analyzeReport function
         if (!errorMessage.includes("Network error") && 
             !errorMessage.includes("timed out") &&
-            !errorMessage.includes("analysis failed")) {
+            !errorMessage.includes("analysis failed") &&
+            !errorMessage.includes("Edge Function")) {
           toast({
             title: "Analysis failed",
             description: errorMessage,
