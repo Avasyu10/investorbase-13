@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -217,11 +216,11 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         if (user) {
           console.log('Trying to fetch section details from Supabase for:', companyId, sectionId);
           try {
+            // First check if we can access the section directly
             const { data: sectionData, error: sectionError } = await supabase
               .from('sections')
               .select('*')
               .eq('id', sectionId)
-              .eq('company_id', companyId)
               .maybeSingle();
               
             if (sectionError) {
@@ -232,6 +231,7 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
             if (sectionData) {
               console.log('Found section in Supabase:', sectionData);
               
+              // Now fetch the section details with proper RLS enforced
               const { data: sectionDetails, error: detailsError } = await supabase
                 .from('section_details')
                 .select('*')
@@ -250,14 +250,14 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
               const detailedContent = sectionDetails?.find(detail => detail.detail_type === 'content')?.content || '';
               
               const formattedSection: SectionDetailed = {
-                id: parseInt(sectionData.id),
+                id: sectionData.id,
                 type: sectionData.type as any,
                 title: sectionData.title,
                 score: sectionData.score,
                 description: sectionData.description || '',
                 strengths: strengths,
                 weaknesses: weaknesses,
-                detailedContent: detailedContent,
+                detailedContent: detailedContent || sectionData.description || '',
                 createdAt: sectionData.created_at,
                 updatedAt: sectionData.updated_at
               };
