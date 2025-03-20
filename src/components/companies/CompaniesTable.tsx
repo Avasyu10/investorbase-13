@@ -48,19 +48,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     return "No summary available";
   };
 
-  // Helper to determine source label and style
-  const getSourceInfo = (company: CompanyListItem) => {
-    // Check if company has a special source property (e.g. from public submission)
-    if ('source' in company && company.source === 'public') {
-      return {
-        label: "Public URL",
-        className: "text-sm text-green-600 font-medium"
-      };
-    }
-    return {
-      label: "Dashboard",
-      className: "text-sm text-gold font-medium"
-    };
+  // Set all sources to "Dashboard" with gold color
+  const sourceInfo = {
+    label: "Dashboard",
+    className: "text-sm text-gold font-medium"
   };
 
   return (
@@ -87,7 +78,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         </TableHeader>
         <TableBody>
           {companies.map((company) => {
-            const sourceInfo = getSourceInfo(company);
             return (
               <TableRow 
                 key={company.id}
