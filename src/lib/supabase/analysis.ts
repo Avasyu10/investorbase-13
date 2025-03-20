@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -36,7 +35,7 @@ export async function analyzeReport(reportId: string) {
       throw new Error(errorMessage);
     }
     
-    // Set a timeout for the edge function call (60 seconds)
+    // Set a timeout value for the edge function call (60 seconds)
     const timeoutMs = 60000; // Extended from 40s to 60s since AI analysis can take longer
     
     try {
@@ -58,9 +57,7 @@ export async function analyzeReport(reportId: string) {
           
           // Call the edge function
           const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-            body: { reportId },
-            // Set a longer timeout for production environments
-            timeout: timeoutMs
+            body: { reportId }
           });
           
           if (error) {
@@ -142,6 +139,7 @@ export async function analyzeReport(reportId: string) {
       
       // If we get here, all retries failed
       throw lastError || new Error('Failed to invoke analyze-pdf function after multiple attempts');
+      
     } catch (innerError) {
       // Check if this is a CORS error
       if (innerError.message?.includes('CORS') || innerError.name === 'TypeError') {
