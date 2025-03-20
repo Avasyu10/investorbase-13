@@ -129,70 +129,87 @@ export function useCompanyDetails(companyId?: string) {
             // Check if the companyId is a UUID or a numeric ID
             const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId);
             
-            let data, error;
-            
             if (isUuid) {
               // If it's a UUID, use eq with the UUID directly
-              const response = await supabase
+              const { data, error } = await supabase
                 .from('companies')
                 .select('*, sections(*)')
                 .eq('id', companyId)
                 .maybeSingle();
-                
-              data = response.data;
-              error = response.error;
+              
+              if (error) {
+                console.error('Error fetching company from Supabase (UUID):', error);
+                throw error;
+              }
+              
+              if (data) {
+                console.log('Found company in Supabase with UUID:', data);
+                const formattedCompany = formatCompanyData(data);
+                setCompany(formattedCompany);
+                setError(null);
+                setIsLoading(false);
+                return;
+              }
             } else {
-              // For numeric IDs, try a different approach with string conversion
-              // First try to convert the companyId to a number to ensure it's valid
+              // For numeric IDs, we need to cast the comparison or use a different approach
+              // Convert the companyId to a number to ensure it's valid
               const numericId = parseInt(companyId);
               if (isNaN(numericId)) {
                 throw new Error('Invalid company ID format');
               }
               
-              // Try to find by numeric ID using text conversion or pattern matching
-              const response = await supabase
+              console.log('Searching for company with numeric ID:', numericId);
+              
+              // First try a direct text match on the numeric part of the ID
+              const { data, error } = await supabase
                 .from('companies')
                 .select('*, sections(*)')
-                .or(`id.eq.${companyId},id.ilike.${companyId}%`)
+                .textSearch('id', numericId.toString())
                 .maybeSingle();
-                
-              data = response.data;
-              error = response.error;
-            }
-            
-            if (error) {
-              console.error('Error fetching company from Supabase:', error);
-              throw error;
-            }
-            
-            if (data) {
-              console.log('Found company in Supabase:', data);
-              const formattedCompany: CompanyDetailed = {
-                id: data.id ? parseInt(data.id.toString().split('-')[0], 16) : 0,
-                name: data.name,
-                overallScore: data.overall_score,
-                createdAt: data.created_at,
-                updatedAt: data.updated_at,
-                sections: data.sections.map((section: any) => ({
-                  id: section.id,
-                  type: section.type as any,
-                  title: section.title,
-                  score: section.score,
-                  description: section.description,
-                  createdAt: section.created_at,
-                  updatedAt: section.updated_at
-                })),
-                assessmentPoints: data.assessment_points || [],
-                perplexityResponse: data.perplexity_response,
-                perplexityPrompt: data.perplexity_prompt,
-                perplexityRequestedAt: data.perplexity_requested_at,
-                reportId: data.report_id
-              };
               
-              setCompany(formattedCompany);
-              setIsLoading(false);
-              setError(null);
-              return;
+              if (error && error.code !== 'PGRST116') {  // Ignore "No rows returned" error
+                console.error('Error searching for company by numeric ID:', error);
+                // Continue to other methods - don't throw yet
+              }
+              
+              if (data) {
+                console.log('Found company in Supabase with numeric ID search:', data);
+                const formattedCompany = formatCompanyData(data);
+                setCompany(formattedCompany);
+                setError(null);
+                setIsLoading(false);
+                return;
+              }
+              
+              // If text search didn't work, try using RPC function
+              const { data: rpcData, error: rpcError } = await supabase.rpc(
+                'find_company_by_numeric_id',
+                { numeric_id: numericId.toString() }
+              );
+              
+              if (rpcError) {
+                console.error('Error from RPC function:', rpcError);
+                // Continue to fallback
+              }
+              
+              if (rpcData) {
+                const { data: companyData, error: companyError } = await supabase
+                  .from('companies')
+                  .select('*, sections(*)')
+                  .eq('id', rpcData.id)
+                  .maybeSingle();
+                
+                if (companyError) {
+                  console.error('Error fetching company after RPC:', companyError);
+                } else if (companyData) {
+                  console.log('Found company via RPC:', companyData);
+                  const formattedCompany = formatCompanyData(companyData);
+                  setCompany(formattedCompany);
+                  setError(null);
+                  setIsLoading(false);
+                  return;
+                }
+              }
             }
           } catch (err) {
             console.error('Error processing Supabase company data:', err);
@@ -216,6 +233,31 @@ export function useCompanyDetails(companyId?: string) {
       } finally {
         setIsLoading(false);
       }
+    }
+
+    // Helper function to format company data
+    function formatCompanyData(data: any): CompanyDetailed {
+      return {
+        id: data.id ? parseInt(data.id.toString().split('-')[0], 16) : 0,
+        name: data.name,
+        overallScore: data.overall_score,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        sections: data.sections ? data.sections.map((section: any) => ({
+          id: section.id,
+          type: section.type as any,
+          title: section.title,
+          score: section.score,
+          description: section.description,
+          createdAt: section.created_at,
+          updatedAt: section.updated_at
+        })) : [],
+        assessmentPoints: data.assessment_points || [],
+        perplexityResponse: data.perplexity_response,
+        perplexityPrompt: data.perplexity_prompt,
+        perplexityRequestedAt: data.perplexity_requested_at,
+        reportId: data.report_id
+      };
     }
 
     fetchCompanyDetails();

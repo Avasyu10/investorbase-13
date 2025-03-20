@@ -17,7 +17,7 @@ import {
 } from './apiContract';
 
 // Check if we should use mock data or real API
-const USE_MOCK_API = false;  // Changed from true to false to use real API data
+const USE_MOCK_API = true;  // Temporarily set back to true to provide fallback data while fixing Supabase
 
 // API Client that decides whether to use real or mock API
 const api = {
