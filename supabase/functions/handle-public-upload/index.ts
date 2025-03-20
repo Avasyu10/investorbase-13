@@ -144,12 +144,13 @@ serve(async (req) => {
     // Get or create a public submission form
     console.log("Getting or creating public submission form...");
     let submissionFormId = null;
+    let autoAnalyze = false;
     
     if (formSlug) {
       console.log("Looking up submission form with slug:", formSlug);
       const { data: submissionFormData, error: formLookupError } = await supabase
         .from('public_submission_forms')
-        .select('id, user_id')
+        .select('id, user_id, auto_analyze')
         .eq('form_slug', formSlug)
         .maybeSingle();
       
@@ -158,7 +159,8 @@ serve(async (req) => {
         // Continue without form ID - will create record with null form_id
       } else if (submissionFormData) {
         submissionFormId = submissionFormData.id;
-        console.log("Found existing submission form:", submissionFormId, "for user:", submissionFormData.user_id);
+        autoAnalyze = submissionFormData.auto_analyze || false;
+        console.log("Found existing submission form:", submissionFormId, "for user:", submissionFormData.user_id, "auto_analyze:", autoAnalyze);
       } else {
         console.log("No form found with slug:", formSlug);
       }
@@ -167,13 +169,14 @@ serve(async (req) => {
       console.log("No form slug provided, checking for public-pitch-deck form");
       const { data: publicFormData, error: publicFormError } = await supabase
         .from('public_submission_forms')
-        .select('id')
+        .select('id, auto_analyze')
         .eq('form_slug', 'public-pitch-deck')
         .maybeSingle();
         
       if (!publicFormError && publicFormData) {
         submissionFormId = publicFormData.id;
-        console.log("Using public-pitch-deck form:", submissionFormId);
+        autoAnalyze = publicFormData.auto_analyze || false;
+        console.log("Using public-pitch-deck form:", submissionFormId, "auto_analyze:", autoAnalyze);
       } else {
         // Create a new public submission form
         console.log("Creating default public form");
@@ -183,6 +186,7 @@ serve(async (req) => {
             form_name: 'Public Pitch Deck Submission',
             form_slug: 'public-pitch-deck',
             is_active: true,
+            auto_analyze: false,
             user_id: '00000000-0000-0000-0000-000000000000' // System user placeholder
           }])
           .select()
@@ -193,10 +197,15 @@ serve(async (req) => {
           // Continue without form ID
         } else if (newForm) {
           submissionFormId = newForm.id;
-          console.log("Created new public submission form:", submissionFormId);
+          autoAnalyze = newForm.auto_analyze || false;
+          console.log("Created new public submission form:", submissionFormId, "auto_analyze:", autoAnalyze);
         }
       }
     }
+
+    // Set the analysis status based on the form's auto_analyze setting
+    const analysisStatus = autoAnalyze ? 'pending' : 'manual_pending';
+    console.log("Setting analysis status to:", analysisStatus);
 
     // Insert record in the reports table without any auth checks
     console.log("Inserting record to database...");
@@ -209,7 +218,7 @@ serve(async (req) => {
         is_public_submission: true,
         submitter_email: email || null, // Email is now optional
         submission_form_id: submissionFormId,
-        analysis_status: 'pending'
+        analysis_status: analysisStatus
       }])
       .select()
       .single();
@@ -222,12 +231,13 @@ serve(async (req) => {
       });
     }
 
-    console.log("Record inserted successfully:", { reportId: report.id });
+    console.log("Record inserted successfully:", { reportId: report.id, analysisStatus });
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Submission received successfully',
-      reportId: report.id
+      reportId: report.id,
+      autoAnalyze
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

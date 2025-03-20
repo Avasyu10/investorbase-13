@@ -11,6 +11,7 @@ interface FormData {
   form_name: string;
   user_id: string;
   is_active: boolean;
+  auto_analyze: boolean;
 }
 
 const PublicUpload = () => {
@@ -38,7 +39,7 @@ const PublicUpload = () => {
       try {
         const { data, error } = await supabase
           .from('public_submission_forms')
-          .select('form_name, user_id, is_active')
+          .select('form_name, user_id, is_active, auto_analyze')
           .eq('form_slug', activeFormSlug)
           .maybeSingle();
 
@@ -150,7 +151,7 @@ const PublicUpload = () => {
               onSuccess={handleSuccess}
               isPublic={true} 
               buttonText="Submit"
-              skipAnalysis={true}
+              skipAnalysis={!formData?.auto_analyze}
               formSlug={activeFormSlug}
               hideEmailField={true}
             />

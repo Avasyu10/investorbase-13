@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Download, Edit, Globe, FileText, Plus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { AreaOfInterestOptions } from "@/lib/constants";
 
 interface VCProfile {
@@ -34,6 +35,7 @@ interface PublicForm {
   form_slug: string;
   form_name: string;
   created_at: string;
+  auto_analyze: boolean;
 }
 
 const Profile = () => {
@@ -45,8 +47,8 @@ const Profile = () => {
   const [thesisFilename, setThesisFilename] = useState<string | null>(null);
   const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
   const [generatingUrl, setGeneratingUrl] = useState(false);
+  const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
 
-  // Function to get label by value
   const getAreaOfInterestLabel = (value: string) => {
     const option = AreaOfInterestOptions.find(opt => opt.value === value);
     return option ? option.label : value;
@@ -66,7 +68,6 @@ const Profile = () => {
           
         if (error) {
           console.error("Error fetching profile:", error);
-          // If no profile, redirect to profile setup
           if (error.code === 'PGRST116') {
             navigate('/profile/setup');
           }
@@ -76,15 +77,13 @@ const Profile = () => {
         const profileData = data as VCProfile;
         setProfile(profileData);
         
-        // Extract thesis filename if available
         if (profileData.fund_thesis_url) {
           setThesisFilename(profileData.fund_thesis_url.split('/').pop() || "Fund Thesis.pdf");
         }
         
-        // Check if user has a public form
         const { data: formData, error: formError } = await supabase
           .from('public_submission_forms')
-          .select('id, form_slug, form_name, created_at')
+          .select('id, form_slug, form_name, created_at, auto_analyze')
           .eq('user_id', user.id)
           .maybeSingle();
           
@@ -109,19 +108,18 @@ const Profile = () => {
     try {
       setGeneratingUrl(true);
       
-      // Generate a unique slug using timestamp and random string
       const timestamp = Date.now().toString(36);
       const randomStr = Math.random().toString(36).substring(2, 8);
       const slug = `${timestamp}-${randomStr}`;
       
-      // Create a new public submission form
       const { data, error } = await supabase
         .from('public_submission_forms')
         .insert([{
           form_name: profile?.fund_name ? `${profile.fund_name} Submission Form` : 'VC Submission Form',
           form_slug: slug,
           is_active: true,
-          user_id: user.id
+          user_id: user.id,
+          auto_analyze: false
         }])
         .select()
         .single();
@@ -147,6 +145,45 @@ const Profile = () => {
     }
   };
 
+  const toggleAutoAnalyze = async () => {
+    if (!user || !publicForm) return;
+    
+    try {
+      setUpdatingAutoAnalyze(true);
+      
+      const newValue = !publicForm.auto_analyze;
+      
+      const { error } = await supabase
+        .from('public_submission_forms')
+        .update({ auto_analyze: newValue })
+        .eq('id', publicForm.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      setPublicForm({
+        ...publicForm,
+        auto_analyze: newValue
+      });
+      
+      toast({
+        title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
+        description: newValue 
+          ? "Pitch decks submitted through your form will be automatically analyzed" 
+          : "You'll need to manually analyze submitted pitch decks",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating setting",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingAutoAnalyze(false);
+    }
+  };
+
   const downloadThesis = async () => {
     if (!profile?.fund_thesis_url) return;
     
@@ -157,7 +194,6 @@ const Profile = () => {
         
       if (error) throw error;
       
-      // Create a blob URL and trigger download
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -203,7 +239,7 @@ const Profile = () => {
   }
 
   const publicSubmissionUrl = publicForm 
-    ? `${window.location.origin}/submit/${publicForm.form_slug}`
+    ? `${window.location.origin}/public-upload?form=${publicForm.form_slug}`
     : null;
 
   return (
@@ -317,7 +353,7 @@ const Profile = () => {
             
             <div>
               {publicForm ? (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">URL:</p>
                   </div>
@@ -347,6 +383,27 @@ const Profile = () => {
                       Copy
                     </Button>
                   </div>
+                  
+                  <div className="flex items-center justify-between space-x-2 pt-2 pb-1">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Auto-analyze Decks from Public Submission Form</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {publicForm.auto_analyze ? 
+                          "Pitch decks will be automatically analyzed when submitted" : 
+                          "Submitted pitch decks will require manual approval for analysis"}
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      <Switch
+                        checked={publicForm.auto_analyze}
+                        onCheckedChange={toggleAutoAnalyze}
+                        disabled={updatingAutoAnalyze}
+                        id="auto-analyze"
+                      />
+                      {updatingAutoAnalyze && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                    </div>
+                  </div>
+                  
                   <p className="text-xs text-muted-foreground">
                     Share this URL with founders to receive their pitch decks
                   </p>

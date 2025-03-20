@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Save, Plus, X, FileText, Trash2 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { AreaOfInterestOptions } from "@/lib/constants";
@@ -39,6 +39,7 @@ interface PublicForm {
   form_slug: string;
   form_name: string;
   created_at: string;
+  auto_analyze: boolean;
 }
 
 // Available options for the investment stage multiselect field
@@ -60,6 +61,7 @@ const ProfileEdit = () => {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<VCProfile | null>(null);
   const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
+  const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
   
   // Form state
   const [fundName, setFundName] = useState('');
@@ -124,7 +126,7 @@ const ProfileEdit = () => {
       // Check if user has a public form
       const { data: formData, error: formError } = await supabase
         .from('public_submission_forms')
-        .select('id, form_slug, form_name, created_at')
+        .select('id, form_slug, form_name, created_at, auto_analyze')
         .eq('user_id', user.id)
         .maybeSingle();
         
@@ -137,6 +139,45 @@ const ProfileEdit = () => {
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleAutoAnalyze = async () => {
+    if (!user || !publicForm) return;
+    
+    try {
+      setUpdatingAutoAnalyze(true);
+      
+      const newValue = !publicForm.auto_analyze;
+      
+      const { error } = await supabase
+        .from('public_submission_forms')
+        .update({ auto_analyze: newValue })
+        .eq('id', publicForm.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      setPublicForm({
+        ...publicForm,
+        auto_analyze: newValue
+      });
+      
+      toast({
+        title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
+        description: newValue 
+          ? "Pitch decks submitted through your form will be automatically analyzed" 
+          : "You'll need to manually analyze submitted pitch decks",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating setting",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingAutoAnalyze(false);
     }
   };
 
@@ -305,7 +346,7 @@ const ProfileEdit = () => {
   };
 
   const publicSubmissionUrl = publicForm 
-    ? `${window.location.origin}/submit/${publicForm.form_slug}`
+    ? `${window.location.origin}/public-upload?form=${publicForm.form_slug}`
     : null;
 
   if (loading) {
@@ -509,11 +550,36 @@ const ProfileEdit = () => {
                 
                 <div className="space-y-2">
                   {publicForm ? (
-                    <div>
-                      <Label className="text-foreground mb-2 block">Your Public URL</Label>
-                      <div className="bg-secondary/20 p-3 rounded-md break-all">
-                        {publicSubmissionUrl}
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-foreground mb-2 block">Your Public URL</Label>
+                        <div className="bg-secondary/20 p-3 rounded-md break-all">
+                          {publicSubmissionUrl}
+                        </div>
                       </div>
+                      
+                      <div className="flex items-center justify-between space-x-2 pt-2">
+                        <div className="flex-1">
+                          <Label htmlFor="auto-analyze" className="text-foreground">
+                            Auto-analyze Decks from Public Submission Form
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {publicForm.auto_analyze ? 
+                              "Pitch decks will be automatically analyzed when submitted" : 
+                              "Submitted pitch decks will require manual approval for analysis"}
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <Switch
+                            checked={publicForm.auto_analyze}
+                            onCheckedChange={toggleAutoAnalyze}
+                            disabled={updatingAutoAnalyze}
+                            id="auto-analyze"
+                          />
+                          {updatingAutoAnalyze && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                        </div>
+                      </div>
+                      
                       <p className="text-xs text-muted-foreground mt-2">
                         This URL is generated for you to receive pitch deck submissions.
                         It cannot be edited directly, but you can copy it from your profile page.
