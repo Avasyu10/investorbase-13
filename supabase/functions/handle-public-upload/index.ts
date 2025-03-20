@@ -137,6 +137,44 @@ serve(async (req) => {
     }
     enhancedDescription += `\nContact Email: ${email}`;
 
+    // Get or create a public submission form for anonymous submissions
+    console.log("Getting or creating public submission form...");
+    let submissionFormId = null;
+    
+    const { data: formData, error: formError } = await supabase
+      .from('public_submission_forms')
+      .select('id')
+      .eq('form_slug', 'public-pitch-deck')
+      .maybeSingle();
+      
+    if (formError) {
+      console.error('Error checking for public submission form:', formError);
+      // Continue without form ID - will create record with null form_id
+    } else if (formData) {
+      submissionFormId = formData.id;
+      console.log("Found existing public submission form:", submissionFormId);
+    } else {
+      // Create a new public submission form
+      const { data: newForm, error: newFormError } = await supabase
+        .from('public_submission_forms')
+        .insert([{
+          form_name: 'Public Pitch Deck Submission',
+          form_slug: 'public-pitch-deck',
+          is_active: true,
+          user_id: '00000000-0000-0000-0000-000000000000' // System user placeholder
+        }])
+        .select()
+        .single();
+        
+      if (newFormError) {
+        console.error('Error creating public submission form:', newFormError);
+        // Continue without form ID - will create record with null form_id
+      } else {
+        submissionFormId = newForm.id;
+        console.log("Created new public submission form:", submissionFormId);
+      }
+    }
+
     // Insert record in the reports table without any auth checks
     console.log("Inserting record to database...");
     const { data: report, error: insertError } = await supabase
@@ -147,6 +185,7 @@ serve(async (req) => {
         pdf_url: fileName || null, // Use null if no file was uploaded
         is_public_submission: true,
         submitter_email: email,
+        submission_form_id: submissionFormId,
         analysis_status: 'pending'
       }])
       .select()
