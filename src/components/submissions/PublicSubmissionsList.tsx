@@ -125,6 +125,18 @@ export function PublicSubmissionsList() {
           description: "The submission has been successfully analyzed",
         });
         
+        // Check if we got a mock preview-mode response
+        if (result.companyId === "preview-mock-id") {
+          // If in preview mode, just close the modal and inform the user
+          toast({
+            title: "Preview Mode",
+            description: "This is a preview. In the deployed app, you would be redirected to the company page.",
+          });
+          setIsAnalyzing(false);
+          setShowModal(false);
+          return;
+        }
+        
         // Redirect to the company page
         navigate(`/company/${result.companyId}`);
       } else {
@@ -132,11 +144,18 @@ export function PublicSubmissionsList() {
       }
     } catch (error) {
       console.error("Analysis error:", error);
-      toast({
-        title: "Analysis failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
-      });
+      
+      // Don't display another error toast if one was already shown in the analyzeReport function
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      if (!errorMessage.includes("Network error") && 
+          !errorMessage.includes("timed out") &&
+          !errorMessage.includes("analysis failed")) {
+        toast({
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsAnalyzing(false);
       setShowModal(false);

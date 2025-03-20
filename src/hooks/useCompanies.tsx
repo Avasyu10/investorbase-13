@@ -49,7 +49,7 @@ export function useCompanies(
               createdAt: item.created_at,
               updatedAt: item.created_at,
               assessmentPoints: item.assessment_points || [],
-              source: isFromPublicSubmission ? 'public' : 'dashboard',
+              source: 'dashboard', // Set all sources to 'dashboard'
               reportId: item.report_id
             };
           });
