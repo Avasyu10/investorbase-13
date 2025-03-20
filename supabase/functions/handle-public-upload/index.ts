@@ -51,6 +51,7 @@ serve(async (req) => {
     const email = formData.get('email') as string;
     const description = formData.get('description') as string || '';
     const websiteUrl = formData.get('websiteUrl') as string || '';
+    const formSlug = formData.get('formSlug') as string || '';
 
     console.log("Form data parsed:", {
       hasFile: !!file,
@@ -60,6 +61,7 @@ serve(async (req) => {
       email: email || 'none',
       hasDescription: !!description,
       hasWebsiteUrl: !!websiteUrl,
+      formSlug: formSlug || 'none',
     });
 
     if (!title || !email) {
@@ -137,41 +139,60 @@ serve(async (req) => {
     }
     enhancedDescription += `\nContact Email: ${email}`;
 
-    // Get or create a public submission form for anonymous submissions
+    // Get or create a public submission form
     console.log("Getting or creating public submission form...");
     let submissionFormId = null;
     
-    const { data: submissionFormData, error: formError } = await supabase
-      .from('public_submission_forms')
-      .select('id')
-      .eq('form_slug', 'public-pitch-deck')
-      .maybeSingle();
-      
-    if (formError) {
-      console.error('Error checking for public submission form:', formError);
-      // Continue without form ID - will create record with null form_id
-    } else if (submissionFormData) {
-      submissionFormId = submissionFormData.id;
-      console.log("Found existing public submission form:", submissionFormId);
-    } else {
-      // Create a new public submission form
-      const { data: newForm, error: newFormError } = await supabase
+    if (formSlug) {
+      console.log("Looking up submission form with slug:", formSlug);
+      const { data: submissionFormData, error: formLookupError } = await supabase
         .from('public_submission_forms')
-        .insert([{
-          form_name: 'Public Pitch Deck Submission',
-          form_slug: 'public-pitch-deck',
-          is_active: true,
-          user_id: '00000000-0000-0000-0000-000000000000' // System user placeholder
-        }])
-        .select()
-        .single();
-        
-      if (newFormError) {
-        console.error('Error creating public submission form:', newFormError);
+        .select('id, user_id')
+        .eq('form_slug', formSlug)
+        .maybeSingle();
+      
+      if (formLookupError) {
+        console.error('Error looking up form:', formLookupError);
         // Continue without form ID - will create record with null form_id
+      } else if (submissionFormData) {
+        submissionFormId = submissionFormData.id;
+        console.log("Found existing submission form:", submissionFormId, "for user:", submissionFormData.user_id);
       } else {
-        submissionFormId = newForm.id;
-        console.log("Created new public submission form:", submissionFormId);
+        console.log("No form found with slug:", formSlug);
+      }
+    } else {
+      // For compatibility with older code that expected a specific public form
+      console.log("No form slug provided, checking for public-pitch-deck form");
+      const { data: publicFormData, error: publicFormError } = await supabase
+        .from('public_submission_forms')
+        .select('id')
+        .eq('form_slug', 'public-pitch-deck')
+        .maybeSingle();
+        
+      if (!publicFormError && publicFormData) {
+        submissionFormId = publicFormData.id;
+        console.log("Using public-pitch-deck form:", submissionFormId);
+      } else {
+        // Create a new public submission form
+        console.log("Creating default public form");
+        const { data: newForm, error: newFormError } = await supabase
+          .from('public_submission_forms')
+          .insert([{
+            form_name: 'Public Pitch Deck Submission',
+            form_slug: 'public-pitch-deck',
+            is_active: true,
+            user_id: '00000000-0000-0000-0000-000000000000' // System user placeholder
+          }])
+          .select()
+          .single();
+          
+        if (newFormError) {
+          console.error('Error creating public submission form:', newFormError);
+          // Continue without form ID
+        } else if (newForm) {
+          submissionFormId = newForm.id;
+          console.log("Created new public submission form:", submissionFormId);
+        }
       }
     }
 

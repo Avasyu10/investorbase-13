@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -325,20 +324,20 @@ const Profile = () => {
                   <div className="flex items-start gap-2">
                     <div className="flex-1 p-3 bg-secondary/20 rounded-md break-all">
                       <a 
-                        href={publicSubmissionUrl!}
+                        href={`${window.location.origin}/public-upload?form=${publicForm.form_slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline flex items-start gap-2"
                       >
                         <Globe className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span>{publicSubmissionUrl}</span>
+                        <span>{`${window.location.origin}/public-upload?form=${publicForm.form_slug}`}</span>
                       </a>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        navigator.clipboard.writeText(publicSubmissionUrl!);
+                        navigator.clipboard.writeText(`${window.location.origin}/public-upload?form=${publicForm.form_slug}`);
                         toast({
                           title: "URL copied",
                           description: "The public submission URL has been copied to clipboard",

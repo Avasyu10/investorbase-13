@@ -1,14 +1,69 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface FormData {
+  form_name: string;
+  user_id: string;
+  is_active: boolean;
+}
 
 const PublicUpload = () => {
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [formData, setFormData] = useState<FormData | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Get form slug from either the URL route parameter or query parameter
+  const { formSlug } = useParams();
+  const [searchParams] = useSearchParams();
+  const queryFormSlug = searchParams.get('form');
+  
+  // Use whichever form slug is available
+  const activeFormSlug = formSlug || queryFormSlug;
+
+  useEffect(() => {
+    const fetchFormData = async () => {
+      if (!activeFormSlug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('public_submission_forms')
+          .select('form_name, user_id, is_active')
+          .eq('form_slug', activeFormSlug)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching form data:", error);
+          setError("Form not found");
+          setErrorDetails(error.message);
+        } else if (!data) {
+          setError("Form not found");
+        } else if (!data.is_active) {
+          setError("This form is no longer active");
+        } else {
+          setFormData(data);
+        }
+      } catch (err: any) {
+        console.error("Error:", err);
+        setError("An unexpected error occurred");
+        setErrorDetails(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFormData();
+  }, [activeFormSlug]);
 
   const handleError = (errorMessage: string) => {
     console.error("Public upload error:", errorMessage);
@@ -35,6 +90,18 @@ const PublicUpload = () => {
     // Reset form state after 10 seconds
     setTimeout(() => setSuccess(false), 10000);
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center">
+        <Toaster position="top-center" />
+        <div className="animate-pulse flex flex-col items-center space-y-4">
+          <div className="h-8 w-64 bg-secondary rounded"></div>
+          <div className="h-4 w-48 bg-secondary rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
@@ -69,7 +136,9 @@ const PublicUpload = () => {
         ) : (
           <>
             <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight mb-2">Submit Your Pitch Deck</h1>
+              <h1 className="text-2xl font-bold tracking-tight mb-2">
+                {formData ? formData.form_name : "Submit Your Pitch Deck"}
+              </h1>
               <p className="text-muted-foreground">
                 Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses.
                 Adding your company website will enhance the analysis with additional context.
@@ -82,6 +151,7 @@ const PublicUpload = () => {
               isPublic={true} 
               buttonText="Submit"
               skipAnalysis={true}
+              formSlug={activeFormSlug}
             />
           </>
         )}

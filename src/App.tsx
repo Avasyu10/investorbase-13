@@ -48,6 +48,7 @@ function App() {
                   <Route path="/report/:reportId" element={<Report />} />
                   <Route path="/upload" element={<UploadReport />} />
                   <Route path="/public-upload" element={<PublicUpload />} />
+                  <Route path="/submit/:formSlug" element={<PublicUpload />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/profile/setup" element={<ProfileSetup />} />
                   <Route path="/profile/edit" element={<ProfileEdit />} />

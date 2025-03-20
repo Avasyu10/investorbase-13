@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -26,6 +25,7 @@ interface ReportUploadProps {
   isPublic?: boolean;
   buttonText?: string;
   skipAnalysis?: boolean;
+  formSlug?: string | null;
 }
 
 export function ReportUpload({ 
@@ -33,7 +33,8 @@ export function ReportUpload({
   onSuccess, 
   isPublic = false, 
   buttonText = "Upload & Analyze",
-  skipAnalysis = false
+  skipAnalysis = false,
+  formSlug = null
 }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
@@ -157,6 +158,11 @@ export function ReportUpload({
           formData.append('websiteUrl', companyWebsite);
         }
         
+        if (formSlug) {
+          console.log("Adding form slug:", formSlug);
+          formData.append('formSlug', formSlug);
+        }
+        
         const apiUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload";
         console.log("Sending public upload request to:", apiUrl);
         console.log("FormData entries:", [...formData.entries()].map(([key, value]) => {
@@ -167,7 +173,6 @@ export function ReportUpload({
         }));
         
         try {
-          // Important: Don't include any headers in this request to avoid CORS issues
           const response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
