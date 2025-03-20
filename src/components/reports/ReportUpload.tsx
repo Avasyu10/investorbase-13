@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -151,8 +152,8 @@ export function ReportUpload({
         formData.append('email', emailForResults);
         formData.append('description', briefIntroduction || '');
         
-        if (websiteUrl) {
-          formData.append('websiteUrl', websiteUrl);
+        if (companyWebsite) {
+          formData.append('websiteUrl', companyWebsite);
         }
         
         const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
