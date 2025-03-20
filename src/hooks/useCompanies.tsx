@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -54,7 +55,8 @@ export function useCompanies(
           });
           
           setCompanies(formattedCompanies);
-          setTotalCount(count || data.length);
+          // Fix for TypeScript error: safely access 'count' with a fallback
+          setTotalCount(count ?? data.length);
           setError(null);
         } else {
           console.log('No companies found in Supabase, using mock data');
@@ -81,7 +83,8 @@ export function useCompanies(
           const paginatedData = response.data.data as CompanyListItem[];
           setCompanies(paginatedData);
           const paginationData = response.data.pagination as { total?: number } | undefined;
-          setTotalCount(paginationData?.total || paginatedData.length);
+          // Fix for TypeScript error: safely access 'total' with a fallback
+          setTotalCount(paginationData?.total ?? paginatedData.length);
         } else {
           const data = response.data as CompanyListItem[];
           setCompanies(data);
@@ -170,6 +173,7 @@ export function useCompanyDetails(companyId?: string) {
         }
         
         console.log('Falling back to mock API for company details');
+        // Fix for TypeScript error: Convert the string ID to a number
         const numericId = parseInt(companyId);
         if (isNaN(numericId)) {
           throw new Error('Invalid company ID');

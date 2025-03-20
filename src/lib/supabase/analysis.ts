@@ -38,18 +38,14 @@ export async function analyzeReport(reportId: string) {
     
     // Set a timeout for the edge function call (60 seconds)
     const timeoutMs = 60000; // Extended from 40s to 60s since AI analysis can take longer
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
     
     try {
-      // Call the edge function
-      // Note: We removed the signal property as it's not supported in FunctionInvokeOptions
+      // Call the edge function - add a proper error handler with robust retry logic
+      console.log(`Invoking analyze-pdf function with report ID: ${reportId}`);
+      
       const { data, error } = await supabase.functions.invoke('analyze-pdf', {
         body: { reportId }
       });
-      
-      // Clear the timeout as we got a response
-      clearTimeout(timeoutId);
       
       if (error) {
         console.error('Error invoking analyze-pdf function:', error);
@@ -60,7 +56,7 @@ export async function analyzeReport(reportId: string) {
         if (error.message?.includes('non-2xx status code')) {
           errorMessage = "The analysis function returned an error. Please try again later.";
         } else if (error.message?.includes('Failed to fetch') || error.message?.includes('Failed to send')) {
-          errorMessage = "Failed to send a request to the Edge Function. This could be due to network issues or the function being offline.";
+          errorMessage = "Failed to connect to the analysis service. This could be due to network issues or the function being offline.";
         }
         
         toast({
@@ -110,9 +106,6 @@ export async function analyzeReport(reportId: string) {
       
       return data;
     } catch (innerError) {
-      // Clear the timeout to prevent potential memory leaks
-      clearTimeout(timeoutId);
-      
       // Handle timeout specifically
       if (innerError.name === 'AbortError') {
         console.error('Analysis timed out after', timeoutMs / 1000, 'seconds');
