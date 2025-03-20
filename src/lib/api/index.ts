@@ -16,7 +16,7 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// Set to true to provide fallback data while fixing Supabase issues
+// Force mock API usage to ensure data is returned even if Supabase fails
 const USE_MOCK_API = true;  
 
 // API Client that decides whether to use real or mock API

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -146,9 +147,9 @@ export function useCompanyDetails(companyId?: string) {
           if (isNumeric) {
             console.log('Numeric ID detected, fetching by numeric ID using find_company_by_numeric_id function');
             
-            // Convert the numeric string ID to a string for the RPC call - the function expects a text parameter
+            // The function expects a text parameter, so we pass the companyId as is
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
-              numeric_id: companyId 
+              numeric_id: companyId  // Pass directly as text parameter
             });
             
             if (error) {
@@ -236,15 +237,21 @@ export function useCompanyDetails(companyId?: string) {
         
         // Fall back to mock API if no Supabase data or not authenticated
         console.log('Falling back to mock API for company details');
-        // Convert string to number before passing to API
-        const numericId = parseInt(companyId);
-        if (isNaN(numericId)) {
-          throw new Error('Invalid company ID');
-        }
+        
+        try {
+          // Convert string to number before passing to API
+          const numericId = parseInt(companyId);
+          if (isNaN(numericId)) {
+            throw new Error('Invalid company ID');
+          }
 
-        const response = await api.getCompany(numericId);
-        setCompany(response.data);
-        setError(null);
+          const response = await api.getCompany(numericId);
+          setCompany(response.data);
+          setError(null);
+        } catch (apiError) {
+          console.error('Failed to fetch from mock API:', apiError);
+          throw apiError;
+        }
       } catch (err) {
         console.error('Failed to fetch company details:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
@@ -290,7 +297,7 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
           if (isNumeric) {
             console.log('Numeric company ID detected, getting UUID first');
             
-            // The function expects a text parameter, no need to convert to number first
+            // Pass companyId directly as text parameter
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
               numeric_id: companyId
             });
@@ -374,15 +381,21 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         
         // Fall back to mock API if no Supabase data or not authenticated
         console.log('Falling back to mock API for section details');
-        // Convert string to number before passing to API
-        const numericCompanyId = parseInt(companyId);
-        if (isNaN(numericCompanyId)) {
-          throw new Error('Invalid company ID');
-        }
+        
+        try {
+          // Convert string to number before passing to API
+          const numericCompanyId = parseInt(companyId);
+          if (isNaN(numericCompanyId)) {
+            throw new Error('Invalid company ID');
+          }
 
-        const response = await api.getSection(numericCompanyId, sectionId);
-        setSection(response.data);
-        setError(null);
+          const response = await api.getSection(numericCompanyId, sectionId);
+          setSection(response.data);
+          setError(null);
+        } catch (apiError) {
+          console.error('Failed to fetch from mock API:', apiError);
+          throw apiError;
+        }
       } catch (err) {
         console.error('Failed to fetch section details:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
