@@ -1,88 +1,99 @@
 
-import { apiClient } from "./apiClient";
+import apiClient from './apiClient';
 import { 
+  mockCompanies, 
+  mockCompanyDetails, 
+  getMockSectionDetails,
+  getMockCompanies
+} from './mockApi';
+import { 
+  ApiResponse, 
+  PaginatedResponse,
   CompanyListItem, 
   CompanyDetailed, 
-  SectionDetailed 
-} from "./apiContract";
-import mockApi from "./mockApi";
+  SectionDetailed,
+  PaginationParams,
+  CompanyFilterParams
+} from './apiContract';
 
-const getCompanies = async (options?: {
-  page?: number;
-  limit?: number;
-  sortBy?: keyof CompanyListItem;
-  sortOrder?: 'asc' | 'desc';
-}) => {
-  try {
-    return await apiClient.get<CompanyListItem[] | { data: CompanyListItem[], pagination: { total: number } }>("/companies", { params: options });
-  } catch (error) {
-    console.log("Failed to get companies, using mock data", error);
-    return await mockApi.getCompanies(options);
-  }
-};
+// Check if we should use mock data or real API
+const USE_MOCK_API = true;  // Set to true to use mock data
 
-const getCompany = async (id: string | number) => {
-  try {
-    // Convert the ID to a string for consistency
-    const stringId = id.toString();
-    return await apiClient.get<CompanyDetailed>(`/companies/${stringId}`);
-  } catch (error) {
-    console.log(`Failed to get company ${id}, using mock data`, error);
-    // For mock data, we need to convert string IDs to numbers
-    let numberId: number;
-    if (typeof id === 'string') {
-      // Handle potentially large IDs
-      try {
-        // Try to convert to number safely
-        const parsedId = parseInt(id, 10);
-        if (isNaN(parsedId)) {
-          throw new Error("Invalid ID format");
-        }
-        numberId = parsedId;
-      } catch (parseError) {
-        console.error("Error parsing ID:", parseError);
-        throw new Error(`Invalid company ID format: ${id}`);
-      }
-    } else {
-      numberId = id;
-    }
-    return await mockApi.getCompany(numberId.toString());
-  }
-};
-
-const getSection = async (companyId: string | number, sectionId: string) => {
-  try {
-    const stringCompanyId = companyId.toString();
-    return await apiClient.get<SectionDetailed>(`/companies/${stringCompanyId}/sections/${sectionId}`);
-  } catch (error) {
-    console.log(`Failed to get section ${sectionId} for company ${companyId}, using mock data`, error);
-    
-    // For mock data, ensure we have a number for companyId
-    let numberId: number;
-    if (typeof companyId === 'string') {
-      // Try to convert to number safely
-      try {
-        const parsedId = parseInt(companyId, 10);
-        if (isNaN(parsedId)) {
-          throw new Error("Invalid ID format");
-        }
-        numberId = parsedId;
-      } catch (parseError) {
-        console.error("Error parsing ID:", parseError);
-        throw new Error(`Invalid company ID format: ${companyId}`);
-      }
-    } else {
-      numberId = companyId;
-    }
-    
-    return await mockApi.getSection(numberId.toString(), sectionId);
-  }
-};
-
+// API Client that decides whether to use real or mock API
 const api = {
-  getCompanies,
-  getCompany,
-  getSection,
+  // Companies
+  getCompanies: async (params?: PaginationParams & CompanyFilterParams): Promise<ApiResponse<CompanyListItem[]>> => {
+    if (USE_MOCK_API) {
+      // Use mock data
+      const response = await getMockCompanies(params);
+      return {
+        data: response.data,
+        status: 200,
+      };
+    }
+    // Use real API
+    const response = await apiClient.getCompanies(params);
+    return response as ApiResponse<CompanyListItem[]>;
+  },
+
+  getCompany: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
+    if (USE_MOCK_API) {
+      // Use mock data
+      const company = mockCompanyDetails[companyId];
+      if (!company) {
+        throw {
+          status: 404,
+          message: 'Company not found',
+        };
+      }
+      return {
+        data: company,
+        status: 200,
+      };
+    }
+    // Use real API
+    return apiClient.getCompany(companyId);
+  },
+
+  // Sections
+  getSection: async (companyId: number, sectionId: string | number): Promise<ApiResponse<SectionDetailed>> => {
+    if (USE_MOCK_API) {
+      // Use mock data
+      const section = await getMockSectionDetails(companyId, sectionId);
+      if (!section) {
+        throw {
+          status: 404,
+          message: 'Section not found',
+        };
+      }
+      return {
+        data: section,
+        status: 200,
+      };
+    }
+    // Use real API
+    return apiClient.getSection(companyId, sectionId);
+  },
+
+  // Analysis
+  getCompanyAnalysis: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
+    if (USE_MOCK_API) {
+      // For mock data, analysis is the same as company details
+      const company = mockCompanyDetails[companyId];
+      if (!company) {
+        throw {
+          status: 404,
+          message: 'Company analysis not found',
+        };
+      }
+      return {
+        data: company,
+        status: 200,
+      };
+    }
+    // Use real API
+    return apiClient.getCompanyAnalysis(companyId);
+  },
 };
 
 export default api;

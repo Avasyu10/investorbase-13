@@ -9,9 +9,6 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Add debug info to track instance creation
-console.log('[DEBUG] Creating Supabase client with URL:', SUPABASE_URL);
-
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
@@ -22,10 +19,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     schema: 'public',
   },
   global: {
-    fetch: (url, options) => {
-      console.log('[DEBUG] Supabase fetch request to:', url);
-      return fetch(url, options);
-    },
+    fetch: (url, options) => fetch(url, options),
     headers: { 
       'x-app-version': '1.0.0',
       // Allow all origins
@@ -33,13 +27,3 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     },
   },
 });
-
-// Log when authenticated state changes
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log('[DEBUG] Auth state changed:', event);
-  if (session?.user) {
-    console.log('[DEBUG] User signed in:', session.user.email);
-  }
-});
-
-console.log('[DEBUG] Supabase client initialized');

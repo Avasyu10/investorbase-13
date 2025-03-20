@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 export async function getReportData(reportId: string, authHeader: string = '') {
@@ -34,7 +33,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   console.log(`Executing query to fetch report with ID: ${reportId}`);
   const { data: reportData, error: reportError } = await supabase
     .from('reports')
-    .select('id, title, user_id, pdf_url, is_public_submission')
+    .select('id, title, user_id, pdf_url')
     .eq('id', reportId)
     .maybeSingle();
     
@@ -70,243 +69,64 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error(`Report is missing PDF file reference`);
   }
   
-  console.log(`Found report: ${report.title}, user_id: ${report.user_id}, is_public_submission: ${report.is_public_submission}, accessing PDF from storage`);
+  console.log(`Found report: ${report.title}, user_id: ${report.user_id}, accessing PDF from storage`);
 
-  // First, let's check if we can find additional information about storage paths
-  // for this particular report in the database
-  let additionalStoragePaths: string[] = [];
-  let storagePrefix = '';
+  // Try multiple paths to access the PDF without restrictions
+  let pdfData;
+  let pdfError;
 
-  if (report.is_public_submission) {
-    console.log("This is a public submission - checking public_form_submissions table");
-    // For public submissions, check the public_form_submissions table
-    const { data: submissionData, error: submissionError } = await supabase
-      .from('public_form_submissions')
-      .select('pdf_url, form_slug')
-      .eq('report_id', reportId)
-      .maybeSingle();
-      
-    if (!submissionError && submissionData && submissionData.pdf_url) {
-      console.log(`Found matching public submission with pdf_url: ${submissionData.pdf_url}, form_slug: ${submissionData.form_slug}`);
-      if (submissionData.pdf_url !== report.pdf_url) {
-        additionalStoragePaths.push(submissionData.pdf_url);
-      }
-      
-      // Check for form-specific storage pattern
-      if (submissionData.form_slug) {
-        additionalStoragePaths.push(`${submissionData.form_slug}/${report.pdf_url.split('/').pop() || report.pdf_url}`);
-      }
-    }
-    
-    // Public submissions often use a different storage pattern
-    storagePrefix = 'public_submissions';
+  // First try: Direct path
+  console.log(`Attempting to download PDF from path: ${report.pdf_url}`);
+  const directResult = await supabase
+    .storage
+    .from('report_pdfs')
+    .download(report.pdf_url);
+
+  if (!directResult.error) {
+    pdfData = directResult.data;
   } else {
-    // For regular uploads, try with user_id as prefix
-    storagePrefix = report.user_id || '';
-  }
-  
-  // First, check if the bucket exists
-  try {
-    const { data: bucket, error: bucketError } = await supabase
-      .storage
-      .getBucket('report_pdfs');
-      
-    if (bucketError) {
-      console.error("Storage bucket 'report_pdfs' might not exist:", bucketError);
-      throw new Error(`Storage bucket error: ${bucketError.message}`);
-    }
+    pdfError = directResult.error;
+    console.log("Direct path failed, trying alternative paths...");
     
-    console.log("Successfully found storage bucket 'report_pdfs'");
-  } catch (bucketError) {
-    console.error("Error checking bucket:", bucketError);
-    throw new Error(`Cannot access storage: ${bucketError.message}`);
-  }
-  
-  // Try to list files in the storage bucket to find possible matches
-  try {
-    console.log("Trying to list files in storage to find potential matches");
+    // Try alternative paths without user_id restriction
+    const alternativePaths = [
+      // Try the filename directly
+      report.pdf_url,
+      // Try with user_id if present
+      report.user_id ? `${report.user_id}/${report.pdf_url}` : null,
+      // Try just the filename part if it contains slashes
+      report.pdf_url.includes('/') ? report.pdf_url.split('/').pop() : null,
+    ].filter(Boolean);
     
-    // First try listing the root
-    let { data: rootFiles, error: rootListError } = await supabase
-      .storage
-      .from('report_pdfs')
-      .list();
+    for (const path of alternativePaths) {
+      if (!path) continue;
       
-    if (rootListError) {
-      console.error("Error listing root files:", rootListError);
-    } else if (rootFiles && rootFiles.length > 0) {
-      console.log(`Found ${rootFiles.length} files/folders in root of storage bucket`);
-      
-      // Extract the filename from the pdf_url
-      const fileName = report.pdf_url.split('/').pop() || report.pdf_url;
-      
-      // Check each item to see if it's a file or folder
-      for (const item of rootFiles) {
-        if (item.id && item.name) {
-          if (!item.metadata) {
-            // This is likely a folder - let's try to list it
-            console.log(`Found potential folder: ${item.name}, checking inside...`);
-            
-            const { data: folderFiles, error: folderError } = await supabase
-              .storage
-              .from('report_pdfs')
-              .list(item.name);
-              
-            if (!folderError && folderFiles && folderFiles.length > 0) {
-              console.log(`Found ${folderFiles.length} files in folder ${item.name}`);
-              
-              // Look for the file directly inside this folder
-              const matchingFile = folderFiles.find(file => file.name === fileName);
-              if (matchingFile) {
-                console.log(`Found exact match in folder ${item.name}: ${matchingFile.name}`);
-                additionalStoragePaths.unshift(`${item.name}/${fileName}`);
-              }
-            }
-            
-            // Add this as a potential path anyway
-            additionalStoragePaths.push(`${item.name}/${fileName}`);
-          } else if (item.name === fileName) {
-            // Direct match - add to beginning of paths to try
-            console.log(`Found exact match in root: ${item.name}`);
-            additionalStoragePaths.unshift(item.name);
-          }
-        }
-      }
-    }
-  } catch (listError) {
-    // Non-fatal error, just log it
-    console.log("Could not list storage files:", listError);
-  }
-
-  // Try multiple download approaches sequentially until one succeeds
-  let pdfData = null;
-  let errorDetails: Record<string, any> = {};
-  let successPath = null;
-  
-  // All possible paths to try for the PDF
-  const pathsToTry = [
-    // Direct path as stored in the database
-    report.pdf_url,
-    // Try with public submissions prefix if it's a public submission
-    storagePrefix ? `${storagePrefix}/${report.pdf_url.split('/').pop() || report.pdf_url}` : null,
-    // Try with user_id prefix if available
-    report.user_id ? `${report.user_id}/${report.pdf_url.split('/').pop() || report.pdf_url}` : null,
-    // Just the filename without any path
-    report.pdf_url.includes('/') ? report.pdf_url.split('/').pop() : null,
-    // Add all the additional paths we discovered
-    ...additionalStoragePaths
-  ].filter(Boolean) as string[]; // Remove null paths
-  
-  // Remove duplicates
-  const uniquePaths = [...new Set(pathsToTry)];
-  
-  console.log("Will try these paths to download the PDF:", uniquePaths);
-  
-  // Try all possible paths sequentially
-  for (const path of uniquePaths) {
-    try {
-      console.log(`Attempting to download PDF from path: ${path}`);
-      const { data, error } = await supabase
+      console.log(`Trying alternative path: ${path}`);
+      const pathResult = await supabase
         .storage
         .from('report_pdfs')
         .download(path);
         
-      if (error) {
-        console.log(`Error downloading from path ${path}:`, error);
-        errorDetails[path] = JSON.stringify(error);
-        continue;
+      if (!pathResult.error) {
+        pdfData = pathResult.data;
+        pdfError = null;
+        console.log(`Successfully downloaded using path: ${path}`);
+        break;
       }
-      
-      if (data && data.size > 0) {
-        console.log(`Successfully downloaded PDF from path: ${path}, size: ${data.size} bytes`);
-        pdfData = data;
-        successPath = path;
-        break; // Exit the loop if we found a working path
-      } else {
-        console.log(`Downloaded empty file from path: ${path}`);
-        errorDetails[path] = "Empty file";
-      }
-    } catch (error) {
-      console.error(`Exception when trying path ${path}:`, error);
-      errorDetails[path] = JSON.stringify(error);
     }
   }
 
-  // If we didn't find the PDF after trying all paths
-  if (!pdfData) {
-    console.error("All PDF download attempts failed:", JSON.stringify(errorDetails, null, 2));
-    
-    // Try one last approach - see if we can find any PDFs in the bucket
-    try {
-      const fileName = report.pdf_url.split('/').pop() || report.pdf_url;
-      console.log(`Last resort - searching for ${fileName} anywhere in the bucket`);
-      
-      // Recursive function to search for a file in storage
-      async function findFileRecursively(folder = '') {
-        const { data: files, error } = await supabase
-          .storage
-          .from('report_pdfs')
-          .list(folder);
-          
-        if (error) {
-          console.error(`Error listing files in ${folder || 'root'}:`, error);
-          return null;
-        }
-        
-        if (!files || files.length === 0) {
-          return null;
-        }
-        
-        // Check for direct match
-        const match = files.find(f => f.name === fileName && f.metadata);
-        if (match) {
-          const fullPath = folder ? `${folder}/${fileName}` : fileName;
-          console.log(`Found match: ${fullPath}`);
-          return fullPath;
-        }
-        
-        // Recursively check folders
-        for (const item of files) {
-          if (item.id && !item.metadata) { // This is a folder
-            const subFolder = folder ? `${folder}/${item.name}` : item.name;
-            const result = await findFileRecursively(subFolder);
-            if (result) return result;
-          }
-        }
-        
-        return null;
-      }
-      
-      const foundPath = await findFileRecursively();
-      if (foundPath) {
-        console.log(`Last resort found the file at: ${foundPath}, attempting download`);
-        const { data, error } = await supabase
-          .storage
-          .from('report_pdfs')
-          .download(foundPath);
-          
-        if (!error && data && data.size > 0) {
-          console.log(`Successfully downloaded PDF via last resort search: ${foundPath}`);
-          pdfData = data;
-          successPath = foundPath;
-        } else {
-          if (error) console.error("Last resort download error:", error);
-          else console.error("Last resort download returned empty file");
-        }
-      } else {
-        console.log("Could not find file via recursive search");
-      }
-    } catch (searchError) {
-      console.error("Error during last resort search:", searchError);
-    }
-    
-    // If still no PDF, throw error
-    if (!pdfData) {
-      throw new Error(`Error downloading PDF: ${JSON.stringify(errorDetails)}`);
-    }
+  if (pdfError && !pdfData) {
+    console.error("All PDF download attempts failed:", pdfError);
+    throw new Error('Error downloading PDF: ' + pdfError.message);
   }
 
-  console.log(`PDF downloaded successfully from path: ${successPath}, size: ${pdfData.size} bytes, converting to base64`);
+  if (!pdfData || pdfData.size === 0) {
+    console.error("PDF data is empty");
+    throw new Error('PDF file is empty or corrupted');
+  }
+
+  console.log(`PDF downloaded successfully, size: ${pdfData.size} bytes, converting to base64`);
 
   // Convert PDF to base64 using a chunked approach to avoid stack overflow
   const pdfBase64 = await arrayBufferToBase64(await pdfData.arrayBuffer());

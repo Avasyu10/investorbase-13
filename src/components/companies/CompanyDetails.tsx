@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -7,7 +8,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, AlertCircle } from "lucide-react";
+import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { toast } from "@/hooks/use-toast";
@@ -16,7 +17,7 @@ export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { company, isLoading, error } = useCompanyDetails(companyId);
+  const { company, isLoading } = useCompanyDetails(companyId);
   const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
 
   const handleSectionClick = (sectionId: number | string) => {
@@ -49,14 +50,10 @@ export function CompanyDetails() {
   };
 
   useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error loading company",
-        description: error.message || "There was a problem retrieving the company information.",
-        variant: "destructive"
-      });
+    if (hasResearchUpdated && company?.perplexityResponse) {
+      setHasResearchUpdated(false);
     }
-  }, [error]);
+  }, [company?.perplexityResponse, hasResearchUpdated]);
 
   if (isLoading) {
     return (
@@ -87,21 +84,10 @@ export function CompanyDetails() {
     );
   }
 
-  if (error || !company) {
+  if (!company) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="border-destructive/30 bg-destructive/10 p-6">
-          <div className="flex flex-col items-center justify-center text-center gap-4 py-10">
-            <AlertCircle className="h-12 w-12 text-destructive" />
-            <h2 className="text-xl font-semibold">Company Not Found</h2>
-            <p className="text-muted-foreground max-w-md">
-              {error?.message || `We couldn't find a company with ID: ${companyId}. The company may not exist or there might be a connection issue.`}
-            </p>
-            <Button onClick={() => navigate('/dashboard')} className="mt-4">
-              Return to Dashboard
-            </Button>
-          </div>
-        </Card>
+        <p>Company not found</p>
       </div>
     );
   }
@@ -128,7 +114,7 @@ export function CompanyDetails() {
           <div className="flex items-center gap-4 mt-2 sm:mt-0">
             {company.reportId && (
               <Button 
-                onClick={() => navigate(`/reports/${company.reportId}`)} 
+                onClick={navigateToReport} 
                 variant="outline" 
                 className="flex items-center gap-2"
               >
@@ -137,7 +123,7 @@ export function CompanyDetails() {
               </Button>
             )}
             <Button 
-              onClick={() => navigate(`/company/${companyId}/supplementary`)} 
+              onClick={navigateToSupplementaryMaterials} 
               variant="outline" 
               className="flex items-center gap-2"
             >
@@ -153,6 +139,7 @@ export function CompanyDetails() {
           </div>
         </div>
         
+        {/* Added more vertical spacing before the CompanyInfoCard */}
         <div className="mt-6 mb-8">
           <CompanyInfoCard />
         </div>
@@ -172,13 +159,7 @@ export function CompanyDetails() {
         assessmentPoints={company.assessmentPoints || []}
         existingResearch={company.perplexityResponse}
         requestedAt={company.perplexityRequestedAt}
-        onSuccess={() => {
-          console.log("Research fetched successfully, invalidating company query");
-          setHasResearchUpdated(true);
-          queryClient.invalidateQueries({
-            queryKey: ['company', companyId],
-          });
-        }}
+        onSuccess={onResearchFetched}
       />
       
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
@@ -186,19 +167,13 @@ export function CompanyDetails() {
         Section Metrics
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {company.sections && company.sections.length > 0 ? (
-          company.sections.map((section) => (
-            <SectionCard 
-              key={section.id} 
-              section={section} 
-              onClick={() => navigate(`/company/${companyId}/section/${section.id}`)} 
-            />
-          ))
-        ) : (
-          <div className="col-span-full text-center py-10 text-muted-foreground">
-            <p>No sections available for this company.</p>
-          </div>
-        )}
+        {company.sections.map((section) => (
+          <SectionCard 
+            key={section.id} 
+            section={section} 
+            onClick={() => handleSectionClick(section.id)} 
+          />
+        ))}
       </div>
     </div>
   );

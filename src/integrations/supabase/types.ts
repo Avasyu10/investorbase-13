@@ -453,46 +453,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_find_company_by_numeric_id_bigint_function: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      find_company_by_numeric_id: {
-        Args: {
-          numeric_id: string
-        }
-        Returns: {
-          id: string
-        }[]
-      }
-      find_company_by_numeric_id_bigint: {
-        Args: {
-          numeric_id: string
-        }
-        Returns: {
-          id: string
-        }[]
-      }
-      get_company_by_numeric_id: {
-        Args: {
-          p_numeric_id: number
-        }
-        Returns: {
-          assessment_points: string[] | null
-          created_at: string
-          id: string
-          name: string
-          overall_score: number
-          perplexity_prompt: string | null
-          perplexity_requested_at: string | null
-          perplexity_response: string | null
-          prompt_sent: string | null
-          report_id: string | null
-          response_received: string | null
-          updated_at: string
-          user_id: string | null
-        }[]
-      }
       get_section_stats: {
         Args: {
           section_id: string
