@@ -107,7 +107,7 @@ export function CompanyDetails() {
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
       <div className="mb-7 sm:mb-9">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
           </div>
@@ -139,8 +139,10 @@ export function CompanyDetails() {
           </div>
         </div>
         
-        {/* Add the new CompanyInfoCard component here */}
-        <CompanyInfoCard />
+        {/* Added more vertical spacing before the CompanyInfoCard */}
+        <div className="mt-6 mb-8">
+          <CompanyInfoCard />
+        </div>
         
         <div className="mb-5">
           <Progress 
