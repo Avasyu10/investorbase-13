@@ -73,7 +73,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: 'Analysis completed and notification sent',
+        message: 'Notification sent',
         companyId: reportData.companies?.id
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
