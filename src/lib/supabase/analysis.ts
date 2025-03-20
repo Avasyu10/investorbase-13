@@ -35,19 +35,34 @@ export async function analyzeReport(reportId: string) {
       throw new Error(errorMessage);
     }
     
+    // First, check if this is a public submission
+    console.log('Checking if this is a public submission...');
+    const { data: report } = await supabase
+      .from('reports')
+      .select('is_public_submission')
+      .eq('id', reportId)
+      .maybeSingle();
+      
+    const isPublicSubmission = report?.is_public_submission || false;
+    console.log(`Report is${isPublicSubmission ? '' : ' not'} a public submission`);
+    
+    // Determine which function to call based on whether it's a public submission or not
+    const functionName = isPublicSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
+    console.log(`Will use ${functionName} function for analysis`);
+    
     try {
       // Call the edge function with proper error handling and retries
-      console.log(`Invoking analyze-pdf function with report ID: ${reportId}`);
+      console.log(`Invoking ${functionName} function with report ID: ${reportId}`);
       
       // Implement retry logic
       let retryCount = 0;
-      const maxRetries = 3; // Increased from 2 to 3 for production
+      const maxRetries = 3;
       let lastError = null;
       
       while (retryCount <= maxRetries) {
         try {
           if (retryCount > 0) {
-            console.log(`Retry attempt ${retryCount} for analyze-pdf function`);
+            console.log(`Retry attempt ${retryCount} for ${functionName} function`);
             // Add a short delay between retries that increases with each attempt
             await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
           }
@@ -61,7 +76,7 @@ export async function analyzeReport(reportId: string) {
           console.log(`Base URL: ${window.location.origin}`);
           
           // Call the edge function with direct URL to avoid potential path issues
-          const functionUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/analyze-pdf`;
+          const functionUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/${functionName}`;
           
           // First get the auth token for authorization
           const { data: { session } } = await supabase.auth.getSession();
@@ -151,7 +166,7 @@ export async function analyzeReport(reportId: string) {
       }
       
       // If we get here, all retries failed
-      throw lastError || new Error('Failed to invoke analyze-pdf function after multiple attempts');
+      throw lastError || new Error(`Failed to invoke ${functionName} function after multiple attempts`);
       
     } catch (innerError) {
       // Check if this is a CORS error
