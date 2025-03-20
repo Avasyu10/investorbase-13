@@ -28,11 +28,14 @@ export function useCompanies(
           return;
         }
         
+        console.log('Fetching companies for user:', user.id);
+        
         // With RLS enabled, this query will automatically only return companies 
-        // that the user is authorized to view
+        // that the user is authorized to view, but we'll add an explicit filter as well
         const { data, error, count } = await supabase
           .from('companies')
           .select('*', { count: 'exact' })
+          .or(`user_id.eq.${user.id},report_id.in.(select.id.from.reports.where.user_id.eq.${user.id})`)
           .order(sortField, { ascending: sortOrder === 'asc' })
           .range((page - 1) * limit, page * limit - 1);
           
@@ -42,6 +45,8 @@ export function useCompanies(
         }
         
         if (data && data.length > 0) {
+          console.log(`Found ${data.length} companies for user ${user.id}`);
+          
           const formattedCompanies: CompanyListItem[] = data.map(item => {
             return {
               id: parseInt(item.id.split('-')[0], 16),
@@ -59,7 +64,7 @@ export function useCompanies(
           setTotalCount(count ?? data.length);
           setError(null);
         } else {
-          console.log('No companies found in Supabase, using mock data');
+          console.log('No companies found in Supabase for this user, using mock data');
           fetchMockCompanies();
         }
       } catch (err) {

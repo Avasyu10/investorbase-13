@@ -28,7 +28,10 @@ export function PublicSubmissionsList() {
           return;
         }
         
+        console.log('Fetching public submissions');
+        
         // Query for public submissions that have been analyzed
+        // We're explicitly requiring is_public_submission = true
         const { data, error } = await supabase
           .from('reports')
           .select('*, companies!reports_company_id_fkey(*)')
@@ -47,6 +50,7 @@ export function PublicSubmissionsList() {
           return;
         }
         
+        console.log(`Found ${data?.length || 0} public submissions`);
         setSubmissions(data || []);
       } catch (err) {
         console.error('Error in fetchSubmissions:', err);
