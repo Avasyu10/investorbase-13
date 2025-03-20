@@ -61,29 +61,33 @@ export async function analyzeReport(reportId: string) {
           console.log(`Current environment: ${isDevelopment ? 'Development' : 'Production'}`);
           console.log(`Base URL: ${window.location.origin}`);
           
-          // Call the edge function
-          const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-            body: { reportId }
+          // Call the edge function with direct URL to avoid potential path issues
+          const functionUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/analyze-pdf`;
+          
+          // First get the auth token for authorization
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (!session) {
+            throw new Error('Authentication session not found');
+          }
+          
+          // Make a direct fetch request to the function URL
+          const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+              'apikey': supabase.supabaseKey
+            },
+            body: JSON.stringify({ reportId })
           });
           
-          if (error) {
-            console.error('Error invoking analyze-pdf function:', error);
-            lastError = error;
-            
-            // Check if this is a recoverable error
-            if (error.message?.includes('Failed to fetch') || 
-                error.message?.includes('Failed to send') ||
-                error.message?.includes('network') ||
-                error.message?.includes('timeout')) {
-              
-              // This is a network error, we can retry
-              retryCount++;
-              continue;
-            }
-            
-            // For non-network errors, throw immediately
-            throw error;
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Edge function error: ${response.status} - ${errorText}`);
           }
+          
+          const data = await response.json();
           
           if (!data || data.error) {
             const errorMessage = data?.error || "Unknown error occurred during analysis";
