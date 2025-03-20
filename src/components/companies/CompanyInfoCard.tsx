@@ -12,11 +12,11 @@ import {
 
 interface CompanyInfoCardProps {
   name: string;
-  website?: string;
-  stage?: string;
-  industry?: string;
-  founderProfiles?: string[];
-  introduction?: string;
+  website?: string | null;
+  stage?: string | null;
+  industry?: string | null;
+  founderProfiles?: string[] | null;
+  introduction?: string | null;
 }
 
 export function CompanyInfoCard({
@@ -27,7 +27,7 @@ export function CompanyInfoCard({
   founderProfiles = [],
   introduction
 }: CompanyInfoCardProps) {
-  const hasDetailedInfo = founderProfiles.length > 0 || introduction;
+  const hasDetailedInfo = (founderProfiles && founderProfiles.length > 0) || introduction;
   
   return (
     <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/20 via-secondary/10 to-background">
@@ -81,7 +81,7 @@ export function CompanyInfoCard({
                   <DialogTitle>{name} - Company Details</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
-                  {founderProfiles.length > 0 && (
+                  {founderProfiles && founderProfiles.length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <Users className="h-4 w-4" />
