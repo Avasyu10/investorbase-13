@@ -103,49 +103,6 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
     );
   };
 
-  const uploadPublicReport = async (file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') => {
-    try {
-      console.log('Uploading public report');
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('report_pdfs')
-        .upload(fileName, file);
-        
-      if (uploadError) {
-        console.error('Error uploading file to storage:', uploadError);
-        throw uploadError;
-      }
-      
-      console.log('File uploaded to storage successfully, saving record to database');
-      
-      const { data: report, error: insertError } = await supabase
-        .from('reports')
-        .insert([{
-          title,
-          description: description + (email ? `\nContact Email: ${email}` : ''),
-          pdf_url: fileName,
-          analysis_status: 'pending'
-        }])
-        .select()
-        .single();
-        
-      if (insertError) {
-        console.error('Error inserting report record:', insertError);
-        throw insertError;
-      }
-
-      console.log('Public report record created successfully:', report);
-      
-      return report;
-    } catch (error) {
-      console.error('Error uploading public report:', error);
-      throw error;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -357,6 +314,49 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
       setIsUploading(false);
       setIsAnalyzing(false);
       setIsScrapingWebsite(false);
+    }
+  };
+
+  const uploadPublicReport = async (file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') => {
+    try {
+      console.log('Uploading public report');
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('report_pdfs')
+        .upload(fileName, file);
+        
+      if (uploadError) {
+        console.error('Error uploading file to storage:', uploadError);
+        throw uploadError;
+      }
+      
+      console.log('File uploaded to storage successfully, saving record to database');
+      
+      const { data: report, error: insertError } = await supabase
+        .from('reports')
+        .insert([{
+          title,
+          description: description + (email ? `\nContact Email: ${email}` : ''),
+          pdf_url: fileName,
+          analysis_status: 'pending'
+        }])
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error('Error inserting report record:', insertError);
+        throw insertError;
+      }
+
+      console.log('Public report record created successfully:', report);
+      
+      return report;
+    } catch (error) {
+      console.error('Error uploading public report:', error);
+      throw error;
     }
   };
 
