@@ -141,7 +141,7 @@ serve(async (req) => {
     console.log("Getting or creating public submission form...");
     let submissionFormId = null;
     
-    const { data: formData, error: formError } = await supabase
+    const { data: submissionFormData, error: formError } = await supabase
       .from('public_submission_forms')
       .select('id')
       .eq('form_slug', 'public-pitch-deck')
@@ -150,8 +150,8 @@ serve(async (req) => {
     if (formError) {
       console.error('Error checking for public submission form:', formError);
       // Continue without form ID - will create record with null form_id
-    } else if (formData) {
-      submissionFormId = formData.id;
+    } else if (submissionFormData) {
+      submissionFormId = submissionFormData.id;
       console.log("Found existing public submission form:", submissionFormId);
     } else {
       // Create a new public submission form
