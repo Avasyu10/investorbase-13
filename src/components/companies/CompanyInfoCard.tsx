@@ -88,10 +88,15 @@ export function CompanyInfoCard({
           <DialogHeader>
             <DialogTitle>Additional Company Information</DialogTitle>
           </DialogHeader>
+
+            <div>
+              <h4 className="text-base font-medium mb-2">About</h4>
+              <p className="text-muted-foreground">{introduction}</p>
+            </div>
           
           <div className="space-y-6 py-4">
             <div>
-              <h4 className="text-base font-medium mb-2">Founder LinkedIn Profiles</h4>
+              <h4 className="text-base font-medium mb-2">Founders</h4>
               <ul className="list-disc pl-5 space-y-1">
                 {founderLinkedIns.map((linkedin, index) => (
                   <li key={index}>
@@ -106,11 +111,6 @@ export function CompanyInfoCard({
                   </li>
                 ))}
               </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-base font-medium mb-2">Company Introduction</h4>
-              <p className="text-muted-foreground">{introduction}</p>
             </div>
           </div>
         </DialogContent>
