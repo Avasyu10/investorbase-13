@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -20,12 +21,7 @@ function mapDbCompanyToApi(company: any) {
     reportId: company.report_id,
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
-    perplexityRequestedAt: company.perplexity_requested_at,
-    website: company.website || null,
-    stage: company.stage || null,
-    industry: company.industry || null,
-    founderLinkedIns: company.founder_linkedins || [],
-    introduction: company.introduction || null
+    perplexityRequestedAt: company.perplexity_requested_at
   };
 }
 

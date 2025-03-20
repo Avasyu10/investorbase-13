@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -11,7 +10,6 @@ import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { toast } from "@/hooks/use-toast";
-import { CompanyInfoCard } from "./CompanyInfoCard";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -138,16 +136,6 @@ export function CompanyDetails() {
             </div>
           </div>
         </div>
-        
-        {/* Company Info Card */}
-        <CompanyInfoCard 
-          name={company.name}
-          website={company.website}
-          stage={company.stage}
-          industry={company.industry}
-          founderProfiles={company.founderLinkedIns || []}
-          introduction={company.introduction}
-        />
         
         <div className="mb-5">
           <Progress 
