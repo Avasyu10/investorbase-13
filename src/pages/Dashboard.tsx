@@ -1,6 +1,7 @@
 
 import { CompaniesList } from "@/components/companies/CompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
+import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -50,12 +51,16 @@ const Dashboard = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="companies">Companies</TabsTrigger>
             <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
+            <TabsTrigger value="submissions">Public Submissions</TabsTrigger>
           </TabsList>
           <TabsContent value="companies">
             <CompaniesList />
           </TabsContent>
           <TabsContent value="reports">
             <ReportsList />
+          </TabsContent>
+          <TabsContent value="submissions">
+            <PublicSubmissionsList />
           </TabsContent>
         </Tabs>
       </div>

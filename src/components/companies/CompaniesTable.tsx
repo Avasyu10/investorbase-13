@@ -48,6 +48,21 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     return "No summary available";
   };
 
+  // Helper to determine source label and style
+  const getSourceInfo = (company: CompanyListItem) => {
+    // Check if company has a special source property (e.g. from public submission)
+    if ('source' in company && company.source === 'public') {
+      return {
+        label: "Public URL",
+        className: "text-sm text-green-600 font-medium"
+      };
+    }
+    return {
+      label: "Dashboard",
+      className: "text-sm text-gold font-medium"
+    };
+  };
+
   return (
     <div className="border rounded-md">
       <Table>
@@ -71,25 +86,28 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {companies.map((company) => (
-            <TableRow 
-              key={company.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => onCompanyClick(company.id)}
-            >
-              <TableCell className="font-medium">{company.name}</TableCell>
-              <TableCell className={getScoreColorClass(company.overallScore)}>
-                {company.overallScore}/5
-              </TableCell>
-              <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <span className="text-sm text-gold font-medium">Dashboard</span>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {getAssessmentSummary(company)}
-              </TableCell>
-            </TableRow>
-          ))}
+          {companies.map((company) => {
+            const sourceInfo = getSourceInfo(company);
+            return (
+              <TableRow 
+                key={company.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => onCompanyClick(company.id)}
+              >
+                <TableCell className="font-medium">{company.name}</TableCell>
+                <TableCell className={getScoreColorClass(company.overallScore)}>
+                  {company.overallScore}/5
+                </TableCell>
+                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <span className={sourceInfo.className}>{sourceInfo.label}</span>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {getAssessmentSummary(company)}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
