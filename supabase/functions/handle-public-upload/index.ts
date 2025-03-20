@@ -48,7 +48,7 @@ serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const title = formData.get('title') as string;
-    const email = formData.get('email') as string;
+    const email = formData.get('email') as string || '';
     const description = formData.get('description') as string || '';
     const websiteUrl = formData.get('websiteUrl') as string || '';
     const formSlug = formData.get('formSlug') as string || '';
@@ -64,9 +64,9 @@ serve(async (req) => {
       formSlug: formSlug || 'none',
     });
 
-    if (!title || !email) {
-      console.log("Missing required fields: title and email");
-      return new Response(JSON.stringify({ error: 'Missing required fields: title and email' }), {
+    if (!title) {
+      console.log("Missing required field: title");
+      return new Response(JSON.stringify({ error: 'Missing required field: title' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
@@ -137,7 +137,9 @@ serve(async (req) => {
     if (websiteUrl) {
       enhancedDescription += `\nCompany Website: ${websiteUrl}`;
     }
-    enhancedDescription += `\nContact Email: ${email}`;
+    if (email) {
+      enhancedDescription += `\nContact Email: ${email}`;
+    }
 
     // Get or create a public submission form
     console.log("Getting or creating public submission form...");
@@ -205,7 +207,7 @@ serve(async (req) => {
         description: enhancedDescription,
         pdf_url: fileName || null, // Use null if no file was uploaded
         is_public_submission: true,
-        submitter_email: email,
+        submitter_email: email || null, // Email is now optional
         submission_form_id: submissionFormId,
         analysis_status: 'pending'
       }])

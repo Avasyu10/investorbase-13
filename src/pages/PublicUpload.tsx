@@ -152,6 +152,7 @@ const PublicUpload = () => {
               buttonText="Submit"
               skipAnalysis={true}
               formSlug={activeFormSlug}
+              hideEmailField={true}
             />
           </>
         )}
