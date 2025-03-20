@@ -39,6 +39,15 @@ export function CreatePublicFormModal({
     setIsCreating(true);
 
     try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You need to be logged in to create a form");
+        setIsCreating(false);
+        return;
+      }
+
       // Generate a slug from the form name
       const formSlug = formName
         .toLowerCase()
@@ -46,12 +55,13 @@ export function CreatePublicFormModal({
         .replace(/(^-|-$)/g, '')
         + '-' + Date.now().toString().slice(-6);
 
-      // Create the form in the database
+      // Create the form in the database with user_id
       const { data, error } = await supabase
         .from('public_submission_forms')
         .insert({
           form_name: formName,
-          form_slug: formSlug
+          form_slug: formSlug,
+          user_id: user.id
         })
         .select('id, form_slug')
         .single();

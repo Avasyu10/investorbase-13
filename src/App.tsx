@@ -1,22 +1,23 @@
+
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Toaster } from 'sonner';
 import { useAuth } from './hooks/useAuth';
-import { Navbar } from './components/Navbar';
-import { Index } from './pages';
-import { Dashboard } from './pages/Dashboard';
-import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
-import { Profile } from './pages/Profile';
-import { ProfileEdit } from './pages/ProfileEdit';
-import { ProfileSetup } from './pages/ProfileSetup';
-import { CompanyPage } from './pages/CompanyPage';
-import { SectionPage } from './pages/SectionPage';
-import { AnalysisSummary } from './pages/AnalysisSummary';
-import { Report } from './pages/Report';
-import { SupplementaryMaterials } from './pages/SupplementaryMaterials';
-import { NotFound } from './pages/NotFound';
+import Navbar from './components/layout/Navbar';
+import Index from './pages/Index';
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Profile from './pages/Profile';
+import ProfileEdit from './pages/ProfileEdit';
+import ProfileSetup from './pages/ProfileSetup';
+import CompanyPage from './pages/CompanyPage';
+import SectionPage from './pages/SectionPage';
+import AnalysisSummary from './pages/AnalysisSummary';
+import Report from './pages/Report';
+import SupplementaryMaterials from './pages/SupplementaryMaterials';
+import NotFound from './pages/NotFound';
 import UploadReport from './pages/UploadReport';
 import PublicUpload from './pages/PublicUpload';
 import ManagePublicForms from './pages/ManagePublicForms';

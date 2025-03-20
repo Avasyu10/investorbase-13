@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Table,
@@ -31,44 +32,17 @@ interface Company {
   };
 }
 
-export function CompaniesTable() {
-  const [companies, setCompanies] = useState<Company[]>([]);
+interface CompaniesTableProps {
+  companies: any[];
+  onCompanyClick: (companyId: number) => void;
+}
+
+export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [sortBy, setSortBy] = useState<keyof Company>("name");
-  const [isLoading, setIsLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<string>("name");
 
-  // Mock data for now
-  useState(() => {
-    const mockCompanies: Company[] = [
-      {
-        id: "1",
-        name: "Acme Corp",
-        overall_score: 4,
-        created_at: new Date().toLocaleDateString(),
-        report_id: null,
-      },
-      {
-        id: "2",
-        name: "Beta Co",
-        overall_score: 3,
-        created_at: new Date().toLocaleDateString(),
-        report_id: null,
-      },
-      {
-        id: "3",
-        name: "Charlie Inc",
-        overall_score: 5,
-        created_at: new Date().toLocaleDateString(),
-        report_id: null,
-      },
-    ];
-
-    setCompanies(mockCompanies);
-    setIsLoading(false);
-  }, []);
-
-  const handleSort = (column: keyof Company) => {
+  const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -109,14 +83,14 @@ export function CompaniesTable() {
           className="max-w-sm"
         />
         <div className="ml-4">
-          <Select onValueChange={(value) => handleSort(value as keyof Company)}>
+          <Select onValueChange={(value) => handleSort(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="overall_score">Score</SelectItem>
-              <SelectItem value="created_at">Date</SelectItem>
+              <SelectItem value="overallScore">Score</SelectItem>
+              <SelectItem value="createdAt">Date</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -132,13 +106,7 @@ export function CompaniesTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={4} className="text-center">
-                Loading...
-              </TableCell>
-            </TableRow>
-          ) : filteredCompanies.length === 0 ? (
+          {filteredCompanies.length === 0 ? (
             <TableRow>
               <TableCell colSpan={4} className="text-center">
                 No companies found.
@@ -147,28 +115,28 @@ export function CompaniesTable() {
           ) : (
             filteredCompanies.map((company) => {
               // Get the report associated with this company
-              const report = company.report_id ? {
-                id: company.report_id,
+              const report = company.reportId ? {
+                id: company.reportId,
                 status: company.reports?.analysis_status || 'complete'
               } : null;
               
               return (
-                <TableRow key={company.id}>
+                <TableRow key={company.id} className="cursor-pointer" onClick={() => onCompanyClick(company.id)}>
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell>
                     {report?.status === 'pending' ? (
                       <Badge variant="outline">Pending Analysis</Badge>
                     ) : (
-                      <RatingDisplay rating={company.overall_score} />
+                      <RatingDisplay rating={company.overallScore} />
                     )}
                   </TableCell>
                   <TableCell>
-                    {new Date(company.created_at).toLocaleDateString()}
+                    {new Date(company.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <CompanyActionButton 
                       companyId={company.id} 
-                      reportId={company.report_id}
+                      reportId={company.reportId}
                       status={report?.status}
                     />
                   </TableCell>
