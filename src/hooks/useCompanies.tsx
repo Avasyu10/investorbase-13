@@ -147,9 +147,16 @@ export function useCompanyDetails(companyId?: string) {
           if (isNumeric) {
             console.log('Numeric ID detected, fetching by numeric ID using find_company_by_numeric_id function');
             
-            // Fix: Use the correct function name as per available functions
+            // Convert string to number for the RPC call
+            const numericId = parseInt(companyId, 10);
+            
+            // Make sure the conversion worked and we have a valid number
+            if (isNaN(numericId)) {
+              throw new Error(`Invalid numeric ID: ${companyId}`);
+            }
+            
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
-              numeric_id: companyId 
+              numeric_id: numericId.toString() // Pass as string since the RPC function expects a text parameter
             });
             
             if (error) {
@@ -289,9 +296,16 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
           if (isNumeric) {
             console.log('Numeric company ID detected, getting UUID first');
             
-            // Fix: Use the correct function name as per available functions
+            // Convert string to number for the RPC call
+            const numericId = parseInt(companyId, 10);
+            
+            // Make sure the conversion worked and we have a valid number
+            if (isNaN(numericId)) {
+              throw new Error(`Invalid numeric ID: ${companyId}`);
+            }
+            
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
-              numeric_id: companyId 
+              numeric_id: numericId.toString() // Pass as string since the RPC function expects a text parameter
             });
             
             if (error) {
