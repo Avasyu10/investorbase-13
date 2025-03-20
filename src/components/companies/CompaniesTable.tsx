@@ -8,6 +8,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { CompanyListItem } from "@/lib/api/apiContract";
+import { cn } from "@/lib/utils";
 
 interface CompaniesTableProps {
   companies: CompanyListItem[];
@@ -81,7 +82,9 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                 {company.overallScore}/5
               </TableCell>
               <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">Dashboard</TableCell>
+              <TableCell>
+                <span className="text-sm text-primary font-medium">Dashboard</span>
+              </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {getAssessmentSummary(company)}
               </TableCell>
