@@ -34,7 +34,7 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   console.log(`Executing query to fetch report with ID: ${reportId}`);
   const { data: reportData, error: reportError } = await supabase
     .from('reports')
-    .select('id, title, user_id, pdf_url')
+    .select('id, title, user_id, pdf_url, is_public_submission')
     .eq('id', reportId)
     .maybeSingle();
     
@@ -70,7 +70,73 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     throw new Error(`Report is missing PDF file reference`);
   }
   
-  console.log(`Found report: ${report.title}, user_id: ${report.user_id}, accessing PDF from storage`);
+  console.log(`Found report: ${report.title}, user_id: ${report.user_id}, is_public_submission: ${report.is_public_submission}, accessing PDF from storage`);
+
+  // First, let's check if we can find additional information about storage paths
+  // for this particular report in the database
+  let additionalStoragePaths: string[] = [];
+  let storagePrefix = '';
+
+  if (report.is_public_submission) {
+    console.log("This is a public submission - checking public_form_submissions table");
+    // For public submissions, check the public_form_submissions table
+    const { data: submissionData, error: submissionError } = await supabase
+      .from('public_form_submissions')
+      .select('pdf_url, form_slug')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
+    if (!submissionError && submissionData && submissionData.pdf_url) {
+      console.log(`Found matching public submission with pdf_url: ${submissionData.pdf_url}, form_slug: ${submissionData.form_slug}`);
+      if (submissionData.pdf_url !== report.pdf_url) {
+        additionalStoragePaths.push(submissionData.pdf_url);
+      }
+      
+      // Check for form-specific storage pattern
+      if (submissionData.form_slug) {
+        additionalStoragePaths.push(`${submissionData.form_slug}/${report.pdf_url.split('/').pop() || report.pdf_url}`);
+      }
+    }
+    
+    // Public submissions often use a different storage pattern
+    storagePrefix = 'public_submissions';
+  } else {
+    // For regular uploads, try with user_id as prefix
+    storagePrefix = report.user_id || '';
+  }
+  
+  // Try to list files in the storage bucket to find possible matches
+  try {
+    console.log("Trying to list files in storage to find potential matches");
+    const { data: files, error: listError } = await supabase
+      .storage
+      .from('report_pdfs')
+      .list();
+      
+    if (!listError && files && files.length > 0) {
+      console.log(`Found ${files.length} files in storage bucket. Looking for matches with ${report.pdf_url}`);
+      
+      // Extract the filename from the pdf_url
+      const fileName = report.pdf_url.split('/').pop() || report.pdf_url;
+      
+      // Look for any files or folders that might contain our file
+      for (const file of files) {
+        // If it's a folder, add a potential path with this folder
+        if (file.id && file.name) {
+          if (!file.metadata) {
+            // This is likely a folder
+            additionalStoragePaths.push(`${file.name}/${fileName}`);
+          } else if (file.name === fileName) {
+            // Direct match - add to beginning of paths to try
+            additionalStoragePaths.unshift(file.name);
+          }
+        }
+      }
+    }
+  } catch (listError) {
+    // Non-fatal error, just log it
+    console.log("Could not list storage files:", listError);
+  }
 
   // Try multiple download approaches sequentially until one succeeds
   let pdfData = null;
@@ -81,20 +147,23 @@ export async function getReportData(reportId: string, authHeader: string = '') {
   const pathsToTry = [
     // Direct path as stored in the database
     report.pdf_url,
+    // Try with public submissions prefix if it's a public submission
+    storagePrefix ? `${storagePrefix}/${report.pdf_url.split('/').pop() || report.pdf_url}` : null,
     // Try with user_id prefix if available
-    report.user_id ? `${report.user_id}/${report.pdf_url}` : null,
-    // Try with public form submissions folder prefix
-    report.pdf_url.includes('/') ? report.pdf_url : `public_submissions/${report.pdf_url}`,
+    report.user_id ? `${report.user_id}/${report.pdf_url.split('/').pop() || report.pdf_url}` : null,
     // Just the filename without any path
     report.pdf_url.includes('/') ? report.pdf_url.split('/').pop() : null,
-    // Try m8h52364-abzbhy folder (seen in the error message)
-    `m8h52364-abzbhy/${report.pdf_url.split('/').pop() || report.pdf_url}`,
+    // Add all the additional paths we discovered
+    ...additionalStoragePaths
   ].filter(Boolean); // Remove null paths
   
-  console.log("Will try these paths to download the PDF:", pathsToTry);
+  // Remove duplicates
+  const uniquePaths = [...new Set(pathsToTry)];
+  
+  console.log("Will try these paths to download the PDF:", uniquePaths);
   
   // Try all possible paths sequentially
-  for (const path of pathsToTry) {
+  for (const path of uniquePaths) {
     try {
       console.log(`Attempting to download PDF from path: ${path}`);
       const { data, error } = await supabase

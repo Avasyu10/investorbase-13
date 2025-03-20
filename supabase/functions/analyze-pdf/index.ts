@@ -52,6 +52,10 @@ serve(async (req) => {
     // Also log the API key header (redacted)
     const apiKeyHeader = req.headers.get('apikey') || '';
     console.log(`API key header present: ${apiKeyHeader ? 'Yes' : 'No'}`);
+    
+    // Also log other useful headers that might help with debugging
+    console.log(`User-Agent: ${req.headers.get('User-Agent') || 'Not provided'}`);
+    console.log(`Content-Type: ${req.headers.get('Content-Type') || 'Not provided'}`);
 
     // Parse request data
     let reqData;
