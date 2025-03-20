@@ -88,6 +88,11 @@ serve(async (req) => {
       auth: {
         autoRefreshToken: false,
         persistSession: false
+      },
+      global: {
+        headers: {
+          // Don't include any authorization headers
+        }
       }
     });
 

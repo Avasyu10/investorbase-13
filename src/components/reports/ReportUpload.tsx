@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -166,9 +167,11 @@ export function ReportUpload({
         }));
         
         try {
+          // Important: Don't include any headers in this request to avoid CORS issues
           const response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
+            // Don't set any headers - let the browser handle it
           });
           
           console.log("Response received:", {
