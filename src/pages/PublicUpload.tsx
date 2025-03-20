@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Info } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 const PublicUpload = () => {
   const [error, setError] = useState<string | null>(null);
@@ -57,14 +57,6 @@ const PublicUpload = () => {
             </AlertDescription>
           </Alert>
         )}
-        
-        <Alert className="mb-6 bg-blue-50 border-blue-200">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-800">Debug Mode</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            The upload form is in debug mode. Check the browser console for detailed logs.
-          </AlertDescription>
-        </Alert>
         
         {success ? (
           <Alert className="mb-6 bg-green-50 border-green-200">
