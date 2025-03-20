@@ -149,7 +149,7 @@ export function ReportUpload({
         formData.append('email', emailForResults);
         formData.append('description', briefIntroduction || '');
         
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-public-upload`, {
+        const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
           method: 'POST',
           body: formData,
         });
