@@ -44,8 +44,12 @@ serve(async (req) => {
 
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!; // Use service role key for admin privileges
+    
+    // Log important values for debugging (masked for security)
+    console.log(`URL exists: ${!!supabaseUrl}, Key exists: ${!!supabaseServiceKey}`);
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
@@ -64,7 +68,7 @@ serve(async (req) => {
 
     if (uploadError) {
       console.error('Error uploading file:', uploadError);
-      return new Response(JSON.stringify({ error: 'Failed to upload file' }), {
+      return new Response(JSON.stringify({ error: 'Failed to upload file', details: uploadError.message }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
@@ -91,7 +95,7 @@ serve(async (req) => {
 
     if (insertError) {
       console.error('Error inserting report record:', insertError);
-      return new Response(JSON.stringify({ error: 'Failed to create record' }), {
+      return new Response(JSON.stringify({ error: 'Failed to create record', details: insertError.message }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
@@ -109,8 +113,8 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error('General error:', err);
-    return new Response(JSON.stringify({ error: 'An unexpected error occurred' }), {
-      headers: { 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred', details: err.message }), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       status: 500,
     });
   }
