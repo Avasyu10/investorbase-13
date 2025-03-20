@@ -384,6 +384,7 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
             industry={industry}
             setIndustry={setIndustry}
             founderLinkedIns={founderLinkedIns}
+            setFounderLinkedIns={setFounderLinkedIns}
             updateLinkedInProfile={updateLinkedInProfile}
             addLinkedInProfile={addLinkedInProfile}
             removeLinkedInProfile={removeLinkedInProfile}
