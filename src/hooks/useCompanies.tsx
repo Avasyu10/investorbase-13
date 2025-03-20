@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -34,12 +33,11 @@ export function useCompanies(
         const from = (page - 1) * limit;
         const to = from + limit - 1;
         
-        // With RLS enabled, this query will automatically only return companies 
-        // that the user is authorized to view, but we'll add an explicit filter as well
+        // Use the correct way to filter with Supabase
         const { data, error, count } = await supabase
           .from('companies')
           .select('*', { count: 'exact' })
-          .or(`user_id.eq.${user.id},report_id.in.(select.id.from.reports.where.user_id.eq.${user.id})`)
+          .or(`user_id.eq.${user.id},report_id.in.(select id from reports where user_id = '${user.id}')`)
           .order(sortField, { ascending: sortOrder === 'asc' })
           .range(from, to);
           
