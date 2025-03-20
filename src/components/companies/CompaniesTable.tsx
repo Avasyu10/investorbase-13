@@ -49,9 +49,19 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
   };
 
   // Set all sources to "Dashboard" with gold color
-  const sourceInfo = {
-    label: "Dashboard",
-    className: "text-sm text-gold font-medium"
+  const getSourceInfo = (company: CompanyListItem) => {
+    // Check if it's a public upload (has a reportId with a hyphen and source is dashboard)
+    if (company.reportId && company.reportId.includes('-') && company.source === 'dashboard') {
+      return {
+        label: "Public URL",
+        className: "text-sm text-purple-600 font-medium"
+      };
+    }
+    
+    return {
+      label: "Dashboard",
+      className: "text-sm text-gold font-medium"
+    };
   };
 
   return (
@@ -66,10 +76,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
               Score
             </TableHead>
             <TableHead className="w-1/6">
-              Date Added
+              Source
             </TableHead>
             <TableHead className="w-1/6">
-              Source
+              Date Added
             </TableHead>
             <TableHead className="w-2/5">
               Summary
@@ -78,6 +88,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         </TableHeader>
         <TableBody>
           {companies.map((company) => {
+            const sourceInfo = getSourceInfo(company);
             return (
               <TableRow 
                 key={company.id}
@@ -88,10 +99,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                 <TableCell className={getScoreColorClass(company.overallScore)}>
                   {company.overallScore}/5
                 </TableCell>
-                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <span className={sourceInfo.className}>{sourceInfo.label}</span>
                 </TableCell>
+                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {getAssessmentSummary(company)}
                 </TableCell>
