@@ -12,7 +12,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Edit, Globe, FileText } from "lucide-react";
+import { Loader2, Download, Edit, Globe, FileText, Plus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AreaOfInterestOptions } from "@/lib/constants";
@@ -30,6 +30,13 @@ interface VCProfile {
   updated_at: string;
 }
 
+interface PublicForm {
+  id: string;
+  form_slug: string;
+  form_name: string;
+  created_at: string;
+}
+
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -37,6 +44,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<VCProfile | null>(null);
   const [thesisFilename, setThesisFilename] = useState<string | null>(null);
+  const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
+  const [generatingUrl, setGeneratingUrl] = useState(false);
 
   // Function to get label by value
   const getAreaOfInterestLabel = (value: string) => {
@@ -72,6 +81,19 @@ const Profile = () => {
         if (profileData.fund_thesis_url) {
           setThesisFilename(profileData.fund_thesis_url.split('/').pop() || "Fund Thesis.pdf");
         }
+        
+        // Check if user has a public form
+        const { data: formData, error: formError } = await supabase
+          .from('public_submission_forms')
+          .select('id, form_slug, form_name, created_at')
+          .eq('user_id', user.id)
+          .maybeSingle();
+          
+        if (formError) {
+          console.error("Error fetching public form:", formError);
+        } else if (formData) {
+          setPublicForm(formData as PublicForm);
+        }
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -82,6 +104,50 @@ const Profile = () => {
     fetchProfile();
   }, [user, navigate]);
   
+  const generatePublicUrl = async () => {
+    if (!user) return;
+    
+    try {
+      setGeneratingUrl(true);
+      
+      // Generate a unique slug using timestamp and random string
+      const timestamp = Date.now().toString(36);
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const slug = `${timestamp}-${randomStr}`;
+      
+      // Create a new public submission form
+      const { data, error } = await supabase
+        .from('public_submission_forms')
+        .insert([{
+          form_name: profile?.fund_name ? `${profile.fund_name} Submission Form` : 'VC Submission Form',
+          form_slug: slug,
+          is_active: true,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+        
+      if (error) {
+        throw error;
+      }
+      
+      setPublicForm(data as PublicForm);
+      
+      toast({
+        title: "Public URL generated",
+        description: "Your public submission URL has been created successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error generating URL",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingUrl(false);
+    }
+  };
+
   const downloadThesis = async () => {
     if (!profile?.fund_thesis_url) return;
     
@@ -136,6 +202,10 @@ const Profile = () => {
       </div>
     );
   }
+
+  const publicSubmissionUrl = publicForm 
+    ? `${window.location.origin}/submit/${publicForm.form_slug}`
+    : null;
 
   return (
     <div className="container max-w-3xl mx-auto px-4 py-8">
@@ -243,23 +313,61 @@ const Profile = () => {
           </div>
           
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Public URL</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Public Submission URL</h3>
             <Separator className="mb-4" />
             
             <div>
-              <p className="text-sm font-medium mb-2">URL:</p>
-              {profile.website_url ? (
-                <a 
-                  href={profile.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-primary hover:underline"
-                >
-                  <Globe className="h-4 w-4 mr-2" />
-                  Visit Website
-                </a>
+              {publicForm ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">URL:</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 p-3 bg-secondary/20 rounded-md break-all">
+                      <a 
+                        href={publicSubmissionUrl!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-start gap-2"
+                      >
+                        <Globe className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span>{publicSubmissionUrl}</span>
+                      </a>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(publicSubmissionUrl!);
+                        toast({
+                          title: "URL copied",
+                          description: "The public submission URL has been copied to clipboard",
+                        });
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Share this URL with founders to receive their pitch decks
+                  </p>
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No website specified</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <p className="text-sm text-muted-foreground">No public URL</p>
+                  <Button
+                    size="sm"
+                    onClick={generatePublicUrl}
+                    disabled={generatingUrl}
+                  >
+                    {generatingUrl ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="mr-2 h-4 w-4" />
+                    )}
+                    Generate Public URL
+                  </Button>
+                </div>
               )}
             </div>
           </div>

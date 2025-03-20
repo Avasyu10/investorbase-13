@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Card, 
@@ -16,9 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Plus, X, Globe, FileText, Trash2 } from "lucide-react";
+import { Loader2, Save, Plus, X, FileText, Trash2 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { Textarea } from "@/components/ui/textarea";
 import { AreaOfInterestOptions } from "@/lib/constants";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 
@@ -33,6 +32,13 @@ interface VCProfile {
   website_url: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface PublicForm {
+  id: string;
+  form_slug: string;
+  form_name: string;
+  created_at: string;
 }
 
 // Available options for the investment stage multiselect field
@@ -53,6 +59,7 @@ const ProfileEdit = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<VCProfile | null>(null);
+  const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
   
   // Form state
   const [fundName, setFundName] = useState('');
@@ -61,7 +68,7 @@ const ProfileEdit = () => {
   const [investmentStage, setInvestmentStage] = useState<string[]>([]);
   const [companiesInvested, setCompaniesInvested] = useState<string[]>([]);
   const [newCompany, setNewCompany] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('Your Website');
+  const [websiteUrl, setWebsiteUrl] = useState('');
 
   // PDF thesis state
   const [thesisFile, setThesisFile] = useState<File | null>(null);
@@ -106,12 +113,25 @@ const ProfileEdit = () => {
       setAreasOfInterest(profileData.areas_of_interest || []);
       setInvestmentStage(profileData.investment_stage || []);
       setCompaniesInvested(profileData.companies_invested || []);
-      setWebsiteUrl(profileData.website_url || 'Your Website');
+      setWebsiteUrl(profileData.website_url || '');
       
       // Set thesis state
       if (profileData.fund_thesis_url) {
         setHasExistingThesis(true);
         setThesisFilename(profileData.fund_thesis_url.split('/').pop() || null);
+      }
+      
+      // Check if user has a public form
+      const { data: formData, error: formError } = await supabase
+        .from('public_submission_forms')
+        .select('id, form_slug, form_name, created_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (formError) {
+        console.error("Error fetching public form:", formError);
+      } else if (formData) {
+        setPublicForm(formData as PublicForm);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -283,6 +303,10 @@ const ProfileEdit = () => {
       });
     }
   };
+
+  const publicSubmissionUrl = publicForm 
+    ? `${window.location.origin}/submit/${publicForm.form_slug}`
+    : null;
 
   if (loading) {
     return (
@@ -480,26 +504,29 @@ const ProfileEdit = () => {
               </div>
               
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-primary">Online Presence</h3>
+                <h3 className="text-sm font-semibold text-primary">Public Submission URL</h3>
                 <Separator className="mb-4 bg-border/30" />
                 
                 <div className="space-y-2">
-                  <Label htmlFor="website-url" className="text-foreground">Public URL</Label>
-                  <div className="flex">
-                    <div className="bg-secondary/50 flex items-center px-3 rounded-l-md border border-r-0 border-border/30">
-                      <Globe className="h-4 w-4 text-primary" />
+                  {publicForm ? (
+                    <div>
+                      <Label className="text-foreground mb-2 block">Your Public URL</Label>
+                      <div className="bg-secondary/20 p-3 rounded-md break-all">
+                        {publicSubmissionUrl}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        This URL is generated for you to receive pitch deck submissions.
+                        It cannot be edited directly, but you can copy it from your profile page.
+                      </p>
                     </div>
-                    <Input
-                      id="website-url"
-                      value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      placeholder="https://www.yourdomain.com"
-                      className="rounded-l-none bg-secondary/30 border-border/30 focus-visible:ring-primary"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Add your Fund's Website or Public URL
-                  </p>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        No public submission URL has been generated yet.
+                        You can generate one from your profile page.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
