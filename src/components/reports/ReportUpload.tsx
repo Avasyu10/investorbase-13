@@ -115,7 +115,7 @@ export function ReportUpload({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file) {
+    if (!file && !isPublic) {
       toast.error("No file selected", {
         description: "Please select a PDF file to upload"
       });
@@ -144,10 +144,16 @@ export function ReportUpload({
       let report;
       if (isPublic) {
         const formData = new FormData();
-        formData.append('file', file);
+        if (file) {
+          formData.append('file', file);
+        }
         formData.append('title', title);
         formData.append('email', emailForResults);
         formData.append('description', briefIntroduction || '');
+        
+        if (websiteUrl) {
+          formData.append('websiteUrl', websiteUrl);
+        }
         
         const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
           method: 'POST',
@@ -340,7 +346,7 @@ export function ReportUpload({
       }
       
       setProgress(0);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error processing report:", error);
       
       toast.error("Upload failed", {
@@ -366,7 +372,9 @@ export function ReportUpload({
       <CardHeader>
         <CardTitle>Upload Pitch Deck</CardTitle>
         <CardDescription>
-          Upload a PDF pitch deck for analysis. Our AI will evaluate the pitch deck and provide feedback.
+          {isPublic 
+            ? "Share your pitch deck or company information for analysis. Providing a PDF is optional."
+            : "Upload a PDF pitch deck for analysis. Our AI will evaluate the pitch deck and provide feedback."}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -410,11 +418,11 @@ export function ReportUpload({
           
           <FileUploadZone
             id="file"
-            label="Pitch Deck"
+            label={isPublic ? "Pitch Deck (Optional)" : "Pitch Deck"}
             file={file}
             onFileChange={handleFileChange}
             accept=".pdf"
-            description="PDF files only, max 10MB"
+            description={isPublic ? "PDF files only, max 10MB (Optional)" : "PDF files only, max 10MB"}
             buttonText="Select PDF"
             disabled={isProcessing}
           />
@@ -481,7 +489,7 @@ export function ReportUpload({
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={!file || isProcessing}
+            disabled={(isPublic ? false : !file) || isProcessing}
             className="w-full md:w-auto"
           >
             {isProcessing ? (
