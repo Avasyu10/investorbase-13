@@ -30,14 +30,13 @@ serve(async (req) => {
 
     // Parse the request body
     const formData = await req.formData();
-    const file = formData.get('file') as File || null;
+    const file = formData.get('file') as File;
     const title = formData.get('title') as string;
     const email = formData.get('email') as string;
     const description = formData.get('description') as string || '';
 
-    // Make the file upload optional - only check for title and email
-    if (!title || !email) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: title and email' }), {
+    if (!file || !title || !email) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: file, title, and email' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
@@ -63,34 +62,34 @@ serve(async (req) => {
       }
     });
 
-    let fileName = null;
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
 
-    // Only handle file upload if a file was provided
-    if (file) {
-      // Create a unique filename
-      const fileExt = file.name.split('.').pop();
-      fileName = `${Date.now()}.${fileExt}`;
+    // Read file as ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    const fileData = new Uint8Array(arrayBuffer);
 
-      // Read file as ArrayBuffer
-      const arrayBuffer = await file.arrayBuffer();
-      const fileData = new Uint8Array(arrayBuffer);
+    // Upload file to public_uploads bucket - which is now public with no RLS
+    const { error: uploadError } = await supabase.storage
+      .from('public_uploads')
+      .upload(fileName, fileData, {
+        contentType: file.type,
+        upsert: true
+      });
 
-      // Upload file to public_uploads bucket - which is now public with no RLS
-      const { error: uploadError } = await supabase.storage
-        .from('public_uploads')
-        .upload(fileName, fileData, {
-          contentType: file.type,
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Error uploading file:', uploadError);
-        return new Response(JSON.stringify({ error: 'Failed to upload file', details: uploadError.message }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        });
-      }
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      return new Response(JSON.stringify({ error: 'Failed to upload file', details: uploadError.message }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
     }
+
+    // Get public URL for the file
+    const { data: urlData } = await supabase.storage
+      .from('public_uploads')
+      .getPublicUrl(fileName);
 
     // Insert record in the reports table without any auth checks
     const { data: report, error: insertError } = await supabase
@@ -98,7 +97,7 @@ serve(async (req) => {
       .insert([{
         title,
         description: description + `\nContact Email: ${email}`,
-        pdf_url: fileName, // This can be null now
+        pdf_url: fileName,
         is_public_submission: true,
         submitter_email: email,
         analysis_status: 'pending'

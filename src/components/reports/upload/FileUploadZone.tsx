@@ -25,16 +25,14 @@ export function FileUploadZone({
   buttonText = "Select File",
   disabled = false
 }: FileUploadZoneProps) {
-  const isOptional = label.toLowerCase().includes('optional');
-  
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <div className={`border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors ${isOptional ? 'border-muted' : ''}`}>
+      <div className="border-2 border-dashed rounded-md p-6 text-center hover:bg-muted/50 transition-colors">
         <div className="flex flex-col items-center space-y-2">
-          <FileUp className={`h-8 w-8 ${isOptional ? 'text-muted-foreground/70' : 'text-muted-foreground'}`} />
+          <FileUp className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            {file ? file.name : isOptional ? "Optional: Click to Upload" : "Click to Upload"}
+            {file ? file.name : "Click to Upload"}
           </p>
           <Input
             id={id}

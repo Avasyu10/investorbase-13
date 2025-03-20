@@ -376,15 +376,13 @@ export async function analyzeReportDirect(file: File, title: string, description
   }
 }
 
-export async function uploadPublicReport(file: File | null, title: string, description: string = '', websiteUrl: string = '', email: string = '') {
+export async function uploadPublicReport(file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') {
   try {
     console.log('Uploading public report');
     
     // Create FormData for direct submission to the edge function
     const formData = new FormData();
-    if (file) {
-      formData.append('file', file);
-    }
+    formData.append('file', file);
     formData.append('title', title);
     formData.append('email', email);
     
