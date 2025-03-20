@@ -115,7 +115,7 @@ export function useCompanies(
   return { companies, totalCount, isLoading, error };
 }
 
-// Add useCompanyDetails hook
+// Updated useCompanyDetails hook
 export function useCompanyDetails(companyId?: string) {
   const [company, setCompany] = useState<CompanyDetailed | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,58 +130,85 @@ export function useCompanyDetails(companyId?: string) {
     async function fetchCompanyDetails() {
       try {
         setIsLoading(true);
+        console.log('Fetching company details for ID:', companyId);
         
         // First try to fetch from Supabase if authenticated
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          console.log('Trying to fetch company details from Supabase for:', companyId);
-          try {
-            // Query company from Supabase
-            const { data: companyData, error: companyError } = await supabase
+          console.log('User authenticated, trying to fetch from Supabase');
+          
+          // Check if companyId is numeric or UUID
+          const isNumeric = /^\d+$/.test(companyId);
+          let companyData;
+          
+          if (isNumeric) {
+            console.log('Numeric ID detected, fetching by numeric ID using get_company_by_numeric_id function');
+            
+            // Use RPC function to get company by numeric ID
+            const { data, error } = await supabase.rpc('get_company_by_numeric_id', { 
+              p_numeric_id: parseInt(companyId) 
+            });
+            
+            if (error) {
+              console.error('Error fetching company by numeric ID:', error);
+              throw error;
+            }
+            
+            // RPC might return array or single object
+            companyData = Array.isArray(data) ? data[0] : data;
+            console.log('Company data from RPC:', companyData);
+          } else {
+            // Fetch by UUID directly
+            console.log('UUID detected, fetching directly');
+            const { data, error } = await supabase
               .from('companies')
               .select('*, sections(*)')
               .eq('id', companyId)
               .maybeSingle();
               
-            if (companyError) {
-              console.error('Error fetching company from Supabase:', companyError);
-              throw companyError;
+            if (error) {
+              console.error('Error fetching company by UUID:', error);
+              throw error;
             }
             
-            if (companyData) {
-              console.log('Found company in Supabase:', companyData);
-              const formattedCompany: CompanyDetailed = {
-                id: parseInt(companyData.id.split('-')[0], 16),
-                name: companyData.name,
-                overallScore: companyData.overall_score,
-                createdAt: companyData.created_at,
-                updatedAt: companyData.updated_at,
-                sections: companyData.sections.map((section: any) => ({
-                  id: section.id,
-                  type: section.type as any,
-                  title: section.title,
-                  score: section.score,
-                  description: section.description,
-                  createdAt: section.created_at,
-                  updatedAt: section.updated_at
-                })),
-                assessmentPoints: companyData.assessment_points || [],
-                perplexityResponse: companyData.perplexity_response,
-                perplexityPrompt: companyData.perplexity_prompt,
-                perplexityRequestedAt: companyData.perplexity_requested_at,
-                reportId: companyData.report_id
-              };
-              
-              setCompany(formattedCompany);
-              setIsLoading(false);
-              setError(null);
-              return;
-            }
-          } catch (err) {
-            console.error('Error processing Supabase company data:', err);
-            // Fall back to mock data
+            companyData = data;
+            console.log('Company data by UUID:', companyData);
           }
+          
+          if (companyData) {
+            // Format company data to match CompanyDetailed structure
+            const formattedCompany: CompanyDetailed = {
+              id: parseInt(companyData.id.split('-')[0], 16),
+              name: companyData.name,
+              overallScore: companyData.overall_score,
+              createdAt: companyData.created_at,
+              updatedAt: companyData.updated_at || companyData.created_at,
+              sections: (companyData.sections || []).map((section: any) => ({
+                id: section.id,
+                type: section.type as any,
+                title: section.title,
+                score: section.score,
+                description: section.description,
+                createdAt: section.created_at,
+                updatedAt: section.updated_at || section.created_at
+              })),
+              assessmentPoints: companyData.assessment_points || [],
+              perplexityResponse: companyData.perplexity_response,
+              perplexityPrompt: companyData.perplexity_prompt,
+              perplexityRequestedAt: companyData.perplexity_requested_at,
+              reportId: companyData.report_id
+            };
+            
+            setCompany(formattedCompany);
+            setError(null);
+            setIsLoading(false);
+            return;
+          } else {
+            console.log('No company found in Supabase, trying mock data for ID:', companyId);
+          }
+        } else {
+          console.log('No authenticated user, using mock data');
         }
         
         // Fall back to mock API if no Supabase data or not authenticated
@@ -209,7 +236,7 @@ export function useCompanyDetails(companyId?: string) {
   return { company, isLoading, error };
 }
 
-// Add useSectionDetails hook
+// Updated useSectionDetails hook
 export function useSectionDetails(companyId?: string, sectionId?: string) {
   const [section, setSection] = useState<SectionDetailed | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -224,69 +251,99 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
     async function fetchSectionDetails() {
       try {
         setIsLoading(true);
+        console.log('Fetching section details for company:', companyId, 'section:', sectionId);
         
         // First try to fetch from Supabase if authenticated
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          console.log('Trying to fetch section details from Supabase for:', companyId, sectionId);
-          try {
-            // Query section details including strengths and weaknesses
-            const { data: sectionData, error: sectionError } = await supabase
-              .from('sections')
-              .select('*')
-              .eq('id', sectionId)
-              .eq('company_id', companyId)
-              .maybeSingle();
-              
-            if (sectionError) {
-              console.error('Error fetching section from Supabase:', sectionError);
-              throw sectionError;
+          console.log('User authenticated, trying to fetch from Supabase');
+          
+          // Check if companyId is numeric or UUID
+          const isNumeric = /^\d+$/.test(companyId);
+          let companyUuid;
+          
+          if (isNumeric) {
+            console.log('Numeric company ID detected, getting UUID first');
+            
+            // Use RPC function to get company UUID by numeric ID
+            const { data, error } = await supabase.rpc('get_company_by_numeric_id', { 
+              p_numeric_id: parseInt(companyId) 
+            });
+            
+            if (error) {
+              console.error('Error fetching company by numeric ID:', error);
+              throw error;
             }
             
-            if (sectionData) {
-              console.log('Found section in Supabase:', sectionData);
-              
-              // Fetch section details for strengths, weaknesses, and detailed content
-              const { data: sectionDetails, error: detailsError } = await supabase
-                .from('section_details')
-                .select('*')
-                .eq('section_id', sectionId);
-                
-              if (detailsError) {
-                console.error('Error fetching section details:', detailsError);
-              }
-              
-              // Process section details
-              const strengths = sectionDetails?.filter(detail => detail.detail_type === 'strength')
-                .map(strength => strength.content) || [];
-              
-              const weaknesses = sectionDetails?.filter(detail => detail.detail_type === 'weakness')
-                .map(weakness => weakness.content) || [];
-              
-              const detailedContent = sectionDetails?.find(detail => detail.detail_type === 'content')?.content || '';
-              
-              const formattedSection: SectionDetailed = {
-                id: sectionData.id,
-                type: sectionData.type as any,
-                title: sectionData.title,
-                score: sectionData.score,
-                description: sectionData.description || '',
-                strengths: strengths,
-                weaknesses: weaknesses,
-                detailedContent: detailedContent,
-                createdAt: sectionData.created_at,
-                updatedAt: sectionData.updated_at
-              };
-              
-              setSection(formattedSection);
-              setIsLoading(false);
-              setError(null);
-              return;
+            // RPC might return array or single object
+            const companyData = Array.isArray(data) ? data[0] : data;
+            
+            if (!companyData) {
+              console.error('Company not found with numeric ID:', companyId);
+              throw new Error('Company not found');
             }
-          } catch (err) {
-            console.error('Error processing Supabase section data:', err);
-            // Fall back to mock data
+            
+            companyUuid = companyData.id;
+            console.log('Found company UUID:', companyUuid);
+          } else {
+            companyUuid = companyId;
+          }
+          
+          // Query section details
+          const { data: sectionData, error: sectionError } = await supabase
+            .from('sections')
+            .select('*')
+            .eq('id', sectionId)
+            .eq('company_id', companyUuid)
+            .maybeSingle();
+            
+          if (sectionError) {
+            console.error('Error fetching section from Supabase:', sectionError);
+            throw sectionError;
+          }
+          
+          if (sectionData) {
+            console.log('Found section in Supabase:', sectionData);
+            
+            // Fetch section details for strengths, weaknesses, and detailed content
+            const { data: sectionDetails, error: detailsError } = await supabase
+              .from('section_details')
+              .select('*')
+              .eq('section_id', sectionId);
+              
+            if (detailsError) {
+              console.error('Error fetching section details:', detailsError);
+            }
+            
+            // Process section details
+            const strengths = sectionDetails?.filter(detail => detail.detail_type === 'strength')
+              .map(strength => strength.content) || [];
+            
+            const weaknesses = sectionDetails?.filter(detail => detail.detail_type === 'weakness')
+              .map(weakness => weakness.content) || [];
+            
+            const detailedContent = sectionDetails?.find(detail => detail.detail_type === 'content')?.content || '';
+            
+            const formattedSection: SectionDetailed = {
+              id: sectionData.id,
+              type: sectionData.type as any,
+              title: sectionData.title,
+              score: sectionData.score,
+              description: sectionData.description || '',
+              strengths: strengths,
+              weaknesses: weaknesses,
+              detailedContent: detailedContent,
+              createdAt: sectionData.created_at,
+              updatedAt: sectionData.updated_at || sectionData.created_at
+            };
+            
+            setSection(formattedSection);
+            setIsLoading(false);
+            setError(null);
+            return;
+          } else {
+            console.log('Section not found in Supabase, trying mock data');
           }
         }
         
