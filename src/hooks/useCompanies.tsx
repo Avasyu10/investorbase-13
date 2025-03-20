@@ -55,7 +55,9 @@ export function useCompanies(
               updatedAt: item.created_at,
               assessmentPoints: item.assessment_points || [],
               // Add a source indicator for public submissions
-              source: isFromPublicSubmission ? 'public' : 'dashboard'
+              source: isFromPublicSubmission ? 'public' : 'dashboard',
+              // Add report ID if available
+              reportId: item.report_id
             };
           });
           
@@ -87,7 +89,8 @@ export function useCompanies(
         
         if ('data' in response.data && 'pagination' in response.data) {
           // Paginated response
-          setCompanies(response.data.data);
+          const paginatedData = response.data.data as CompanyListItem[];
+          setCompanies(paginatedData);
           setTotalCount(response.data.pagination.total);
         } else {
           // Non-paginated response
@@ -156,7 +159,7 @@ export function useCompanyDetails(companyId?: string) {
                 updatedAt: companyData.updated_at,
                 sections: companyData.sections.map((section: any) => ({
                   id: section.id,
-                  type: section.type,
+                  type: section.type as any,
                   title: section.title,
                   score: section.score,
                   description: section.description,
@@ -228,7 +231,7 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         if (user) {
           console.log('Trying to fetch section details from Supabase for:', companyId, sectionId);
           try {
-            // Query section from Supabase
+            // Query section details including strengths and weaknesses
             const { data: sectionData, error: sectionError } = await supabase
               .from('sections')
               .select('*')
@@ -243,15 +246,35 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
             
             if (sectionData) {
               console.log('Found section in Supabase:', sectionData);
+              
+              // Fetch section details for strengths, weaknesses, and detailed content
+              const { data: sectionDetails, error: detailsError } = await supabase
+                .from('section_details')
+                .select('*')
+                .eq('section_id', sectionId);
+                
+              if (detailsError) {
+                console.error('Error fetching section details:', detailsError);
+              }
+              
+              // Process section details
+              const strengths = sectionDetails?.filter(detail => detail.detail_type === 'strength')
+                .map(strength => strength.content) || [];
+              
+              const weaknesses = sectionDetails?.filter(detail => detail.detail_type === 'weakness')
+                .map(weakness => weakness.content) || [];
+              
+              const detailedContent = sectionDetails?.find(detail => detail.detail_type === 'content')?.content || '';
+              
               const formattedSection: SectionDetailed = {
                 id: sectionData.id,
                 type: sectionData.type as any,
                 title: sectionData.title,
                 score: sectionData.score,
-                description: sectionData.description,
-                strengths: sectionData.strengths || [],
-                weaknesses: sectionData.weaknesses || [],
-                detailedContent: sectionData.detailed_content || '',
+                description: sectionData.description || '',
+                strengths: strengths,
+                weaknesses: weaknesses,
+                detailedContent: detailedContent,
                 createdAt: sectionData.created_at,
                 updatedAt: sectionData.updated_at
               };

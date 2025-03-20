@@ -19,11 +19,13 @@ export interface CompanyBase extends BaseEntity {
   perplexityResponse?: string; // Latest research from Perplexity
   perplexityPrompt?: string; // Prompt sent to Perplexity
   perplexityRequestedAt?: string; // When the research was requested
+  reportId?: string; // ID of the associated report
 }
 
 export interface CompanyListItem extends CompanyBase {
   // For compatibility with current UI
   score?: number;  
+  source?: 'dashboard' | 'public'; // Added source property for tracking public submissions
 }
 
 export type SectionType = 
@@ -50,6 +52,7 @@ export interface CompanyDetailed extends CompanyBase {
   sections: SectionBase[];
   assessmentPoints: string[];
   perplexityResponse?: string;
+  reportId?: string; // Added reportId here too for explicit typing
 }
 
 export interface SectionDetailed extends SectionBase {
