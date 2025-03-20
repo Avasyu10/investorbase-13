@@ -74,20 +74,31 @@ export async function getReportData(reportId: string, authHeader: string = '') {
     }
   }
 
-  // Check if the public_uploads bucket exists
+  // Check for the existence of the public_uploads bucket before trying to access it
   try {
-    const { data: bucket, error: bucketError } = await supabase
+    // List all buckets to verify they exist
+    const { data: buckets, error: bucketsError } = await supabase
       .storage
-      .getBucket('public_uploads');
+      .listBuckets();
       
-    if (bucketError) {
-      console.error("Storage bucket 'public_uploads' might not exist:", bucketError);
-      throw new Error(`Storage bucket error: ${bucketError.message}`);
+    if (bucketsError) {
+      console.error("Error listing storage buckets:", bucketsError);
+      throw new Error(`Storage access error: ${bucketsError.message}`);
     }
     
-    console.log("Successfully found storage bucket 'public_uploads'");
+    console.log("Available buckets:", buckets.map(b => b.name).join(', '));
+    
+    // Check if our bucket exists in the list
+    const publicUploadsBucket = buckets.find(b => b.name === 'public_uploads');
+    
+    if (!publicUploadsBucket) {
+      console.error("The 'public_uploads' bucket was not found!");
+      throw new Error("Storage bucket 'public_uploads' does not exist in this project");
+    }
+    
+    console.log("Found the 'public_uploads' bucket");
   } catch (bucketError) {
-    console.error("Error checking bucket:", bucketError);
+    console.error("Error checking buckets:", bucketError);
     throw new Error(`Cannot access storage: ${bucketError.message}`);
   }
 
