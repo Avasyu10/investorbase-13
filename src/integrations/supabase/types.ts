@@ -141,6 +141,7 @@ export type Database = {
       }
       public_submission_forms: {
         Row: {
+          auto_analyze: boolean
           created_at: string
           form_name: string
           form_slug: string
@@ -150,6 +151,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          auto_analyze?: boolean
           created_at?: string
           form_name: string
           form_slug: string
@@ -159,6 +161,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          auto_analyze?: boolean
           created_at?: string
           form_name?: string
           form_slug?: string
