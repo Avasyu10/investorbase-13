@@ -1,10 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
 import { supabase } from '@/integrations/supabase/client';
 
-// Original useCompanies hook
 export function useCompanies(
   page = 1, 
   limit = 20, 
@@ -21,17 +19,14 @@ export function useCompanies(
       try {
         setIsLoading(true);
         
-        // First try to fetch from Supabase
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          // If no user, use the mock API data
           console.log('No authenticated user, using mock data');
           fetchMockCompanies();
           return;
         }
         
-        // Query companies from Supabase
         const { data, error, count } = await supabase
           .from('companies')
           .select('*', { count: 'exact' })
@@ -44,19 +39,16 @@ export function useCompanies(
         }
         
         if (data && data.length > 0) {
-          // Transform data to match CompanyListItem format
           const formattedCompanies: CompanyListItem[] = data.map(item => {
             const isFromPublicSubmission = item.report_id && !!item.user_id;
             return {
-              id: parseInt(item.id.split('-')[0], 16), // Generate a numeric ID from the UUID
+              id: parseInt(item.id.split('-')[0], 16),
               name: item.name,
               overallScore: item.overall_score,
               createdAt: item.created_at,
               updatedAt: item.created_at,
               assessmentPoints: item.assessment_points || [],
-              // Add a source indicator for public submissions
               source: isFromPublicSubmission ? 'public' : 'dashboard',
-              // Add report ID if available
               reportId: item.report_id
             };
           });
@@ -65,13 +57,11 @@ export function useCompanies(
           setTotalCount(count || data.length);
           setError(null);
         } else {
-          // Fallback to mock data if no results from Supabase
           console.log('No companies found in Supabase, using mock data');
           fetchMockCompanies();
         }
       } catch (err) {
         console.error('Failed to fetch companies:', err);
-        // Fallback to mock data on error
         fetchMockCompanies();
       } finally {
         setIsLoading(false);
@@ -88,14 +78,11 @@ export function useCompanies(
         });
         
         if ('data' in response.data && 'pagination' in response.data) {
-          // Paginated response
           const paginatedData = response.data.data as CompanyListItem[];
           setCompanies(paginatedData);
-          // Fix: Change 'total' to the correct property or handle it conditionally
           const paginationData = response.data.pagination as { total?: number };
           setTotalCount(paginationData.total || paginatedData.length);
         } else {
-          // Non-paginated response
           const data = response.data as CompanyListItem[];
           setCompanies(data);
           setTotalCount(data.length);
@@ -117,7 +104,6 @@ export function useCompanies(
   return { companies, totalCount, isLoading, error };
 }
 
-// Updated useCompanyDetails hook with enhanced logging
 export function useCompanyDetails(companyId?: string) {
   const [company, setCompany] = useState<CompanyDetailed | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,13 +120,11 @@ export function useCompanyDetails(companyId?: string) {
         setIsLoading(true);
         console.log('[DEBUG] Fetching company details for ID:', companyId, 'Type:', typeof companyId);
         
-        // First try to fetch from Supabase if authenticated
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
           console.log('[DEBUG] User authenticated, trying to fetch from Supabase. User ID:', user.id);
           
-          // Check if companyId is numeric or UUID
           const isNumeric = /^\d+$/.test(companyId);
           console.log('[DEBUG] Is company ID numeric?', isNumeric);
           
@@ -150,9 +134,8 @@ export function useCompanyDetails(companyId?: string) {
             console.log('[DEBUG] Numeric ID detected, fetching by numeric ID using find_company_by_numeric_id function');
             console.log('[DEBUG] Calling RPC with parameter:', { numeric_id: companyId });
             
-            // The function expects a text parameter, so we pass the companyId as is
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
-              numeric_id: companyId  // Pass directly as text parameter
+              numeric_id: companyId
             });
             
             if (error) {
@@ -169,14 +152,10 @@ export function useCompanyDetails(companyId?: string) {
               console.log('[DEBUG] Data array length:', data.length);
             }
             
-            // Check if data is an array and has the expected structure
             if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
-              // Get the actual company UUID from the result
               const companyUuid = data[0].id;
               console.log('[DEBUG] Found company UUID:', companyUuid);
               
-              // Now fetch the full company details with the UUID
-              console.log('[DEBUG] Fetching full company details with UUID:', companyUuid);
               const { data: fullCompanyData, error: fullDataError } = await supabase
                 .from('companies')
                 .select('*, sections(*)')
@@ -200,7 +179,6 @@ export function useCompanyDetails(companyId?: string) {
               companyData = null;
             }
           } else {
-            // Fetch by UUID directly
             console.log('[DEBUG] UUID detected, fetching directly with:', companyId);
             const { data, error } = await supabase
               .from('companies')
@@ -220,7 +198,6 @@ export function useCompanyDetails(companyId?: string) {
           
           if (companyData) {
             console.log('[DEBUG] Formatting company data to match CompanyDetailed structure');
-            // Format company data to match CompanyDetailed structure
             const formattedCompany: CompanyDetailed = {
               id: parseInt(companyData.id.split('-')[0], 16),
               name: companyData.name,
@@ -260,12 +237,9 @@ export function useCompanyDetails(companyId?: string) {
           console.log('[DEBUG] No authenticated user, using mock data');
         }
         
-        // Fall back to mock API if no Supabase data or not authenticated
         console.log('[DEBUG] Falling back to mock API for company details');
         
         try {
-          // Convert string to number before passing to API
-          console.log('[DEBUG] Converting companyId to number:', companyId);
           const numericId = parseInt(companyId);
           
           if (isNaN(numericId)) {
@@ -304,7 +278,6 @@ export function useCompanyDetails(companyId?: string) {
   return { company, isLoading, error };
 }
 
-// Updated useSectionDetails hook with enhanced logging
 export function useSectionDetails(companyId?: string, sectionId?: string) {
   const [section, setSection] = useState<SectionDetailed | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -322,13 +295,11 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         console.log('[DEBUG] Fetching section details for company:', companyId, 'section:', sectionId);
         console.log('[DEBUG] Parameter types - companyId:', typeof companyId, 'sectionId:', typeof sectionId);
         
-        // First try to fetch from Supabase if authenticated
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
           console.log('[DEBUG] User authenticated, trying to fetch from Supabase. User ID:', user.id);
           
-          // Check if companyId is numeric or UUID
           const isNumeric = /^\d+$/.test(companyId);
           console.log('[DEBUG] Is company ID numeric?', isNumeric);
           
@@ -338,7 +309,6 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
             console.log('[DEBUG] Numeric company ID detected, getting UUID first');
             console.log('[DEBUG] RPC parameter:', { numeric_id: companyId });
             
-            // Pass companyId directly as text parameter
             const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
               numeric_id: companyId
             });
@@ -360,7 +330,6 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
               }
             }
             
-            // Check if data is an array and has the expected structure
             if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
               companyUuid = data[0].id;
               console.log('[DEBUG] Found company UUID:', companyUuid);
@@ -374,7 +343,6 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
             console.log('[DEBUG] Using companyId directly as UUID:', companyUuid);
           }
           
-          // Query section details
           console.log('[DEBUG] Querying section with ID:', sectionId, 'and company_id:', companyUuid);
           const { data: sectionData, error: sectionError } = await supabase
             .from('sections')
@@ -392,8 +360,6 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
           if (sectionData) {
             console.log('[DEBUG] Found section in Supabase:', sectionData.title);
             
-            // Fetch section details for strengths, weaknesses, and detailed content
-            console.log('[DEBUG] Fetching section details for section ID:', sectionId);
             const { data: sectionDetails, error: detailsError } = await supabase
               .from('section_details')
               .select('*')
@@ -406,7 +372,6 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
             
             console.log('[DEBUG] Section details retrieved:', sectionDetails ? sectionDetails.length : 0);
             
-            // Process section details
             const strengths = sectionDetails?.filter(detail => detail.detail_type === 'strength')
               .map(strength => strength.content) || [];
             
@@ -442,12 +407,9 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
           }
         }
         
-        // Fall back to mock API if no Supabase data or not authenticated
         console.log('[DEBUG] Falling back to mock API for section details');
         
         try {
-          // Convert string to number before passing to API
-          console.log('[DEBUG] Converting companyId to number:', companyId);
           const numericCompanyId = parseInt(companyId);
           
           if (isNaN(numericCompanyId)) {
