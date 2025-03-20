@@ -30,6 +30,10 @@ export function useCompanies(
         
         console.log('Fetching companies for user:', user.id);
         
+        // Calculate the range for pagination
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+        
         // With RLS enabled, this query will automatically only return companies 
         // that the user is authorized to view, but we'll add an explicit filter as well
         const { data, error, count } = await supabase
@@ -37,7 +41,7 @@ export function useCompanies(
           .select('*', { count: 'exact' })
           .or(`user_id.eq.${user.id},report_id.in.(select.id.from.reports.where.user_id.eq.${user.id})`)
           .order(sortField, { ascending: sortOrder === 'asc' })
-          .range((page - 1) * limit, page * limit - 1);
+          .range(from, to);
           
         if (error) {
           console.error('Error fetching companies from Supabase:', error);
@@ -45,7 +49,7 @@ export function useCompanies(
         }
         
         if (data && data.length > 0) {
-          console.log(`Found ${data.length} companies for user ${user.id}`);
+          console.log(`Found ${data.length} companies for user ${user.id} (page ${page}, total: ${count})`);
           
           const formattedCompanies: CompanyListItem[] = data.map(item => {
             return {

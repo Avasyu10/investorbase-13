@@ -7,11 +7,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis
+} from "@/components/ui/pagination";
 
 export function PublicSubmissionsList() {
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 12;
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,14 +42,17 @@ export function PublicSubmissionsList() {
         
         console.log('Fetching public submissions');
         
-        // Query for public submissions that have been analyzed
-        // We're explicitly requiring is_public_submission = true
-        const { data, error } = await supabase
+        // Query for public submissions that have been analyzed with pagination
+        const from = (currentPage - 1) * pageSize;
+        const to = from + pageSize - 1;
+        
+        const { data, error, count } = await supabase
           .from('reports')
-          .select('*, companies!reports_company_id_fkey(*)')
+          .select('*, companies!reports_company_id_fkey(*)', { count: 'exact' })
           .eq('is_public_submission', true)
           .not('company_id', 'is', null)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .range(from, to);
           
         if (error) {
           console.error('Error fetching public submissions:', error);
@@ -50,8 +65,9 @@ export function PublicSubmissionsList() {
           return;
         }
         
-        console.log(`Found ${data?.length || 0} public submissions`);
+        console.log(`Found ${data?.length || 0} public submissions (page ${currentPage}, total: ${count})`);
         setSubmissions(data || []);
+        setTotalCount(count || 0);
       } catch (err) {
         console.error('Error in fetchSubmissions:', err);
         setError(err);
@@ -66,12 +82,48 @@ export function PublicSubmissionsList() {
     }
     
     fetchSubmissions();
-  }, [toast]);
+  }, [currentPage, toast, pageSize]);
 
   const handleCompanyClick = (companyId) => {
     if (companyId) {
       navigate(`/company/${companyId}`);
     }
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    
+    pages.push(1);
+    
+    let startPage = Math.max(2, currentPage - 1);
+    let endPage = Math.min(totalPages - 1, currentPage + 1);
+    
+    if (startPage > 2) {
+      pages.push(-1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    if (endPage < totalPages - 1) {
+      pages.push(-2);
+    }
+    
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+    
+    return pages;
   };
 
   if (isLoading) {
@@ -109,35 +161,72 @@ export function PublicSubmissionsList() {
       </div>
       
       {submissions.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {submissions.map((submission) => (
-            <Card 
-              key={submission.id} 
-              className="cursor-pointer transition-all hover:shadow-md"
-              onClick={() => handleCompanyClick(submission.company_id)}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg sm:text-xl">{submission.title}</CardTitle>
-                {submission.companies && (
-                  <CardDescription>
-                    Overall Score: {submission.companies.overall_score}/5
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                {submission.companies && (
-                  <Progress 
-                    value={submission.companies.overall_score * 20} 
-                    className="h-2 mb-2" 
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {submissions.map((submission) => (
+              <Card 
+                key={submission.id} 
+                className="cursor-pointer transition-all hover:shadow-md"
+                onClick={() => handleCompanyClick(submission.company_id)}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg sm:text-xl">{submission.title}</CardTitle>
+                  {submission.companies && (
+                    <CardDescription>
+                      Overall Score: {submission.companies.overall_score}/5
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {submission.companies && (
+                    <Progress 
+                      value={submission.companies.overall_score * 20} 
+                      className="h-2 mb-2" 
+                    />
+                  )}
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Added: {new Date(submission.created_at).toLocaleDateString()}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {totalPages > 1 && (
+            <Pagination className="mt-8">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
                   />
-                )}
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Added: {new Date(submission.created_at).toLocaleDateString()}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </PaginationItem>
+                
+                {getPageNumbers().map((pageNum, index) => (
+                  <PaginationItem key={index}>
+                    {pageNum === -1 || pageNum === -2 ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        isActive={pageNum === currentPage}
+                        onClick={() => goToPage(pageNum)}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </>
       ) : (
         <div className="text-center py-16 border rounded-lg bg-muted/20">
           <h3 className="text-lg font-medium mb-2">No public submissions found</h3>
