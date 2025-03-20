@@ -106,8 +106,8 @@ export function CompanyDetails() {
 
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
-      <div className="mb-7 sm:mb-9">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4">
+      <div className="mb-9">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8">
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
           </div>
@@ -139,7 +139,7 @@ export function CompanyDetails() {
           </div>
         </div>
         
-        {/* Add the new CompanyInfoCard component here */}
+        {/* Company Info Card with added top margin */}
         <CompanyInfoCard />
         
         <div className="mb-5">
@@ -160,7 +160,7 @@ export function CompanyDetails() {
         onSuccess={onResearchFetched}
       />
       
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2 ml-7">
         <BarChart2 className="h-5 w-5 text-primary" />
         Section Metrics
       </h2>

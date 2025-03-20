@@ -29,7 +29,7 @@ export function CompanyInfoCard({
   const [showMoreInfo, setShowMoreInfo] = useState(false);
 
   return (
-    <div className="mb-7">
+    <div className="mb-7 ml-7">
       <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
         <Briefcase className="h-5 w-5 text-primary" />
         Company Information
