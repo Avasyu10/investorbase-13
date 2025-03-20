@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { uploadReport, analyzeReport, uploadPublicReport } from "@/lib/supabase";
+import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
@@ -149,7 +149,7 @@ export function ReportUpload({
         formData.append('email', emailForResults);
         formData.append('description', briefIntroduction || '');
         
-        const response = await fetch(`${supabaseUrl}/functions/v1/handle-public-upload`, {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-public-upload`, {
           method: 'POST',
           body: formData,
         });
