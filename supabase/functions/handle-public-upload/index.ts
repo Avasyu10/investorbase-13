@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 // This edge function handles uploads from the public form
 serve(async (req) => {
   try {
-    // CORS headers
+    // CORS headers - allow all origins and methods
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -42,12 +42,9 @@ serve(async (req) => {
       });
     }
 
-    // Create Supabase client
+    // Create Supabase client with service role key (no authentication required)
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    
-    // Log important values for debugging (masked for security)
-    console.log(`URL exists: ${!!supabaseUrl}, Key exists: ${!!supabaseServiceKey}`);
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
@@ -57,7 +54,13 @@ serve(async (req) => {
       });
     }
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Initialize Supabase client with service role key for admin access
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Create a unique filename
     const fileExt = file.name.split('.').pop();
@@ -67,11 +70,12 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const fileData = new Uint8Array(arrayBuffer);
 
-    // Upload file to public_uploads bucket
+    // Upload file to public_uploads bucket without any auth checks
     const { error: uploadError } = await supabase.storage
       .from('public_uploads')
       .upload(fileName, fileData, {
         contentType: file.type,
+        upsert: true
       });
 
     if (uploadError) {
@@ -108,8 +112,6 @@ serve(async (req) => {
         status: 500,
       });
     }
-
-    // Don't start analysis process here - we'll do that separately later
 
     return new Response(JSON.stringify({ 
       success: true, 
