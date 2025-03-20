@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { uploadReport, analyzeReport } from "@/lib/supabase";
+import { uploadReport, analyzeReport, uploadPublicReport } from "@/lib/supabase";
 import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
@@ -134,6 +135,7 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
       
       let report;
       if (isPublic) {
+        // Use the updated function for public uploads
         report = await uploadPublicReport(file, title, briefIntroduction, companyWebsite, emailForResults);
       } else {
         report = await uploadReport(file, title, briefIntroduction, companyWebsite);

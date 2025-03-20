@@ -375,3 +375,58 @@ export async function analyzeReportDirect(file: File, title: string, description
     throw error;
   }
 }
+
+export async function uploadPublicReport(file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') {
+  try {
+    console.log('Uploading public report');
+    
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    
+    // Upload the file to the public_uploads bucket (instead of report_pdfs)
+    const { error: uploadError } = await supabase.storage
+      .from('public_uploads')
+      .upload(fileName, file);
+      
+    if (uploadError) {
+      console.error('Error uploading file to storage:', uploadError);
+      throw uploadError;
+    }
+    
+    console.log('File uploaded to storage successfully, saving record to database');
+    
+    // Get the public URL for the uploaded file
+    const { data: urlData } = await supabase.storage
+      .from('public_uploads')
+      .getPublicUrl(fileName);
+      
+    const publicUrl = urlData?.publicUrl || fileName;
+    
+    // Insert a record in the reports table
+    const { data: report, error: insertError } = await supabase
+      .from('reports')
+      .insert([{
+        title,
+        description: description + (email ? `\nContact Email: ${email}` : ''),
+        pdf_url: fileName,
+        is_public_submission: true,
+        submitter_email: email,
+        analysis_status: 'pending'
+      }])
+      .select()
+      .single();
+      
+    if (insertError) {
+      console.error('Error inserting report record:', insertError);
+      throw insertError;
+    }
+
+    console.log('Public report record created successfully:', report);
+    
+    return report;
+  } catch (error) {
+    console.error('Error uploading public report:', error);
+    throw error;
+  }
+}
