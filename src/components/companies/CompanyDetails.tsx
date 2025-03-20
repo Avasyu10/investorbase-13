@@ -1,8 +1,10 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { LatestResearch } from "./LatestResearch";
+import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -136,6 +138,9 @@ export function CompanyDetails() {
             </div>
           </div>
         </div>
+        
+        {/* Add the new CompanyInfoCard component here */}
+        <CompanyInfoCard />
         
         <div className="mb-5">
           <Progress 
