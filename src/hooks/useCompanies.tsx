@@ -257,15 +257,27 @@ export function useCompanyDetails(companyId?: string) {
           
           setCompany(response.data);
           setError(null);
-        } catch (apiError) {
+        } catch (apiError: any) {
           console.error('[DEBUG] Failed to fetch from mock API:', apiError);
-          throw apiError;
+          
+          const errorMessage = apiError.message === 'Company not found' 
+            ? `Company with ID ${companyId} was not found in our database.`
+            : 'Unable to retrieve company details. Please try again later.';
+            
+          throw new Error(errorMessage);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('[DEBUG] Failed to fetch company details:', err);
         console.error('[DEBUG] Error type:', err instanceof Error ? 'Error object' : typeof err);
         console.error('[DEBUG] Error details:', err instanceof Error ? err.message : String(err));
-        setError(err instanceof Error ? err : new Error(String(err)));
+        
+        const userError = new Error(
+          typeof err === 'object' && err.message 
+            ? err.message
+            : `Unable to find company with ID ${companyId}. The company might not exist or there was a connection issue.`
+        );
+        
+        setError(userError);
         setCompany(null);
       } finally {
         setIsLoading(false);

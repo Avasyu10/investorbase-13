@@ -16,8 +16,10 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// Set to false to use the real API
-const USE_MOCK_API = false;  
+// Set to true to use mock API when real API fails
+const USE_MOCK_API = false;
+// Set to true to use mock API as a fallback when real API fails
+const USE_MOCK_API_FALLBACK = true;
 
 // API Client that decides whether to use real or mock API
 const api = {
@@ -40,10 +42,30 @@ const api = {
         throw err;
       }
     }
+    
     // Use real API
     console.log('[DEBUG API] Using real API for getCompanies');
-    const response = await apiClient.getCompanies(params);
-    return response as ApiResponse<CompanyListItem[]>;
+    try {
+      const response = await apiClient.getCompanies(params);
+      return response as ApiResponse<CompanyListItem[]>;
+    } catch (error) {
+      // Fallback to mock data if enabled
+      if (USE_MOCK_API_FALLBACK) {
+        console.log('[DEBUG API] Real API failed, falling back to mock data');
+        try {
+          const response = await getMockCompanies(params);
+          console.log('[DEBUG API] Mock fallback data retrieved successfully');
+          return {
+            data: response.data,
+            status: 200,
+          };
+        } catch (mockErr) {
+          console.error('[DEBUG API] Even mock fallback failed:', mockErr);
+          throw mockErr;
+        }
+      }
+      throw error;
+    }
   },
 
   getCompany: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
@@ -69,9 +91,30 @@ const api = {
         status: 200,
       };
     }
+    
     // Use real API
     console.log('[DEBUG API] Using real API for getCompany');
-    return apiClient.getCompany(companyId);
+    try {
+      return await apiClient.getCompany(companyId);
+    } catch (error) {
+      // Fallback to mock data if enabled
+      if (USE_MOCK_API_FALLBACK) {
+        console.log('[DEBUG API] Real API failed, checking mock data as fallback');
+        const company = mockCompanyDetails[companyId];
+        
+        if (company) {
+          console.log('[DEBUG API] Found company in mock data:', company.name);
+          return {
+            data: company,
+            status: 200,
+          };
+        }
+        
+        console.log('[DEBUG API] Company not found in mock data either');
+      }
+      
+      throw error;
+    }
   },
 
   // Sections
@@ -104,9 +147,34 @@ const api = {
         throw err;
       }
     }
+    
     // Use real API
     console.log('[DEBUG API] Using real API for getSection');
-    return apiClient.getSection(companyId, sectionId);
+    try {
+      return await apiClient.getSection(companyId, sectionId);
+    } catch (error) {
+      // Fallback to mock data if enabled
+      if (USE_MOCK_API_FALLBACK) {
+        console.log('[DEBUG API] Real API failed, checking mock data as fallback');
+        try {
+          const section = await getMockSectionDetails(companyId, sectionId);
+          
+          if (section) {
+            console.log('[DEBUG API] Found section in mock data:', section.title);
+            return {
+              data: section,
+              status: 200,
+            };
+          }
+          
+          console.log('[DEBUG API] Section not found in mock data either');
+        } catch (mockErr) {
+          console.error('[DEBUG API] Error in mock fallback:', mockErr);
+        }
+      }
+      
+      throw error;
+    }
   },
 
   // Analysis
@@ -133,9 +201,30 @@ const api = {
         status: 200,
       };
     }
+    
     // Use real API
     console.log('[DEBUG API] Using real API for getCompanyAnalysis');
-    return apiClient.getCompanyAnalysis(companyId);
+    try {
+      return await apiClient.getCompanyAnalysis(companyId);
+    } catch (error) {
+      // Fallback to mock data if enabled
+      if (USE_MOCK_API_FALLBACK) {
+        console.log('[DEBUG API] Real API failed, checking mock data as fallback');
+        const company = mockCompanyDetails[companyId];
+        
+        if (company) {
+          console.log('[DEBUG API] Found company analysis in mock data:', company.name);
+          return {
+            data: company,
+            status: 200,
+          };
+        }
+        
+        console.log('[DEBUG API] Company analysis not found in mock data either');
+      }
+      
+      throw error;
+    }
   },
 };
 

@@ -8,7 +8,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files } from "lucide-react";
+import { FileText, BarChart2, Files, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { toast } from "@/hooks/use-toast";
@@ -17,7 +17,7 @@ export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { company, isLoading } = useCompanyDetails(companyId);
+  const { company, isLoading, error } = useCompanyDetails(companyId);
   const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
 
   const handleSectionClick = (sectionId: number | string) => {
@@ -55,6 +55,16 @@ export function CompanyDetails() {
     }
   }, [company?.perplexityResponse, hasResearchUpdated]);
 
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading company",
+        description: error.message || "There was a problem retrieving the company information.",
+        variant: "destructive"
+      });
+    }
+  }, [error]);
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -84,10 +94,21 @@ export function CompanyDetails() {
     );
   }
 
-  if (!company) {
+  if (error || !company) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p>Company not found</p>
+        <Card className="border-destructive/30 bg-destructive/10 p-6">
+          <div className="flex flex-col items-center justify-center text-center gap-4 py-10">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <h2 className="text-xl font-semibold">Company Not Found</h2>
+            <p className="text-muted-foreground max-w-md">
+              {error?.message || `We couldn't find a company with ID: ${companyId}. The company may not exist or there might be a connection issue.`}
+            </p>
+            <Button onClick={() => navigate('/dashboard')} className="mt-4">
+              Return to Dashboard
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -167,13 +188,19 @@ export function CompanyDetails() {
         Section Metrics
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {company.sections.map((section) => (
-          <SectionCard 
-            key={section.id} 
-            section={section} 
-            onClick={() => handleSectionClick(section.id)} 
-          />
-        ))}
+        {company.sections && company.sections.length > 0 ? (
+          company.sections.map((section) => (
+            <SectionCard 
+              key={section.id} 
+              section={section} 
+              onClick={() => handleSectionClick(section.id)} 
+            />
+          ))
+        ) : (
+          <div className="col-span-full text-center py-10 text-muted-foreground">
+            <p>No sections available for this company.</p>
+          </div>
+        )}
       </div>
     </div>
   );
