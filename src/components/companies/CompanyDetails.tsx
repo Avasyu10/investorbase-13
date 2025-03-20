@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -48,12 +47,6 @@ export function CompanyDetails() {
       queryKey: ['company', companyId],
     });
   };
-
-  useEffect(() => {
-    if (hasResearchUpdated && company?.perplexityResponse) {
-      setHasResearchUpdated(false);
-    }
-  }, [company?.perplexityResponse, hasResearchUpdated]);
 
   useEffect(() => {
     if (error) {
@@ -135,7 +128,7 @@ export function CompanyDetails() {
           <div className="flex items-center gap-4 mt-2 sm:mt-0">
             {company.reportId && (
               <Button 
-                onClick={navigateToReport} 
+                onClick={() => navigate(`/reports/${company.reportId}`)} 
                 variant="outline" 
                 className="flex items-center gap-2"
               >
@@ -144,7 +137,7 @@ export function CompanyDetails() {
               </Button>
             )}
             <Button 
-              onClick={navigateToSupplementaryMaterials} 
+              onClick={() => navigate(`/company/${companyId}/supplementary`)} 
               variant="outline" 
               className="flex items-center gap-2"
             >
@@ -160,7 +153,6 @@ export function CompanyDetails() {
           </div>
         </div>
         
-        {/* Added more vertical spacing before the CompanyInfoCard */}
         <div className="mt-6 mb-8">
           <CompanyInfoCard />
         </div>
@@ -180,7 +172,13 @@ export function CompanyDetails() {
         assessmentPoints={company.assessmentPoints || []}
         existingResearch={company.perplexityResponse}
         requestedAt={company.perplexityRequestedAt}
-        onSuccess={onResearchFetched}
+        onSuccess={() => {
+          console.log("Research fetched successfully, invalidating company query");
+          setHasResearchUpdated(true);
+          queryClient.invalidateQueries({
+            queryKey: ['company', companyId],
+          });
+        }}
       />
       
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
@@ -193,7 +191,7 @@ export function CompanyDetails() {
             <SectionCard 
               key={section.id} 
               section={section} 
-              onClick={() => handleSectionClick(section.id)} 
+              onClick={() => navigate(`/company/${companyId}/section/${section.id}`)} 
             />
           ))
         ) : (

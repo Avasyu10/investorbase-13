@@ -16,7 +16,7 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// Set to true to use mock API when real API fails
+// Set to false to use real API
 const USE_MOCK_API = false;
 // Set to true to use mock API as a fallback when real API fails
 const USE_MOCK_API_FALLBACK = true;
@@ -68,7 +68,7 @@ const api = {
     }
   },
 
-  getCompany: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
+  getCompany: async (companyId: number | string): Promise<ApiResponse<CompanyDetailed>> => {
     console.log('[DEBUG API] getCompany called with ID:', companyId, 'Type:', typeof companyId);
     
     if (USE_MOCK_API) {
@@ -95,19 +95,37 @@ const api = {
     // Use real API
     console.log('[DEBUG API] Using real API for getCompany');
     try {
+      // Handle string IDs (UUIDs) directly
+      if (typeof companyId === 'string' && companyId.includes('-')) {
+        console.log('[DEBUG API] UUID format detected, querying by UUID');
+        // This would be handled by the apiClient to fetch from Supabase by UUID
+      }
+      
       return await apiClient.getCompany(companyId);
     } catch (error) {
       // Fallback to mock data if enabled
       if (USE_MOCK_API_FALLBACK) {
         console.log('[DEBUG API] Real API failed, checking mock data as fallback');
-        const company = mockCompanyDetails[companyId];
         
-        if (company) {
-          console.log('[DEBUG API] Found company in mock data:', company.name);
-          return {
-            data: company,
-            status: 200,
-          };
+        // If companyId is a string that might be a UUID, try to extract a numeric ID for mock data
+        let mockId = typeof companyId === 'number' ? companyId : parseInt(companyId.toString());
+        
+        // If parsing failed or this is a UUID, try the first characters as hex
+        if (isNaN(mockId) && typeof companyId === 'string' && companyId.includes('-')) {
+          const hexPart = companyId.split('-')[0];
+          mockId = parseInt(hexPart, 16);
+          console.log('[DEBUG API] Extracted numeric ID from UUID:', mockId);
+        }
+        
+        if (!isNaN(mockId)) {
+          const company = mockCompanyDetails[mockId];
+          if (company) {
+            console.log('[DEBUG API] Found company in mock data using derived ID:', company.name);
+            return {
+              data: company,
+              status: 200,
+            };
+          }
         }
         
         console.log('[DEBUG API] Company not found in mock data either');
