@@ -11,6 +11,7 @@ import CompanyPage from "@/pages/CompanyPage";
 import SectionPage from "@/pages/SectionPage";
 import Report from "@/pages/Report";
 import UploadReport from "@/pages/UploadReport";
+import PublicUpload from "@/pages/PublicUpload";
 import AnalysisSummary from "@/pages/AnalysisSummary";
 import NotFound from "@/pages/NotFound";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -46,6 +47,7 @@ function App() {
                   <Route path="/reports/:id" element={<Report />} />
                   <Route path="/report/:reportId" element={<Report />} />
                   <Route path="/upload" element={<UploadReport />} />
+                  <Route path="/public-upload" element={<PublicUpload />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/profile/setup" element={<ProfileSetup />} />
                   <Route path="/profile/edit" element={<ProfileEdit />} />

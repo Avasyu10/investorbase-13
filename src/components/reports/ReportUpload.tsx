@@ -21,9 +21,10 @@ import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedIn
 
 interface ReportUploadProps {
   onError?: (errorMessage: string) => void;
+  isPublic?: boolean;
 }
 
-export function ReportUpload({ onError }: ReportUploadProps) {
+export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
@@ -37,6 +38,7 @@ export function ReportUpload({ onError }: ReportUploadProps) {
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
+  const [emailForResults, setEmailForResults] = useState("");
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,12 +120,25 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       return;
     }
 
+    if (isPublic && !emailForResults.trim()) {
+      toast.error("Email required", {
+        description: "Please provide your email to receive the analysis results"
+      });
+      return;
+    }
+
     try {
       setIsUploading(true);
       setProgressStage("Processing your submission...");
       setProgress(10);
       
-      const report = await uploadReport(file, title, briefIntroduction, companyWebsite);
+      let report;
+      if (isPublic) {
+        report = await uploadPublicReport(file, title, briefIntroduction, companyWebsite, emailForResults);
+      } else {
+        report = await uploadReport(file, title, briefIntroduction, companyWebsite);
+      }
+      
       setProgress(30);
       console.log("Upload complete, report:", report);
       
@@ -139,6 +154,10 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       
       if (industry) {
         description += `Industry: ${industry}\n`;
+      }
+      
+      if (emailForResults) {
+        description += `Contact Email: ${emailForResults}\n`;
       }
       
       if (supplementFiles.length > 0) {
@@ -239,14 +258,27 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         console.log("Analysis complete, result:", result);
         
         toast.success("Analysis complete", {
-          description: "Your pitch deck has been analyzed successfully!"
+          description: isPublic 
+            ? "Your pitch deck has been analyzed successfully! Results will be sent to your email." 
+            : "Your pitch deck has been analyzed successfully!"
         });
         
-        if (result && result.companyId) {
+        if (!isPublic && result && result.companyId) {
           navigate(`/company/${result.companyId}`);
-        } else {
+        } else if (!isPublic) {
           console.error("No company ID returned from analysis");
           navigate('/dashboard');
+        } else {
+          setFile(null);
+          setSupplementFiles([]);
+          setTitle("");
+          setBriefIntroduction("");
+          setCompanyWebsite("");
+          setCompanyStage("");
+          setIndustry("");
+          setFounderLinkedIns([""]);
+          setEmailForResults("");
+          setProgress(0);
         }
       } catch (analysisError: any) {
         console.error("Error analyzing report:", analysisError);
@@ -261,7 +293,9 @@ export function ReportUpload({ onError }: ReportUploadProps) {
         
         setProgress(0);
         
-        navigate('/dashboard');
+        if (!isPublic) {
+          navigate('/dashboard');
+        }
         return;
       }
     } catch (error: any) {
@@ -280,6 +314,49 @@ export function ReportUpload({ onError }: ReportUploadProps) {
       setIsUploading(false);
       setIsAnalyzing(false);
       setIsScrapingWebsite(false);
+    }
+  };
+
+  const uploadPublicReport = async (file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') => {
+    try {
+      console.log('Uploading public report');
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('report_pdfs')
+        .upload(fileName, file);
+        
+      if (uploadError) {
+        console.error('Error uploading file to storage:', uploadError);
+        throw uploadError;
+      }
+      
+      console.log('File uploaded to storage successfully, saving record to database');
+      
+      const { data: report, error: insertError } = await supabase
+        .from('reports')
+        .insert([{
+          title,
+          description: description + (email ? `\nContact Email: ${email}` : ''),
+          pdf_url: fileName,
+          analysis_status: 'pending'
+        }])
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error('Error inserting report record:', insertError);
+        throw insertError;
+      }
+
+      console.log('Public report record created successfully:', report);
+      
+      return report;
+    } catch (error) {
+      console.error('Error uploading public report:', error);
+      throw error;
     }
   };
 
@@ -307,9 +384,29 @@ export function ReportUpload({ onError }: ReportUploadProps) {
             industry={industry}
             setIndustry={setIndustry}
             founderLinkedIns={founderLinkedIns}
-            setFounderLinkedIns={setFounderLinkedIns}
+            updateLinkedInProfile={updateLinkedInProfile}
+            addLinkedInProfile={addLinkedInProfile}
+            removeLinkedInProfile={removeLinkedInProfile}
             isDisabled={isProcessing}
           />
+          
+          {isPublic && (
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium">
+                Your Email (required to receive results)
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={emailForResults}
+                onChange={(e) => setEmailForResults(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="email@example.com"
+                disabled={isProcessing}
+                required={isPublic}
+              />
+            </div>
+          )}
           
           <FileUploadZone
             id="file"
