@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -43,6 +44,26 @@ serve(async (req) => {
         }
       );
     }
+
+    // Log all headers for debugging (redacted for security)
+    console.log("All request headers:");
+    for (const [key, value] of req.headers.entries()) {
+      console.log(`${key}: ${key.toLowerCase().includes('auth') ? '[REDACTED]' : value}`);
+    }
+    
+    // Log the authorization header (redacted for security)
+    const authHeader = req.headers.get('Authorization') || '';
+    console.log(`Authorization header present: ${authHeader ? 'Yes' : 'No'}, length: ${authHeader.length}`);
+    
+    // Also log the API key header (redacted)
+    const apiKeyHeader = req.headers.get('apikey') || '';
+    console.log(`API key header present: ${apiKeyHeader ? 'Yes' : 'No'}, length: ${apiKeyHeader.length}`);
+    
+    // Also log other useful headers that might help with debugging
+    console.log(`User-Agent: ${req.headers.get('User-Agent') || 'Not provided'}`);
+    console.log(`Content-Type: ${req.headers.get('Content-Type') || 'Not provided'}`);
+    console.log(`Origin: ${req.headers.get('Origin') || 'Not provided'}`);
+    console.log(`Referer: ${req.headers.get('Referer') || 'Not provided'}`);
 
     // Parse request data
     let reqData;
@@ -98,8 +119,8 @@ serve(async (req) => {
     console.log(`Processing report ${reportId}`);
     
     try {
-      // Get report data without authentication
-      const { supabase, report, pdfBase64 } = await getReportData(reportId);
+      // Pass the auth header to getReportData for possible use in debugging
+      const { supabase, report, pdfBase64 } = await getReportData(reportId, authHeader);
       
       console.log("Successfully retrieved report data, analyzing with Gemini");
       

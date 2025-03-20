@@ -66,10 +66,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
               Score
             </TableHead>
             <TableHead className="w-1/6">
-              Source
+              Date Added
             </TableHead>
             <TableHead className="w-1/6">
-              Date Added
+              Source
             </TableHead>
             <TableHead className="w-2/5">
               Summary
@@ -88,10 +88,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                 <TableCell className={getScoreColorClass(company.overallScore)}>
                   {company.overallScore}/5
                 </TableCell>
+                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <span className={sourceInfo.className}>{sourceInfo.label}</span>
                 </TableCell>
-                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {getAssessmentSummary(company)}
                 </TableCell>
