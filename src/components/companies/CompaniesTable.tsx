@@ -52,17 +52,20 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-1/4">
+            <TableHead className="w-1/5">
               Name
-            </TableHead>
-            <TableHead className="w-2/5">
-              Summary
             </TableHead>
             <TableHead className="w-1/6">
               Score
             </TableHead>
             <TableHead className="w-1/6">
               Date Added
+            </TableHead>
+            <TableHead className="w-1/6">
+              Source
+            </TableHead>
+            <TableHead className="w-2/5">
+              Summary
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -74,13 +77,14 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
               onClick={() => onCompanyClick(company.id)}
             >
               <TableCell className="font-medium">{company.name}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {getAssessmentSummary(company)}
-              </TableCell>
               <TableCell className={getScoreColorClass(company.overallScore)}>
                 {company.overallScore}/5
               </TableCell>
               <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">Dashboard</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {getAssessmentSummary(company)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
