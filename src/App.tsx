@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 import Index from "@/pages/Index";
 import Signup from "@/pages/Signup";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import CompanyPage from "@/pages/CompanyPage";
 import SectionPage from "@/pages/SectionPage";
@@ -39,6 +40,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/signup" element={<Signup />} />
+                  <Route path="/login" element={<Login />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/company/:companyId" element={<CompanyPage />} />
                   <Route path="/company/:companyId/section/:sectionId" element={<SectionPage />} />
