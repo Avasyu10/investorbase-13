@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Toaster } from 'sonner';
 import { useAuth } from './hooks/useAuth';
-import Navbar from './components/layout/Navbar';
+import { Navbar } from './components/layout/Navbar';
 import Index from './pages/Index';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
