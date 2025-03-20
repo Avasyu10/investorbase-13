@@ -156,7 +156,8 @@ export function ReportUpload({
           formData.append('websiteUrl', companyWebsite);
         }
         
-        console.log("Sending public upload request to:", "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload");
+        const apiUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload";
+        console.log("Sending public upload request to:", apiUrl);
         console.log("FormData entries:", [...formData.entries()].map(([key, value]) => {
           if (value instanceof File) {
             return [key, `File: ${value.name} (${value.type}, ${value.size} bytes)`];
@@ -165,7 +166,7 @@ export function ReportUpload({
         }));
         
         try {
-          const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
+          const response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
           });
