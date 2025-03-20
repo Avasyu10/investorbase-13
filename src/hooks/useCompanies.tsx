@@ -130,21 +130,26 @@ export function useCompanyDetails(companyId?: string) {
             // Let's fix it by checking the UUID pattern and handling the query correctly
             const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId);
             
-            let query = supabase
-              .from('companies')
-              .select('*, sections(*)')
-              .single();
-              
+            let query;
+            
             if (isUuid) {
               // If it's a UUID, use equals
-              query = query.eq('id', companyId);
+              query = await supabase
+                .from('companies')
+                .select('*, sections(*)')
+                .eq('id', companyId)
+                .single();
             } else {
               // If it's a numeric ID, we need a different approach
               // Assuming IDs might be stored in the format that starts with the hex representation
-              query = query.ilike('id', companyId + '%');
+              query = await supabase
+                .from('companies')
+                .select('*, sections(*)')
+                .ilike('id', companyId + '%')
+                .single();
             }
             
-            const { data: companyData, error: companyError } = await query;
+            const { data: companyData, error: companyError } = query;
               
             if (companyError) {
               console.error('Error fetching company from Supabase:', companyError);
