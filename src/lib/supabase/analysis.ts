@@ -38,14 +38,14 @@ export async function analyzeReport(reportId: string) {
     
     // Set a timeout for the edge function call (60 seconds)
     const timeoutMs = 60000; // Extended from 40s to 60s since AI analysis can take longer
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
     
     try {
-      // Call the edge function with abort controller and signal for timeout
+      // Call the edge function
+      // Note: We removed the signal property as it's not supported in FunctionInvokeOptions
       const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-        body: { reportId },
-        signal: controller.signal
+        body: { reportId }
       });
       
       // Clear the timeout as we got a response

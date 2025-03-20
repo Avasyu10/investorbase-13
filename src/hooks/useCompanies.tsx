@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
@@ -80,7 +81,9 @@ export function useCompanies(
         if ('data' in response.data && 'pagination' in response.data) {
           const paginatedData = response.data.data as CompanyListItem[];
           setCompanies(paginatedData);
-          setTotalCount(response.data.pagination.total as number);
+          // Fix the type error by explicitly casting the total to a number
+          const paginationTotal = response.data.pagination?.total;
+          setTotalCount(typeof paginationTotal === 'number' ? paginationTotal : 0);
         } else {
           const data = response.data as CompanyListItem[];
           setCompanies(data);
@@ -137,6 +140,7 @@ export function useCompanyDetails(companyId?: string) {
             if (companyData) {
               console.log('Found company in Supabase:', companyData);
               const formattedCompany: CompanyDetailed = {
+                // Convert the string ID to a number to match the interface requirement
                 id: parseInt(companyData.id.split('-')[0], 16),
                 name: companyData.name,
                 overallScore: companyData.overall_score,
