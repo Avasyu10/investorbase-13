@@ -12,7 +12,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Edit, Globe } from "lucide-react";
+import { Loader2, Download, Edit, Globe, FileText } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { AreaOfInterestOptions } from "@/lib/constants";
@@ -36,6 +36,7 @@ const Profile = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<VCProfile | null>(null);
+  const [thesisFilename, setThesisFilename] = useState<string | null>(null);
 
   // Function to get label by value
   const getAreaOfInterestLabel = (value: string) => {
@@ -64,7 +65,13 @@ const Profile = () => {
           return;
         }
         
-        setProfile(data as VCProfile);
+        const profileData = data as VCProfile;
+        setProfile(profileData);
+        
+        // Extract thesis filename if available
+        if (profileData.fund_thesis_url) {
+          setThesisFilename(profileData.fund_thesis_url.split('/').pop() || "Fund Thesis.pdf");
+        }
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -159,20 +166,26 @@ const Profile = () => {
                 <p className="text-sm font-medium">Fund Size</p>
                 <p>{profile.fund_size || "Not specified"}</p>
               </div>
-              {profile.fund_thesis_url && (
-                <div>
-                  <p className="text-sm font-medium">Fund Thesis</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-1"
-                    onClick={downloadThesis}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Download PDF
-                  </Button>
-                </div>
-              )}
+              
+              <div>
+                <p className="text-sm font-medium">Fund Thesis</p>
+                {profile.fund_thesis_url ? (
+                  <div className="flex items-center mt-1 space-x-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-sm">{thesisFilename}</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={downloadThesis}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No thesis uploaded</p>
+                )}
+              </div>
             </div>
           </div>
           
@@ -229,7 +242,6 @@ const Profile = () => {
             </div>
           </div>
           
-          {/* New section for Website URL */}
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Public URL</h3>
             <Separator className="mb-4" />
