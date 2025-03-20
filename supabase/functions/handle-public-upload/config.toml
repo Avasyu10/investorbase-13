@@ -1,2 +1,4 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
+verify_jwt = false
+
