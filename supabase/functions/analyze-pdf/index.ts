@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -43,6 +44,14 @@ serve(async (req) => {
         }
       );
     }
+
+    // Log the authorization header (redacted for security)
+    const authHeader = req.headers.get('Authorization') || '';
+    console.log(`Authorization header present: ${authHeader ? 'Yes' : 'No'}`);
+    
+    // Also log the API key header (redacted)
+    const apiKeyHeader = req.headers.get('apikey') || '';
+    console.log(`API key header present: ${apiKeyHeader ? 'Yes' : 'No'}`);
 
     // Parse request data
     let reqData;
@@ -98,8 +107,8 @@ serve(async (req) => {
     console.log(`Processing report ${reportId}`);
     
     try {
-      // Get report data without authentication
-      const { supabase, report, pdfBase64 } = await getReportData(reportId);
+      // Pass the auth header to getReportData for possible use in debugging
+      const { supabase, report, pdfBase64 } = await getReportData(reportId, authHeader);
       
       console.log("Successfully retrieved report data, analyzing with Gemini");
       
