@@ -28,6 +28,7 @@ interface ReportUploadProps {
   skipAnalysis?: boolean;
   formSlug?: string | null;
   hideEmailField?: boolean;
+  disableScrapingFeatures?: boolean;
 }
 
 export function ReportUpload({ 
@@ -37,7 +38,8 @@ export function ReportUpload({
   buttonText = "Upload & Analyze",
   skipAnalysis = false,
   formSlug = null,
-  hideEmailField = false
+  hideEmailField = false,
+  disableScrapingFeatures = false
 }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
@@ -151,7 +153,15 @@ export function ReportUpload({
           console.log("No file selected for upload - continuing with text-only submission");
         }
         
-        console.log("Adding form fields:", { title, email: emailForResults, descriptionLength: briefIntroduction?.length || 0 });
+        console.log("Adding form fields:", { 
+          title, 
+          descriptionLength: briefIntroduction?.length || 0,
+          websiteUrl: companyWebsite,
+          companyStage,
+          industry,
+          linkedInProfiles: founderLinkedIns.filter(ln => ln.trim()).length
+        });
+        
         formData.append('title', title);
         
         // Only add email if it's not hidden
@@ -162,13 +172,25 @@ export function ReportUpload({
         formData.append('description', briefIntroduction || '');
         
         if (companyWebsite && companyWebsite.trim()) {
-          console.log("Adding website URL:", companyWebsite);
           formData.append('websiteUrl', companyWebsite);
         }
         
         if (formSlug) {
-          console.log("Adding form slug:", formSlug);
           formData.append('formSlug', formSlug);
+        }
+        
+        if (companyStage) {
+          formData.append('companyStage', companyStage);
+        }
+        
+        if (industry) {
+          formData.append('industry', industry);
+        }
+        
+        // Add LinkedIn profiles as JSON string
+        const filteredProfiles = founderLinkedIns.filter(profile => profile.trim());
+        if (filteredProfiles.length > 0) {
+          formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
         }
         
         const apiUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload";
@@ -275,8 +297,9 @@ export function ReportUpload({
         });
       }
       
+      // Only scrape website content if scraping features are enabled
       let scrapedContent = null;
-      if (companyWebsite && companyWebsite.trim()) {
+      if (!disableScrapingFeatures && companyWebsite && companyWebsite.trim()) {
         setProgress(40);
         setIsScrapingWebsite(true);
         const websiteResult = await scrapeWebsite(companyWebsite);
@@ -293,21 +316,24 @@ export function ReportUpload({
         }
       }
       
+      // Only scrape LinkedIn profiles if scraping features are enabled
       let linkedInContent = null;
-      const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
-      if (validLinkedInProfiles.length > 0) {
-        setProgress(50);
-        setProgressStage("Scraping LinkedIn profiles...");
-        const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
-        if (linkedInResult?.success) {
-          linkedInContent = formatLinkedInContent(linkedInResult);
-          toast.success("LinkedIn profiles scraped successfully", {
-            description: "LinkedIn profile data will be included in the analysis"
-          });
-        } else if (linkedInResult) {
-          toast.error("LinkedIn profile scraping failed", {
-            description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
-          });
+      if (!disableScrapingFeatures) {
+        const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
+        if (validLinkedInProfiles.length > 0) {
+          setProgress(50);
+          setProgressStage("Scraping LinkedIn profiles...");
+          const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
+          if (linkedInResult?.success) {
+            linkedInContent = formatLinkedInContent(linkedInResult);
+            toast.success("LinkedIn profiles scraped successfully", {
+              description: "LinkedIn profile data will be included in the analysis"
+            });
+          } else if (linkedInResult) {
+            toast.error("LinkedIn profile scraping failed", {
+              description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
+            });
+          }
         }
       }
       

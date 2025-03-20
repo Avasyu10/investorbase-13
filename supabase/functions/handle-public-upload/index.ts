@@ -48,7 +48,6 @@ serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const title = formData.get('title') as string;
-    const email = formData.get('email') as string || '';
     const description = formData.get('description') as string || '';
     const websiteUrl = formData.get('websiteUrl') as string || '';
     const formSlug = formData.get('formSlug') as string || '';
@@ -69,7 +68,6 @@ serve(async (req) => {
       fileType: file ? file.type : 'none',
       fileSize: file ? file.size : 0,
       title: title || 'none',
-      email: email || 'none',
       hasDescription: !!description,
       hasWebsiteUrl: !!websiteUrl,
       formSlug: formSlug || 'none',
@@ -213,9 +211,6 @@ serve(async (req) => {
     if (websiteUrl) {
       enhancedDescription += `\nCompany Website: ${websiteUrl}`;
     }
-    if (email) {
-      enhancedDescription += `\nContact Email: ${email}`;
-    }
     if (companyStage) {
       enhancedDescription += `\nCompany Stage: ${companyStage}`;
     }
@@ -232,7 +227,6 @@ serve(async (req) => {
         description: enhancedDescription,
         pdf_url: fileName || null, // Use null if no file was uploaded
         is_public_submission: true,
-        submitter_email: email || null, // Email is now optional
         submission_form_id: submissionFormId,
         analysis_status: analysisStatus
       }])
@@ -257,7 +251,6 @@ serve(async (req) => {
         form_slug: effectiveFormSlug,
         title,
         description,
-        email: email || null,
         website_url: websiteUrl || null,
         pdf_url: fileName || null,
         founder_linkedin_profiles: linkedInProfiles,
