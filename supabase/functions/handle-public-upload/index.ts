@@ -97,24 +97,7 @@ serve(async (req) => {
       });
     }
 
-    // Start analysis process asynchronously
-    try {
-      const analyzeRes = await fetch(`${supabaseUrl}/functions/v1/analyze-pdf`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reportId: report.id })
-      });
-      
-      if (!analyzeRes.ok) {
-        console.error('Error starting analysis:', await analyzeRes.text());
-      }
-    } catch (analysisError) {
-      console.error('Error triggering analysis:', analysisError);
-      // Continue anyway - don't fail the submission
-    }
+    // Don't start analysis process here - we'll do that separately later
 
     return new Response(JSON.stringify({ 
       success: true, 

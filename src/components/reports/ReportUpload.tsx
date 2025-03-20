@@ -21,10 +21,19 @@ import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedIn
 
 interface ReportUploadProps {
   onError?: (errorMessage: string) => void;
+  onSuccess?: () => void;
   isPublic?: boolean;
+  buttonText?: string;
+  skipAnalysis?: boolean;
 }
 
-export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
+export function ReportUpload({ 
+  onError, 
+  onSuccess, 
+  isPublic = false, 
+  buttonText = "Upload & Analyze",
+  skipAnalysis = false
+}: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
@@ -134,7 +143,28 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
       
       let report;
       if (isPublic) {
-        report = await uploadPublicReport(file, title, briefIntroduction, companyWebsite, emailForResults);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', title);
+        formData.append('email', emailForResults);
+        formData.append('description', briefIntroduction || '');
+        
+        const response = await fetch(`${supabaseUrl}/functions/v1/handle-public-upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Upload failed with status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Upload failed');
+        }
+        
+        report = { id: result.reportId };
+        console.log("Public upload complete, report ID:", report.id);
       } else {
         report = await uploadReport(file, title, briefIntroduction, companyWebsite);
       }
@@ -143,7 +173,9 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
       console.log("Upload complete, report:", report);
       
       toast.success("Upload complete", {
-        description: "Your pitch deck has been uploaded successfully"
+        description: isPublic 
+          ? "Your pitch deck has been submitted successfully" 
+          : "Your pitch deck has been uploaded successfully"
       });
       
       let description = briefIntroduction ? briefIntroduction + '\n\n' : '';
@@ -232,7 +264,7 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
         description += `\n\nFounder LinkedIn Profiles:\n${linkedInContent}\n`;
       }
       
-      if (description) {
+      if (description && !isPublic) {
         const { error: updateError } = await supabase
           .from('reports')
           .update({ description })
@@ -243,61 +275,69 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
         }
       }
       
-      setIsAnalyzing(true);
-      setProgressStage("Analyzing pitch deck with AI...");
-      setProgress(70);
-      
-      toast.info("Analysis started", {
-        description: "This may take a few minutes depending on the size of your deck"
-      });
-      
-      try {
-        console.log("Starting analysis with report ID:", report.id);
-        const result = await analyzeReport(report.id);
-        setProgress(100);
-        console.log("Analysis complete, result:", result);
+      if (!isPublic && !skipAnalysis) {
+        setIsAnalyzing(true);
+        setProgressStage("Analyzing pitch deck with AI...");
+        setProgress(70);
         
-        toast.success("Analysis complete", {
-          description: isPublic 
-            ? "Your pitch deck has been analyzed successfully! Results will be sent to your email." 
-            : "Your pitch deck has been analyzed successfully!"
+        toast.info("Analysis started", {
+          description: "This may take a few minutes depending on the size of your deck"
         });
         
-        if (!isPublic && result && result.companyId) {
-          navigate(`/company/${result.companyId}`);
-        } else if (!isPublic) {
-          console.error("No company ID returned from analysis");
-          navigate('/dashboard');
-        } else {
-          setFile(null);
-          setSupplementFiles([]);
-          setTitle("");
-          setBriefIntroduction("");
-          setCompanyWebsite("");
-          setCompanyStage("");
-          setIndustry("");
-          setFounderLinkedIns([""]);
-          setEmailForResults("");
+        try {
+          console.log("Starting analysis with report ID:", report.id);
+          const result = await analyzeReport(report.id);
+          setProgress(100);
+          console.log("Analysis complete, result:", result);
+          
+          toast.success("Analysis complete", {
+            description: "Your pitch deck has been analyzed successfully!"
+          });
+          
+          if (result && result.companyId) {
+            navigate(`/company/${result.companyId}`);
+          } else {
+            console.error("No company ID returned from analysis");
+            navigate('/dashboard');
+          }
+        } catch (analysisError: any) {
+          console.error("Error analyzing report:", analysisError);
+          
+          toast.error("Analysis failed", {
+            description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
+          });
+          
+          if (onError) {
+            onError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
+          }
+          
           setProgress(0);
+          
+          navigate('/dashboard');
+          return;
         }
-      } catch (analysisError: any) {
-        console.error("Error analyzing report:", analysisError);
-        
-        toast.error("Analysis failed", {
-          description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
+      } else if (isPublic) {
+        setProgress(100);
+        toast.success("Submission received", {
+          description: "Your pitch deck has been submitted successfully! Results will be sent to your email."
         });
         
-        if (onError) {
-          onError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
-        }
+        setFile(null);
+        setSupplementFiles([]);
+        setTitle("");
+        setBriefIntroduction("");
+        setCompanyWebsite("");
+        setCompanyStage("");
+        setIndustry("");
+        setFounderLinkedIns([""]);
+        setEmailForResults("");
         
-        setProgress(0);
-        
-        if (!isPublic) {
-          navigate('/dashboard');
+        if (onSuccess) {
+          onSuccess();
         }
-        return;
       }
+      
+      setProgress(0);
     } catch (error: any) {
       console.error("Error processing report:", error);
       
@@ -448,7 +488,7 @@ export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
                 {isScrapingWebsite ? "Scraping website..." : isAnalyzing ? "Analyzing..." : "Uploading..."}
               </>
             ) : (
-              "Upload & Analyze"
+              buttonText
             )}
           </Button>
         </CardFooter>

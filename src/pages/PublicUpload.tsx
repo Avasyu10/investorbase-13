@@ -1,19 +1,24 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const PublicUpload = () => {
-  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
     // Auto-dismiss error after 10 seconds
     setTimeout(() => setError(null), 10000);
+  };
+
+  const handleSuccess = () => {
+    setSuccess(true);
+    // Reset form state after 10 seconds
+    setTimeout(() => setSuccess(false), 10000);
   };
 
   return (
@@ -28,15 +33,33 @@ const PublicUpload = () => {
           </Alert>
         )}
         
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight mb-2">Submit Your Pitch Deck</h1>
-          <p className="text-muted-foreground">
-            Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses.
-            Adding your company website will enhance the analysis with additional context.
-          </p>
-        </div>
-        
-        <ReportUpload onError={handleError} isPublic={true} />
+        {success ? (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <AlertCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Success!</AlertTitle>
+            <AlertDescription className="text-green-700">
+              Your pitch deck has been submitted successfully. We'll analyze it and send the results to your email.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight mb-2">Submit Your Pitch Deck</h1>
+              <p className="text-muted-foreground">
+                Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses.
+                Adding your company website will enhance the analysis with additional context.
+              </p>
+            </div>
+            
+            <ReportUpload 
+              onError={handleError} 
+              onSuccess={handleSuccess}
+              isPublic={true} 
+              buttonText="Submit"
+              skipAnalysis={true}
+            />
+          </>
+        )}
       </div>
     </div>
   );
