@@ -1,94 +1,134 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { corsHeaders } from '../analyze-pdf/cors.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || ''
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-
-// Send email notification about completed analysis
-async function sendAnalysisNotification(email: string, companyName: string, companyId: string) {
-  try {
-    // In a real implementation, you would integrate with an email service here
-    console.log(`Would send email to ${email} about analysis for ${companyName} (ID: ${companyId})`)
-    
-    // Mock success for now
-    return { success: true }
-  } catch (error) {
-    console.error('Error sending email notification:', error)
-    return { success: false, error: error.message }
-  }
-}
-
+// This edge function handles uploads from the public form
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-
   try {
-    const { reportId, email } = await req.json()
+    // CORS headers
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    };
 
-    if (!reportId) {
-      return new Response(
-        JSON.stringify({ error: 'Report ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: corsHeaders,
+        status: 204,
+      });
     }
 
-    // Create Supabase client with service role key for admin access
-    const supabaseAdmin = await createClient(
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY
-    )
+    // Ensure the request is a POST
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 405,
+      });
+    }
 
-    // Get report details
-    const { data: reportData, error: reportError } = await supabaseAdmin
+    // Parse the request body
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    const title = formData.get('title') as string;
+    const email = formData.get('email') as string;
+    const description = formData.get('description') as string || '';
+
+    if (!file || !title || !email) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: file, title, and email' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+
+    // Read file as ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    const fileData = new Uint8Array(arrayBuffer);
+
+    // Upload file to public_uploads bucket
+    const { error: uploadError } = await supabase.storage
+      .from('public_uploads')
+      .upload(fileName, fileData, {
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      return new Response(JSON.stringify({ error: 'Failed to upload file' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    // Get public URL for the file
+    const { data: urlData } = await supabase.storage
+      .from('public_uploads')
+      .getPublicUrl(fileName);
+
+    // Insert record in the reports table
+    const { data: report, error: insertError } = await supabase
       .from('reports')
-      .select('*, companies!reports_company_id_fkey(id, name)')
-      .eq('id', reportId)
-      .maybeSingle()
+      .insert([{
+        title,
+        description: description + `\nContact Email: ${email}`,
+        pdf_url: fileName,
+        is_public_submission: true,
+        submitter_email: email,
+        analysis_status: 'pending'
+      }])
+      .select()
+      .single();
 
-    if (reportError || !reportData) {
-      console.error('Error fetching report:', reportError)
-      return new Response(
-        JSON.stringify({ error: 'Report not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (insertError) {
+      console.error('Error inserting report record:', insertError);
+      return new Response(JSON.stringify({ error: 'Failed to create record' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
     }
 
-    if (reportData.companies && email) {
-      // Send email notification
-      const notificationResult = await sendAnalysisNotification(
-        email,
-        reportData.companies.name,
-        reportData.companies.id
-      )
-
-      if (!notificationResult.success) {
-        console.error('Error sending notification:', notificationResult.error)
+    // Start analysis process asynchronously
+    try {
+      const analyzeRes = await fetch(`${supabaseUrl}/functions/v1/analyze-pdf`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reportId: report.id })
+      });
+      
+      if (!analyzeRes.ok) {
+        console.error('Error starting analysis:', await analyzeRes.text());
       }
+    } catch (analysisError) {
+      console.error('Error triggering analysis:', analysisError);
+      // Continue anyway - don't fail the submission
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        message: 'Analysis completed and notification sent',
-        companyId: reportData.companies?.id
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    console.error('Function error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'Submission received successfully',
+      reportId: report.id
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  } catch (err) {
+    console.error('General error:', err);
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred' }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
-})
-
-// Create a Supabase client
-async function createClient(supabaseUrl: string, supabaseKey: string) {
-  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
-  return createClient(supabaseUrl, supabaseKey)
-}
+});
