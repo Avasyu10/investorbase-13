@@ -28,6 +28,8 @@ export function useCompanies(
           return;
         }
         
+        // With RLS enabled, this query will automatically only return companies 
+        // that the user is authorized to view
         const { data, error, count } = await supabase
           .from('companies')
           .select('*', { count: 'exact' })
@@ -41,7 +43,6 @@ export function useCompanies(
         
         if (data && data.length > 0) {
           const formattedCompanies: CompanyListItem[] = data.map(item => {
-            const isFromPublicSubmission = item.report_id && !!item.user_id;
             return {
               id: parseInt(item.id.split('-')[0], 16),
               name: item.name,
@@ -55,7 +56,6 @@ export function useCompanies(
           });
           
           setCompanies(formattedCompanies);
-          // Fix for TypeScript error: safely access 'count' with a fallback
           setTotalCount(count ?? data.length);
           setError(null);
         } else {
