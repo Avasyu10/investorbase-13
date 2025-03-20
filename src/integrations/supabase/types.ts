@@ -461,6 +461,26 @@ export type Database = {
           id: string
         }[]
       }
+      get_company_by_numeric_id: {
+        Args: {
+          p_numeric_id: number
+        }
+        Returns: {
+          assessment_points: string[] | null
+          created_at: string
+          id: string
+          name: string
+          overall_score: number
+          perplexity_prompt: string | null
+          perplexity_requested_at: string | null
+          perplexity_response: string | null
+          prompt_sent: string | null
+          report_id: string | null
+          response_received: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
       get_section_stats: {
         Args: {
           section_id: string

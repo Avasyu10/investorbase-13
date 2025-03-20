@@ -91,7 +91,9 @@ export function useCompanies(
           // Paginated response
           const paginatedData = response.data.data as CompanyListItem[];
           setCompanies(paginatedData);
-          setTotalCount(response.data.pagination.total);
+          // Fix: Change 'total' to the correct property or handle it conditionally
+          const paginationData = response.data.pagination as { total?: number };
+          setTotalCount(paginationData.total || paginatedData.length);
         } else {
           // Non-paginated response
           const data = response.data as CompanyListItem[];
@@ -143,11 +145,11 @@ export function useCompanyDetails(companyId?: string) {
           let companyData;
           
           if (isNumeric) {
-            console.log('Numeric ID detected, fetching by numeric ID using get_company_by_numeric_id function');
+            console.log('Numeric ID detected, fetching by numeric ID using find_company_by_numeric_id function');
             
-            // Use RPC function to get company by numeric ID
-            const { data, error } = await supabase.rpc('get_company_by_numeric_id', { 
-              p_numeric_id: parseInt(companyId) 
+            // Fix: Use the correct function name as per available functions
+            const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
+              numeric_id: companyId 
             });
             
             if (error) {
@@ -155,9 +157,29 @@ export function useCompanyDetails(companyId?: string) {
               throw error;
             }
             
-            // RPC might return array or single object
-            companyData = Array.isArray(data) ? data[0] : data;
-            console.log('Company data from RPC:', companyData);
+            // Fix: Check if data is an array and has the expected structure
+            if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
+              // Get the actual company UUID from the result
+              const companyUuid = data[0].id;
+              console.log('Found company UUID:', companyUuid);
+              
+              // Now fetch the full company details with the UUID
+              const { data: fullCompanyData, error: fullDataError } = await supabase
+                .from('companies')
+                .select('*, sections(*)')
+                .eq('id', companyUuid)
+                .maybeSingle();
+                
+              if (fullDataError) {
+                console.error('Error fetching full company details:', fullDataError);
+                throw fullDataError;
+              }
+              
+              companyData = fullCompanyData;
+            } else {
+              console.log('No company found with numeric ID, or invalid response format');
+              companyData = null;
+            }
           } else {
             // Fetch by UUID directly
             console.log('UUID detected, fetching directly');
@@ -213,6 +235,7 @@ export function useCompanyDetails(companyId?: string) {
         
         // Fall back to mock API if no Supabase data or not authenticated
         console.log('Falling back to mock API for company details');
+        // Fix: Convert string to number before passing to API
         const numericId = parseInt(companyId);
         if (isNaN(numericId)) {
           throw new Error('Invalid company ID');
@@ -266,9 +289,9 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
           if (isNumeric) {
             console.log('Numeric company ID detected, getting UUID first');
             
-            // Use RPC function to get company UUID by numeric ID
-            const { data, error } = await supabase.rpc('get_company_by_numeric_id', { 
-              p_numeric_id: parseInt(companyId) 
+            // Fix: Use the correct function name as per available functions
+            const { data, error } = await supabase.rpc('find_company_by_numeric_id', { 
+              numeric_id: companyId 
             });
             
             if (error) {
@@ -276,16 +299,14 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
               throw error;
             }
             
-            // RPC might return array or single object
-            const companyData = Array.isArray(data) ? data[0] : data;
-            
-            if (!companyData) {
+            // Fix: Check if data is an array and has the expected structure
+            if (Array.isArray(data) && data.length > 0 && 'id' in data[0]) {
+              companyUuid = data[0].id;
+              console.log('Found company UUID:', companyUuid);
+            } else {
               console.error('Company not found with numeric ID:', companyId);
               throw new Error('Company not found');
             }
-            
-            companyUuid = companyData.id;
-            console.log('Found company UUID:', companyUuid);
           } else {
             companyUuid = companyId;
           }
@@ -349,6 +370,7 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         
         // Fall back to mock API if no Supabase data or not authenticated
         console.log('Falling back to mock API for section details');
+        // Fix: Convert string to number before passing to API
         const numericCompanyId = parseInt(companyId);
         if (isNaN(numericCompanyId)) {
           throw new Error('Invalid company ID');
