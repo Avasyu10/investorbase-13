@@ -1,6 +1,6 @@
 
 import { ElementType } from "react";
-import { Home, BarChartBig, Upload, User, FileText } from "lucide-react";
+import { Home, BarChartBig, Upload, User } from "lucide-react";
 
 export type RouteConfig = {
   path: string;
@@ -27,12 +27,6 @@ export const routes: RouteConfig[] = [
     path: "/upload",
     label: "Upload",
     icon: Upload,
-    requiresAuth: true,
-  },
-  {
-    path: "/manage-forms",
-    label: "Submission Forms",
-    icon: FileText,
     requiresAuth: true,
   },
   {

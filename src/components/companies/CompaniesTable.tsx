@@ -1,149 +1,88 @@
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RatingDisplay } from "@/components/ui/rating";
-import { CompanyActionButton } from "./CompanyActionButton";
-
-interface Company {
-  id: string;
-  name: string;
-  overall_score: number;
-  created_at: string;
-  report_id: string | null;
-  reports?: {
-    analysis_status: string;
-  };
-}
+import { CompanyListItem } from "@/lib/api/apiContract";
 
 interface CompaniesTableProps {
-  companies: any[];
+  companies: CompanyListItem[];
   onCompanyClick: (companyId: number) => void;
 }
 
 export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
-  const [search, setSearch] = useState("");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [sortBy, setSortBy] = useState<string>("name");
+  if (!companies || companies.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No companies found</p>
+      </div>
+    );
+  }
 
-  const handleSort = (column: string) => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(column);
-      setSortOrder("asc");
-    }
+  // Helper to get score color class
+  const getScoreColorClass = (score: number) => {
+    if (score >= 4) return "text-green-600 font-medium";
+    if (score >= 3) return "text-blue-600";
+    if (score >= 2) return "text-yellow-600"; 
+    return "text-red-600";
   };
 
-  const sortedCompanies = [...companies].sort((a, b) => {
-    const aValue = a[sortBy];
-    const bValue = b[sortBy];
-
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+  // Helper to get assessment summary
+  const getAssessmentSummary = (company: CompanyListItem) => {
+    // First check if there is a summary in the description field of the first report
+    // Fall back to assessment points if available
+    if ('assessmentPoints' in company && company.assessmentPoints && company.assessmentPoints.length > 0) {
+      // Return up to 2 assessment points with ellipsis if more exist
+      const points = company.assessmentPoints.slice(0, 2);
+      const summary = points.join(', ');
+      return company.assessmentPoints.length > 2 
+        ? `${summary}, ...` 
+        : summary;
     }
-
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortOrder === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    }
-
-    return 0;
-  });
-
-  const filteredCompanies = sortedCompanies.filter((company) =>
-    company.name.toLowerCase().includes(search.toLowerCase())
-  );
+    
+    return "No summary available";
+  };
 
   return (
-    <div>
-      <div className="flex items-center py-4">
-        <Input
-          type="search"
-          placeholder="Search companies..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
-        />
-        <div className="ml-4">
-          <Select onValueChange={(value) => handleSort(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="overallScore">Score</SelectItem>
-              <SelectItem value="createdAt">Date</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
+    <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Score</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="w-1/4">
+              Name
+            </TableHead>
+            <TableHead className="w-2/5">
+              Summary
+            </TableHead>
+            <TableHead className="w-1/6">
+              Score
+            </TableHead>
+            <TableHead className="w-1/6">
+              Date Added
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredCompanies.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="text-center">
-                No companies found.
+          {companies.map((company) => (
+            <TableRow 
+              key={company.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => onCompanyClick(company.id)}
+            >
+              <TableCell className="font-medium">{company.name}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {getAssessmentSummary(company)}
               </TableCell>
+              <TableCell className={getScoreColorClass(company.overallScore)}>
+                {company.overallScore}/5
+              </TableCell>
+              <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
             </TableRow>
-          ) : (
-            filteredCompanies.map((company) => {
-              // Get the report associated with this company
-              const report = company.reportId ? {
-                id: company.reportId,
-                status: company.reports?.analysis_status || 'complete'
-              } : null;
-              
-              return (
-                <TableRow key={company.id} className="cursor-pointer" onClick={() => onCompanyClick(company.id)}>
-                  <TableCell className="font-medium">{company.name}</TableCell>
-                  <TableCell>
-                    {report?.status === 'pending' ? (
-                      <Badge variant="outline">Pending Analysis</Badge>
-                    ) : (
-                      <RatingDisplay rating={company.overallScore} />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(company.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <CompanyActionButton 
-                      companyId={company.id} 
-                      reportId={company.reportId}
-                      status={report?.status}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
+          ))}
         </TableBody>
       </Table>
     </div>

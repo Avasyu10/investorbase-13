@@ -139,36 +139,6 @@ export type Database = {
         }
         Relationships: []
       }
-      public_submission_forms: {
-        Row: {
-          created_at: string
-          form_name: string
-          form_slug: string
-          id: string
-          is_active: boolean
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          form_name: string
-          form_slug: string
-          id?: string
-          is_active?: boolean
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          form_name?: string
-          form_slug?: string
-          id?: string
-          is_active?: boolean
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       reports: {
         Row: {
           analysis_error: string | null
@@ -177,10 +147,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          is_public_submission: boolean | null
           pdf_url: string
-          submission_form_id: string | null
-          submitter_email: string | null
           title: string
           user_id: string | null
         }
@@ -191,10 +158,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          is_public_submission?: boolean | null
           pdf_url: string
-          submission_form_id?: string | null
-          submitter_email?: string | null
           title: string
           user_id?: string | null
         }
@@ -205,10 +169,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          is_public_submission?: boolean | null
           pdf_url?: string
-          submission_form_id?: string | null
-          submitter_email?: string | null
           title?: string
           user_id?: string | null
         }
@@ -218,13 +179,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reports_submission_form_id_fkey"
-            columns: ["submission_form_id"]
-            isOneToOne: false
-            referencedRelation: "public_submission_forms"
             referencedColumns: ["id"]
           },
         ]

@@ -22,18 +22,9 @@ import { scrapeLinkedInProfiles, formatLinkedInContent } from "./upload/LinkedIn
 interface ReportUploadProps {
   onError?: (errorMessage: string) => void;
   isPublic?: boolean;
-  targetUserId?: string;
-  formId?: string;
-  submitButtonText?: string;
 }
 
-export function ReportUpload({ 
-  onError, 
-  isPublic = false, 
-  targetUserId,
-  formId,
-  submitButtonText = "Upload & Analyze"
-}: ReportUploadProps) {
+export function ReportUpload({ onError, isPublic = false }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
@@ -143,15 +134,7 @@ export function ReportUpload({
       
       let report;
       if (isPublic) {
-        report = await uploadPublicReport(
-          file, 
-          title, 
-          briefIntroduction, 
-          companyWebsite, 
-          emailForResults,
-          targetUserId,
-          formId
-        );
+        report = await uploadPublicReport(file, title, briefIntroduction, companyWebsite, emailForResults);
       } else {
         report = await uploadReport(file, title, briefIntroduction, companyWebsite);
       }
@@ -260,28 +243,6 @@ export function ReportUpload({
         }
       }
       
-      if (isPublic || submitButtonText === "Submit") {
-        setProgress(100);
-        
-        toast.success(isPublic ? "Submission complete" : "Upload complete", {
-          description: isPublic 
-            ? "Your pitch deck has been submitted successfully! Thank you."
-            : "Your pitch deck has been uploaded successfully!"
-        });
-        
-        setFile(null);
-        setSupplementFiles([]);
-        setTitle("");
-        setBriefIntroduction("");
-        setCompanyWebsite("");
-        setCompanyStage("");
-        setIndustry("");
-        setFounderLinkedIns([""]);
-        setEmailForResults("");
-        setProgress(0);
-        return;
-      }
-      
       setIsAnalyzing(true);
       setProgressStage("Analyzing pitch deck with AI...");
       setProgress(70);
@@ -356,32 +317,16 @@ export function ReportUpload({
     }
   };
 
-  const uploadPublicReport = async (
-    file: File, 
-    title: string, 
-    description: string = '', 
-    websiteUrl: string = '', 
-    email: string = '',
-    userId?: string,
-    submissionFormId?: string
-  ) => {
+  const uploadPublicReport = async (file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') => {
     try {
       console.log('Uploading public report');
       
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       
-      let storageLocation = fileName;
-      let bucket = 'report_pdfs';
-      
-      if (userId) {
-        bucket = 'public_uploads';
-        storageLocation = `${userId}/${fileName}`;
-      }
-      
       const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(storageLocation, file);
+        .from('report_pdfs')
+        .upload(fileName, file);
         
       if (uploadError) {
         console.error('Error uploading file to storage:', uploadError);
@@ -395,12 +340,8 @@ export function ReportUpload({
         .insert([{
           title,
           description: description + (email ? `\nContact Email: ${email}` : ''),
-          pdf_url: storageLocation,
-          analysis_status: 'pending',
-          user_id: userId || null,
-          is_public_submission: true,
-          submission_form_id: submissionFormId || null,
-          submitter_email: email || null
+          pdf_url: fileName,
+          analysis_status: 'pending'
         }])
         .select()
         .single();
@@ -411,44 +352,6 @@ export function ReportUpload({
       }
 
       console.log('Public report record created successfully:', report);
-      
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert([{
-          name: title,
-          user_id: userId || null,
-          report_id: report.id
-        }])
-        .select()
-        .single();
-        
-      if (companyError) {
-        console.error('Error creating company record:', companyError);
-      } else {
-        const { error: updateError } = await supabase
-          .from('reports')
-          .update({ company_id: company.id })
-          .eq('id', report.id);
-          
-        if (updateError) {
-          console.error('Error updating report with company ID:', updateError);
-        }
-        
-        console.log('Company record created and linked to report:', company);
-      }
-      
-      if (userId && email) {
-        try {
-          await supabase.functions.invoke('handle-public-upload', {
-            body: {
-              reportId: report.id,
-              email
-            }
-          });
-        } catch (notifyError) {
-          console.error('Error sending notification:', notifyError);
-        }
-      }
       
       return report;
     } catch (error) {
@@ -462,11 +365,9 @@ export function ReportUpload({
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>{isPublic ? "Submit Pitch Deck" : "Upload Pitch Deck"}</CardTitle>
+        <CardTitle>Upload Pitch Deck</CardTitle>
         <CardDescription>
-          {isPublic 
-            ? "Submit your pitch deck for review. We'll analyze it and provide feedback."
-            : "Upload a PDF pitch deck for analysis. Our AI will evaluate the pitch deck and provide feedback."}
+          Upload a PDF pitch deck for analysis. Our AI will evaluate the pitch deck and provide feedback.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -590,7 +491,7 @@ export function ReportUpload({
                 {isScrapingWebsite ? "Scraping website..." : isAnalyzing ? "Analyzing..." : "Uploading..."}
               </>
             ) : (
-              submitButtonText
+              "Upload & Analyze"
             )}
           </Button>
         </CardFooter>
