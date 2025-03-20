@@ -43,29 +43,12 @@ export async function analyzeReport(reportId: string) {
       // Call the edge function with proper error handling
       console.log(`Invoking analyze-pdf function with report ID: ${reportId}`);
       
-      // Improved preview environment detection
+      // Determine if we're running in the preview/iFrame environment
       const isPreviewEnv = window.location.hostname.includes('lovableproject') || 
-                         window.location.hostname.includes('gptengineer') ||
-                         window.location.hostname.includes('lovable.app') ||
-                         window.location.hostname.includes('preview');
+                         window.location.hostname.includes('gptengineer');
                          
-      if (isPreviewEnv) {
-        console.log("Preview environment detected, returning mock response");
-        toast({
-          id: "preview-mode",
-          title: "Preview Mode",
-          description: "Edge functions cannot be called from preview environments. Simulating successful analysis.",
-        });
-        
-        // Return a mock successful response immediately in preview environments
-        return { 
-          success: true, 
-          companyId: "preview-mock-id",
-          message: "Preview mode - Analysis simulated"
-        };
-      }
-      
-      // For non-preview environments, proceed with actual API call
+      // In preview environment, we might not be able to access the edge function directly
+      // Use a more robust approach with retries and better error handling
       let retryCount = 0;
       const maxRetries = 2;
       let lastError = null;
@@ -84,23 +67,23 @@ export async function analyzeReport(reportId: string) {
             console.error('Error invoking analyze-pdf function:', error);
             lastError = error;
             
-            // If we're getting network errors, 
+            // If we're in preview environment and getting network errors, 
             // inform the user about the limitation
-            if (error.message?.includes('Failed to fetch') || 
-                error.message?.includes('Failed to send')) {
+            if (isPreviewEnv && (error.message?.includes('Failed to fetch') || 
+                               error.message?.includes('Failed to send'))) {
               toast({
-                id: "network-error",
-                title: "Network Error",
-                description: "Could not connect to the analysis service. If you're in a development environment, this is expected.",
+                id: "preview-limitation",
+                title: "Preview Environment Limitation",
+                description: "Edge functions cannot be called from the preview environment. This would work in your deployed application.",
                 variant: "default"
               });
               
-              // Mock a successful response for network errors
-              console.log("Returning mock response due to network error");
+              // Mock a successful response for preview
+              console.log("Returning mock response due to preview environment");
               return { 
                 success: true, 
                 companyId: "preview-mock-id",
-                message: "Network error - Analysis simulated"
+                message: "Preview mode - Analysis simulated"
               };
             }
             
