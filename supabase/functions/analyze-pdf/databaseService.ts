@@ -75,7 +75,11 @@ export async function saveAnalysisResults(
       async ([sectionType, sectionData]) => {
         if (!sectionData) return null;
         
-        console.log(`Creating section for ${sectionType} with score ${sectionData.score}`);
+        // Ensure we have a proper section type and description
+        const normalizedSectionType = sectionType.toUpperCase();
+        const description = sectionData.detailedContent || sectionData.summary || "No detailed content available";
+        
+        console.log(`Creating section for ${sectionType} with score ${sectionData.score} and description length ${description.length}`);
         
         const { data: section, error: sectionError } = await adminSupabase
           .from('sections')
@@ -84,8 +88,8 @@ export async function saveAnalysisResults(
             title: sectionData.title || sectionType.charAt(0).toUpperCase() + sectionType.slice(1),
             type: sectionType,
             score: sectionData.score || 0,
-            description: sectionData.detailedContent || sectionData.summary || "",
-            // Remove detailed_content as it doesn't exist in the table
+            description: description,
+            section_type: normalizedSectionType // Add the section_type explicitly
           }])
           .select()
           .single();
@@ -100,7 +104,7 @@ export async function saveAnalysisResults(
           return null;
         }
         
-        console.log(`Created section: ${section.id}, type: ${section.type}`);
+        console.log(`Created section: ${section.id}, type: ${section.type}, section_type: ${section.section_type}`);
         
         // Create section details (strengths and weaknesses)
         const detailPromises = [];
