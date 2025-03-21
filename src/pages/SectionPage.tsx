@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, FileText } from "lucide-react";
-import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
+import { useCompanyDetails } from "@/hooks/useCompanies";
+import { useSectionDetails } from "@/hooks/companyHooks/useSectionDetails";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
+import { SectionDetailed } from "@/hooks/useCompanyDetails";
 
 const transformSectionData = (sectionData: any): SectionDetailed => {
   const sectionType = sectionData.type as "team" | "product" | "market" | "business" | "financials" | "competition" | "other";

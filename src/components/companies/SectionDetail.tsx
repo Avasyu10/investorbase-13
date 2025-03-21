@@ -17,7 +17,7 @@ import {
   Globe
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SectionDetailed } from "@/lib/api/apiContract";
+import { SectionDetailed } from "@/hooks/useCompanyDetails";
 
 interface SectionDetailProps {
   section: SectionDetailed | null;

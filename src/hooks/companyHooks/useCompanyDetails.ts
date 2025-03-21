@@ -1,132 +1,159 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { apiClient } from '@/lib/api/apiClient';
-import { CompanyDetailed } from '@/lib/api/apiContract';
-import { formatCompanyData } from './utils';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
-export function useCompanyDetails(companyId: string | undefined) {
-  const [company, setCompany] = useState<CompanyDetailed | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  
-  useEffect(() => {
-    if (!companyId) {
-      setIsLoading(false);
-      return;
-    }
-    
-    fetchCompanyDetails();
-  }, [companyId]);
-  
-  async function fetchCompanyDetails() {
-    try {
-      setIsLoading(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        console.log('Trying to fetch company details from Supabase for:', companyId);
+// Define function to check if input is a numeric ID
+function isNumericId(id: string): boolean {
+  return /^\d+$/.test(id);
+}
+
+export function useCompanyDetails(companyId?: string) {
+  const [company, setCompany] = useState<any>(null);
+
+  const { isLoading, error, data, refetch } = useQuery({
+    queryKey: ["company", companyId],
+    queryFn: async () => {
+      if (!companyId) {
+        throw new Error("Company ID is required");
+      }
+
+      try {
+        console.log("Fetching company details for ID:", companyId);
         
-        // First, check if the companyId is a full UUID (contains dashes)
-        if (companyId && companyId.includes('-')) {
-          // Direct UUID lookup
-          const { data: companyData, error: companyError } = await supabase
-            .from('companies')
-            .select('*, sections(*)')
-            .eq('id', companyId)
-            .maybeSingle();
+        // If the ID is numeric (from a public submission), use the RPC function
+        if (isNumericId(companyId)) {
+          console.log("Using numeric ID lookup for:", companyId);
+          const numericId = parseInt(companyId, 10);
+          
+          const { data: companyByNumeric, error: numericError } = await supabase
+            .rpc('get_company_by_numeric_id', { p_numeric_id: numericId });
             
-          if (companyError) {
-            console.error('Error fetching company by UUID:', companyError);
-            throw companyError;
+          if (numericError) {
+            console.error("Error finding company by numeric ID:", numericError);
+            throw numericError;
           }
           
-          if (companyData) {
-            console.log('Found company by direct UUID lookup:', companyData);
-            setCompany(transformCompanyData(companyData));
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // If companyId is numeric or UUID lookup failed, try to find by numeric ID
-        console.log('Attempting to find company by numeric ID:', companyId);
-        
-        const { data: uuidData, error: uuidError } = await supabase
-          .rpc('find_company_by_numeric_id_bigint', {
-            numeric_id: companyId.toString().replace(/-/g, '')
-          });
-        
-        if (uuidError) {
-          console.error('Error finding company UUID by numeric ID:', uuidError);
-          throw uuidError;
-        }
-        
-        if (uuidData && uuidData.length > 0) {
-          const companyUuid = uuidData[0];
-          console.log('Found company UUID:', companyUuid);
-          
-          const { data: companyData, error: companyError } = await supabase
-            .from('companies')
-            .select('*, sections(*)')
-            .eq('id', companyUuid)
-            .maybeSingle();
-          
-          if (companyError) {
-            console.error('Error fetching company details:', companyError);
-            throw companyError;
-          }
-          
-          if (companyData) {
-            console.log('Successfully fetched company details:', companyData);
-            setCompany(transformCompanyData(companyData));
-            setIsLoading(false);
-            return;
+          if (companyByNumeric && companyByNumeric.length > 0) {
+            console.log("Found company via numeric ID:", companyByNumeric[0]);
+            
+            // Get the full company data including sections
+            const { data: fullCompany, error: fullError } = await supabase
+              .from("companies")
+              .select(`
+                id, 
+                name, 
+                overall_score,
+                created_at,
+                updated_at,
+                assessment_points,
+                report_id,
+                perplexity_response,
+                perplexity_requested_at,
+                sections (
+                  id,
+                  title,
+                  type,
+                  score,
+                  description,
+                  created_at,
+                  updated_at
+                )
+              `)
+              .eq("id", companyByNumeric[0].id)
+              .single();
+              
+            if (fullError) throw fullError;
+            
+            return transformCompanyData(fullCompany);
           }
         }
         
-        console.log('No company found in Supabase, falling back to mock API');
+        // Try the direct query first
+        const { data: companyData, error } = await supabase
+          .from("companies")
+          .select(`
+            id, 
+            name, 
+            overall_score,
+            created_at,
+            updated_at,
+            assessment_points,
+            report_id,
+            perplexity_response,
+            perplexity_requested_at,
+            sections (
+              id,
+              title,
+              type,
+              score,
+              description,
+              created_at,
+              updated_at
+            )
+          `)
+          .eq("id", companyId)
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (!companyData) {
+          throw new Error("Company not found");
+        }
+        
+        return transformCompanyData(companyData);
+      } catch (err) {
+        console.error("Error in useCompanyDetails:", err);
+        throw err;
       }
-      
-      // Fallback to mock API
-      const companyResult = await apiClient.getCompany(Number(companyId));
-      
-      if (companyResult?.data) {
-        console.log('Fetched company from mock API:', companyResult.data);
-        setCompany(companyResult.data);
-      } else {
-        console.error('Company not found in mock API either');
-        setCompany(null);
-      }
-    } catch (error) {
-      console.error('Error in fetchCompanyDetails:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    },
+    enabled: !!companyId,
+    meta: {
+      onError: (error: Error) => {
+        console.error("Error fetching company details:", error);
+        toast({
+          title: "Error loading company details",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    },
+  });
+
+  // Process returned data
+  if (data && !company) {
+    setCompany(data);
   }
-  
-  function transformCompanyData(rawData: any): CompanyDetailed {
-    return {
-      id: rawData.id,
-      name: rawData.name,
-      overallScore: rawData.overall_score,
-      reportId: rawData.report_id,
-      perplexityResponse: rawData.perplexity_response,
-      perplexityRequestedAt: rawData.perplexity_requested_at,
-      assessmentPoints: rawData.assessment_points || [],
-      sections: rawData.sections?.map((section: any) => ({
-        id: section.id,
-        title: section.title,
-        type: section.type,
-        score: section.score,
-        description: section.description,
-        createdAt: section.created_at,
-        updatedAt: section.updated_at,
-      })) || [],
-      createdAt: rawData.created_at,
-      updatedAt: rawData.updated_at,
-    };
-  }
-  
-  return { company, isLoading };
+
+  return {
+    company,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+// Helper to transform company data from DB to our app model
+function transformCompanyData(companyData: any) {
+  return {
+    id: companyData.id,
+    name: companyData.name,
+    overallScore: companyData.overall_score,
+    reportId: companyData.report_id,
+    perplexityResponse: companyData.perplexity_response,
+    perplexityRequestedAt: companyData.perplexity_requested_at,
+    assessmentPoints: companyData.assessment_points || [],
+    sections: (companyData.sections || []).map((section: any) => ({
+      id: section.id,
+      title: section.title,
+      type: section.type,
+      score: section.score,
+      description: section.description || "",
+      createdAt: section.created_at,
+      updatedAt: section.updated_at || section.created_at
+    })),
+    createdAt: companyData.created_at,
+    updatedAt: companyData.updated_at
+  };
 }
