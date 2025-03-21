@@ -159,19 +159,21 @@ serve(async (req) => {
 
         console.log(`Analysis complete, created company with ID: ${companyId}`);
         
-        // Try to trigger the Perplexity research after the main analysis
-        // But don't fail the main job if research fails
+        // Try to trigger the Perplexity research and company details extraction concurrently
+        // But don't fail the main job if either fails
         try {
+          // Define an array of promises for the background tasks
+          const backgroundTasks = [];
+          
+          // Add Perplexity research task if assessment points are available
           if (analysis.assessmentPoints && analysis.assessmentPoints.length > 0) {
             console.log("Initiating market research with Perplexity API");
             
             // Check if we have the Perplexity API key
             const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
             
-            if (!PERPLEXITY_API_KEY) {
-              console.log("Skipping market research - PERPLEXITY_API_KEY not configured");
-            } else {
-              // Run this in background so it doesn't block completion
+            if (PERPLEXITY_API_KEY) {
+              // Create the research task
               const doResearch = async () => {
                 try {
                   console.log("Starting Perplexity research in background");
@@ -203,24 +205,62 @@ serve(async (req) => {
                 }
               };
               
-              // Start the research but don't wait for it to complete
-              if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-                console.log("Using EdgeRuntime.waitUntil for background processing");
-                EdgeRuntime.waitUntil(doResearch());
-              } else {
-                console.log("EdgeRuntime not available, starting research without waitUntil");
-                // Just start the research but don't await it
-                doResearch().catch(err => console.error("Background research failed:", err));
-              }
-              
-              console.log("Research task initiated in background");
+              // Add to background tasks
+              backgroundTasks.push(doResearch());
+            } else {
+              console.log("Skipping market research - PERPLEXITY_API_KEY not configured");
             }
           } else {
             console.log("Skipping market research - no assessment points available");
           }
-        } catch (researchSetupError) {
-          console.error("Error setting up research task:", researchSetupError);
-          // Don't fail the main job due to research failure
+          
+          // Add company details extraction task
+          console.log("Initiating company details extraction with Gemini API");
+          const extractDetails = async () => {
+            try {
+              console.log("Starting company details extraction in background");
+              
+              // Call the details-in-analyze-pdf function
+              const detailsResponse = await fetch(`${SUPABASE_URL}/functions/v1/details-in-analyze-pdf`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  reportId,
+                  companyId
+                })
+              });
+              
+              if (!detailsResponse.ok) {
+                const errorText = await detailsResponse.text();
+                console.error(`Details extraction failed (${detailsResponse.status}): ${errorText}`);
+              } else {
+                console.log("Company details extraction completed successfully");
+              }
+            } catch (detailsError) {
+              console.error("Error in company details extraction task:", detailsError);
+            }
+          };
+          
+          // Add to background tasks
+          backgroundTasks.push(extractDetails());
+          
+          // Run all background tasks but don't wait for them to complete
+          if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+            console.log("Using EdgeRuntime.waitUntil for background processing");
+            EdgeRuntime.waitUntil(Promise.all(backgroundTasks));
+          } else {
+            console.log("EdgeRuntime not available, starting tasks without waitUntil");
+            // Just start the tasks but don't await them
+            Promise.all(backgroundTasks).catch(err => console.error("Background tasks failed:", err));
+          }
+          
+          console.log("Background tasks initiated");
+        } catch (backgroundTasksError) {
+          console.error("Error setting up background tasks:", backgroundTasksError);
+          // Don't fail the main job due to background tasks failure
         }
 
         return new Response(
