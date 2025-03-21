@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -236,5 +235,30 @@ export async function analyzeReport(reportId: string) {
     }
     
     throw error;
+  }
+}
+
+export async function findCompanyByNumericId(numericId: string): Promise<string | null> {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Try to call the RPC function
+    const { data, error } = await supabase.rpc('find_company_by_numeric_id_bigint', {
+      numeric_id: numericId.replace(/-/g, '')
+    });
+    
+    if (error) {
+      console.error('Error finding company by numeric ID:', error);
+      return null;
+    }
+    
+    if (data && data.length > 0) {
+      return data[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error in findCompanyByNumericId:', error);
+    return null;
   }
 }

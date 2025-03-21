@@ -137,64 +137,157 @@ export function useCompanyDetails(companyId: string | undefined) {
     queryFn: async () => {
       if (!companyId) return null;
       
-      // Get the authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign in to view company details',
-          variant: 'destructive',
-        });
-        return null;
-      }
-      
-      // Get the company with RLS enforcement - explicitly checking user_id
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', companyId)
-        .eq('user_id', user.id) // Explicitly filter by user_id
-        .maybeSingle();
+      try {
+        // Get the authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
         
-      if (companyError) {
-        console.error("Error fetching company details:", companyError);
-        throw companyError;
-      }
-      
-      if (!companyData) {
-        console.error('Company not found or access denied');
-        toast({
-          title: 'Access denied',
-          description: 'You do not have permission to view this company',
-          variant: 'destructive',
-        });
-        return null;
-      }
-      
-      // Log the raw overall score from the database
-      console.log(`Raw overall_score from DB for company ${companyId}: ${companyData.overall_score}`);
-      
-      const { data: sectionsData, error: sectionsError } = await supabase
-        .from('sections')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: true });
+        if (!user) {
+          toast({
+            title: 'Authentication required',
+            description: 'Please sign in to view company details',
+            variant: 'destructive',
+          });
+          return null;
+        }
         
-      if (sectionsError) throw sectionsError;
-      
-      // Calculate average section score for verification
-      if (sectionsData && sectionsData.length > 0) {
-        const sectionScores = sectionsData.map(section => section.score || 0);
-        const averageScore = sectionScores.reduce((sum, score) => sum + score, 0) / 10; // Using 10 for normalization as per the prompt
-        const normalizedScore = Math.min(averageScore * 1.25, 5.0);
-        console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${normalizedScore.toFixed(1)}, DB Score=${companyData.overall_score}`);
+        // First check: Try to find by direct UUID lookup if companyId is a UUID
+        if (companyId.includes('-')) {
+          console.log('Attempting direct UUID lookup for:', companyId);
+          
+          const { data: companyData, error: companyError } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', companyId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (companyData) {
+            console.log('Found company by direct UUID lookup:', companyData);
+            
+            // Now get the sections
+            const { data: sectionsData, error: sectionsError } = await supabase
+              .from('sections')
+              .select('*')
+              .eq('company_id', companyId)
+              .order('created_at', { ascending: true });
+              
+            if (sectionsError) throw sectionsError;
+            
+            return {
+              ...mapDbCompanyToApi(companyData),
+              sections: sectionsData?.map(mapDbSectionToApi) || [],
+            };
+          }
+          
+          if (companyError && !companyError.message.includes('not found')) {
+            throw companyError;
+          }
+        }
+        
+        // Second check: Try to find UUID by numeric ID
+        console.log('Attempting to find company by numeric ID:', companyId);
+        
+        // Call the RPC function with the proper parameter format
+        const { data: uuidData, error: uuidError } = await supabase
+          .rpc('find_company_by_numeric_id_bigint', {
+            numeric_id: companyId.replace(/-/g, '')
+          });
+        
+        if (uuidError) {
+          console.error('Error finding company UUID by numeric ID:', uuidError);
+          throw uuidError;
+        }
+        
+        if (uuidData && uuidData.length > 0) {
+          const companyUuid = uuidData[0];
+          console.log('Found company UUID:', companyUuid);
+          
+          // Try to get company with this UUID - but without user_id filter first
+          // This is important for publicly submitted companies
+          const { data: publicCompanyData, error: publicCompanyError } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', companyUuid)
+            .maybeSingle();
+          
+          if (publicCompanyData) {
+            // Check if this company belongs to user or is a public submission
+            const isCompanyOwner = publicCompanyData.user_id === user.id;
+            
+            // Also check if this company is from a public submission (check reports table)
+            const { data: reportData, error: reportError } = await supabase
+              .from('reports')
+              .select('is_public_submission')
+              .eq('id', publicCompanyData.report_id)
+              .maybeSingle();
+              
+            const isPublicSubmission = reportData && reportData.is_public_submission;
+            
+            // Only allow access if user owns the company or it's a public submission
+            if (isCompanyOwner || isPublicSubmission) {
+              console.log('Access granted to company. Owner:', isCompanyOwner, 'Public:', isPublicSubmission);
+              
+              // Now get the sections
+              const { data: sectionsData, error: sectionsError } = await supabase
+                .from('sections')
+                .select('*')
+                .eq('company_id', companyUuid)
+                .order('created_at', { ascending: true });
+                
+              if (sectionsError) throw sectionsError;
+              
+              return {
+                ...mapDbCompanyToApi(publicCompanyData),
+                sections: sectionsData?.map(mapDbSectionToApi) || [],
+              };
+            } else {
+              console.log('Access denied: Not owner and not public submission');
+              return null;
+            }
+          }
+          
+          if (publicCompanyError && !publicCompanyError.message.includes('not found')) {
+            throw publicCompanyError;
+          }
+        }
+        
+        // Third check: Check direct via the report_id for public submissions
+        if (!isNaN(Number(companyId))) {
+          console.log('Checking if numeric ID might be a report ID');
+          
+          // Try to locate a public submission by report_id
+          const { data: reportData, error: reportError } = await supabase
+            .from('reports')
+            .select('*, companies(*)')
+            .eq('id', companyId)
+            .eq('is_public_submission', true)
+            .maybeSingle();
+          
+          if (reportData?.companies) {
+            console.log('Found company via public report:', reportData.companies);
+            
+            // Now get the sections
+            const { data: sectionsData, error: sectionsError } = await supabase
+              .from('sections')
+              .select('*')
+              .eq('company_id', reportData.companies.id)
+              .order('created_at', { ascending: true });
+              
+            if (sectionsError) throw sectionsError;
+            
+            return {
+              ...mapDbCompanyToApi(reportData.companies),
+              sections: sectionsData?.map(mapDbSectionToApi) || [],
+            };
+          }
+        }
+        
+        console.log('No company found with the given ID:', companyId);
+        return null;
+      } catch (err) {
+        console.error("Error in useCompanyDetails:", err);
+        throw err;
       }
-      
-      return {
-        ...mapDbCompanyToApi(companyData),
-        sections: sectionsData?.map(mapDbSectionToApi) || [],
-      };
     },
     enabled: !!companyId,
     meta: {
@@ -237,33 +330,62 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         return null;
       }
       
-      // First verify the user has access to this company
-      const { data: companyCheck, error: companyCheckError } = await supabase
+      // First verify the user has access to this company - check both owned and public submissions
+      const { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id')
+        .select('id, report_id')
         .eq('id', companyId)
-        .eq('user_id', user.id)
         .maybeSingle();
         
-      if (companyCheckError) {
-        console.error("Error checking company access:", companyCheckError);
-        throw companyCheckError;
+      if (companyError && !companyError.message.includes('not found')) {
+        console.error("Error checking company access:", companyError);
+        throw companyError;
       }
       
-      if (!companyCheck) {
-        console.error('Access denied to company');
-        toast({
-          title: 'Access denied',
-          description: 'You do not have permission to view this section',
-          variant: 'destructive',
-        });
-        return null;
+      if (!companyData) {
+        console.log('Company not found, checking if it might be a public submission');
+        
+        // Try to find through report (for public submissions)
+        const { data: reportData, error: reportError } = await supabase
+          .from('reports')
+          .select('*, companies(id)')
+          .eq('companies.id', companyId)
+          .eq('is_public_submission', true)
+          .maybeSingle();
+          
+        if (reportError && !reportError.message.includes('not found')) {
+          throw reportError;
+        }
+        
+        if (!reportData?.companies?.id) {
+          console.error('Access denied to company');
+          toast({
+            title: 'Access denied',
+            description: 'You do not have permission to view this section',
+            variant: 'destructive',
+          });
+          return null;
+        }
+      } else if (companyData) {
+        // If company exists, check if user owns it or if it's a public submission
+        const isCompanyOwner = await checkUserOwnsCompany(companyId, user.id);
+        const isPublicSubmission = await checkPublicSubmission(companyData.report_id);
+        
+        if (!isCompanyOwner && !isPublicSubmission) {
+          console.error('Access denied: Not owner and not public submission');
+          toast({
+            title: 'Access denied',
+            description: 'You do not have permission to view this section',
+            variant: 'destructive',
+          });
+          return null;
+        }
       }
       
       // Get the section data with full description
       const { data: sectionData, error: sectionError } = await supabase
         .from('sections')
-        .select('*')
+        .select('*, section_details(*)')
         .eq('id', sectionId)
         .eq('company_id', companyId)
         .maybeSingle();
@@ -273,23 +395,14 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       
       console.log("Retrieved section data:", sectionData);
       
-      // Get strengths and weaknesses
-      const { data: detailsData, error: detailsError } = await supabase
-        .from('section_details')
-        .select('*')
-        .eq('section_id', sectionId);
+      // Process section details to get strengths and weaknesses
+      const strengths = sectionData.section_details
+        .filter((detail: any) => detail.detail_type === 'strength')
+        .map((detail: any) => detail.content);
         
-      if (detailsError) throw detailsError;
-      
-      console.log("Retrieved section details:", detailsData);
-      
-      const strengths = detailsData
-        .filter(detail => detail.detail_type === 'strength')
-        .map(detail => detail.content);
-        
-      const weaknesses = detailsData
-        .filter(detail => detail.detail_type === 'weakness')
-        .map(detail => detail.content);
+      const weaknesses = sectionData.section_details
+        .filter((detail: any) => detail.detail_type === 'weakness')
+        .map((detail: any) => detail.content);
       
       // Get the detailed content from the description field for now
       const detailedContent = sectionData.description || '';
@@ -297,10 +410,16 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
       
       return {
-        ...mapDbSectionToApi(sectionData),
+        id: sectionData.id,
+        title: sectionData.title,
+        type: sectionData.type,
+        score: Number(sectionData.score),
+        description: sectionData.description || '',
+        detailedContent,
         strengths,
         weaknesses,
-        detailedContent,
+        createdAt: sectionData.created_at,
+        updatedAt: sectionData.updated_at,
       };
     },
     enabled: !!companyId && !!sectionId,
@@ -320,4 +439,28 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
     isLoading,
     error,
   };
+}
+
+// Helper functions to check access permissions
+async function checkUserOwnsCompany(companyId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('id', companyId)
+    .eq('user_id', userId)
+    .maybeSingle();
+    
+  return !!data;
+}
+
+async function checkPublicSubmission(reportId: string | null): Promise<boolean> {
+  if (!reportId) return false;
+  
+  const { data, error } = await supabase
+    .from('reports')
+    .select('is_public_submission')
+    .eq('id', reportId)
+    .maybeSingle();
+    
+  return data?.is_public_submission === true;
 }
