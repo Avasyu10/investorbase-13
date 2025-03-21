@@ -63,7 +63,8 @@ export function useCompanyDetails(companyId: string | undefined) {
         }
         
         if (uuidData && uuidData.length > 0) {
-          const companyUuid = uuidData[0];
+          // Extract the UUID string from the result array
+          const companyUuid = uuidData[0].id;
           console.log('Found company UUID:', companyUuid);
           
           const { data: companyData, error: companyError } = await supabase

@@ -44,7 +44,7 @@ export function useSectionDetails(
           }
           
           if (uuidData && uuidData.length > 0) {
-            companyUuid = uuidData[0];
+            companyUuid = uuidData[0].id;
             console.log('Converted numeric ID to UUID:', companyUuid);
           }
         }
@@ -72,9 +72,9 @@ export function useSectionDetails(
             id: sectionData.id,
             title: sectionData.title,
             type: sectionData.type as SectionType,
-            score: Number(sectionData.score),
+            score: parseFloat(sectionData.score.toString()),
             description: sectionData.description || '',
-            detailedContent: sectionData.detailed_content || '',
+            detailedContent: sectionData.description || '',
             strengths: sectionData.section_details
               ?.filter((detail: any) => detail.detail_type === 'strength')
               .map((detail: any) => detail.content) || [],
