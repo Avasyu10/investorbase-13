@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -12,6 +11,7 @@ import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -19,6 +19,94 @@ export function CompanyDetails() {
   const queryClient = useQueryClient();
   const { company, isLoading } = useCompanyDetails(companyId);
   const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState({
+    website: "",
+    stage: "",
+    industry: "",
+    founderLinkedIns: [] as string[],
+    introduction: ""
+  });
+  const [infoLoading, setInfoLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCompanyInfo() {
+      if (!company || !company.reportId) return;
+      
+      try {
+        const { data: report } = await supabase
+          .from('reports')
+          .select('is_public_submission, submission_form_id')
+          .eq('id', company.reportId)
+          .single();
+        
+        if (report?.is_public_submission) {
+          const { data: submission } = await supabase
+            .from('public_form_submissions')
+            .select('website_url, company_stage, industry, founder_linkedin_profiles, description')
+            .eq('report_id', company.reportId)
+            .single();
+          
+          if (submission) {
+            setCompanyInfo({
+              website: submission.website_url || "",
+              stage: submission.company_stage || "Not specified",
+              industry: submission.industry || "Not specified",
+              founderLinkedIns: submission.founder_linkedin_profiles || [],
+              introduction: submission.description || "No description available."
+            });
+          }
+        } else {
+          const { data: sections } = await supabase
+            .from('sections')
+            .select('title, description')
+            .eq('company_id', companyId);
+          
+          let intro = "";
+          let industry = "Not specified";
+          let stage = "Not specified";
+          
+          sections?.forEach(section => {
+            const title = section.title.toLowerCase();
+            const description = section.description || "";
+            
+            if (title.includes('company') || title.includes('introduction') || title.includes('about')) {
+              intro = description;
+            }
+            
+            if (description.toLowerCase().includes('industry')) {
+              const industryMatch = description.match(/industry.{0,5}:?\s*([^\.]+)/i);
+              if (industryMatch && industryMatch[1]) {
+                industry = industryMatch[1].trim();
+              }
+            }
+            
+            if (description.toLowerCase().includes('stage')) {
+              const stageMatch = description.match(/stage.{0,5}:?\s*([^\.]+)/i);
+              if (stageMatch && stageMatch[1]) {
+                stage = stageMatch[1].trim();
+              }
+            }
+          });
+          
+          setCompanyInfo({
+            website: "",
+            stage,
+            industry,
+            founderLinkedIns: [],
+            introduction: intro || "No detailed information available for this company."
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching company information:", error);
+      } finally {
+        setInfoLoading(false);
+      }
+    }
+    
+    if (company) {
+      fetchCompanyInfo();
+    }
+  }, [company, companyId]);
 
   const handleSectionClick = (sectionId: number | string) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
@@ -139,9 +227,14 @@ export function CompanyDetails() {
           </div>
         </div>
         
-        {/* Added more vertical spacing before the CompanyInfoCard */}
         <div className="mt-6 mb-8">
-          <CompanyInfoCard />
+          <CompanyInfoCard 
+            website={companyInfo.website}
+            stage={companyInfo.stage}
+            industry={companyInfo.industry}
+            founderLinkedIns={companyInfo.founderLinkedIns}
+            introduction={companyInfo.introduction}
+          />
         </div>
         
         <div className="mb-5">

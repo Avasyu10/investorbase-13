@@ -11,7 +11,6 @@ import {
 import { useState } from "react";
 
 type CompanyInfoProps = {
-  // Using dummy data for now
   website?: string;
   stage?: string;
   industry?: string;
@@ -21,10 +20,10 @@ type CompanyInfoProps = {
 
 export function CompanyInfoCard({
   website = "https://example.com",
-  stage = "Series A",
-  industry = "Technology",
-  founderLinkedIns = ["https://linkedin.com/in/johnsmith", "https://linkedin.com/in/janesmith"],
-  introduction = "This is a company that specializes in advanced technology solutions for enterprise clients. Founded in 2019, they've rapidly grown to become a leader in their space."
+  stage = "Not specified",
+  industry = "Not specified",
+  founderLinkedIns = [],
+  introduction = "No detailed information available for this company."
 }: CompanyInfoProps) {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
 
@@ -42,14 +41,18 @@ export function CompanyInfoCard({
               <Globe className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Website</p>
-                <a 
-                  href={website} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
-                >
-                  {website}
-                </a>
+                {website ? (
+                  <a 
+                    href={website.startsWith('http') ? website : `https://${website}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                  >
+                    {website}
+                  </a>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not available</p>
+                )}
               </div>
             </div>
             
@@ -89,30 +92,32 @@ export function CompanyInfoCard({
             <DialogTitle>Additional Company Information</DialogTitle>
           </DialogHeader>
 
-            <div>
-              <h4 className="text-base font-medium mb-2">About</h4>
-              <p className="text-muted-foreground">{introduction}</p>
-            </div>
-          
-          <div className="space-y-6 py-4">
-            <div>
-              <h4 className="text-base font-medium mb-2">Founders</h4>
-              <ul className="list-disc pl-5 space-y-1">
-                {founderLinkedIns.map((linkedin, index) => (
-                  <li key={index}>
-                    <a 
-                      href={linkedin} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {linkedin.replace('https://linkedin.com/in/', '')}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div>
+            <h4 className="text-base font-medium mb-2">About</h4>
+            <p className="text-muted-foreground">{introduction}</p>
           </div>
+        
+          {founderLinkedIns && founderLinkedIns.length > 0 && (
+            <div className="space-y-6 py-4">
+              <div>
+                <h4 className="text-base font-medium mb-2">Founders</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {founderLinkedIns.map((linkedin, index) => (
+                    <li key={index}>
+                      <a 
+                        href={linkedin.startsWith('http') ? linkedin : `https://${linkedin}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '')}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
