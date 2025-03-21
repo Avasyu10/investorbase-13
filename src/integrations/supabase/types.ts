@@ -14,6 +14,8 @@ export type Database = {
           assessment_points: string[] | null
           created_at: string
           id: string
+          industry: string | null
+          introduction: string | null
           name: string
           overall_score: number
           perplexity_prompt: string | null
@@ -23,13 +25,17 @@ export type Database = {
           report_id: string | null
           response_received: string | null
           source: string
+          stage: string | null
           updated_at: string
           user_id: string | null
+          website: string | null
         }
         Insert: {
           assessment_points?: string[] | null
           created_at?: string
           id?: string
+          industry?: string | null
+          introduction?: string | null
           name: string
           overall_score?: number
           perplexity_prompt?: string | null
@@ -39,13 +45,17 @@ export type Database = {
           report_id?: string | null
           response_received?: string | null
           source?: string
+          stage?: string | null
           updated_at?: string
           user_id?: string | null
+          website?: string | null
         }
         Update: {
           assessment_points?: string[] | null
           created_at?: string
           id?: string
+          industry?: string | null
+          introduction?: string | null
           name?: string
           overall_score?: number
           perplexity_prompt?: string | null
@@ -55,8 +65,10 @@ export type Database = {
           report_id?: string | null
           response_received?: string | null
           source?: string
+          stage?: string | null
           updated_at?: string
           user_id?: string | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -484,6 +496,8 @@ export type Database = {
           assessment_points: string[] | null
           created_at: string
           id: string
+          industry: string | null
+          introduction: string | null
           name: string
           overall_score: number
           perplexity_prompt: string | null
@@ -493,8 +507,10 @@ export type Database = {
           report_id: string | null
           response_received: string | null
           source: string
+          stage: string | null
           updated_at: string
           user_id: string | null
+          website: string | null
         }[]
       }
       get_section_stats: {

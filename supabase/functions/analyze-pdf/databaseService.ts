@@ -18,7 +18,12 @@ export async function saveAnalysisResults(
       // Determine the source based on if it's a public submission
       source: report.is_public_submission ? 'public_url' : 'dashboard',
       // Important: Use the report's user_id which should be the form owner's ID
-      user_id: report.user_id
+      user_id: report.user_id,
+      // Add company information from analysis
+      website: analysis.website || null,
+      industry: analysis.industry || null,
+      stage: analysis.stage || null,
+      introduction: analysis.introduction || null
     };
     
     console.log("Creating company record with data:", {
