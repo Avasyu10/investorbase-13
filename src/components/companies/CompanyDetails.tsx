@@ -8,7 +8,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, AlertCircle } from "lucide-react";
+import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { toast } from "@/hooks/use-toast";
@@ -17,13 +17,8 @@ export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { company, isLoading, error } = useCompanyDetails(companyId);
+  const { company, isLoading } = useCompanyDetails(companyId);
   const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
-
-  console.log("CompanyDetails component rendering with companyId:", companyId);
-  console.log("Company data:", company);
-  console.log("Loading state:", isLoading);
-  console.log("Error state:", error);
 
   const handleSectionClick = (sectionId: number | string) => {
     navigate(`/company/${companyId}/section/${sectionId}`);
@@ -92,19 +87,7 @@ export function CompanyDetails() {
   if (!company) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12 border rounded-lg bg-card/50">
-          <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
-          <h3 className="mt-4 text-xl font-medium">Company not found</h3>
-          <p className="mt-2 text-muted-foreground">
-            The company you're looking for doesn't exist or you don't have permission to view it.
-          </p>
-          <Button 
-            onClick={() => navigate('/dashboard')} 
-            className="mt-6"
-          >
-            Go to Dashboard
-          </Button>
-        </div>
+        <p>Company not found</p>
       </div>
     );
   }
@@ -184,19 +167,13 @@ export function CompanyDetails() {
         Section Metrics
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {company.sections?.length > 0 ? (
-          company.sections.map((section) => (
-            <SectionCard 
-              key={section.id} 
-              section={section} 
-              onClick={() => handleSectionClick(section.id)} 
-            />
-          ))
-        ) : (
-          <div className="col-span-full text-center py-6 border rounded-lg bg-card/50">
-            <p className="text-muted-foreground">No sections available for this company</p>
-          </div>
-        )}
+        {company.sections.map((section) => (
+          <SectionCard 
+            key={section.id} 
+            section={section} 
+            onClick={() => handleSectionClick(section.id)} 
+          />
+        ))}
       </div>
     </div>
   );
