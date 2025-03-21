@@ -1,3 +1,4 @@
 
 # Supabase Edge Function configuration
 project_id = "jhtnruktmtjqrfoiyrep"
+verify_jwt = true

@@ -8,9 +8,11 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 type CompanyInfoProps = {
+  companyId?: string;
   website?: string;
   stage?: string;
   industry?: string;
@@ -19,13 +21,81 @@ type CompanyInfoProps = {
 }
 
 export function CompanyInfoCard({
-  website = "https://example.com",
-  stage = "Not specified",
-  industry = "Not specified",
+  companyId,
+  website: initialWebsite = "",
+  stage: initialStage = "Not specified",
+  industry: initialIndustry = "Not specified",
   founderLinkedIns = [],
-  introduction = "No detailed information available for this company."
+  introduction: initialIntroduction = "No detailed information available for this company."
 }: CompanyInfoProps) {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const [website, setWebsite] = useState(initialWebsite);
+  const [stage, setStage] = useState(initialStage);
+  const [industry, setIndustry] = useState(initialIndustry);
+  const [introduction, setIntroduction] = useState(initialIntroduction);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (companyId) {
+      fetchCompanyDetails(companyId);
+    }
+  }, [companyId]);
+
+  useEffect(() => {
+    // Update local state when props change
+    setWebsite(initialWebsite);
+    setStage(initialStage);
+    setIndustry(initialIndustry);
+    setIntroduction(initialIntroduction);
+  }, [initialWebsite, initialStage, initialIndustry, initialIntroduction]);
+
+  const fetchCompanyDetails = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { data: details, error } = await supabase
+        .from('company_details')
+        .select('*')
+        .eq('company_id', id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching company details:", error);
+        return;
+      }
+
+      if (details) {
+        if (details.website && details.website !== "Unknown") {
+          setWebsite(details.website);
+        }
+        
+        if (details.stage && details.stage !== "Unknown") {
+          setStage(details.stage);
+        }
+        
+        if (details.industry && details.industry !== "Unknown") {
+          setIndustry(details.industry);
+        }
+        
+        if (details.introduction && details.introduction !== "No information available.") {
+          setIntroduction(details.introduction);
+        }
+      }
+    } catch (error) {
+      console.error("Error in fetchCompanyDetails:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Format website for display
+  const displayWebsite = website && website !== "Unknown" 
+    ? website.replace(/^https?:\/\/(www\.)?/i, '') 
+    : "Not available";
+
+  // Format website for linking
+  const websiteUrl = website && website !== "Unknown"
+    ? (website.startsWith('http') ? website : `https://${website}`)
+    : null;
 
   return (
     <div className="mb-7">
@@ -41,14 +111,14 @@ export function CompanyInfoCard({
               <Globe className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Website</p>
-                {website ? (
+                {websiteUrl ? (
                   <a 
-                    href={website.startsWith('http') ? website : `https://${website}`}
+                    href={websiteUrl}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary hover:underline"
                   >
-                    {website}
+                    {displayWebsite}
                   </a>
                 ) : (
                   <p className="text-sm text-muted-foreground">Not available</p>

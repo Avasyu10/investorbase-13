@@ -1,8 +1,10 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
 import { analyzeWithOpenAI } from "./openaiService.ts";
 import { saveAnalysisResults } from "./databaseService.ts";
+import { extractCompanyDetails, saveCompanyDetails } from "./detailsExtraction.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -113,6 +115,19 @@ serve(async (req) => {
         const companyId = await saveAnalysisResults(supabase, analysis, report);
 
         console.log(`Analysis complete, created company with ID: ${companyId}`);
+        
+        // NEW: Extract and save company details
+        try {
+          console.log("Starting company details extraction...");
+          const companyDetails = await extractCompanyDetails(pdfBase64, GEMINI_API_KEY);
+          console.log("Company details extracted:", companyDetails);
+          
+          await saveCompanyDetails(supabase, companyId, companyDetails);
+          console.log("Company details saved successfully");
+        } catch (detailsError) {
+          // Don't fail the main process if details extraction fails
+          console.error("Error extracting or saving company details:", detailsError);
+        }
         
         // Try to trigger the Perplexity research after the main analysis
         // But don't fail the main job if research fails
