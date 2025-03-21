@@ -57,13 +57,25 @@ export async function saveAnalysisResults(
     }
     
     // Create sections for each category in the analysis
+    // We'll use the service role to bypass RLS policies
+    const adminApiKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const apiUrl = Deno.env.get('SUPABASE_URL') || '';
+    
+    if (!adminApiKey || !apiUrl) {
+      console.error("Missing admin credentials for section creation");
+      throw new Error("Missing admin credentials");
+    }
+    
+    // Create a new client with the service role key to bypass RLS
+    const adminSupabase = new SupabaseClient(apiUrl, adminApiKey);
+    
     const sectionPromises = Object.entries(analysis.sections).map(
       async ([sectionType, sectionData]) => {
         if (!sectionData) return null;
         
         console.log(`Creating section for ${sectionType} with score ${sectionData.score}`);
         
-        const { data: section, error: sectionError } = await supabase
+        const { data: section, error: sectionError } = await adminSupabase
           .from('sections')
           .insert([{
             company_id: company.id,
@@ -94,7 +106,7 @@ export async function saveAnalysisResults(
         if (sectionData.strengths && sectionData.strengths.length > 0) {
           for (const strength of sectionData.strengths) {
             detailPromises.push(
-              supabase
+              adminSupabase
                 .from('section_details')
                 .insert([{
                   section_id: section.id,
@@ -108,7 +120,7 @@ export async function saveAnalysisResults(
         if (sectionData.weaknesses && sectionData.weaknesses.length > 0) {
           for (const weakness of sectionData.weaknesses) {
             detailPromises.push(
-              supabase
+              adminSupabase
                 .from('section_details')
                 .insert([{
                   section_id: section.id,

@@ -72,7 +72,9 @@ export function useSectionDetails(
             id: sectionData.id,
             title: sectionData.title,
             type: sectionData.type as SectionType,
-            score: parseFloat(sectionData.score.toString()),
+            score: typeof sectionData.score === 'string' 
+              ? parseFloat(sectionData.score) 
+              : Number(sectionData.score),
             description: sectionData.description || '',
             detailedContent: sectionData.description || '',
             strengths: sectionData.section_details
