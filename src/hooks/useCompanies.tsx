@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export function useCompanies(
   page = 1, 
@@ -43,7 +44,7 @@ export function useCompanies(
           const formattedCompanies: CompanyListItem[] = data.map(item => {
             const isFromPublicSubmission = item.report_id && !!item.user_id;
             return {
-              id: parseInt(item.id.split('-')[0], 16),
+              id: parseInt(item.id.substring(0, 8), 16),
               name: item.name,
               overallScore: item.overall_score,
               createdAt: item.created_at,
@@ -126,46 +127,59 @@ export function useCompanyDetails(companyId?: string) {
         
         if (user) {
           console.log('Trying to fetch company details from Supabase for:', companyId);
+          
+          // Try finding the company using the find_company_by_numeric_id function
           try {
-            const { data: companyData, error: companyError } = await supabase
-              .from('companies')
-              .select('*, sections(*)')
-              .eq('id', companyId)
-              .maybeSingle();
-              
-            if (companyError) {
-              console.error('Error fetching company from Supabase:', companyError);
-              throw companyError;
-            }
+            // Use the database function to find the company by numeric ID
+            const { data: uuidData, error: uuidError } = await supabase
+              .rpc('find_company_by_numeric_id', { numeric_id: companyId });
             
-            if (companyData) {
-              console.log('Found company in Supabase:', companyData);
-              const formattedCompany: CompanyDetailed = {
-                id: parseInt(companyData.id.split('-')[0], 16),
-                name: companyData.name,
-                overallScore: companyData.overall_score,
-                createdAt: companyData.created_at,
-                updatedAt: companyData.updated_at,
-                sections: companyData.sections.map((section: any) => ({
-                  id: section.id,
-                  type: section.type as any,
-                  title: section.title,
-                  score: section.score,
-                  description: section.description,
-                  createdAt: section.created_at,
-                  updatedAt: section.updated_at
-                })),
-                assessmentPoints: companyData.assessment_points || [],
-                perplexityResponse: companyData.perplexity_response,
-                perplexityPrompt: companyData.perplexity_prompt,
-                perplexityRequestedAt: companyData.perplexity_requested_at,
-                reportId: companyData.report_id
-              };
+            if (uuidError) {
+              console.error('Error finding company by numeric ID:', uuidError);
+            } else if (uuidData) {
+              console.log('Found company UUID:', uuidData);
               
-              setCompany(formattedCompany);
-              setIsLoading(false);
-              setError(null);
-              return;
+              const companyUuid = uuidData;
+              
+              // Now get the company details with the UUID
+              const { data: companyData, error: companyError } = await supabase
+                .from('companies')
+                .select('*, sections(*)')
+                .eq('id', companyUuid)
+                .maybeSingle();
+                
+              if (companyError) {
+                console.error('Error fetching company from Supabase:', companyError);
+              } else if (companyData) {
+                console.log('Found company in Supabase:', companyData);
+                
+                const formattedCompany: CompanyDetailed = {
+                  id: parseInt(companyData.id.substring(0, 8), 16),
+                  name: companyData.name,
+                  overallScore: companyData.overall_score,
+                  createdAt: companyData.created_at,
+                  updatedAt: companyData.updated_at,
+                  sections: companyData.sections.map((section: any) => ({
+                    id: section.id,
+                    type: section.type,
+                    title: section.title,
+                    score: section.score,
+                    description: section.description,
+                    createdAt: section.created_at,
+                    updatedAt: section.updated_at
+                  })),
+                  assessmentPoints: companyData.assessment_points || [],
+                  perplexityResponse: companyData.perplexity_response,
+                  perplexityPrompt: companyData.perplexity_prompt,
+                  perplexityRequestedAt: companyData.perplexity_requested_at,
+                  reportId: companyData.report_id
+                };
+                
+                setCompany(formattedCompany);
+                setIsLoading(false);
+                setError(null);
+                return;
+              }
             }
           } catch (err) {
             console.error('Error processing Supabase company data:', err);
@@ -173,7 +187,7 @@ export function useCompanyDetails(companyId?: string) {
         }
         
         console.log('Falling back to mock API for company details');
-        // Fix for TypeScript error: Convert the string ID to a number
+        // Convert the string ID to a number for the mock API
         const numericId = parseInt(companyId);
         if (isNaN(numericId)) {
           throw new Error('Invalid company ID');
@@ -252,7 +266,7 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
               
               const formattedSection: SectionDetailed = {
                 id: sectionData.id,
-                type: sectionData.type as any,
+                type: sectionData.type,
                 title: sectionData.title,
                 score: sectionData.score,
                 description: sectionData.description || '',
@@ -274,14 +288,14 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
         }
         
         console.log('Falling back to mock API for section details');
-        // Fix for TypeScript error: Convert the string ID to a number
+        // Convert the string company ID to a number
         const numericCompanyId = parseInt(companyId);
         if (isNaN(numericCompanyId)) {
           throw new Error('Invalid company ID');
         }
 
-        // Here's the fix - we need to ensure sectionId is passed correctly to the API
-        // The API expects sectionId to be either a number or a string, so no conversion needed
+        // Here's the fix - pass sectionId as is without conversion
+        // The API accepts sectionId as either a string or a number
         const response = await api.getSection(numericCompanyId, sectionId);
         setSection(response.data);
         setError(null);
