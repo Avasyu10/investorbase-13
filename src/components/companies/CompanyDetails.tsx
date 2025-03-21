@@ -8,16 +8,16 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files } from "lucide-react";
+import { FileText, BarChart2, Files, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useCompanyDetails } from "@/hooks/useCompanies";
+import { useCompanyDetails } from "@/hooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { company, isLoading } = useCompanyDetails(companyId);
+  const { company, isLoading, error } = useCompanyDetails(companyId);
   const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
 
   const handleSectionClick = (sectionId: number | string) => {
@@ -84,10 +84,36 @@ export function CompanyDetails() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h2 className="text-2xl font-bold mb-4">Error Loading Company</h2>
+          <p className="text-muted-foreground mb-6">
+            {error instanceof Error ? error.message : "There was a problem loading this company's data."}
+          </p>
+          <Button onClick={() => navigate('/dashboard')}>
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!company) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p>Company not found</p>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h2 className="text-2xl font-bold mb-4">Company Not Found</h2>
+          <p className="text-muted-foreground mb-6">
+            The company you're looking for could not be found or you may not have permission to view it.
+          </p>
+          <Button onClick={() => navigate('/dashboard')}>
+            Return to Dashboard
+          </Button>
+        </div>
       </div>
     );
   }

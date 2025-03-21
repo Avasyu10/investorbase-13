@@ -1,4 +1,3 @@
-
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -8,6 +7,33 @@ import { ChevronLeft, FileText } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
+
+const transformSectionData = (sectionData: any): SectionDetailed => {
+  const sectionType = sectionData.type as "team" | "product" | "market" | "business" | "financials" | "competition" | "other";
+  
+  return {
+    id: sectionData.id,
+    title: sectionData.title,
+    type: sectionType, 
+    score: Number(sectionData.score),
+    description: sectionData.description || "",
+    detailedContent: sectionData.section_type || "",
+    strengths: sectionData.section_details
+      .filter((detail: any) => detail.detail_type === "strength")
+      .map((detail: any) => ({
+        id: detail.id,
+        content: detail.content,
+      })),
+    weaknesses: sectionData.section_details
+      .filter((detail: any) => detail.detail_type === "weakness")
+      .map((detail: any) => ({
+        id: detail.id,
+        content: detail.content,
+      })),
+    createdAt: sectionData.created_at,
+    updatedAt: sectionData.updated_at
+  };
+};
 
 const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
