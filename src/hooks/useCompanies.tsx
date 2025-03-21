@@ -1,297 +1,323 @@
 
-import { useState, useEffect } from 'react';
-import api from '@/lib/api';
-import { CompanyListItem, CompanyDetailed, SectionDetailed } from '@/lib/api/apiContract';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
-export function useCompanies(
-  page = 1, 
-  limit = 20, 
-  sortField = 'created_at', 
-  sortOrder: 'asc' | 'desc' = 'desc'
-) {
-  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+// Map Supabase DB types to API contract types
+function mapDbCompanyToApi(company: any) {
+  // Ensure the overall score is properly normalized and formatted
+  const overallScore = typeof company.overall_score === 'number' 
+    ? parseFloat(company.overall_score.toFixed(1))
+    : 0;
+  
+  return {
+    id: company.id,
+    name: company.name,
+    overallScore: overallScore,
+    createdAt: company.created_at,
+    updatedAt: company.updated_at || company.created_at,
+    score: overallScore, // For backward compatibility
+    assessmentPoints: company.assessment_points || [],
+    reportId: company.report_id,
+    perplexityResponse: company.perplexity_response,
+    perplexityPrompt: company.perplexity_prompt,
+    perplexityRequestedAt: company.perplexity_requested_at
+  };
+}
 
-  useEffect(() => {
-    async function fetchCompanies() {
+function mapDbSectionToApi(section: any) {
+  return {
+    id: section.id,
+    type: section.type,
+    title: section.title,
+    score: section.score,
+    description: section.description || '',
+    createdAt: section.created_at,
+    updatedAt: section.updated_at || section.created_at,
+  };
+}
+
+function mapDbSectionDetailedToApi(section: any, strengths: string[], weaknesses: string[]) {
+  return {
+    ...mapDbSectionToApi(section),
+    strengths,
+    weaknesses,
+    detailedContent: section.description || '',
+  };
+}
+
+export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: string = 'created_at', sortOrder: 'asc' | 'desc' = 'desc') {
+  const {
+    data: companiesData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['companies', page, pageSize, sortBy, sortOrder],
+    queryFn: async () => {
       try {
-        setIsLoading(true);
+        // Calculate offset based on page number and page size
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
         
+        // Convert UI sort field to database column name
+        let dbSortField = sortBy;
+        if (sortBy === 'name' || sortBy === 'overallScore') {
+          dbSortField = sortBy === 'overallScore' ? 'overall_score' : 'name';
+        }
+        
+        // Get the authenticated user
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          console.log('No authenticated user, using mock data');
-          fetchMockCompanies();
-          return;
+          toast({
+            title: 'Authentication required',
+            description: 'Please sign in to view companies',
+            variant: 'destructive',
+          });
+          return { companies: [], totalCount: 0 };
         }
         
+        console.log('Fetching companies for user:', user.id);
+        
+        // Query with RLS - this will only return companies the user has access to
         const { data, error, count } = await supabase
           .from('companies')
-          .select('*', { count: 'exact' })
-          .order(sortField, { ascending: sortOrder === 'asc' })
-          .range((page - 1) * limit, page * limit - 1);
-          
+          .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id', { count: 'exact' })
+          .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
+          .order(dbSortField, { ascending: sortOrder === 'asc' })
+          .range(from, to);
+
         if (error) {
-          console.error('Error fetching companies from Supabase:', error);
+          console.error("Error fetching companies:", error);
           throw error;
         }
         
-        if (data && data.length > 0) {
-          const formattedCompanies: CompanyListItem[] = data.map(item => {
-            const isFromPublicSubmission = item.report_id && !!item.user_id;
-            return {
-              id: parseInt(item.id.split('-')[0], 16),
-              name: item.name,
-              overallScore: item.overall_score,
-              createdAt: item.created_at,
-              updatedAt: item.created_at,
-              assessmentPoints: item.assessment_points || [],
-              source: 'dashboard', // Set all sources to 'dashboard'
-              reportId: item.report_id
-            };
-          });
-          
-          setCompanies(formattedCompanies);
-          // Fix for TypeScript error: safely access 'count' with a fallback
-          setTotalCount(count ?? data.length);
-          setError(null);
-        } else {
-          console.log('No companies found in Supabase, using mock data');
-          fetchMockCompanies();
+        console.log(`Retrieved ${data.length} companies out of ${count} total`);
+        
+        // Log the first few companies to help with debugging
+        if (data.length > 0) {
+          console.log('Sample company data:', data[0]);
         }
+
+        return {
+          companies: data.map(mapDbCompanyToApi),
+          totalCount: count || 0
+        };
       } catch (err) {
-        console.error('Failed to fetch companies:', err);
-        fetchMockCompanies();
-      } finally {
-        setIsLoading(false);
+        console.error("Error in useCompanies:", err);
+        throw err;
       }
-    }
-    
-    async function fetchMockCompanies() {
-      try {
-        const response = await api.getCompanies({
-          page,
-          limit,
-          sortBy: 'createdAt',
-          sortOrder: sortOrder
+    },
+    meta: {
+      onError: (err: any) => {
+        toast({
+          title: 'Error loading companies',
+          description: err.message || 'Failed to load companies data',
+          variant: 'destructive',
         });
-        
-        if ('data' in response.data && 'pagination' in response.data) {
-          const paginatedData = response.data.data as CompanyListItem[];
-          setCompanies(paginatedData);
-          const paginationData = response.data.pagination as { total?: number } | undefined;
-          // Fix for TypeScript error: safely access 'total' with a fallback
-          setTotalCount(paginationData?.total ?? paginatedData.length);
-        } else {
-          const data = response.data as CompanyListItem[];
-          setCompanies(data);
-          setTotalCount(data.length);
-        }
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch mock companies:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        setCompanies([]);
-        setTotalCount(0);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+      },
+    },
+  });
 
-    fetchCompanies();
-  }, [page, limit, sortField, sortOrder]);
-
-  return { companies, totalCount, isLoading, error };
+  return {
+    companies: companiesData?.companies || [],
+    totalCount: companiesData?.totalCount || 0,
+    isLoading,
+    error,
+  };
 }
 
-export function useCompanyDetails(companyId?: string) {
-  const [company, setCompany] = useState<CompanyDetailed | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!companyId) {
-      setIsLoading(false);
-      return;
-    }
-
-    async function fetchCompanyDetails() {
-      try {
-        setIsLoading(true);
-        
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          console.log('Trying to fetch company details from Supabase for:', companyId);
-          try {
-            const { data: companyData, error: companyError } = await supabase
-              .from('companies')
-              .select('*, sections(*)')
-              .eq('id', companyId)
-              .maybeSingle();
-              
-            if (companyError) {
-              console.error('Error fetching company from Supabase:', companyError);
-              throw companyError;
-            }
-            
-            if (companyData) {
-              console.log('Found company in Supabase:', companyData);
-              const formattedCompany: CompanyDetailed = {
-                id: parseInt(companyData.id.split('-')[0], 16),
-                name: companyData.name,
-                overallScore: companyData.overall_score,
-                createdAt: companyData.created_at,
-                updatedAt: companyData.updated_at,
-                sections: companyData.sections.map((section: any) => ({
-                  id: section.id,
-                  type: section.type as any,
-                  title: section.title,
-                  score: section.score,
-                  description: section.description,
-                  createdAt: section.created_at,
-                  updatedAt: section.updated_at
-                })),
-                assessmentPoints: companyData.assessment_points || [],
-                perplexityResponse: companyData.perplexity_response,
-                perplexityPrompt: companyData.perplexity_prompt,
-                perplexityRequestedAt: companyData.perplexity_requested_at,
-                reportId: companyData.report_id
-              };
-              
-              setCompany(formattedCompany);
-              setIsLoading(false);
-              setError(null);
-              return;
-            }
-          } catch (err) {
-            console.error('Error processing Supabase company data:', err);
-          }
-        }
-        
-        console.log('Falling back to mock API for company details');
-        // Fix for TypeScript error: Convert the string ID to a number
-        const numericId = parseInt(companyId);
-        if (isNaN(numericId)) {
-          throw new Error('Invalid company ID');
-        }
-
-        const response = await api.getCompany(numericId);
-        setCompany(response.data);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch company details:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        setCompany(null);
-      } finally {
-        setIsLoading(false);
+export function useCompanyDetails(companyId: string | undefined) {
+  const {
+    data: company,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['company', companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view company details',
+          variant: 'destructive',
+        });
+        return null;
       }
-    }
+      
+      // Get the company with RLS enforcement - explicitly checking user_id
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', companyId)
+        .eq('user_id', user.id) // Explicitly filter by user_id
+        .maybeSingle();
+        
+      if (companyError) {
+        console.error("Error fetching company details:", companyError);
+        throw companyError;
+      }
+      
+      if (!companyData) {
+        console.error('Company not found or access denied');
+        toast({
+          title: 'Access denied',
+          description: 'You do not have permission to view this company',
+          variant: 'destructive',
+        });
+        return null;
+      }
+      
+      // Log the raw overall score from the database
+      console.log(`Raw overall_score from DB for company ${companyId}: ${companyData.overall_score}`);
+      
+      const { data: sectionsData, error: sectionsError } = await supabase
+        .from('sections')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: true });
+        
+      if (sectionsError) throw sectionsError;
+      
+      // Calculate average section score for verification
+      if (sectionsData && sectionsData.length > 0) {
+        const sectionScores = sectionsData.map(section => section.score || 0);
+        const averageScore = sectionScores.reduce((sum, score) => sum + score, 0) / 10; // Using 10 for normalization as per the prompt
+        const normalizedScore = Math.min(averageScore * 1.25, 5.0);
+        console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${normalizedScore.toFixed(1)}, DB Score=${companyData.overall_score}`);
+      }
+      
+      return {
+        ...mapDbCompanyToApi(companyData),
+        sections: sectionsData?.map(mapDbSectionToApi) || [],
+      };
+    },
+    enabled: !!companyId,
+    meta: {
+      onError: (err: any) => {
+        toast({
+          title: 'Error loading company',
+          description: err.message || 'Failed to load company details',
+          variant: 'destructive',
+        });
+      },
+    },
+  });
 
-    fetchCompanyDetails();
-  }, [companyId]);
-
-  return { company, isLoading, error };
+  return {
+    company,
+    isLoading,
+    error,
+  };
 }
 
-export function useSectionDetails(companyId?: string, sectionId?: string) {
-  const [section, setSection] = useState<SectionDetailed | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!companyId || !sectionId) {
-      setIsLoading(false);
-      return;
-    }
-
-    async function fetchSectionDetails() {
-      try {
-        setIsLoading(true);
-        
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          console.log('Trying to fetch section details from Supabase for:', companyId, sectionId);
-          try {
-            const { data: sectionData, error: sectionError } = await supabase
-              .from('sections')
-              .select('*')
-              .eq('id', sectionId)
-              .eq('company_id', companyId)
-              .maybeSingle();
-              
-            if (sectionError) {
-              console.error('Error fetching section from Supabase:', sectionError);
-              throw sectionError;
-            }
-            
-            if (sectionData) {
-              console.log('Found section in Supabase:', sectionData);
-              
-              const { data: sectionDetails, error: detailsError } = await supabase
-                .from('section_details')
-                .select('*')
-                .eq('section_id', sectionId);
-                
-              if (detailsError) {
-                console.error('Error fetching section details:', detailsError);
-              }
-              
-              const strengths = sectionDetails?.filter(detail => detail.detail_type === 'strength')
-                .map(strength => strength.content) || [];
-              
-              const weaknesses = sectionDetails?.filter(detail => detail.detail_type === 'weakness')
-                .map(weakness => weakness.content) || [];
-              
-              const detailedContent = sectionDetails?.find(detail => detail.detail_type === 'content')?.content || '';
-              
-              const formattedSection: SectionDetailed = {
-                id: parseInt(sectionData.id),
-                type: sectionData.type as any,
-                title: sectionData.title,
-                score: sectionData.score,
-                description: sectionData.description || '',
-                strengths: strengths,
-                weaknesses: weaknesses,
-                detailedContent: detailedContent,
-                createdAt: sectionData.created_at,
-                updatedAt: sectionData.updated_at
-              };
-              
-              setSection(formattedSection);
-              setIsLoading(false);
-              setError(null);
-              return;
-            }
-          } catch (err) {
-            console.error('Error processing Supabase section data:', err);
-          }
-        }
-        
-        console.log('Falling back to mock API for section details');
-        const numericCompanyId = parseInt(companyId);
-        if (isNaN(numericCompanyId)) {
-          throw new Error('Invalid company ID');
-        }
-
-        const response = await api.getSection(numericCompanyId, sectionId);
-        setSection(response.data);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch section details:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        setSection(null);
-      } finally {
-        setIsLoading(false);
+export function useSectionDetails(companyId: string | undefined, sectionId: string | undefined) {
+  const {
+    data: section,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['section', companyId, sectionId],
+    queryFn: async () => {
+      if (!companyId || !sectionId) return null;
+      
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view section details',
+          variant: 'destructive',
+        });
+        return null;
       }
-    }
+      
+      // First verify the user has access to this company
+      const { data: companyCheck, error: companyCheckError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('id', companyId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (companyCheckError) {
+        console.error("Error checking company access:", companyCheckError);
+        throw companyCheckError;
+      }
+      
+      if (!companyCheck) {
+        console.error('Access denied to company');
+        toast({
+          title: 'Access denied',
+          description: 'You do not have permission to view this section',
+          variant: 'destructive',
+        });
+        return null;
+      }
+      
+      // Get the section data with full description
+      const { data: sectionData, error: sectionError } = await supabase
+        .from('sections')
+        .select('*')
+        .eq('id', sectionId)
+        .eq('company_id', companyId)
+        .maybeSingle();
+        
+      if (sectionError) throw sectionError;
+      if (!sectionData) return null;
+      
+      console.log("Retrieved section data:", sectionData);
+      
+      // Get strengths and weaknesses
+      const { data: detailsData, error: detailsError } = await supabase
+        .from('section_details')
+        .select('*')
+        .eq('section_id', sectionId);
+        
+      if (detailsError) throw detailsError;
+      
+      console.log("Retrieved section details:", detailsData);
+      
+      const strengths = detailsData
+        .filter(detail => detail.detail_type === 'strength')
+        .map(detail => detail.content);
+        
+      const weaknesses = detailsData
+        .filter(detail => detail.detail_type === 'weakness')
+        .map(detail => detail.content);
+      
+      // Get the detailed content from the description field for now
+      const detailedContent = sectionData.description || '';
+      
+      console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
+      
+      return {
+        ...mapDbSectionToApi(sectionData),
+        strengths,
+        weaknesses,
+        detailedContent,
+      };
+    },
+    enabled: !!companyId && !!sectionId,
+    meta: {
+      onError: (err: any) => {
+        toast({
+          title: 'Error loading section',
+          description: err.message || 'Failed to load section details',
+          variant: 'destructive',
+        });
+      },
+    },
+  });
 
-    fetchSectionDetails();
-  }, [companyId, sectionId]);
-
-  return { section, isLoading, error };
+  return {
+    section,
+    isLoading,
+    error,
+  };
 }
