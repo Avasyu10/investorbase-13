@@ -50,17 +50,17 @@ const Dashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="companies">Companies</TabsTrigger>
-            <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
             <TabsTrigger value="submissions">Public Submissions</TabsTrigger>
+            <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
           </TabsList>
           <TabsContent value="companies">
             <CompaniesList />
           </TabsContent>
-          <TabsContent value="reports">
-            <ReportsList />
-          </TabsContent>
           <TabsContent value="submissions">
             <PublicSubmissionsList />
+          </TabsContent>
+          <TabsContent value="reports">
+            <ReportsList />
           </TabsContent>
         </Tabs>
       </div>
