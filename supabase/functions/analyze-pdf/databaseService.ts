@@ -9,9 +9,6 @@ export async function saveAnalysisResults(
   console.log("Saving analysis results to database");
   
   try {
-    // Extract company information from analysis
-    const companyInfo = extractCompanyInfo(analysis);
-    
     // First, create the company record
     const companyData = {
       name: analysis.companyName || report.title,
@@ -21,12 +18,7 @@ export async function saveAnalysisResults(
       // Determine the source based on if it's a public submission
       source: report.is_public_submission ? 'public_url' : 'dashboard',
       // Important: Use the report's user_id which should be the form owner's ID
-      user_id: report.user_id,
-      // Add extracted company information
-      website: companyInfo.website,
-      industry: companyInfo.industry,
-      stage: companyInfo.stage,
-      introduction: companyInfo.introduction
+      user_id: report.user_id
     };
     
     console.log("Creating company record with data:", {
@@ -192,100 +184,4 @@ export async function saveAnalysisResults(
     
     throw error;
   }
-}
-
-// Helper function to extract company information from the analysis
-function extractCompanyInfo(analysis: any) {
-  console.log("Extracting company information from analysis");
-  
-  const info = {
-    website: "",
-    industry: "",
-    stage: "",
-    introduction: ""
-  };
-  
-  // Try to extract from company overview section
-  const overviewSection = analysis.sections?.find(
-    (s) => s.type?.toLowerCase().includes('company') || 
-           s.title?.toLowerCase().includes('company') ||
-           s.type?.toLowerCase().includes('introduction') ||
-           s.title?.toLowerCase().includes('introduction')
-  );
-  
-  if (overviewSection) {
-    info.introduction = overviewSection.detailedContent || overviewSection.description || "";
-    console.log("Found introduction from overview section");
-  }
-  
-  // Try to extract from market section for industry
-  const marketSection = analysis.sections?.find(
-    (s) => s.type?.toLowerCase().includes('market') ||
-           s.title?.toLowerCase().includes('market')
-  );
-  
-  if (marketSection) {
-    const content = marketSection.detailedContent || marketSection.description || "";
-    
-    // Try to find industry mentions
-    const industryMatches = content.match(/industry:?\s*([^\.]+)/i) || 
-                          content.match(/in the ([^\s,\.]+(?:\s+[^\s,\.]+){0,4}) (?:industry|market|sector)/i);
-    
-    if (industryMatches && industryMatches[1]) {
-      info.industry = industryMatches[1].trim();
-      console.log("Extracted industry:", info.industry);
-    }
-  }
-  
-  // Look for website mentions across all sections
-  for (const section of analysis.sections || []) {
-    const content = section.detailedContent || section.description || "";
-    
-    // Website patterns
-    const websitePatterns = [
-      /website:?\s*(https?:\/\/[^\s,\.]+(?:\.[^\s,\.]+)+)/i,
-      /visit us at:?\s*(https?:\/\/[^\s,\.]+(?:\.[^\s,\.]+)+)/i,
-      /(https?:\/\/[^\s,\.]+(?:\.[^\s,\.]+)+)/i,
-      /www\.[^\s,\.]+\.[^\s,\.]+/i
-    ];
-    
-    for (const pattern of websitePatterns) {
-      const match = content.match(pattern);
-      if (match && match[1]) {
-        info.website = match[1].trim();
-        console.log("Extracted website:", info.website);
-        break;
-      }
-    }
-    
-    // Stage patterns
-    const stagePatterns = [
-      /stage:?\s*([^\.]+)/i,
-      /(?:we are|company is) (?:at|in) (?:the)?\s*([^\s,\.]+(?:\s+[^\s,\.]+){0,2}) stage/i,
-      /(?:seed|early|growth|series [A-Z]|pre-seed|late) stage/i
-    ];
-    
-    for (const pattern of stagePatterns) {
-      const match = content.match(pattern);
-      if (match) {
-        info.stage = match[0].includes("stage:") && match[1] ? match[1].trim() : match[0].trim();
-        console.log("Extracted stage:", info.stage);
-        break;
-      }
-    }
-    
-    // If we found both, no need to search further
-    if (info.website && info.industry && info.stage) {
-      break;
-    }
-  }
-  
-  // If we couldn't find a proper introduction, create one from the company name and description
-  if (!info.introduction && analysis.companyDescription) {
-    info.introduction = analysis.companyDescription;
-    console.log("Using company description as introduction");
-  }
-  
-  console.log("Final extracted company info:", info);
-  return info;
 }
