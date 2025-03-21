@@ -211,7 +211,7 @@ Format your response as a clean JSON object with these exact keys:
 `;
 
   try {
-    // Update the API endpoint to use gemini-1.0-pro instead of gemini-pro
+    // Update the API endpoint to use gemini-2.0-flash instead of gemini-pro
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
       method: 'POST',
       headers: {
