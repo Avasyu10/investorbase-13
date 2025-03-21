@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { parsePdfFromBlob } from '@/lib/pdf-parser';  // Fixed import path
 import { toast } from "@/hooks/use-toast";
 
 export async function analyzeReport(reportId: string) {

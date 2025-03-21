@@ -112,6 +112,7 @@ serve(async (req) => {
 
     // Determine the correct form slug - use the provided one or default to public-pitch-deck
     let submissionFormId = null;
+    let formOwnerId = null;
     let autoAnalyze = false;
     let effectiveFormSlug = formSlug;
     
@@ -121,7 +122,7 @@ serve(async (req) => {
     
     console.log("Using form slug for submission:", effectiveFormSlug);
     
-    // Look up the submission form to get the form ID and auto_analyze setting
+    // Look up the submission form to get the form ID, user_id, and auto_analyze setting
     const { data: submissionFormData, error: formLookupError } = await supabase
       .from('public_submission_forms')
       .select('id, user_id, auto_analyze')
@@ -132,8 +133,9 @@ serve(async (req) => {
       console.error('Error looking up form:', formLookupError);
     } else if (submissionFormData) {
       submissionFormId = submissionFormData.id;
+      formOwnerId = submissionFormData.user_id; // Store the form owner's user_id
       autoAnalyze = submissionFormData.auto_analyze || false;
-      console.log("Found existing submission form:", submissionFormId, "for user:", submissionFormData.user_id, "auto_analyze:", autoAnalyze);
+      console.log("Found existing submission form:", submissionFormId, "for user:", formOwnerId, "auto_analyze:", autoAnalyze);
     } else {
       console.log("No form found with slug:", effectiveFormSlug);
       
@@ -162,8 +164,9 @@ serve(async (req) => {
         console.error('Error creating public submission form:', newFormError);
       } else if (newForm) {
         submissionFormId = newForm.id;
+        formOwnerId = newForm.user_id;
         autoAnalyze = newForm.auto_analyze || false;
-        console.log("Created new public submission form:", submissionFormId, "auto_analyze:", autoAnalyze);
+        console.log("Created new public submission form:", submissionFormId, "for user:", formOwnerId, "auto_analyze:", autoAnalyze);
       }
     }
 
@@ -219,7 +222,8 @@ serve(async (req) => {
     }
 
     // Insert record in the reports table without any auth checks
-    console.log("Inserting record to reports table...");
+    // Now including the form owner's user_id
+    console.log("Inserting record to reports table with form owner's user_id:", formOwnerId);
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
@@ -228,7 +232,8 @@ serve(async (req) => {
         pdf_url: fileName || null, // Use null if no file was uploaded
         is_public_submission: true,
         submission_form_id: submissionFormId,
-        analysis_status: analysisStatus
+        analysis_status: analysisStatus,
+        user_id: formOwnerId // Set the user_id to the form owner's ID
       }])
       .select()
       .single();
@@ -241,7 +246,7 @@ serve(async (req) => {
       });
     }
 
-    console.log("Report record inserted successfully:", { reportId: report.id, analysisStatus });
+    console.log("Report record inserted successfully:", { reportId: report.id, analysisStatus, ownerId: formOwnerId });
     
     // Also insert into our new public_form_submissions table
     console.log("Inserting record to public_form_submissions table...");
