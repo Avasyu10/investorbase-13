@@ -1,419 +1,240 @@
-import { createClient } from '@supabase/supabase-js';
-import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
+
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-// These are provided by your Supabase project
-const supabaseUrl = 'https://jhtnruktmtjqrfoiyrep.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Types for our database
-export type Report = {
-  id: string;
-  title: string;
-  description: string;
-  pdf_url: string;
-  created_at: string;
-  sections?: string[];
-  parsedSegments?: ParsedPdfSegment[];
-  user_id?: string;
-  analysis_status?: string;
-  analysis_error?: string;
-};
-
-// Functions to interact with Supabase
-
-export async function getReports() {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    console.log('No authenticated user found');
-    return [];
-  }
-
-  // Get reports from the reports table - strictly enforcing user_id filter
-  const { data: tableData, error: tableError } = await supabase
-    .from('reports')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  if (tableError) {
-    console.error('Error fetching reports from table:', tableError);
-    throw tableError;
-  }
-
-  if (tableData && tableData.length > 0) {
-    console.log('Found reports in table:', tableData);
-    return tableData as Report[];
-  }
-
-  console.log('No reports found for this user');
-  return [];
-}
-
-export async function getReportById(id: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
-  // Get the report from the reports table - strictly enforcing user_id filter
-  const { data: tableData, error: tableError } = await supabase
-    .from('reports')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (tableError) {
-    console.error('Error fetching report from table:', tableError);
-    throw tableError;
-  }
-
-  if (!tableData) {
-    throw new Error('Report not found or you do not have permission to access it');
-  }
-
-  const report = tableData as Report;
-
-  try {
-    // Download the file
-    const pdfBlob = await downloadReport(report.pdf_url, user.id);
-    
-    // Parse the PDF content
-    const parsedSegments = await parsePdfFromBlob(pdfBlob);
-    
-    // Add parsed segments to the report
-    report.parsedSegments = parsedSegments;
-    
-    return report;
-  } catch (error) {
-    console.error('Error parsing PDF content:', error);
-    // Return the report without parsed segments if parsing fails
-    return report;
-  }
-}
-
-export async function downloadReport(fileUrl: string, userId: string) {
-  const { data, error } = await supabase.storage
-    .from('report_pdfs')
-    .download(`${userId}/${fileUrl}`);
-
-  if (error) {
-    console.error('Error downloading report:', error);
-    throw error;
-  }
-
-  return data;
-}
-
-export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
-  try {
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    console.log('Uploading report for user:', user.id);
-    
-    // If website URL is provided, scrape it first
-    let scrapedContent = null;
-    if (websiteUrl && websiteUrl.trim()) {
-      try {
-        console.log('Scraping website:', websiteUrl);
-        const { data, error } = await supabase.functions.invoke('scrape-website', {
-          body: { websiteUrl }
-        });
-        
-        if (error) {
-          console.error('Error scraping website:', error);
-          toast({
-            id: "scraping-error",
-            title: "Website scraping failed",
-            description: "Could not scrape the company website. Continuing without website data.",
-            variant: "destructive"
-          });
-        } else if (data && data.scrapedContent) {
-          scrapedContent = data.scrapedContent;
-          console.log('Website scraped successfully:', scrapedContent.substring(0, 100) + '...');
-          
-          // Store scraped content in database for debugging
-          const { error: storeError } = await supabase
-            .from('website_scrapes')
-            .insert({
-              url: websiteUrl,
-              content: scrapedContent,
-              status: 'success'
-            });
-            
-          if (storeError) {
-            console.error('Error storing scraped content:', storeError);
-          }
-          
-          // Enhance description with scraped content
-          if (description) {
-            description += '\n\nWebsite Content:\n' + scrapedContent;
-          } else {
-            description = 'Website Content:\n' + scrapedContent;
-          }
-        }
-      } catch (scrapingError) {
-        console.error('Error during website scraping:', scrapingError);
-        
-        // Store scraping error in database
-        try {
-          await supabase
-            .from('website_scrapes')
-            .insert({
-              url: websiteUrl,
-              status: 'error',
-              error_message: scrapingError instanceof Error ? scrapingError.message : String(scrapingError)
-            });
-        } catch (storeError) {
-          console.error('Error storing scraping error:', storeError);
-        }
-      }
-    }
-    
-    // Create a unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${user.id}/${fileName}`;
-    
-    // Upload the file to storage
-    const { error: uploadError } = await supabase.storage
-      .from('report_pdfs')
-      .upload(filePath, file);
-      
-    if (uploadError) {
-      console.error('Error uploading file to storage:', uploadError);
-      throw uploadError;
-    }
-    
-    console.log('File uploaded to storage successfully, saving record to database');
-    
-    // Insert a record in the reports table
-    const { data: report, error: insertError } = await supabase
-      .from('reports')
-      .insert([{
-        title,
-        description,
-        pdf_url: fileName,
-        user_id: user.id
-      }])
-      .select()
-      .single();
-      
-    if (insertError) {
-      console.error('Error inserting report record:', insertError);
-      throw insertError;
-    }
-
-    console.log('Report record created successfully:', report);
-    
-    // If we scraped a website, update the website_scrapes table with report_id
-    if (scrapedContent && report) {
-      const { error: updateError } = await supabase
-        .from('website_scrapes')
-        .update({ report_id: report.id })
-        .eq('url', websiteUrl)
-        .is('report_id', null);
-        
-      if (updateError) {
-        console.error('Error linking scrape to report:', updateError);
-        // Non-blocking error, continue
-      }
-    }
-    
-    return report as Report;
-  } catch (error) {
-    console.error('Error uploading report:', error);
-    throw error;
-  }
-}
 
 export async function analyzeReport(reportId: string) {
   try {
-    console.log('Starting analysis for report:', reportId);
+    console.log('Calling analyze function with report ID:', reportId);
     
-    // Call the analyze-pdf edge function
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-      body: { reportId }
-    });
+    // First check authentication
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (error) {
-      console.error('Error invoking analyze-pdf function:', error);
-      
-      // Update report status to failed
-      await supabase
-        .from('reports')
-        .update({
-          analysis_status: 'failed',
-          analysis_error: error.message
-        })
-        .eq('id', reportId);
-        
-      throw error;
+    if (!user) {
+      console.error('User not authenticated');
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to analyze reports",
+        variant: "destructive"
+      });
+      throw new Error('User not authenticated');
     }
     
-    if (!data || data.error) {
-      const errorMessage = data?.error || "Unknown error occurred during analysis";
-      console.error('API returned error:', errorMessage);
+    // Add validation for reportId format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!reportId || !uuidRegex.test(reportId)) {
+      const errorMessage = `Invalid report ID format: ${reportId}`;
+      console.error(errorMessage);
       
-      // Update report status to failed
-      await supabase
-        .from('reports')
-        .update({
-          analysis_status: 'failed',
-          analysis_error: errorMessage
-        })
-        .eq('id', reportId);
-        
+      toast({
+        title: "Invalid Report ID",
+        description: "The report ID format is invalid. Please try again with a valid report.",
+        variant: "destructive"
+      });
+      
       throw new Error(errorMessage);
     }
     
-    console.log('Analysis result:', data);
-    
-    // Update report status to completed
-    await supabase
+    // First, check if this is a public submission
+    console.log('Checking if this is a public submission...');
+    const { data: report } = await supabase
       .from('reports')
-      .update({
-        analysis_status: 'completed',
-        company_id: data.companyId
-      })
-      .eq('id', reportId);
+      .select('is_public_submission')
+      .eq('id', reportId)
+      .maybeSingle();
+      
+    const isPublicSubmission = report?.is_public_submission || false;
+    console.log(`Report is${isPublicSubmission ? '' : ' not'} a public submission`);
     
-    return data;
+    // Determine which function to call based on whether it's a public submission or not
+    const functionName = isPublicSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
+    console.log(`Will use ${functionName} function for analysis`);
+    
+    try {
+      // Call the edge function with proper error handling and retries
+      console.log(`Invoking ${functionName} function with report ID: ${reportId}`);
+      
+      // Implement retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      let lastError = null;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          if (retryCount > 0) {
+            console.log(`Retry attempt ${retryCount} for ${functionName} function`);
+            // Add a short delay between retries that increases with each attempt
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          }
+          
+          // Check if we're in a development environment
+          const isDevelopment = window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1';
+          
+          // Log the current environment
+          console.log(`Current environment: ${isDevelopment ? 'Development' : 'Production'}`);
+          console.log(`Base URL: ${window.location.origin}`);
+          
+          // Call the edge function with direct URL to avoid potential path issues
+          const functionUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/${functionName}`;
+          
+          // First get the auth token for authorization
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (!session) {
+            throw new Error('Authentication session not found');
+          }
+          
+          // Get the API key from the environment
+          // Use the public anon key from our Supabase project
+          const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY";
+          
+          // Make a direct fetch request to the function URL
+          const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+              'apikey': SUPABASE_KEY
+            },
+            body: JSON.stringify({ reportId })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Edge function error: ${response.status} - ${errorText}`);
+          }
+          
+          const data = await response.json();
+          
+          if (!data || data.error) {
+            const errorMessage = data?.error || "Unknown error occurred during analysis";
+            console.error('API returned error:', errorMessage);
+            
+            let userMessage = errorMessage;
+            
+            // Make error messages more user-friendly
+            if (errorMessage.includes('belongs to another user') || errorMessage.includes('access denied')) {
+              userMessage = "You don't have permission to analyze this report.";
+            } else if (errorMessage.includes('not found')) {
+              userMessage = "The report could not be found. It may have been deleted.";
+            } else if (errorMessage.includes('PDF file is empty')) {
+              userMessage = "The PDF file appears to be corrupted or empty.";
+            } else if (errorMessage.includes('Invalid report ID format')) {
+              userMessage = "The report ID format is invalid.";
+            }
+            
+            toast({
+              title: "Analysis failed",
+              description: userMessage,
+              variant: "destructive"
+            });
+            
+            throw new Error(errorMessage);
+          }
+          
+          console.log('Analysis result:', data);
+          
+          toast({
+            title: "Analysis complete",
+            description: "Your pitch deck has been successfully analyzed",
+          });
+          
+          return data;
+        } catch (retryError) {
+          lastError = retryError;
+          
+          // Only retry on network errors
+          if (retryError.message?.includes('Failed to fetch') || 
+              retryError.message?.includes('Failed to send') ||
+              retryError.message?.includes('network') ||
+              retryError.message?.includes('timeout') ||
+              retryError.message?.includes('Connection')) {
+            
+            retryCount++;
+            if (retryCount <= maxRetries) {
+              console.log(`Will retry due to network error: ${retryError.message}`);
+              continue;
+            }
+          }
+          
+          // If it's not a network error or we've exhausted retries, throw the error
+          throw retryError;
+        }
+      }
+      
+      // If we get here, all retries failed
+      throw lastError || new Error(`Failed to invoke ${functionName} function after multiple attempts`);
+      
+    } catch (innerError) {
+      // Check if this is a CORS error
+      if (innerError.message?.includes('CORS') || innerError.name === 'TypeError') {
+        console.error('Possible CORS or network configuration issue:', innerError);
+        toast({
+          title: "Connection Error",
+          description: "Could not connect to the analysis service due to a network configuration issue. This may be because the Edge Function is not properly deployed or configured.",
+          variant: "destructive"
+        });
+        throw new Error('Network configuration error. Please make sure your Edge Functions are properly deployed.');
+      }
+      
+      // Handle timeout specifically
+      if (innerError.name === 'AbortError' || innerError.message?.includes('timeout')) {
+        console.error('Analysis timed out after extended period');
+        toast({
+          title: "Analysis timed out",
+          description: "The analysis is taking longer than expected. Please try again with a smaller file or try later.",
+          variant: "destructive"
+        });
+        throw new Error('Analysis timed out. Please try with a smaller file or try again later.');
+      }
+      
+      // Add specific handling for Supabase function errors
+      if (innerError.message?.includes('FunctionsFetchError') || 
+          innerError.message?.includes('functions-fetch')) {
+        console.error('Supabase Function fetch error:', innerError);
+        toast({
+          title: "Edge Function Error",
+          description: "Could not connect to the Supabase Edge Function. Please verify that your Edge Functions are properly deployed.",
+          variant: "destructive"
+        });
+        throw new Error('Edge Function connection error. Please verify your Edge Functions deployment.');
+      }
+      
+      // Handle network errors more specifically
+      if (innerError.message?.includes('Failed to fetch') || 
+          innerError.message?.includes('Failed to send') ||
+          innerError.message?.includes('network') ||
+          innerError.message?.includes('Connection')) {
+        
+        console.error('Network error when calling analyze-pdf function:', innerError);
+        toast({
+          title: "Network Error",
+          description: "Could not connect to the analysis service. This is likely a temporary issue, please try again later.",
+          variant: "destructive"
+        });
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+      
+      // Re-throw other errors
+      throw innerError;
+    }
   } catch (error) {
     console.error('Error analyzing report:', error);
-    throw error;
-  }
-}
-
-export async function analyzeReportDirect(file: File, title: string, description: string = '') {
-  try {
-    console.log('Converting file to base64...');
-    
-    // Convert file to base64
-    const base64String = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Extract just the base64 data part
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-    
-    console.log('File converted to base64, calling analyze-pdf-direct function');
-    
-    // Call the edge function without authentication
-    const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
-      body: { 
-        title, 
-        description, 
-        pdfBase64: base64String 
-      }
-    });
-    
-    if (error) {
-      console.error('Error invoking analyze-pdf-direct function:', error);
-      
-      toast({
-        id: "analysis-error-direct-1",
-        title: "Analysis failed",
-        description: "There was a problem analyzing the report. Please try again later.",
-        variant: "destructive"
-      });
-      
-      throw error;
-    }
-    
-    if (!data || data.error) {
-      const errorMessage = data?.error || "Unknown error occurred during analysis";
-      console.error('API returned error:', errorMessage);
-      
-      toast({
-        id: "analysis-error-direct-2",
-        title: "Analysis failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      
-      throw new Error(errorMessage);
-    }
-    
-    console.log('Analysis result:', data);
-    
-    toast({
-      id: "analysis-success-direct",
-      title: "Analysis complete",
-      description: "Your pitch deck has been successfully analyzed",
-    });
-    
-    return data;
-  } catch (error) {
-    console.error('Error analyzing report directly:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
-    if (!errorMessage.includes("analysis failed")) {
+    // Prevent duplicate toasts by checking error message
+    if (!errorMessage.includes("analysis failed") && 
+        !errorMessage.includes("timed out") && 
+        !errorMessage.includes("Network error") &&
+        !errorMessage.includes("Connection")) {
+      
       toast({
-        id: "analysis-error-direct-3",
         title: "Analysis failed",
         description: "Could not analyze the report. Please try again later.",
         variant: "destructive"
       });
     }
     
-    throw error;
-  }
-}
-
-export async function uploadPublicReport(file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') {
-  try {
-    console.log('Uploading public report');
-    
-    // Create FormData for direct submission to the edge function
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    formData.append('email', email);
-    
-    if (description) {
-      formData.append('description', description);
-    }
-    
-    if (websiteUrl) {
-      formData.append('websiteUrl', websiteUrl);
-    }
-    
-    // Use direct fetch to edge function instead of Supabase client
-    const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Upload error response:", errorData);
-      throw new Error(`Upload failed with status: ${response.status}${errorData.details ? ` - ${errorData.details}` : ''}`);
-    }
-    
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.error || 'Upload failed');
-    }
-    
-    return { id: result.reportId };
-  } catch (error) {
-    console.error('Error uploading public report:', error);
     throw error;
   }
 }

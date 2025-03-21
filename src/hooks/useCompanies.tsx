@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -126,7 +127,7 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
   };
 }
 
-export function useCompanyDetails(companyId?: string) {
+export function useCompanyDetails(companyId: string | undefined) {
   const {
     data: company,
     isLoading,
@@ -136,89 +137,64 @@ export function useCompanyDetails(companyId?: string) {
     queryFn: async () => {
       if (!companyId) return null;
       
-      try {
-        console.log("Fetching company details for ID:", companyId);
-        
-        // Check if it's a numeric ID (from public submission)
-        if (/^\d+$/.test(companyId)) {
-          console.log("Using numeric ID lookup for:", companyId);
-          const numericId = parseInt(companyId, 10);
-          
-          const { data: companyByNumeric, error: numericError } = await supabase
-            .rpc('get_company_by_numeric_id', { p_numeric_id: numericId });
-            
-          if (numericError) {
-            console.error("Error finding company by numeric ID:", numericError);
-            throw numericError;
-          }
-          
-          if (companyByNumeric && companyByNumeric.length > 0) {
-            console.log("Found company via numeric ID:", companyByNumeric[0]);
-            
-            // Get the full company data including sections
-            const { data: fullCompany, error: fullError } = await supabase
-              .from("companies")
-              .select(`*, sections(*)`)
-              .eq("id", companyByNumeric[0].id)
-              .single();
-              
-            if (fullError) throw fullError;
-            
-            // Map the DB object to our API interface
-            return {
-              ...mapDbCompanyToApi(fullCompany),
-              sections: fullCompany.sections?.map(mapDbSectionToApi) || [],
-            };
-          }
-        }
-        
-        // Get the authenticated user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          toast({
-            title: 'Authentication required',
-            description: 'Please sign in to view company details',
-            variant: 'destructive',
-          });
-          return null;
-        }
-        
-        // Get the company with sections
-        const { data: companyData, error: companyError } = await supabase
-          .from('companies')
-          .select('*, sections(*)')
-          .eq('id', companyId)
-          .maybeSingle();
-          
-        if (companyError) {
-          console.error("Error fetching company details:", companyError);
-          throw companyError;
-        }
-        
-        if (!companyData) {
-          console.log('Company not found with ID:', companyId);
-          
-          toast({
-            title: 'Company not found',
-            description: 'The requested company does not exist or you do not have permission to view it',
-            variant: 'destructive',
-          });
-          return null;
-        }
-        
-        // Log the raw overall score from the database
-        console.log(`Raw overall_score from DB for company ${companyId}: ${companyData.overall_score}`);
-        
-        // Map the DB object to our API interface
-        return {
-          ...mapDbCompanyToApi(companyData),
-          sections: companyData.sections?.map(mapDbSectionToApi) || [],
-        };
-      } catch (err) {
-        console.error("Error in useCompanyDetails:", err);
-        throw err;
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view company details',
+          variant: 'destructive',
+        });
+        return null;
       }
+      
+      // Get the company with RLS enforcement - explicitly checking user_id
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', companyId)
+        .eq('user_id', user.id) // Explicitly filter by user_id
+        .maybeSingle();
+        
+      if (companyError) {
+        console.error("Error fetching company details:", companyError);
+        throw companyError;
+      }
+      
+      if (!companyData) {
+        console.error('Company not found or access denied');
+        toast({
+          title: 'Access denied',
+          description: 'You do not have permission to view this company',
+          variant: 'destructive',
+        });
+        return null;
+      }
+      
+      // Log the raw overall score from the database
+      console.log(`Raw overall_score from DB for company ${companyId}: ${companyData.overall_score}`);
+      
+      const { data: sectionsData, error: sectionsError } = await supabase
+        .from('sections')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: true });
+        
+      if (sectionsError) throw sectionsError;
+      
+      // Calculate average section score for verification
+      if (sectionsData && sectionsData.length > 0) {
+        const sectionScores = sectionsData.map(section => section.score || 0);
+        const averageScore = sectionScores.reduce((sum, score) => sum + score, 0) / 10; // Using 10 for normalization as per the prompt
+        const normalizedScore = Math.min(averageScore * 1.25, 5.0);
+        console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${normalizedScore.toFixed(1)}, DB Score=${companyData.overall_score}`);
+      }
+      
+      return {
+        ...mapDbCompanyToApi(companyData),
+        sections: sectionsData?.map(mapDbSectionToApi) || [],
+      };
     },
     enabled: !!companyId,
     meta: {
