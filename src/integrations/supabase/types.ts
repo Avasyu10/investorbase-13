@@ -22,6 +22,7 @@ export type Database = {
           prompt_sent: string | null
           report_id: string | null
           response_received: string | null
+          source: string
           updated_at: string
           user_id: string | null
         }
@@ -37,6 +38,7 @@ export type Database = {
           prompt_sent?: string | null
           report_id?: string | null
           response_received?: string | null
+          source?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -52,6 +54,7 @@ export type Database = {
           prompt_sent?: string | null
           report_id?: string | null
           response_received?: string | null
+          source?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -489,6 +492,7 @@ export type Database = {
           prompt_sent: string | null
           report_id: string | null
           response_received: string | null
+          source: string
           updated_at: string
           user_id: string | null
         }[]

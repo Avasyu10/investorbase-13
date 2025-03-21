@@ -16,6 +16,8 @@ export async function saveAnalysisResults(
       overall_score: analysis.overallScore || 0,
       assessment_points: analysis.assessmentPoints || [],
       report_id: report.id,
+      // Determine the source based on if it's a public submission
+      source: report.is_public_submission ? 'public_url' : 'dashboard',
       // Important: Use the report's user_id which should be the form owner's ID
       user_id: report.user_id
     };

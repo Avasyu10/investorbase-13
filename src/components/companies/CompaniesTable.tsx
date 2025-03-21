@@ -48,10 +48,20 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     return "No summary available";
   };
 
-  // Set all sources to "Dashboard" with gold color
-  const sourceInfo = {
-    label: "Dashboard",
-    className: "text-sm text-gold font-medium"
+  // Helper to get source info with appropriate styling
+  const getSourceInfo = (source: string | undefined) => {
+    if (source === 'public_url') {
+      return {
+        label: "Public URL",
+        className: "text-sm text-green-600 font-medium"
+      };
+    }
+    
+    // Default to Dashboard (gold color)
+    return {
+      label: "Dashboard",
+      className: "text-sm text-gold font-medium"
+    };
   };
 
   return (
@@ -78,6 +88,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         </TableHeader>
         <TableBody>
           {companies.map((company) => {
+            const sourceInfo = getSourceInfo(company.source);
             return (
               <TableRow 
                 key={company.id}

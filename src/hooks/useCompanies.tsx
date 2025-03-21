@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -21,7 +20,8 @@ function mapDbCompanyToApi(company: any) {
     reportId: company.report_id,
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
-    perplexityRequestedAt: company.perplexity_requested_at
+    perplexityRequestedAt: company.perplexity_requested_at,
+    source: company.source // Add the source field
   };
 }
 
@@ -82,7 +82,7 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
         // Query with RLS - this will only return companies the user has access to
         const { data, error, count } = await supabase
           .from('companies')
-          .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id', { count: 'exact' })
+          .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id, source', { count: 'exact' })
           .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
           .order(dbSortField, { ascending: sortOrder === 'asc' })
           .range(from, to);
