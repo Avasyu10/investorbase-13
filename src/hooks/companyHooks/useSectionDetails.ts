@@ -72,6 +72,8 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       if (sectionError) throw sectionError;
       if (!sectionData) return null;
       
+      console.log("Retrieved section data:", sectionData);
+      
       // Get strengths and weaknesses
       const { data: detailsData, error: detailsError } = await supabase
         .from('section_details')
@@ -79,6 +81,8 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         .eq('section_id', sectionId);
         
       if (detailsError) throw detailsError;
+      
+      console.log("Retrieved section details:", detailsData);
       
       const strengths = detailsData
         .filter(detail => detail.detail_type === 'strength')
@@ -88,16 +92,21 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         .filter(detail => detail.detail_type === 'weakness')
         .map(detail => detail.content);
       
+      // Use the description field for both description and detailedContent
+      // This ensures the description from the sections table is shown in the Key Insights section
+      const description = sectionData.description || '';
+      
+      console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
+      
       return {
         id: sectionData.id,
         type: sectionData.type,
         title: sectionData.title,
         score: Number(sectionData.score), // Ensure score is a number
-        description: sectionData.description || '',
+        description: description,
         strengths,
         weaknesses,
-        // Fix: Use either description or detailed_content based on what's available
-        detailedContent: sectionData.description || '',
+        detailedContent: description, // Use the description for detailed content
         createdAt: sectionData.created_at,
         updatedAt: sectionData.updated_at || sectionData.created_at,
       } as SectionDetail;
