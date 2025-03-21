@@ -4,6 +4,7 @@ import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
 import { analyzeWithOpenAI } from "../analyze-pdf/openaiService.ts";
 import { saveAnalysisResults } from "../analyze-pdf/databaseService.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,6 +17,7 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY is not configured");
@@ -31,7 +33,7 @@ serve(async (req) => {
       );
     }
     
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY) {
       console.error("Supabase credentials are not configured");
       return new Response(
         JSON.stringify({ 
@@ -104,6 +106,31 @@ serve(async (req) => {
 
     console.log(`Processing report ${reportId}`);
     
+    // Create a service client for direct database updates
+    const serviceClient = createClient(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_KEY
+    );
+    
+    // Update report status to processing
+    try {
+      const { error: updateError } = await serviceClient
+        .from('reports')
+        .update({ 
+          analysis_status: 'processing',
+          analysis_error: null // Clear any previous errors
+        })
+        .eq('id', reportId);
+      
+      if (updateError) {
+        console.warn("Could not update report status to processing:", updateError);
+      } else {
+        console.log(`Updated report ${reportId} status to 'processing'`);
+      }
+    } catch (statusUpdateError) {
+      console.warn("Error updating report status to processing:", statusUpdateError);
+    }
+    
     try {
       // Get report data - note we're using our specialized reportService for public uploads
       console.log("Retrieving report data...");
@@ -113,21 +140,13 @@ serve(async (req) => {
         throw new Error("Retrieved PDF is empty or could not be converted to base64");
       }
       
-      console.log(`Successfully retrieved report data for ${report.title}, analyzing with Gemini`);
-      
-      // Update status to 'processing' in the database
-      try {
-        const { error: updateError } = await supabase
-          .from('reports')
-          .update({ analysis_status: 'processing' })
-          .eq('id', reportId);
-          
-        if (updateError) {
-          console.warn("Could not update report status to processing:", updateError);
-        }
-      } catch (statusUpdateError) {
-        console.warn("Error updating report status to processing:", statusUpdateError);
+      // Quick validation of PDF content - check if it starts with %PDF
+      const decodedStart = atob(pdfBase64.substring(0, 8));
+      if (!decodedStart.startsWith('%PDF')) {
+        console.warn("Warning: The retrieved file may not be a valid PDF. First bytes:", decodedStart);
       }
+      
+      console.log(`Successfully retrieved report data for ${report.title}, analyzing with Gemini`);
       
       try {
         // Analyze the PDF with Gemini
@@ -220,7 +239,7 @@ serve(async (req) => {
         
         // Update the report with the error
         try {
-          const { error: updateError } = await supabase
+          const { error: updateError } = await serviceClient
             .from('reports')
             .update({ 
               analysis_status: 'failed',
@@ -257,23 +276,16 @@ serve(async (req) => {
       
       // Update the report status to failed in the database
       try {
-        const serviceClient = createClient(
-          Deno.env.get('SUPABASE_URL') || '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-        );
-        
-        if (serviceClient) {
-          const { error: updateError } = await serviceClient
-            .from('reports')
-            .update({ 
-              analysis_status: 'failed',
-              analysis_error: errorMessage 
-            })
-            .eq('id', reportId);
-            
-          if (updateError) {
-            console.error("Error updating report failure status:", updateError);
-          }
+        const { error: updateError } = await serviceClient
+          .from('reports')
+          .update({ 
+            analysis_status: 'failed',
+            analysis_error: errorMessage 
+          })
+          .eq('id', reportId);
+          
+        if (updateError) {
+          console.error("Error updating report failure status:", updateError);
         }
       } catch (updateError) {
         console.error("Failed to update report error status:", updateError);

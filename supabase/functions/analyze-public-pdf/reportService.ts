@@ -59,43 +59,174 @@ export async function getReportData(reportId: string, authHeader: string): Promi
   // Now we use service role client to bypass RLS for storage access
   const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
   
-  // Determine the storage path - IMPORTANT: This must match how files are stored
-  const storageFolder = 'public'; // For public submissions, we'll always use the 'public' folder
+  // First, try to fetch from the 'public_form_submissions' table to get the correct PDF URL
+  console.log(`Fetching public submission details for report ${reportId}`);
+  const { data: submissionData, error: submissionError } = await serviceClient
+    .from('public_form_submissions')
+    .select('pdf_url, form_slug')
+    .eq('report_id', reportId)
+    .maybeSingle();
   
-  console.log(`Attempting to download PDF from path: ${storageFolder}/${report.pdf_url}`);
+  if (submissionError) {
+    console.error('Error fetching submission details:', submissionError);
+  }
   
+  // Determine the storage path and bucket based on the data we have
+  let storageBucket = 'report_pdfs';
+  let storagePath = '';
+  
+  if (submissionData?.pdf_url) {
+    // For public submissions, we prioritize the pdf_url from the public_form_submissions table
+    console.log(`Using PDF URL from public_form_submissions: ${submissionData.pdf_url}`);
+    storagePath = submissionData.pdf_url;
+    
+    // Check if this path seems to be from public_uploads bucket
+    if (submissionData.form_slug && storagePath.includes(submissionData.form_slug)) {
+      storageBucket = 'public_uploads';
+    }
+  } else if (report.pdf_url) {
+    // Fallback to the report.pdf_url
+    console.log(`Using PDF URL from reports table: ${report.pdf_url}`);
+    storagePath = report.pdf_url;
+  } else {
+    throw new Error('No PDF URL found for this report');
+  }
+  
+  console.log(`Will attempt to download PDF from bucket: ${storageBucket}, path: ${storagePath}`);
+  
+  // Function to try downloading from a specific bucket and path
+  async function tryDownloadFromBucket(bucket: string, path: string) {
+    console.log(`Attempting to download from bucket: ${bucket}, path: ${path}`);
+    try {
+      const { data, error } = await serviceClient.storage
+        .from(bucket)
+        .download(path);
+        
+      if (error) {
+        console.error(`Error downloading from ${bucket}/${path}:`, error);
+        return { data: null, error };
+      }
+      
+      if (!data || data.size === 0) {
+        console.error(`Downloaded file from ${bucket}/${path} is empty or null`);
+        return { data: null, error: new Error("Downloaded file is empty") };
+      }
+      
+      console.log(`Successfully downloaded PDF from ${bucket}/${path}, size: ${data.size} bytes`);
+      return { data, error: null };
+    } catch (e) {
+      console.error(`Exception downloading from ${bucket}/${path}:`, e);
+      return { data: null, error: e };
+    }
+  }
+  
+  // Try downloading from determined bucket and path
+  let fileData = null;
+  let fileError = null;
+  
+  // First attempt with the primary bucket and path
+  const primaryResult = await tryDownloadFromBucket(storageBucket, storagePath);
+  
+  if (primaryResult.data) {
+    fileData = primaryResult.data;
+  } else {
+    fileError = primaryResult.error;
+    
+    // If the primary attempt failed, try alternative options
+    console.log("Primary download failed, trying alternatives...");
+    
+    // List of fallback buckets to try
+    const fallbackBuckets = ['public_uploads', 'report_pdfs'];
+    
+    // Try alternative paths - removing folders or adding 'public/' prefix
+    const alternativePaths = [
+      storagePath,
+      storagePath.includes('/') ? storagePath.split('/').pop() : null,
+      `public/${storagePath}`,
+    ].filter(Boolean) as string[];
+    
+    let foundFile = false;
+    
+    // Try each bucket and path combination
+    for (const bucket of fallbackBuckets) {
+      if (foundFile) break;
+      
+      for (const path of alternativePaths) {
+        // Skip if this is the same as our primary attempt
+        if (bucket === storageBucket && path === storagePath) continue;
+        
+        const result = await tryDownloadFromBucket(bucket, path);
+        
+        if (result.data) {
+          fileData = result.data;
+          console.log(`Successfully downloaded using fallback: bucket=${bucket}, path=${path}`);
+          foundFile = true;
+          break;
+        }
+      }
+    }
+  }
+  
+  if (!fileData) {
+    console.error("All PDF download attempts failed:", fileError);
+    
+    // Enhanced error message with debugging info
+    const errorDetails = {
+      reportId,
+      storageBucket,
+      storagePath,
+      originalError: fileError
+    };
+    
+    throw new Error(`Error downloading PDF: ${JSON.stringify(errorDetails)}`);
+  }
+  
+  console.log(`PDF downloaded successfully, size: ${fileData.size} bytes, converting to base64`);
+  
+  // Convert the file to base64 using a chunked approach to avoid memory issues
   try {
-    // Get the PDF content with improved error handling
-    const { data: fileData, error: fileError } = await serviceClient.storage
-      .from('report_pdfs')
-      .download(`${storageFolder}/${report.pdf_url}`);
-    
-    if (fileError) {
-      console.error('Error downloading file:', fileError);
-      throw new Error(`Error downloading PDF: ${JSON.stringify(fileError)}`);
-    }
-    
-    if (!fileData) {
-      throw new Error('Downloaded file is empty or null');
-    }
-    
-    console.log(`Successfully downloaded PDF, size: ${fileData.size} bytes`);
-    
-    // Convert the file to base64
     const arrayBuffer = await fileData.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binary);
+    const base64 = await arrayBufferToBase64(arrayBuffer);
     
     console.log(`Successfully converted PDF to base64, length: ${base64.length}`);
     
-    // Return both the original supabase client and the report data
     return { supabase, report, pdfBase64: base64 };
   } catch (error) {
-    console.error('Error in PDF processing:', error);
-    throw new Error(`Error downloading PDF: ${JSON.stringify(error)}`);
+    console.error('Error in base64 conversion:', error);
+    throw new Error(`Error converting PDF to base64: ${error.message}`);
+  }
+}
+
+// Helper function to convert ArrayBuffer to base64 in chunks to avoid memory issues
+async function arrayBufferToBase64(buffer: ArrayBuffer): Promise<string> {
+  const uint8Array = new Uint8Array(buffer);
+  const chunkSize = 8192; // Process in smaller chunks
+  let base64String = '';
+  
+  try {
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      base64String += String.fromCharCode.apply(null, [...chunk]);
+    }
+    
+    return btoa(base64String);
+  } catch (error) {
+    console.error("Error during base64 conversion:", error);
+    
+    // If standard approach fails, try a more memory-efficient approach
+    console.log("Trying alternative base64 conversion method");
+    
+    // Reset and try alternative encoding approach
+    base64String = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      base64String += String.fromCharCode(uint8Array[i]);
+    }
+    
+    try {
+      return btoa(base64String);
+    } catch (btoa_error) {
+      console.error("Both base64 conversion methods failed:", btoa_error);
+      throw new Error("Could not convert file to base64: memory limitation or file corruption");
+    }
   }
 }
