@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob } from '@/lib/pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -134,6 +133,37 @@ export async function analyzeReport(reportId: string) {
           }
           
           console.log('Analysis result:', data);
+          
+          // If analysis was successful, extract company details as well
+          if (data.companyId) {
+            try {
+              console.log('Extracting company details...');
+              
+              const detailsResponse = await fetch(`https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/details-in-analyze-pdf`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'apikey': SUPABASE_KEY
+                },
+                body: JSON.stringify({ 
+                  reportId,
+                  companyId: data.companyId
+                })
+              });
+              
+              if (!detailsResponse.ok) {
+                console.error(`Company details extraction failed: ${detailsResponse.status}`);
+                console.error(await detailsResponse.text());
+              } else {
+                const detailsData = await detailsResponse.json();
+                console.log('Company details extraction result:', detailsData);
+              }
+            } catch (detailsError) {
+              // We don't want to fail the whole process if details extraction fails
+              console.error('Error extracting company details:', detailsError);
+            }
+          }
           
           toast({
             title: "Analysis complete",

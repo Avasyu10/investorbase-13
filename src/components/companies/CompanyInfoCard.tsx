@@ -27,6 +27,15 @@ export function CompanyInfoCard({
 }: CompanyInfoProps) {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
 
+  // Format website URL for display and linking
+  const displayWebsite = website && website !== "https://example.com" 
+    ? website.replace(/^https?:\/\/(www\.)?/, '') 
+    : "Not available";
+  
+  const websiteUrl = website && website !== "https://example.com" 
+    ? (website.startsWith('http') ? website : `https://${website}`)
+    : null;
+
   return (
     <div className="mb-7">
       <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
@@ -41,14 +50,14 @@ export function CompanyInfoCard({
               <Globe className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Website</p>
-                {website ? (
+                {websiteUrl ? (
                   <a 
-                    href={website.startsWith('http') ? website : `https://${website}`}
+                    href={websiteUrl}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary hover:underline"
                   >
-                    {website}
+                    {displayWebsite}
                   </a>
                 ) : (
                   <p className="text-sm text-muted-foreground">Not available</p>
