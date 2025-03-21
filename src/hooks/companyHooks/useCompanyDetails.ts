@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { apiClient } from '@/lib/api/apiClient';
 import { CompanyDetailed } from '@/lib/api/apiContract';
 import { formatCompanyData } from './utils';
+import { autoAnalyzePublicReport } from '@/lib/supabase/analysis';
 
 export function useCompanyDetails(companyId: string | undefined) {
   const [company, setCompany] = useState<CompanyDetailed | null>(null);
@@ -45,6 +46,18 @@ export function useCompanyDetails(companyId: string | undefined) {
             console.log('Found company by direct UUID lookup:', companyData);
             setCompany(transformCompanyData(companyData));
             setIsLoading(false);
+            
+            // If there's a report_id and the company is from a public submission,
+            // check if it should be auto-analyzed
+            if (companyData.report_id && companyData.source === 'public_url') {
+              try {
+                await autoAnalyzePublicReport(companyData.report_id);
+              } catch (autoAnalyzeError) {
+                console.error('Non-blocking error checking auto-analyze:', autoAnalyzeError);
+                // Non-blocking, continue with rendering the company
+              }
+            }
+            
             return;
           }
         }
@@ -82,6 +95,18 @@ export function useCompanyDetails(companyId: string | undefined) {
             console.log('Successfully fetched company details:', companyData);
             setCompany(transformCompanyData(companyData));
             setIsLoading(false);
+            
+            // If there's a report_id and the company is from a public submission,
+            // check if it should be auto-analyzed
+            if (companyData.report_id && companyData.source === 'public_url') {
+              try {
+                await autoAnalyzePublicReport(companyData.report_id);
+              } catch (autoAnalyzeError) {
+                console.error('Non-blocking error checking auto-analyze:', autoAnalyzeError);
+                // Non-blocking, continue with rendering the company
+              }
+            }
+            
             return;
           }
         }

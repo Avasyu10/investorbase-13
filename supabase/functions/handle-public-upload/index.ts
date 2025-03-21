@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -274,6 +273,35 @@ serve(async (req) => {
     } else {
       console.log("Submission record inserted successfully:", { submissionId: submission.id });
     }
+
+  // After successfully creating the report record, trigger auto-analyze check
+  try {
+    if (submissionFormId && autoAnalyze) {
+      console.log("Form has auto_analyze enabled, triggering immediate analysis");
+      
+      // Call the auto-analyze-public-pdf function
+      const autoAnalyzeResponse = await fetch(`${supabaseUrl}/functions/v1/auto-analyze-public-pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`
+        },
+        body: JSON.stringify({ reportId: report.id })
+      });
+      
+      if (!autoAnalyzeResponse.ok) {
+        console.warn(`Auto-analyze request failed with status: ${autoAnalyzeResponse.status}`);
+        // Non-blocking, continue with the response
+      } else {
+        console.log("Auto-analyze triggered successfully");
+      }
+    } else {
+      console.log("Form has auto_analyze disabled, skipping immediate analysis");
+    }
+  } catch (autoAnalyzeError) {
+    console.error("Error triggering auto-analyze:", autoAnalyzeError);
+    // Non-blocking, continue with the response
+  }
 
     return new Response(JSON.stringify({ 
       success: true, 
