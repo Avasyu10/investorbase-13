@@ -92,8 +92,11 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         .filter(detail => detail.detail_type === 'weakness')
         .map(detail => detail.content);
       
-      // Make sure we have a description field
-      const description = sectionData.description || 'No detailed content available.';
+      // Make sure we have a description field and proper detailed content
+      const description = sectionData.description || '';
+      
+      // Set detailed content - use description as it's already the full content
+      const detailedContent = description || 'No detailed content available.';
       
       console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
       
@@ -102,10 +105,10 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         type: sectionData.type,
         title: sectionData.title,
         score: Number(sectionData.score), // Ensure score is a number
-        description: description,
+        description: description.substring(0, 150) + (description.length > 150 ? '...' : ''), // Short summary
         strengths,
         weaknesses,
-        detailedContent: description, // Use the description for detailed content
+        detailedContent: detailedContent, // The full detailed content
         createdAt: sectionData.created_at,
         updatedAt: sectionData.updated_at || sectionData.created_at,
       } as SectionDetail;

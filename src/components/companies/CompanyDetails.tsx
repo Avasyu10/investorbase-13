@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -30,9 +31,37 @@ export function CompanyDetails() {
 
   useEffect(() => {
     async function fetchCompanyInfo() {
-      if (!company || !company.reportId) return;
+      if (!company) return;
       
       try {
+        // First, try to get company info directly from the company record
+        const { data: companyDetails } = await supabase
+          .from('companies')
+          .select('website, industry, stage, introduction')
+          .eq('id', companyId)
+          .single();
+        
+        if (companyDetails && (companyDetails.website || companyDetails.industry || companyDetails.stage || companyDetails.introduction)) {
+          console.log("Found company details from companies table:", companyDetails);
+          setCompanyInfo({
+            website: companyDetails.website || "",
+            stage: companyDetails.stage || "Not specified",
+            industry: companyDetails.industry || "Not specified",
+            founderLinkedIns: [],
+            introduction: companyDetails.introduction || "No detailed information available for this company."
+          });
+          setInfoLoading(false);
+          return;
+        }
+        
+        // If no company info or report_id, try alternative approaches
+        if (!company.reportId) {
+          // Fallback to extracting from sections
+          await extractFromSections();
+          return;
+        }
+        
+        // Check if it's a public submission
         const { data: report } = await supabase
           .from('reports')
           .select('is_public_submission, submission_form_id')
@@ -54,52 +83,70 @@ export function CompanyDetails() {
               founderLinkedIns: submission.founder_linkedin_profiles || [],
               introduction: submission.description || "No description available."
             });
+          } else {
+            await extractFromSections();
           }
         } else {
-          const { data: sections } = await supabase
-            .from('sections')
-            .select('title, description')
-            .eq('company_id', companyId);
-          
-          let intro = "";
-          let industry = "Not specified";
-          let stage = "Not specified";
-          
-          sections?.forEach(section => {
-            const title = section.title.toLowerCase();
-            const description = section.description || "";
-            
-            if (title.includes('company') || title.includes('introduction') || title.includes('about')) {
-              intro = description;
-            }
-            
-            if (description.toLowerCase().includes('industry')) {
-              const industryMatch = description.match(/industry.{0,5}:?\s*([^\.]+)/i);
-              if (industryMatch && industryMatch[1]) {
-                industry = industryMatch[1].trim();
-              }
-            }
-            
-            if (description.toLowerCase().includes('stage')) {
-              const stageMatch = description.match(/stage.{0,5}:?\s*([^\.]+)/i);
-              if (stageMatch && stageMatch[1]) {
-                stage = stageMatch[1].trim();
-              }
-            }
-          });
-          
-          setCompanyInfo({
-            website: "",
-            stage,
-            industry,
-            founderLinkedIns: [],
-            introduction: intro || "No detailed information available for this company."
-          });
+          await extractFromSections();
         }
       } catch (error) {
         console.error("Error fetching company information:", error);
+        await extractFromSections();
       } finally {
         setInfoLoading(false);
+      }
+    }
+    
+    async function extractFromSections() {
+      try {
+        const { data: sections } = await supabase
+          .from('sections')
+          .select('title, description')
+          .eq('company_id', companyId);
+        
+        let intro = "";
+        let industry = "Not specified";
+        let stage = "Not specified";
+        
+        sections?.forEach(section => {
+          const title = section.title.toLowerCase();
+          const description = section.description || "";
+          
+          if (title.includes('company') || title.includes('introduction') || title.includes('about')) {
+            intro = description;
+          }
+          
+          if (description.toLowerCase().includes('industry')) {
+            const industryMatch = description.match(/industry.{0,5}:?\s*([^\.]+)/i);
+            if (industryMatch && industryMatch[1]) {
+              industry = industryMatch[1].trim();
+            }
+          }
+          
+          if (description.toLowerCase().includes('stage')) {
+            const stageMatch = description.match(/stage.{0,5}:?\s*([^\.]+)/i);
+            if (stageMatch && stageMatch[1]) {
+              stage = stageMatch[1].trim();
+            }
+          }
+        });
+        
+        setCompanyInfo({
+          website: "",
+          stage,
+          industry,
+          founderLinkedIns: [],
+          introduction: intro || "No detailed information available for this company."
+        });
+      } catch (error) {
+        console.error("Error extracting from sections:", error);
+        setCompanyInfo({
+          website: "",
+          stage: "Not specified",
+          industry: "Not specified",
+          founderLinkedIns: [],
+          introduction: "No detailed information available for this company."
+        });
       }
     }
     

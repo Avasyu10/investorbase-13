@@ -21,6 +21,10 @@ export interface CompanyBase extends BaseEntity {
   perplexityRequestedAt?: string; // When the research was requested
   reportId?: string; // ID of the associated report
   source?: 'dashboard' | 'public_url'; // Added source property
+  website?: string; // Company website URL
+  industry?: string; // Industry or sector
+  stage?: string; // Funding or development stage
+  introduction?: string; // Detailed company description/introduction
 }
 
 export interface CompanyListItem extends CompanyBase {
@@ -53,6 +57,10 @@ export interface CompanyDetailed extends CompanyBase {
   assessmentPoints: string[];
   perplexityResponse?: string;
   reportId?: string; // Added reportId here too for explicit typing
+  website?: string;
+  industry?: string;
+  stage?: string;
+  introduction?: string;
 }
 
 export interface SectionDetailed extends SectionBase {

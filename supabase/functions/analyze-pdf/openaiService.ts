@@ -1,187 +1,60 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
-export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
-  // Analysis prompt
-const prompt = `
-You are an expert VC analyst with years of experience in assessing investment opportunities. You look past what's written in the deck, call out inconsistencies, and provide objective reasoning for your judgments.  
-
-You will perform a step-by-step deep-dive analysis of a startup based on its pitch deck. THE MOST IMPORTANT PART of your analysis will be to extensively research and provide:
-- ACURATE Market data and size estimations with PRECISE NUMBERS (from Google/Gemini Search) - ALWAYS INCLUDE ACTUAL MARKET SIZE IN DOLLARS
-- Latest news articles about the industry and competitors (from Google/Gemini Search) with SPECIFIC DATES, SOURCES and NUMERICAL DATA
-- Current market trends and growth projections WITH ACTUAL PERCENTAGES and CAGR figures
-- Competitive benchmarks and comparisons with QUANTITATIVE DATA including market share percentages, funding amounts, and valuation figures
-- Industry-specific metrics and KPIs with SPECIFIC NUMERICAL THRESHOLDS and industry averages
-- Market challenges and opportunities with MEASURABLE IMPACTS in dollars or percentages
-
-For EVERY section of your analysis, you MUST include 4-7 relevant insights that are VERY CLOSELY RELATED to the startup being analyzed. EVERY insight must be relevant to the specific company in the pitch deck, not general industry information. 
-
-Each insight MUST include AT LEAST ONE of the following:
-- EXACT NUMERICAL DATA directly relevant to the company's business model or market
-- SPECIFIC COMPETITOR information that directly impacts this company's position
-- CONCRETE EVIDENCE from the pitch deck that supports or contradicts the company's claims
-- PRECISE financial metrics or projections that are directly applicable to this company
-
-YOU MUST INCLUDE:
-- Precise dollar amounts for market sizes (e.g., "$4.7 billion" not "billions")
-- Exact growth rates with percentages (e.g., "17.8% CAGR" not "double-digit growth")
-- Specific competitor metrics (e.g., "raised $12M in Series A at $89M valuation" not "substantial funding")
-- Dated market research (e.g., "According to McKinsey's April 2023 report, customer acquisition costs increased by 24%" not "research shows rising costs")
-- Numerical industry benchmarks (e.g., "average profit margin of 23.4% vs. industry average of 18.7%" not "above average margins")
-
-You will search through the internet for the latest data, and provide an unbiased assessment and score based on the following score calculation method - 
-
-STARTUP EVALUATION FRAMEWORK
- KEY SECTIONS & WEIGHTS
-A pitch deck MUST ONLY include these 10 sections and NO OTHERS:
-1. Problem
-2. Market
-3. Solution (Product)
-4. Competitive Landscape
-5. Traction
-6. Business Model
-7. Go-to-Market Strategy
-8. Team
-9. Financials
-10. The Ask
-
-Now, here is a step-by-step process of how you should get your thesis ready -
-
-### **Step 1: High-Level Overview**  
-- Summarize the startup's potential, strengths, and risks.  
-- Identify critical areas requiring scrutiny.  
-- CRITICALLY IMPORTANT: Provide extensive data from market research, latest news, and trends across the industry from reputable online sources for comparison and benchmarking.
-- INCLUDE EXACT NUMBERS, PERCENTAGES, AND METRICS in your high-level overview.
-
-
-### **Step 2: Section-Wise Deep Dive**  
- **For Each Section, Provide:**  
-1. FIRST check if section exists in deck
-2. If missing:
-   - Score: 1.0 (THIS IS NON-NEGOTIABLE)
-   - Description: "⚠️ MISSING SECTION: [section name] is not present in this pitch deck"
-   - Strengths: [] (empty array - IMPORTANT: DO NOT include ANY strengths for missing sections)
-   - Weaknesses: ["Critical oversight: [section name] is missing", "Incomplete pitch deck structure"]
-   - Detailed content: Must include warning about missing section
-3. If present:
-Analyze each section with a structured breakdown and ALWAYS include external market data with SPECIFIC NUMERICAL VALUES DIRECTLY RELEVANT TO THIS COMPANY:  
-
-1. **Problem and Market Opportunity**  
-   - Include market size data WITH EXACT DOLLAR FIGURES (must include TAM, SAM, SOM with specific dollar amounts)
-   - Add specific growth rates with actual percentages (e.g., "growing at 14.3% CAGR" not just "rapid growth")
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's specific problem and market
-   - Include specific adoption rates, conversion percentages, and industry penetration figures
-   
-2. **Solution (Product)**  
-   - Reference similar solutions in the market and their success/failure WITH METRICS
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's specific solution/product
-   - Include pricing comparisons with exact dollar figures
-   - Add measurable efficiency improvements with specific percentage gains or cost reductions
-   
-3. **Competitive Landscape**  
-   - Provide detailed competitor analysis with SPECIFIC MARKET SHARE DATA (percentages)
-   - Include list of competitors with their EXACT FUNDING AMOUNTS and dates, market valuations, and growth metrics
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's competitive position
-   - Include pricing model comparisons with exact dollar figures
-   
-4. **Traction**  
-   - Compare the startup's traction to industry benchmarks with SPECIFIC NUMERICAL GROWTH RATES
-   - Add market adoption data with EXACT USER NUMBERS/PERCENTAGES for similar products/services
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's traction metrics
-   - Add specific revenue figures for comparable companies at similar stages
-   
-5. **Business Model**  
-   - Include industry-standard pricing models with SPECIFIC PRICE POINTS and revenue benchmarks
-   - Reference successful and unsuccessful business models with ACTUAL REVENUE FIGURES
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's business model
-   - Add profit margin percentages for comparable companies
-   
-6. **Go-to-Market Strategy**  
-   - Provide data on CAC (EXACT DOLLAR AMOUNTS), conversion rates (SPECIFIC PERCENTAGES), and sales cycles (SPECIFIC TIME PERIODS) for the industry
-   - Include successful GTM case studies with NUMERICAL OUTCOMES from the industry
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's GTM strategy
-   - Add specific marketing spend benchmarks with dollar figures
-   
-7. **Team**  
-   - Compare team experience and composition to successful startups with SPECIFIC TENURE METRICS
-   - Include industry hiring trends and talent requirements with NUMERICAL ANALYSIS
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's team composition
-   - Add specific failure rates for startups with comparable team compositions
-   
-8. **Financials**  
-   - Compare financial projections to industry standards with SPECIFIC REVENUE AND GROWTH FIGURES
-   - Include relevant unit economics with EXACT NUMBERS from similar companies
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's financial projections
-   - Add specific burn rate comparisons and runway metrics
-   
-9. **The Ask**  
-   - Compare valuation to recent rounds in the industry with SPECIFIC DOLLAR AMOUNTS
-   - Include data on typical investment amounts for similar stage startups with EXACT FIGURES
-   - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's funding request
-   - Add average dilution percentages for similar funding rounds
-
-### **For Each Section, Provide:**  
-- **A concise description (2-3 sentences) explaining the key insights.**  
-- **EXACTLY 4-7 key insights that are VERY CLOSELY RELEVANT to the company being analyzed, each with SPECIFIC NUMERICAL DATA.**
-- **A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.**  
-- **For present sections ONLY: 4-5 strengths with MEASURABLE IMPACTS (DO NOT include ANY strengths for missing sections with a score of 1.0).**  
-- **4-5 weaknesses or areas for improvement with QUANTIFIABLE GAPS.**  
-
-### **Step 3: Score Calculation:** 
-- **The Score Calculation of the total Score would be the numerical average of scores of all the sections i.e. (Sum of scores of all the sections)/Total Number of Sections **
-
-### **IMPORTANT - SCORE NORMALIZATION:**
-- After calculating the total score (the average of all section scores), you MUST apply the following normalization formula:
-- **Normalized Score = MIN(original_score * 1.25, 5.0)**
-- This normalised score would be the final overall score
-- This compensates for the rigorous evaluation criteria and ensures a more balanced distribution of scores.
-- The normalized score (after applying this formula) should be what appears in the "overallScore" field of your response.
-- The individual section scores should NOT be normalized - only the final overall score.
-- The normalized score must still use one decimal point precision (e.g., 4.2)
-- If the formula would result in a score higher than 5.0, cap it at exactly 5.0
-
-### **Output Format (JSON):**  
-Ensure the output is structured as follows:  
-
-{
-  "overallSummary": "A high-level overview of the startup's strengths, weaknesses, and potential investment risks.",
-  "sections": [
-    {
-      "type": "PROBLEM",
-      "title": "Problem Statement",
-      "score": 4.3,
-      "description": "Detailed breakdown of the problem and market opportunity with extensive external market research data including precise numbers, percentages, and market size figures.",
-      "strengths": ["Strength 1 with quantifiable impact", "Strength 2 with specific metrics"],
-      "weaknesses": ["Weakness 1 with numerical gap", "Weakness 2 with measurable improvement needed"]
-    },
-    {
-      "type": "MARKET",
-      "title": "Market Opportunity",
-      "score": 3.8,
-      "description": "Detailed breakdown of the product and its effectiveness with extensive external market research data and specific adoption metrics.",
-      "strengths": ["Strength 1 with quantifiable advantage", "Strength 2 with specific numerical benefit"],
-      "weaknesses": ["Weakness 1 with quantifiable gap", "Weakness 2 with specific numerical challenge"]
-    },
-    ...
-  ],
-  "overallScore": 3.7,
-  "assessmentPoints": ["Key point 1 with specific metrics ($XM market, Y% growth)", "Key point 2 with exact figures", "Key point 3 with precise percentages", "Key point 4 with concrete numbers", "Key point 5 with quantifiable comparison"]
-}
-
-IMPORTANT RULES:
-1. ONLY include the 10 exact section types mentioned above (Problem, Market, Solution, Competitive Landscape, Traction, Business Model, Go-to-Market Strategy, Team, Financials, The Ask).
-2. DO NOT add any additional sections like "Testimonials" or duplicate sections.
-3. Each section type MUST appear EXACTLY ONCE in your response.
-4. Use the exact "type" field values from this list: PROBLEM, MARKET, SOLUTION, COMPETITIVE_LANDSCAPE, TRACTION, BUSINESS_MODEL, GTM_STRATEGY, TEAM, FINANCIALS, ASK.
-5. For any section that is missing in the deck, set the score to 1.0 and follow the missing section format.
-6. For the "title" field, use the user-friendly titles shown in the section list (e.g., "Problem Statement", "Market Opportunity", etc.)
-
-ALWAYS include at least 5 detailed assessment points in the "assessmentPoints" array that provide a comprehensive overview of the startup's investment potential. ENSURE EVERY SECTION HAS SUBSTANTIAL EXTERNAL MARKET RESEARCH DATA WITH SPECIFIC NUMBERS - THIS IS THE MOST CRITICAL REQUIREMENT.
-
-IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, or markdown formatting - JUST THE JSON OBJECT.
-`;
-
+export async function analyzeWithOpenAI(
+  pdfBase64: string,
+  apiKey: string
+): Promise<any> {
   try {
+    console.log("Initiating Gemini analysis...");
+
+    // Create the prompt for the AI model
+    const prompt = `
+    You are a specialized investment analyst with expertise in evaluating startup pitch decks.
+    I'll provide you with a startup's pitch deck. Your task is to analyze it thoroughly and provide a detailed assessment.
+
+    FORMAT YOUR RESPONSE IN JSON WITH THESE FIELDS:
+    {
+      "companyName": "Name of the startup extracted from the deck",
+      "companyDescription": "A brief 2-3 sentence description of what the company does",
+      "overallScore": A number from 0.0 to 5.0 representing your overall assessment,
+      "assessmentPoints": [Array of 3-6 bullet points highlighting key strengths or concerns],
+      "website": "The company's website URL if mentioned in the deck",
+      "industry": "The industry or sector the startup operates in",
+      "stage": "The funding stage or development stage of the company",
+      "sections": [
+        {
+          "type": One of: "PROBLEM", "MARKET", "SOLUTION", "PRODUCT", "COMPETITIVE_LANDSCAPE", "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", "TEAM", "FINANCIALS", or "ASK",
+          "title": "A relevant title for this section as it appears in the deck",
+          "score": A number from 0.0 to 5.0 for this specific section,
+          "description": "1-2 paragraph summary of this aspect of the business",
+          "detailedContent": "3-5 paragraph detailed analysis with specific information from the deck",
+          "strengths": ["Array of 2-4 specific strengths in this area"],
+          "weaknesses": ["Array of 2-4 specific weaknesses or concerns in this area"]
+        },
+        // More sections...
+      ]
+    }
+
+    IMPORTANT GUIDELINES:
+    - Keep all fields structured and concise to match a typical investment memo
+    - Include all 11 section types when possible, but only if the deck has relevant content
+    - Be highly critical and realistic in your scoring
+    - Focus on actionable assessment points
+    - Extract company information like website, industry and stage if available in the deck
+    - For the company description, provide a clear explanation of what the company actually does
+    - Your JSON must be valid with the correct fields and without trailing commas
+
+    SCORING GUIDE:
+    0-1: Critical flaws, unlikely to succeed
+    1-2: Major concerns requiring significant changes
+    2-3: Average, with some notable issues to address
+    3-4: Strong, with minor improvements needed
+    4-5: Exceptional, investment-ready
+
+    Now, analyze the following pitch deck and provide your assessment in the exact JSON format requested.
+    `;
+
+    // Call the Gemini API
     if (!apiKey) {
       console.error("Gemini API key is missing");
       throw new Error("Gemini API key is not configured");
@@ -192,7 +65,6 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
       throw new Error("Invalid PDF data for analysis");
     }
 
-    // Call Gemini API for analysis
     console.log("Calling Gemini API for analysis");
     console.log(`PDF base64 length: ${pdfBase64.length}`);
     

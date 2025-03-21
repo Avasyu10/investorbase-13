@@ -19,13 +19,18 @@ type CompanyInfoProps = {
 }
 
 export function CompanyInfoCard({
-  website = "https://example.com",
+  website = "",
   stage = "Not specified",
   industry = "Not specified",
   founderLinkedIns = [],
   introduction = "No detailed information available for this company."
 }: CompanyInfoProps) {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
+  
+  const formattedWebsite = website ? (website.startsWith('http') ? website : `https://${website}`) : "";
+  const displayWebsite = website || "Not available";
+  const displayStage = stage || "Not specified";
+  const displayIndustry = industry || "Not specified";
 
   return (
     <div className="mb-7">
@@ -43,12 +48,12 @@ export function CompanyInfoCard({
                 <p className="text-sm font-medium">Website</p>
                 {website ? (
                   <a 
-                    href={website.startsWith('http') ? website : `https://${website}`}
+                    href={formattedWebsite}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary hover:underline"
                   >
-                    {website}
+                    {displayWebsite}
                   </a>
                 ) : (
                   <p className="text-sm text-muted-foreground">Not available</p>
@@ -60,7 +65,7 @@ export function CompanyInfoCard({
               <TrendingUp className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Stage</p>
-                <p className="text-sm text-muted-foreground">{stage}</p>
+                <p className="text-sm text-muted-foreground">{displayStage}</p>
               </div>
             </div>
             
@@ -68,7 +73,7 @@ export function CompanyInfoCard({
               <Briefcase className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-sm font-medium">Industry</p>
-                <p className="text-sm text-muted-foreground">{industry}</p>
+                <p className="text-sm text-muted-foreground">{displayIndustry}</p>
               </div>
             </div>
           </div>
