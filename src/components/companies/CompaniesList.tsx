@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +25,7 @@ import {
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 
-type SortOption = "name" | "score" | "date";
+type SortOption = "name" | "score" | "date" | "source";
 type ViewMode = "grid" | "table";
 
 const getSortField = (option: SortOption): string => {
@@ -34,12 +33,13 @@ const getSortField = (option: SortOption): string => {
     case 'name': return 'name';
     case 'score': return 'overall_score';
     case 'date': return 'created_at';
+    case 'source': return 'source';
     default: return 'created_at';
   }
 };
 
 const getSortOrder = (option: SortOption): 'asc' | 'desc' => {
-  return option === 'name' ? 'asc' : 'desc';
+  return option === 'name' || option === 'source' ? 'asc' : 'desc';
 };
 
 export function CompaniesList() {
@@ -193,6 +193,7 @@ export function CompaniesList() {
               <SelectItem value="name">Sort by Name</SelectItem>
               <SelectItem value="score">Sort by Score</SelectItem>
               <SelectItem value="date">Sort by Date</SelectItem>
+              <SelectItem value="source">Sort by Source</SelectItem>
             </SelectContent>
           </Select>
         </div>

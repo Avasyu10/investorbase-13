@@ -1,116 +1,121 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { apiClient } from '@/lib/api/apiClient';
-import { SectionDetailed, SectionType } from '@/lib/api/apiContract';
+import { toast } from '@/components/ui/use-toast';
 
-export function useSectionDetails(
-  companyId: string | undefined,
-  sectionId: string | undefined
-) {
-  const [section, setSection] = useState<SectionDetailed | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export interface SectionDetail {
+  id: string;
+  type: string;
+  title: string;
+  score: number;
+  description: string;
+  strengths: string[];
+  weaknesses: string[];
+  detailedContent: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-  useEffect(() => {
-    if (!companyId || !sectionId) {
-      setIsLoading(false);
-      return;
-    }
-
-    fetchSectionDetails();
-  }, [companyId, sectionId]);
-
-  async function fetchSectionDetails() {
-    try {
-      setIsLoading(true);
+export function useSectionDetails(companyId: string | undefined, sectionId: string | undefined) {
+  const {
+    data: section,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['section-details', companyId, sectionId],
+    queryFn: async () => {
+      if (!companyId || !sectionId) return null;
       
+      // Get the authenticated user
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (user) {
-        console.log('Trying to fetch section details from Supabase:', { companyId, sectionId });
-        
-        let companyUuid = companyId;
-        
-        // If companyId doesn't look like a UUID, try to find the UUID
-        if (companyId && !companyId.includes('-')) {
-          const { data: uuidData, error: uuidError } = await supabase
-            .rpc('find_company_by_numeric_id_bigint', {
-              numeric_id: companyId.toString().replace(/-/g, '')
-            });
-          
-          if (uuidError) {
-            console.error('Error finding company UUID by numeric ID:', uuidError);
-            throw uuidError;
-          }
-          
-          if (uuidData && uuidData.length > 0) {
-            companyUuid = uuidData[0].id;
-            console.log('Converted numeric ID to UUID:', companyUuid);
-          }
-        }
-        
-        // Now fetch the section using the UUID
-        const { data: sectionData, error: sectionError } = await supabase
-          .from('sections')
-          .select(`
-            *,
-            section_details!section_id(*)
-          `)
-          .eq('id', sectionId)
-          .eq('company_id', companyUuid)
-          .maybeSingle();
-        
-        if (sectionError) {
-          console.error('Error fetching section details:', sectionError);
-          throw sectionError;
-        }
-        
-        if (sectionData) {
-          console.log('Successfully fetched section details:', sectionData);
-          
-          const transformedSection: SectionDetailed = {
-            id: sectionData.id,
-            title: sectionData.title,
-            type: sectionData.type as SectionType,
-            score: typeof sectionData.score === 'string' 
-              ? parseFloat(sectionData.score) 
-              : Number(sectionData.score),
-            description: sectionData.description || '',
-            detailedContent: sectionData.description || '',
-            strengths: sectionData.section_details
-              ?.filter((detail: any) => detail.detail_type === 'strength')
-              .map((detail: any) => detail.content) || [],
-            weaknesses: sectionData.section_details
-              ?.filter((detail: any) => detail.detail_type === 'weakness')
-              .map((detail: any) => detail.content) || [],
-            createdAt: sectionData.created_at,
-            updatedAt: sectionData.updated_at,
-          };
-          
-          setSection(transformedSection);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('No section found in Supabase, falling back to mock API');
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view section details',
+          variant: 'destructive',
+        });
+        return null;
       }
       
-      // Fallback to mock API
-      const sectionResult = await apiClient.getSection(Number(companyId), sectionId);
-      
-      if (sectionResult?.data) {
-        console.log('Fetched section from mock API:', sectionResult.data);
-        setSection(sectionResult.data);
-      } else {
-        console.error('Section not found in mock API either');
-        setSection(null);
+      // First verify the user has access to this company
+      const { data: companyCheck, error: companyCheckError } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('id', companyId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (companyCheckError) {
+        console.error("Error checking company access:", companyCheckError);
+        throw companyCheckError;
       }
-    } catch (error) {
-      console.error('Error in fetchSectionDetails:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+      
+      if (!companyCheck) {
+        console.error('Access denied to company');
+        toast({
+          title: 'Access denied',
+          description: 'You do not have permission to view this section',
+          variant: 'destructive',
+        });
+        return null;
+      }
+      
+      // Get the section data
+      const { data: sectionData, error: sectionError } = await supabase
+        .from('sections')
+        .select('*')
+        .eq('id', sectionId)
+        .eq('company_id', companyId)
+        .maybeSingle();
+        
+      if (sectionError) throw sectionError;
+      if (!sectionData) return null;
+      
+      // Get strengths and weaknesses
+      const { data: detailsData, error: detailsError } = await supabase
+        .from('section_details')
+        .select('*')
+        .eq('section_id', sectionId);
+        
+      if (detailsError) throw detailsError;
+      
+      const strengths = detailsData
+        .filter(detail => detail.detail_type === 'strength')
+        .map(detail => detail.content);
+        
+      const weaknesses = detailsData
+        .filter(detail => detail.detail_type === 'weakness')
+        .map(detail => detail.content);
+      
+      return {
+        id: sectionData.id,
+        type: sectionData.type,
+        title: sectionData.title,
+        score: Number(sectionData.score), // Ensure score is a number
+        description: sectionData.description || '',
+        strengths,
+        weaknesses,
+        detailedContent: sectionData.detailed_content || sectionData.description || '',
+        createdAt: sectionData.created_at,
+        updatedAt: sectionData.updated_at || sectionData.created_at,
+      } as SectionDetail;
+    },
+    enabled: !!companyId && !!sectionId,
+    meta: {
+      onError: (err: any) => {
+        toast({
+          title: 'Error loading section details',
+          description: err.message || 'Failed to load section details',
+          variant: 'destructive',
+        });
+      },
+    },
+  });
 
-  return { section, isLoading };
+  return {
+    section,
+    isLoading,
+    error,
+  };
 }
