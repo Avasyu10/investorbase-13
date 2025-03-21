@@ -68,47 +68,6 @@ export type Database = {
           },
         ]
       }
-      company_details: {
-        Row: {
-          company_id: string
-          created_at: string
-          id: string
-          industry: string | null
-          introduction: string | null
-          stage: string | null
-          updated_at: string
-          website: string | null
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          id?: string
-          industry?: string | null
-          introduction?: string | null
-          stage?: string | null
-          updated_at?: string
-          website?: string | null
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          id?: string
-          industry?: string | null
-          introduction?: string | null
-          stage?: string | null
-          updated_at?: string
-          website?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_details_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       linkedin_profile_scrapes: {
         Row: {
           content: string | null
