@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, Plus, X, FileText, Trash2 } from "lucide-react";
+import { Loader2, Save, Plus, X, FileText, Trash2, Building, Tag, Layers, Globe, ArrowLeft } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { AreaOfInterestOptions } from "@/lib/constants";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
@@ -42,7 +42,6 @@ interface PublicForm {
   auto_analyze: boolean;
 }
 
-// Available options for the investment stage multiselect field
 const stageOptions = [
   { label: "Pre-seed", value: "Pre-seed" },
   { label: "Seed", value: "Seed" },
@@ -63,7 +62,6 @@ const ProfileEdit = () => {
   const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
   const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
   
-  // Form state
   const [fundName, setFundName] = useState('');
   const [fundSize, setFundSize] = useState('');
   const [areasOfInterest, setAreasOfInterest] = useState<string[]>([]);
@@ -72,7 +70,6 @@ const ProfileEdit = () => {
   const [newCompany, setNewCompany] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
 
-  // PDF thesis state
   const [thesisFile, setThesisFile] = useState<File | null>(null);
   const [hasExistingThesis, setHasExistingThesis] = useState(false);
   const [thesisFilename, setThesisFilename] = useState<string | null>(null);
@@ -109,7 +106,6 @@ const ProfileEdit = () => {
       const profileData = data as VCProfile;
       setProfile(profileData);
       
-      // Set form state
       setFundName(profileData.fund_name || '');
       setFundSize(profileData.fund_size || '');
       setAreasOfInterest(profileData.areas_of_interest || []);
@@ -117,13 +113,11 @@ const ProfileEdit = () => {
       setCompaniesInvested(profileData.companies_invested || []);
       setWebsiteUrl(profileData.website_url || '');
       
-      // Set thesis state
       if (profileData.fund_thesis_url) {
         setHasExistingThesis(true);
         setThesisFilename(profileData.fund_thesis_url.split('/').pop() || null);
       }
       
-      // Check if user has a public form
       const { data: formData, error: formError } = await supabase
         .from('public_submission_forms')
         .select('id, form_slug, form_name, created_at, auto_analyze')
@@ -213,14 +207,12 @@ const ProfileEdit = () => {
     try {
       setDeletingThesis(true);
       
-      // Delete file from storage
       const { error: storageError } = await supabase.storage
         .from('vc-documents')
         .remove([profile.fund_thesis_url]);
         
       if (storageError) throw storageError;
       
-      // Update profile to remove reference
       const { error: updateError } = await supabase
         .from('vc_profiles')
         .update({ fund_thesis_url: null })
@@ -228,7 +220,6 @@ const ProfileEdit = () => {
         
       if (updateError) throw updateError;
       
-      // Update state
       setHasExistingThesis(false);
       setThesisFilename(null);
       
@@ -258,9 +249,7 @@ const ProfileEdit = () => {
       
       let fundThesisUrl = profile?.fund_thesis_url || null;
       
-      // Upload new thesis file if provided
       if (thesisFile) {
-        // Delete existing thesis if there is one
         if (profile?.fund_thesis_url) {
           const { error: removeError } = await supabase.storage
             .from('vc-documents')
@@ -269,7 +258,6 @@ const ProfileEdit = () => {
           if (removeError) throw removeError;
         }
         
-        // Upload new file
         const fileExt = thesisFile.name.split('.').pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const filePath = `fund-thesis/${fileName}`;
@@ -326,7 +314,6 @@ const ProfileEdit = () => {
         
       if (error) throw error;
       
-      // Create a blob URL and trigger download
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -351,281 +338,301 @@ const ProfileEdit = () => {
 
   if (loading) {
     return (
-      <div className="container max-w-3xl mx-auto px-4 py-8 flex justify-center dark">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="container max-w-3xl mx-auto px-4 py-12 flex justify-center items-center min-h-[70vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading profile information...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="dark bg-background min-h-screen">
-      <div className="container max-w-3xl mx-auto px-4 py-8">
-        <Card className="border-none shadow-lg bg-card">
-          <form onSubmit={handleSubmit}>
-            <CardHeader className="border-b border-border/30">
-              <CardTitle className="text-xl text-foreground">Edit Profile</CardTitle>
-              <CardDescription className="text-muted-foreground">Update your investor profile information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-primary">Fund Details</h3>
-                <Separator className="mb-4 bg-border/30" />
-                
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fund-name" className="text-foreground">Fund Name</Label>
-                    <Input
-                      id="fund-name"
-                      value={fundName}
-                      onChange={(e) => setFundName(e.target.value)}
-                      placeholder="Your Fund Name"
-                      className="bg-secondary/30 border-border/30 focus-visible:ring-primary"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="fund-size" className="text-foreground">Fund Size</Label>
-                    <Input
-                      id="fund-size"
-                      value={fundSize}
-                      onChange={(e) => setFundSize(e.target.value)}
-                      placeholder="e.g. $10M-$50M"
-                      className="bg-secondary/30 border-border/30 focus-visible:ring-primary"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Fund Thesis PDF</Label>
-                    {hasExistingThesis ? (
-                      <div className="border bg-secondary/30 border-border/30 rounded-md p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <FileText className="h-5 w-5 text-primary mr-2" />
-                            <span className="text-foreground">{thesisFilename || "Fund Thesis.pdf"}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              size="sm"
-                              onClick={downloadThesis}
-                              className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
-                            >
-                              Download
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={handleDeleteThesis}
-                              disabled={deletingThesis}
-                            >
-                              {deletingThesis ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                              ) : (
-                                <Trash2 className="h-4 w-4 mr-1" />
-                              )}
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <FileUploadZone
-                            id="thesis-upload"
-                            label="Replace with a new thesis"
-                            file={thesisFile}
-                            onFileChange={handleFileChange}
-                            accept=".pdf"
-                            description="PDF files only, max 10MB"
-                            buttonText="Choose new file"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <FileUploadZone
-                        id="thesis-upload"
-                        label="Upload Fund Thesis"
-                        file={thesisFile}
-                        onFileChange={handleFileChange}
-                        accept=".pdf"
-                        description="PDF files only, max 10MB"
-                        buttonText="Choose file"
-                      />
-                    )}
-                  </div>
-                </div>
+    <div className="container max-w-3xl mx-auto px-4 py-8">
+      <Card className="border-none shadow-lg bg-card">
+        <form onSubmit={handleSubmit}>
+          <CardHeader className="pb-2 border-b border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigate('/profile')}
+                className="flex items-center text-muted-foreground hover:text-foreground -ml-3"
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                Back to Profile
+              </Button>
+            </div>
+            <CardTitle className="text-2xl text-foreground/90 font-bold">Edit Profile</CardTitle>
+            <CardDescription className="text-muted-foreground/80">
+              Update your investor profile and preferences
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-8 pt-6">
+            <div>
+              <div className="flex items-center mb-3">
+                <Building className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-base font-semibold text-foreground/80">Fund Details</h3>
               </div>
+              <Separator className="mb-4" />
               
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-primary">Investment Focus</h3>
-                <Separator className="mb-4 bg-border/30" />
-                
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="areas" className="text-foreground">Areas of Interest</Label>
-                    <MultiSelect
-                      placeholder="Select areas"
-                      selected={areasOfInterest}
-                      options={AreaOfInterestOptions}
-                      onChange={setAreasOfInterest}
-                      className="bg-secondary/30 border-border/30"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="stages" className="text-foreground">Investment Stages</Label>
-                    <MultiSelect
-                      placeholder="Select stages"
-                      selected={investmentStage}
-                      options={stageOptions}
-                      onChange={setInvestmentStage}
-                      className="bg-secondary/30 border-border/30"
-                    />
-                  </div>
+              <div className="grid gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="fund-name" className="text-foreground/80">Fund Name</Label>
+                  <Input
+                    id="fund-name"
+                    value={fundName}
+                    onChange={(e) => setFundName(e.target.value)}
+                    placeholder="Your Fund Name"
+                    className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                  />
                 </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-primary">Portfolio</h3>
-                <Separator className="mb-4 bg-border/30" />
                 
                 <div className="space-y-2">
-                  <Label htmlFor="companies" className="text-foreground">Companies Invested</Label>
-                  
-                  <div className="flex gap-2 items-center mb-2">
-                    <Input
-                      id="new-company"
-                      value={newCompany}
-                      onChange={(e) => setNewCompany(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Add a company"
-                      className="flex-1 bg-secondary/30 border-border/30 focus-visible:ring-primary"
-                    />
-                    <Button 
-                      type="button" 
-                      onClick={handleAddCompany}
-                      size="sm"
-                      variant="secondary"
-                      className="hover:bg-primary hover:text-primary-foreground"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
-                  
-                  <div className="bg-secondary/20 rounded-md p-2 min-h-[120px]">
-                    {companiesInvested.length === 0 ? (
-                      <p className="text-muted-foreground text-sm py-2 px-3">
-                        No companies added yet. Add companies to your portfolio above.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {companiesInvested.map((company, index) => (
-                          <div 
-                            key={index} 
-                            className="bg-secondary/40 text-foreground px-3 py-1.5 rounded-md text-sm flex items-center group border border-border/30"
-                          >
-                            {company}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCompany(index)}
-                              className="ml-2 text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Add companies you've invested in to your portfolio
-                  </p>
+                  <Label htmlFor="fund-size" className="text-foreground/80">Fund Size</Label>
+                  <Input
+                    id="fund-size"
+                    value={fundSize}
+                    onChange={(e) => setFundSize(e.target.value)}
+                    placeholder="e.g. $10M-$50M"
+                    className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                  />
                 </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-primary">Public Submission URL</h3>
-                <Separator className="mb-4 bg-border/30" />
                 
                 <div className="space-y-2">
-                  {publicForm ? (
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-foreground mb-2 block">Your Public URL</Label>
-                        <div className="bg-secondary/20 p-3 rounded-md break-all">
-                          {publicSubmissionUrl}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between space-x-2 pt-2">
-                        <div className="flex-1">
-                          <Label htmlFor="auto-analyze" className="text-foreground">
-                            Auto-analyze Decks from Public Submission Form
-                          </Label>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {publicForm.auto_analyze ? 
-                              "Pitch decks will be automatically analyzed when submitted" : 
-                              "Submitted pitch decks will require manual approval for analysis"}
-                          </p>
-                        </div>
+                  <Label className="text-foreground/80">Fund Thesis PDF</Label>
+                  {hasExistingThesis ? (
+                    <div className="border bg-secondary/10 border-border/20 rounded-md p-4">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <Switch
-                            checked={publicForm.auto_analyze}
-                            onCheckedChange={toggleAutoAnalyze}
-                            disabled={updatingAutoAnalyze}
-                            id="auto-analyze"
-                          />
-                          {updatingAutoAnalyze && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                          <FileText className="h-5 w-5 text-primary mr-2" />
+                          <span className="text-foreground">{thesisFilename || "Fund Thesis.pdf"}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={downloadThesis}
+                            className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
+                          >
+                            Download
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={handleDeleteThesis}
+                            disabled={deletingThesis}
+                          >
+                            {deletingThesis ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 mr-1" />
+                            )}
+                            Delete
+                          </Button>
                         </div>
                       </div>
-                      
-                      <p className="text-xs text-muted-foreground mt-2">
-                        This URL is generated for you to receive pitch deck submissions.
-                        It cannot be edited directly, but you can copy it from your profile page.
-                      </p>
+                      <div className="mt-4">
+                        <FileUploadZone
+                          id="thesis-upload"
+                          label="Replace with a new thesis"
+                          file={thesisFile}
+                          onFileChange={handleFileChange}
+                          accept=".pdf"
+                          description="PDF files only, max 10MB"
+                          buttonText="Choose new file"
+                        />
+                      </div>
                     </div>
                   ) : (
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        No public submission URL has been generated yet.
-                        You can generate one from your profile page.
-                      </p>
+                    <FileUploadZone
+                      id="thesis-upload"
+                      label="Upload Fund Thesis"
+                      file={thesisFile}
+                      onFileChange={handleFileChange}
+                      accept=".pdf"
+                      description="PDF files only, max 10MB"
+                      buttonText="Choose file"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center mb-3">
+                <Tag className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-base font-semibold text-foreground/80">Investment Focus</h3>
+              </div>
+              <Separator className="mb-4" />
+              
+              <div className="grid gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="areas" className="text-foreground/80">Areas of Interest</Label>
+                  <MultiSelect
+                    placeholder="Select areas of interest"
+                    selected={areasOfInterest}
+                    options={AreaOfInterestOptions}
+                    onChange={setAreasOfInterest}
+                    className="bg-secondary/20 border-border/20"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="stages" className="text-foreground/80">Investment Stages</Label>
+                  <MultiSelect
+                    placeholder="Select investment stages"
+                    selected={investmentStage}
+                    options={stageOptions}
+                    onChange={setInvestmentStage}
+                    className="bg-secondary/20 border-border/20"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center mb-3">
+                <Layers className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-base font-semibold text-foreground/80">Portfolio</h3>
+              </div>
+              <Separator className="mb-4" />
+              
+              <div className="space-y-3">
+                <Label htmlFor="companies" className="text-foreground/80">Companies Invested</Label>
+                
+                <div className="flex gap-2 items-center mb-2">
+                  <Input
+                    id="new-company"
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Add a company"
+                    className="flex-1 bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={handleAddCompany}
+                    size="sm"
+                    variant="secondary"
+                    className="hover:bg-primary hover:text-primary-foreground"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                
+                <div className="bg-secondary/10 rounded-md p-4 min-h-[120px]">
+                  {companiesInvested.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-2 px-3">
+                      No companies added yet. Add companies to your portfolio above.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {companiesInvested.map((company, index) => (
+                        <div 
+                          key={index} 
+                          className="bg-background px-3 py-1.5 rounded-md text-sm flex items-center group border border-border/20"
+                        >
+                          {company}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCompany(index)}
+                            className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
-            </CardContent>
-            <CardFooter className="flex justify-between border-t border-border/30 pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/profile')}
-                className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={saving}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving
-                  </>
+            </div>
+            
+            <div>
+              <div className="flex items-center mb-3">
+                <Globe className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-base font-semibold text-foreground/80">Public Submission URL</h3>
+              </div>
+              <Separator className="mb-4" />
+              
+              <div className="space-y-2">
+                {publicForm ? (
+                  <div className="space-y-4 bg-secondary/10 p-4 rounded-md">
+                    <div>
+                      <Label className="text-foreground/80 mb-2 block">Your Public URL</Label>
+                      <div className="bg-background p-3 rounded-md break-all border border-border/20">
+                        {publicSubmissionUrl}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between space-x-2 pt-4 border-t border-border/10">
+                      <div className="flex-1">
+                        <Label htmlFor="auto-analyze" className="text-foreground/80">
+                          Auto-analyze Submissions
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {publicForm.auto_analyze ? 
+                            "Pitch decks will be automatically analyzed when submitted" : 
+                            "Submitted pitch decks will require manual approval for analysis"}
+                        </p>
+                      </div>
+                      <div className="flex items-center">
+                        <Switch
+                          checked={publicForm.auto_analyze}
+                          onCheckedChange={toggleAutoAnalyze}
+                          disabled={updatingAutoAnalyze}
+                          id="auto-analyze"
+                        />
+                        {updatingAutoAnalyze && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                      </div>
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
+                  <div className="bg-secondary/10 p-4 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      No public submission URL has been generated yet.
+                      You can generate one from your profile page.
+                    </p>
+                  </div>
                 )}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
+              </div>
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex justify-between border-t border-border/30 pt-6 pb-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/profile')}
+              className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              disabled={saving}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving Changes
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
 };
