@@ -14,12 +14,10 @@ import {
   Building2,
   CheckCircle,
   AlertTriangle,
-  Globe,
-  Lock
+  Globe
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
-import { useAuth } from '@/hooks/useAuth';
 
 interface SectionDetailProps {
   section: SectionDetailed | null;
@@ -67,8 +65,6 @@ const formatDescriptionAsBullets = (description: string): string[] => {
 };
 
 export function SectionDetail({ section, isLoading }: SectionDetailProps) {
-  const { user } = useAuth();
-  
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -83,19 +79,8 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   }
 
   if (!section) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Section not found</h2>
-        <p className="text-muted-foreground text-center max-w-md">
-          This section may not exist or you might not have permission to view it.
-        </p>
-      </div>
-    );
+    return <div>Section not found</div>;
   }
-
-  // Check if user is not authenticated and we should show limited content
-  const isLimitedAccess = !user;
 
   // Check if section is missing (score of 0.5 indicates a missing section)
   const isSectionMissing = section?.score === 0.5;
@@ -150,63 +135,45 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{section?.title}</h1>
 
-        {isLimitedAccess ? (
-          <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-background">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex flex-col items-center justify-center text-center">
-                <Lock className="h-12 w-12 text-blue-500 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Sign In to View Detailed Analysis</h3>
-                <p className="text-muted-foreground max-w-md mb-4">
-                  Create an account or sign in to see the full analysis for this section.
-                </p>
+        <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
+          <CardHeader className="border-b pb-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <BookText className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl font-semibold">Key Insights</CardTitle>
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
-            <CardHeader className="border-b pb-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <BookText className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-xl font-semibold">Key Insights</CardTitle>
+              <div className="flex items-center">
+                <span className="text-xl font-bold mr-1">{section?.score.toFixed(1)}</span>
+                <span className="text-sm text-muted-foreground">/5</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <div className="grid grid-cols-1 gap-4">
+              {isSectionMissing ? (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/10">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
+                  <span className="text-sm leading-relaxed font-medium">This section appears to be missing from the pitch deck. Consider adding it to improve the overall quality of your presentation.</span>
                 </div>
-                <div className="flex items-center">
-                  <span className="text-xl font-bold mr-1">{section?.score.toFixed(1)}</span>
-                  <span className="text-sm text-muted-foreground">/5</span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <div className="grid grid-cols-1 gap-4">
-                {isSectionMissing ? (
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/10">
-                    <AlertTriangle className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
-                    <span className="text-sm leading-relaxed font-medium">This section appears to be missing from the pitch deck. Consider adding it to improve the overall quality of your presentation.</span>
+              ) : (
+                contentBullets.map((bullet, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-start gap-3 p-4 rounded-lg transition-colors border border-transparent
+                      ${isMetric(bullet) ? 'bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/20' : 
+                        isCompetitive(bullet) ? 'bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/20' : 
+                        isGrowth(bullet) ? 'bg-violet-500/5 hover:bg-violet-500/10 hover:border-violet-500/20' :
+                        isProduct(bullet) ? 'bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/20' :
+                        'bg-primary/5 hover:bg-primary/10 hover:border-primary/20'}`}
+                  >
+                    {getInsightIcon(bullet)}
+                    <span className="text-sm leading-relaxed">{bullet}</span>
                   </div>
-                ) : contentBullets.length > 0 ? (
-                  contentBullets.map((bullet, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-start gap-3 p-4 rounded-lg transition-colors border border-transparent
-                        ${isMetric(bullet) ? 'bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/20' : 
-                          isCompetitive(bullet) ? 'bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/20' : 
-                          isGrowth(bullet) ? 'bg-violet-500/5 hover:bg-violet-500/10 hover:border-violet-500/20' :
-                          isProduct(bullet) ? 'bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/20' :
-                          'bg-primary/5 hover:bg-primary/10 hover:border-primary/20'}`}
-                    >
-                      {getInsightIcon(bullet)}
-                      <span className="text-sm leading-relaxed">{bullet}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-muted-foreground py-6">
-                    <p>No detailed insights available for this section.</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Strengths Card - Only show if section is not missing */}
@@ -243,20 +210,14 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
             </CardHeader>
             <CardContent className="pt-5">
               <ul className="space-y-3">
-                {section?.weaknesses && section.weaknesses.length > 0 ? (
-                  section.weaknesses.map((weakness, index) => (
-                    <li key={index} className="flex items-start gap-2 group">
-                      <div className="mt-1.5 shrink-0 rounded-full bg-rose-100 p-1 group-hover:bg-rose-200 transition-colors">
-                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                      </div>
-                      <span className="text-sm">{weakness}</span>
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-center text-muted-foreground py-2">
-                    <p>No weaknesses identified for this section.</p>
+                {section?.weaknesses.map((weakness, index) => (
+                  <li key={index} className="flex items-start gap-2 group">
+                    <div className="mt-1.5 shrink-0 rounded-full bg-rose-100 p-1 group-hover:bg-rose-200 transition-colors">
+                      <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                    </div>
+                    <span className="text-sm">{weakness}</span>
                   </li>
-                )}
+                ))}
               </ul>
             </CardContent>
           </Card>
