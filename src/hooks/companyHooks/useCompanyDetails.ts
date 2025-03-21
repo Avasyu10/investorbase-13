@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ApiClient } from '@/lib/api/apiClient';
-import { Company, CompanyDetailed } from '@/lib/api/apiContract';
+import { apiClient } from '@/lib/api/apiClient';
+import { CompanyDetailed } from '@/lib/api/apiContract';
+import { formatCompanyData } from './utils';
 
 export function useCompanyDetails(companyId: string | undefined) {
   const [company, setCompany] = useState<CompanyDetailed | null>(null);
@@ -87,13 +88,12 @@ export function useCompanyDetails(companyId: string | undefined) {
         console.log('No company found in Supabase, falling back to mock API');
       }
       
-      // Fallback to mock API if not found in Supabase or user not logged in
-      const apiClient = new ApiClient();
-      const companyResult = await apiClient.getCompanyById(companyId);
+      // Fallback to mock API
+      const companyResult = await apiClient.getCompany(Number(companyId));
       
-      if (companyResult) {
-        console.log('Fetched company from mock API:', companyResult);
-        setCompany(companyResult);
+      if (companyResult?.data) {
+        console.log('Fetched company from mock API:', companyResult.data);
+        setCompany(companyResult.data);
       } else {
         console.error('Company not found in mock API either');
         setCompany(null);
@@ -120,7 +120,11 @@ export function useCompanyDetails(companyId: string | undefined) {
         type: section.type,
         score: section.score,
         description: section.description,
+        createdAt: section.created_at,
+        updatedAt: section.updated_at,
       })) || [],
+      createdAt: rawData.created_at,
+      updatedAt: rawData.updated_at,
     };
   }
   

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ApiClient } from '@/lib/api/apiClient';
+import { apiClient } from '@/lib/api/apiClient';
 import { SectionDetailed } from '@/lib/api/apiContract';
 
 export function useSectionDetails(
@@ -68,12 +68,12 @@ export function useSectionDetails(
         if (sectionData) {
           console.log('Successfully fetched section details:', sectionData);
           
-          const transformedSection = {
+          const transformedSection: SectionDetailed = {
             id: sectionData.id,
             title: sectionData.title,
             type: sectionData.type,
             score: sectionData.score,
-            description: sectionData.description,
+            description: sectionData.description || '',
             detailedContent: sectionData.detailed_content || '',
             strengths: sectionData.section_details
               ?.filter((detail: any) => detail.detail_type === 'strength')
@@ -81,6 +81,8 @@ export function useSectionDetails(
             weaknesses: sectionData.section_details
               ?.filter((detail: any) => detail.detail_type === 'weakness')
               .map((detail: any) => detail.content) || [],
+            createdAt: sectionData.created_at,
+            updatedAt: sectionData.updated_at,
           };
           
           setSection(transformedSection);
@@ -92,12 +94,11 @@ export function useSectionDetails(
       }
       
       // Fallback to mock API
-      const apiClient = new ApiClient();
-      const sectionResult = await apiClient.getSectionById(companyId, sectionId);
+      const sectionResult = await apiClient.getSection(Number(companyId), sectionId);
       
-      if (sectionResult) {
-        console.log('Fetched section from mock API:', sectionResult);
-        setSection(sectionResult);
+      if (sectionResult?.data) {
+        console.log('Fetched section from mock API:', sectionResult.data);
+        setSection(sectionResult.data);
       } else {
         console.error('Section not found in mock API either');
         setSection(null);
