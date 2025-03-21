@@ -165,11 +165,7 @@ Ensure the output is structured as follows:
     ...
   ],
   "overallScore": 3.7,
-  "assessmentPoints": ["Key point 1 with specific metrics ($XM market, Y% growth)", "Key point 2 with exact figures", "Key point 3 with precise percentages", "Key point 4 with concrete numbers", "Key point 5 with quantifiable comparison"],
-  "website": "Company website URL if found in the pitch deck",
-  "industry": "Company industry or sector",
-  "stage": "Company stage (pre-seed, seed, series A, etc.)",
-  "introduction": "One paragraph introduction about the company (max 500 characters)",
+  "assessmentPoints": ["Key point 1 with specific metrics ($XM market, Y% growth)", "Key point 2 with exact figures", "Key point 3 with precise percentages", "Key point 4 with concrete numbers", "Key point 5 with quantifiable comparison"]
 }
 
 IMPORTANT RULES:

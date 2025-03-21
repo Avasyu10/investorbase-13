@@ -21,10 +21,6 @@ export interface CompanyBase extends BaseEntity {
   perplexityRequestedAt?: string; // When the research was requested
   reportId?: string; // ID of the associated report
   source?: 'dashboard' | 'public_url'; // Added source property
-  website?: string;
-  stage?: string; 
-  industry?: string;
-  introduction?: string;
 }
 
 export interface CompanyListItem extends CompanyBase {
