@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { apiClient } from '@/lib/api/apiClient';
-import { SectionDetailed } from '@/lib/api/apiContract';
+import { SectionDetailed, SectionType } from '@/lib/api/apiContract';
 
 export function useSectionDetails(
   companyId: string | undefined,
@@ -71,8 +71,8 @@ export function useSectionDetails(
           const transformedSection: SectionDetailed = {
             id: sectionData.id,
             title: sectionData.title,
-            type: sectionData.type,
-            score: sectionData.score,
+            type: sectionData.type as SectionType,
+            score: Number(sectionData.score),
             description: sectionData.description || '',
             detailedContent: sectionData.detailed_content || '',
             strengths: sectionData.section_details
