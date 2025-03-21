@@ -96,7 +96,8 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         description: sectionData.description || '',
         strengths,
         weaknesses,
-        detailedContent: sectionData.detailed_content || sectionData.description || '',
+        // Fix: Use either description or detailed_content based on what's available
+        detailedContent: sectionData.description || '',
         createdAt: sectionData.created_at,
         updatedAt: sectionData.updated_at || sectionData.created_at,
       } as SectionDetail;

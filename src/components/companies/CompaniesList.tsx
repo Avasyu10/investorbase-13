@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { Button } from "@/components/ui/button";
 import { CompaniesTable } from "./CompaniesTable";
+import { Badge } from "@/components/ui/badge";
 import {
   Pagination,
   PaginationContent,
@@ -40,6 +42,22 @@ const getSortField = (option: SortOption): string => {
 
 const getSortOrder = (option: SortOption): 'asc' | 'desc' => {
   return option === 'name' || option === 'source' ? 'asc' : 'desc';
+};
+
+// Helper to get source info with appropriate styling
+const getSourceInfo = (source: string | undefined) => {
+  if (source === 'public_url') {
+    return {
+      label: "Public URL",
+      className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+    };
+  }
+  
+  // Default to Dashboard (gold color)
+  return {
+    label: "Dashboard",
+    className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+  };
 };
 
 export function CompaniesList() {
@@ -203,27 +221,38 @@ export function CompaniesList() {
         <>
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {companies.map((company) => (
-                <Card 
-                  key={company.id} 
-                  className="cursor-pointer transition-all hover:shadow-md"
-                  onClick={() => handleCompanyClick(company.id)}
-                >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
-                    <CardDescription>Overall Score: {company.overallScore}/5</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Progress 
-                      value={company.overallScore * 20} 
-                      className="h-2 mb-2" 
-                    />
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Added: {new Date(company.createdAt).toLocaleDateString()}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+              {companies.map((company) => {
+                const sourceInfo = getSourceInfo(company.source);
+                return (
+                  <Card 
+                    key={company.id} 
+                    className="cursor-pointer transition-all hover:shadow-md"
+                    onClick={() => handleCompanyClick(company.id)}
+                  >
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg sm:text-xl">{company.name}</CardTitle>
+                      <CardDescription>Overall Score: {company.overallScore}/5</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Progress 
+                        value={company.overallScore * 20} 
+                        className="h-2 mb-2" 
+                      />
+                      <div className="flex flex-col gap-1.5">
+                        <Badge 
+                          variant="outline" 
+                          className={`w-fit text-xs font-medium ${sourceInfo.className}`}
+                        >
+                          {sourceInfo.label}
+                        </Badge>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Added: {new Date(company.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <CompaniesTable 
