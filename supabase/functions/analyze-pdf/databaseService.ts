@@ -70,8 +70,8 @@ export async function saveAnalysisResults(
             title: sectionData.title || sectionType.charAt(0).toUpperCase() + sectionType.slice(1),
             type: sectionType,
             score: sectionData.score || 0,
-            description: sectionData.summary || "",
-            detailed_content: sectionData.detailedContent || "",
+            description: sectionData.detailedContent || sectionData.summary || "",
+            // Remove detailed_content as it doesn't exist in the table
           }])
           .select()
           .single();
