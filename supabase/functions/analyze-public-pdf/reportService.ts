@@ -59,35 +59,43 @@ export async function getReportData(reportId: string, authHeader: string): Promi
   // Now we use service role client to bypass RLS for storage access
   const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
   
-  // Determine the storage path
-  const storageFolder = report.user_id || 'public';
+  // Determine the storage path - IMPORTANT: This must match how files are stored
+  const storageFolder = 'public'; // For public submissions, we'll always use the 'public' folder
   
-  // Get the PDF content
-  const { data: fileData, error: fileError } = await serviceClient.storage
-    .from('report_pdfs')
-    .download(`${storageFolder}/${report.pdf_url}`);
+  console.log(`Attempting to download PDF from path: ${storageFolder}/${report.pdf_url}`);
   
-  if (fileError) {
-    console.error('Error downloading file:', fileError);
-    throw new Error(`Error downloading PDF: ${fileError.message}`);
+  try {
+    // Get the PDF content with improved error handling
+    const { data: fileData, error: fileError } = await serviceClient.storage
+      .from('report_pdfs')
+      .download(`${storageFolder}/${report.pdf_url}`);
+    
+    if (fileError) {
+      console.error('Error downloading file:', fileError);
+      throw new Error(`Error downloading PDF: ${JSON.stringify(fileError)}`);
+    }
+    
+    if (!fileData) {
+      throw new Error('Downloaded file is empty or null');
+    }
+    
+    console.log(`Successfully downloaded PDF, size: ${fileData.size} bytes`);
+    
+    // Convert the file to base64
+    const arrayBuffer = await fileData.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    
+    console.log(`Successfully converted PDF to base64, length: ${base64.length}`);
+    
+    // Return both the original supabase client and the report data
+    return { supabase, report, pdfBase64: base64 };
+  } catch (error) {
+    console.error('Error in PDF processing:', error);
+    throw new Error(`Error downloading PDF: ${JSON.stringify(error)}`);
   }
-  
-  // Convert the file to base64
-  const reader = new FileReader();
-  const base64Promise = new Promise<string>((resolve, reject) => {
-    reader.onload = () => {
-      const result = reader.result as string;
-      // We just want the base64 part
-      const base64 = result.split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(fileData);
-  });
-  
-  const pdfBase64 = await base64Promise;
-  console.log(`Successfully converted PDF to base64, length: ${pdfBase64.length}`);
-  
-  // Return both the original supabase client and the report data
-  return { supabase, report, pdfBase64 };
 }

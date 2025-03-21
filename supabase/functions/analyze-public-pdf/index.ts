@@ -106,9 +106,28 @@ serve(async (req) => {
     
     try {
       // Get report data - note we're using our specialized reportService for public uploads
+      console.log("Retrieving report data...");
       const { supabase, report, pdfBase64 } = await getReportData(reportId, req.headers.get('Authorization') || '');
       
-      console.log("Successfully retrieved report data, analyzing with Gemini");
+      if (!pdfBase64 || pdfBase64.length === 0) {
+        throw new Error("Retrieved PDF is empty or could not be converted to base64");
+      }
+      
+      console.log(`Successfully retrieved report data for ${report.title}, analyzing with Gemini`);
+      
+      // Update status to 'processing' in the database
+      try {
+        const { error: updateError } = await supabase
+          .from('reports')
+          .update({ analysis_status: 'processing' })
+          .eq('id', reportId);
+          
+        if (updateError) {
+          console.warn("Could not update report status to processing:", updateError);
+        }
+      } catch (statusUpdateError) {
+        console.warn("Error updating report status to processing:", statusUpdateError);
+      }
       
       try {
         // Analyze the PDF with Gemini
@@ -234,6 +253,30 @@ serve(async (req) => {
       // Print detailed stack trace to logs if available
       if (error instanceof Error && error.stack) {
         console.error("Error stack trace:", error.stack);
+      }
+      
+      // Update the report status to failed in the database
+      try {
+        const serviceClient = createClient(
+          Deno.env.get('SUPABASE_URL') || '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+        );
+        
+        if (serviceClient) {
+          const { error: updateError } = await serviceClient
+            .from('reports')
+            .update({ 
+              analysis_status: 'failed',
+              analysis_error: errorMessage 
+            })
+            .eq('id', reportId);
+            
+          if (updateError) {
+            console.error("Error updating report failure status:", updateError);
+          }
+        }
+      } catch (updateError) {
+        console.error("Failed to update report error status:", updateError);
       }
       
       // Determine appropriate status code

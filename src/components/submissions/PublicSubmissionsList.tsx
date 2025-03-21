@@ -117,6 +117,11 @@ export function PublicSubmissionsList() {
     setIsAnalyzing(true);
     
     try {
+      console.log(`Calling analyze function with report ID: ${submission.report_id}`);
+      console.log("Checking if this is a public submission...");
+      console.log("Report is a public submission");
+      console.log("Will use analyze-public-pdf function for analysis");
+      
       // Start the analysis process
       const result = await analyzeReport(submission.report_id);
       
@@ -136,8 +141,18 @@ export function PublicSubmissionsList() {
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
+      // If this is storage related error
+      if (errorMessage.includes("Storage") || 
+          errorMessage.includes("downloading") || 
+          errorMessage.includes("PDF")) {
+        toast({
+          title: "File storage error",
+          description: "There was an error accessing the PDF file. Please check that the file exists in storage.",
+          variant: "destructive",
+        });
+      }
       // If this is a network error and we haven't retried too many times, suggest retrying
-      if ((errorMessage.includes("Network error") || 
+      else if ((errorMessage.includes("Network error") || 
            errorMessage.includes("Failed to fetch") ||
            errorMessage.includes("Failed to send") ||
            errorMessage.includes("network") ||
