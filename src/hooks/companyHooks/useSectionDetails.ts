@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export interface SectionDetail {
   id: string;
@@ -92,9 +92,8 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         .filter(detail => detail.detail_type === 'weakness')
         .map(detail => detail.content);
       
-      // Use the description field for both description and detailedContent
-      // This ensures the description from the sections table is shown in the Key Insights section
-      const description = sectionData.description || '';
+      // Make sure we have a description field
+      const description = sectionData.description || 'No detailed content available.';
       
       console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
       

@@ -26,7 +26,7 @@ interface SectionDetailProps {
 
 // Helper function to format description as bullet points
 const formatDescriptionAsBullets = (description: string): string[] => {
-  if (!description) return [];
+  if (!description || description === 'No detailed content available.') return [];
   
   // Instead of splitting on every period, try to identify complete thoughts
   // This regex looks for sentence endings followed by spaces or line breaks
@@ -87,6 +87,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
 
   // Format the detailed content as bullet points and categorize them
   const contentBullets = section ? formatDescriptionAsBullets(section.detailedContent) : [];
+  const isContentMissing = contentBullets.length === 0;
   
   // Function to determine if a bullet point is a metric/statistic
   const isMetric = (text: string) => {
@@ -154,6 +155,14 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
                 <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/10">
                   <AlertTriangle className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
                   <span className="text-sm leading-relaxed font-medium">This section appears to be missing from the pitch deck. Consider adding it to improve the overall quality of your presentation.</span>
+                </div>
+              ) : isContentMissing ? (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-500 shrink-0" />
+                  <div className="text-sm leading-relaxed">
+                    <p className="font-medium mb-1">No detailed analysis available for this section.</p>
+                    <p>Please check the strengths and weaknesses below for the key points from the analysis.</p>
+                  </div>
                 </div>
               ) : (
                 contentBullets.map((bullet, index) => (

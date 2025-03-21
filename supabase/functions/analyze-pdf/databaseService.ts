@@ -1,10 +1,9 @@
 
-import { AnalysisResult } from "./openaiService.ts";
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function saveAnalysisResults(
-  supabase: SupabaseClient,
-  analysis: AnalysisResult,
+  supabase: any,
+  analysis: any,
   report: any
 ): Promise<string> {
   console.log("Saving analysis results to database");
@@ -69,38 +68,51 @@ export async function saveAnalysisResults(
     }
     
     // Create a new client with the service role key to bypass RLS
-    const adminSupabase = new SupabaseClient(apiUrl, adminApiKey);
+    const adminSupabase = createClient(apiUrl, adminApiKey);
     
-    const sectionPromises = Object.entries(analysis.sections).map(
-      async ([sectionType, sectionData]) => {
+    const sectionPromises = analysis.sections.map(
+      async (sectionData) => {
         if (!sectionData) return null;
         
         // Ensure we have a proper section type and description
-        const normalizedSectionType = sectionType.toUpperCase();
-        const description = sectionData.detailedContent || sectionData.summary || "No detailed content available";
+        const normalizedSectionType = sectionData.type.toUpperCase();
         
-        console.log(`Creating section for ${sectionType} with score ${sectionData.score} and description length ${description.length}`);
+        // Make sure we have a description - prioritize detailedContent then description
+        let detailedDescription = "";
+        if (sectionData.detailedContent && sectionData.detailedContent.trim().length > 0) {
+          detailedDescription = sectionData.detailedContent;
+        } else if (sectionData.description && sectionData.description.trim().length > 0) {
+          detailedDescription = sectionData.description;
+        } else {
+          // Fallback to summary if available or a default message
+          detailedDescription = sectionData.summary || "No detailed content available.";
+        }
+        
+        // Also prepare the description specifically (shorter version)
+        const description = sectionData.description || detailedDescription;
+        
+        console.log(`Creating section for ${sectionData.type} with score ${sectionData.score} and description length ${description.length}`);
         
         const { data: section, error: sectionError } = await adminSupabase
           .from('sections')
           .insert([{
             company_id: company.id,
-            title: sectionData.title || sectionType.charAt(0).toUpperCase() + sectionType.slice(1),
-            type: sectionType,
+            title: sectionData.title || sectionData.type.charAt(0).toUpperCase() + sectionData.type.slice(1).toLowerCase().replace(/_/g, ' '),
+            type: sectionData.type,
             score: sectionData.score || 0,
-            description: description,
+            description: detailedDescription, // Use the detailed description here
             section_type: normalizedSectionType // Add the section_type explicitly
           }])
           .select()
           .single();
         
         if (sectionError) {
-          console.error(`Error creating section ${sectionType}:`, sectionError);
+          console.error(`Error creating section ${sectionData.type}:`, sectionError);
           return null;
         }
         
         if (!section) {
-          console.warn(`Failed to create section ${sectionType}`);
+          console.warn(`Failed to create section ${sectionData.type}`);
           return null;
         }
         
@@ -140,9 +152,9 @@ export async function saveAnalysisResults(
         if (detailPromises.length > 0) {
           try {
             await Promise.all(detailPromises);
-            console.log(`Added ${detailPromises.length} details for section ${sectionType}`);
+            console.log(`Added ${detailPromises.length} details for section ${sectionData.type}`);
           } catch (detailError) {
-            console.error(`Error adding details for section ${sectionType}:`, detailError);
+            console.error(`Error adding details for section ${sectionData.type}:`, detailError);
           }
         }
         
