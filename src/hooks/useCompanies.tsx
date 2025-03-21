@@ -42,21 +42,23 @@ export function useCompanies(
         
         if (data && data.length > 0) {
           const formattedCompanies: CompanyListItem[] = data.map(item => {
-            const isFromPublicSubmission = item.report_id && !!item.user_id;
+            // Convert UUID to a numeric-looking ID for display
+            // Takes the first 8 characters of the UUID and converts to a number
+            const numericId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16);
+            
             return {
-              id: parseInt(item.id.substring(0, 8), 16),
+              id: numericId,
               name: item.name,
               overallScore: item.overall_score,
               createdAt: item.created_at,
               updatedAt: item.created_at,
               assessmentPoints: item.assessment_points || [],
-              source: 'dashboard', // Set all sources to 'dashboard'
+              source: 'dashboard',
               reportId: item.report_id
             };
           });
           
           setCompanies(formattedCompanies);
-          // Fix for TypeScript error: safely access 'count' with a fallback
           setTotalCount(count ?? data.length);
           setError(null);
         } else {
@@ -128,20 +130,20 @@ export function useCompanyDetails(companyId?: string) {
         if (user) {
           console.log('Trying to fetch company details from Supabase for:', companyId);
           
-          // Try finding the company using the find_company_by_numeric_id function
-          try {
-            // Use the database function to find the company by numeric ID
-            const { data: uuidData, error: uuidError } = await supabase
-              .rpc('find_company_by_numeric_id', { numeric_id: companyId });
+          // Use the RPC function to find the company UUID by numeric ID
+          const { data: foundCompanyData, error: rpcError } = await supabase
+            .rpc('find_company_by_numeric_id_bigint', { numeric_id: companyId });
             
-            if (uuidError) {
-              console.error('Error finding company by numeric ID:', uuidError);
-            } else if (uuidData) {
-              console.log('Found company UUID:', uuidData);
+          if (rpcError) {
+            console.error('Error finding company by numeric ID:', rpcError);
+          } else {
+            console.log('Found company UUID:', foundCompanyData);
+            
+            // Make sure we got a valid UUID back
+            if (foundCompanyData && foundCompanyData.length > 0) {
+              const companyUuid = foundCompanyData[0];
               
-              const companyUuid = uuidData;
-              
-              // Now get the company details with the UUID
+              // Get the company details using the UUID
               const { data: companyData, error: companyError } = await supabase
                 .from('companies')
                 .select('*, sections(*)')
@@ -153,8 +155,11 @@ export function useCompanyDetails(companyId?: string) {
               } else if (companyData) {
                 console.log('Found company in Supabase:', companyData);
                 
+                // Convert UUID to a numeric-looking ID for display
+                const numericId = parseInt(companyData.id.replace(/-/g, '').substring(0, 8), 16);
+                
                 const formattedCompany: CompanyDetailed = {
-                  id: parseInt(companyData.id.substring(0, 8), 16),
+                  id: numericId,
                   name: companyData.name,
                   overallScore: companyData.overall_score,
                   createdAt: companyData.created_at,
@@ -181,8 +186,6 @@ export function useCompanyDetails(companyId?: string) {
                 return;
               }
             }
-          } catch (err) {
-            console.error('Error processing Supabase company data:', err);
           }
         }
         
@@ -294,8 +297,7 @@ export function useSectionDetails(companyId?: string, sectionId?: string) {
           throw new Error('Invalid company ID');
         }
 
-        // Here's the fix - pass sectionId as is without conversion
-        // The API accepts sectionId as either a string or a number
+        // Pass sectionId as a string to the API
         const response = await api.getSection(numericCompanyId, sectionId);
         setSection(response.data);
         setError(null);
