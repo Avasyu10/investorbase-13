@@ -129,7 +129,7 @@ export function CompaniesList() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Prospects</h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -154,8 +154,8 @@ export function CompaniesList() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col items-center justify-center h-64">
           <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Error Loading Companies</h2>
-          <p className="text-muted-foreground mb-4">There was a problem fetching your company data.</p>
+          <h2 className="text-xl font-semibold mb-2">Error Loading Prospects</h2>
+          <p className="text-muted-foreground mb-4">There was a problem fetching your prospect data.</p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       </div>
@@ -168,9 +168,9 @@ export function CompaniesList() {
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Companies</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Prospects</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Select a company to view detailed metrics
+            Select a prospect to view detailed metrics
           </p>
         </div>
         
@@ -298,9 +298,9 @@ export function CompaniesList() {
         </>
       ) : (
         <div className="text-center py-16 border rounded-lg bg-muted/20">
-          <h3 className="text-lg font-medium mb-2">No companies found</h3>
+          <h3 className="text-lg font-medium mb-2">No prospects found</h3>
           <p className="text-muted-foreground mb-6">
-            You don't have any companies yet or your search returned no results.
+            You don't have any prospects yet or your search returned no results.
           </p>
           <Button onClick={() => navigate("/upload")}>
             Upload New Pitch Deck

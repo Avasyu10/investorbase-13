@@ -209,7 +209,7 @@ export function PublicSubmissionsList() {
           <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">Authentication Required</h3>
           <p className="mt-2 text-muted-foreground">
-            Please sign in to view public submissions
+            Please sign in to view new applications
           </p>
           <Button 
             onClick={() => navigate("/")} 
@@ -226,7 +226,7 @@ export function PublicSubmissionsList() {
     <div className="container mx-auto px-4 py-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight mb-2">Public Form Submissions</h1>
+          <h1 className="text-2xl font-bold tracking-tight mb-2">New Applications</h1>
           <p className="text-muted-foreground">
             Submissions from public forms waiting to be analyzed
           </p>
@@ -241,9 +241,9 @@ export function PublicSubmissionsList() {
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-medium">No submissions found</h3>
+          <h3 className="mt-4 text-lg font-medium">No applications found</h3>
           <p className="mt-2 text-muted-foreground">
-            You don't have any public submissions waiting to be analyzed.
+            You don't have any new applications waiting to be analyzed.
           </p>
         </div>
       )}
