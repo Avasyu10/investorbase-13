@@ -36,22 +36,20 @@ export function ReportCard({ report }: ReportCardProps) {
           <div className="flex items-start gap-2">
             <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
             <div className="flex-1">
-              <CardTitle className="line-clamp-5 min-h-[100px] text-lg">{report.title}</CardTitle>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {report.is_public_submission ? (
-                  <Badge 
-                    className="bg-green-100/80 text-green-800 dark:bg-green-900/80 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/90 border-green-200 dark:border-green-800"
-                  >
-                    Public Submission
-                  </Badge>
-                ) : (
-                  <Badge 
-                    className="bg-amber-100/80 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/90 border-amber-200 dark:border-amber-800"
-                  >
-                    Dashboard
-                  </Badge>
-                )}
-              </div>
+              <CardTitle className="line-clamp-5 text-lg">{report.title}</CardTitle>
+              {report.is_public_submission ? (
+                <Badge 
+                  className="mt-2 bg-green-100/80 text-green-800 dark:bg-green-900/80 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/90 border-green-200 dark:border-green-800"
+                >
+                  Public Submission
+                </Badge>
+              ) : (
+                <Badge 
+                  className="mt-2 bg-amber-100/80 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/90 border-amber-200 dark:border-amber-800"
+                >
+                  Dashboard
+                </Badge>
+              )}
             </div>
           </div>
           <CardDescription className="flex items-center gap-1 text-xs">
