@@ -34,22 +34,26 @@ export function ReportCard({ report }: ReportCardProps) {
       <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col">
         <CardHeader className="pb-2 flex-none">
           <div className="flex items-start gap-2">
-            <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
-            <div className="flex-1">
-              <CardTitle className="line-clamp-5 text-lg">{report.title}</CardTitle>
+            <div className="flex flex-col items-center gap-1">
+              <FileText className="h-5 w-5 text-muted-foreground flex-none" />
               {report.is_public_submission ? (
                 <Badge 
-                  className="mt-2 bg-green-100/80 text-green-800 dark:bg-green-900/80 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/90 border-green-200 dark:border-green-800"
+                  variant="green"
+                  className="mt-1 text-[10px] px-1.5 py-0.5"
                 >
-                  Public Submission
+                  Public
                 </Badge>
               ) : (
                 <Badge 
-                  className="mt-2 bg-amber-100/80 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/90 border-amber-200 dark:border-amber-800"
+                  variant="gold"
+                  className="mt-1 text-[10px] px-1.5 py-0.5"
                 >
                   Dashboard
                 </Badge>
               )}
+            </div>
+            <div className="flex-1">
+              <CardTitle className="line-clamp-5 text-lg">{report.title}</CardTitle>
             </div>
           </div>
           <CardDescription className="flex items-center gap-1 text-xs">
