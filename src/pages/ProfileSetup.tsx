@@ -308,7 +308,7 @@ const ProfileSetup = () => {
                   className="bg-muted text-muted-foreground cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  You can create a link for founders to submit their pitch decks through your public submission.
+                  You can create a link for founders to submit their pitch decks through your Public URL.
                 </p>
               </div>
             </CardContent>
