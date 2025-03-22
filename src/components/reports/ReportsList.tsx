@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";
-import { getReports, Report } from "@/lib/supabase/reports";
+import { getReports, Report } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +31,6 @@ export function ReportsList() {
         
         setIsLoading(true);
         const fetchedReports = await getReports();
-        console.log("Fetched reports:", fetchedReports);
         setReports(fetchedReports);
       } catch (error) {
         console.error("Error fetching reports:", error);

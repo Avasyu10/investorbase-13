@@ -52,12 +52,8 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         setLoadingPdf(true);
         console.log("Loading PDF for report:", report.title);
         
-        // Determine if this is a public submission by checking the flag
-        const isPublicSubmission = report.is_public_submission === true;
-        console.log("Is this a public submission?", isPublicSubmission);
-        
-        // Download the PDF file, passing the public submission flag
-        const blob = await downloadReport(report.pdf_url, user.id, isPublicSubmission);
+        // Download the PDF file
+        const blob = await downloadReport(report.pdf_url, user.id);
         if (!blob) {
           throw new Error("Could not download PDF");
         }
@@ -94,8 +90,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       // If we don't have the blob yet, download it
       if (!blob) {
-        const isPublicSubmission = report.is_public_submission === true;
-        blob = await downloadReport(report.pdf_url, user.id, isPublicSubmission);
+        blob = await downloadReport(report.pdf_url, user.id);
       }
       
       if (!blob) {
