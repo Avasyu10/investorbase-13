@@ -46,9 +46,10 @@ const Feedback = () => {
       </Button>
       
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Feedback</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Your Feedback Shapes InvestorBase</h1>
         <p className="text-muted-foreground mt-2">
-          We value your feedback! Let us know how we can improve your experience.
+          Every feature on InvestorBase exists because of valuable feedback we received from users like you. 
+          Your insights drive our innovation and help us build a better platform for everyone.
         </p>
       </div>
       
