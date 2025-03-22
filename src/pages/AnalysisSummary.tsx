@@ -53,7 +53,7 @@ export default function AnalysisSummary() {
   const chartData = company.sections.map(section => ({
     name: section.title,
     score: parseFloat(section.score.toFixed(1)),
-    fill: getColorForScore(section.score)
+    fill: getChartColorForScore(section.score)
   }));
 
   return (
@@ -84,7 +84,7 @@ export default function AnalysisSummary() {
           <div className="flex justify-between items-center">
             <CardTitle className="text-2xl">{company.name}</CardTitle>
             <div className="flex items-center">
-              <Badge variant={getScoreVariant(company.overallScore)}>
+              <Badge variant={getBadgeVariant(company.overallScore)}>
                 Score: {formattedScore}/5
               </Badge>
               <TooltipProvider>
@@ -106,7 +106,10 @@ export default function AnalysisSummary() {
         <CardContent>
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2">Overall Performance</h3>
-            <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
+            <Progress 
+              value={company.overallScore * 20} 
+              className={`h-2.5 mb-2 ${getScoreColorClass(company.overallScore)}`} 
+            />
             <p className="text-sm text-muted-foreground">
               {getScoreDescription(company.overallScore)}
             </p>
@@ -159,10 +162,12 @@ export default function AnalysisSummary() {
                   </CardHeader>
                   <CardContent className="p-4">
                     <div className="flex items-center mb-2">
-                      <span className="font-medium mr-2">Score: {section.score}/5</span>
+                      <span className={`font-medium mr-2 ${getScoreTextClass(section.score)}`}>
+                        Score: {section.score.toFixed(1)}/5
+                      </span>
                       <Progress 
                         value={section.score * 20} 
-                        className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
+                        className={`h-2 flex-1 ${getScoreColorClass(section.score)}`} 
                       />
                       <TooltipProvider>
                         <Tooltip delayDuration={300}>
@@ -213,16 +218,34 @@ export default function AnalysisSummary() {
   );
 }
 
-function getColorForScore(score: number): string {
-  if (score >= 4) return '#22c55e'; // Green
-  if (score >= 3) return '#84cc16'; // Lime green
-  if (score >= 2) return '#facc15'; // Yellow
-  if (score >= 1) return '#f97316'; // Orange
-  return '#ef4444'; // Red
+// Helper functions with consistent color coding
+function getChartColorForScore(score: number): string {
+  if (score >= 4.5) return '#10b981'; // emerald-600
+  if (score >= 3.5) return '#2563eb'; // blue-600
+  if (score >= 2.5) return '#d97706'; // amber-600
+  if (score >= 1.5) return '#ea580c'; // orange-600
+  return '#dc2626'; // red-600
 }
 
-function getScoreVariant(score: number): 'default' | 'outline' | 'secondary' | 'destructive' {
-  if (score >= 4) return 'default';
+function getScoreColorClass(score: number): string {
+  if (score >= 4.5) return "score-excellent";
+  if (score >= 3.5) return "score-good";
+  if (score >= 2.5) return "score-average";
+  if (score >= 1.5) return "score-poor";
+  return "score-critical";
+}
+
+function getScoreTextClass(score: number): string {
+  if (score >= 4.5) return "text-score-excellent";
+  if (score >= 3.5) return "text-score-good";
+  if (score >= 2.5) return "text-score-average";
+  if (score >= 1.5) return "text-score-poor";
+  return "text-score-critical";
+}
+
+function getBadgeVariant(score: number): 'default' | 'secondary' | 'outline' | 'destructive' | 'green' {
+  if (score >= 4.5) return 'green';
+  if (score >= 3.5) return 'default';
   if (score >= 2.5) return 'secondary';
   if (score >= 1.5) return 'outline';
   return 'destructive';

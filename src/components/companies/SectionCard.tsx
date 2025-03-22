@@ -29,6 +29,14 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
     return "score-critical";
   };
   
+  const getScoreTextColor = (score: number) => {
+    if (score >= 4.5) return "text-score-excellent";
+    if (score >= 3.5) return "text-score-good";
+    if (score >= 2.5) return "text-score-average";
+    if (score >= 1.5) return "text-score-poor";
+    return "text-score-critical";
+  };
+  
   const getSectionTypeDescription = (type: string, score: number): string => {
     const scoreText = `${score}/5`;
     
@@ -82,7 +90,7 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
         <div className="flex justify-between items-start mb-3">
           <h3 className="text-lg font-semibold line-clamp-1">{section.title}</h3>
           <div className="flex items-center">
-            <span className="font-bold text-lg text-primary">{scoreValue}</span>
+            <span className={`font-bold text-lg ${getScoreTextColor(scoreValue)}`}>{scoreValue}</span>
             <TooltipProvider>
               <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
