@@ -48,8 +48,7 @@ const Feedback = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Your Feedback Shapes InvestorBase</h1>
         <p className="text-muted-foreground mt-2">
-          Every feature on InvestorBase exists because of valuable feedback we received from users like you. 
-          Your insights drive our innovation and help us build a better platform for everyone.
+          We value your feedback! Your feedback directly influences feature development at InvestorBase.
         </p>
       </div>
       
