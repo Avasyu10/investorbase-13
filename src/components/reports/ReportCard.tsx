@@ -31,43 +31,46 @@ export function ReportCard({ report }: ReportCardProps) {
 
   return (
     <>
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col">
-        <CardHeader className="pb-2 flex-none">
-          <div className="flex items-start gap-2">
-            <div className="flex flex-col items-center gap-1">
-              <FileText className="h-5 w-5 text-muted-foreground flex-none" />
+      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col bg-card dark:bg-card/90">
+        <CardHeader className="pb-2 pt-4 flex-none">
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center mb-1">
+              <FileText className="h-6 w-6 text-muted-foreground mr-3" />
+              <CardTitle className="text-xl font-semibold line-clamp-1">{report.title}</CardTitle>
+            </div>
+            
+            <div className="flex items-center">
               {report.is_public_submission ? (
                 <Badge 
                   variant="green"
-                  className="mt-1 text-[10px] px-1.5 py-0.5"
+                  className="text-xs px-3 py-1 font-medium"
                 >
                   Public
                 </Badge>
               ) : (
                 <Badge 
                   variant="gold"
-                  className="mt-1 text-[10px] px-1.5 py-0.5"
+                  className="text-xs px-3 py-1 font-medium"
                 >
                   Dashboard
                 </Badge>
               )}
-            </div>
-            <div className="flex-1">
-              <CardTitle className="line-clamp-5 text-lg">{report.title}</CardTitle>
+              <CardDescription className="flex items-center ml-auto text-xs">
+                <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                {formatDate(report.created_at)}
+              </CardDescription>
             </div>
           </div>
-          <CardDescription className="flex items-center gap-1 text-xs">
-            <Calendar className="h-3 w-3" />
-            <span>{formatDate(report.created_at)}</span>
-          </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1">
-          <p className="text-sm text-muted-foreground line-clamp-2">{report.description}</p>
+        
+        <CardContent className="flex-1 pt-2">
+          <p className="text-sm text-muted-foreground line-clamp-4">{report.description}</p>
         </CardContent>
-        <CardFooter className="flex-none pb-6">
+        
+        <CardFooter className="flex-none pb-5 pt-2">
           <Button 
             onClick={() => setShowReportModal(true)} 
-            className="w-full transition-all duration-200 hover:shadow-md"
+            className="w-full transition-all duration-200 hover:shadow-md flex items-center justify-center bg-primary/90 hover:bg-primary"
           >
             <Maximize className="mr-2 h-4 w-4" />
             View Deck
