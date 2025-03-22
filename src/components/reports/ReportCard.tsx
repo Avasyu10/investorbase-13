@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Report } from "@/lib/supabase";
+import { Report } from "@/lib/supabase/reports";
 import { FileText, Calendar, Maximize } from "lucide-react";
 import { useState } from "react";
 import { 
@@ -34,7 +34,20 @@ export function ReportCard({ report }: ReportCardProps) {
         <CardHeader className="pb-2 flex-none">
           <div className="flex items-start gap-2">
             <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
-            <CardTitle className="line-clamp-5 min-h-[120px] text-lg">{report.title}</CardTitle>
+            <div className="flex-1">
+              <CardTitle className="line-clamp-5 min-h-[100px] text-lg">{report.title}</CardTitle>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {report.is_public_submission ? (
+                  <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
+                    Public
+                  </span>
+                ) : (
+                  <span className="text-xs bg-emerald-100 text-emerald-800 rounded-full px-2 py-0.5">
+                    Dashboard
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
           <CardDescription className="flex items-center gap-1 text-xs">
             <Calendar className="h-3 w-3" />

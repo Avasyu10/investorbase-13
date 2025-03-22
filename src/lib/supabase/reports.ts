@@ -15,6 +15,8 @@ export type Report = {
   analysis_status: string;
   analysis_error?: string;
   parsedSegments?: ParsedPdfSegment[];
+  is_public_submission?: boolean;
+  submission_form_id?: string;
 };
 
 // Functions to interact with Supabase
@@ -33,11 +35,12 @@ export async function getReports() {
     return [];
   }
 
-  // Get reports from the reports table - strictly enforcing user_id filter
+  // Get reports from the reports table that belong to the user
+  // or are public submissions assigned to the user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
-    .eq('user_id', user.id)
+    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id})`)
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -70,12 +73,12 @@ export async function getReportById(id: string) {
     throw new Error('Authentication required');
   }
   
-  // First try to get reports directly owned by the user
+  // First try to get reports directly owned by the user or public submissions assigned to the user
   let { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id})`)
     .maybeSingle();
 
   // If report not found by user_id, check if user has access through company ownership
@@ -122,63 +125,80 @@ export async function getReportById(id: string) {
 export async function downloadReport(fileUrl: string, userId?: string) {
   console.log('Downloading report with URL:', fileUrl);
   
+  if (!fileUrl) {
+    console.error('No file URL provided');
+    throw new Error('No file URL provided');
+  }
+  
   try {
-    // First try with the provided path
-    const { data, error } = await supabase.storage
-      .from('report_pdfs')
-      .download(fileUrl);
-
-    if (error) {
-      console.error('Error with primary path, trying fallback:', error);
-      
-      // Try with the old path structure (with user ID)
-      const parts = fileUrl.split('/');
-      const simpleFileName = parts[parts.length - 1];
-      
+    // Step 1: Check if this is a path from the public_uploads bucket
+    if (fileUrl.includes('/')) {
+      console.log('Trying to download from public_uploads bucket first');
       try {
-        const { data: fallbackData, error: fallbackError } = await supabase.storage
-          .from('report_pdfs')
-          .download(simpleFileName);
+        const { data, error } = await supabase.storage
+          .from('public_uploads')
+          .download(fileUrl);
           
-        if (fallbackError) {
-          console.error('Error with fallback path:', fallbackError);
-          
-          // Last attempt: try with user ID if provided
-          if (userId) {
-            const userPath = `${userId}/${fileUrl}`;
-            console.log('Trying with user path:', userPath);
-            
-            try {
-              const { data: userPathData, error: userPathError } = await supabase.storage
-                .from('report_pdfs')
-                .download(userPath);
-                
-              if (userPathError) {
-                console.error('All download attempts failed:', userPathError);
-                throw userPathError;
-              }
-              
-              console.log('Successfully downloaded with user path');
-              return userPathData;
-            } catch (nestedError) {
-              console.error('Failed with user path approach:', nestedError);
-              throw nestedError;
-            }
-          }
-          
-          throw fallbackError;
+        if (!error && data) {
+          console.log('Successfully downloaded from public_uploads bucket');
+          return data;
         }
-        
-        console.log('Successfully downloaded with fallback path');
-        return fallbackData;
-      } catch (innerError) {
-        console.error('Error in fallback approach:', innerError);
-        throw innerError;
+      } catch (publicError) {
+        console.log('Error downloading from public_uploads:', publicError);
       }
     }
+    
+    // Step 2: Try the standard report_pdfs bucket with the provided path
+    try {
+      const { data, error } = await supabase.storage
+        .from('report_pdfs')
+        .download(fileUrl);
 
-    console.log('Successfully downloaded with primary path');
-    return data;
+      if (!error && data) {
+        console.log('Successfully downloaded with primary path from report_pdfs');
+        return data;
+      }
+    } catch (primaryError) {
+      console.error('Error with primary path, trying fallback:', primaryError);
+    }
+    
+    // Step 3: Try with the simple filename (last part of path)
+    const parts = fileUrl.split('/');
+    const simpleFileName = parts[parts.length - 1];
+    
+    try {
+      const { data: fallbackData, error: fallbackError } = await supabase.storage
+        .from('report_pdfs')
+        .download(simpleFileName);
+        
+      if (!fallbackError && fallbackData) {
+        console.log('Successfully downloaded with fallback path');
+        return fallbackData;
+      }
+    } catch (fallbackError) {
+      console.error('Error with fallback path:', fallbackError);
+    }
+    
+    // Step 4: Try with user ID if provided
+    if (userId) {
+      const userPath = `${userId}/${fileUrl}`;
+      console.log('Trying with user path:', userPath);
+      
+      try {
+        const { data: userPathData, error: userPathError } = await supabase.storage
+          .from('report_pdfs')
+          .download(userPath);
+          
+        if (!userPathError && userPathData) {
+          console.log('Successfully downloaded with user path');
+          return userPathData;
+        }
+      } catch (userPathError) {
+        console.error('Failed with user path approach:', userPathError);
+      }
+    }
+    
+    throw new Error('All download attempts failed');
   } catch (error) {
     console.error('Failed to download report:', error);
     toast({

@@ -52,7 +52,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         setLoadingPdf(true);
         console.log("Loading PDF for report:", report.title);
         
-        // Download the PDF file
+        // Download the PDF file using the proper function
         const blob = await downloadReport(report.pdf_url, user.id);
         if (!blob) {
           throw new Error("Could not download PDF");
@@ -163,6 +163,16 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-xl font-bold tracking-tight">{report.title}</h2>
+            {report.is_public_submission && (
+              <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
+                Public
+              </span>
+            )}
+            {!report.is_public_submission && (
+              <span className="text-xs bg-emerald-100 text-emerald-800 rounded-full px-2 py-0.5">
+                Dashboard
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
             <Calendar className="h-4 w-4" />
