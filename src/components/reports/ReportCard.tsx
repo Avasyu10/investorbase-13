@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ReportViewer } from "./ReportViewer";
+import { Badge } from "@/components/ui/badge";
 
 interface ReportCardProps {
   report: Report;
@@ -38,13 +39,17 @@ export function ReportCard({ report }: ReportCardProps) {
               <CardTitle className="line-clamp-5 min-h-[100px] text-lg">{report.title}</CardTitle>
               <div className="flex flex-wrap gap-2 mt-2">
                 {report.is_public_submission ? (
-                  <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
-                    Public
-                  </span>
+                  <Badge 
+                    className="bg-green-100/80 text-green-800 dark:bg-green-900/80 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/90 border-green-200 dark:border-green-800"
+                  >
+                    Public Submission
+                  </Badge>
                 ) : (
-                  <span className="text-xs bg-emerald-100 text-emerald-800 rounded-full px-2 py-0.5">
+                  <Badge 
+                    className="bg-amber-100/80 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/90 border-amber-200 dark:border-amber-800"
+                  >
                     Dashboard
-                  </span>
+                  </Badge>
                 )}
               </div>
             </div>
