@@ -294,6 +294,23 @@ const ProfileSetup = () => {
                   </label>
                 </div>
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="publicSubmissionUrl" className="flex items-center">
+                  <span>Public Submission URL</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">Available after signup</span>
+                </Label>
+                <Input 
+                  id="publicSubmissionUrl" 
+                  type="text" 
+                  placeholder="Your custom submission URL" 
+                  disabled
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  You can customize your public submission URL in profile settings after completing your profile.
+                </p>
+              </div>
             </CardContent>
             
             <CardFooter className="flex flex-col sm:flex-row gap-4 sm:justify-between">
