@@ -31,46 +31,39 @@ export function ReportCard({ report }: ReportCardProps) {
 
   return (
     <>
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col bg-card dark:bg-card/90">
-        <CardHeader className="pb-2 pt-4 flex-none">
-          <div className="flex flex-col space-y-2">
-            <div className="flex items-center mb-1">
-              <FileText className="h-6 w-6 text-muted-foreground mr-3" />
-              <CardTitle className="text-xl font-semibold line-clamp-1">{report.title}</CardTitle>
-            </div>
-            
-            <div className="flex items-center">
+      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col">
+        <CardHeader className="pb-2 flex-none">
+          <div className="flex items-start gap-2">
+            <FileText className="h-5 w-5 text-muted-foreground flex-none mt-1" />
+            <div className="flex-1">
+              <CardTitle className="line-clamp-5 text-lg">{report.title}</CardTitle>
               {report.is_public_submission ? (
                 <Badge 
-                  variant="green"
-                  className="text-xs px-3 py-1 font-medium"
+                  className="mt-2 bg-green-100/80 text-green-800 dark:bg-green-900/80 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/90 border-green-200 dark:border-green-800"
                 >
-                  Public
+                  Public Submission
                 </Badge>
               ) : (
                 <Badge 
-                  variant="gold"
-                  className="text-xs px-3 py-1 font-medium"
+                  className="mt-2 bg-amber-100/80 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/90 border-amber-200 dark:border-amber-800"
                 >
                   Dashboard
                 </Badge>
               )}
-              <CardDescription className="flex items-center ml-auto text-xs">
-                <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                {formatDate(report.created_at)}
-              </CardDescription>
             </div>
           </div>
+          <CardDescription className="flex items-center gap-1 text-xs">
+            <Calendar className="h-3 w-3" />
+            <span>{formatDate(report.created_at)}</span>
+          </CardDescription>
         </CardHeader>
-        
-        <CardContent className="flex-1 pt-2">
-          <p className="text-sm text-muted-foreground line-clamp-4">{report.description}</p>
+        <CardContent className="flex-1">
+          <p className="text-sm text-muted-foreground line-clamp-2">{report.description}</p>
         </CardContent>
-        
-        <CardFooter className="flex-none pb-5 pt-2">
+        <CardFooter className="flex-none pb-6">
           <Button 
             onClick={() => setShowReportModal(true)} 
-            className="w-full transition-all duration-200 hover:shadow-md flex items-center justify-center bg-primary/90 hover:bg-primary"
+            className="w-full transition-all duration-200 hover:shadow-md"
           >
             <Maximize className="mr-2 h-4 w-4" />
             View Deck
