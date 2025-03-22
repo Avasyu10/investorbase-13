@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ReportViewer } from "@/components/reports/ReportViewer";
 import { Button } from "@/components/ui/button";

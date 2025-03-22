@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase/reports";
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader, Calendar, FileText, Download, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
 
 interface ReportViewerProps {
   reportId: string;
@@ -22,7 +22,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     queryKey: ["report", reportId, user?.id],
     queryFn: () => getReportById(reportId),
     enabled: !!reportId && !!user,
-    retry: 1, // Don't retry too many times if access is denied
+    retry: 1,
     meta: {
       onError: (err: any) => {
         console.error("Error fetching report:", err);
@@ -36,7 +36,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   });
 
   useEffect(() => {
-    // Clean up previous PDF URL when component unmounts or when report changes
     return () => {
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
@@ -52,7 +51,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         setLoadingPdf(true);
         console.log("Loading PDF for report:", report.title);
         
-        // Download the PDF file using the proper function
         const blob = await downloadReport(report.pdf_url, user.id);
         if (!blob) {
           throw new Error("Could not download PDF");
@@ -60,7 +58,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         
         setPdfBlob(blob);
         
-        // Create a URL for the blob
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
         
@@ -88,7 +85,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     try {
       let blob = pdfBlob;
       
-      // If we don't have the blob yet, download it
       if (!blob) {
         blob = await downloadReport(report.pdf_url, user.id);
       }
@@ -163,15 +159,14 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-xl font-bold tracking-tight">{report.title}</h2>
-            {report.is_public_submission && (
-              <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
+            {report.is_public_submission ? (
+              <Badge variant="green" className="ml-2">
                 Public
-              </span>
-            )}
-            {!report.is_public_submission && (
-              <span className="text-xs bg-emerald-100 text-emerald-800 rounded-full px-2 py-0.5">
+              </Badge>
+            ) : (
+              <Badge variant="gold" className="ml-2">
                 Dashboard
-              </span>
+              </Badge>
             )}
           </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
@@ -194,7 +189,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         <p className="text-muted-foreground">{report.description}</p>
       )}
       
-      {/* PDF Viewer */}
       <div className="w-full bg-card border rounded-lg overflow-hidden shadow-sm">
         {pdfUrl ? (
           <object
