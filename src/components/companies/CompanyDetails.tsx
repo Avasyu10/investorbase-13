@@ -217,14 +217,6 @@ export function CompanyDetails() {
     if (score >= 1.5) return "score-poor";
     return "score-critical";
   };
-  
-  const getScoreTextColor = (score: number) => {
-    if (score >= 4.5) return "text-score-excellent";
-    if (score >= 3.5) return "text-score-good";
-    if (score >= 2.5) return "text-score-average";
-    if (score >= 1.5) return "text-score-poor";
-    return "text-score-critical";
-  };
 
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
@@ -253,7 +245,7 @@ export function CompanyDetails() {
               Supplementary Material
             </Button>
             <div className="flex items-center">
-              <span className={`text-xl sm:text-2xl font-bold ${getScoreTextColor(company.overallScore)} mr-3`}>
+              <span className="text-xl sm:text-2xl font-bold text-primary mr-3">
                 {formattedScore}
               </span>
               <span className="text-sm text-muted-foreground">/5</span>
