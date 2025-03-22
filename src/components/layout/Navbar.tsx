@@ -2,7 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Building, User } from "lucide-react";
+import { LogOut, Building, User, MessageCircle } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +56,18 @@ export function Navbar() {
                 </Link>
               </Button>
               
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                asChild
+                className="transition-colors hidden sm:flex"
+              >
+                <Link to="/feedback">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Feedback
+                </Link>
+              </Button>
+              
               {/* Mobile navigation dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -76,6 +88,12 @@ export function Navbar() {
                     <Link to="/profile" className="flex items-center">
                       <User className="h-4 w-4 mr-2" />
                       Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/feedback" className="flex items-center">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Feedback
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={signOut} className="flex items-center">
