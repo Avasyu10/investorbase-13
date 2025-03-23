@@ -1,2 +1,5 @@
 
-webhook_secret = "your-webhook-secret"
+project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.handle-email-parser]
+verify_jwt = false
