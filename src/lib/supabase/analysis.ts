@@ -18,12 +18,18 @@ export async function analyzeReport(reportId: string) {
       throw reportError;
     }
     
-    // Check if this is a public submission or email submission
+    // Check if this is a public submission, email submission, or standard report
     const isEmailSubmission = reportData.pdf_url && reportData.pdf_url.includes('email_attachments/');
-    console.log(`Report type: ${isEmailSubmission ? 'Email submission' : 'Standard report'}`);
+    const isPublicSubmission = reportData.is_public_submission || false;
     
-    // Call the analyze-pdf edge function
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+    console.log(`Report type: ${isPublicSubmission ? 'Public submission' : (isEmailSubmission ? 'Email submission' : 'Standard report')}`);
+    
+    // For public submissions, always use analyze-public-pdf regardless of source
+    const functionName = isPublicSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
+    console.log(`Using function: ${functionName} for analysis`);
+    
+    // Call the appropriate edge function
+    const { data, error } = await supabase.functions.invoke(functionName, {
       body: JSON.stringify({ 
         reportId,
         isEmailSubmission 
@@ -35,7 +41,7 @@ export async function analyzeReport(reportId: string) {
     });
     
     if (error) {
-      console.error('Error invoking analyze-pdf function:', error);
+      console.error(`Error invoking ${functionName} function:`, error);
       
       // Update report status to failed
       await supabase
@@ -99,7 +105,7 @@ export async function autoAnalyzePublicReport(reportId: string) {
     // Check if the report exists and has a valid status for analysis
     const { data: reportData, error: reportError } = await supabase
       .from('reports')
-      .select('analysis_status, pdf_url')
+      .select('analysis_status, pdf_url, is_public_submission')
       .eq('id', reportId)
       .single();
       
@@ -117,7 +123,7 @@ export async function autoAnalyzePublicReport(reportId: string) {
     // Determine if this is an email submission
     const isEmailSubmission = reportData.pdf_url && reportData.pdf_url.includes('email_attachments/');
     
-    // Call the analyze-public-pdf function instead of analyze-pdf
+    // Always use analyze-public-pdf for auto-analysis since we're dealing with public submissions
     const { data, error } = await supabase.functions.invoke('analyze-public-pdf', {
       body: JSON.stringify({ 
         reportId,
