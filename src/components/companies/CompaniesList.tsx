@@ -53,6 +53,13 @@ const getSourceInfo = (source: string | undefined) => {
     };
   }
   
+  if (source === 'email') {
+    return {
+      label: "Email",
+      className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+    };
+  }
+  
   // Default to Dashboard (gold color)
   return {
     label: "Dashboard",
