@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +46,6 @@ export function PublicSubmissionsList() {
         
         setIsLoading(true);
         
-        // Fetch public form submissions
         const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -64,7 +62,6 @@ export function PublicSubmissionsList() {
           throw formError;
         }
         
-        // Fetch email submissions for the current user
         const { data: emailData, error: emailError } = await supabase
           .from('email_submissions')
           .select(`
@@ -82,12 +79,8 @@ export function PublicSubmissionsList() {
           throw emailError;
         }
         
-        // Transform the data to filter out submissions that have already been analyzed
         const transformedFormData = formData
           .filter(submission => {
-            // Include submissions where:
-            // 1. Either report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -107,12 +100,8 @@ export function PublicSubmissionsList() {
             source: "public_form" as const
           }));
           
-        // Transform email submissions data
         const transformedEmailData = emailData
           .filter(submission => {
-            // Include submissions where:
-            // 1. Either report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -133,7 +122,6 @@ export function PublicSubmissionsList() {
             from_email: submission.from_email
           }));
         
-        // Combine both types of submissions and sort by date
         const combinedSubmissions = [...transformedFormData, ...transformedEmailData]
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
@@ -169,12 +157,17 @@ export function PublicSubmissionsList() {
     
     try {
       console.log(`Calling analyze function with report ID: ${submission.report_id}`);
-      console.log("Checking if this is a public submission...");
-      console.log("Report is a public submission");
-      console.log("Will use analyze-public-pdf function for analysis");
+      console.log("Checking submission source:", submission.source);
       
-      // Start the analysis process
-      const result = await analyzeReport(submission.report_id);
+      let result;
+      
+      if (submission.source === "email") {
+        console.log("This is an email submission, using analyze-email-submission-pdf function");
+        result = await analyzeReport(submission.report_id, "email");
+      } else {
+        console.log("This is a public form submission, using analyze-public-pdf function");
+        result = await analyzeReport(submission.report_id, "public_form");
+      }
       
       if (result && result.companyId) {
         toast({
@@ -182,7 +175,6 @@ export function PublicSubmissionsList() {
           description: "The submission has been successfully analyzed",
         });
         
-        // Redirect to the company page
         navigate(`/company/${result.companyId}`);
       } else {
         throw new Error("Analysis completed but no company ID was returned");
@@ -192,7 +184,6 @@ export function PublicSubmissionsList() {
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
-      // If this is storage related error
       if (errorMessage.includes("Storage") || 
           errorMessage.includes("downloading") || 
           errorMessage.includes("PDF")) {
@@ -202,7 +193,6 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
       }
-      // If this is a network error and we haven't retried too many times, suggest retrying
       else if ((errorMessage.includes("Network error") || 
            errorMessage.includes("Failed to fetch") ||
            errorMessage.includes("Failed to send") ||
@@ -218,14 +208,12 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
       } else if (retryCount >= 2) {
-        // If we've retried multiple times, suggest a different approach
         toast({
           title: "Persistent connection issue",
           description: "We're having trouble connecting to the analysis service. Please try again later or contact support.",
           variant: "destructive",
         });
       } else {
-        // Don't display another error toast if one was already shown in the analyzeReport function
         if (!errorMessage.includes("Network error") && 
             !errorMessage.includes("timed out") &&
             !errorMessage.includes("analysis failed") &&
