@@ -14,11 +14,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     autoRefreshToken: true,
   },
+  // Remove any restrictions on database and storage
+  db: {
+    schema: 'public',
+  },
   global: {
-    fetch: function(url, options) { return fetch(url, options); },
+    fetch: (url, options) => fetch(url, options),
     headers: { 
       'x-app-version': '1.0.0',
-      'Content-Type': 'application/json',
+      // Allow all origins
+      'Access-Control-Allow-Origin': '*',
     },
   },
 });

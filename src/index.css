@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -156,25 +155,46 @@
   }
 }
 
-/* Score indicators */
+/* Score indicators - Consistent color scheme */
 .score-excellent {
-  @apply bg-emerald-500;
+  @apply bg-emerald-600 dark:bg-emerald-500;
 }
 
 .score-good {
-  @apply bg-blue-500;
+  @apply bg-blue-600 dark:bg-blue-500;
 }
 
 .score-average {
-  @apply bg-amber-500;
+  @apply bg-amber-600 dark:bg-amber-500;
 }
 
 .score-poor {
-  @apply bg-orange-500;
+  @apply bg-orange-600 dark:bg-orange-500;
 }
 
 .score-critical {
-  @apply bg-red-500;
+  @apply bg-red-600 dark:bg-red-500;
+}
+
+/* Text colors for scores */
+.text-score-excellent {
+  @apply text-emerald-600 dark:text-emerald-500;
+}
+
+.text-score-good {
+  @apply text-blue-600 dark:text-blue-500;
+}
+
+.text-score-average {
+  @apply text-amber-600 dark:text-amber-500;
+}
+
+.text-score-poor {
+  @apply text-orange-600 dark:text-orange-500;
+}
+
+.text-score-critical {
+  @apply text-red-600 dark:text-red-500;
 }
 
 /* Custom shadow effects */

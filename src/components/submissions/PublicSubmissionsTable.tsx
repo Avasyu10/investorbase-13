@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 
 interface PublicSubmission {
   id: string;
@@ -22,7 +21,6 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
-  source?: string;
 }
 
 interface PublicSubmissionsTableProps {
@@ -52,41 +50,22 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     }
   };
 
-  const getSourceBadge = (submission: PublicSubmission) => {
-    if (submission.form_slug === 'email-submission' || submission.source === 'Email') {
-      return (
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-          Email
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-        Form
-      </Badge>
-    );
-  };
-
   return (
     <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[3%]">Source</TableHead>
-            <TableHead className="w-[25%]">Title</TableHead>
-            <TableHead className="w-[15%]">Industry</TableHead>
-            <TableHead className="w-[15%]">Stage</TableHead>
-            <TableHead className="w-[15%]">Website</TableHead>
-            <TableHead className="w-[15%]">Submitted</TableHead>
-            <TableHead className="w-[12%] text-right">Action</TableHead>
+            <TableHead className="w-1/5">Title</TableHead>
+            <TableHead className="w-1/6">Industry</TableHead>
+            <TableHead className="w-1/6">Stage</TableHead>
+            <TableHead className="w-1/6">Website</TableHead>
+            <TableHead className="w-1/6">Submitted</TableHead>
+            <TableHead className="w-1/6 text-right">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {submissions.map((submission) => (
             <TableRow key={submission.id}>
-              <TableCell>
-                {getSourceBadge(submission)}
-              </TableCell>
               <TableCell className="font-medium">
                 {truncateText(submission.title, 30)}
               </TableCell>

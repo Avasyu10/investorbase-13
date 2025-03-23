@@ -17,7 +17,6 @@ export type Report = {
   parsedSegments?: ParsedPdfSegment[];
   is_public_submission?: boolean;
   submission_form_id?: string;
-  submitter_email?: string;
 };
 
 // Functions to interact with Supabase
@@ -36,39 +35,12 @@ export async function getReports() {
     return [];
   }
 
-  // Get user's email for matching with submitter_email
-  // Using maybeSingle() instead of single() to avoid errors when no profile exists
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('email')
-    .eq('id', user.id)
-    .maybeSingle();
-  
-  if (profileError && profileError.code !== 'PGRST116') {
-    console.error('Error fetching user profile:', profileError);
-    // Only show a toast if it's not the "no rows" error
-    toast({
-      title: "Error fetching profile",
-      description: "There was an issue loading your profile information",
-      variant: "destructive"
-    });
-  }
-    
-  const userEmail = profile?.email || user.email || '';
-  console.log('User email for report matching:', userEmail);
-
-  // Construct the filter to get all relevant reports:
-  // 1. Reports that belong to the user directly
-  // 2. Reports that have the user's email as submitter_email (case-insensitive)
-  const filter = `user_id.eq.${user.id},submitter_email.ilike.${userEmail}`;
-
-  console.log('Using filter for reports:', filter);
-
-  // Get reports with the combined filter
+  // Get reports from the reports table that belong to the user
+  // or are public submissions assigned to the user
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
-    .or(filter)
+    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id})`)
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -77,7 +49,7 @@ export async function getReports() {
   }
 
   if (tableData && tableData.length > 0) {
-    console.log('Found reports in table:', tableData.length);
+    console.log('Found reports in table:', tableData);
     return tableData as Report[];
   }
 

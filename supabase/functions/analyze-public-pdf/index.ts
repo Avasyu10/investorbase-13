@@ -4,6 +4,7 @@ import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
 import { analyzeWithOpenAI } from "../analyze-pdf/openaiService.ts";
 import { saveAnalysisResults } from "../analyze-pdf/databaseService.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,6 +17,7 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY is not configured");
@@ -31,7 +33,7 @@ serve(async (req) => {
       );
     }
     
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY) {
       console.error("Supabase credentials are not configured");
       return new Response(
         JSON.stringify({ 
@@ -45,40 +47,22 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data - handle both JSON and text formats
+    // Log all headers for debugging (redacted for security)
+    console.log("All request headers:");
+    for (const [key, value] of req.headers.entries()) {
+      console.log(`${key}: ${key.toLowerCase().includes('auth') ? '[REDACTED]' : value}`);
+    }
+    
+    // Parse request data
     let reqData;
     try {
-      const contentType = req.headers.get('content-type') || '';
-      
-      if (contentType.includes('application/json')) {
-        reqData = await req.json();
-      } else {
-        // For non-JSON content types, try to parse the text as JSON
-        const text = await req.text();
-        try {
-          reqData = JSON.parse(text);
-        } catch (parseError) {
-          console.error("Failed to parse request body as JSON:", parseError);
-          return new Response(
-            JSON.stringify({ 
-              error: "Invalid request format. Expected JSON with reportId property.",
-              success: false,
-              details: parseError.message
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 400 
-            }
-          );
-        }
-      }
+      reqData = await req.json();
     } catch (e) {
-      console.error("Error parsing request:", e);
+      console.error("Error parsing request JSON:", e);
       return new Response(
         JSON.stringify({ 
           error: "Invalid request format. Expected JSON with reportId property.",
-          success: false,
-          details: e.message
+          success: false
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -95,8 +79,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "Report ID is required",
-          success: false,
-          receivedData: reqData
+          success: false
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -123,11 +106,47 @@ serve(async (req) => {
 
     console.log(`Processing report ${reportId}`);
     
+    // Create a service client for direct database updates
+    const serviceClient = createClient(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_KEY
+    );
+    
+    // Update report status to processing
     try {
-      // Get report data without authentication
-      const { supabase, report, pdfBase64 } = await getReportData(reportId);
+      const { error: updateError } = await serviceClient
+        .from('reports')
+        .update({ 
+          analysis_status: 'processing',
+          analysis_error: null // Clear any previous errors
+        })
+        .eq('id', reportId);
       
-      console.log("Successfully retrieved report data, analyzing with Gemini");
+      if (updateError) {
+        console.warn("Could not update report status to processing:", updateError);
+      } else {
+        console.log(`Updated report ${reportId} status to 'processing'`);
+      }
+    } catch (statusUpdateError) {
+      console.warn("Error updating report status to processing:", statusUpdateError);
+    }
+    
+    try {
+      // Get report data - note we're using our specialized reportService for public uploads
+      console.log("Retrieving report data...");
+      const { supabase, report, pdfBase64 } = await getReportData(reportId, req.headers.get('Authorization') || '');
+      
+      if (!pdfBase64 || pdfBase64.length === 0) {
+        throw new Error("Retrieved PDF is empty or could not be converted to base64");
+      }
+      
+      // Quick validation of PDF content - check if it starts with %PDF
+      const decodedStart = atob(pdfBase64.substring(0, 8));
+      if (!decodedStart.startsWith('%PDF')) {
+        console.warn("Warning: The retrieved file may not be a valid PDF. First bytes:", decodedStart);
+      }
+      
+      console.log(`Successfully retrieved report data for ${report.title}, analyzing with Gemini`);
       
       try {
         // Analyze the PDF with Gemini
@@ -140,7 +159,7 @@ serve(async (req) => {
 
         console.log(`Analysis complete, created company with ID: ${companyId}`);
         
-        // Try to trigger the Perplexity research and details extraction concurrently
+        // Try to trigger the Perplexity research and company details extraction concurrently
         // But don't fail the main job if either fails
         try {
           // Define an array of promises for the background tasks
@@ -260,7 +279,7 @@ serve(async (req) => {
         
         // Update the report with the error
         try {
-          const { error: updateError } = await supabase
+          const { error: updateError } = await serviceClient
             .from('reports')
             .update({ 
               analysis_status: 'failed',
@@ -295,6 +314,23 @@ serve(async (req) => {
         console.error("Error stack trace:", error.stack);
       }
       
+      // Update the report status to failed in the database
+      try {
+        const { error: updateError } = await serviceClient
+          .from('reports')
+          .update({ 
+            analysis_status: 'failed',
+            analysis_error: errorMessage 
+          })
+          .eq('id', reportId);
+          
+        if (updateError) {
+          console.error("Error updating report failure status:", updateError);
+        }
+      } catch (updateError) {
+        console.error("Failed to update report error status:", updateError);
+      }
+      
       // Determine appropriate status code
       let status = 500;
       if (errorMessage.includes("not found")) {
@@ -316,7 +352,7 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error("Error in analyze-pdf function:", error);
+    console.error("Error in analyze-public-pdf function:", error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "An unexpected error occurred",

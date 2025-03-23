@@ -34,11 +34,4 @@ refresh_token_reuse_interval = 10
 enable_confirmations = false
 
 [functions.analyze-pdf]
-verify_jwt = false
-
-[functions.handle-email-parser]
-verify_jwt = false
-
-[functions.analyze-public-pdf]
-verify_jwt = false
-
+verify_jwt = true

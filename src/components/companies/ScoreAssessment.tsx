@@ -20,11 +20,11 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   
   // Get score color class
   const getScoreColor = (score: number) => {
-    if (score >= 4.5) return "text-emerald-600";
-    if (score >= 3.5) return "text-blue-600";
-    if (score >= 2.5) return "text-amber-600";
-    if (score >= 1.5) return "text-orange-600";
-    return "text-red-600";
+    if (score >= 4.5) return "text-score-excellent";
+    if (score >= 3.5) return "text-score-good";
+    if (score >= 2.5) return "text-score-average";
+    if (score >= 1.5) return "text-score-poor";
+    return "text-score-critical";
   };
   
   // Get progress bar color class
