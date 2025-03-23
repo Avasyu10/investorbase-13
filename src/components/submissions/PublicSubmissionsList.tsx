@@ -48,18 +48,20 @@ export function PublicSubmissionsList() {
         console.log('Fetching submissions for user:', user.id, 'with email:', user.email);
         
         // Get user's email for matching with submitter_email in reports
+        // Using maybeSingle() instead of single() to avoid errors when no profile exists
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
           .select('email')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
           
-        if (profileError) {
+        if (profileError && profileError.code !== 'PGRST116') {
           console.error('Error fetching user profile:', profileError);
+          // Only throw if it's not the "no rows" error
           throw profileError;
         }
         
-        const userEmail = userProfile?.email || user.email;
+        const userEmail = userProfile?.email || user.email || '';
         console.log('User email for matching:', userEmail);
         
         // First, check if there are any email submissions in reports table directly

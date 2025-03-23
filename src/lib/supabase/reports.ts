@@ -37,13 +37,24 @@ export async function getReports() {
   }
 
   // Get user's email for matching with submitter_email
-  const { data: profile } = await supabase
+  // Using maybeSingle() instead of single() to avoid errors when no profile exists
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('email')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
+  
+  if (profileError && profileError.code !== 'PGRST116') {
+    console.error('Error fetching user profile:', profileError);
+    // Only show a toast if it's not the "no rows" error
+    toast({
+      title: "Error fetching profile",
+      description: "There was an issue loading your profile information",
+      variant: "destructive"
+    });
+  }
     
-  const userEmail = profile?.email || user.email;
+  const userEmail = profile?.email || user.email || '';
   console.log('User email for report matching:', userEmail);
 
   // Construct the filter to get all relevant reports:
