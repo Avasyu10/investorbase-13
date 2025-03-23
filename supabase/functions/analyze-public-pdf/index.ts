@@ -1,9 +1,10 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
 import { analyzeWithOpenAI } from "../analyze-pdf/openaiService.ts";
 import { saveAnalysisResults } from "../analyze-pdf/databaseService.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
   // Handle CORS preflight requests
