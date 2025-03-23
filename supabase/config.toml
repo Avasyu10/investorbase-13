@@ -38,3 +38,6 @@ verify_jwt = true
 
 [functions.handle-email-parser]
 verify_jwt = false
+
+[functions.analyze-public-pdf]
+verify_jwt = true

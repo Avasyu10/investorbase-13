@@ -205,6 +205,9 @@ export function PublicSubmissionsList() {
           description: "The submission has been successfully analyzed",
         });
         
+        // Reset retry count on success
+        setRetryCount(0);
+        
         // Redirect to the company page
         navigate(`/company/${result.companyId}`);
       } else {
@@ -215,8 +218,18 @@ export function PublicSubmissionsList() {
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
+      // If this is a CORS-related error
+      if (errorMessage.includes("CORS") || 
+          errorMessage.includes("blocked by CORS policy") || 
+          errorMessage.includes("access-control-allow-origin")) {
+        toast({
+          title: "CORS Error",
+          description: "A cross-origin error occurred. Please contact support with this error.",
+          variant: "destructive",
+        });
+      }
       // If this is storage related error
-      if (errorMessage.includes("Storage") || 
+      else if (errorMessage.includes("Storage") || 
           errorMessage.includes("downloading") || 
           errorMessage.includes("PDF")) {
         toast({
