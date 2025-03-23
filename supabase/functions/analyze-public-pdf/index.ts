@@ -45,16 +45,40 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data
+    // Parse request data - handle both JSON and text formats
     let reqData;
     try {
-      reqData = await req.json();
+      const contentType = req.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/json')) {
+        reqData = await req.json();
+      } else {
+        // For non-JSON content types, try to parse the text as JSON
+        const text = await req.text();
+        try {
+          reqData = JSON.parse(text);
+        } catch (parseError) {
+          console.error("Failed to parse request body as JSON:", parseError);
+          return new Response(
+            JSON.stringify({ 
+              error: "Invalid request format. Expected JSON with reportId property.",
+              success: false,
+              details: parseError.message
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400 
+            }
+          );
+        }
+      }
     } catch (e) {
-      console.error("Error parsing request JSON:", e);
+      console.error("Error parsing request:", e);
       return new Response(
         JSON.stringify({ 
           error: "Invalid request format. Expected JSON with reportId property.",
-          success: false
+          success: false,
+          details: e.message
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -71,7 +95,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "Report ID is required",
-          success: false
+          success: false,
+          receivedData: reqData
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -28,16 +28,20 @@ export async function analyzeReport(reportId: string) {
     const functionName = isPublicSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
     console.log(`Using function: ${functionName} for analysis`);
     
+    // Before making the request, update the report status to processing
+    await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'processing'
+      })
+      .eq('id', reportId);
+    
     // Call the appropriate edge function
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: JSON.stringify({ 
         reportId,
         isEmailSubmission 
       }),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
     });
     
     if (error) {
@@ -120,23 +124,31 @@ export async function autoAnalyzePublicReport(reportId: string) {
       return false;
     }
     
-    // Determine if this is an email submission
-    const isEmailSubmission = reportData.pdf_url && reportData.pdf_url.includes('email_attachments/');
+    // Update the report status to processing
+    await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'processing'
+      })
+      .eq('id', reportId);
     
     // Always use analyze-public-pdf for auto-analysis since we're dealing with public submissions
     const { data, error } = await supabase.functions.invoke('analyze-public-pdf', {
-      body: JSON.stringify({ 
-        reportId,
-        isEmailSubmission
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+      body: JSON.stringify({ reportId }),
     });
     
     if (error) {
       console.error('Error in auto-analysis:', error);
+      
+      // Update report status to failed
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error.message
+        })
+        .eq('id', reportId);
+        
       return false;
     }
     
@@ -144,6 +156,20 @@ export async function autoAnalyzePublicReport(reportId: string) {
     return true;
   } catch (error) {
     console.error('Error in autoAnalyzePublicReport:', error);
+    
+    // Try to update the report status to failed
+    try {
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error instanceof Error ? error.message : 'Unknown error'
+        })
+        .eq('id', reportId);
+    } catch (updateError) {
+      console.error('Failed to update report status after analysis error:', updateError);
+    }
+    
     return false;
   }
 }
