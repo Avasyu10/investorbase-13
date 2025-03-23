@@ -2,9 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob } from '@/lib/pdf-parser';
 import { toast } from "@/hooks/use-toast";
 
-export async function analyzeReport(reportId: string, source: "email" | "public_form" = "public_form") {
+export async function analyzeReport(reportId: string) {
   try {
-    console.log('Calling analyze function with report ID:', reportId, 'Source:', source);
+    console.log('Calling analyze function with report ID:', reportId);
     
     // First check authentication
     const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +35,7 @@ export async function analyzeReport(reportId: string, source: "email" | "public_
     }
     
     // First, check if this is a public submission
-    console.log('Checking the source of the submission...');
+    console.log('Checking if this is a public submission...');
     const { data: report } = await supabase
       .from('reports')
       .select('is_public_submission')
@@ -45,18 +45,14 @@ export async function analyzeReport(reportId: string, source: "email" | "public_
     const isPublicSubmission = report?.is_public_submission || false;
     console.log(`Report is${isPublicSubmission ? '' : ' not'} a public submission`);
     
-    // Determine which function to call based on the submission source
-    let functionName: string;
-    
-    if (source === "email") {
-      functionName = 'analyze-email-submission-pdf';
-      console.log('Using analyze-email-submission-pdf function for email submission');
-    } else {
-      functionName = isPublicSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
-      console.log(`Using ${functionName} function for ${isPublicSubmission ? 'public' : 'standard'} submission`);
-    }
+    // Determine which function to call based on whether it's a public submission or not
+    const functionName = isPublicSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
+    console.log(`Will use ${functionName} function for analysis`);
     
     try {
+      // Call the edge function with proper error handling and retries
+      console.log(`Invoking ${functionName} function with report ID: ${reportId}`);
+      
       // Implement retry logic
       let retryCount = 0;
       const maxRetries = 3;
