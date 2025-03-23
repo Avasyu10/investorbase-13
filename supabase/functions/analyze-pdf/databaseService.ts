@@ -9,34 +9,14 @@ export async function saveAnalysisResults(
   console.log("Saving analysis results to database");
   
   try {
-    // Default source to 'email' unless proven otherwise
-    let source = 'email';
-    
-    // Check if this is associated with a public form submission
-    if (report.is_public_submission) {
-      const { data: formSubmission, error: formError } = await supabase
-        .from('public_form_submissions')
-        .select('*')
-        .eq('report_id', report.id)
-        .maybeSingle();
-        
-      if (!formError && formSubmission) {
-        console.log(`Found public form submission for report ID: ${report.id}, setting source to 'public_form'`);
-        source = 'public_form';
-      } else {
-        console.log(`No public form submission found for report ID: ${report.id}, keeping source as 'email'`);
-      }
-    }
-    
-    console.log(`Using source: ${source} for report ID: ${report.id}`);
-    
-    // Create the company record with the determined source
+    // First, create the company record
     const companyData = {
       name: analysis.companyName || report.title,
       overall_score: analysis.overallScore || 0,
       assessment_points: analysis.assessmentPoints || [],
       report_id: report.id,
-      source: source,
+      // Determine the source based on if it's a public submission
+      source: report.is_public_submission ? 'public_url' : 'dashboard',
       // Important: Use the report's user_id which should be the form owner's ID
       user_id: report.user_id
     };
@@ -61,7 +41,7 @@ export async function saveAnalysisResults(
       throw new Error("Failed to create company record");
     }
     
-    console.log(`Created company: ${company.id}, name: ${company.name}, source: ${company.source}`);
+    console.log(`Created company: ${company.id}, name: ${company.name}`);
     
     // Update the report to link it to the company
     const { error: reportUpdateError } = await supabase
