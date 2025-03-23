@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Mail } from "lucide-react";
 
 interface PublicSubmission {
   id: string;
@@ -21,6 +23,8 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
+  source: "email" | "public_form";
+  from_email?: string | null;
 }
 
 interface PublicSubmissionsTableProps {
@@ -55,6 +59,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-1/6">Source</TableHead>
             <TableHead className="w-1/5">Title</TableHead>
             <TableHead className="w-1/6">Industry</TableHead>
             <TableHead className="w-1/6">Stage</TableHead>
@@ -66,6 +71,24 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
         <TableBody>
           {submissions.map((submission) => (
             <TableRow key={submission.id}>
+              <TableCell>
+                <Badge 
+                  variant={submission.source === "email" ? "green" : "gold"}
+                  className="flex items-center gap-1"
+                >
+                  {submission.source === "email" ? (
+                    <>
+                      <Mail className="h-3 w-3" />
+                      <span>Email</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-3 w-3" />
+                      <span>Public Form</span>
+                    </>
+                  )}
+                </Badge>
+              </TableCell>
               <TableCell className="font-medium">
                 {truncateText(submission.title, 30)}
               </TableCell>

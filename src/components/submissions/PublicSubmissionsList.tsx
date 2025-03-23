@@ -21,6 +21,8 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
+  source: "email" | "public_form";
+  from_email?: string | null;
 }
 
 export function PublicSubmissionsList() {
@@ -45,8 +47,8 @@ export function PublicSubmissionsList() {
         
         setIsLoading(true);
         
-        // Fetch submissions that haven't been analyzed yet (report_id exists but no company_id in reports table)
-        const { data, error } = await supabase
+        // Fetch public form submissions
+        const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
             *,
@@ -58,12 +60,30 @@ export function PublicSubmissionsList() {
           `)
           .order('created_at', { ascending: false });
           
-        if (error) {
-          throw error;
+        if (formError) {
+          throw formError;
+        }
+        
+        // Fetch email submissions for the current user
+        const { data: emailData, error: emailError } = await supabase
+          .from('email_submissions')
+          .select(`
+            *,
+            reports:report_id (
+              id,
+              company_id,
+              analysis_status
+            )
+          `)
+          .eq('from_email', user.email)
+          .order('created_at', { ascending: false });
+          
+        if (emailError) {
+          throw emailError;
         }
         
         // Transform the data to filter out submissions that have already been analyzed
-        const filteredSubmissions = data
+        const transformedFormData = formData
           .filter(submission => {
             // Include submissions where:
             // 1. Either report doesn't exist, or
@@ -83,10 +103,41 @@ export function PublicSubmissionsList() {
             created_at: submission.created_at,
             form_slug: submission.form_slug,
             pdf_url: submission.pdf_url,
-            report_id: submission.report_id
+            report_id: submission.report_id,
+            source: "public_form" as const
+          }));
+          
+        // Transform email submissions data
+        const transformedEmailData = emailData
+          .filter(submission => {
+            // Include submissions where:
+            // 1. Either report doesn't exist, or
+            // 2. Report exists but analysis hasn't created a company yet
+            return !submission.reports || 
+                   !submission.reports.company_id ||
+                   submission.reports.analysis_status === 'failed' ||
+                   submission.reports.analysis_status === 'pending';
+          })
+          .map(submission => ({
+            id: submission.id,
+            title: submission.subject || "Email Submission",
+            description: submission.email_body,
+            company_stage: null,
+            industry: null,
+            website_url: null,
+            created_at: submission.received_at,
+            form_slug: "",
+            pdf_url: submission.attachment_url,
+            report_id: submission.report_id,
+            source: "email" as const,
+            from_email: submission.from_email
           }));
         
-        setSubmissions(filteredSubmissions);
+        // Combine both types of submissions and sort by date
+        const combinedSubmissions = [...transformedFormData, ...transformedEmailData]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        setSubmissions(combinedSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);
         toast({
@@ -228,7 +279,7 @@ export function PublicSubmissionsList() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-2">New Applications</h1>
           <p className="text-muted-foreground">
-            Submissions from public forms waiting to be analyzed
+            Submissions from public forms and emails waiting to be analyzed
           </p>
         </div>
       </div>

@@ -109,6 +109,59 @@ export type Database = {
           },
         ]
       }
+      email_submissions: {
+        Row: {
+          attachment_url: string | null
+          created_at: string
+          email_body: string | null
+          email_html: string | null
+          from_email: string
+          has_attachments: boolean
+          id: string
+          received_at: string
+          report_id: string | null
+          subject: string | null
+          to_email: string
+          updated_at: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string
+          email_body?: string | null
+          email_html?: string | null
+          from_email: string
+          has_attachments?: boolean
+          id?: string
+          received_at?: string
+          report_id?: string | null
+          subject?: string | null
+          to_email: string
+          updated_at?: string
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string
+          email_body?: string | null
+          email_html?: string | null
+          from_email?: string
+          has_attachments?: boolean
+          id?: string
+          received_at?: string
+          report_id?: string | null
+          subject?: string | null
+          to_email?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_submissions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       linkedin_profile_scrapes: {
         Row: {
           content: string | null
@@ -188,7 +241,7 @@ export type Database = {
           company_stage: string | null
           created_at: string
           description: string | null
-          form_slug: string
+          form_slug: string | null
           founder_linkedin_profiles: string[] | null
           id: string
           industry: string | null
@@ -202,7 +255,7 @@ export type Database = {
           company_stage?: string | null
           created_at?: string
           description?: string | null
-          form_slug: string
+          form_slug?: string | null
           founder_linkedin_profiles?: string[] | null
           id?: string
           industry?: string | null
@@ -216,7 +269,7 @@ export type Database = {
           company_stage?: string | null
           created_at?: string
           description?: string | null
-          form_slug?: string
+          form_slug?: string | null
           founder_linkedin_profiles?: string[] | null
           id?: string
           industry?: string | null
