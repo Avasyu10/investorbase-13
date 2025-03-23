@@ -241,7 +241,7 @@ export type Database = {
           company_stage: string | null
           created_at: string
           description: string | null
-          form_slug: string
+          form_slug: string | null
           founder_linkedin_profiles: string[] | null
           id: string
           industry: string | null
@@ -255,7 +255,7 @@ export type Database = {
           company_stage?: string | null
           created_at?: string
           description?: string | null
-          form_slug: string
+          form_slug?: string | null
           founder_linkedin_profiles?: string[] | null
           id?: string
           industry?: string | null
@@ -269,7 +269,7 @@ export type Database = {
           company_stage?: string | null
           created_at?: string
           description?: string | null
-          form_slug?: string
+          form_slug?: string | null
           founder_linkedin_profiles?: string[] | null
           id?: string
           industry?: string | null

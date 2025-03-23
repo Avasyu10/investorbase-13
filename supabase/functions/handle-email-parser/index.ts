@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0"
 
@@ -116,6 +117,39 @@ serve(async (req) => {
     const adminUserId = adminUsers[0].id;
     console.log(`Assigning email to admin user: ${adminUserId}`);
     
+    // Verify that the email-submission form exists
+    const { data: emailForm, error: formError } = await supabase
+      .from('public_submission_forms')
+      .select('id')
+      .eq('form_slug', 'email-submission')
+      .single();
+      
+    if (formError) {
+      console.error('Error finding email submission form:', formError);
+      console.log('Attempting to create the email submission form...');
+      
+      // Create the email submission form if it doesn't exist
+      const { data: newForm, error: createFormError } = await supabase
+        .from('public_submission_forms')
+        .insert([{
+          form_name: 'Email Submissions',
+          form_slug: 'email-submission',
+          is_active: true,
+          user_id: adminUserId,
+          auto_analyze: false
+        }])
+        .select()
+        .single();
+        
+      if (createFormError) {
+        console.error('Error creating email submission form:', createFormError);
+      } else {
+        console.log('Created email submission form with ID:', newForm.id);
+      }
+    } else {
+      console.log('Found existing email submission form with ID:', emailForm.id);
+    }
+    
     // Create a new report entry for the email submission
     const reportTitle = company_name || 'Email submission';
     const senderName = mail_sender[0]?.name || '';
@@ -184,13 +218,14 @@ serve(async (req) => {
         console.log(`Created email submission with ID: ${emailSubmission.id}`);
         
         // Create a public_form_submissions record to make it appear in the Public Submissions list
+        // Note the form_slug can now be null or a valid value ('email-submission')
         const { data: publicSubmission, error: publicSubmissionError } = await supabase
           .from('public_form_submissions')
           .insert([
             {
               title: reportTitle,
               description,
-              form_slug: 'email-submission', // Special slug to identify email submissions
+              form_slug: 'email-submission',
               pdf_url: `email_attachments/${fileName}`,
               report_id: report.id,
               website_url: null,
@@ -202,7 +237,7 @@ serve(async (req) => {
           .single();
           
         if (publicSubmissionError) {
-          console.error('Error creating public form submission:', publicSubmissionError);
+          console.error('Error creating public form submission:', publicSubmissionError, publicSubmissionError.details);
           throw publicSubmissionError;
         }
         
@@ -219,7 +254,7 @@ serve(async (req) => {
             
             // Fetch the file with a timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // Increase timeout to 15 seconds
             
             const fileResponse = await fetch(attachmentUrl, { 
               signal: controller.signal,
@@ -244,8 +279,8 @@ serve(async (req) => {
               throw new Error(`Failed to download file after ${maxRetries} attempts: ${downloadError.message}`);
             }
             
-            // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, retryCount - 1)));
           }
         }
         
@@ -259,7 +294,8 @@ serve(async (req) => {
           .from('email_attachments')
           .upload(fileName, fileData, {
             contentType: 'application/pdf',
-            cacheControl: '3600'
+            cacheControl: '3600',
+            upsert: true // Overwrite if file already exists
           });
           
         if (uploadError) {
