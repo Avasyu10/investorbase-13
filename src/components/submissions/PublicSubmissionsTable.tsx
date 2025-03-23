@@ -73,8 +73,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
             <TableRow key={submission.id}>
               <TableCell>
                 <Badge 
-                  variant={submission.source === "email" ? "green" : "gold"}
-                  className="flex items-center gap-1"
+                  variant={submission.source === "email" ? "blue" : "green"}
+                  className="flex items-center gap-1 font-medium"
                 >
                   {submission.source === "email" ? (
                     <>
@@ -84,7 +84,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
                   ) : (
                     <>
                       <FileText className="h-3 w-3" />
-                      <span>Public Form</span>
+                      <span>Form</span>
                     </>
                   )}
                 </Badge>
