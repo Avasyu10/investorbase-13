@@ -24,7 +24,7 @@ export async function analyzeReport(reportId: string) {
     
     console.log(`Report type: ${isPublicSubmission ? 'Public submission' : (isEmailSubmission ? 'Email submission' : 'Standard report')}`);
     
-    // For public submissions, always use analyze-public-pdf regardless of source
+    // For public submissions, always use analyze-public-pdf
     const functionName = isPublicSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
     console.log(`Using function: ${functionName} for analysis`);
     

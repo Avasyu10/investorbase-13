@@ -2,8 +2,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
-import { analyzeWithOpenAI } from "./openaiService.ts";
-import { saveAnalysisResults } from "./databaseService.ts";
+import { analyzeWithOpenAI } from "../analyze-pdf/openaiService.ts";
+import { saveAnalysisResults } from "../analyze-pdf/databaseService.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
