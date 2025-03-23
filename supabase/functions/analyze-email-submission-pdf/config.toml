@@ -1,2 +1,4 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
+verify_jwt = true
+env = ["GEMINI_API_KEY", "PERPLEXITY_API_KEY"]
