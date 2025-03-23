@@ -17,6 +17,7 @@ export type Report = {
   parsedSegments?: ParsedPdfSegment[];
   is_public_submission?: boolean;
   submission_form_id?: string;
+  submitter_email?: string;
 };
 
 // Functions to interact with Supabase
@@ -35,12 +36,24 @@ export async function getReports() {
     return [];
   }
 
-  // Get reports from the reports table that belong to the user
-  // or are public submissions assigned to the user
+  // Get user's email for matching with submitter_email
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', user.id)
+    .single();
+    
+  const userEmail = profile?.email || user.email;
+  console.log('User email for report matching:', userEmail);
+
+  // Get reports from the reports table that:
+  // 1. Belong to the user directly (user_id = current user id)
+  // 2. OR are public submissions assigned to the user
+  // 3. OR have submitter_email matching the user's email
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
-    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id})`)
+    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id}),submitter_email.ilike.${userEmail}`)
     .order('created_at', { ascending: false });
 
   if (tableError) {
@@ -49,7 +62,7 @@ export async function getReports() {
   }
 
   if (tableData && tableData.length > 0) {
-    console.log('Found reports in table:', tableData);
+    console.log('Found reports in table:', tableData.length);
     return tableData as Report[];
   }
 

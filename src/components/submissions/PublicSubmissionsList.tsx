@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,8 +44,24 @@ export function PublicSubmissionsList() {
         
         setIsLoading(true);
         
-        // Fetch submissions from both public form submissions and email submissions
-        // that haven't been fully analyzed yet
+        console.log('Fetching submissions for user:', user.id, 'with email:', user.email);
+        
+        // Get user's email for matching with submitter_email in reports
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', user.id)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+          throw profileError;
+        }
+        
+        const userEmail = userProfile?.email || user.email;
+        console.log('User email for matching:', userEmail);
+        
+        // Fetch submissions from public form submissions including those with reports that match the user's email
         const { data, error } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -54,7 +69,9 @@ export function PublicSubmissionsList() {
             reports:report_id (
               id,
               company_id,
-              analysis_status
+              analysis_status,
+              user_id,
+              submitter_email
             )
           `)
           .order('created_at', { ascending: false });
@@ -63,16 +80,22 @@ export function PublicSubmissionsList() {
           throw error;
         }
         
+        console.log('Fetched submissions data:', data);
+        
         // Transform the data to filter out submissions that have already been analyzed
+        // OR keep submissions where the report's submitter_email matches the user's email
         const filteredSubmissions = data
           .filter(submission => {
-            // Include submissions where:
-            // 1. Either report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet
-            return !submission.reports || 
+            // Include if:
+            // 1. Report exists but analysis hasn't created a company yet OR
+            // 2. The submitter_email matches the user's email (case-insensitive)
+            return (!submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
-                   submission.reports.analysis_status === 'pending';
+                   submission.reports.analysis_status === 'pending' ||
+                   (submission.reports.submitter_email && 
+                    submission.reports.submitter_email.toLowerCase() === userEmail.toLowerCase()) ||
+                   submission.reports.user_id === user.id);
           })
           .map(submission => ({
             id: submission.id,
@@ -88,6 +111,7 @@ export function PublicSubmissionsList() {
             source: submission.form_slug === 'email-submission' ? 'Email' : 'Public Form'
           }));
         
+        console.log('Filtered submissions:', filteredSubmissions.length);
         setSubmissions(filteredSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);

@@ -112,10 +112,11 @@ serve(async (req) => {
     console.log(`Email sender: ${senderEmail}`);
     
     // Check if the sender already has an account in the system
+    // IMPORTANT: Use exact case-insensitive matching for email addresses
     const { data: senderUser, error: senderError } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('email', senderEmail.toLowerCase())
+      .select('id, email')
+      .ilike('email', senderEmail) // Use case-insensitive comparison
       .limit(1);
     
     let userId;
@@ -128,7 +129,7 @@ serve(async (req) => {
     if (senderUser && senderUser.length > 0) {
       // The sender has an account, use their ID
       userId = senderUser[0].id;
-      console.log(`Found user account for sender: ${userId}`);
+      console.log(`Found user account for sender: ${userId} with email ${senderUser[0].email}`);
     } else {
       console.log('Sender does not have an account, falling back to admin user');
       
@@ -316,7 +317,7 @@ serve(async (req) => {
             
             // Fetch the file with a timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // Increase timeout to 30 seconds
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
             
             const fileResponse = await fetch(attachmentUrl, { 
               signal: controller.signal,
