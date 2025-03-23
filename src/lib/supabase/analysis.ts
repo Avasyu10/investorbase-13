@@ -22,20 +22,17 @@ export async function analyzeReport(reportId: string) {
     const isEmailSubmission = reportData.pdf_url && reportData.pdf_url.includes('email_attachments/');
     console.log(`Report type: ${isEmailSubmission ? 'Email submission' : 'Standard report'}`);
     
-    // Set the headers to avoid CORS issues
-    const options = {
-      body: { 
+    // Call the analyze-pdf edge function
+    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+      body: JSON.stringify({ 
         reportId,
         isEmailSubmission 
-      },
+      }),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
-    };
-
-    // Call the analyze-pdf edge function
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', options);
+    });
     
     if (error) {
       console.error('Error invoking analyze-pdf function:', error);
@@ -120,20 +117,17 @@ export async function autoAnalyzePublicReport(reportId: string) {
     // Determine if this is an email submission
     const isEmailSubmission = reportData.pdf_url && reportData.pdf_url.includes('email_attachments/');
     
-    // Set the headers to avoid CORS issues
-    const options = {
-      body: { 
+    // Call the analyze-public-pdf function instead of analyze-pdf
+    const { data, error } = await supabase.functions.invoke('analyze-public-pdf', {
+      body: JSON.stringify({ 
         reportId,
         isEmailSubmission
-      },
+      }),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
-    };
-    
-    // Call the analyze-public-pdf function instead of analyze-pdf
-    const { data, error } = await supabase.functions.invoke('analyze-public-pdf', options);
+    });
     
     if (error) {
       console.error('Error in auto-analysis:', error);

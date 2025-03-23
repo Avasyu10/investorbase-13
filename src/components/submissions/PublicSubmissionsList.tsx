@@ -218,14 +218,15 @@ export function PublicSubmissionsList() {
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
-      // If this is a CORS-related error
+      // If this is a CORS-related error or connection error
       if (errorMessage.includes("CORS") || 
           errorMessage.includes("blocked by CORS policy") || 
           errorMessage.includes("access-control-allow-origin") ||
-          errorMessage.includes("Failed to send a request to the Edge Function")) {
+          errorMessage.includes("Failed to send a request to the Edge Function") ||
+          errorMessage.includes("Edge Function returned a non-2xx status code")) {
         toast({
           title: "Network Connection Error",
-          description: "Unable to connect to analysis service. Please try again in a few moments.",
+          description: "Unable to connect to analysis service. Please try again after a moment.",
           variant: "destructive",
         });
       }

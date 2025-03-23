@@ -56,7 +56,9 @@ serve(async (req) => {
     // Parse request data
     let reqData;
     try {
-      reqData = await req.json();
+      const bodyText = await req.text();
+      console.log("Received request body:", bodyText);
+      reqData = JSON.parse(bodyText);
     } catch (e) {
       console.error("Error parsing request JSON:", e);
       return new Response(
