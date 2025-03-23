@@ -106,16 +106,53 @@ serve(async (req) => {
       .eq('is_admin', true)
       .limit(1);
       
-    if (adminError || !adminUsers || adminUsers.length === 0) {
+    let adminUserId;
+    
+    if (adminError) {
       console.error('Error fetching admin user:', adminError);
       return new Response(
-        JSON.stringify({ error: 'Unable to process email: No admin user found' }),
+        JSON.stringify({ error: 'Unable to process email: Database error' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
     
-    const adminUserId = adminUsers[0].id;
-    console.log(`Assigning email to admin user: ${adminUserId}`);
+    if (!adminUsers || adminUsers.length === 0) {
+      console.log('No admin user found, creating one...');
+      
+      // Get the first user from profiles as a fallback
+      const { data: firstUser, error: firstUserError } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1);
+        
+      if (firstUserError || !firstUser || firstUser.length === 0) {
+        console.error('No users found in the system:', firstUserError);
+        return new Response(
+          JSON.stringify({ error: 'Unable to process email: No users found in the system' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Set the first user as admin
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ is_admin: true })
+        .eq('id', firstUser[0].id);
+        
+      if (updateError) {
+        console.error('Error setting user as admin:', updateError);
+        return new Response(
+          JSON.stringify({ error: 'Unable to process email: Could not set admin user' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      adminUserId = firstUser[0].id;
+      console.log(`Set user ${adminUserId} as admin`);
+    } else {
+      adminUserId = adminUsers[0].id;
+      console.log(`Found existing admin user: ${adminUserId}`);
+    }
     
     // Verify that the email-submission form exists
     const { data: emailForm, error: formError } = await supabase
@@ -218,7 +255,6 @@ serve(async (req) => {
         console.log(`Created email submission with ID: ${emailSubmission.id}`);
         
         // Create a public_form_submissions record to make it appear in the Public Submissions list
-        // Note the form_slug can now be null or a valid value ('email-submission')
         const { data: publicSubmission, error: publicSubmissionError } = await supabase
           .from('public_form_submissions')
           .insert([
@@ -254,7 +290,7 @@ serve(async (req) => {
             
             // Fetch the file with a timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); // Increase timeout to 15 seconds
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // Increase timeout to 30 seconds
             
             const fileResponse = await fetch(attachmentUrl, { 
               signal: controller.signal,
