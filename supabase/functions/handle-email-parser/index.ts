@@ -99,59 +99,91 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get all form owners (admin users) to assign the email to
-    const { data: adminUsers, error: adminError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('is_admin', true)
-      .limit(1);
-      
-    let adminUserId;
-    
-    if (adminError) {
-      console.error('Error fetching admin user:', adminError);
+    // Get the sender's email address
+    const senderEmail = mail_sender[0]?.address || '';
+    if (!senderEmail) {
+      console.error('No sender email found in payload');
       return new Response(
-        JSON.stringify({ error: 'Unable to process email: Database error' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'No sender email found in payload' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
     
-    if (!adminUsers || adminUsers.length === 0) {
-      console.log('No admin user found, creating one...');
+    console.log(`Email sender: ${senderEmail}`);
+    
+    // Check if the sender already has an account in the system
+    const { data: senderUser, error: senderError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', senderEmail.toLowerCase())
+      .limit(1);
+    
+    let userId;
+    
+    if (senderError) {
+      console.error('Error checking for sender in profiles:', senderError);
+      // Continue with admin fallback
+    }
+    
+    if (senderUser && senderUser.length > 0) {
+      // The sender has an account, use their ID
+      userId = senderUser[0].id;
+      console.log(`Found user account for sender: ${userId}`);
+    } else {
+      console.log('Sender does not have an account, falling back to admin user');
       
-      // Get the first user from profiles as a fallback
-      const { data: firstUser, error: firstUserError } = await supabase
+      // Get admin users as fallback
+      const { data: adminUsers, error: adminError } = await supabase
         .from('profiles')
         .select('id')
+        .eq('is_admin', true)
         .limit(1);
         
-      if (firstUserError || !firstUser || firstUser.length === 0) {
-        console.error('No users found in the system:', firstUserError);
+      if (adminError) {
+        console.error('Error fetching admin user:', adminError);
         return new Response(
-          JSON.stringify({ error: 'Unable to process email: No users found in the system' }),
+          JSON.stringify({ error: 'Unable to process email: Database error' }),
           { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
       }
       
-      // Set the first user as admin
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ is_admin: true })
-        .eq('id', firstUser[0].id);
+      if (!adminUsers || adminUsers.length === 0) {
+        console.log('No admin user found, creating one...');
         
-      if (updateError) {
-        console.error('Error setting user as admin:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Unable to process email: Could not set admin user' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+        // Get the first user from profiles as a fallback
+        const { data: firstUser, error: firstUserError } = await supabase
+          .from('profiles')
+          .select('id')
+          .limit(1);
+          
+        if (firstUserError || !firstUser || firstUser.length === 0) {
+          console.error('No users found in the system:', firstUserError);
+          return new Response(
+            JSON.stringify({ error: 'Unable to process email: No users found in the system' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Set the first user as admin
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ is_admin: true })
+          .eq('id', firstUser[0].id);
+          
+        if (updateError) {
+          console.error('Error setting user as admin:', updateError);
+          return new Response(
+            JSON.stringify({ error: 'Unable to process email: Could not set admin user' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        userId = firstUser[0].id;
+        console.log(`Set user ${userId} as admin`);
+      } else {
+        userId = adminUsers[0].id;
+        console.log(`Using admin user: ${userId}`);
       }
-      
-      adminUserId = firstUser[0].id;
-      console.log(`Set user ${adminUserId} as admin`);
-    } else {
-      adminUserId = adminUsers[0].id;
-      console.log(`Found existing admin user: ${adminUserId}`);
     }
     
     // Verify that the email-submission form exists
@@ -172,7 +204,7 @@ serve(async (req) => {
           form_name: 'Email Submissions',
           form_slug: 'email-submission',
           is_active: true,
-          user_id: adminUserId,
+          user_id: userId,
           auto_analyze: false
         }])
         .select()
@@ -187,12 +219,6 @@ serve(async (req) => {
       console.log('Found existing email submission form with ID:', emailForm.id);
     }
     
-    // Create a new report entry for the email submission
-    const reportTitle = company_name || 'Email submission';
-    const senderName = mail_sender[0]?.name || '';
-    const senderEmail = mail_sender[0]?.address || '';
-    const description = `Email from: ${senderName} <${senderEmail}>`;
-    
     // Process each attachment in a separate background task
     const processingPromises = mail_attachment.map(async (attachment) => {
       try {
@@ -206,16 +232,16 @@ serve(async (req) => {
         
         console.log(`Processing attachment: ${fileName} from URL: ${attachmentUrl}`);
         
-        // Create a new report record
+        // Create a new report record associated with the sender's user ID if they have an account
         const { data: report, error: reportError } = await supabase
           .from('reports')
           .insert([
             {
-              title: reportTitle,
-              description,
+              title: company_name || 'Email submission',
+              description: `Email from: ${mail_sender[0]?.name || ''} <${senderEmail}>`,
               submitter_email: senderEmail,
-              pdf_url: `email_attachments/${fileName}`, // Store in the new email_attachments bucket
-              user_id: adminUserId,
+              pdf_url: `email_attachments/${fileName}`,
+              user_id: userId,
               is_public_submission: true,
               analysis_status: 'pending'
             }
@@ -237,8 +263,8 @@ serve(async (req) => {
             {
               from_email: senderEmail,
               to_email: 'youremail@example.com', // Replace with actual recipient
-              subject: reportTitle,
-              email_body: description,
+              subject: company_name || 'Email submission',
+              email_body: `Email from: ${mail_sender[0]?.name || ''} <${senderEmail}>`,
               has_attachments: true,
               report_id: report.id,
               attachment_url: fileName
@@ -259,8 +285,8 @@ serve(async (req) => {
           .from('public_form_submissions')
           .insert([
             {
-              title: reportTitle,
-              description,
+              title: company_name || 'Email submission',
+              description: `Email from: ${mail_sender[0]?.name || ''} <${senderEmail}>`,
               form_slug: 'email-submission',
               pdf_url: `email_attachments/${fileName}`,
               report_id: report.id,
