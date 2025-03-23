@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob } from '@/lib/pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -34,8 +35,8 @@ export async function analyzeReport(reportId: string) {
       throw new Error(errorMessage);
     }
     
-    // First, check if this is a public submission
-    console.log('Checking if this is a public submission...');
+    // First, check if this is a public submission or email submission
+    console.log('Checking report type...');
     const { data: report } = await supabase
       .from('reports')
       .select('is_public_submission')

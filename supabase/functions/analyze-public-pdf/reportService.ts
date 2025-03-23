@@ -1,5 +1,5 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { corsHeaders } from "./cors.ts";
 
 export async function getReportData(reportId: string, authHeader: string): Promise<{ supabase: any, report: any, pdfBase64: string }> {
@@ -32,9 +32,55 @@ export async function getReportData(reportId: string, authHeader: string): Promi
     throw new Error('Public report not found');
   }
   
-  // Make sure the report is associated with a public submission form
-  if (!report.submission_form_id) {
-    throw new Error('This report is not associated with a public submission form');
+  // For email submissions, we don't need to check for submission_form_id
+  // Check if this is from an email submission
+  const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+  const { data: emailSubmission, error: emailError } = await serviceClient
+    .from('email_submissions')
+    .select('*')
+    .eq('report_id', reportId)
+    .maybeSingle();
+  
+  if (!emailError && emailSubmission) {
+    console.log(`Found email submission for report: ${report.id}`);
+    
+    // Now we use service role client to bypass RLS for storage access
+    
+    // Determine storage path for email attachments
+    let storageBucket = 'email_attachments';
+    let storagePath = emailSubmission.attachment_url;
+    
+    console.log(`Will attempt to download PDF from bucket: ${storageBucket}, path: ${storagePath}`);
+    
+    // Download the email attachment
+    const { data: fileData, error: fileError } = await serviceClient.storage
+      .from(storageBucket)
+      .download(storagePath);
+      
+    if (fileError) {
+      console.error(`Error downloading from ${storageBucket}/${storagePath}:`, fileError);
+      throw fileError;
+    }
+    
+    if (!fileData || fileData.size === 0) {
+      console.error(`Downloaded file from ${storageBucket}/${storagePath} is empty or null`);
+      throw new Error("Downloaded file is empty");
+    }
+    
+    console.log(`Successfully downloaded PDF from ${storageBucket}/${storagePath}, size: ${fileData.size} bytes`);
+    
+    // Convert the file to base64
+    const arrayBuffer = await fileData.arrayBuffer();
+    const base64 = await arrayBufferToBase64(arrayBuffer);
+    
+    console.log(`Successfully converted PDF to base64, length: ${base64.length}`);
+    
+    return { supabase, report, pdfBase64: base64 };
+  }
+  
+  // If it's not an email submission, check if it has a form submission
+  if (!report.submission_form_id && !emailSubmission) {
+    throw new Error('This report is not associated with a public submission form or email');
   }
   
   console.log(`Found public report: ${report.id}, title: ${report.title}`);
@@ -57,7 +103,6 @@ export async function getReportData(reportId: string, authHeader: string): Promi
   }
   
   // Now we use service role client to bypass RLS for storage access
-  const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
   
   // First, try to fetch from the 'public_form_submissions' table to get the correct PDF URL
   console.log(`Fetching public submission details for report ${reportId}`);
