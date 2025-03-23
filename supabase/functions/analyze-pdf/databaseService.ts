@@ -9,14 +9,45 @@ export async function saveAnalysisResults(
   console.log("Saving analysis results to database");
   
   try {
-    // First, create the company record
+    // First, determine the correct source based on the report type
+    let source = 'dashboard';
+    
+    // If it's a public submission, set source to 'public_url'
+    if (report.is_public_submission) {
+      // Check if this is from an email submission
+      const adminApiKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+      const apiUrl = Deno.env.get('SUPABASE_URL') || '';
+      
+      if (!adminApiKey || !apiUrl) {
+        console.error("Missing admin credentials for email check");
+      } else {
+        // Create admin client to check for email submissions
+        const adminSupabase = createClient(apiUrl, adminApiKey);
+        
+        const { data: emailSubmission, error: emailError } = await adminSupabase
+          .from('email_submissions')
+          .select('*')
+          .eq('report_id', report.id)
+          .maybeSingle();
+          
+        if (!emailError && emailSubmission) {
+          console.log(`Found email submission for report ID: ${report.id}, setting source to 'email'`);
+          source = 'email';
+        } else {
+          source = 'public_url';
+        }
+      }
+    }
+    
+    console.log(`Using source: ${source} for report ID: ${report.id}`);
+    
+    // Create the company record with the determined source
     const companyData = {
       name: analysis.companyName || report.title,
       overall_score: analysis.overallScore || 0,
       assessment_points: analysis.assessmentPoints || [],
       report_id: report.id,
-      // Determine the source based on if it's a public submission
-      source: report.is_public_submission ? 'public_url' : 'dashboard',
+      source: source,
       // Important: Use the report's user_id which should be the form owner's ID
       user_id: report.user_id
     };
@@ -41,7 +72,7 @@ export async function saveAnalysisResults(
       throw new Error("Failed to create company record");
     }
     
-    console.log(`Created company: ${company.id}, name: ${company.name}`);
+    console.log(`Created company: ${company.id}, name: ${company.name}, source: ${company.source}`);
     
     // Update the report to link it to the company
     const { error: reportUpdateError } = await supabase
