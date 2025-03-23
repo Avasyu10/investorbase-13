@@ -86,3 +86,50 @@ export async function analyzeReport(reportId: string) {
     throw error;
   }
 }
+
+// Function for auto-analyzing public reports (used in useCompanyDetails.ts)
+export async function autoAnalyzePublicReport(reportId: string) {
+  try {
+    console.log('Auto-analyzing public report:', reportId);
+    
+    // Check if the report exists and has a valid status for analysis
+    const { data: reportData, error: reportError } = await supabase
+      .from('reports')
+      .select('analysis_status, pdf_url')
+      .eq('id', reportId)
+      .single();
+      
+    if (reportError) {
+      console.error('Error getting report data for auto-analysis:', reportError);
+      return false;
+    }
+    
+    // Only proceed if report is in pending status
+    if (reportData.analysis_status !== 'pending') {
+      console.log(`Report ${reportId} is already in ${reportData.analysis_status} status. Skipping auto-analysis.`);
+      return false;
+    }
+    
+    // Determine if this is an email submission
+    const isEmailSubmission = reportData.pdf_url && reportData.pdf_url.includes('email_attachments/');
+    
+    // Call the analyze-public-pdf function instead of analyze-pdf
+    const { data, error } = await supabase.functions.invoke('analyze-public-pdf', {
+      body: { 
+        reportId,
+        isEmailSubmission
+      }
+    });
+    
+    if (error) {
+      console.error('Error in auto-analysis:', error);
+      return false;
+    }
+    
+    console.log('Auto-analysis initiated successfully:', data);
+    return true;
+  } catch (error) {
+    console.error('Error in autoAnalyzePublicReport:', error);
+    return false;
+  }
+}
