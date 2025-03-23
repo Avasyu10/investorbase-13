@@ -109,6 +109,56 @@ export type Database = {
           },
         ]
       }
+      email_submissions: {
+        Row: {
+          created_at: string
+          email_body: string | null
+          email_html: string | null
+          from_email: string
+          has_attachments: boolean
+          id: string
+          received_at: string
+          report_id: string | null
+          subject: string | null
+          to_email: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_body?: string | null
+          email_html?: string | null
+          from_email: string
+          has_attachments?: boolean
+          id?: string
+          received_at?: string
+          report_id?: string | null
+          subject?: string | null
+          to_email: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_body?: string | null
+          email_html?: string | null
+          from_email?: string
+          has_attachments?: boolean
+          id?: string
+          received_at?: string
+          report_id?: string | null
+          subject?: string | null
+          to_email?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_submissions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       linkedin_profile_scrapes: {
         Row: {
           content: string | null
