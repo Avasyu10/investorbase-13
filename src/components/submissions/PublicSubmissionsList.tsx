@@ -45,7 +45,8 @@ export function PublicSubmissionsList() {
         
         setIsLoading(true);
         
-        // Fetch submissions that haven't been analyzed yet (report_id exists but no company_id in reports table)
+        // Fetch submissions from both public form submissions and email submissions
+        // that haven't been fully analyzed yet
         const { data, error } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -81,9 +82,10 @@ export function PublicSubmissionsList() {
             industry: submission.industry,
             website_url: submission.website_url,
             created_at: submission.created_at,
-            form_slug: submission.form_slug,
+            form_slug: submission.form_slug || 'Unknown Form',
             pdf_url: submission.pdf_url,
-            report_id: submission.report_id
+            report_id: submission.report_id,
+            source: submission.form_slug === 'email-submission' ? 'Email' : 'Public Form'
           }));
         
         setSubmissions(filteredSubmissions);
@@ -118,9 +120,6 @@ export function PublicSubmissionsList() {
     
     try {
       console.log(`Calling analyze function with report ID: ${submission.report_id}`);
-      console.log("Checking if this is a public submission...");
-      console.log("Report is a public submission");
-      console.log("Will use analyze-public-pdf function for analysis");
       
       // Start the analysis process
       const result = await analyzeReport(submission.report_id);
@@ -228,7 +227,7 @@ export function PublicSubmissionsList() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-2">New Applications</h1>
           <p className="text-muted-foreground">
-            Submissions from public forms waiting to be analyzed
+            Submissions from public forms and emails waiting to be analyzed
           </p>
         </div>
       </div>
