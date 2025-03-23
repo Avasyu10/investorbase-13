@@ -29,7 +29,8 @@ export async function analyzeReport(reportId: string) {
         isEmailSubmission 
       },
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     };
 
@@ -126,7 +127,8 @@ export async function autoAnalyzePublicReport(reportId: string) {
         isEmailSubmission
       },
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     };
     

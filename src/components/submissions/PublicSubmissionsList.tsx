@@ -221,10 +221,11 @@ export function PublicSubmissionsList() {
       // If this is a CORS-related error
       if (errorMessage.includes("CORS") || 
           errorMessage.includes("blocked by CORS policy") || 
-          errorMessage.includes("access-control-allow-origin")) {
+          errorMessage.includes("access-control-allow-origin") ||
+          errorMessage.includes("Failed to send a request to the Edge Function")) {
         toast({
-          title: "CORS Error",
-          description: "A cross-origin error occurred. Please contact support with this error.",
+          title: "Network Connection Error",
+          description: "Unable to connect to analysis service. Please try again in a few moments.",
           variant: "destructive",
         });
       }
