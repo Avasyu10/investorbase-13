@@ -16,6 +16,28 @@ serve(async (req) => {
   }
 
   try {
+    // Log the request details to help debug
+    console.log("Received request:", {
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries())
+    });
+
+    // Check if body exists
+    const contentType = req.headers.get('content-type') || '';
+    console.log(`Content-Type: ${contentType}`);
+    
+    if (!contentType.includes('application/json')) {
+      console.error("Invalid content type, expected application/json");
+      return new Response(
+        JSON.stringify({ error: "Content-Type must be application/json" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
     // Get the API key from environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -27,7 +49,7 @@ serve(async (req) => {
     // Extract the authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
-      console.error("Invalid or missing authorization");
+      console.error("Invalid or missing authorization", authHeader);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { 
@@ -37,15 +59,42 @@ serve(async (req) => {
       );
     }
 
-    // Parse the request body
+    // Try to safely read the body content
+    let bodyText = "";
+    try {
+      bodyText = await req.text();
+      console.log("Raw request body:", bodyText);
+      
+      if (!bodyText || bodyText.trim() === "") {
+        console.error("Empty request body");
+        return new Response(
+          JSON.stringify({ error: "Empty request body" }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error reading request body:", error);
+      return new Response(
+        JSON.stringify({ error: "Could not read request body" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Parse the request body as JSON
     let payload;
     try {
-      payload = await req.json();
-      console.log("Received webhook payload:", JSON.stringify(payload));
+      payload = JSON.parse(bodyText);
+      console.log("Parsed webhook payload:", JSON.stringify(payload));
     } catch (error) {
-      console.error("Error parsing request body:", error);
+      console.error("Error parsing JSON body:", error, "Raw body:", bodyText);
       return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
+        JSON.stringify({ error: "Invalid JSON in request body" }),
         { 
           status: 400, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -279,7 +328,7 @@ serve(async (req) => {
       { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+      }
     );
   }
 });
