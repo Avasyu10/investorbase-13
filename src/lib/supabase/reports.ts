@@ -46,14 +46,18 @@ export async function getReports() {
   const userEmail = profile?.email || user.email;
   console.log('User email for report matching:', userEmail);
 
-  // Get reports from the reports table that:
-  // 1. Belong to the user directly (user_id = current user id)
-  // 2. OR are public submissions assigned to the user
-  // 3. OR have submitter_email matching the user's email
+  // Construct the filter to get all relevant reports:
+  // 1. Reports that belong to the user directly
+  // 2. Reports that have the user's email as submitter_email (case-insensitive)
+  const filter = `user_id.eq.${user.id},submitter_email.ilike.${userEmail}`;
+
+  console.log('Using filter for reports:', filter);
+
+  // Get reports with the combined filter
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
-    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id}),submitter_email.ilike.${userEmail}`)
+    .or(filter)
     .order('created_at', { ascending: false });
 
   if (tableError) {

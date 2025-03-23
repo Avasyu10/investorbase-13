@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,8 +62,32 @@ export function PublicSubmissionsList() {
         const userEmail = userProfile?.email || user.email;
         console.log('User email for matching:', userEmail);
         
-        // Fetch submissions from public form submissions including those with reports that match the user's email
-        const { data, error } = await supabase
+        // First, check if there are any email submissions in reports table directly
+        const { data: emailReports, error: emailReportsError } = await supabase
+          .from('reports')
+          .select(`
+            id,
+            title,
+            description,
+            pdf_url,
+            created_at,
+            is_public_submission,
+            submitter_email,
+            analysis_status
+          `)
+          .or(`user_id.eq.${user.id},submitter_email.ilike.${userEmail}`)
+          .eq('is_public_submission', true)
+          .order('created_at', { ascending: false });
+          
+        if (emailReportsError) {
+          console.error('Error fetching email reports:', emailReportsError);
+          throw emailReportsError;
+        }
+        
+        console.log('Email reports found:', emailReports?.length || 0);
+        
+        // Then fetch submissions from public form submissions
+        const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
             *,
@@ -76,19 +101,35 @@ export function PublicSubmissionsList() {
           `)
           .order('created_at', { ascending: false });
           
-        if (error) {
-          throw error;
+        if (formError) {
+          console.error('Error fetching form submissions:', formError);
+          throw formError;
         }
         
-        console.log('Fetched submissions data:', data);
+        console.log('Form submissions found:', formData?.length || 0);
         
-        // Transform the data to filter out submissions that have already been analyzed
-        // OR keep submissions where the report's submitter_email matches the user's email
-        const filteredSubmissions = data
+        // Process email reports into the same format as form submissions
+        const emailSubmissions = emailReports?.map(report => ({
+          id: `email-${report.id}`,
+          title: report.title || 'Email Submission',
+          description: report.description,
+          company_stage: null,
+          industry: null,
+          website_url: null,
+          created_at: report.created_at,
+          form_slug: 'email-submission',
+          pdf_url: report.pdf_url,
+          report_id: report.id,
+          source: 'Email'
+        })) || [];
+        
+        // Transform form data
+        const formSubmissions = formData
           .filter(submission => {
             // Include if:
             // 1. Report exists but analysis hasn't created a company yet OR
-            // 2. The submitter_email matches the user's email (case-insensitive)
+            // 2. The submitter_email matches the user's email (case-insensitive) OR
+            // 3. The user ID matches
             return (!submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -108,11 +149,19 @@ export function PublicSubmissionsList() {
             form_slug: submission.form_slug || 'Unknown Form',
             pdf_url: submission.pdf_url,
             report_id: submission.report_id,
-            source: submission.form_slug === 'email-submission' ? 'Email' : 'Public Form'
+            source: 'Form'
           }));
         
-        console.log('Filtered submissions:', filteredSubmissions.length);
-        setSubmissions(filteredSubmissions);
+        // Combine both sources of submissions
+        const allSubmissions = [...emailSubmissions, ...formSubmissions];
+        console.log('Combined submissions:', allSubmissions.length);
+        
+        // Sort by creation date
+        allSubmissions.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        setSubmissions(allSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);
         toast({
