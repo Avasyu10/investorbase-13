@@ -114,56 +114,81 @@ serve(async (req) => {
       );
     }
 
-    // Extract email data
-    const fromEmail = payload.from?.text || payload.from?.email || "unknown";
-    const toEmail = payload.to?.[0]?.text || payload.to?.[0]?.email || "unknown";
-    const subject = payload.subject || "No Subject";
-    const textContent = payload.text || "";
-    const htmlContent = payload.html || "";
+    // Extract data from the new mailparser.io format
+    console.log("Processing mailparser.io payload");
+    
+    // Extract email data from the new format
+    const mailId = payload.id || "unknown";
+    const receivedAt = payload.received_at || new Date().toISOString();
+    const processedAt = payload.processed_at || new Date().toISOString();
+    const companyName = payload.company_name || "unknown";
+    
+    // Extract sender information
+    let fromName = "unknown";
+    let fromEmail = "unknown";
+    if (payload.mail_sender && Array.isArray(payload.mail_sender) && payload.mail_sender.length > 0) {
+      const sender = payload.mail_sender[0];
+      fromName = sender.name || "unknown";
+      fromEmail = sender.address || "unknown";
+    }
+    
+    // Fixed recipient for now since it's not in the payload
+    const toEmail = "reports@yourcompany.com"; // Can be updated later
+    
+    // Create a subject from companyName
+    const subject = `Report from ${companyName}`;
     
     // Check for attachments
-    const attachments = payload.attachments || [];
-    const hasAttachments = attachments.length > 0;
+    const hasAttachments = payload.mail_attachment && 
+                           Array.isArray(payload.mail_attachment) && 
+                           payload.mail_attachment.length > 0;
     
-    // Find PDF attachments
-    const pdfAttachments = attachments.filter(att => 
-      att.contentType?.toLowerCase() === "application/pdf" || 
-      att.filename?.toLowerCase().endsWith(".pdf")
-    );
-
-    // If no PDF attachments, still record the email but don't create a report
-    if (pdfAttachments.length === 0) {
-      console.log("No PDF attachments found in email");
+    console.log("Extracted data:", {
+      mailId,
+      fromName,
+      fromEmail,
+      toEmail,
+      subject,
+      companyName,
+      hasAttachments,
+      receivedAt,
+      processedAt
+    });
+    
+    // Create email submission record
+    const { data: emailSubmission, error: emailError } = await supabase
+      .from("email_submissions")
+      .insert({
+        from_email: fromEmail,
+        to_email: toEmail,
+        subject: subject,
+        email_body: `Company: ${companyName}`,
+        has_attachments: hasAttachments,
+        received_at: new Date(receivedAt).toISOString()
+      })
+      .select()
+      .single();
       
-      // Create email submission record
-      const { data: emailSubmission, error: emailError } = await supabase
-        .from("email_submissions")
-        .insert({
-          from_email: fromEmail,
-          to_email: toEmail,
-          subject,
-          email_body: textContent,
-          email_html: htmlContent,
-          has_attachments: hasAttachments
-        })
-        .select()
-        .single();
-        
-      if (emailError) {
-        console.error("Error creating email submission:", emailError);
-        return new Response(
-          JSON.stringify({ error: "Error recording email submission" }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
-          }
-        );
-      }
-      
+    if (emailError) {
+      console.error("Error creating email submission:", emailError);
+      return new Response(
+        JSON.stringify({ error: "Error recording email submission" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+    
+    console.log("Email submission created:", emailSubmission);
+    
+    // If no attachments, return early
+    if (!hasAttachments) {
+      console.log("No attachments found in email");
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: "Email recorded, but no PDF attachments to process",
+          message: "Email recorded, but no attachments to process",
           emailSubmissionId: emailSubmission.id
         }),
         { 
@@ -173,16 +198,19 @@ serve(async (req) => {
       );
     }
     
-    // Process the first PDF attachment (we'll only handle one for simplicity)
-    const pdfAttachment = pdfAttachments[0];
-    console.log(`Processing PDF attachment: ${pdfAttachment.filename}`);
+    // Get the first attachment
+    const attachment = payload.mail_attachment[0];
+    console.log("Processing attachment:", attachment);
     
-    // The attachment content should be base64 encoded
-    const pdfContent = pdfAttachment.content;
-    if (!pdfContent) {
-      console.error("PDF attachment content is missing");
+    // The attachment format is now different
+    // attachment is an object with keys like key_0 (filename) and key_1 (url)
+    const attachmentUrl = attachment.key_1 || "";
+    const attachmentFilename = attachment.key_0 || "report.pdf";
+    
+    if (!attachmentUrl) {
+      console.error("Attachment URL is missing");
       return new Response(
-        JSON.stringify({ error: "PDF attachment content is missing" }),
+        JSON.stringify({ error: "Attachment URL is missing" }),
         { 
           status: 400, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -190,23 +218,31 @@ serve(async (req) => {
       );
     }
     
-    // Decode the base64 content to binary
-    let pdfBinary;
+    // Download the attachment from the provided URL
+    console.log(`Downloading attachment from: ${attachmentUrl}`);
+    let response;
     try {
-      pdfBinary = Uint8Array.from(atob(pdfContent), c => c.charCodeAt(0));
+      response = await fetch(attachmentUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to download attachment: ${response.status} ${response.statusText}`);
+      }
     } catch (error) {
-      console.error("Error decoding PDF content:", error);
+      console.error("Error downloading attachment:", error);
       return new Response(
-        JSON.stringify({ error: "Error decoding PDF content" }),
+        JSON.stringify({ error: "Error downloading attachment" }),
         { 
-          status: 400, 
+          status: 500, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
     }
+    
+    // Get the attachment content as binary
+    const pdfBinary = new Uint8Array(await response.arrayBuffer());
     
     // Generate a unique filename
-    const fileName = `${Date.now()}_${pdfAttachment.filename}`;
+    const fileName = `${Date.now()}_${attachmentFilename}`;
     
     // Upload the PDF to storage
     const { data: storageData, error: storageError } = await supabase.storage
@@ -228,15 +264,8 @@ serve(async (req) => {
     }
     
     // Create report entry in database
-    // Derive title from email subject or filename
-    const reportTitle = subject !== "No Subject" 
-      ? subject 
-      : pdfAttachment.filename.replace(/\.[^/.]+$/, ""); // Remove file extension
-      
-    // Use email body as description
-    const reportDescription = textContent.length > 1000 
-      ? textContent.substring(0, 997) + "..." // Truncate if too long
-      : textContent;
+    const reportTitle = companyName || "Report";
+    const reportDescription = `Report for ${companyName} received at ${receivedAt}`;
       
     const { data: report, error: reportError } = await supabase
       .from("reports")
@@ -261,24 +290,17 @@ serve(async (req) => {
       );
     }
     
-    // Create email submission record linked to the report
-    const { data: emailSubmission, error: emailError } = await supabase
+    // Update email submission record with the report_id
+    const { error: updateError } = await supabase
       .from("email_submissions")
-      .insert({
-        report_id: report.id,
-        from_email: fromEmail,
-        to_email: toEmail,
-        subject,
-        email_body: textContent,
-        email_html: htmlContent,
-        has_attachments: hasAttachments
+      .update({
+        report_id: report.id
       })
-      .select()
-      .single();
+      .eq("id", emailSubmission.id);
       
-    if (emailError) {
-      console.error("Error creating email submission:", emailError);
-      // Don't return error here, the report is already created
+    if (updateError) {
+      console.error("Error updating email submission with report_id:", updateError);
+      // Continue anyway since the report is already created
     }
     
     // Optionally trigger analysis process
@@ -312,7 +334,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         reportId: report.id,
-        emailSubmissionId: emailSubmission?.id,
+        emailSubmissionId: emailSubmission.id,
         message: "Email processed and report created successfully"
       }),
       { 
