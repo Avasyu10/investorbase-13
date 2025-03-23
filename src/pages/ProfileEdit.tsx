@@ -16,10 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, Plus, X, FileText, Trash2, Building, Tag, Layers, Globe, ArrowLeft } from "lucide-react";
+import { Loader2, Save, Plus, X, FileText, Trash2, Building, Tag, Layers, Globe, ArrowLeft, Mail } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { AreaOfInterestOptions } from "@/lib/constants";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
+import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 
 interface VCProfile {
   id: string;
@@ -601,6 +602,16 @@ const ProfileEdit = () => {
                   </div>
                 )}
               </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center mb-3">
+                <Mail className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-base font-semibold text-foreground/80">InvestorBase Pitch Email</h3>
+              </div>
+              <Separator className="mb-4" />
+              
+              <InvestorPitchEmail />
             </div>
           </CardContent>
           

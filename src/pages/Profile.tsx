@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -12,11 +11,12 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Edit, Globe, FileText, Plus, ExternalLink, Building, Tag, Layers } from "lucide-react";
+import { Loader2, Download, Edit, Globe, FileText, Plus, ExternalLink, Building, Tag, Layers, Mail } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { AreaOfInterestOptions } from "@/lib/constants";
+import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 
 interface VCProfile {
   id: string;
@@ -496,6 +496,16 @@ const Profile = () => {
                 </div>
               )}
             </div>
+          </div>
+          
+          <div>
+            <div className="flex items-center mb-3">
+              <Mail className="h-5 w-5 text-primary mr-2" />
+              <h3 className="text-base font-semibold text-foreground/80">InvestorBase Pitch Email</h3>
+            </div>
+            <Separator className="mb-4" />
+            
+            <InvestorPitchEmail />
           </div>
         </CardContent>
       </Card>

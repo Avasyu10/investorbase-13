@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CheckIcon, Loader2, UploadCloud } from "lucide-react";
 import { AreaOfInterestOptions } from "@/lib/constants";
+import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 
 interface ProfileFormValues {
   fundName: string;
@@ -309,6 +310,17 @@ const ProfileSetup = () => {
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   You can create a link for founders to submit their pitch decks through your Public URL.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="investorPitchEmail" className="flex items-center">
+                  <span>InvestorBase Pitch Email</span>
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">Available after signup</span>
+                </Label>
+                <InvestorPitchEmail isSetupPage={true} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  After signup, you can request a personalized email for founders to send their pitch decks directly to you.
                 </p>
               </div>
             </CardContent>

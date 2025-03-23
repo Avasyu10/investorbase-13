@@ -162,6 +162,39 @@ export type Database = {
           },
         ]
       }
+      investor_pitch_emails: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          email_address: string | null
+          id: string
+          request_status: string
+          requested_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          request_status?: string
+          requested_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          request_status?: string
+          requested_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       linkedin_profile_scrapes: {
         Row: {
           content: string | null
