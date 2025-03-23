@@ -29,27 +29,23 @@ serve(async (req) => {
     
     console.log(`Successfully retrieved PDF for report: ${reportId}`);
     
-    // Check if this is from an email submission
-    const adminApiKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const apiUrl = Deno.env.get('SUPABASE_URL') || '';
-    let isEmailSubmission = false;
+    // Default source to 'email' (we'll check if it's a form submission)
+    let source = 'email';
     
-    if (adminApiKey && apiUrl) {
-      // We'll check directly in the database using service role
-      const { data: emailSubmission } = await supabase
-        .from('email_submissions')
-        .select('*')
-        .eq('report_id', reportId)
-        .maybeSingle();
-        
-      if (emailSubmission) {
-        isEmailSubmission = true;
-        console.log(`Identified report ${reportId} as an email submission`);
-      }
+    // Check if this is associated with a public form submission
+    const { data: formSubmission, error: formError } = await supabase
+      .from('public_form_submissions')
+      .select('*')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
+    if (!formError && formSubmission) {
+      console.log(`Found public form submission for report ID: ${reportId}, setting source to 'public_form'`);
+      source = 'public_form';
+    } else {
+      console.log(`No public form submission found for report ID: ${reportId}, keeping source as 'email'`);
     }
     
-    // Set source based on submission type
-    const source = isEmailSubmission ? 'email' : 'public_url';
     console.log(`Setting source type: ${source}`);
     
     // Create a new client for the function call
@@ -146,11 +142,8 @@ serve(async (req) => {
         throw updateError;
       }
       
-      // Create company record for this analysis
-      const adminSupabase = await supabase.auth.getSession();
-      
       // Now insert the company record
-      // Make sure to set source correctly
+      // Set source correctly based on our earlier check
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert([{

@@ -9,33 +9,22 @@ export async function saveAnalysisResults(
   console.log("Saving analysis results to database");
   
   try {
-    // First, determine the correct source based on the report type
-    let source = 'dashboard';
+    // Default source to 'email' unless proven otherwise
+    let source = 'email';
     
-    // If it's a public submission, set source to 'public_url'
+    // Check if this is associated with a public form submission
     if (report.is_public_submission) {
-      // Check if this is from an email submission
-      const adminApiKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-      const apiUrl = Deno.env.get('SUPABASE_URL') || '';
-      
-      if (!adminApiKey || !apiUrl) {
-        console.error("Missing admin credentials for email check");
-      } else {
-        // Create admin client to check for email submissions
-        const adminSupabase = createClient(apiUrl, adminApiKey);
+      const { data: formSubmission, error: formError } = await supabase
+        .from('public_form_submissions')
+        .select('*')
+        .eq('report_id', report.id)
+        .maybeSingle();
         
-        const { data: emailSubmission, error: emailError } = await adminSupabase
-          .from('email_submissions')
-          .select('*')
-          .eq('report_id', report.id)
-          .maybeSingle();
-          
-        if (!emailError && emailSubmission) {
-          console.log(`Found email submission for report ID: ${report.id}, setting source to 'email'`);
-          source = 'email';
-        } else {
-          source = 'public_url';
-        }
+      if (!formError && formSubmission) {
+        console.log(`Found public form submission for report ID: ${report.id}, setting source to 'public_form'`);
+        source = 'public_form';
+      } else {
+        console.log(`No public form submission found for report ID: ${report.id}, keeping source as 'email'`);
       }
     }
     
