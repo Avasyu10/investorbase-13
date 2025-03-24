@@ -139,17 +139,6 @@ export async function downloadReport(fileUrl: string, userId?: string) {
       console.log('This file is from an email submission with attachment URL:', emailSubmission.attachment_url);
     }
     
-    // Get the form slug if this is a public submission
-    const { data: publicSubmission } = await supabase
-      .from('public_form_submissions')
-      .select('form_slug, pdf_url')
-      .eq('pdf_url', fileUrl)
-      .maybeSingle();
-    
-    if (publicSubmission?.form_slug) {
-      console.log('This file is from a public submission form:', publicSubmission.form_slug);
-    }
-    
     // Step 1: If the URL starts with email_attachments, try to download from that bucket first
     if (fileUrl.includes('email_attachments') || emailSubmission) {
       const attachmentPath = emailSubmission?.attachment_url || fileUrl;
@@ -184,57 +173,26 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     
     // Step 2: Try the standard report_pdfs bucket with the provided path
     try {
-      // First try with the path as is (which may include form_slug/)
-      console.log('Trying report_pdfs bucket with path:', fileUrl);
+      let fullPath = fileUrl;
+      // If userId is provided and the file doesn't start with the userId, add it
+      if (userId && !fileUrl.startsWith(`${userId}/`) && !fileUrl.includes('email_attachments')) {
+        fullPath = `${userId}/${fileUrl}`;
+      }
+      
+      console.log('Trying report_pdfs bucket with path:', fullPath);
       const { data, error } = await supabase.storage
         .from('report_pdfs')
-        .download(fileUrl);
+        .download(fullPath);
 
       if (!error && data) {
-        console.log('Successfully downloaded from report_pdfs with path:', fileUrl);
+        console.log('Successfully downloaded from report_pdfs with path:', fullPath);
         return data;
       }
     } catch (primaryError) {
       console.error('Error with primary path, trying fallback:', primaryError);
     }
     
-    // Step 3: If we have a user ID but it's not in the path, try with the user ID prefix
-    if (userId && !fileUrl.startsWith(`${userId}/`)) {
-      try {
-        const userPath = `${userId}/${fileUrl}`;
-        console.log('Trying report_pdfs bucket with user ID path:', userPath);
-        const { data: userData, error: userError } = await supabase.storage
-          .from('report_pdfs')
-          .download(userPath);
-          
-        if (!userError && userData) {
-          console.log('Successfully downloaded with user ID path');
-          return userData;
-        }
-      } catch (userError) {
-        console.error('Error with user ID path:', userError);
-      }
-    }
-    
-    // Step 4: Try with form slug if available from the database
-    if (publicSubmission?.form_slug && !fileUrl.startsWith(`${publicSubmission.form_slug}/`)) {
-      try {
-        const formPath = `${publicSubmission.form_slug}/${fileUrl.split('/').pop() || fileUrl}`;
-        console.log('Trying report_pdfs bucket with form slug path:', formPath);
-        const { data: formData, error: formError } = await supabase.storage
-          .from('report_pdfs')
-          .download(formPath);
-          
-        if (!formError && formData) {
-          console.log('Successfully downloaded with form slug path');
-          return formData;
-        }
-      } catch (formError) {
-        console.error('Error with form slug path:', formError);
-      }
-    }
-    
-    // Step 5: Try with just the filename (last part of the path)
+    // Step 3: Try with the simple filename (last part of path)
     const parts = fileUrl.split('/');
     const simpleFileName = parts[parts.length - 1];
     
@@ -252,7 +210,7 @@ export async function downloadReport(fileUrl: string, userId?: string) {
       console.error('Error with fallback path:', fallbackError);
     }
     
-    // Step 6: One last attempt with public_uploads bucket
+    // Step 4: One last attempt with public_uploads bucket
     if (fileUrl.includes('/')) {
       try {
         console.log('Trying public_uploads bucket with path:', fileUrl);
@@ -269,7 +227,7 @@ export async function downloadReport(fileUrl: string, userId?: string) {
       }
     }
     
-    // Step 7: Final attempt - check if this is from an email submission by filename
+    // Step 5: Final attempt - check if this is from an email submission
     const { data: emailData } = await supabase
       .from('email_submissions')
       .select('attachment_url')
