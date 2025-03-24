@@ -108,7 +108,7 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       {status === 'none' && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Request your personalized InvestorBase Pitch Email to receive pitch decks directly from founders.
+            Request your personalized InvestorBase Pitch Email to receive pitch decks directly from founders. Any deck sent to this email will be automatically synced with your InvestorBase dashboard, processed and analyzed end-to-end without any manual intervention.
           </p>
           <Button 
             onClick={requestEmail} 

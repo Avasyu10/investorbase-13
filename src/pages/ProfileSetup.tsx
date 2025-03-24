@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -346,7 +345,8 @@ const ProfileSetup = () => {
                   className="bg-muted text-muted-foreground cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  You can create a link for founders to submit their pitch decks through your Public URL.
+                  After signup, you can create a public link for founders to submit their pitch decks directly to your dashboard. 
+                  This streamlines your deal flow and keeps all potential investments organized in one place.
                 </p>
               </div>
               
@@ -357,7 +357,8 @@ const ProfileSetup = () => {
                 </Label>
                 <InvestorPitchEmail isSetupPage={true} />
                 <p className="text-xs text-muted-foreground mt-1">
-                  After signup, you can request a personalized email for founders to send their pitch decks directly to you.
+                  After signup, you can request a personalized email for founders to send their pitch decks directly to you. 
+                  Any deck sent to this email will be automatically synced with your dashboard and analyzed without any manual intervention.
                 </p>
               </div>
             </CardContent>
