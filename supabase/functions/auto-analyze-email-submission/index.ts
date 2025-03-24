@@ -38,6 +38,13 @@ serve(async (req) => {
       throw new Error("Email submission ID is required");
     }
 
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(submissionId)) {
+      console.error(`Invalid UUID format: ${submissionId}`);
+      throw new Error(`Invalid UUID format: ${submissionId}`);
+    }
+
     console.log(`Processing email submission: ${submissionId}`);
 
     // Fetch the email submission data

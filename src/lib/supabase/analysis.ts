@@ -370,6 +370,8 @@ export async function autoAnalyzeEmailSubmission(submissionId: string) {
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY";
         
         console.log('Making direct fetch call to edge function');
+        console.log('Payload:', { submissionId });
+        
         const directResponse = await fetch(`https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission`, {
           method: 'POST',
           headers: {
@@ -382,9 +384,17 @@ export async function autoAnalyzeEmailSubmission(submissionId: string) {
         
         if (!directResponse.ok) {
           console.error(`Direct fetch failed with status: ${directResponse.status}`);
-          console.error('Response:', await directResponse.text());
+          const responseText = await directResponse.text();
+          console.error('Response:', responseText);
+          try {
+            const errorJson = JSON.parse(responseText);
+            console.error('Parsed error response:', errorJson);
+          } catch (e) {
+            console.error('Could not parse error response as JSON');
+          }
         } else {
-          console.log('Direct fetch succeeded:', await directResponse.json());
+          const responseData = await directResponse.json();
+          console.log('Direct fetch succeeded:', responseData);
         }
       } catch (fetchError) {
         console.error('Error making direct fetch call:', fetchError);
