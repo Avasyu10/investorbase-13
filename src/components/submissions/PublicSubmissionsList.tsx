@@ -48,6 +48,30 @@ export function PublicSubmissionsList() {
         setIsLoading(true);
         console.log("Fetching public submissions for user:", user.id);
         
+        // Fetch reports that are public submissions and assigned to this user
+        const { data: reportData, error: reportError } = await supabase
+          .from('reports')
+          .select(`
+            id,
+            title,
+            description,
+            pdf_url,
+            created_at,
+            analysis_status,
+            companies(id)
+          `)
+          .eq('is_public_submission', true)
+          .eq('user_id', user.id)
+          .is('company_id', null)  // Only include reports that haven't been analyzed yet
+          .order('created_at', { ascending: false });
+          
+        if (reportError) {
+          console.error("Error fetching public submissions from reports:", reportError);
+          throw reportError;
+        }
+        
+        console.log("Public submissions from reports:", reportData?.length || 0);
+        
         // Fetch public form submissions
         const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
@@ -88,6 +112,25 @@ export function PublicSubmissionsList() {
         }
         
         console.log("Email submissions fetched:", emailData?.length || 0);
+        
+        // Transform the report data to public submission format
+        const transformedReportData = reportData
+          .filter(report => report.analysis_status !== 'completed') // Skip analyzed reports
+          .map(report => ({
+            id: report.id,
+            title: report.title,
+            description: report.description,
+            company_stage: null,
+            industry: null,
+            website_url: null,
+            created_at: report.created_at,
+            form_slug: "",
+            pdf_url: report.pdf_url,
+            report_id: report.id,
+            source: "public_form" as const
+          }));
+          
+        console.log("Transformed report data:", transformedReportData.length);
         
         // Transform the data to filter out submissions that have already been analyzed
         const transformedFormData = formData
@@ -144,8 +187,8 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Combine both types of submissions and sort by date
-        const combinedSubmissions = [...transformedFormData, ...transformedEmailData]
+        // Combine all types of submissions and sort by date
+        const combinedSubmissions = [...transformedReportData, ...transformedFormData, ...transformedEmailData]
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         console.log("Combined submissions:", combinedSubmissions.length);

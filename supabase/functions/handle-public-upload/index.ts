@@ -101,7 +101,7 @@ serve(async (req) => {
         console.log(`Created new user with ID: ${userId}`);
       }
       
-      // Create a unique filename with form slug prefix to help identify source
+      // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
       const uniqueFilename = `${timestamp}.${fileExt}`;
@@ -176,7 +176,7 @@ serve(async (req) => {
         // Non-critical error, continue
       }
       
-      // Check if we should start analysis automatically - in this case we always do
+      // Check if we should start analysis automatically
       try {
         console.log("Starting automatic analysis for report:", report.id);
         
