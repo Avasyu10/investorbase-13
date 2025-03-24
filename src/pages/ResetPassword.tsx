@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,12 +34,33 @@ const ResetPassword = () => {
 
     try {
       setLoading(true);
+
+      // Extract hash from URL if present
+      const hash = location.hash;
+      let accessToken = '';
       
-      // Update the password using the direct Supabase client to utilize the access token from the URL
-      const { error } = await supabase.auth.updateUser({ password });
+      if (hash) {
+        // The hash typically looks like #access_token=xxx&type=recovery
+        const params = new URLSearchParams(hash.substring(1));
+        accessToken = params.get('access_token') || '';
+      }
+
+      let result;
       
-      if (error) {
-        throw error;
+      if (accessToken) {
+        // If we have an access token from the URL, use it directly
+        result = await supabase.auth.updateUser({ 
+          password: password 
+        }, {
+          accessToken: accessToken
+        });
+      } else {
+        // Otherwise, rely on an existing session (less likely to work for password reset)
+        result = await supabase.auth.updateUser({ password });
+      }
+      
+      if (result.error) {
+        throw result.error;
       }
       
       setMessage("Password updated successfully!");
@@ -57,25 +77,18 @@ const ResetPassword = () => {
     }
   };
 
-  // When component mounts, verify we have a valid hash
+  // When component mounts, check if we have the access token in the URL
   useEffect(() => {
-    // The hash/access token is automatically handled by Supabase client
-    // We just need to check if we're on the reset-password page with a valid hash
-    const checkHashStatus = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error || !data.session) {
-          console.log("No active session found for password reset");
-        } else {
-          console.log("Valid session found for password reset");
-        }
-      } catch (err) {
-        console.error("Error checking hash status:", err);
+    const checkResetToken = () => {
+      const hash = location.hash;
+      if (hash && hash.includes('access_token')) {
+        console.log("Found access token in URL for password reset");
+      } else {
+        console.log("No access token found in URL for password reset");
       }
     };
 
-    checkHashStatus();
+    checkResetToken();
   }, [location]);
 
   return (
