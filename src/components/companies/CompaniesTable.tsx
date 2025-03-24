@@ -50,23 +50,24 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
 
   // Helper to get source info with appropriate styling
   const getSourceInfo = (source: string | undefined) => {
+    // Only use public_url when explicitly set, otherwise default to email
     if (source === 'public_url') {
       return {
         label: "Public URL",
         className: "text-sm text-green-600 font-medium"
       };
     }
-    if (source === 'email') {
+    if (source === 'dashboard') {
       return {
-        label: "Email",
-        className: "text-sm text-blue-600 font-medium"
+        label: "Dashboard",
+        className: "text-sm text-gold font-medium"
       };
     }
     
-    // Default to Dashboard (gold color)
+    // Default to Email (blue color)
     return {
-      label: "Dashboard",
-      className: "text-sm text-gold font-medium"
+      label: "Email",
+      className: "text-sm text-blue-600 font-medium"
     };
   };
 
