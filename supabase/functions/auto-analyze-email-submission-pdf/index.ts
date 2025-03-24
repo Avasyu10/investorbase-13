@@ -30,86 +30,55 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data - can be from a webhook or direct call
-    let submissionId;
+    // Parse request data
+    let reqData;
     try {
-      // First try to parse as JSON (for direct API calls)
-      const reqData = await req.json();
-      submissionId = reqData.submissionId || reqData.id;
+      reqData = await req.json();
     } catch (e) {
-      // If JSON parsing fails, try to get from URL params (for webhook triggers)
-      const url = new URL(req.url);
-      submissionId = url.searchParams.get('id');
-    }
-    
-    // Validate submission ID
-    if (!submissionId) {
-      console.error("Missing email submission ID in request");
-      return new Response(
-        JSON.stringify({ error: "Email submission ID is required", success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
-    // UUID validation
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(submissionId)) {
-      console.error(`Invalid submission ID format: "${submissionId}"`);
+      console.error("Error parsing request JSON:", e);
       return new Response(
         JSON.stringify({ 
-          error: `Invalid submission ID format. Expected a UUID, got: ${submissionId}`,
+          error: "Invalid request format. Expected JSON with reportId property.",
           success: false 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    console.log(`Processing email submission ${submissionId} for auto-analysis check`);
+    const { reportId } = reqData;
+    
+    // Validate reportId
+    if (!reportId) {
+      console.error("Missing reportId in request");
+      return new Response(
+        JSON.stringify({ error: "Report ID is required", success: false }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    // UUID validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(reportId)) {
+      console.error(`Invalid reportId format: "${reportId}"`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Invalid report ID format. Expected a UUID, got: ${reportId}`,
+          success: false 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    console.log(`Processing report ${reportId} for auto-analysis check`);
     
     // Create a service client for direct database access
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
-    // Get the email submission record
-    const { data: emailSubmission, error: emailError } = await serviceClient
-      .from('email_submissions')
-      .select('*')
-      .eq('id', submissionId)
-      .maybeSingle();
-      
-    if (emailError) {
-      console.error("Error fetching email submission:", emailError);
-      return new Response(
-        JSON.stringify({ error: emailError.message, success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-    
-    if (!emailSubmission) {
-      console.error("Email submission not found");
-      return new Response(
-        JSON.stringify({ error: "Email submission not found", success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
-    
-    // No attachment or no report ID means nothing to analyze
-    if (!emailSubmission.attachment_url || !emailSubmission.report_id) {
-      console.log("Email submission has no attachment or report ID, skipping");
-      return new Response(
-        JSON.stringify({ 
-          message: "Email submission has no attachment or report ID, skipping",
-          success: true,
-          autoAnalyze: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
-    
-    // Get the report associated with this email submission
+    // Get the report and check if it's from an email submission
     const { data: report, error: reportError } = await serviceClient
       .from('reports')
-      .select('*')
-      .eq('id', emailSubmission.report_id)
+      .select('user_id, submitter_email, analysis_status')
+      .eq('id', reportId)
       .maybeSingle();
       
     if (reportError) {
@@ -141,12 +110,12 @@ serve(async (req) => {
       );
     }
     
-    // Check the to_email to find the corresponding investor_pitch_email
-    if (!emailSubmission.to_email) {
-      console.log("Email submission has no recipient email");
+    // Check if this user has enabled auto-analyze for email submissions
+    if (!report.user_id) {
+      console.log("No user ID found for report, skipping auto-analyze check");
       return new Response(
         JSON.stringify({ 
-          message: "Email submission has no recipient email",
+          message: "No user ID found for report, skipping auto-analyze check",
           success: true,
           autoAnalyze: false
         }),
@@ -154,26 +123,26 @@ serve(async (req) => {
       );
     }
     
-    // Find the investor_pitch_email record
-    const { data: pitchEmail, error: pitchEmailError } = await serviceClient
+    // Get the investor pitch email settings for this user
+    const { data: emailData, error: emailError } = await serviceClient
       .from('investor_pitch_emails')
-      .select('*')
-      .eq('email_address', emailSubmission.to_email)
+      .select('auto_analyze')
+      .eq('user_id', report.user_id)
       .maybeSingle();
       
-    if (pitchEmailError) {
-      console.error("Error fetching investor pitch email:", pitchEmailError);
+    if (emailError) {
+      console.error("Error fetching investor pitch email settings:", emailError);
       return new Response(
-        JSON.stringify({ error: pitchEmailError.message, success: false }),
+        JSON.stringify({ error: emailError.message, success: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
-    if (!pitchEmail) {
-      console.log("No matching investor pitch email found");
+    if (!emailData) {
+      console.log("No investor pitch email settings found for this user");
       return new Response(
         JSON.stringify({ 
-          message: "No matching investor pitch email found",
+          message: "No investor pitch email settings found for this user",
           success: true,
           autoAnalyze: false
         }),
@@ -182,14 +151,14 @@ serve(async (req) => {
     }
     
     // Check auto_analyze setting
-    const autoAnalyze = pitchEmail.auto_analyze || false;
-    console.log(`Email auto_analyze setting: ${autoAnalyze}`);
+    const autoAnalyze = emailData.auto_analyze || false;
+    console.log(`User auto_analyze setting: ${autoAnalyze}`);
     
     if (!autoAnalyze) {
-      console.log("Auto-analyze is disabled for this email, skipping analysis");
+      console.log("Auto-analyze is disabled for this user, skipping analysis");
       return new Response(
         JSON.stringify({ 
-          message: "Auto-analyze is disabled for this email, skipping analysis",
+          message: "Auto-analyze is disabled for this user, skipping analysis",
           success: true,
           autoAnalyze: false
         }),
@@ -202,7 +171,7 @@ serve(async (req) => {
       const { error: updateError } = await serviceClient
         .from('reports')
         .update({ analysis_status: 'pending' })
-        .eq('id', report.id);
+        .eq('id', reportId);
         
       if (updateError) {
         console.error("Error updating report status:", updateError);
@@ -224,7 +193,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
         },
-        body: JSON.stringify({ reportId: report.id })
+        body: JSON.stringify({ reportId })
       });
       
       if (!response.ok) {
@@ -242,7 +211,7 @@ serve(async (req) => {
       
       const analysisResult = await response.json();
       
-      console.log("Analysis initiated successfully:", analysisResult);
+      console.log("Analysis completed successfully:", analysisResult);
       
       return new Response(
         JSON.stringify({ 
