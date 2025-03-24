@@ -237,6 +237,44 @@ export async function uploadReport(file: File, title: string, description: strin
   }
 }
 
+export async function autoAnalyzeEmailSubmission(reportId: string) {
+  try {
+    console.log('Checking if email submission should be auto-analyzed:', reportId);
+    
+    // Call the auto-analyze-email-submission-pdf edge function
+    const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission-pdf', {
+      body: { reportId }
+    });
+    
+    if (error) {
+      console.error('Error invoking auto-analyze-email-submission-pdf function:', error);
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during auto-analyze check";
+      console.error('API returned error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Auto-analyze check result:', data);
+    
+    if (data.autoAnalyze) {
+      toast({
+        id: "auto-analyze-success",
+        title: "Auto-analysis started",
+        description: "Your pitch deck is being automatically analyzed",
+      });
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error checking auto-analyze status:', error);
+    // Don't throw error to prevent blocking other operations
+    return { success: false, autoAnalyze: false };
+  }
+}
+
 export async function analyzeReport(reportId: string) {
   try {
     console.log('Starting analysis for report:', reportId);
