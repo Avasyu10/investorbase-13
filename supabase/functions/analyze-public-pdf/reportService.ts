@@ -50,24 +50,61 @@ export async function getReportData(reportId: string, authHeader: string): Promi
     let storageBucket = 'email_attachments';
     let storagePath = emailSubmission.attachment_url;
     
+    // If the attachment_url already includes the bucket name, extract just the path
+    if (storagePath.includes('email_attachments/')) {
+      storagePath = storagePath.replace('email_attachments/', '');
+    }
+    
     console.log(`Will attempt to download PDF from bucket: ${storageBucket}, path: ${storagePath}`);
     
-    // Download the email attachment
-    const { data: fileData, error: fileError } = await serviceClient.storage
-      .from(storageBucket)
-      .download(storagePath);
+    // Try various combinations of paths
+    let fileData = null;
+    let fileError = null;
+    
+    const pathsToTry = [
+      storagePath,
+      // Try with and without email_attachments prefix
+      storagePath.startsWith('email_attachments/') ? storagePath.replace('email_attachments/', '') : `email_attachments/${storagePath}`,
+      // Just the filename
+      storagePath.includes('/') ? storagePath.split('/').pop() : storagePath
+    ];
+    
+    // Remove duplicates
+    const uniquePaths = [...new Set(pathsToTry)];
+    
+    console.log("Will try the following paths:", uniquePaths);
+    
+    // Try each path until one works
+    for (const path of uniquePaths) {
+      console.log(`Attempting download from ${storageBucket}/${path}`);
       
-    if (fileError) {
-      console.error(`Error downloading from ${storageBucket}/${storagePath}:`, fileError);
-      throw fileError;
+      try {
+        const { data, error } = await serviceClient.storage
+          .from(storageBucket)
+          .download(path);
+          
+        if (!error && data && data.size > 0) {
+          fileData = data;
+          console.log(`Successfully downloaded PDF from ${storageBucket}/${path}, size: ${data.size} bytes`);
+          break;
+        } else if (error) {
+          console.error(`Error downloading from ${storageBucket}/${path}:`, error);
+          fileError = error;
+        } else {
+          console.error(`Downloaded file from ${storageBucket}/${path} is empty or null`);
+        }
+      } catch (e) {
+        console.error(`Exception downloading from ${storageBucket}/${path}:`, e);
+        fileError = e;
+      }
     }
     
-    if (!fileData || fileData.size === 0) {
-      console.error(`Downloaded file from ${storageBucket}/${storagePath} is empty or null`);
-      throw new Error("Downloaded file is empty");
+    if (!fileData) {
+      console.error("All PDF download attempts failed:", fileError);
+      throw new Error(`Error downloading PDF: All attempts failed for email attachment`);
     }
     
-    console.log(`Successfully downloaded PDF from ${storageBucket}/${storagePath}, size: ${fileData.size} bytes`);
+    console.log(`PDF downloaded successfully, size: ${fileData.size} bytes, converting to base64`);
     
     // Convert the file to base64
     const arrayBuffer = await fileData.arrayBuffer();
@@ -181,7 +218,7 @@ export async function getReportData(reportId: string, authHeader: string): Promi
     console.log("Primary download failed, trying alternatives...");
     
     // List of fallback buckets to try
-    const fallbackBuckets = ['public_uploads', 'report_pdfs'];
+    const fallbackBuckets = ['public_uploads', 'report_pdfs', 'email_attachments'];
     
     // Try alternative paths - removing folders or adding 'public/' prefix
     const alternativePaths = [
