@@ -206,6 +206,7 @@ export type Database = {
       investor_pitch_emails: {
         Row: {
           approved_at: string | null
+          auto_analyze: boolean
           created_at: string
           email_address: string | null
           id: string
@@ -216,6 +217,7 @@ export type Database = {
         }
         Insert: {
           approved_at?: string | null
+          auto_analyze?: boolean
           created_at?: string
           email_address?: string | null
           id?: string
@@ -226,6 +228,7 @@ export type Database = {
         }
         Update: {
           approved_at?: string | null
+          auto_analyze?: boolean
           created_at?: string
           email_address?: string | null
           id?: string
