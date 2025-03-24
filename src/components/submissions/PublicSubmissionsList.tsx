@@ -47,6 +47,7 @@ export function PublicSubmissionsList() {
         setIsLoading(true);
         console.log("Fetching public submissions for user:", user.id);
         
+        // Fetch reports that are public submissions and assigned to this user
         const { data: reportData, error: reportError } = await supabase
           .from('reports')
           .select(`
@@ -60,7 +61,7 @@ export function PublicSubmissionsList() {
           `)
           .eq('is_public_submission', true)
           .eq('user_id', user.id)
-          .is('company_id', null)
+          .is('company_id', null)  // Only include reports that haven't been analyzed yet
           .order('created_at', { ascending: false });
           
         if (reportError) {
@@ -70,6 +71,8 @@ export function PublicSubmissionsList() {
         
         console.log("Public submissions from reports:", reportData?.length || 0);
         
+        // Fetch public form submissions with associated report information
+        // We'll use the report relationship to filter out analyzed submissions
         const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -89,6 +92,7 @@ export function PublicSubmissionsList() {
         
         console.log("Public form submissions fetched:", formData?.length || 0);
         
+        // Fetch email submissions for the current user
         const { data: emailData, error: emailError } = await supabase
           .from('email_submissions')
           .select(`
@@ -109,8 +113,9 @@ export function PublicSubmissionsList() {
         
         console.log("Email submissions fetched:", emailData?.length || 0);
         
+        // Transform the report data to public submission format
         const transformedReportData = reportData
-          .filter(report => report.analysis_status !== 'completed' && !report.companies?.id)
+          .filter(report => report.analysis_status !== 'completed' && !report.companies?.id) // Skip analyzed reports
           .map(report => ({
             id: report.id,
             title: report.title,
@@ -127,8 +132,12 @@ export function PublicSubmissionsList() {
           
         console.log("Transformed report data:", transformedReportData.length);
         
+        // Transform the data to filter out submissions that have already been analyzed
         const transformedFormData = formData
           .filter(submission => {
+            // Include submissions where:
+            // 1. Report doesn't exist, or
+            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -150,8 +159,12 @@ export function PublicSubmissionsList() {
           
         console.log("Filtered public form submissions:", transformedFormData.length);
         
+        // Transform email submissions data
         const transformedEmailData = emailData
           .filter(submission => {
+            // Include submissions where:
+            // 1. Report doesn't exist, or
+            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -174,44 +187,23 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
+        // Combine all types of submissions, remove any potential duplicates, and sort by date
+        // Use a Map to ensure we don't have duplicates based on report_id
         const submissionsMap = new Map();
         
-        const getSubmissionKey = (submission: PublicSubmission) => {
-          if (submission.report_id) {
-            return `report:${submission.report_id}`;
-          }
+        [...transformedReportData, ...transformedFormData, ...transformedEmailData].forEach(submission => {
+          // If we have a report_id, use that as the key to prevent duplicates
+          // Otherwise use the submission id
+          const key = submission.report_id || submission.id;
           
-          if (submission.pdf_url) {
-            const filename = submission.pdf_url.includes('/') 
-              ? submission.pdf_url.split('/').pop() 
-              : submission.pdf_url;
-            return `file:${filename}`;
-          }
-          
-          if (submission.source === 'email' && submission.from_email) {
-            return `email:${submission.from_email}:${submission.title}`;
-          }
-          
-          return `${submission.source}:${submission.id}`;
-        };
-        
-        [...transformedEmailData, ...transformedFormData, ...transformedReportData].forEach(submission => {
-          const key = getSubmissionKey(submission);
-          
+          // Only add if not already in map or if the entry is newer
           if (!submissionsMap.has(key) || 
               new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
-            
-            if (submissionsMap.has(key)) {
-              console.log(`Replacing duplicate submission with key ${key}:`, {
-                old: submissionsMap.get(key).source,
-                new: submission.source
-              });
-            }
-            
             submissionsMap.set(key, submission);
           }
         });
         
+        // Convert map back to array and sort
         const combinedSubmissions = Array.from(submissionsMap.values())
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
@@ -252,6 +244,7 @@ export function PublicSubmissionsList() {
       console.log("Report is a public submission");
       console.log("Will use analyze-public-pdf function for analysis");
       
+      // Start the analysis process
       const result = await analyzeReport(submission.report_id);
       
       if (result && result.companyId) {
@@ -260,6 +253,7 @@ export function PublicSubmissionsList() {
           description: "The submission has been successfully analyzed",
         });
         
+        // Redirect to the company page
         navigate(`/company/${result.companyId}`);
       } else {
         throw new Error("Analysis completed but no company ID was returned");
@@ -269,6 +263,7 @@ export function PublicSubmissionsList() {
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
+      // If this is storage related error
       if (errorMessage.includes("Storage") || 
           errorMessage.includes("downloading") || 
           errorMessage.includes("PDF")) {
@@ -278,6 +273,7 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
       }
+      // If this is a network error and we haven't retried too many times, suggest retrying
       else if ((errorMessage.includes("Network error") || 
            errorMessage.includes("Failed to fetch") ||
            errorMessage.includes("Failed to send") ||
@@ -293,12 +289,14 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
       } else if (retryCount >= 2) {
+        // If we've retried multiple times, suggest a different approach
         toast({
           title: "Persistent connection issue",
           description: "We're having trouble connecting to the analysis service. Please try again later or contact support.",
           variant: "destructive",
         });
       } else {
+        // Don't display another error toast if one was already shown in the analyzeReport function
         if (!errorMessage.includes("Network error") && 
             !errorMessage.includes("timed out") &&
             !errorMessage.includes("analysis failed") &&

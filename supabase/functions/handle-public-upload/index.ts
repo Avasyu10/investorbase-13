@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.29.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { decode } from 'https://deno.land/std@0.177.0/encoding/base64.ts';
@@ -101,11 +102,6 @@ serve(async (req) => {
         );
       }
 
-      // Explicitly identify the source
-      const source = formData.get('source') as string || 'public_form';
-      
-      console.log(`Processing ${source} submission with form slug:`, formSlug);
-      
       // Create a unique file name
       const timestamp = Date.now();
       const fileExt = file.name.split('.').pop();
@@ -172,43 +168,6 @@ serve(async (req) => {
       }
       
       console.log("File uploaded successfully:", filePath);
-      
-      // Check if this is a duplicate submission from email
-      // If it's an email submission, we check if there's already a submission with the same file
-      const isEmailSubmission = source === 'email';
-      let existingSubmissionId = null;
-      let existingReportId = null;
-      
-      if (isEmailSubmission) {
-        console.log("This is an email submission, checking for duplicates...");
-        // Check if there's already a submission with the same attachment URL
-        const { data: existingEmail, error: emailError } = await supabase
-          .from('email_submissions')
-          .select('id, report_id, attachment_url')
-          .eq('from_email', email)
-          .eq('attachment_url', fileName)
-          .maybeSingle();
-          
-        if (!emailError && existingEmail) {
-          console.log("Found existing email submission:", existingEmail);
-          existingSubmissionId = existingEmail.id;
-          existingReportId = existingEmail.report_id;
-          
-          // If we've already processed this email attachment, return the existing submission
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: "Email already processed",
-              submissionId: existingSubmissionId,
-              reportId: existingReportId
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200 
-            }
-          );
-        }
-      }
       
       // Create a record in public_form_submissions table
       const { data: submissionData, error: submissionError } = await supabase
@@ -278,21 +237,6 @@ serve(async (req) => {
             console.error("Error updating submission with report ID:", updateError);
           }
           
-          // If this is an email submission, update the email_submissions record
-          if (isEmailSubmission) {
-            const { error: emailUpdateError } = await supabase
-              .from('email_submissions')
-              .update({ report_id: reportId })
-              .eq('from_email', email)
-              .eq('attachment_url', fileName);
-              
-            if (emailUpdateError) {
-              console.error("Error updating email submission with report ID:", emailUpdateError);
-            } else {
-              console.log("Email submission updated with report ID");
-            }
-          }
-          
           // If auto-analyze is enabled, trigger analysis
           if (shouldAutoAnalyze) {
             try {
@@ -328,8 +272,7 @@ serve(async (req) => {
           success: true, 
           message: "Submission received successfully",
           submissionId: submissionData.id,
-          reportId,
-          source // Include source in the response for debugging
+          reportId
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
