@@ -9,17 +9,6 @@ function mapDbCompanyToApi(company: any) {
     ? parseFloat(company.overall_score.toFixed(1))
     : 0;
   
-  // Determine the source based on the pdf_url in the report
-  let source = company.source || 'dashboard';
-  
-  // If report_pdf_url exists and starts with 'email_attachments/', mark as Email
-  if (company.report_pdf_url && company.report_pdf_url.startsWith('email_attachments/')) {
-    source = 'email';
-  } else if (source === 'public_url') {
-    // Keep public_url as is
-    source = 'public_url';
-  }
-  
   return {
     id: company.id,
     name: company.name,
@@ -32,7 +21,7 @@ function mapDbCompanyToApi(company: any) {
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
     perplexityRequestedAt: company.perplexity_requested_at,
-    source: source // Use the determined source
+    source: company.source // Add the source field
   };
 }
 
@@ -91,15 +80,9 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
         console.log('Fetching companies for user:', user.id);
         
         // Query with RLS - this will only return companies the user has access to
-        // Join with reports table to get pdf_url for determining source
         const { data, error, count } = await supabase
           .from('companies')
-          .select(`
-            id, name, overall_score, created_at, updated_at, assessment_points, 
-            report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, 
-            user_id, source, 
-            reports!inner(pdf_url)
-          `, { count: 'exact' })
+          .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id, source', { count: 'exact' })
           .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
           .order(dbSortField, { ascending: sortOrder === 'asc' })
           .range(from, to);
@@ -111,21 +94,13 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
         
         console.log(`Retrieved ${data.length} companies out of ${count} total`);
         
-        // Map the companies data with the pdf_url from reports
-        const mappedCompanies = data.map(item => {
-          return {
-            ...item,
-            report_pdf_url: item.reports ? item.reports.pdf_url : null
-          };
-        });
-        
         // Log the first few companies to help with debugging
-        if (mappedCompanies.length > 0) {
-          console.log('Sample company data with pdf_url:', mappedCompanies[0]);
+        if (data.length > 0) {
+          console.log('Sample company data:', data[0]);
         }
 
         return {
-          companies: mappedCompanies.map(mapDbCompanyToApi),
+          companies: data.map(mapDbCompanyToApi),
           totalCount: count || 0
         };
       } catch (err) {

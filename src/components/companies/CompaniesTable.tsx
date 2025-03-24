@@ -57,17 +57,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
       };
     }
     
-    if (source === 'email') {
-      return {
-        label: "Email",
-        className: "text-sm text-blue-600 font-medium"
-      };
-    }
-    
     // Default to Dashboard (gold color)
     return {
       label: "Dashboard",
-      className: "text-sm text-amber-600 font-medium"
+      className: "text-sm text-gold font-medium"
     };
   };
 
