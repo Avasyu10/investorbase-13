@@ -19,6 +19,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Function triggered, creating Supabase client");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the submission ID from the request
