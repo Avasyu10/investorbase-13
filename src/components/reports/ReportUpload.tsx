@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -168,8 +167,12 @@ export function ReportUpload({
         // Ensure all required fields are included
         formData.append('title', title);
         
-        // Email is required for public submissions unless explicitly hidden
-        if (!hideEmailField) {
+        // Email handling - use a default value when hideEmailField is true
+        if (hideEmailField) {
+          // Use a placeholder email when the field is hidden
+          formData.append('email', 'no-email-required@pitchdeck.com');
+          console.log("Using placeholder email since hideEmailField is true");
+        } else {
           if (!emailForResults) {
             toast.error("Email required", {
               description: "Please provide your email to receive the analysis results"
@@ -178,9 +181,6 @@ export function ReportUpload({
             return;
           }
           formData.append('email', emailForResults);
-        } else {
-          // When email field is hidden, use a placeholder email
-          formData.append('email', 'public-submission@example.com');
         }
         
         console.log("Adding form fields:", { 
@@ -189,7 +189,8 @@ export function ReportUpload({
           websiteUrl: companyWebsite,
           companyStage,
           industry,
-          linkedInProfiles: founderLinkedIns.filter(ln => ln.trim()).length
+          linkedInProfiles: founderLinkedIns.filter(ln => ln.trim()).length,
+          hideEmailField
         });
         
         if (briefIntroduction) {
@@ -539,6 +540,7 @@ export function ReportUpload({
             description="PDF files only, max 10MB"
             buttonText="Select PDF"
             disabled={isProcessing}
+            required={true}
           />
           
           <div className="space-y-3">
