@@ -23,9 +23,18 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the submission ID from the request
-    const { submissionId } = await req.json();
+    let submissionId;
+    try {
+      const requestData = await req.json();
+      submissionId = requestData.submissionId;
+      console.log(`Received request with data:`, requestData);
+    } catch (parseError) {
+      console.error("Error parsing request JSON:", parseError);
+      throw new Error("Invalid request format. Expected JSON with submissionId property.");
+    }
     
     if (!submissionId) {
+      console.error("Missing submission ID in request");
       throw new Error("Email submission ID is required");
     }
 
@@ -39,8 +48,19 @@ serve(async (req) => {
       .single();
 
     if (emailError || !emailSubmission) {
-      throw new Error(`Failed to fetch email submission: ${emailError?.message || "Not found"}`);
+      const errorMessage = emailError?.message || "Not found"; 
+      console.error(`Failed to fetch email submission (ID: ${submissionId}):`, errorMessage);
+      throw new Error(`Failed to fetch email submission: ${errorMessage}`);
     }
+
+    console.log(`Found email submission: ${JSON.stringify({
+      id: emailSubmission.id,
+      from: emailSubmission.from_email,
+      to: emailSubmission.to_email,
+      subject: emailSubmission.subject?.substring(0, 30) || "No subject",
+      hasAttachment: !!emailSubmission.attachment_url,
+      reportId: emailSubmission.report_id
+    })}`);
 
     // Check if this email already has a report associated
     if (emailSubmission.report_id) {
@@ -80,8 +100,11 @@ serve(async (req) => {
       .download(emailSubmission.attachment_url);
 
     if (downloadError || !fileData) {
+      console.error("Failed to download attachment:", downloadError || "File data is empty");
       throw new Error(`Failed to download attachment: ${downloadError?.message || "Not found"}`);
     }
+
+    console.log("Successfully downloaded attachment, creating report");
 
     // Create a title for the report based on the email subject or a default
     const title = emailSubmission.subject 
@@ -110,6 +133,7 @@ serve(async (req) => {
       .single();
 
     if (reportError || !report) {
+      console.error("Failed to create report:", reportError || "No report data returned");
       throw new Error(`Failed to create report: ${reportError?.message || "Unknown error"}`);
     }
 
@@ -123,6 +147,8 @@ serve(async (req) => {
 
     if (updateError) {
       console.error(`Warning: Failed to update email submission with report ID: ${updateError.message}`);
+    } else {
+      console.log(`Successfully updated email submission ${submissionId} with report ID ${report.id}`);
     }
 
     // Check if we should trigger analysis automatically
@@ -150,10 +176,12 @@ serve(async (req) => {
         });
         
         if (analyzeResponse.error) {
-          console.error(`Warning: Auto-analysis failed: ${analyzeResponse.error.message}`);
+          console.error(`Warning: Auto-analysis failed: ${analyzeResponse.error.message || JSON.stringify(analyzeResponse.error)}`);
+        } else {
+          console.log(`Auto-analysis initiated successfully for report ${report.id}`);
         }
       } catch (analyzeError) {
-        console.error(`Warning: Failed to trigger auto-analysis: ${analyzeError.message}`);
+        console.error(`Warning: Failed to trigger auto-analysis:`, analyzeError);
       }
     }
 
@@ -182,4 +210,3 @@ serve(async (req) => {
     );
   }
 });
-
