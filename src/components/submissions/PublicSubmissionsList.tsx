@@ -23,7 +23,7 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "public_form";
   from_email?: string | null;
-  processed?: boolean;
+  processed?: boolean | null;
 }
 
 export function PublicSubmissionsList() {
@@ -99,7 +99,19 @@ export function PublicSubmissionsList() {
         const { data: emailData, error: emailError } = await supabase
           .from('email_submissions')
           .select(`
-            *,
+            id,
+            from_email,
+            to_email,
+            subject,
+            email_body,
+            email_html,
+            has_attachments,
+            attachment_url,
+            received_at,
+            created_at,
+            updated_at,
+            report_id,
+            processed,
             reports:report_id (
               id,
               company_id,

@@ -25,6 +25,7 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "public_form";
   from_email?: string | null;
+  processed?: boolean | null;
 }
 
 interface PublicSubmissionsTableProps {
