@@ -42,15 +42,33 @@ serve(async (req) => {
     try {
       // First try to parse as JSON (for direct API calls)
       requestData = await req.json();
-      console.log("Request data:", JSON.stringify(requestData));
+      console.log("Request data (JSON):", JSON.stringify(requestData));
       submissionId = requestData.submissionId || requestData.id;
-      console.log("Extracted submission ID:", submissionId);
+      console.log("Extracted submission ID from JSON:", submissionId);
     } catch (e) {
       console.log("Error parsing JSON:", e.message);
       // If JSON parsing fails, try to get from URL params (for webhook triggers)
       const url = new URL(req.url);
       submissionId = url.searchParams.get('id');
       console.log("Using URL param ID:", submissionId);
+      
+      // If still no ID, try to read request body as text and log it for debugging
+      if (!submissionId) {
+        try {
+          const bodyText = await req.text();
+          console.log("Request body as text:", bodyText);
+          // Try to parse as JSON in case it's a different format
+          try {
+            const bodyJson = JSON.parse(bodyText);
+            submissionId = bodyJson.submissionId || bodyJson.id;
+            console.log("Extracted submission ID from text body:", submissionId);
+          } catch (parseError) {
+            console.log("Body text is not valid JSON");
+          }
+        } catch (textError) {
+          console.log("Could not read request body as text:", textError.message);
+        }
+      }
     }
     
     // Validate submission ID
