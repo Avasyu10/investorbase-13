@@ -9,6 +9,18 @@ function mapDbCompanyToApi(company: any) {
     ? parseFloat(company.overall_score.toFixed(1))
     : 0;
   
+  // Determine source based on pdf_url location
+  let source = company.source || 'dashboard';
+  
+  // If we have report data with pdf_url, use it to determine the source
+  if (company.report && company.report.pdf_url) {
+    if (company.report.pdf_url.startsWith('email_attachments/')) {
+      source = 'email';
+    } else if (company.source === 'public_url' || company.report.is_public_submission) {
+      source = 'public_url';
+    }
+  }
+  
   return {
     id: company.id,
     name: company.name,
@@ -21,7 +33,7 @@ function mapDbCompanyToApi(company: any) {
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
     perplexityRequestedAt: company.perplexity_requested_at,
-    source: company.source // Add the source field
+    source: source // Set source based on our determination
   };
 }
 
@@ -80,9 +92,15 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
         console.log('Fetching companies for user:', user.id);
         
         // Query with RLS - this will only return companies the user has access to
+        // Also join with reports table to get pdf_url information
         const { data, error, count } = await supabase
           .from('companies')
-          .select('id, name, overall_score, created_at, updated_at, assessment_points, report_id, perplexity_requested_at, perplexity_response, perplexity_prompt, user_id, source', { count: 'exact' })
+          .select(`
+            id, name, overall_score, created_at, updated_at, 
+            assessment_points, report_id, perplexity_requested_at, 
+            perplexity_response, perplexity_prompt, user_id, source,
+            report:report_id (pdf_url, is_public_submission)
+          `, { count: 'exact' })
           .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
           .order(dbSortField, { ascending: sortOrder === 'asc' })
           .range(from, to);

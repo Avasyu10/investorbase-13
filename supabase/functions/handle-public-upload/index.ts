@@ -1,322 +1,239 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.30.0";
 
-// This edge function handles uploads from the public form with no authentication required
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // CORS headers - allow all origins and methods
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    };
+    // Get environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    // Debug: Log request details
-    console.log("Request received:", {
-      method: req.method,
-      url: req.url,
-      headers: Object.fromEntries(req.headers.entries()),
-    });
-
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      console.log("Handling OPTIONS preflight request");
-      return new Response(null, {
-        headers: corsHeaders,
-        status: 204,
-      });
-    }
-
-    // Ensure the request is a POST
-    if (req.method !== 'POST') {
-      console.log(`Method not allowed: ${req.method}`);
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 405,
-      });
-    }
-
-    // Debug: Log environment variables (without sensitive values)
-    console.log("Environment variables available:", {
-      SUPABASE_URL: !!Deno.env.get('SUPABASE_URL'),
-      SUPABASE_SERVICE_ROLE_KEY: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-    });
-
-    // Parse the request body
-    console.log("Parsing form data...");
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string || '';
-    const websiteUrl = formData.get('websiteUrl') as string || '';
-    const formSlug = formData.get('formSlug') as string || '';
-    const companyStage = formData.get('companyStage') as string || '';
-    const industry = formData.get('industry') as string || '';
-    
-    // Parse LinkedIn profiles if present
-    const linkedInProfilesStr = formData.get('linkedInProfiles') as string || '[]';
-    let linkedInProfiles: string[] = [];
-    try {
-      linkedInProfiles = JSON.parse(linkedInProfilesStr);
-    } catch (e) {
-      console.log("Error parsing LinkedIn profiles, using empty array:", e);
-    }
-
-    console.log("Form data parsed:", {
-      hasFile: !!file,
-      fileType: file ? file.type : 'none',
-      fileSize: file ? file.size : 0,
-      title: title || 'none',
-      hasDescription: !!description,
-      hasWebsiteUrl: !!websiteUrl,
-      formSlug: formSlug || 'none',
-      companyStage: companyStage || 'none',
-      industry: industry || 'none',
-      linkedInProfiles: linkedInProfiles.length,
-    });
-
-    if (!title) {
-      console.log("Missing required field: title");
-      return new Response(JSON.stringify({ error: 'Missing required field: title' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-
-    // Create Supabase client without auth - using service role key for admin access
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    }
-    
-    console.log("Creating Supabase client...");
-    // Initialize Supabase client with service role key, disabling token refresh and session persistence
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      },
-      global: {
-        headers: {
-          // Don't include any authorization headers
+      return new Response(
+        JSON.stringify({
+          error: "Missing environment variables",
+          success: false,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
-      }
-    });
+      );
+    }
 
-    // Determine the correct form slug - use the provided one or default to public-pitch-deck
-    let submissionFormId = null;
-    let formOwnerId = null;
-    let autoAnalyze = false;
-    let effectiveFormSlug = formSlug;
+    // Create Supabase client with service role key for admin access
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Parse the multipart form data
+    const formData = await req.formData();
     
-    if (!effectiveFormSlug) {
-      effectiveFormSlug = 'public-pitch-deck';
+    // Basic validation
+    const file = formData.get("file") as File;
+    const title = formData.get("title") as string;
+    const email = formData.get("email") as string;
+    const description = formData.get("description") as string || "";
+    const websiteUrl = formData.get("websiteUrl") as string || "";
+    
+    if (!file || !title || !email) {
+      return new Response(
+        JSON.stringify({
+          error: "Missing required fields: file, title, or email",
+          success: false,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
     
-    console.log("Using form slug for submission:", effectiveFormSlug);
+    console.log(`Processing public upload: "${title}" from ${email}`);
+    console.log(`File: ${file.name}, size: ${file.size} bytes`);
     
-    // Look up the submission form to get the form ID, user_id, and auto_analyze setting
-    const { data: submissionFormData, error: formLookupError } = await supabase
-      .from('public_submission_forms')
-      .select('id, user_id, auto_analyze')
-      .eq('form_slug', effectiveFormSlug)
-      .maybeSingle();
-    
-    if (formLookupError) {
-      console.error('Error looking up form:', formLookupError);
-    } else if (submissionFormData) {
-      submissionFormId = submissionFormData.id;
-      formOwnerId = submissionFormData.user_id; // Store the form owner's user_id
-      autoAnalyze = submissionFormData.auto_analyze || false;
-      console.log("Found existing submission form:", submissionFormId, "for user:", formOwnerId, "auto_analyze:", autoAnalyze);
-    } else {
-      console.log("No form found with slug:", effectiveFormSlug);
+    try {
+      // Check if this email already has an account
+      const { data: existingUsers } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email);
       
-      // If a specific slug was requested but not found, return an error
-      if (formSlug) {
-        return new Response(JSON.stringify({ error: 'Submission form not found' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404,
+      // Determine user ID to associate with the submission
+      let userId;
+      
+      if (existingUsers && existingUsers.length > 0) {
+        // Use existing user's ID
+        userId = existingUsers[0].id;
+        console.log(`Using existing user ID: ${userId}`);
+      } else {
+        // Create a new user for this email
+        const { data: newUser, error: signupError } = await supabase.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: { full_name: email.split('@')[0] }
         });
+        
+        if (signupError) {
+          console.error("Error creating user:", signupError);
+          return new Response(
+            JSON.stringify({
+              error: "Failed to create user account",
+              details: signupError.message,
+              success: false,
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        
+        userId = newUser.user.id;
+        console.log(`Created new user with ID: ${userId}`);
       }
       
-      // For the default case, create a new public form if it doesn't exist
-      const { data: newForm, error: newFormError } = await supabase
-        .from('public_submission_forms')
-        .insert([{
-          form_name: 'Public Pitch Deck Submission',
-          form_slug: 'public-pitch-deck',
-          is_active: true,
-          auto_analyze: false,
-          user_id: '00000000-0000-0000-0000-000000000000' // System user placeholder
-        }])
+      // Create a unique filename with form slug prefix to help identify source
+      const fileExt = file.name.split('.').pop();
+      const timestamp = Date.now();
+      const uniqueFilename = `${timestamp}.${fileExt}`;
+      
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('report_pdfs')
+        .upload(uniqueFilename, file);
+        
+      if (uploadError) {
+        console.error("Error uploading file:", uploadError);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to upload file",
+            details: uploadError.message,
+            success: false,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      console.log(`File uploaded successfully: ${uniqueFilename}`);
+      
+      // Create report record
+      const { data: report, error: reportError } = await supabase
+        .from('reports')
+        .insert({
+          title,
+          description,
+          pdf_url: uniqueFilename,
+          is_public_submission: true,
+          submitter_email: email,
+          user_id: userId,
+          analysis_status: 'pending'
+        })
         .select()
         .single();
         
-      if (newFormError) {
-        console.error('Error creating public submission form:', newFormError);
-      } else if (newForm) {
-        submissionFormId = newForm.id;
-        formOwnerId = newForm.user_id;
-        autoAnalyze = newForm.auto_analyze || false;
-        console.log("Created new public submission form:", submissionFormId, "for user:", formOwnerId, "auto_analyze:", autoAnalyze);
+      if (reportError) {
+        console.error("Error creating report record:", reportError);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to create report record",
+            details: reportError.message,
+            success: false,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
-    }
-
-    // Set the analysis status based on the form's auto_analyze setting
-    const analysisStatus = autoAnalyze ? 'pending' : 'manual_pending';
-    console.log("Setting analysis status to:", analysisStatus);
-
-    // Process the upload - file is now optional
-    let fileName = '';
-    let supplementaryMaterialsUrls: string[] = [];
-    
-    if (file) {
-      console.log("Uploading file...");
-      // Create a unique filename
-      const fileExt = file.name.split('.').pop();
-      fileName = `${effectiveFormSlug}/${Date.now()}.${fileExt}`;
-
-      // Read file as ArrayBuffer
-      const arrayBuffer = await file.arrayBuffer();
-      const fileData = new Uint8Array(arrayBuffer);
-
-      // Upload file to public_uploads bucket
-      const { error: uploadError } = await supabase.storage
-        .from('public_uploads')
-        .upload(fileName, fileData, {
-          contentType: file.type,
-          upsert: true
+      
+      console.log(`Report record created successfully with ID: ${report.id}`);
+      
+      // Store submission details
+      const { error: submissionError } = await supabase
+        .from('public_form_submissions')
+        .insert({
+          title,
+          description,
+          pdf_url: uniqueFilename,
+          website_url: websiteUrl,
+          report_id: report.id
         });
-
-      if (uploadError) {
-        console.error('Error uploading file:', uploadError);
-        return new Response(JSON.stringify({ error: 'Failed to upload file', details: uploadError.message }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        
+      if (submissionError) {
+        console.error("Error recording submission details:", submissionError);
+        // Non-critical error, continue
+      }
+      
+      // Check if we should start analysis automatically - in this case we always do
+      try {
+        console.log("Starting automatic analysis for report:", report.id);
+        
+        await fetch(`${supabaseUrl}/functions/v1/analyze-pdf`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            reportId: report.id
+          })
+        });
+        
+        console.log("Analysis process initiated");
+      } catch (analysisError) {
+        console.error("Error initiating analysis:", analysisError);
+        // Non-critical error, continue
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          reportId: report.id,
+          message: "Thank you for your submission! Your pitch deck is being analyzed."
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      console.error("Error processing submission:", error);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to process submission",
+          details: error instanceof Error ? error.message : String(error),
+          success: false,
+        }),
+        {
           status: 500,
-        });
-      }
-
-      console.log("File uploaded successfully to path:", fileName);
-    } else {
-      console.log("No file provided - proceeding without file upload");
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
-
-    // Build enhanced description with additional context if website URL was provided
-    let enhancedDescription = description;
-    if (websiteUrl) {
-      enhancedDescription += `\nCompany Website: ${websiteUrl}`;
-    }
-    if (companyStage) {
-      enhancedDescription += `\nCompany Stage: ${companyStage}`;
-    }
-    if (industry) {
-      enhancedDescription += `\nIndustry: ${industry}`;
-    }
-
-    // Insert record in the reports table without any auth checks
-    // Now including the form owner's user_id
-    console.log("Inserting record to reports table with form owner's user_id:", formOwnerId);
-    const { data: report, error: insertError } = await supabase
-      .from('reports')
-      .insert([{
-        title,
-        description: enhancedDescription,
-        pdf_url: fileName || null, // Use null if no file was uploaded
-        is_public_submission: true,
-        submission_form_id: submissionFormId,
-        analysis_status: analysisStatus,
-        user_id: formOwnerId // Set the user_id to the form owner's ID
-      }])
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Error inserting report record:', insertError);
-      return new Response(JSON.stringify({ error: 'Failed to create record', details: insertError.message }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return new Response(
+      JSON.stringify({
+        error: "An unexpected error occurred",
+        details: error instanceof Error ? error.message : String(error),
+        success: false,
+      }),
+      {
         status: 500,
-      });
-    }
-
-    console.log("Report record inserted successfully:", { reportId: report.id, analysisStatus, ownerId: formOwnerId });
-    
-    // Also insert into our new public_form_submissions table
-    console.log("Inserting record to public_form_submissions table...");
-    const { data: submission, error: submissionError } = await supabase
-      .from('public_form_submissions')
-      .insert([{
-        form_slug: effectiveFormSlug,
-        title,
-        description,
-        website_url: websiteUrl || null,
-        pdf_url: fileName || null,
-        founder_linkedin_profiles: linkedInProfiles,
-        company_stage: companyStage || null,
-        industry: industry || null,
-        supplementary_materials_urls: supplementaryMaterialsUrls,
-        report_id: report.id
-      }])
-      .select()
-      .single();
-      
-    if (submissionError) {
-      console.error('Error inserting submission record:', submissionError);
-      // Non-blocking error - we already have the data in the reports table
-      // so we can continue without failing the request
-    } else {
-      console.log("Submission record inserted successfully:", { submissionId: submission.id });
-    }
-
-  // After successfully creating the report record, trigger auto-analyze check
-  try {
-    if (submissionFormId && autoAnalyze) {
-      console.log("Form has auto_analyze enabled, triggering immediate analysis");
-      
-      // Call the auto-analyze-public-pdf function
-      const autoAnalyzeResponse = await fetch(`${supabaseUrl}/functions/v1/auto-analyze-public-pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`
-        },
-        body: JSON.stringify({ reportId: report.id })
-      });
-      
-      if (!autoAnalyzeResponse.ok) {
-        console.warn(`Auto-analyze request failed with status: ${autoAnalyzeResponse.status}`);
-        // Non-blocking, continue with the response
-      } else {
-        console.log("Auto-analyze triggered successfully");
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    } else {
-      console.log("Form has auto_analyze disabled, skipping immediate analysis");
-    }
-  } catch (autoAnalyzeError) {
-    console.error("Error triggering auto-analyze:", autoAnalyzeError);
-    // Non-blocking, continue with the response
-  }
-
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'Submission received successfully',
-      reportId: report.id,
-      autoAnalyze
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-  } catch (err) {
-    console.error('General error:', err);
-    return new Response(JSON.stringify({ error: 'An unexpected error occurred', details: err.message }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      status: 500,
-    });
+    );
   }
 });

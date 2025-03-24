@@ -50,6 +50,12 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
 
   // Helper to get source info with appropriate styling
   const getSourceInfo = (source: string | undefined) => {
+    if (source === 'email') {
+      return {
+        label: "Email",
+        className: "text-sm text-blue-600 font-medium"
+      };
+    }
     if (source === 'public_url') {
       return {
         label: "Public URL",
