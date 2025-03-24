@@ -92,20 +92,46 @@ serve(async (req) => {
     
     console.log("Found email submission:", JSON.stringify(emailSubmission));
     
-    // Check if this is a new addition to email_submissions
-    const { data: recentSubmissions, error: recentError } = await serviceClient
+    // Check if this is a new addition to email_submissions by looking at created_at timestamp
+    // Get all submissions with the same report_id
+    const { data: existingSubmissions, error: existingError } = await serviceClient
       .from('email_submissions')
-      .select('id')
+      .select('id, created_at')
       .eq('report_id', emailSubmission.report_id)
-      .order('created_at', { ascending: false })
-      .limit(2);
+      .order('created_at', { ascending: false });
       
-    if (recentError) {
-      console.error("Error checking recent submissions:", recentError);
+    if (existingError) {
+      console.error("Error checking existing submissions:", existingError);
       // Non-blocking, continue with analysis
-    } else if (recentSubmissions && recentSubmissions.length === 1) {
-      // If there's only one record with this report_id, it means this is a new addition
-      console.log("database updated"); // Only print this when it's a new email submission
+    } else {
+      // Find the current submission in the list
+      const currentSubmissionIndex = existingSubmissions.findIndex(
+        submission => submission.id === submissionId
+      );
+      
+      if (currentSubmissionIndex === 0 && existingSubmissions.length >= 1) {
+        // This is the most recent submission for this report_id
+        console.log("This is the most recent submission for report_id:", emailSubmission.report_id);
+        
+        if (existingSubmissions.length === 1) {
+          // If this is the only submission for this report_id
+          console.log("database updated"); // First submission for this report
+        } else {
+          // If this is a new submission but not the first
+          const currentTimestamp = new Date(emailSubmission.created_at).getTime();
+          const previousTimestamp = new Date(existingSubmissions[1].created_at).getTime();
+          const timeDiff = currentTimestamp - previousTimestamp;
+          
+          // If created within the last hour, consider it a database update
+          if (timeDiff < 3600000) { // 1 hour in milliseconds
+            console.log("database updated"); // Recent submission for this report
+          } else {
+            console.log("Not a recent submission, skipping database updated log");
+          }
+        }
+      } else {
+        console.log("This is not the most recent submission, skipping database updated log");
+      }
     }
     
     // No attachment or no report ID means nothing to analyze
