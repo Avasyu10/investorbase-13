@@ -142,7 +142,7 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
-          'apikey': supabase.supabaseKey
+          'apikey': supabase.supabaseUrl.split('//')[1].split('.')[0]
         },
         body: JSON.stringify({ company_id: companyId, user_id: userId })
       });

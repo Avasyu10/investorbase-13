@@ -37,11 +37,44 @@ serve(async (req) => {
       );
     }
 
+    // First check if analysis already exists in the database
+    const authHeader = req.headers.get('Authorization');
+    
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header is required' }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      );
+    }
+    
+    const existingAnalysisResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis?company_id=eq.${company_id}&user_id=eq.${user_id}`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY,
+      }
+    });
+    
+    const existingAnalysis = await existingAnalysisResponse.json();
+    
+    if (existingAnalysis && existingAnalysis.length > 0) {
+      // Return existing analysis
+      return new Response(
+        JSON.stringify({ analysis: existingAnalysis[0].analysis_text }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
     // Fetch the fund thesis and pitch deck documents
     const fundThesisResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
@@ -54,7 +87,7 @@ serve(async (req) => {
     const pitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
@@ -85,9 +118,12 @@ serve(async (req) => {
             parts: [
               {
                 text: `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
-                Provide a detailed assessment focusing on key alignment points, potential synergies, and any notable discrepancies.
-                Your response should be structured and actionable.
-
+                Provide your analysis in exactly the following format with these three sections ONLY:
+                
+                1. Overall Summary - A concise evaluation of the overall alignment
+                2. Key Similarities - The main points where the pitch deck aligns with the fund thesis
+                3. Key Differences - The main areas where the pitch deck diverges from the fund thesis
+                
                 Fund Thesis PDF Content:
                 ${fundThesisBase64}
 
@@ -120,7 +156,8 @@ serve(async (req) => {
     const supabaseStoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },
