@@ -110,8 +110,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       console.log("Record ID being updated:", recordId);
       
       const { data, error } = await supabase.rpc('update_investor_pitch_email_setting', {
-        auto_analyze_value: newValue,
-        record_id: recordId
+        record_id: recordId,
+        auto_analyze_value: newValue
       });
       
       console.log("Update response:", data);
