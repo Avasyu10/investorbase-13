@@ -162,6 +162,41 @@ export type Database = {
           },
         ]
       }
+      fund_thesis_analysis: {
+        Row: {
+          analysis_text: string
+          company_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_text: string
+          company_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_text?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fund_thesis_analysis_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investor_pitch_emails: {
         Row: {
           approved_at: string | null
