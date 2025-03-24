@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,7 +21,6 @@ export default function ProfileSetup() {
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<{
     full_name: string;
-    title: string;
   } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -33,7 +33,7 @@ export default function ProfileSetup() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("full_name, title")
+          .select("full_name")
           .eq("id", user.id)
           .single();
 
@@ -47,7 +47,6 @@ export default function ProfileSetup() {
         } else if (data) {
           setProfileData({
             full_name: data.full_name || "",
-            title: data.title || "",
           });
         }
       } finally {
@@ -58,7 +57,7 @@ export default function ProfileSetup() {
     fetchProfile();
   }, [user, toast]);
 
-  const handleSubmit = async (data: { full_name: string; title: string }) => {
+  const handleSubmit = async (data: { full_name: string; }) => {
     setIsLoading(true);
     try {
       if (!user) {
@@ -68,8 +67,7 @@ export default function ProfileSetup() {
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
         full_name: data.full_name,
-        title: data.title,
-        updated_at: new Date(),
+        updated_at: new Date().toISOString(), // Convert Date to string
       });
 
       if (error) {
