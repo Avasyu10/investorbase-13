@@ -104,13 +104,49 @@ serve(async (req) => {
 
     // Try to download the attachment from storage
     try {
+      // First check if the bucket exists and is accessible
+      const { data: buckets, error: bucketsError } = await supabase.storage
+        .listBuckets();
+        
+      if (bucketsError) {
+        console.error("Failed to list storage buckets:", bucketsError);
+      } else {
+        console.log("Available storage buckets:", buckets.map(b => b.name));
+      }
+
+      // Check if attachment_url has a proper format
+      if (!emailSubmission.attachment_url || emailSubmission.attachment_url.trim() === '') {
+        throw new Error("Attachment URL is empty or invalid");
+      }
+      
+      console.log(`Full attachment path: email_attachments/${emailSubmission.attachment_url}`);
+      
+      // Attempt to list files in the directory to verify access
+      const { data: filesList, error: listError } = await supabase.storage
+        .from("email_attachments")
+        .list();
+        
+      if (listError) {
+        console.error("Failed to list files in email_attachments bucket:", listError);
+      } else {
+        console.log("Files in email_attachments bucket:", filesList.map(f => f.name));
+      }
+
+      // Try to download the attachment file directly
       const { data: fileData, error: downloadError } = await supabase.storage
         .from("email_attachments")
         .download(emailSubmission.attachment_url);
 
       if (downloadError) {
         console.error("Failed to download attachment:", downloadError);
-        throw new Error(`Failed to download attachment: ${downloadError.message}`);
+        console.error("Download error details:", JSON.stringify(downloadError));
+        
+        // Check if this is a path issue
+        if (downloadError.message?.includes("not found") || downloadError.status === 404) {
+          throw new Error(`Attachment file not found at path: ${emailSubmission.attachment_url}`);
+        }
+        
+        throw new Error(`Failed to download attachment: ${JSON.stringify(downloadError)}`);
       }
 
       if (!fileData || fileData.size === 0) {
@@ -219,10 +255,34 @@ serve(async (req) => {
       );
     } catch (storageError) {
       console.error("Storage operation failed:", storageError);
+      
+      // More detailed error message based on the type of error
+      let errorMessage = "Failed to download attachment";
+      
+      if (storageError instanceof Error) {
+        errorMessage = storageError.message;
+        
+        // Add more details depending on the specific error
+        if (storageError.name === "StorageUnknownError") {
+          console.error("Storage error details:", JSON.stringify(storageError));
+          
+          // Try to get response data if available
+          try {
+            const responseData = await (storageError as any).originalError?.json();
+            if (responseData) {
+              console.error("Storage error response:", JSON.stringify(responseData));
+              errorMessage += `: ${JSON.stringify(responseData)}`;
+            }
+          } catch (e) {
+            console.error("Could not parse storage error response");
+          }
+        }
+      }
+      
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Failed to download attachment: ${storageError instanceof Error ? storageError.message : JSON.stringify(storageError)}`
+          error: errorMessage
         }),
         {
           status: 500,
