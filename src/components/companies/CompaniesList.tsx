@@ -46,16 +46,10 @@ const getSortOrder = (option: SortOption): 'asc' | 'desc' => {
 
 // Helper to get source info with appropriate styling
 const getSourceInfo = (source: string | undefined) => {
-  if (source === 'public_form') {
+  if (source === 'public_url') {
     return {
       label: "Public URL",
       className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-    };
-  }
-  if (source === 'email') {
-    return {
-      label: "Email",
-      className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
     };
   }
   
