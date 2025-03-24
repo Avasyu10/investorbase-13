@@ -36,10 +36,12 @@ serve(async (req) => {
       // First try to parse as JSON (for direct API calls)
       const reqData = await req.json();
       submissionId = reqData.submissionId || reqData.id;
+      console.log("Received request with data:", JSON.stringify(reqData));
     } catch (e) {
       // If JSON parsing fails, try to get from URL params (for webhook triggers)
       const url = new URL(req.url);
       submissionId = url.searchParams.get('id');
+      console.log("Parsing JSON failed, using URL params:", submissionId);
     }
     
     // Validate submission ID
@@ -51,19 +53,6 @@ serve(async (req) => {
       );
     }
     
-    // UUID validation
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(submissionId)) {
-      console.error(`Invalid submission ID format: "${submissionId}"`);
-      return new Response(
-        JSON.stringify({ 
-          error: `Invalid submission ID format. Expected a UUID, got: ${submissionId}`,
-          success: false 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
     console.log(`Processing email submission ${submissionId} for auto-analysis check`);
     
     // Create a service client for direct database access
@@ -91,6 +80,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
+    
+    console.log("Found email submission:", JSON.stringify(emailSubmission));
     
     // No attachment or no report ID means nothing to analyze
     if (!emailSubmission.attachment_url || !emailSubmission.report_id) {
@@ -127,6 +118,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
+    
+    console.log("Found associated report:", JSON.stringify(report));
     
     // Already analyzed or processing
     if (report.analysis_status !== 'manual_pending' && report.analysis_status !== 'pending') {
