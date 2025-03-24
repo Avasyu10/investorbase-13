@@ -1,6 +1,6 @@
 
 import { ElementType } from "react";
-import { Home, BarChartBig, Upload, User, Gem } from "lucide-react";
+import { Home, BarChartBig, Upload, User } from "lucide-react";
 
 export type RouteConfig = {
   path: string;
@@ -14,8 +14,8 @@ export type RouteConfig = {
 export const routes: RouteConfig[] = [
   {
     path: "/",
-    label: "InvestorBase",
-    icon: Gem,
+    label: "Home",
+    icon: Home,
   },
   {
     path: "/dashboard",
