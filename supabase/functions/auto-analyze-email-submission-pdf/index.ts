@@ -10,9 +10,12 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Received OPTIONS request, sending CORS headers");
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("Received request to auto-analyze-email-submission-pdf");
+  
   try {
     // Check environment variables
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -59,6 +62,7 @@ serve(async (req) => {
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
     // Get the email submission record
+    console.log("Fetching email submission from database...");
     const { data: emailSubmission, error: emailError } = await serviceClient
       .from('email_submissions')
       .select('*')
@@ -97,6 +101,7 @@ serve(async (req) => {
     }
     
     // Get the report associated with this email submission
+    console.log(`Fetching report with ID ${emailSubmission.report_id}...`);
     const { data: report, error: reportError } = await serviceClient
       .from('reports')
       .select('*')
@@ -148,6 +153,7 @@ serve(async (req) => {
     }
     
     // Find the investor_pitch_email record
+    console.log(`Looking for investor pitch email with address: ${emailSubmission.to_email}`);
     const { data: pitchEmail, error: pitchEmailError } = await serviceClient
       .from('investor_pitch_emails')
       .select('*')
@@ -192,6 +198,7 @@ serve(async (req) => {
     
     // Update status to pending if it was manual_pending
     if (report.analysis_status === 'manual_pending') {
+      console.log("Updating report status from manual_pending to pending");
       const { error: updateError } = await serviceClient
         .from('reports')
         .update({ analysis_status: 'pending' })
@@ -201,12 +208,12 @@ serve(async (req) => {
         console.error("Error updating report status:", updateError);
         // Non-blocking, continue with analysis
       } else {
-        console.log("Updated report status from manual_pending to pending");
+        console.log("Successfully updated report status");
       }
     }
     
     // Proceed with analysis - call the analyze-pdf function
-    console.log("Calling analyze-pdf function");
+    console.log("Calling analyze-pdf function with report ID:", report.id);
     
     // Call the analyze-pdf function with the report ID
     // Use anon key since we're running this as a service
