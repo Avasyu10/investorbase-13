@@ -1,5 +1,5 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
 
 // Types for our database
@@ -13,13 +13,11 @@ export type Report = {
   company_id?: string;
   analysis_status: string;
   analysis_error?: string;
-  parsedSegments?: ParsedPdfSegment[];
   is_public_submission?: boolean;
   submission_form_id?: string;
 };
 
 // Functions to interact with Supabase
-
 export async function getReports() {
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -130,17 +128,43 @@ export async function downloadReport(fileUrl: string, userId?: string) {
   }
   
   try {
-    // Step 1: Check if this is a path from the email_attachments bucket
-    if (fileUrl.startsWith('email_attachments/')) {
-      console.log('Trying to download from email_attachments bucket');
+    // First check if this is from an email submission by querying the database
+    const { data: emailSubmission } = await supabase
+      .from('email_submissions')
+      .select('attachment_url')
+      .eq('attachment_url', fileUrl)
+      .maybeSingle();
+      
+    if (emailSubmission) {
+      console.log('This file is from an email submission with attachment URL:', emailSubmission.attachment_url);
+    }
+    
+    // Step 1: If the URL starts with email_attachments, try to download from that bucket first
+    if (fileUrl.includes('email_attachments') || emailSubmission) {
+      const attachmentPath = emailSubmission?.attachment_url || fileUrl;
+      console.log('Trying to download from email_attachments bucket with path:', attachmentPath);
+      
       try {
         const { data, error } = await supabase.storage
           .from('email_attachments')
-          .download(fileUrl);
+          .download(attachmentPath);
           
         if (!error && data) {
           console.log('Successfully downloaded from email_attachments bucket');
           return data;
+        } else {
+          console.log('Failed to download from email_attachments with path, trying without folder:', attachmentPath);
+          
+          // Try with just the filename (without folders)
+          const filename = attachmentPath.split('/').pop();
+          const { data: altData, error: altError } = await supabase.storage
+            .from('email_attachments')
+            .download(filename || attachmentPath);
+            
+          if (!altError && altData) {
+            console.log('Successfully downloaded from email_attachments with just filename');
+            return altData;
+          }
         }
       } catch (emailError) {
         console.log('Error downloading from email_attachments:', emailError);
@@ -151,10 +175,11 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     try {
       let fullPath = fileUrl;
       // If userId is provided and the file doesn't start with the userId, add it
-      if (userId && !fileUrl.startsWith(`${userId}/`) && !fileUrl.startsWith('email_attachments/')) {
+      if (userId && !fileUrl.startsWith(`${userId}/`) && !fileUrl.includes('email_attachments')) {
         fullPath = `${userId}/${fileUrl}`;
       }
       
+      console.log('Trying report_pdfs bucket with path:', fullPath);
       const { data, error } = await supabase.storage
         .from('report_pdfs')
         .download(fullPath);
@@ -172,6 +197,7 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     const simpleFileName = parts[parts.length - 1];
     
     try {
+      console.log('Trying report_pdfs bucket with simple filename:', simpleFileName);
       const { data: fallbackData, error: fallbackError } = await supabase.storage
         .from('report_pdfs')
         .download(simpleFileName);
@@ -187,6 +213,7 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     // Step 4: One last attempt with public_uploads bucket
     if (fileUrl.includes('/')) {
       try {
+        console.log('Trying public_uploads bucket with path:', fileUrl);
         const { data: publicData, error: publicError } = await supabase.storage
           .from('public_uploads')
           .download(fileUrl);
@@ -197,6 +224,25 @@ export async function downloadReport(fileUrl: string, userId?: string) {
         }
       } catch (publicError) {
         console.error('Error with public_uploads path:', publicError);
+      }
+    }
+    
+    // Step 5: Final attempt - check if this is from an email submission
+    const { data: emailData } = await supabase
+      .from('email_submissions')
+      .select('attachment_url')
+      .filter('attachment_url', 'ilike', `%${simpleFileName}%`)
+      .maybeSingle();
+      
+    if (emailData?.attachment_url) {
+      console.log('Found matching email attachment:', emailData.attachment_url);
+      const { data: emailAttachment, error: emailError } = await supabase.storage
+        .from('email_attachments')
+        .download(emailData.attachment_url);
+        
+      if (!emailError && emailAttachment) {
+        console.log('Successfully downloaded from email_attachments after lookup');
+        return emailAttachment;
       }
     }
     

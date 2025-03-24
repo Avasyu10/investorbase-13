@@ -45,20 +45,43 @@ export async function getReportData(reportId: string) {
     const attachmentPath = report.email_submissions.attachment_url;
     console.log(`Downloading email attachment from: ${attachmentPath}`);
     
-    const { data, error } = await serviceClient.storage
-      .from('email_attachments')
-      .download(attachmentPath);
-      
-    if (error) {
-      console.error('Error downloading email attachment:', error);
+    try {
+      const { data, error } = await serviceClient.storage
+        .from('email_attachments')
+        .download(attachmentPath);
+        
+      if (error) {
+        console.error('Error downloading email attachment:', error);
+        
+        // Try with just the filename if the full path fails
+        const filename = attachmentPath.split('/').pop() || '';
+        console.log(`Trying with just filename: ${filename}`);
+        
+        const { data: altData, error: altError } = await serviceClient.storage
+          .from('email_attachments')
+          .download(filename);
+          
+        if (altError) {
+          console.error('Error downloading email attachment with alternate path:', altError);
+          throw error; // Throw original error if both attempts fail
+        }
+        
+        if (!altData) {
+          throw new Error('Email attachment not found with alternate path');
+        }
+        
+        fileData = altData;
+      } else {
+        if (!data) {
+          throw new Error('Email attachment not found');
+        }
+        
+        fileData = data;
+      }
+    } catch (error) {
+      console.error('Failed to download email attachment:', error);
       throw error;
     }
-    
-    if (!data) {
-      throw new Error('Email attachment not found');
-    }
-    
-    fileData = data;
   } else {
     // Handle regular uploads
     let storagePath = report.pdf_url;
@@ -71,37 +94,42 @@ export async function getReportData(reportId: string) {
     
     console.log(`Downloading PDF from report_pdfs: ${storagePath}`);
     
-    const { data, error } = await serviceClient.storage
-      .from('report_pdfs')
-      .download(storagePath);
-      
-    if (error) {
-      console.error('Error downloading PDF:', error);
-      
-      // Try alternative path without user ID prefix
-      console.log('Trying alternative path without user ID prefix');
-      const altPath = report.pdf_url.split('/').pop() || report.pdf_url;
-      
-      const { data: altData, error: altError } = await serviceClient.storage
+    try {
+      const { data, error } = await serviceClient.storage
         .from('report_pdfs')
-        .download(altPath);
+        .download(storagePath);
         
-      if (altError) {
-        console.error('Error downloading PDF with alternative path:', altError);
-        throw error; // Throw the original error
+      if (error) {
+        console.error('Error downloading PDF:', error);
+        
+        // Try alternative path without user ID prefix
+        console.log('Trying alternative path without user ID prefix');
+        const altPath = report.pdf_url.split('/').pop() || report.pdf_url;
+        
+        const { data: altData, error: altError } = await serviceClient.storage
+          .from('report_pdfs')
+          .download(altPath);
+          
+        if (altError) {
+          console.error('Error downloading PDF with alternative path:', altError);
+          throw error; // Throw the original error
+        }
+        
+        if (!altData) {
+          throw new Error('PDF not found with alternative path');
+        }
+        
+        fileData = altData;
+      } else {
+        if (!data) {
+          throw new Error('PDF not found');
+        }
+        
+        fileData = data;
       }
-      
-      if (!altData) {
-        throw new Error('PDF not found with alternative path');
-      }
-      
-      fileData = altData;
-    } else {
-      if (!data) {
-        throw new Error('PDF not found');
-      }
-      
-      fileData = data;
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+      throw error;
     }
   }
   
