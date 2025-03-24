@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +48,6 @@ export function PublicSubmissionsList() {
         console.log("Fetching public submissions for user:", user.id);
         
         // Fetch reports that are public submissions and assigned to this user
-        // Specify the exact relationship to use with !reports_company_id_fkey
         const { data: reportData, error: reportError } = await supabase
           .from('reports')
           .select(`
@@ -73,7 +71,8 @@ export function PublicSubmissionsList() {
         
         console.log("Public submissions from reports:", reportData?.length || 0);
         
-        // Fetch public form submissions
+        // Fetch public form submissions with associated report information
+        // We'll use the report relationship to filter out analyzed submissions
         const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -116,7 +115,7 @@ export function PublicSubmissionsList() {
         
         // Transform the report data to public submission format
         const transformedReportData = reportData
-          .filter(report => report.analysis_status !== 'completed') // Skip analyzed reports
+          .filter(report => report.analysis_status !== 'completed' && !report.companies?.id) // Skip analyzed reports
           .map(report => ({
             id: report.id,
             title: report.title,
@@ -137,8 +136,8 @@ export function PublicSubmissionsList() {
         const transformedFormData = formData
           .filter(submission => {
             // Include submissions where:
-            // 1. Either report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet
+            // 1. Report doesn't exist, or
+            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -164,8 +163,8 @@ export function PublicSubmissionsList() {
         const transformedEmailData = emailData
           .filter(submission => {
             // Include submissions where:
-            // 1. Either report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet
+            // 1. Report doesn't exist, or
+            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -188,11 +187,27 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Combine all types of submissions and sort by date
-        const combinedSubmissions = [...transformedReportData, ...transformedFormData, ...transformedEmailData]
+        // Combine all types of submissions, remove any potential duplicates, and sort by date
+        // Use a Map to ensure we don't have duplicates based on report_id
+        const submissionsMap = new Map();
+        
+        [...transformedReportData, ...transformedFormData, ...transformedEmailData].forEach(submission => {
+          // If we have a report_id, use that as the key to prevent duplicates
+          // Otherwise use the submission id
+          const key = submission.report_id || submission.id;
+          
+          // Only add if not already in map or if the entry is newer
+          if (!submissionsMap.has(key) || 
+              new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
+            submissionsMap.set(key, submission);
+          }
+        });
+        
+        // Convert map back to array and sort
+        const combinedSubmissions = Array.from(submissionsMap.values())
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
-        console.log("Combined submissions:", combinedSubmissions.length);
+        console.log("Combined submissions after deduplication:", combinedSubmissions.length);
         setSubmissions(combinedSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);

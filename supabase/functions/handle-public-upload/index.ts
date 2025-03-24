@@ -138,6 +138,7 @@ serve(async (req) => {
         }
       }
       
+      // Create the proper file path structure
       const filePath = `${storageUserId}/${fileName}`;
       
       // Convert file data to buffer for storage
@@ -175,7 +176,7 @@ serve(async (req) => {
           title,
           description,
           website_url: websiteUrl,
-          pdf_url: fileName,
+          pdf_url: filePath, // Store the full path to retrieve the file correctly
           form_slug: formSlug, // Save the form slug to the database
           company_stage: companyStage,
           industry,
@@ -211,7 +212,7 @@ serve(async (req) => {
           .insert({
             title,
             description,
-            pdf_url: fileName,
+            pdf_url: filePath, // Use the full path here as well
             user_id: formOwnerId,
             is_public_submission: true,
             submitter_email: email,
