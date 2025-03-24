@@ -105,15 +105,19 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       
       const newValue = !autoAnalyze;
       
+      console.log("Updating auto_analyze to:", newValue);
+      
       const { error } = await supabase
         .from('investor_pitch_emails')
         .update({ auto_analyze: newValue })
         .eq('user_id', user.id);
         
       if (error) {
+        console.error("Error updating auto_analyze:", error);
         throw error;
       }
       
+      console.log("Auto-analyze updated successfully");
       setAutoAnalyze(newValue);
       
       toast({
@@ -123,6 +127,7 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
           : "You'll need to manually analyze pitch decks received via email",
       });
     } catch (error: any) {
+      console.error("Error in toggleAutoAnalyze:", error);
       toast({
         title: "Error updating setting",
         description: error.message,
