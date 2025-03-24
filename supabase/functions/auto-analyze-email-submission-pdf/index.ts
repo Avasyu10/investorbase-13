@@ -38,6 +38,7 @@ serve(async (req) => {
     // Parse request data - can be from a webhook or direct call
     let submissionId;
     let requestData;
+    
     try {
       // First try to parse as JSON (for direct API calls)
       requestData = await req.json();
@@ -274,20 +275,36 @@ serve(async (req) => {
         body: JSON.stringify({ reportId: report.id })
       });
       
+      console.log("analyze-pdf response status:", response.status);
+      const responseText = await response.text();
+      console.log("analyze-pdf response body:", responseText);
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error from analyze-pdf: ${response.status} - ${errorText}`);
+        console.error(`Error from analyze-pdf: ${response.status} - ${responseText}`);
         return new Response(
           JSON.stringify({ 
             error: `Error from analyze-pdf: ${response.status}`,
-            details: errorText,
+            details: responseText,
             success: false
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
         );
       }
       
-      const analysisResult = await response.json();
+      let analysisResult;
+      try {
+        analysisResult = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Error parsing analyze-pdf response:", parseError);
+        return new Response(
+          JSON.stringify({
+            error: "Error parsing analyze-pdf response",
+            details: responseText,
+            success: false
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
+        );
+      }
       
       console.log("Analysis initiated successfully:", analysisResult);
       
