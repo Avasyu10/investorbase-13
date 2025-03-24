@@ -74,31 +74,76 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the fund thesis and pitch deck documents
-    const fundThesisResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
-      method: 'POST',
+    // Fetch the fund thesis document directly from storage
+    console.log('Fetching fund thesis for user:', user_id);
+    const fundThesisResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/public/vc_documents/${user_id}/fund_thesis`, {
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        action: 'download', 
-        userId: user_id,
-        documentType: 'fund_thesis' 
-      })
+        'apikey': SUPABASE_ANON_KEY
+      }
     });
 
-    const pitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
-      method: 'POST',
+    if (!fundThesisResponse.ok) {
+      console.error('Error fetching fund thesis:', await fundThesisResponse.text());
+      throw new Error(`Failed to fetch fund thesis: ${fundThesisResponse.status}`);
+    }
+
+    // Get the company's pitch deck from the storage
+    console.log('Fetching pitch deck for company:', company_id);
+    
+    // First get the company details to find the report_id
+    const companyResponse = await fetch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${company_id}&select=report_id`, {
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        action: 'download', 
-        companyId: company_id 
-      })
+        'apikey': SUPABASE_ANON_KEY
+      }
     });
+    
+    if (!companyResponse.ok) {
+      console.error('Error fetching company details:', await companyResponse.text());
+      throw new Error(`Failed to fetch company details: ${companyResponse.status}`);
+    }
+    
+    const companyData = await companyResponse.json();
+    if (!companyData || companyData.length === 0 || !companyData[0].report_id) {
+      throw new Error('Company report not found');
+    }
+    
+    const reportId = companyData[0].report_id;
+    
+    // Now get the report to find the PDF URL
+    const reportResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?id=eq.${reportId}&select=pdf_url,user_id`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY
+      }
+    });
+    
+    if (!reportResponse.ok) {
+      console.error('Error fetching report details:', await reportResponse.text());
+      throw new Error(`Failed to fetch report details: ${reportResponse.status}`);
+    }
+    
+    const reportData = await reportResponse.json();
+    if (!reportData || reportData.length === 0 || !reportData[0].pdf_url || !reportData[0].user_id) {
+      throw new Error('Report PDF not found');
+    }
+    
+    const pdfUrl = reportData[0].pdf_url;
+    const reportUserId = reportData[0].user_id;
+    
+    // Get the pitch deck file
+    const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/public/report_pdfs/${reportUserId}/${pdfUrl}`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY
+      }
+    });
+    
+    if (!pitchDeckResponse.ok) {
+      console.error('Error fetching pitch deck:', await pitchDeckResponse.text());
+      throw new Error(`Failed to fetch pitch deck: ${pitchDeckResponse.status}`);
+    }
 
     const fundThesisBlob = await fundThesisResponse.blob();
     const pitchDeckBlob = await pitchDeckResponse.blob();
