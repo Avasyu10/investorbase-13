@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Lightbulb, ExternalLink, Loader2 } from "lucide-react";
+import { FileText, Lightbulb, ExternalLink, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "../ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { downloadVCDocument } from "@/lib/supabase/documents";
 import { toast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FundThesisAlignmentProps {
   companyName: string;
@@ -19,6 +20,9 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const [promptSent, setPromptSent] = useState<string | null>(null);
+  const [responseReceived, setResponseReceived] = useState<string | null>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState<boolean>(false);
 
   useEffect(() => {
     async function checkFundThesis() {
@@ -58,13 +62,15 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
           if (companyId) {
             const { data: existingAnalysis } = await supabase
               .from('fund_thesis_analysis')
-              .select('analysis_text')
+              .select('analysis_text, prompt_sent, response_received')
               .eq('company_id', companyId)
               .eq('user_id', user.id)
               .maybeSingle();
               
-            if (existingAnalysis && existingAnalysis.analysis_text) {
+            if (existingAnalysis) {
               setAnalysis(existingAnalysis.analysis_text);
+              setPromptSent(existingAnalysis.prompt_sent);
+              setResponseReceived(existingAnalysis.response_received);
             }
           }
         }
@@ -158,8 +164,11 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
         throw new Error(data.error);
       }
       
-      if (data && data.analysis) {
+      if (data) {
         setAnalysis(data.analysis);
+        setPromptSent(data.prompt_sent);
+        setResponseReceived(data.response_received);
+        
         toast({
           title: "Analysis Complete",
           description: "Fund thesis alignment analysis has been completed.",
@@ -175,6 +184,10 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const toggleDebugInfo = () => {
+    setShowDebugInfo(!showDebugInfo);
   };
   
   if (isLoading) {
@@ -247,15 +260,71 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
                 )}
               </Button>
             )}
+            
+            {(promptSent || responseReceived) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2 ml-auto"
+                onClick={toggleDebugInfo}
+              >
+                {showDebugInfo ? (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    Hide Debug Info
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Show Debug Info
+                  </>
+                )}
+              </Button>
+            )}
           </div>
           
           {analysis && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <h3 className="text-sm font-medium mb-2">Alignment Analysis</h3>
-              <div className="text-sm text-muted-foreground whitespace-pre-line">
-                {analysis}
-              </div>
-            </div>
+            <Tabs defaultValue="analysis" className="mt-4">
+              <TabsList>
+                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                {showDebugInfo && (
+                  <>
+                    <TabsTrigger value="prompt">Prompt</TabsTrigger>
+                    <TabsTrigger value="response">Raw Response</TabsTrigger>
+                  </>
+                )}
+              </TabsList>
+              
+              <TabsContent value="analysis" className="mt-2">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground whitespace-pre-line">
+                    {analysis}
+                  </div>
+                </div>
+              </TabsContent>
+              
+              {showDebugInfo && (
+                <>
+                  <TabsContent value="prompt" className="mt-2">
+                    <div className="p-4 bg-muted/50 rounded-lg max-h-96 overflow-auto">
+                      <h3 className="text-sm font-medium mb-2">Prompt Sent to LLM</h3>
+                      <pre className="text-xs text-muted-foreground overflow-x-auto">
+                        {promptSent || "No prompt data available"}
+                      </pre>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="response" className="mt-2">
+                    <div className="p-4 bg-muted/50 rounded-lg max-h-96 overflow-auto">
+                      <h3 className="text-sm font-medium mb-2">Raw Response from LLM</h3>
+                      <pre className="text-xs text-muted-foreground overflow-x-auto">
+                        {responseReceived ? JSON.stringify(JSON.parse(responseReceived), null, 2) : "No response data available"}
+                      </pre>
+                    </div>
+                  </TabsContent>
+                </>
+              )}
+            </Tabs>
           )}
         </div>
       </CardContent>

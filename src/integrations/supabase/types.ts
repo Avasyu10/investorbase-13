@@ -168,6 +168,8 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          prompt_sent: string | null
+          response_received: string | null
           updated_at: string
           user_id: string
         }
@@ -176,6 +178,8 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
+          prompt_sent?: string | null
+          response_received?: string | null
           updated_at?: string
           user_id: string
         }
@@ -184,6 +188,8 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
+          prompt_sent?: string | null
+          response_received?: string | null
           updated_at?: string
           user_id?: string
         }

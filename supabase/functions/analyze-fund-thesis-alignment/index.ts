@@ -62,7 +62,11 @@ serve(async (req) => {
     if (existingAnalysis && existingAnalysis.length > 0) {
       // Return existing analysis
       return new Response(
-        JSON.stringify({ analysis: existingAnalysis[0].analysis_text }), 
+        JSON.stringify({ 
+          analysis: existingAnalysis[0].analysis_text,
+          prompt_sent: existingAnalysis[0].prompt_sent,
+          response_received: existingAnalysis[0].response_received
+        }), 
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
@@ -103,6 +107,20 @@ serve(async (req) => {
     const fundThesisBase64 = await blobToBase64(fundThesisBlob);
     const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
 
+    // Prepare the prompt for Gemini
+    const promptText = `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
+                Provide your analysis in exactly the following format with these three sections ONLY:
+                
+                1. Overall Summary - A concise evaluation of the overall alignment
+                2. Key Similarities - The main points where the pitch deck aligns with the fund thesis
+                3. Key Differences - The main areas where the pitch deck diverges from the fund thesis
+                
+                Fund Thesis PDF Content:
+                ${fundThesisBase64}
+
+                Pitch Deck PDF Content:
+                ${pitchDeckBase64}`;
+
     // Call Gemini to analyze alignment
     const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
@@ -117,19 +135,7 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
-                Provide your analysis in exactly the following format with these three sections ONLY:
-                
-                1. Overall Summary - A concise evaluation of the overall alignment
-                2. Key Similarities - The main points where the pitch deck aligns with the fund thesis
-                3. Key Differences - The main areas where the pitch deck diverges from the fund thesis
-                
-                Fund Thesis PDF Content:
-                ${fundThesisBase64}
-
-                Pitch Deck PDF Content:
-                ${pitchDeckBase64}
-                `
+                text: promptText
               }
             ]
           }
@@ -143,11 +149,13 @@ serve(async (req) => {
 
     const geminiData = await geminiResponse.json();
     let analysisText = '';
+    let rawResponse = '';
     
     if (geminiData.candidates && geminiData.candidates.length > 0 && 
         geminiData.candidates[0].content && geminiData.candidates[0].content.parts && 
         geminiData.candidates[0].content.parts.length > 0) {
       analysisText = geminiData.candidates[0].content.parts[0].text;
+      rawResponse = JSON.stringify(geminiData);
     } else {
       throw new Error('Unexpected response format from Gemini API');
     }
@@ -164,7 +172,9 @@ serve(async (req) => {
       body: JSON.stringify({
         company_id,
         user_id,
-        analysis_text: analysisText
+        analysis_text: analysisText,
+        prompt_sent: promptText,
+        response_received: rawResponse
       })
     });
 
@@ -172,6 +182,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       analysis: analysisText,
+      prompt_sent: promptText,
+      response_received: rawResponse,
       storedAnalysis 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
