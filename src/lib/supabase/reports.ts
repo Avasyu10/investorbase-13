@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob, ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -131,31 +130,37 @@ export async function downloadReport(fileUrl: string, userId?: string) {
   }
   
   try {
-    // Step 1: Check if this is a path from the public_uploads bucket
-    if (fileUrl.includes('/')) {
-      console.log('Trying to download from public_uploads bucket first');
+    // Step 1: Check if this is a path from the email_attachments bucket
+    if (fileUrl.startsWith('email_attachments/')) {
+      console.log('Trying to download from email_attachments bucket');
       try {
         const { data, error } = await supabase.storage
-          .from('public_uploads')
+          .from('email_attachments')
           .download(fileUrl);
           
         if (!error && data) {
-          console.log('Successfully downloaded from public_uploads bucket');
+          console.log('Successfully downloaded from email_attachments bucket');
           return data;
         }
-      } catch (publicError) {
-        console.log('Error downloading from public_uploads:', publicError);
+      } catch (emailError) {
+        console.log('Error downloading from email_attachments:', emailError);
       }
     }
     
     // Step 2: Try the standard report_pdfs bucket with the provided path
     try {
+      let fullPath = fileUrl;
+      // If userId is provided and the file doesn't start with the userId, add it
+      if (userId && !fileUrl.startsWith(`${userId}/`) && !fileUrl.startsWith('email_attachments/')) {
+        fullPath = `${userId}/${fileUrl}`;
+      }
+      
       const { data, error } = await supabase.storage
         .from('report_pdfs')
-        .download(fileUrl);
+        .download(fullPath);
 
       if (!error && data) {
-        console.log('Successfully downloaded with primary path from report_pdfs');
+        console.log('Successfully downloaded from report_pdfs with path:', fullPath);
         return data;
       }
     } catch (primaryError) {
@@ -172,29 +177,26 @@ export async function downloadReport(fileUrl: string, userId?: string) {
         .download(simpleFileName);
         
       if (!fallbackError && fallbackData) {
-        console.log('Successfully downloaded with fallback path');
+        console.log('Successfully downloaded with fallback simple filename path');
         return fallbackData;
       }
     } catch (fallbackError) {
       console.error('Error with fallback path:', fallbackError);
     }
     
-    // Step 4: Try with user ID if provided
-    if (userId) {
-      const userPath = `${userId}/${fileUrl}`;
-      console.log('Trying with user path:', userPath);
-      
+    // Step 4: One last attempt with public_uploads bucket
+    if (fileUrl.includes('/')) {
       try {
-        const { data: userPathData, error: userPathError } = await supabase.storage
-          .from('report_pdfs')
-          .download(userPath);
+        const { data: publicData, error: publicError } = await supabase.storage
+          .from('public_uploads')
+          .download(fileUrl);
           
-        if (!userPathError && userPathData) {
-          console.log('Successfully downloaded with user path');
-          return userPathData;
+        if (!publicError && publicData) {
+          console.log('Successfully downloaded from public_uploads bucket');
+          return publicData;
         }
-      } catch (userPathError) {
-        console.error('Failed with user path approach:', userPathError);
+      } catch (publicError) {
+        console.error('Error with public_uploads path:', publicError);
       }
     }
     
