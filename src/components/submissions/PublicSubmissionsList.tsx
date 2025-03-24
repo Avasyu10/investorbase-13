@@ -49,6 +49,7 @@ export function PublicSubmissionsList() {
         console.log("Fetching public submissions for user:", user.id);
         
         // Fetch reports that are public submissions and assigned to this user
+        // Specify the exact relationship to use with !reports_company_id_fkey
         const { data: reportData, error: reportError } = await supabase
           .from('reports')
           .select(`
@@ -58,7 +59,7 @@ export function PublicSubmissionsList() {
             pdf_url,
             created_at,
             analysis_status,
-            companies(id)
+            companies:companies!reports_company_id_fkey(id)
           `)
           .eq('is_public_submission', true)
           .eq('user_id', user.id)
