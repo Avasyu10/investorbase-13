@@ -21,7 +21,7 @@ function mapDbCompanyToApi(company: any) {
     perplexityResponse: company.perplexity_response,
     perplexityPrompt: company.perplexity_prompt,
     perplexityRequestedAt: company.perplexity_requested_at,
-    source: company.source // This maps the database field correctly
+    source: company.source // Add the source field
   };
 }
 

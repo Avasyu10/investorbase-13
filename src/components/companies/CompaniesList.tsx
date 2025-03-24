@@ -46,24 +46,17 @@ const getSortOrder = (option: SortOption): 'asc' | 'desc' => {
 
 // Helper to get source info with appropriate styling
 const getSourceInfo = (source: string | undefined) => {
-  // Only use public_url when explicitly set, otherwise default to email
   if (source === 'public_url') {
     return {
       label: "Public URL",
       className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
     };
   }
-  if (source === 'dashboard') {
-    return {
-      label: "Dashboard",
-      className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-    };
-  }
   
-  // Default to Email (blue color)
+  // Default to Dashboard (gold color)
   return {
-    label: "Email",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+    label: "Dashboard",
+    className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
   };
 };
 
