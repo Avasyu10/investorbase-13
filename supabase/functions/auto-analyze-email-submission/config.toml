@@ -3,3 +3,4 @@ project_id = "jhtnruktmtjqrfoiyrep"
 
 [functions.auto-analyze-email-submission]
 verify_jwt = false
+
