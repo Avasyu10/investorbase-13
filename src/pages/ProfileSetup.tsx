@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,19 +76,54 @@ const ProfileSetup = () => {
       if (thesisFile) {
         setUploadingThesis(true);
         
-        const fileName = `${user.id}/${Date.now()}_${thesisFile.name}`;
+        // Create a structured file path with user ID
+        const fileExt = thesisFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
         
-        const { error: uploadError } = await supabase.storage
-          .from('vc-documents')
-          .upload(fileName, thesisFile);
+        console.log('Attempting to upload thesis to path:', filePath);
+        
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from('vc-documents')
+            .upload(filePath, thesisFile, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (uploadError) {
+            console.error('Error with structured path upload:', uploadError);
+            throw uploadError;
+          }
           
-        if (uploadError) {
-          throw uploadError;
+          fundThesisUrl = filePath;
+          console.log('File uploaded successfully to:', filePath);
+        } catch (uploadErr) {
+          console.error('Upload failed with structured path, trying simple filename:', uploadErr);
+          
+          // Fallback to simple filename
+          const simpleFilePath = fileName;
+          
+          const { error: fallbackError } = await supabase.storage
+            .from('vc-documents')
+            .upload(simpleFilePath, thesisFile, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (fallbackError) {
+            console.error('Error with simple path upload:', fallbackError);
+            throw fallbackError;
+          }
+          
+          fundThesisUrl = simpleFilePath;
+          console.log('File uploaded successfully with simple path:', simpleFilePath);
         }
         
-        fundThesisUrl = fileName;
         setUploadingThesis(false);
       }
+      
+      console.log('Creating profile with thesis URL:', fundThesisUrl);
       
       const { error } = await supabase
         .from('vc_profiles')
@@ -111,6 +147,7 @@ const ProfileSetup = () => {
       navigate('/dashboard');
       
     } catch (error: any) {
+      console.error('Profile creation error:', error);
       toast({
         title: "Error creating profile",
         description: error.message,

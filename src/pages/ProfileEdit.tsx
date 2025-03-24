@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -252,25 +253,68 @@ const ProfileEdit = () => {
       
       if (thesisFile) {
         if (profile?.fund_thesis_url) {
-          const { error: removeError } = await supabase.storage
-            .from('vc-documents')
-            .remove([profile.fund_thesis_url]);
-            
-          if (removeError) throw removeError;
+          try {
+            const { error: removeError } = await supabase.storage
+              .from('vc-documents')
+              .remove([profile.fund_thesis_url]);
+              
+            if (removeError) {
+              console.error('Error removing existing thesis:', removeError);
+              // Continue anyway since we're replacing the file
+            }
+          } catch (removeErr) {
+            console.error('Error during thesis removal:', removeErr);
+            // Continue with upload even if delete fails
+          }
         }
         
+        // Create a more structured path with the user ID
         const fileExt = thesisFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `fund-thesis/${fileName}`;
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
         
-        const { error: uploadError } = await supabase.storage
-          .from('vc-documents')
-          .upload(filePath, thesisFile);
+        console.log('Attempting to upload thesis to path:', filePath);
+        
+        // Try multiple upload paths if needed
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from('vc-documents')
+            .upload(filePath, thesisFile, {
+              cacheControl: '3600',
+              upsert: true // Use upsert to overwrite if file exists
+            });
+            
+          if (uploadError) {
+            console.error('Error with structured path upload:', uploadError);
+            throw uploadError;
+          }
           
-        if (uploadError) throw uploadError;
-        
-        fundThesisUrl = filePath;
+          fundThesisUrl = filePath;
+          console.log('File uploaded successfully to:', filePath);
+        } catch (uploadErr) {
+          console.error('Upload failed with structured path, trying simple filename:', uploadErr);
+          
+          // Fallback to simple filename
+          const simpleFilePath = fileName;
+          
+          const { error: fallbackError } = await supabase.storage
+            .from('vc-documents')
+            .upload(simpleFilePath, thesisFile, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (fallbackError) {
+            console.error('Error with simple path upload:', fallbackError);
+            throw fallbackError;
+          }
+          
+          fundThesisUrl = simpleFilePath;
+          console.log('File uploaded successfully with simple path:', simpleFilePath);
+        }
       }
+      
+      console.log('Updating profile with thesis URL:', fundThesisUrl);
       
       const { error } = await supabase
         .from('vc_profiles')
@@ -286,7 +330,10 @@ const ProfileEdit = () => {
         })
         .eq('id', user.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
       
       toast({
         title: "Profile updated",
@@ -295,6 +342,7 @@ const ProfileEdit = () => {
       
       navigate('/profile');
     } catch (error: any) {
+      console.error('Profile update error:', error);
       toast({
         title: "Error updating profile",
         description: error.message,
