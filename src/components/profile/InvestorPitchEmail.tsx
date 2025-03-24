@@ -110,24 +110,23 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       console.log("Updating auto_analyze to:", newValue);
       console.log("Record ID being updated:", recordId);
       
-      // Instead of upsert, we'll use update with user_id filter to respect RLS policies
-      const { data, error } = await supabase
-        .from('investor_pitch_emails')
-        .update({ auto_analyze: newValue })
-        .eq('id', recordId)
-        .eq('user_id', user.id) // Add this to ensure RLS policy is satisfied
-        .select();
-        
+      // Execute a direct update with a specific WHERE clause
+      // We're going to log more info to debug the issue
+      const { data, error } = await supabase.rpc('update_investor_pitch_email_setting', {
+        record_id: recordId,
+        auto_analyze_value: newValue
+      });
+      
+      console.log("Update response:", data);
+      
       if (error) {
         console.error("Error updating auto_analyze:", error);
         throw error;
       }
       
-      console.log("Update response:", data);
-      
-      if (data && data.length > 0) {
-        // Update the local state with the value from the response
-        setAutoAnalyze(!!data[0].auto_analyze);
+      // If we got a successful response, update the UI state
+      if (data === true) {
+        setAutoAnalyze(newValue);
         
         toast({
           title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
@@ -136,8 +135,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
             : "You'll need to manually analyze pitch decks received via email",
         });
       } else {
-        console.error("No data returned from update operation");
-        // Refresh data from server as fallback
+        console.error("Update operation was not successful");
+        // Refresh data from server to ensure UI is in sync
         fetchEmailStatus();
       }
     } catch (error: any) {
