@@ -110,12 +110,20 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       console.log("Updating auto_analyze to:", newValue);
       console.log("Record ID being updated:", recordId);
       
-      // Update using the specific record ID instead of user_id
+      // Fix: The issue is here - we need to ensure we get back the updated value correctly
+      // Using upsert with onConflict to ensure the update happens properly
       const { data, error } = await supabase
         .from('investor_pitch_emails')
-        .update({ auto_analyze: newValue })
-        .eq('id', recordId)
-        .select('auto_analyze');
+        .upsert(
+          { 
+            id: recordId,
+            auto_analyze: newValue 
+          },
+          { 
+            onConflict: 'id',
+            returning: 'representation' 
+          }
+        );
         
       if (error) {
         console.error("Error updating auto_analyze:", error);
@@ -125,17 +133,20 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       console.log("Update response:", data);
       
       if (data && data.length > 0) {
-        const updatedValue = data[0].auto_analyze;
-        console.log("Updated auto_analyze value from DB:", updatedValue);
-        setAutoAnalyze(!!updatedValue);
+        // Update the local state with the value from the response
+        setAutoAnalyze(!!data[0].auto_analyze);
+        
+        toast({
+          title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
+          description: newValue 
+            ? "Pitch decks sent to your email will be automatically analyzed" 
+            : "You'll need to manually analyze pitch decks received via email",
+        });
+      } else {
+        console.error("No data returned from update operation");
+        // Refresh data from server as fallback
+        fetchEmailStatus();
       }
-      
-      toast({
-        title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
-        description: newValue 
-          ? "Pitch decks sent to your email will be automatically analyzed" 
-          : "You'll need to manually analyze pitch decks received via email",
-      });
     } catch (error: any) {
       console.error("Error in toggleAutoAnalyze:", error);
       toast({
@@ -143,6 +154,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         description: error.message,
         variant: "destructive",
       });
+      // Refresh data from server on error to ensure UI is in sync
+      fetchEmailStatus();
     } finally {
       setUpdatingAutoAnalyze(false);
     }
