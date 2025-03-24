@@ -337,13 +337,6 @@ const ProfileSetup = () => {
                   <span>Public Submission URL</span>
                   <span className="ml-2 text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">Available after signup</span>
                 </Label>
-                <Input 
-                  id="publicSubmissionUrl" 
-                  type="text" 
-                  placeholder="Your custom submission URL" 
-                  disabled
-                  className="bg-muted text-muted-foreground cursor-not-allowed"
-                />
                 <p className="text-xs text-muted-foreground mt-1">
                   After signup, you can create a public link for founders to submit their pitch decks directly to your dashboard. 
                 </p>
