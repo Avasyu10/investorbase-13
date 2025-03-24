@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -110,11 +109,9 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       console.log("Updating auto_analyze to:", newValue);
       console.log("Record ID being updated:", recordId);
       
-      // Execute a direct update with a specific WHERE clause
-      // We're going to log more info to debug the issue
       const { data, error } = await supabase.rpc('update_investor_pitch_email_setting', {
-        record_id: recordId,
-        auto_analyze_value: newValue
+        auto_analyze_value: newValue,
+        record_id: recordId
       });
       
       console.log("Update response:", data);
@@ -124,7 +121,6 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         throw error;
       }
       
-      // If we got a successful response, update the UI state
       if (data === true) {
         setAutoAnalyze(newValue);
         
@@ -136,7 +132,6 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         });
       } else {
         console.error("Update operation was not successful");
-        // Refresh data from server to ensure UI is in sync
         fetchEmailStatus();
       }
     } catch (error: any) {
@@ -146,7 +141,6 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         description: error.message,
         variant: "destructive",
       });
-      // Refresh data from server on error to ensure UI is in sync
       fetchEmailStatus();
     } finally {
       setUpdatingAutoAnalyze(false);
@@ -241,7 +235,6 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
             Share this email with founders to receive pitch decks directly to your dashboard.
           </p>
           
-          {/* Auto-analyze toggle section - only visible for approved emails */}
           <div className="flex items-center justify-between space-x-2 pt-4 border-t border-border/10">
             <div className="flex-1">
               <label htmlFor="auto-analyze-email" className="text-sm font-medium">

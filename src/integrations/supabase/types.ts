@@ -716,6 +716,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_investor_pitch_email_setting: {
+        Args: {
+          auto_analyze_value: boolean
+          record_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
