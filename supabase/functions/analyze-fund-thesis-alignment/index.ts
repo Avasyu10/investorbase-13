@@ -74,9 +74,30 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the fund thesis document directly from storage
-    console.log('Fetching fund thesis for user:', user_id);
-    const fundThesisResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/public/vc_documents/${user_id}/fund_thesis`, {
+    // First get VC profile to get the fund thesis URL
+    console.log('Getting fund thesis URL for user:', user_id);
+    const vcProfileResponse = await fetch(`${SUPABASE_URL}/rest/v1/vc_profiles?id=eq.${user_id}&select=fund_thesis_url`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY,
+      }
+    });
+    
+    if (!vcProfileResponse.ok) {
+      console.error('Error fetching VC profile:', await vcProfileResponse.text());
+      throw new Error(`Failed to fetch VC profile: ${vcProfileResponse.status}`);
+    }
+    
+    const vcProfileData = await vcProfileResponse.json();
+    if (!vcProfileData || vcProfileData.length === 0 || !vcProfileData[0].fund_thesis_url) {
+      throw new Error('Fund thesis URL not found in VC profile');
+    }
+    
+    const fundThesisUrl = vcProfileData[0].fund_thesis_url;
+    
+    // Fetch the fund thesis document from storage
+    console.log('Fetching fund thesis for user:', user_id, 'with URL:', fundThesisUrl);
+    const fundThesisResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/public/vc_documents/${fundThesisUrl}`, {
       headers: {
         'Authorization': authHeader,
         'apikey': SUPABASE_ANON_KEY
