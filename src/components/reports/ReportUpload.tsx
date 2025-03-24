@@ -136,6 +136,13 @@ export function ReportUpload({
       return;
     }
 
+    if (isPublic && !file) {
+      toast.error("Pitch deck required", {
+        description: "Please upload a PDF pitch deck"
+      });
+      return;
+    }
+
     try {
       setIsUploading(true);
       setProgressStage("Processing your submission...");
@@ -150,7 +157,30 @@ export function ReportUpload({
           console.log("Adding file to form data:", file.name, file.type, file.size);
           formData.append('file', file);
         } else {
-          console.log("No file selected for upload - continuing with text-only submission");
+          console.error("No file selected for upload - cannot continue with public submission");
+          toast.error("Missing pitch deck", {
+            description: "Please select a PDF file to upload"
+          });
+          setIsUploading(false);
+          return;
+        }
+        
+        // Ensure all required fields are included
+        formData.append('title', title);
+        
+        // Email is required for public submissions unless explicitly hidden
+        if (!hideEmailField) {
+          if (!emailForResults) {
+            toast.error("Email required", {
+              description: "Please provide your email to receive the analysis results"
+            });
+            setIsUploading(false);
+            return;
+          }
+          formData.append('email', emailForResults);
+        } else {
+          // When email field is hidden, use a placeholder email
+          formData.append('email', 'public-submission@example.com');
         }
         
         console.log("Adding form fields:", { 
@@ -162,14 +192,9 @@ export function ReportUpload({
           linkedInProfiles: founderLinkedIns.filter(ln => ln.trim()).length
         });
         
-        formData.append('title', title);
-        
-        // Only add email if it's not hidden
-        if (!hideEmailField && emailForResults) {
-          formData.append('email', emailForResults);
+        if (briefIntroduction) {
+          formData.append('description', briefIntroduction);
         }
-        
-        formData.append('description', briefIntroduction || '');
         
         if (companyWebsite && companyWebsite.trim()) {
           formData.append('websiteUrl', companyWebsite);
@@ -193,14 +218,18 @@ export function ReportUpload({
           formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
         }
         
+        // Log form data entries for debugging
+        console.log("FormData entries:");
+        for (const [key, value] of formData.entries()) {
+          if (value instanceof File) {
+            console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
+          } else {
+            console.log(`${key}: ${value}`);
+          }
+        }
+        
         const apiUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload";
         console.log("Sending public upload request to:", apiUrl);
-        console.log("FormData entries:", [...formData.entries()].map(([key, value]) => {
-          if (value instanceof File) {
-            return [key, `File: ${value.name} (${value.type}, ${value.size} bytes)`];
-          }
-          return [key, value];
-        }));
         
         try {
           const response = await fetch(apiUrl, {
@@ -243,6 +272,14 @@ export function ReportUpload({
           throw fetchError;
         }
       } else {
+        // Non-public upload flow
+        if (!file) {
+          toast.error("Missing pitch deck", {
+            description: "Please select a PDF file to upload"
+          });
+          setIsUploading(false);
+          return;
+        }
         report = await uploadReport(file, title, briefIntroduction, companyWebsite);
       }
       
@@ -566,7 +603,7 @@ export function ReportUpload({
         <CardFooter className="flex justify-end">
           <Button
             type="submit"
-            disabled={!file || isProcessing}
+            disabled={isProcessing}
             className="w-full md:w-auto"
           >
             {isProcessing ? (

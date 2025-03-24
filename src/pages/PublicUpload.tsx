@@ -153,7 +153,7 @@ const PublicUpload = () => {
               buttonText="Submit"
               skipAnalysis={!formData?.auto_analyze}
               formSlug={activeFormSlug}
-              hideEmailField={true}
+              hideEmailField={false}
               disableScrapingFeatures={true}
             />
           </>
