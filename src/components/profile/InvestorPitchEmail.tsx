@@ -1,272 +1,205 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Check, Copy, Mail } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Card, 
-  CardContent,
-  CardFooter,
-  CardDescription,
-  CardTitle
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, Check, AlertCircle, Mail } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Define the interface for InvestorPitchEmail type
 interface InvestorPitchEmail {
   id: string;
-  email_address: string | null;
-  request_status: 'pending' | 'completed' | 'rejected';
+  email_address: string;
+  request_status: "pending" | "completed" | "rejected";
   requested_at: string;
+  approved_at: string | null;
+  user_id: string;
   auto_analyze: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export const InvestorPitchEmail = () => {
-  const { user } = useAuth();
+export function InvestorPitchEmail({ isSetupPage = false }: { isSetupPage?: boolean }) {
+  const [email, setEmail] = useState<InvestorPitchEmail | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isToggling, setIsToggling] = useState(false);
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [emailAddress, setEmailAddress] = useState("");
-  const [requestingEmail, setRequestingEmail] = useState(false);
-  const [emailSettings, setEmailSettings] = useState<InvestorPitchEmail | null>(null);
-  const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    fetchEmailSettings();
-  }, [user]);
+    async function fetchPitchEmail() {
+      try {
+        setIsLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-  const fetchEmailSettings = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('investor_pitch_emails')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
+        const { data, error } = await supabase
+          .from('investor_pitch_emails')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('request_status', 'completed')
+          .single();
 
-      if (error) throw error;
-      
-      setEmailSettings(data);
-      
-      if (data?.email_address) {
-        setEmailAddress(data.email_address);
+        if (error && error.code !== 'PGSQL_ERROR_NO_DATA_FOUND') {
+          throw error;
+        }
+
+        if (data) {
+          // Cast to ensure type safety
+          setEmail(data as InvestorPitchEmail);
+        }
+      } catch (error) {
+        console.error("Error fetching pitch email:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching email settings:", error);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const requestEmailAddress = async () => {
-    if (!user) return;
+    fetchPitchEmail();
+  }, []);
+
+  const copyToClipboard = () => {
+    if (!email?.email_address) return;
     
-    if (!emailAddress || !emailAddress.trim()) {
-      toast({
-        title: "Email required",
-        description: "Please enter an email address",
-        variant: "destructive"
+    navigator.clipboard.writeText(email.email_address)
+      .then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error("Could not copy text: ", err);
       });
-      return;
-    }
-    
-    try {
-      setRequestingEmail(true);
-      
-      const { data, error } = await supabase
-        .from('investor_pitch_emails')
-        .insert([{
-          user_id: user.id,
-          email_address: emailAddress,
-          request_status: 'completed', // Auto-approve for now
-          auto_analyze: false
-        }])
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      setEmailSettings(data);
-      
-      toast({
-        title: "Email address registered",
-        description: "Your email address has been set up to receive pitch decks",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Request failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setRequestingEmail(false);
-    }
   };
 
   const toggleAutoAnalyze = async () => {
-    if (!user || !emailSettings) return;
-    
+    if (!email) return;
+
     try {
-      setUpdatingAutoAnalyze(true);
+      setIsToggling(true);
       
-      const newValue = !emailSettings.auto_analyze;
+      // Call the security definer function to update the auto_analyze setting
+      const { data, error } = await supabase.rpc(
+        'update_investor_pitch_email_setting',
+        { 
+          record_id: email.id,
+          auto_analyze_value: !email.auto_analyze 
+        }
+      );
       
-      // Call the RPC function to update the setting
-      const { data, error } = await supabase
-        .rpc('update_investor_pitch_email_setting', {
-          auto_analyze_value: newValue,
-          record_id: emailSettings.id
-        });
-        
       if (error) throw error;
       
-      if (!data) {
-        throw new Error("Failed to update setting - permission denied");
+      if (data === true) {
+        // Update was successful, update local state
+        setEmail({
+          ...email,
+          auto_analyze: !email.auto_analyze
+        });
+        
+        toast({
+          title: "Setting updated",
+          description: `Auto-analyze is now ${!email.auto_analyze ? "enabled" : "disabled"}`,
+        });
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Unable to update auto-analyze setting",
+          variant: "destructive"
+        });
       }
-      
-      setEmailSettings({
-        ...emailSettings,
-        auto_analyze: newValue
-      });
-      
+    } catch (error) {
+      console.error("Error toggling auto-analyze:", error);
       toast({
-        title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
-        description: newValue 
-          ? "Pitch decks sent to your email will be automatically analyzed" 
-          : "You'll need to manually analyze emailed pitch decks",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Update failed",
-        description: error.message,
+        title: "Error",
+        description: "Failed to update auto-analyze setting",
         variant: "destructive"
       });
     } finally {
-      setUpdatingAutoAnalyze(false);
+      setIsToggling(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Email Address</CardTitle>
+          <CardDescription>Loading your dedicated email address...</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (!email) {
+    if (isSetupPage) {
+      return null;
+    }
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Email Address</CardTitle>
+          <CardDescription>
+            You don't have a dedicated email address yet. 
+            Please complete your profile setup first.
+          </CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground mb-4">
-        Get a unique email address to receive pitch decks directly from founders. When they email their deck to this address, it will automatically appear in your dashboard.
-      </p>
-      
-      {emailSettings?.request_status === 'completed' ? (
-        <Card className="bg-secondary/10 shadow-sm">
-          <CardContent className="pt-6 pb-4">
-            <div className="flex flex-col space-y-4">
-              <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <div className="space-y-1">
-                  <CardTitle className="text-base font-medium">Your Pitch Deck Email</CardTitle>
-                  <CardDescription>
-                    Share this email address with founders so they can send you their pitch decks
-                  </CardDescription>
-                </div>
-              </div>
-              
-              <div className="flex items-center mt-2 px-3 py-2 bg-background/80 rounded-md break-all border border-border/10">
-                <span className="text-primary font-medium">{emailSettings.email_address}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto"
-                  onClick={() => {
-                    if (emailSettings.email_address) {
-                      navigator.clipboard.writeText(emailSettings.email_address);
-                      toast({
-                        title: "Email copied",
-                        description: "Pitch deck email address copied to clipboard",
-                      });
-                    }
-                  }}
-                >
-                  Copy
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between border-t border-border/10 pt-4 mt-2">
-                <div>
-                  <Label htmlFor="auto-analyze" className="font-medium">Auto-analyze Submissions</Label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {emailSettings.auto_analyze 
-                      ? "Pitch decks sent to this email will be automatically analyzed" 
-                      : "You'll need to manually analyze emailed pitch decks"}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="auto-analyze"
-                    checked={emailSettings.auto_analyze}
-                    onCheckedChange={toggleAutoAnalyze}
-                    disabled={updatingAutoAnalyze}
-                  />
-                  {updatingAutoAnalyze && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-orange-500" />
-                <p className="text-sm font-medium text-orange-500">No email address set up yet</p>
-              </div>
-              
-              <div className="space-y-3">
-                <Label htmlFor="email-address">Email Address for Pitch Decks</Label>
-                <Input
-                  id="email-address"
-                  type="email"
-                  placeholder="e.g., pitches@yourcompany.com"
-                  value={emailAddress}
-                  onChange={(e) => setEmailAddress(e.target.value)}
-                  disabled={requestingEmail}
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This will be the email address that founders can send their pitch decks to
-                </p>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="border-t px-6 py-4 bg-background/50">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mail className="h-5 w-5" />
+          Your Investor Pitch Email
+        </CardTitle>
+        <CardDescription>
+          Send pitch decks to this email to automatically import them
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between bg-muted/50 p-3 rounded-md">
+            <div className="font-mono text-sm">{email.email_address}</div>
             <Button 
-              onClick={requestEmailAddress}
-              disabled={requestingEmail || !emailAddress}
-              className="ml-auto"
+              variant="ghost" 
+              size="icon" 
+              onClick={copyToClipboard}
+              title="Copy to clipboard"
             >
-              {requestingEmail ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Setting Up...
-                </>
+              {isCopied ? (
+                <Check className="h-4 w-4 text-green-500" />
               ) : (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Register Email
-                </>
+                <Copy className="h-4 w-4" />
               )}
             </Button>
-          </CardFooter>
-        </Card>
-      )}
-    </div>
+          </div>
+          
+          <div className="flex items-center justify-between space-x-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="auto-analyze">Auto-analyze Submissions from Email</Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically analyze pitch decks sent to your email
+              </p>
+            </div>
+            <Switch
+              id="auto-analyze"
+              checked={email.auto_analyze}
+              onCheckedChange={toggleAutoAnalyze}
+              disabled={isToggling}
+            />
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Badge variant={email.auto_analyze ? "default" : "outline"}>
+          {email.auto_analyze ? "Auto-analyze On" : "Auto-analyze Off"}
+        </Badge>
+      </CardFooter>
+    </Card>
   );
-};
+}
