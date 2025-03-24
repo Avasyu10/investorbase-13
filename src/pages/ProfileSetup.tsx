@@ -346,7 +346,6 @@ const ProfileSetup = () => {
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   After signup, you can create a public link for founders to submit their pitch decks directly to your dashboard. 
-                  This streamlines your deal flow and keeps all potential investments organized in one place.
                 </p>
               </div>
               
@@ -358,7 +357,6 @@ const ProfileSetup = () => {
                 <InvestorPitchEmail isSetupPage={true} />
                 <p className="text-xs text-muted-foreground mt-1">
                   After signup, you can request a personalized email for founders to send their pitch decks directly to you. 
-                  Any deck sent to this email will be automatically synced with your dashboard and analyzed without any manual intervention.
                 </p>
               </div>
             </CardContent>
