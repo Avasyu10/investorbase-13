@@ -110,20 +110,13 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       console.log("Updating auto_analyze to:", newValue);
       console.log("Record ID being updated:", recordId);
       
-      // Fix: The issue is here - we need to ensure we get back the updated value correctly
-      // Using upsert with onConflict to ensure the update happens properly
+      // Instead of upsert, we'll use update with user_id filter to respect RLS policies
       const { data, error } = await supabase
         .from('investor_pitch_emails')
-        .upsert(
-          { 
-            id: recordId,
-            auto_analyze: newValue 
-          },
-          { 
-            onConflict: 'id',
-            returning: 'representation' 
-          }
-        );
+        .update({ auto_analyze: newValue })
+        .eq('id', recordId)
+        .eq('user_id', user.id) // Add this to ensure RLS policy is satisfied
+        .select();
         
       if (error) {
         console.error("Error updating auto_analyze:", error);
