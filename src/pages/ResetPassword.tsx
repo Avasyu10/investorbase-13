@@ -1,22 +1,27 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const { updatePassword, isLoading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setMessage("");
     
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -28,8 +33,50 @@ const ResetPassword = () => {
       return;
     }
 
-    await updatePassword(password);
+    try {
+      setLoading(true);
+      
+      // Update the password using the direct Supabase client to utilize the access token from the URL
+      const { error } = await supabase.auth.updateUser({ password });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setMessage("Password updated successfully!");
+      
+      // Navigate to home page after a short delay
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+      setError(err.message || "Failed to update password. Please try resetting your password again.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // When component mounts, verify we have a valid hash
+  useEffect(() => {
+    // The hash/access token is automatically handled by Supabase client
+    // We just need to check if we're on the reset-password page with a valid hash
+    const checkHashStatus = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error || !data.session) {
+          console.log("No active session found for password reset");
+        } else {
+          console.log("Valid session found for password reset");
+        }
+      } catch (err) {
+        console.error("Error checking hash status:", err);
+      }
+    };
+
+    checkHashStatus();
+  }, [location]);
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
@@ -71,10 +118,13 @@ const ResetPassword = () => {
               {error && (
                 <p className="text-sm font-medium text-destructive">{error}</p>
               )}
+              {message && (
+                <p className="text-sm font-medium text-green-600">{message}</p>
+              )}
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Updating..." : "Update Password"}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Updating..." : "Update Password"}
               </Button>
             </CardFooter>
           </form>
