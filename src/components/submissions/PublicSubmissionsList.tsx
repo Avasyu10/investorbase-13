@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +22,6 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "public_form";
   from_email?: string | null;
-  processed?: boolean | null;
 }
 
 export function PublicSubmissionsList() {
@@ -95,23 +93,10 @@ export function PublicSubmissionsList() {
         console.log("Public form submissions fetched:", formData?.length || 0);
         
         // Fetch email submissions for the current user
-        // Add filter for processed flag
         const { data: emailData, error: emailError } = await supabase
           .from('email_submissions')
           .select(`
-            id,
-            from_email,
-            to_email,
-            subject,
-            email_body,
-            email_html,
-            has_attachments,
-            attachment_url,
-            received_at,
-            created_at,
-            updated_at,
-            report_id,
-            processed,
+            *,
             reports:report_id (
               id,
               company_id,
@@ -119,7 +104,6 @@ export function PublicSubmissionsList() {
             )
           `)
           .eq('from_email', user.email)
-          .is('processed', null) // Only show submissions that aren't processed
           .order('created_at', { ascending: false });
           
         if (emailError) {
@@ -198,8 +182,7 @@ export function PublicSubmissionsList() {
             pdf_url: submission.attachment_url,
             report_id: submission.report_id,
             source: "email" as const,
-            from_email: submission.from_email,
-            processed: submission.processed
+            from_email: submission.from_email
           }));
         
         console.log("Filtered email submissions:", transformedEmailData.length);

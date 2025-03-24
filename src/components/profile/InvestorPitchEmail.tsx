@@ -123,8 +123,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         toast({
           title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
           description: newValue 
-            ? "Pitch decks sent to your email will be automatically analyzed and won't appear in your New Applications list" 
-            : "Pitch decks received via email will appear in your New Applications list for manual review",
+            ? "Pitch decks sent to your email will be automatically analyzed" 
+            : "You'll need to manually analyze pitch decks received via email",
         });
       } else {
         console.error("Update operation was not successful");
@@ -238,8 +238,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
               </label>
               <p className="text-xs text-muted-foreground mt-1">
                 {autoAnalyze ? 
-                  "Pitch decks sent to this email will be automatically analyzed and won't appear in New Applications" : 
-                  "Received pitch decks will appear in New Applications for manual review"}
+                  "Pitch decks sent to this email will be automatically analyzed" : 
+                  "Received pitch decks will require manual approval for analysis"}
               </p>
             </div>
             <div className="flex items-center">
