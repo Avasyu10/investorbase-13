@@ -190,7 +190,8 @@ export function ReportUpload({
           companyStage,
           industry,
           linkedInProfiles: founderLinkedIns.filter(ln => ln.trim()).length,
-          hideEmailField
+          hideEmailField,
+          formSlug
         });
         
         if (briefIntroduction) {
@@ -202,7 +203,10 @@ export function ReportUpload({
         }
         
         if (formSlug) {
+          console.log("Adding form slug to submission:", formSlug);
           formData.append('formSlug', formSlug);
+        } else {
+          console.log("No form slug provided for this submission");
         }
         
         if (companyStage) {
