@@ -52,6 +52,12 @@ const getSourceInfo = (source: string | undefined) => {
       className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
     };
   }
+  if (source === 'email') {
+    return {
+      label: "Email",
+      className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+    };
+  }
   
   // Default to Dashboard (gold color)
   return {
