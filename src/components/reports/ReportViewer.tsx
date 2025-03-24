@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase/reports";
@@ -18,8 +17,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
-  const [downloadAttempts, setDownloadAttempts] = useState(0);
-  const [isEmailSubmission, setIsEmailSubmission] = useState(false);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId, user?.id],
@@ -38,14 +35,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     },
   });
 
-  // Determine if this is an email submission based on the PDF path
-  useEffect(() => {
-    if (report?.pdf_url) {
-      setIsEmailSubmission(report.pdf_url.includes('email_attachments/'));
-      console.log(`Report PDF URL: ${report.pdf_url} - Is email submission: ${report.pdf_url.includes('email_attachments/')}`);
-    }
-  }, [report]);
-
   useEffect(() => {
     return () => {
       if (pdfUrl) {
@@ -61,11 +50,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       try {
         setLoadingPdf(true);
         console.log("Loading PDF for report:", report.title);
-        console.log(`PDF URL path: ${report.pdf_url}`);
-        
-        if (isEmailSubmission) {
-          console.log("Downloading email attachment PDF");
-        }
         
         const blob = await downloadReport(report.pdf_url, user.id);
         if (!blob) {
@@ -80,17 +64,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         console.log("PDF loaded successfully:", url);
       } catch (error) {
         console.error("Error loading PDF:", error);
-        
-        // Try again with a slightly modified path for email attachments
-        if (isEmailSubmission && downloadAttempts < 2) {
-          setDownloadAttempts(prev => prev + 1);
-          toast({
-            title: "Retrying PDF download",
-            description: "Having trouble loading the email attachment, retrying...",
-          });
-          return; // Will trigger another attempt through the effect dependency
-        }
-        
         toast({
           title: "Failed to load PDF",
           description: "There was an error loading the document. Please try again later.",
@@ -104,7 +77,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     if (report && !pdfBlob && !loadingPdf) {
       loadPdf();
     }
-  }, [report, pdfBlob, toast, loadingPdf, user, isEmailSubmission, downloadAttempts]);
+  }, [report, pdfBlob, toast, loadingPdf, user]);
 
   const handleDownload = async () => {
     if (!report || !user) return;
@@ -193,11 +166,6 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
             ) : (
               <Badge variant="gold" className="ml-2">
                 Dashboard
-              </Badge>
-            )}
-            {isEmailSubmission && (
-              <Badge variant="blue" className="ml-2">
-                Email
               </Badge>
             )}
           </div>
