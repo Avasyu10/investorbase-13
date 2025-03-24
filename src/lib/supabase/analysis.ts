@@ -354,6 +354,43 @@ export async function autoAnalyzeEmailSubmission(submissionId: string) {
       // Call the edge function with proper error handling
       console.log(`Invoking auto-analyze-email-submission function with submission ID: ${submissionId}`);
       
+      // Let's verify that we're using the correct function name and add more debug info
+      console.log('Edge function URL:', `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission`);
+      
+      // Add a direct fetch call to verify edge function access
+      try {
+        // Get the auth token for authorization
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          throw new Error('Authentication session not found');
+        }
+        
+        // Get the API key from the environment
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY";
+        
+        console.log('Making direct fetch call to edge function');
+        const directResponse = await fetch(`https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': SUPABASE_KEY
+          },
+          body: JSON.stringify({ submissionId })
+        });
+        
+        if (!directResponse.ok) {
+          console.error(`Direct fetch failed with status: ${directResponse.status}`);
+          console.error('Response:', await directResponse.text());
+        } else {
+          console.log('Direct fetch succeeded:', await directResponse.json());
+        }
+      } catch (fetchError) {
+        console.error('Error making direct fetch call:', fetchError);
+      }
+      
+      // Now call using the Supabase client (our primary method)
       const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission', {
         body: { submissionId }
       });
