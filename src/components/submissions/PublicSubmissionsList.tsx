@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -187,14 +188,55 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Combine all types of submissions, remove any potential duplicates, and sort by date
-        // Use a Map to ensure we don't have duplicates based on report_id
+        // Combine all types of submissions and create a Map to deduplicate entries
+        // This will handle both duplicate entries from the same source and duplicates across sources
+        
+        // We'll use a Map to deduplicate based on multiple criteria
+        // Primary key: attachment_url/pdf_url for email submissions (since they're unique per file)
+        // Secondary key: report_id if available
+        // Tertiary key: submission id
         const submissionsMap = new Map();
         
-        [...transformedReportData, ...transformedFormData, ...transformedEmailData].forEach(submission => {
-          // If we have a report_id, use that as the key to prevent duplicates
-          // Otherwise use the submission id
-          const key = submission.report_id || submission.id;
+        // Process email submissions first - they're the ones most likely to have duplicates
+        transformedEmailData.forEach(submission => {
+          let key;
+          
+          // First, try using attachment_url/pdf_url as the key for email submissions
+          if (submission.pdf_url) {
+            key = `file:${submission.pdf_url}`;
+          } 
+          // If we have a report_id, use that as a fallback key
+          else if (submission.report_id) {
+            key = `report:${submission.report_id}`;
+          }
+          // Last resort, use the submission id
+          else {
+            key = `email:${submission.id}`;
+          }
+          
+          // Only add if not already in map or if the entry is newer
+          if (!submissionsMap.has(key) || 
+              new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
+            submissionsMap.set(key, submission);
+          }
+        });
+        
+        // Then process form submissions
+        [...transformedReportData, ...transformedFormData].forEach(submission => {
+          let key;
+          
+          // If we have a report_id, use that as the key
+          if (submission.report_id) {
+            key = `report:${submission.report_id}`;
+          }
+          // If we have a pdf_url, use that as a key
+          else if (submission.pdf_url) {
+            key = `file:${submission.pdf_url}`;
+          }
+          // Last resort, use the submission id
+          else {
+            key = `form:${submission.id}`;
+          }
           
           // Only add if not already in map or if the entry is newer
           if (!submissionsMap.has(key) || 

@@ -169,6 +169,42 @@ serve(async (req) => {
       
       console.log("File uploaded successfully:", filePath);
       
+      // Check if this is a duplicate submission from email
+      // If it's an email submission, we check if there's already a submission with the same file
+      const isEmailSubmission = formData.get('source') === 'email';
+      let existingSubmissionId = null;
+      let existingReportId = null;
+      
+      if (isEmailSubmission) {
+        // Check if there's already a submission with the same attachment URL
+        const { data: existingEmail, error: emailError } = await supabase
+          .from('email_submissions')
+          .select('id, report_id, attachment_url')
+          .eq('from_email', email)
+          .eq('attachment_url', fileName)
+          .maybeSingle();
+          
+        if (!emailError && existingEmail) {
+          console.log("Found existing email submission:", existingEmail);
+          existingSubmissionId = existingEmail.id;
+          existingReportId = existingEmail.report_id;
+          
+          // If we've already processed this email attachment, return the existing submission
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: "Email already processed",
+              submissionId: existingSubmissionId,
+              reportId: existingReportId
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200 
+            }
+          );
+        }
+      }
+      
       // Create a record in public_form_submissions table
       const { data: submissionData, error: submissionError } = await supabase
         .from('public_form_submissions')
