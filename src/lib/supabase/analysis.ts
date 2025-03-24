@@ -347,6 +347,11 @@ export async function autoAnalyzeEmailSubmission(submissionId: string) {
     if (!submissionId || !uuidRegex.test(submissionId)) {
       const errorMessage = `Invalid submission ID format: ${submissionId}`;
       console.error(errorMessage);
+      toast({
+        title: "Invalid Submission ID",
+        description: "The submission ID format is invalid.",
+        variant: "destructive"
+      });
       throw new Error(errorMessage);
     }
     

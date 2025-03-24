@@ -24,8 +24,9 @@ serve(async (req) => {
 
     // Get the submission ID from the request
     let submissionId;
+    let requestData;
     try {
-      const requestData = await req.json();
+      requestData = await req.json();
       submissionId = requestData.submissionId;
       console.log(`Received request with data:`, requestData);
     } catch (parseError) {
