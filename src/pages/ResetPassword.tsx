@@ -1,12 +1,11 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
 const ResetPassword = () => {
@@ -16,7 +15,6 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +34,11 @@ const ResetPassword = () => {
     try {
       setLoading(true);
       
-      // Update the password using the direct Supabase client to utilize the access token from the URL
-      const { error } = await supabase.auth.updateUser({ password });
+      // Update the password using the direct Supabase client
+      // The auth token is automatically handled by Supabase in the URL
+      const { error } = await supabase.auth.updateUser({ 
+        password 
+      });
       
       if (error) {
         throw error;
@@ -57,26 +58,25 @@ const ResetPassword = () => {
     }
   };
 
-  // When component mounts, verify we have a valid hash
+  // When component mounts, check if we have a valid session from the reset link
   useEffect(() => {
-    // The hash/access token is automatically handled by Supabase client
-    // We just need to check if we're on the reset-password page with a valid hash
-    const checkHashStatus = async () => {
+    const checkSession = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
         
         if (error || !data.session) {
           console.log("No active session found for password reset");
+          setError("Invalid or expired password reset link. Please request a new one.");
         } else {
           console.log("Valid session found for password reset");
         }
       } catch (err) {
-        console.error("Error checking hash status:", err);
+        console.error("Error checking session:", err);
       }
     };
 
-    checkHashStatus();
-  }, [location]);
+    checkSession();
+  }, []);
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
