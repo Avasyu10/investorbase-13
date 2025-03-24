@@ -1,11 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "./cors.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -212,6 +208,29 @@ serve(async (req) => {
       const analysisResult = await response.json();
       
       console.log("Analysis completed successfully:", analysisResult);
+      
+      // After successful analysis, remove the email submission from the list by updating its status
+      if (analysisResult.companyId) {
+        // Find and update any email_submissions associated with this report
+        const { data: emailSubmissions, error: emailSubmissionsError } = await serviceClient
+          .from('email_submissions')
+          .select('id')
+          .eq('report_id', reportId);
+          
+        if (!emailSubmissionsError && emailSubmissions && emailSubmissions.length > 0) {
+          console.log(`Found ${emailSubmissions.length} email submissions to update`);
+          
+          // Update the associated email submissions to mark them as processed
+          // This is critical to prevent them from showing up in the dashboard
+          for (const submission of emailSubmissions) {
+            await serviceClient
+              .from('email_submissions')
+              .update({ processed: true })
+              .eq('id', submission.id);
+          }
+          console.log(`Updated email submissions as processed`);
+        }
+      }
       
       return new Response(
         JSON.stringify({ 
