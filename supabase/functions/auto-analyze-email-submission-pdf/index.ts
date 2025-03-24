@@ -30,55 +30,86 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data
-    let reqData;
+    // Parse request data - can be from a webhook or direct call
+    let submissionId;
     try {
-      reqData = await req.json();
+      // First try to parse as JSON (for direct API calls)
+      const reqData = await req.json();
+      submissionId = reqData.submissionId || reqData.id;
     } catch (e) {
-      console.error("Error parsing request JSON:", e);
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid request format. Expected JSON with reportId property.",
-          success: false 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      // If JSON parsing fails, try to get from URL params (for webhook triggers)
+      const url = new URL(req.url);
+      submissionId = url.searchParams.get('id');
     }
-
-    const { reportId } = reqData;
     
-    // Validate reportId
-    if (!reportId) {
-      console.error("Missing reportId in request");
+    // Validate submission ID
+    if (!submissionId) {
+      console.error("Missing email submission ID in request");
       return new Response(
-        JSON.stringify({ error: "Report ID is required", success: false }),
+        JSON.stringify({ error: "Email submission ID is required", success: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
     // UUID validation
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(reportId)) {
-      console.error(`Invalid reportId format: "${reportId}"`);
+    if (!uuidRegex.test(submissionId)) {
+      console.error(`Invalid submission ID format: "${submissionId}"`);
       return new Response(
         JSON.stringify({ 
-          error: `Invalid report ID format. Expected a UUID, got: ${reportId}`,
+          error: `Invalid submission ID format. Expected a UUID, got: ${submissionId}`,
           success: false 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    console.log(`Processing report ${reportId} for email auto-analysis check`);
+    console.log(`Processing email submission ${submissionId} for auto-analysis check`);
     
     // Create a service client for direct database access
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
-    // Get the report and check if it's from an email submission
+    // Get the email submission record
+    const { data: emailSubmission, error: emailError } = await serviceClient
+      .from('email_submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .maybeSingle();
+      
+    if (emailError) {
+      console.error("Error fetching email submission:", emailError);
+      return new Response(
+        JSON.stringify({ error: emailError.message, success: false }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
+    if (!emailSubmission) {
+      console.error("Email submission not found");
+      return new Response(
+        JSON.stringify({ error: "Email submission not found", success: false }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+    
+    // No attachment or no report ID means nothing to analyze
+    if (!emailSubmission.attachment_url || !emailSubmission.report_id) {
+      console.log("Email submission has no attachment or report ID, skipping");
+      return new Response(
+        JSON.stringify({ 
+          message: "Email submission has no attachment or report ID, skipping",
+          success: true,
+          autoAnalyze: false
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
+    // Get the report associated with this email submission
     const { data: report, error: reportError } = await serviceClient
       .from('reports')
       .select('*')
-      .eq('id', reportId)
+      .eq('id', emailSubmission.report_id)
       .maybeSingle();
       
     if (reportError) {
@@ -94,34 +125,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Report not found", success: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
-    
-    // Get the email submission record
-    const { data: emailSubmission, error: emailError } = await serviceClient
-      .from('email_submissions')
-      .select('*')
-      .eq('report_id', reportId)
-      .maybeSingle();
-      
-    if (emailError) {
-      console.error("Error fetching email submission:", emailError);
-      return new Response(
-        JSON.stringify({ error: emailError.message, success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-    
-    // If no email submission record, exit
-    if (!emailSubmission) {
-      console.log("No email submission found for this report");
-      return new Response(
-        JSON.stringify({ 
-          message: "No email submission found for this report, skipping auto-analyze check",
-          success: true,
-          autoAnalyze: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
     
@@ -199,7 +202,7 @@ serve(async (req) => {
       const { error: updateError } = await serviceClient
         .from('reports')
         .update({ analysis_status: 'pending' })
-        .eq('id', reportId);
+        .eq('id', report.id);
         
       if (updateError) {
         console.error("Error updating report status:", updateError);
@@ -221,7 +224,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
         },
-        body: JSON.stringify({ reportId })
+        body: JSON.stringify({ reportId: report.id })
       });
       
       if (!response.ok) {
@@ -239,7 +242,7 @@ serve(async (req) => {
       
       const analysisResult = await response.json();
       
-      console.log("Analysis completed successfully:", analysisResult);
+      console.log("Analysis initiated successfully:", analysisResult);
       
       return new Response(
         JSON.stringify({ 

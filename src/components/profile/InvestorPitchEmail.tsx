@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -106,15 +107,10 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       
       const newValue = !autoAnalyze;
       
-      console.log("Updating auto_analyze to:", newValue);
-      console.log("Record ID being updated:", recordId);
-      
       const { data, error } = await supabase.rpc('update_investor_pitch_email_setting', {
-        auto_analyze_value: newValue,
-        record_id: recordId
+        record_id: recordId,
+        auto_analyze_value: newValue
       });
-      
-      console.log("Update response:", data);
       
       if (error) {
         console.error("Error updating auto_analyze:", error);
