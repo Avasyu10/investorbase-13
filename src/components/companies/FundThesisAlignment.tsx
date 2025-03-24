@@ -125,19 +125,37 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
         return;
       }
       
-      // Call the edge function to analyze the alignment
-      const { data, error } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
-        body: { company_id: companyId, user_id: userId }
-      });
-      
-      if (error) {
-        console.error("Error analyzing fund thesis alignment:", error);
+      // Get the current session for auth
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         toast({
-          title: "Analysis Failed",
-          description: "Could not analyze the fund thesis alignment. Please try again.",
+          title: "Authentication Required",
+          description: "Please sign in to analyze fund thesis alignment.",
           variant: "destructive",
         });
         return;
+      }
+      
+      // Call the edge function using direct fetch with proper headers
+      const response = await fetch('https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/analyze-fund-thesis-alignment', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'apikey': supabase.supabaseKey
+        },
+        body: JSON.stringify({ company_id: companyId, user_id: userId })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error response: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
       
       if (data && data.analysis) {
