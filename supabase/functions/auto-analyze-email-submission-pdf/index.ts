@@ -15,6 +15,8 @@ serve(async (req) => {
   }
 
   console.log("Received request to auto-analyze-email-submission-pdf");
+  console.log("Request method:", req.method);
+  console.log("Request URL:", req.url);
   
   try {
     // Check environment variables
@@ -35,16 +37,19 @@ serve(async (req) => {
 
     // Parse request data - can be from a webhook or direct call
     let submissionId;
+    let requestData;
     try {
       // First try to parse as JSON (for direct API calls)
-      const reqData = await req.json();
-      submissionId = reqData.submissionId || reqData.id;
-      console.log("Received request with data:", JSON.stringify(reqData));
+      requestData = await req.json();
+      console.log("Request data:", JSON.stringify(requestData));
+      submissionId = requestData.submissionId || requestData.id;
+      console.log("Extracted submission ID:", submissionId);
     } catch (e) {
+      console.log("Error parsing JSON:", e.message);
       // If JSON parsing fails, try to get from URL params (for webhook triggers)
       const url = new URL(req.url);
       submissionId = url.searchParams.get('id');
-      console.log("Parsing JSON failed, using URL params:", submissionId);
+      console.log("Using URL param ID:", submissionId);
     }
     
     // Validate submission ID

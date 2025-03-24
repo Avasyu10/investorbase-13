@@ -330,9 +330,9 @@ export async function autoAnalyzePublicReport(reportId: string) {
   }
 }
 
-export async function autoAnalyzeEmailSubmission(reportId: string) {
+export async function autoAnalyzeEmailSubmission(submissionId: string) {
   try {
-    console.log('Checking if email report should be auto-analyzed:', reportId);
+    console.log('Checking if email report should be auto-analyzed:', submissionId);
     
     // First check authentication
     const { data: { user } } = await supabase.auth.getUser();
@@ -342,20 +342,20 @@ export async function autoAnalyzeEmailSubmission(reportId: string) {
       throw new Error('User not authenticated');
     }
     
-    // Add validation for reportId format
+    // Add validation for submission UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!reportId || !uuidRegex.test(reportId)) {
-      const errorMessage = `Invalid report ID format: ${reportId}`;
+    if (!submissionId || !uuidRegex.test(submissionId)) {
+      const errorMessage = `Invalid submission ID format: ${submissionId}`;
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
     
     try {
       // Call the edge function with proper error handling
-      console.log(`Invoking auto-analyze-email-submission-pdf function with report ID: ${reportId}`);
+      console.log(`Invoking auto-analyze-email-submission-pdf function with submission ID: ${submissionId}`);
       
       const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission-pdf', {
-        body: { reportId }
+        body: { submissionId }
       });
       
       if (error) {
@@ -386,6 +386,7 @@ export async function autoAnalyzeEmailSubmission(reportId: string) {
     }
   } catch (error) {
     console.error('Error in autoAnalyzeEmailSubmission:', error);
-    throw error;
+    // Don't throw to avoid blocking UI
+    return { success: false, autoAnalyze: false };
   }
 }
