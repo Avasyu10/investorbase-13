@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +52,14 @@ const getSourceInfo = (source: string | undefined) => {
     };
   }
   
-  // Default to Dashboard (gold color)
+  if (source === 'email') {
+    return {
+      label: "Email",
+      className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+    };
+  }
+  
+  // Default to Dashboard (gold/amber color)
   return {
     label: "Dashboard",
     className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
