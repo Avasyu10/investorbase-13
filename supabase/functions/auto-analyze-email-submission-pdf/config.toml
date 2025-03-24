@@ -1,5 +1,2 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
-
-[functions.auto-analyze-email-submission-pdf]
-verify_jwt = false
