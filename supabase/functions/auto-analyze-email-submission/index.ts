@@ -100,109 +100,136 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Downloading attachment: ${emailSubmission.attachment_url}`);
+    console.log(`Attempting to download attachment: ${emailSubmission.attachment_url}`);
 
-    // Download the attachment from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from("email_attachments")
-      .download(emailSubmission.attachment_url);
+    // Try to download the attachment from storage
+    try {
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from("email_attachments")
+        .download(emailSubmission.attachment_url);
 
-    if (downloadError || !fileData) {
-      console.error("Failed to download attachment:", downloadError || "File data is empty");
-      throw new Error(`Failed to download attachment: ${downloadError?.message || "Not found"}`);
-    }
+      if (downloadError) {
+        console.error("Failed to download attachment:", downloadError);
+        throw new Error(`Failed to download attachment: ${downloadError.message}`);
+      }
 
-    console.log("Successfully downloaded attachment, creating report");
+      if (!fileData || fileData.size === 0) {
+        console.error("Downloaded file is empty");
+        throw new Error("Downloaded attachment is empty");
+      }
 
-    // Create a title for the report based on the email subject or a default
-    const title = emailSubmission.subject 
-      ? emailSubmission.subject.trim() 
-      : `Email from ${emailSubmission.from_email}`;
+      console.log(`Successfully downloaded attachment (${fileData.size} bytes), creating report`);
 
-    // Create a description from the email body
-    const description = emailSubmission.email_body 
-      ? `Email body: ${emailSubmission.email_body.substring(0, 500)}${emailSubmission.email_body.length > 500 ? '...' : ''}` 
-      : `Email received at ${new Date(emailSubmission.received_at).toLocaleString()}`;
+      // Create a title for the report based on the email subject or a default
+      const title = emailSubmission.subject 
+        ? emailSubmission.subject.trim() 
+        : `Email from ${emailSubmission.from_email}`;
 
-    console.log(`Creating report with title: ${title}`);
+      // Create a description from the email body
+      const description = emailSubmission.email_body 
+        ? `Email body: ${emailSubmission.email_body.substring(0, 500)}${emailSubmission.email_body.length > 500 ? '...' : ''}` 
+        : `Email received at ${new Date(emailSubmission.received_at).toLocaleString()}`;
 
-    // Create a new report record
-    const { data: report, error: reportError } = await supabase
-      .from("reports")
-      .insert([{
-        title: title,
-        description: description,
-        pdf_url: emailSubmission.attachment_url,
-        is_public_submission: false,
-        analysis_status: "pending",
-        submitter_email: emailSubmission.from_email
-      }])
-      .select()
-      .single();
+      console.log(`Creating report with title: ${title}`);
 
-    if (reportError || !report) {
-      console.error("Failed to create report:", reportError || "No report data returned");
-      throw new Error(`Failed to create report: ${reportError?.message || "Unknown error"}`);
-    }
+      // Create a new report record
+      const { data: report, error: reportError } = await supabase
+        .from("reports")
+        .insert([{
+          title: title,
+          description: description,
+          pdf_url: emailSubmission.attachment_url,
+          is_public_submission: false,
+          analysis_status: "pending",
+          submitter_email: emailSubmission.from_email
+        }])
+        .select()
+        .single();
 
-    console.log(`Report created with ID: ${report.id}`);
+      if (reportError) {
+        console.error("Failed to create report:", reportError);
+        throw new Error(`Failed to create report: ${reportError.message}`);
+      }
 
-    // Update the email submission with the report ID
-    const { error: updateError } = await supabase
-      .from("email_submissions")
-      .update({ report_id: report.id })
-      .eq("id", submissionId);
+      if (!report) {
+        console.error("No report data returned after insertion");
+        throw new Error("Failed to create report: No data returned");
+      }
 
-    if (updateError) {
-      console.error(`Warning: Failed to update email submission with report ID: ${updateError.message}`);
-    } else {
-      console.log(`Successfully updated email submission ${submissionId} with report ID ${report.id}`);
-    }
+      console.log(`Report created with ID: ${report.id}`);
 
-    // Check if we should trigger analysis automatically
-    const { data: emailSettings, error: settingsError } = await supabase
-      .from("investor_pitch_emails")
-      .select("auto_analyze")
-      .eq("email_address", emailSubmission.to_email)
-      .maybeSingle();
+      // Update the email submission with the report ID
+      const { error: updateError } = await supabase
+        .from("email_submissions")
+        .update({ report_id: report.id })
+        .eq("id", submissionId);
 
-    let autoAnalyze = false;
-    
-    if (!settingsError && emailSettings) {
-      autoAnalyze = emailSettings.auto_analyze || false;
-    }
+      if (updateError) {
+        console.error(`Warning: Failed to update email submission with report ID: ${updateError.message}`);
+      } else {
+        console.log(`Successfully updated email submission ${submissionId} with report ID ${report.id}`);
+      }
 
-    console.log(`Auto-analyze for ${emailSubmission.to_email} is: ${autoAnalyze}`);
+      // Check if we should trigger analysis automatically
+      const { data: emailSettings, error: settingsError } = await supabase
+        .from("investor_pitch_emails")
+        .select("auto_analyze")
+        .eq("email_address", emailSubmission.to_email)
+        .maybeSingle();
 
-    // If auto-analyze is enabled, trigger the analysis
-    if (autoAnalyze) {
-      console.log(`Auto-triggering analysis for report: ${report.id}`);
+      let autoAnalyze = false;
       
-      try {
-        const analyzeResponse = await supabase.functions.invoke("analyze-pdf", {
-          body: { reportId: report.id }
-        });
-        
-        if (analyzeResponse.error) {
-          console.error(`Warning: Auto-analysis failed: ${analyzeResponse.error.message || JSON.stringify(analyzeResponse.error)}`);
-        } else {
-          console.log(`Auto-analysis initiated successfully for report ${report.id}`);
-        }
-      } catch (analyzeError) {
-        console.error(`Warning: Failed to trigger auto-analysis:`, analyzeError);
+      if (settingsError) {
+        console.error(`Warning: Failed to fetch email settings: ${settingsError.message}`);
+      } else if (emailSettings) {
+        autoAnalyze = emailSettings.auto_analyze || false;
+        console.log(`Auto-analyze for ${emailSubmission.to_email} is: ${autoAnalyze}`);
+      } else {
+        console.log(`No settings found for ${emailSubmission.to_email}, defaulting auto-analyze to false`);
       }
-    }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        reportId: report.id,
-        autoAnalyze 
-      }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      // If auto-analyze is enabled, trigger the analysis
+      if (autoAnalyze) {
+        console.log(`Auto-triggering analysis for report: ${report.id}`);
+        
+        try {
+          const analyzeResponse = await supabase.functions.invoke("analyze-pdf", {
+            body: { reportId: report.id }
+          });
+          
+          if (analyzeResponse.error) {
+            console.error(`Warning: Auto-analysis failed: ${analyzeResponse.error.message || JSON.stringify(analyzeResponse.error)}`);
+          } else {
+            console.log(`Auto-analysis initiated successfully for report ${report.id}`);
+          }
+        } catch (analyzeError) {
+          console.error(`Warning: Failed to trigger auto-analysis:`, analyzeError);
+        }
       }
-    );
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          reportId: report.id,
+          autoAnalyze 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    } catch (storageError) {
+      console.error("Storage operation failed:", storageError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Failed to download attachment: ${storageError instanceof Error ? storageError.message : JSON.stringify(storageError)}`
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
   } catch (error) {
     console.error(`Error in auto-analyze-email-submission function:`, error);
     

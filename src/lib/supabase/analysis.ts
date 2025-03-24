@@ -332,17 +332,9 @@ export async function autoAnalyzePublicReport(reportId: string) {
 
 export async function autoAnalyzeEmailSubmission(submissionId: string) {
   try {
-    console.log('Checking if email report should be auto-analyzed:', submissionId);
+    console.log('Checking if email submission should be auto-analyzed:', submissionId);
     
-    // First check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error('User not authenticated');
-      throw new Error('User not authenticated');
-    }
-    
-    // Add validation for submission UUID format
+    // Validate UUID format before sending
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!submissionId || !uuidRegex.test(submissionId)) {
       const errorMessage = `Invalid submission ID format: ${submissionId}`;
@@ -355,90 +347,57 @@ export async function autoAnalyzeEmailSubmission(submissionId: string) {
       throw new Error(errorMessage);
     }
     
-    try {
-      // Call the edge function with proper error handling
-      console.log(`Invoking auto-analyze-email-submission function with submission ID: ${submissionId}`);
-      
-      // Let's verify that we're using the correct function name and add more debug info
-      console.log('Edge function URL:', `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission`);
-      
-      // Add a direct fetch call to verify edge function access
-      try {
-        // Get the auth token for authorization
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          throw new Error('Authentication session not found');
-        }
-        
-        // Get the API key from the environment
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY";
-        
-        console.log('Making direct fetch call to edge function');
-        console.log('Payload:', { submissionId });
-        
-        const directResponse = await fetch(`https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': SUPABASE_KEY
-          },
-          body: JSON.stringify({ submissionId })
-        });
-        
-        if (!directResponse.ok) {
-          console.error(`Direct fetch failed with status: ${directResponse.status}`);
-          const responseText = await directResponse.text();
-          console.error('Response:', responseText);
-          try {
-            const errorJson = JSON.parse(responseText);
-            console.error('Parsed error response:', errorJson);
-          } catch (e) {
-            console.error('Could not parse error response as JSON');
-          }
-        } else {
-          const responseData = await directResponse.json();
-          console.log('Direct fetch succeeded:', responseData);
-        }
-      } catch (fetchError) {
-        console.error('Error making direct fetch call:', fetchError);
-      }
-      
-      // Now call using the Supabase client (our primary method)
-      const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission', {
-        body: { submissionId }
+    // Call the auto-analyze-email-submission edge function directly
+    const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission', {
+      body: { submissionId }
+    });
+    
+    if (error) {
+      console.error('Error invoking auto-analyze-email-submission function:', error);
+      toast({
+        title: "Analysis Check Failed",
+        description: `Could not check auto-analyze status: ${error.message}`,
+        variant: "destructive"
       });
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during auto-analyze check";
+      console.error('API returned error:', errorMessage);
       
-      if (error) {
-        console.error('Error invoking auto-analyze-email-submission function:', error);
-        throw error;
-      }
-      
-      if (!data || data.error) {
-        const errorMessage = data?.error || "Unknown error occurred during auto-analysis check";
-        console.error('API returned error:', errorMessage);
-        throw new Error(errorMessage);
-      }
-      
-      console.log('Auto-analyze email result:', data);
-      
-      // If auto-analyze was triggered, show a toast notification
-      if (data.autoAnalyze) {
+      // Show a more user-friendly toast message based on the error
+      if (errorMessage.includes('Failed to download attachment')) {
         toast({
-          title: "Auto-analysis initiated",
-          description: "The email pitch deck is being analyzed automatically",
+          title: "Attachment Error",
+          description: "The email attachment could not be processed. It may be missing or corrupted.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Analysis Check Failed",
+          description: errorMessage,
+          variant: "destructive"
         });
       }
       
-      return data;
-    } catch (innerError) {
-      console.error('Error in auto-analyze check:', innerError);
-      throw innerError;
+      throw new Error(errorMessage);
     }
+    
+    console.log('Auto-analyze check result:', data);
+    
+    if (data.autoAnalyze) {
+      toast({
+        id: "auto-analyze-success",
+        title: "Auto-analysis started",
+        description: "Your pitch deck is being automatically analyzed",
+      });
+    }
+    
+    return data;
   } catch (error) {
-    console.error('Error in autoAnalyzeEmailSubmission:', error);
-    // Don't throw to avoid blocking UI
+    console.error('Error checking auto-analyze status:', error);
+    // Don't throw error to prevent blocking other operations
     return { success: false, autoAnalyze: false };
   }
 }
