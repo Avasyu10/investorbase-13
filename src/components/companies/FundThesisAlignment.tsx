@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Lightbulb, ExternalLink } from "lucide-react";
+import { FileText, Lightbulb, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,8 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
   const [fundThesisUrl, setFundThesisUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkFundThesis() {
@@ -48,6 +50,23 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
         if (vcProfile && vcProfile.fund_thesis_url) {
           setHasFundThesis(true);
           setFundThesisUrl(vcProfile.fund_thesis_url);
+          
+          // Check if there's an existing analysis
+          const urlParts = window.location.pathname.split('/');
+          const companyId = urlParts[urlParts.length - 1];
+          
+          if (companyId) {
+            const { data: existingAnalysis } = await supabase
+              .from('fund_thesis_analysis')
+              .select('analysis_text')
+              .eq('company_id', companyId)
+              .eq('user_id', user.id)
+              .maybeSingle();
+              
+            if (existingAnalysis && existingAnalysis.analysis_text) {
+              setAnalysis(existingAnalysis.analysis_text);
+            }
+          }
         }
       } catch (error) {
         console.error("Error checking fund thesis:", error);
@@ -88,6 +107,58 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
     }
   };
   
+  const analyzeAlignment = async () => {
+    if (!userId) return;
+    
+    try {
+      setIsAnalyzing(true);
+      // Get the company ID from the URL
+      const urlParts = window.location.pathname.split('/');
+      const companyId = urlParts[urlParts.length - 1];
+      
+      if (!companyId) {
+        toast({
+          title: "Error",
+          description: "Could not determine the company ID.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Call the edge function to analyze the alignment
+      const { data, error } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
+        body: { company_id: companyId, user_id: userId }
+      });
+      
+      if (error) {
+        console.error("Error analyzing fund thesis alignment:", error);
+        toast({
+          title: "Analysis Failed",
+          description: "Could not analyze the fund thesis alignment. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data && data.analysis) {
+        setAnalysis(data.analysis);
+        toast({
+          title: "Analysis Complete",
+          description: "Fund thesis alignment analysis has been completed.",
+        });
+      }
+    } catch (error) {
+      console.error("Error analyzing fund thesis alignment:", error);
+      toast({
+        title: "Analysis Failed",
+        description: "An error occurred during analysis. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  
   if (isLoading) {
     return (
       <Card className="mb-6 border-0 shadow-subtle">
@@ -121,18 +192,54 @@ export function FundThesisAlignment({ companyName }: FundThesisAlignmentProps) {
       <CardContent>
         <p className="text-sm text-muted-foreground mb-3">
           Assess how well {companyName} aligns with your investment thesis and strategic focus areas.
-          Review your fund thesis document to compare against this opportunity.
+          {!analysis && "Run an analysis to get AI-powered insights on the alignment."}
         </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex items-center gap-2"
-          onClick={handleViewThesis}
-        >
-          <FileText className="h-4 w-4" />
-          View Your Fund Thesis
-          <ExternalLink className="h-3 w-3 ml-1" />
-        </Button>
+        
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2"
+              onClick={handleViewThesis}
+            >
+              <FileText className="h-4 w-4" />
+              View Your Fund Thesis
+              <ExternalLink className="h-3 w-3 ml-1" />
+            </Button>
+            
+            {!analysis && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={analyzeAlignment}
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Lightbulb className="h-4 w-4" />
+                    Analyze Alignment
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+          
+          {analysis && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <h3 className="text-sm font-medium mb-2">Alignment Analysis</h3>
+              <div className="text-sm text-muted-foreground whitespace-pre-line">
+                {analysis}
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

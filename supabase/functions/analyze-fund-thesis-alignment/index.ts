@@ -14,12 +14,12 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is not configured');
+    if (!GEMINI_API_KEY) {
+      throw new Error('Gemini API key is not configured');
     }
 
     const { company_id, user_id } = await req.json();
@@ -68,50 +68,51 @@ serve(async (req) => {
     const fundThesisBase64 = await blobToBase64(fundThesisBlob);
     const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
 
-    // Call OpenAI to analyze alignment
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Gemini to analyze alignment
+    const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
+
+    const geminiResponse = await fetch(urlWithApiKey, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { 
-            role: 'system', 
-            content: `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
-            Provide a detailed assessment focusing on key alignment points, potential synergies, and any notable discrepancies.
-            Your response should be structured and actionable.` 
-          },
-          { 
-            role: 'user', 
-            content: [
-              { 
-                type: 'text', 
-                text: 'Fund Thesis PDF:' 
-              },
-              { 
-                type: 'text', 
-                text: fundThesisBase64 
-              },
-              { 
-                type: 'text', 
-                text: 'Pitch Deck PDF:' 
-              },
-              { 
-                type: 'text', 
-                text: pitchDeckBase64 
+        contents: [
+          {
+            parts: [
+              {
+                text: `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
+                Provide a detailed assessment focusing on key alignment points, potential synergies, and any notable discrepancies.
+                Your response should be structured and actionable.
+
+                Fund Thesis PDF Content:
+                ${fundThesisBase64}
+
+                Pitch Deck PDF Content:
+                ${pitchDeckBase64}
+                `
               }
             ]
           }
         ],
-        max_tokens: 1000
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 2048
+        }
       }),
     });
 
-    const analysisData = await openAIResponse.json();
-    const analysisText = analysisData.choices[0].message.content;
+    const geminiData = await geminiResponse.json();
+    let analysisText = '';
+    
+    if (geminiData.candidates && geminiData.candidates.length > 0 && 
+        geminiData.candidates[0].content && geminiData.candidates[0].content.parts && 
+        geminiData.candidates[0].content.parts.length > 0) {
+      analysisText = geminiData.candidates[0].content.parts[0].text;
+    } else {
+      throw new Error('Unexpected response format from Gemini API');
+    }
 
     // Store analysis in Supabase
     const supabaseStoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
