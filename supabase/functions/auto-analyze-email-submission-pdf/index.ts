@@ -92,6 +92,22 @@ serve(async (req) => {
     
     console.log("Found email submission:", JSON.stringify(emailSubmission));
     
+    // Check if this is a new addition to email_submissions
+    const { data: recentSubmissions, error: recentError } = await serviceClient
+      .from('email_submissions')
+      .select('id')
+      .eq('report_id', emailSubmission.report_id)
+      .order('created_at', { ascending: false })
+      .limit(2);
+      
+    if (recentError) {
+      console.error("Error checking recent submissions:", recentError);
+      // Non-blocking, continue with analysis
+    } else if (recentSubmissions && recentSubmissions.length === 1) {
+      // If there's only one record with this report_id, it means this is a new addition
+      console.log("database updated"); // Only print this when it's a new email submission
+    }
+    
     // No attachment or no report ID means nothing to analyze
     if (!emailSubmission.attachment_url || !emailSubmission.report_id) {
       console.log("Email submission has no attachment or report ID, skipping");
@@ -199,20 +215,6 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
-    }
-    
-    // Check if this corresponds to a new addition in public_form_submissions
-    const { data: publicFormSubmissions, error: publicFormError } = await serviceClient
-      .from('public_form_submissions')
-      .select('*')
-      .eq('report_id', report.id)
-      .limit(1);
-      
-    if (publicFormError) {
-      console.error("Error checking public form submissions:", publicFormError);
-      // Non-blocking, continue with analysis
-    } else if (publicFormSubmissions && publicFormSubmissions.length > 0) {
-      console.log("database updated"); // Only print this when there's a match in public_form_submissions
     }
     
     // Update status to pending if it was manual_pending
