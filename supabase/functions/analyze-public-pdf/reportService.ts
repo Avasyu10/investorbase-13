@@ -104,7 +104,7 @@ export async function getReportData(reportId: string, authHeader: string): Promi
   
   // Now we use service role client to bypass RLS for storage access
   
-  // First, try to fetch from the 'public_form_submissions' table to get the correct PDF URL
+  // First, try to fetch from the 'public_form_submissions' table to get the correct PDF URL and form slug
   console.log(`Fetching public submission details for report ${reportId}`);
   const { data: submissionData, error: submissionError } = await serviceClient
     .from('public_form_submissions')
@@ -119,16 +119,12 @@ export async function getReportData(reportId: string, authHeader: string): Promi
   // Determine the storage path and bucket based on the data we have
   let storageBucket = 'report_pdfs';
   let storagePath = '';
+  let formSlug = submissionData?.form_slug || '';
   
   if (submissionData?.pdf_url) {
     // For public submissions, we prioritize the pdf_url from the public_form_submissions table
     console.log(`Using PDF URL from public_form_submissions: ${submissionData.pdf_url}`);
     storagePath = submissionData.pdf_url;
-    
-    // Check if this path seems to be from public_uploads bucket
-    if (submissionData.form_slug && storagePath.includes(submissionData.form_slug)) {
-      storageBucket = 'public_uploads';
-    }
   } else if (report.pdf_url) {
     // Fallback to the report.pdf_url
     console.log(`Using PDF URL from reports table: ${report.pdf_url}`);
@@ -169,7 +165,7 @@ export async function getReportData(reportId: string, authHeader: string): Promi
   let fileData = null;
   let fileError = null;
   
-  // First attempt with the primary bucket and path
+  // First attempt with the original path
   const primaryResult = await tryDownloadFromBucket(storageBucket, storagePath);
   
   if (primaryResult.data) {
@@ -180,32 +176,57 @@ export async function getReportData(reportId: string, authHeader: string): Promi
     // If the primary attempt failed, try alternative options
     console.log("Primary download failed, trying alternatives...");
     
-    // List of fallback buckets to try
-    const fallbackBuckets = ['public_uploads', 'report_pdfs'];
+    // Generate a list of possible paths to try
+    const possiblePaths = [];
     
-    // Try alternative paths - removing folders or adding 'public/' prefix
-    const alternativePaths = [
-      storagePath,
-      storagePath.includes('/') ? storagePath.split('/').pop() : null,
-      `public/${storagePath}`,
-    ].filter(Boolean) as string[];
+    // The original path
+    possiblePaths.push(storagePath);
     
-    let foundFile = false;
+    // If path doesn't start with formSlug but formSlug exists, try with formSlug prefix
+    if (formSlug && !storagePath.startsWith(`${formSlug}/`)) {
+      const filename = storagePath.split('/').pop() || storagePath;
+      possiblePaths.push(`${formSlug}/${filename}`);
+    }
     
-    // Try each bucket and path combination
-    for (const bucket of fallbackBuckets) {
-      if (foundFile) break;
+    // Try with just the filename (no directories)
+    const filename = storagePath.split('/').pop();
+    if (filename) {
+      possiblePaths.push(filename);
+    }
+    
+    // For old files, check if they might be under the user's directory
+    if (userId && !storagePath.startsWith(`${userId}/`)) {
+      possiblePaths.push(`${userId}/${storagePath}`);
       
-      for (const path of alternativePaths) {
-        // Skip if this is the same as our primary attempt
-        if (bucket === storageBucket && path === storagePath) continue;
-        
-        const result = await tryDownloadFromBucket(bucket, path);
-        
+      // Also try with just the filename
+      if (filename) {
+        possiblePaths.push(`${userId}/${filename}`);
+      }
+    }
+    
+    console.log("Trying alternative paths:", possiblePaths);
+    
+    // Try each alternative path
+    for (const path of possiblePaths) {
+      if (path === storagePath) continue; // Skip the original path we already tried
+      
+      const result = await tryDownloadFromBucket(storageBucket, path);
+      if (result.data) {
+        console.log(`Successfully downloaded using alternative path: ${path}`);
+        fileData = result.data;
+        break;
+      }
+    }
+    
+    // If still no success, try the public_uploads bucket
+    if (!fileData) {
+      console.log("Trying public_uploads bucket as last resort");
+      
+      for (const path of possiblePaths) {
+        const result = await tryDownloadFromBucket('public_uploads', path);
         if (result.data) {
+          console.log(`Successfully downloaded from public_uploads bucket using path: ${path}`);
           fileData = result.data;
-          console.log(`Successfully downloaded using fallback: bucket=${bucket}, path=${path}`);
-          foundFile = true;
           break;
         }
       }
@@ -220,6 +241,12 @@ export async function getReportData(reportId: string, authHeader: string): Promi
       reportId,
       storageBucket,
       storagePath,
+      formSlug,
+      possiblePaths: [
+        storagePath,
+        formSlug ? `${formSlug}/${storagePath.split('/').pop()}` : null,
+        storagePath.split('/').pop()
+      ].filter(Boolean),
       originalError: fileError
     };
     

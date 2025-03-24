@@ -69,6 +69,7 @@ serve(async (req) => {
     const email = formData.get("email") as string | null;
     const description = formData.get("description") as string || "";
     const websiteUrl = formData.get("websiteUrl") as string || "";
+    const formSlug = formData.get("formSlug") as string || "";
     
     const missingFields = [];
     if (!file) missingFields.push("file");
@@ -137,12 +138,22 @@ serve(async (req) => {
       // Create a unique filename with form slug prefix to help identify source
       const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
-      const uniqueFilename = `${timestamp}.${fileExt}`;
+      
+      // Create storage path using formSlug as prefix
+      let storagePath;
+      if (formSlug) {
+        storagePath = `${formSlug}/${timestamp}.${fileExt}`;
+        console.log(`Using form slug '${formSlug}' in storage path: ${storagePath}`);
+      } else {
+        // Fallback without form slug if not provided
+        storagePath = `${timestamp}.${fileExt}`;
+        console.log(`No form slug provided, using simple path: ${storagePath}`);
+      }
       
       // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('report_pdfs')
-        .upload(uniqueFilename, file);
+        .upload(storagePath, file);
         
       if (uploadError) {
         console.error("Error uploading file:", uploadError);
@@ -159,7 +170,7 @@ serve(async (req) => {
         );
       }
       
-      console.log(`File uploaded successfully: ${uniqueFilename}`);
+      console.log(`File uploaded successfully: ${storagePath}`);
       
       // Create report record
       const { data: report, error: reportError } = await supabase
@@ -167,7 +178,7 @@ serve(async (req) => {
         .insert({
           title,
           description,
-          pdf_url: uniqueFilename,
+          pdf_url: storagePath,
           is_public_submission: true,
           submitter_email: email,
           user_id: userId,
@@ -199,9 +210,10 @@ serve(async (req) => {
         .insert({
           title,
           description,
-          pdf_url: uniqueFilename,
+          pdf_url: storagePath,
           website_url: websiteUrl,
-          report_id: report.id
+          report_id: report.id,
+          form_slug: formSlug
         });
         
       if (submissionError) {
@@ -211,22 +223,17 @@ serve(async (req) => {
       
       // Check if we should start analysis automatically - in this case we always do
       try {
-        console.log("Starting automatic analysis for report:", report.id);
+        console.log("Setting analysis status to: manual_pending");
         
-        await fetch(`${supabaseUrl}/functions/v1/analyze-pdf`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            reportId: report.id
-          })
-        });
-        
-        console.log("Analysis process initiated");
+        // Update the analysis status to a special state for public submissions
+        await supabase
+          .from('reports')
+          .update({ analysis_status: 'manual_pending' })
+          .eq('id', report.id);
+          
+        console.log("Analysis status updated to manual_pending");
       } catch (analysisError) {
-        console.error("Error initiating analysis:", analysisError);
+        console.error("Error updating analysis status:", analysisError);
         // Non-critical error, continue
       }
       
