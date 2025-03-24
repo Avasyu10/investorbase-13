@@ -237,13 +237,13 @@ export async function uploadReport(file: File, title: string, description: strin
   }
 }
 
-export async function autoAnalyzeEmailSubmission(reportId: string) {
+export async function autoAnalyzeEmailSubmission(submissionId: string) {
   try {
-    console.log('Checking if email submission should be auto-analyzed:', reportId);
+    console.log('Checking if email submission should be auto-analyzed:', submissionId);
     
-    // Call the auto-analyze-email-submission-pdf edge function
+    // Call the auto-analyze-email-submission-pdf edge function directly
     const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission-pdf', {
-      body: { reportId }
+      body: { submissionId }
     });
     
     if (error) {
