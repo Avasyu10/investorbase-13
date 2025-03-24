@@ -22,6 +22,7 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
   const [isRequesting, setIsRequesting] = useState(false);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
+  const [recordId, setRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -49,7 +50,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         if (data.email_address) {
           setStatus('approved');
           setEmail(data.email_address);
-          setAutoAnalyze(data.auto_analyze || false);
+          setAutoAnalyze(!!data.auto_analyze); // Ensure boolean conversion
+          setRecordId(data.id); // Store the record ID for update operations
         } else {
           setStatus('pending');
         }
@@ -98,7 +100,7 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
   };
 
   const toggleAutoAnalyze = async () => {
-    if (!user) return;
+    if (!user || !recordId) return;
     
     try {
       setUpdatingAutoAnalyze(true);
@@ -106,19 +108,27 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       const newValue = !autoAnalyze;
       
       console.log("Updating auto_analyze to:", newValue);
+      console.log("Record ID being updated:", recordId);
       
-      const { error } = await supabase
+      // Update using the specific record ID instead of user_id
+      const { data, error } = await supabase
         .from('investor_pitch_emails')
         .update({ auto_analyze: newValue })
-        .eq('user_id', user.id);
+        .eq('id', recordId)
+        .select('auto_analyze');
         
       if (error) {
         console.error("Error updating auto_analyze:", error);
         throw error;
       }
       
-      console.log("Auto-analyze updated successfully");
-      setAutoAnalyze(newValue);
+      console.log("Update response:", data);
+      
+      if (data && data.length > 0) {
+        const updatedValue = data[0].auto_analyze;
+        console.log("Updated auto_analyze value from DB:", updatedValue);
+        setAutoAnalyze(!!updatedValue);
+      }
       
       toast({
         title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
