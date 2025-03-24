@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob } from '@/lib/pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -327,6 +326,66 @@ export async function autoAnalyzePublicReport(reportId: string) {
     }
   } catch (error) {
     console.error('Error in autoAnalyzePublicReport:', error);
+    throw error;
+  }
+}
+
+export async function autoAnalyzeEmailSubmission(reportId: string) {
+  try {
+    console.log('Checking if email report should be auto-analyzed:', reportId);
+    
+    // First check authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('User not authenticated');
+      throw new Error('User not authenticated');
+    }
+    
+    // Add validation for reportId format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!reportId || !uuidRegex.test(reportId)) {
+      const errorMessage = `Invalid report ID format: ${reportId}`;
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    
+    try {
+      // Call the edge function with proper error handling
+      console.log(`Invoking auto-analyze-email-submission-pdf function with report ID: ${reportId}`);
+      
+      const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission-pdf', {
+        body: { reportId }
+      });
+      
+      if (error) {
+        console.error('Error invoking auto-analyze-email-submission-pdf function:', error);
+        throw error;
+      }
+      
+      if (!data || data.error) {
+        const errorMessage = data?.error || "Unknown error occurred during auto-analysis check";
+        console.error('API returned error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      console.log('Auto-analyze email result:', data);
+      
+      // If auto-analyze was triggered, show a toast notification
+      if (data.autoAnalyze) {
+        toast({
+          title: "Auto-analysis initiated",
+          description: "The email pitch deck is being analyzed automatically",
+        });
+      }
+      
+      return data;
+    } catch (innerError) {
+      console.error('Error in auto-analyze check:', innerError);
+      throw innerError;
+    }
+  } catch (error) {
+    console.error('Error in autoAnalyzeEmailSubmission:', error);
     throw error;
   }
 }
