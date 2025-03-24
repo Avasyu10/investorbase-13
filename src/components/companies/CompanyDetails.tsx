@@ -5,7 +5,6 @@ import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { LatestResearch } from "./LatestResearch";
 import { CompanyInfoCard } from "./CompanyInfoCard";
-import { FundThesisAlignment } from "./FundThesisAlignment";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -272,9 +271,6 @@ export function CompanyDetails() {
         </div>
 
         <ScoreAssessment company={company} />
-        
-        {/* Add Fund Thesis Alignment section here, after ScoreAssessment */}
-        <FundThesisAlignment companyName={company.name} />
       </div>
       
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
