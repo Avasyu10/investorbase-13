@@ -201,6 +201,20 @@ serve(async (req) => {
       );
     }
     
+    // Check if this corresponds to a new addition in public_form_submissions
+    const { data: publicFormSubmissions, error: publicFormError } = await serviceClient
+      .from('public_form_submissions')
+      .select('*')
+      .eq('report_id', report.id)
+      .limit(1);
+      
+    if (publicFormError) {
+      console.error("Error checking public form submissions:", publicFormError);
+      // Non-blocking, continue with analysis
+    } else if (publicFormSubmissions && publicFormSubmissions.length > 0) {
+      console.log("database updated"); // Only print this when there's a match in public_form_submissions
+    }
+    
     // Update status to pending if it was manual_pending
     if (report.analysis_status === 'manual_pending') {
       console.log("Updating report status from manual_pending to pending");
