@@ -42,105 +42,72 @@ serve(async (req) => {
       const previewLength = Math.min(200, rawText.length);
       console.log(`Raw request body preview: ${rawText.substring(0, previewLength)}${rawText.length > previewLength ? '...' : ''}`);
       
-      // Enhanced JSON parsing with multiple fallback strategies
       try {
-        // First attempt: Standard JSON parsing
-        requestData = JSON.parse(rawText);
-        console.log("Successfully parsed JSON using standard JSON.parse");
-      } catch (jsonError) {
-        console.error("Failed to parse as JSON. Error:", jsonError.message);
-        
-        // Second attempt: Clean the text of problematic characters
+        // First attempt: Replace problematic characters before parsing
+        // This is the key fix for parentheses issues
+        const sanitizedText = rawText
+          .replace(/\\[\(\)]/g, '') // Remove escaped parentheses
+          .replace(/\(/g, '[')     // Replace opening parentheses with square brackets
+          .replace(/\)/g, ']');    // Replace closing parentheses with square brackets
+          
         try {
-          // More aggressive cleaning of problematic characters
+          requestData = JSON.parse(sanitizedText);
+          console.log("Successfully parsed JSON after parentheses replacement");
+        } catch (sanitizeError) {
+          console.error("Failed to parse after sanitizing parentheses:", sanitizeError.message);
+          
+          // Fallback: Try more aggressive cleaning
           const cleanedText = rawText
             .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, "") // Remove control characters
             .replace(/\\[^"\\\/bfnrtu]/g, "\\\\") // Escape backslashes properly
-            .replace(/\(/g, "\\(").replace(/\)/g, "\\)") // Escape parentheses
+            .replace(/[()]/g, "") // Remove all parentheses completely
             .replace(/'/g, "\"") // Replace single quotes with double quotes
             .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
             .replace(/\s+/g, " ")          // Normalize spaces
             .trim();                       // Trim whitespace
-            
-          console.log("Cleaned text for JSON parsing");
-          
-          // Try parsing the cleaned text
-          if (cleanedText.startsWith("{") && cleanedText.endsWith("}")) {
-            try {
-              requestData = JSON.parse(cleanedText);
-              console.log("Successfully parsed JSON after cleaning text");
-            } catch (cleaningError) {
-              console.error("Failed to parse cleaned text:", cleaningError.message);
               
-              // Third attempt: Even more aggressive reformatting
-              const strictlyFormatted = cleanedText
-                .replace(/([{,])\s*([^"\s]+)\s*:/g, '$1"$2":') // Ensure property names are quoted
-                .replace(/:\s*'([^']*)'\s*([,}])/g, ':"$1"$2')  // Convert single quotes to double quotes
-                .replace(/([{,])\s*"([^"]+)"\s*:\s*([^",{}\s][^,{}]*[^,{}\s])\s*([,}])/g, '$1"$2":"$3"$4'); // Quote unquoted values
-                
-              try {
-                requestData = JSON.parse(strictlyFormatted);
-                console.log("Successfully parsed JSON after strict formatting");
-              } catch (formattingError) {
-                console.error("Strict formatting failed:", formattingError.message);
-                
-                // Fourth attempt: Extract key fields with regex as last resort
-                console.log("Falling back to regex extraction");
-                requestData = {};
-                
-                // Extract common fields using regex patterns that handle parentheses
-                const actionMatch = rawText.match(/["']action["']\s*:\s*["']([^"']+)["']/);
-                if (actionMatch && actionMatch[1]) {
-                  requestData.action = actionMatch[1];
-                } else {
-                  requestData.action = 'create'; // Default action
-                }
-                
-                const fromEmailMatch = rawText.match(/["']from_?[eE]mail["']\s*:\s*["']([^"']+)["']/);
-                if (fromEmailMatch && fromEmailMatch[1]) {
-                  requestData.fromEmail = fromEmailMatch[1];
-                }
-                
-                const toEmailMatch = rawText.match(/["']to_?[eE]mail["']\s*:\s*["']([^"']+)["']/);
-                if (toEmailMatch && toEmailMatch[1]) {
-                  requestData.toEmail = toEmailMatch[1];
-                }
-                
-                const subjectMatch = rawText.match(/["']subject["']\s*:\s*["']([^"']+)["']/);
-                if (subjectMatch && subjectMatch[1]) {
-                  requestData.subject = subjectMatch[1];
-                }
-                
-                console.log("Extracted data using regex:", requestData);
-              }
-            }
-          } else {
-            // If it doesn't look like JSON at all, use regex directly
-            console.log("Input doesn't look like JSON, using regex directly");
-            requestData = { action: 'create' };
+          console.log("Attempted more aggressive cleaning for JSON parsing");
+          
+          try {
+            requestData = JSON.parse(cleanedText);
+            console.log("Successfully parsed JSON after aggressive cleaning");
+          } catch (cleaningError) {
+            console.error("Failed to parse cleaned text:", cleaningError.message);
             
-            // Extract using regex with more flexible patterns
-            const fromEmailMatch = rawText.match(/["']?from_?[eE]mail["']?\s*[:=]\s*["']?([^"',}\s]+)["']?/i);
+            // Final attempt: Extract key fields with regex as last resort
+            console.log("Falling back to regex extraction");
+            requestData = {};
+            
+            // Extract action
+            const actionMatch = rawText.match(/["']action["']\s*:\s*["']([^"']+)["']/);
+            if (actionMatch && actionMatch[1]) {
+              requestData.action = actionMatch[1];
+            } else {
+              requestData.action = 'create'; // Default action
+            }
+            
+            // Extract key email fields
+            const fromEmailMatch = rawText.match(/["']from_?[eE]mail["']\s*:\s*["']([^"']+)["']/);
             if (fromEmailMatch && fromEmailMatch[1]) {
               requestData.fromEmail = fromEmailMatch[1];
             }
             
-            const toEmailMatch = rawText.match(/["']?to_?[eE]mail["']?\s*[:=]\s*["']?([^"',}\s]+)["']?/i);
+            const toEmailMatch = rawText.match(/["']to_?[eE]mail["']\s*:\s*["']([^"']+)["']/);
             if (toEmailMatch && toEmailMatch[1]) {
               requestData.toEmail = toEmailMatch[1];
             }
             
-            const subjectMatch = rawText.match(/["']?subject["']?\s*[:=]\s*["']?([^"',}]+)["']?/i);
+            const subjectMatch = rawText.match(/["']subject["']\s*:\s*["']([^"']+)["']/);
             if (subjectMatch && subjectMatch[1]) {
-              requestData.subject = subjectMatch[1].trim();
+              requestData.subject = subjectMatch[1];
             }
+            
+            console.log("Extracted data using regex:", requestData);
           }
-        } catch (fallbackError) {
-          console.error("All parsing attempts failed:", fallbackError.message);
-          // Last resort - create a minimal valid object
-          requestData = { action: 'create' };
-          console.log("Using default action: create");
         }
+      } catch (parseError) {
+        console.error("All parsing attempts failed:", parseError.message);
+        throw new Error(`Failed to parse request data: ${parseError.message}`);
       }
       
       console.log(`Processed request data:`, JSON.stringify(requestData));

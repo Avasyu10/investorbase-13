@@ -34,110 +34,73 @@ serve(async (req) => {
       const previewLength = Math.min(200, rawText.length);
       console.log(`Raw request body preview: ${rawText.substring(0, previewLength)}${rawText.length > previewLength ? '...' : ''}`);
       
-      // Enhanced JSON parsing with multiple fallback strategies
       try {
-        // First attempt: Standard JSON parsing
-        requestData = JSON.parse(rawText);
-        console.log("Successfully parsed JSON using standard JSON.parse");
-      } catch (jsonError) {
-        console.error("Failed to parse as JSON. Error:", jsonError.message);
-        
-        // Second attempt: Clean the text of problematic characters
+        // First attempt: Replace problematic characters before parsing
+        // This is the key fix for parentheses issues
+        const sanitizedText = rawText
+          .replace(/\\[\(\)]/g, '') // Remove escaped parentheses
+          .replace(/\(/g, '[')     // Replace opening parentheses with square brackets
+          .replace(/\)/g, ']');    // Replace closing parentheses with square brackets
+          
         try {
-          // More aggressive cleaning of problematic characters
+          requestData = JSON.parse(sanitizedText);
+          console.log("Successfully parsed JSON after parentheses replacement");
+        } catch (sanitizeError) {
+          console.error("Failed to parse after sanitizing parentheses:", sanitizeError.message);
+          
+          // Fallback: Try more aggressive cleaning
           const cleanedText = rawText
             .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, "") // Remove control characters
             .replace(/\\[^"\\\/bfnrtu]/g, "\\\\") // Escape backslashes properly
-            .replace(/\(/g, "\\(").replace(/\)/g, "\\)") // Escape parentheses
+            .replace(/[()]/g, "") // Remove all parentheses completely
             .replace(/'/g, "\"") // Replace single quotes with double quotes
             .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
             .replace(/\s+/g, " ")          // Normalize spaces
             .trim();                       // Trim whitespace
-            
-          console.log("Cleaned text for JSON parsing");
-          
-          // Try parsing the cleaned text
-          if (cleanedText.startsWith("{") && cleanedText.endsWith("}")) {
-            try {
-              requestData = JSON.parse(cleanedText);
-              console.log("Successfully parsed JSON after cleaning text");
-            } catch (cleaningError) {
-              console.error("Failed to parse cleaned text:", cleaningError.message);
               
-              // Third attempt: Even more aggressive reformatting
-              const strictlyFormatted = cleanedText
-                .replace(/([{,])\s*([^"\s]+)\s*:/g, '$1"$2":') // Ensure property names are quoted
-                .replace(/:\s*'([^']*)'\s*([,}])/g, ':"$1"$2')  // Convert single quotes to double quotes
-                .replace(/([{,])\s*"([^"]+)"\s*:\s*([^",{}\s][^,{}]*[^,{}\s])\s*([,}])/g, '$1"$2":"$3"$4'); // Quote unquoted values
-                
-              try {
-                requestData = JSON.parse(strictlyFormatted);
-                console.log("Successfully parsed JSON after strict formatting");
-              } catch (formattingError) {
-                console.error("Failed to parse strictly formatted text:", formattingError.message);
-                
-                // Fourth attempt: Extract key fields with regex
-                console.log("Falling back to regex extraction");
-                requestData = {};
-                
-                // Try to extract submissionId from raw string using more flexible patterns
-                const idMatch = rawText.match(/["']submissionId["']\s*[:=]\s*["']([^"']+)["']/i);
-                if (idMatch && idMatch[1]) {
-                  submissionId = idMatch[1];
-                  console.log(`Extracted submission ID using regex: ${submissionId}`);
-                  requestData.submissionId = submissionId;
-                } else {
-                  // Try alternate field name pattern
-                  const altIdMatch = rawText.match(/["']submission_id["']\s*[:=]\s*["']([^"']+)["']/i);
-                  if (altIdMatch && altIdMatch[1]) {
-                    submissionId = altIdMatch[1];
-                    console.log(`Extracted submission_id using regex: ${submissionId}`);
-                    requestData.submission_id = submissionId;
-                  } else {
-                    // Last resort - try to extract any UUID in the text
-                    const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-                    const uuidMatch = rawText.match(uuidPattern);
-                    if (uuidMatch) {
-                      submissionId = uuidMatch[0];
-                      console.log(`Extracted UUID using regex: ${submissionId}`);
-                      requestData.submissionId = submissionId;
-                    } else {
-                      throw new Error(`Could not parse request body or extract ID: ${rawText}`);
-                    }
-                  }
-                }
-              }
-            }
-          } else {
-            // If it doesn't look like JSON at all, use regex directly
-            console.log("Input doesn't look like JSON, using regex directly");
+          console.log("Attempted more aggressive cleaning for JSON parsing");
+          
+          try {
+            requestData = JSON.parse(cleanedText);
+            console.log("Successfully parsed JSON after aggressive cleaning");
+          } catch (cleaningError) {
+            console.error("Failed to parse cleaned text:", cleaningError.message);
+            
+            // Final attempt: Extract key fields with regex as last resort
+            console.log("Falling back to regex extraction");
             requestData = {};
             
-            // Extract using regex with more flexible patterns
-            const idMatch = rawText.match(/["']?submissionId["']?\s*[:=]\s*["']?([^"',}\s]+)["']?/i);
+            // Try to extract submissionId from raw string using more flexible patterns
+            const idMatch = rawText.match(/["']submissionId["']\s*[:=]\s*["']([^"']+)["']/i);
             if (idMatch && idMatch[1]) {
               submissionId = idMatch[1];
+              console.log(`Extracted submission ID using regex: ${submissionId}`);
               requestData.submissionId = submissionId;
             } else {
-              const altIdMatch = rawText.match(/["']?submission_id["']?\s*[:=]\s*["']?([^"',}\s]+)["']?/i);
+              // Try alternate field name pattern
+              const altIdMatch = rawText.match(/["']submission_id["']\s*[:=]\s*["']([^"']+)["']/i);
               if (altIdMatch && altIdMatch[1]) {
                 submissionId = altIdMatch[1];
+                console.log(`Extracted submission_id using regex: ${submissionId}`);
                 requestData.submission_id = submissionId;
               } else {
-                // Try to extract any UUID in the text
+                // Last resort - try to extract any UUID in the text
                 const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
                 const uuidMatch = rawText.match(uuidPattern);
                 if (uuidMatch) {
                   submissionId = uuidMatch[0];
+                  console.log(`Extracted UUID using regex: ${submissionId}`);
                   requestData.submissionId = submissionId;
+                } else {
+                  throw new Error(`Could not parse request body or extract ID: ${rawText}`);
                 }
               }
             }
           }
-        } catch (fallbackError) {
-          console.error("All parsing attempts failed:", fallbackError.message);
-          throw new Error(`Failed to parse request data: ${fallbackError.message}`);
         }
+      } catch (fallbackError) {
+        console.error("All parsing attempts failed:", fallbackError.message);
+        throw new Error(`Failed to parse request data: ${fallbackError.message}`);
       }
       
       // If we successfully parsed JSON, get the submissionId
@@ -222,12 +185,12 @@ serve(async (req) => {
 
     // Try to download the attachment from storage with improved timeout handling
     try {
-      // Create an AbortController for timeout handling - increased to 30 seconds
+      // Create an AbortController for timeout handling - increased to 60 seconds
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.error(`Download timed out after 30 seconds for ${emailSubmission.attachment_url}`);
-      }, 30000); // Increased timeout to 30 seconds
+        console.error(`Download timed out after 60 seconds for ${emailSubmission.attachment_url}`);
+      }, 60000); // Increased timeout to 60 seconds
       
       // Start the download with multiple fallback methods
       let fileData;
@@ -395,8 +358,8 @@ serve(async (req) => {
           const analyzeController = new AbortController();
           const analyzeTimeout = setTimeout(() => {
             analyzeController.abort();
-            console.error(`Analysis request timed out after 30 seconds for report ${report.id}`);
-          }, 30000); // Increased to 30 seconds
+            console.error(`Analysis request timed out after 60 seconds for report ${report.id}`);
+          }, 60000);
           
           const analyzeResponse = await supabase.functions.invoke("analyze-pdf", {
             body: { reportId: report.id }
@@ -432,7 +395,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             success: false,
-            error: `Download timed out after 30 seconds. The attachment may be too large or unavailable.`
+            error: `Download timed out after 60 seconds. The attachment may be too large or unavailable.`
           }),
           {
             status: 408, // Request Timeout
