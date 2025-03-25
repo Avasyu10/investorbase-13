@@ -3,9 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { checkTriggerSetup, debugTriggerFunction, viewLatestEmailSubmissions } from '@/lib/triggerDebugging';
-import { supabase } from "@/integrations/supabase/client";
+import { 
+  checkTriggerSetup, 
+  debugTriggerFunction, 
+  viewLatestEmailSubmissions,
+  createTestSubmission
+} from '@/lib/triggerDebugging';
 import { toast } from "@/hooks/use-toast";
+import { AlertCircle, CheckCircle, RefreshCw, PlayCircle } from 'lucide-react';
 
 export default function TriggerDebug() {
   const [submissionId, setSubmissionId] = useState("");
@@ -42,6 +47,7 @@ export default function TriggerDebug() {
     
     setLoading(true);
     await debugTriggerFunction(submissionId);
+    await loadSubmissions(); // Refresh the list after testing
     setLoading(false);
   }
   
@@ -49,34 +55,11 @@ export default function TriggerDebug() {
     try {
       setLoading(true);
       
-      // Create a test submission
-      const { data, error } = await supabase
-        .from('email_submissions')
-        .insert([{
-          from_email: 'test@example.com',
-          to_email: 'investor@example.com',
-          subject: 'Test Submission for Debugging',
-          email_body: 'This is a test submission for debugging the trigger.',
-          attachment_url: '6737d05825e11f73f6d5a289_Ndc8GMUtaMNHOXDfqftyW1Jb7b5h2JE_ThY_Joc5Cf8.pdf',
-          has_attachments: true
-        }])
-        .select();
+      // Call our new function to create a test submission via edge function
+      const result = await createTestSubmission();
       
-      if (error) {
-        console.error("Error creating test submission:", error);
-        toast({
-          title: "Test failed",
-          description: "Could not create test submission: " + error.message,
-          variant: "destructive"
-        });
-      } else if (data && data.length > 0) {
-        console.log("Created test submission:", data[0]);
-        toast({
-          title: "Test submission created",
-          description: "Created submission with ID: " + data[0].id,
-        });
-        setSubmissionId(data[0].id);
-        
+      if (result && result.id) {
+        setSubmissionId(result.id);
         // Refresh the list
         await loadSubmissions();
       }
@@ -167,7 +150,9 @@ export default function TriggerDebug() {
               onClick={handleCheckTrigger} 
               disabled={loading}
               className="w-full"
+              variant="outline"
             >
+              {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
               Check Database Triggers
             </Button>
           </CardFooter>
@@ -185,7 +170,9 @@ export default function TriggerDebug() {
               onClick={handleCreateTestSubmission} 
               disabled={loading}
               className="w-full"
+              variant="outline"
             >
+              {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
               Create Test Submission
             </Button>
           </CardFooter>
@@ -206,6 +193,7 @@ export default function TriggerDebug() {
                 onChange={(e) => setSubmissionId(e.target.value)}
               />
               <Button onClick={handleRunEdgeFunction} disabled={loading || !submissionId}>
+                {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
                 Run Function
               </Button>
             </div>
@@ -213,23 +201,38 @@ export default function TriggerDebug() {
         </Card>
         
         <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Email Submissions</CardTitle>
-            <CardDescription>
-              Select a submission to test or view details
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle>Recent Email Submissions</CardTitle>
+              <CardDescription>
+                Select a submission to test or view details
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={loadSubmissions} 
+              variant="outline" 
+              size="icon" 
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p>Loading submissions...</p>
+              <div className="flex items-center justify-center p-6">
+                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
             ) : emailSubmissions.length === 0 ? (
-              <p>No submissions found</p>
+              <div className="flex flex-col items-center justify-center p-6">
+                <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">No submissions found</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {emailSubmissions.map((submission) => (
                   <div 
                     key={submission.id} 
-                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="p-4 border rounded-lg cursor-pointer hover:bg-muted transition-colors"
                     onClick={() => setSubmissionId(submission.id)}
                   >
                     <div className="flex justify-between items-start">
@@ -237,7 +240,7 @@ export default function TriggerDebug() {
                         <h3 className="font-medium">
                           {submission.subject || "No subject"}
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           From: {submission.from_email} • To: {submission.to_email}
                         </p>
                         <p className="text-sm mt-1">
@@ -256,7 +259,7 @@ export default function TriggerDebug() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-2 text-xs font-mono overflow-hidden text-ellipsis break-all">
+                    <div className="mt-2 text-xs font-mono bg-muted p-2 rounded overflow-hidden text-ellipsis break-all">
                       ID: {submission.id}
                     </div>
                     {submission.attachment_url && (
@@ -269,11 +272,6 @@ export default function TriggerDebug() {
               </div>
             )}
           </CardContent>
-          <CardFooter>
-            <Button onClick={loadSubmissions} disabled={loading} variant="outline" className="w-full">
-              Refresh List
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </div>

@@ -123,3 +123,63 @@ export async function viewLatestEmailSubmissions() {
     return [];
   }
 }
+
+/**
+ * Utility to create a test email submission bypassing RLS using a service role API call
+ */
+export async function createTestSubmission() {
+  try {
+    console.log("Creating test submission using direct API call...");
+    
+    // Create test data
+    const testData = {
+      from_email: 'test@example.com',
+      to_email: 'investor@example.com',
+      subject: 'Test Submission for Debugging',
+      email_body: 'This is a test submission for debugging the trigger.',
+      attachment_url: '6737d05825e11f73f6d5a289_Ndc8GMUtaMNHOXDfqftyW1Jb7b5h2JE_ThY_Joc5Cf8.pdf',
+      has_attachments: true
+    };
+    
+    // Use edge function to create submission which will bypass RLS
+    const { data, error } = await supabase.functions.invoke('create-test-email-submission', {
+      body: testData
+    });
+    
+    if (error) {
+      console.error("Error calling create-test-email-submission function:", error);
+      toast({
+        title: "Test creation failed",
+        description: `Error: ${error.message}`,
+        variant: "destructive"
+      });
+      return null;
+    }
+    
+    if (!data || !data.id) {
+      console.error("No submission ID returned from function");
+      toast({
+        title: "Test creation failed",
+        description: "No submission ID was returned",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
+    console.log("Created test submission:", data);
+    toast({
+      title: "Test submission created",
+      description: `Created with ID: ${data.id}`,
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating test submission:", error);
+    toast({
+      title: "Test creation failed",
+      description: "An error occurred creating the test submission",
+      variant: "destructive"
+    });
+    return null;
+  }
+}
