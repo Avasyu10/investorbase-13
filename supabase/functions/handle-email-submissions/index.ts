@@ -42,9 +42,18 @@ serve(async (req) => {
   const authHeader = req.headers.get('authorization');
   const expectedAuth = 'c3VwYWJhc2VmdW5jdGlvbnM6c3VwYWJhc2VmdW5jdGlvbnM=';
   
+  console.log("Auth header received:", authHeader ? "Present" : "Missing");
+  
   if (!authHeader || authHeader !== `Bearer ${expectedAuth}`) {
+    console.error("Authorization failed. Expected: Bearer " + expectedAuth);
+    console.error("Received:", authHeader);
+    
     return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
+      JSON.stringify({ 
+        error: "Unauthorized", 
+        message: "Missing or invalid authorization header",
+        note: "Please include 'Authorization: Bearer c3VwYWJhc2VmdW5jdGlvbnM6c3VwYWJhc2VmdW5jdGlvbnM=' in your request headers"
+      }),
       {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
