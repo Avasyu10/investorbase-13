@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail } from "lucide-react";
+import { FileText, Mail, Send } from "lucide-react";
 
 interface PublicSubmission {
   id: string;
@@ -23,7 +23,7 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
-  source: "email" | "public_form";
+  source: "email" | "email_pitch" | "public_form";
   from_email?: string | null;
 }
 
@@ -54,6 +54,42 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     }
   };
 
+  const getSourceBadge = (source: string) => {
+    switch (source) {
+      case 'email':
+        return (
+          <Badge 
+            variant="blue"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
+          >
+            <Mail className="h-3 w-3" />
+            <span>Email</span>
+          </Badge>
+        );
+      case 'email_pitch':
+        return (
+          <Badge 
+            variant="gold"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
+          >
+            <Send className="h-3 w-3" />
+            <span>Pitch Email</span>
+          </Badge>
+        );
+      case 'public_form':
+      default:
+        return (
+          <Badge 
+            variant="green"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
+          >
+            <FileText className="h-3 w-3" />
+            <span>Public Form</span>
+          </Badge>
+        );
+    }
+  };
+
   return (
     <div className="border rounded-md">
       <Table>
@@ -72,22 +108,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
           {submissions.map((submission) => (
             <TableRow key={submission.id}>
               <TableCell>
-                <Badge 
-                  variant={submission.source === "email" ? "blue" : "green"}
-                  className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
-                >
-                  {submission.source === "email" ? (
-                    <>
-                      <Mail className="h-3 w-3" />
-                      <span>Email</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-3 w-3" />
-                      <span>Public Form</span>
-                    </>
-                  )}
-                </Badge>
+                {getSourceBadge(submission.source)}
               </TableCell>
               <TableCell className="font-medium">
                 {truncateText(submission.title, 30)}

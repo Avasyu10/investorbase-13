@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +21,7 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
-  source: "email" | "public_form";
+  source: "email" | "email_pitch" | "public_form";
   from_email?: string | null;
 }
 
@@ -72,7 +73,6 @@ export function PublicSubmissionsList() {
         console.log("Public submissions from reports:", reportData?.length || 0);
         
         // Fetch public form submissions with associated report information
-        // We'll use the report relationship to filter out analyzed submissions
         const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -112,6 +112,26 @@ export function PublicSubmissionsList() {
         }
         
         console.log("Email submissions fetched:", emailData?.length || 0);
+        
+        // Fetch new email pitch submissions
+        const { data: emailPitchData, error: emailPitchError } = await supabase
+          .from('email_pitch_submissions')
+          .select(`
+            *,
+            reports:report_id (
+              id,
+              company_id,
+              analysis_status
+            )
+          `)
+          .order('created_at', { ascending: false });
+          
+        if (emailPitchError) {
+          console.error("Error fetching email pitch submissions:", emailPitchError);
+          throw emailPitchError;
+        }
+        
+        console.log("Email pitch submissions fetched:", emailPitchData?.length || 0);
         
         // Transform the report data to public submission format
         const transformedReportData = reportData
@@ -187,11 +207,39 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
+        // Transform email pitch submissions data
+        const transformedEmailPitchData = emailPitchData
+          .filter(submission => {
+            // Include submissions where:
+            // 1. Report doesn't exist, or
+            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
+            return !submission.reports || 
+                   !submission.reports.company_id ||
+                   submission.reports.analysis_status === 'failed' ||
+                   submission.reports.analysis_status === 'pending';
+          })
+          .map(submission => ({
+            id: submission.id,
+            title: submission.company_name || "Pitch Submission",
+            description: `Email pitch from ${submission.sender_name || submission.sender_email}`,
+            company_stage: null,
+            industry: null,
+            website_url: null,
+            created_at: submission.received_at ? submission.received_at : submission.created_at,
+            form_slug: "",
+            pdf_url: submission.attachment_url,
+            report_id: submission.report_id,
+            source: "email_pitch" as const,
+            from_email: submission.sender_email
+          }));
+        
+        console.log("Filtered email pitch submissions:", transformedEmailPitchData.length);
+        
         // Combine all types of submissions, remove any potential duplicates, and sort by date
         // Use a Map to ensure we don't have duplicates based on report_id
         const submissionsMap = new Map();
         
-        [...transformedReportData, ...transformedFormData, ...transformedEmailData].forEach(submission => {
+        [...transformedReportData, ...transformedFormData, ...transformedEmailData, ...transformedEmailPitchData].forEach(submission => {
           // If we have a report_id, use that as the key to prevent duplicates
           // Otherwise use the submission id
           const key = submission.report_id || submission.id;

@@ -148,43 +148,50 @@ serve(async (req) => {
       );
     }
 
-    // Extract the sender's email from the payload
+    // Extract sender information
     const sender = payload.mail_sender[0];
-    const fromEmail = sender.address;
+    const senderName = sender.name || '';
+    const senderEmail = sender.address;
     
     // Prepare attachment data if available
     let attachmentName = null;
     let attachmentUrl = null;
-    let hasAttachments = false;
+    let hasAttachment = false;
     
     if (payload.mail_attachment && payload.mail_attachment.length > 0) {
-      // Extract both file name and download URL
       attachmentName = payload.mail_attachment[0].key_0 || null;
       attachmentUrl = payload.mail_attachment[0].key_1 || null;
-      hasAttachments = true;
+      hasAttachment = true;
       console.log(`Found attachment: ${attachmentName}, URL: ${attachmentUrl}`);
     }
 
-    // Create a simple string for the email body - avoid potential JSON parsing issues
-    const emailBody = `Email from ${fromEmail} received at ${payload.received_at || new Date().toISOString()}`;
+    // Format received date
+    const receivedDate = payload.received_at ? 
+      new Date(payload.received_at).toISOString() : 
+      new Date().toISOString();
     
-    // Prepare the data for insertion - ensure all values are properly formatted and JSON safe
+    // Create a simple string for the email body
+    const emailBody = `Email from ${senderEmail} received at ${receivedDate}`;
+    
+    // Prepare the data for insertion into our new table
     const insertData = {
-      from_email: fromEmail,
-      to_email: "pitchdeck@example.com", // Replace with actual destination email
-      subject: payload.company_name || "Pitch Deck Submission",
-      email_body: emailBody,
-      has_attachments: hasAttachments,
-      attachment_url: attachmentUrl || null, // Ensure null if undefined
-      received_at: payload.received_at || new Date().toISOString(),
+      external_id: payload.id,
+      company_name: payload.company_name || null,
+      received_at: receivedDate,
+      processed_at: payload.processed_at ? new Date(payload.processed_at).toISOString() : null,
+      sender_name: senderName,
+      sender_email: senderEmail,
+      attachment_name: attachmentName,
+      attachment_url: attachmentUrl,
+      has_attachment: hasAttachment
     };
     
     // Log the exact data structure being sent to the database
-    console.log("Inserting data:", JSON.stringify(insertData, null, 2));
+    console.log("Inserting data into email_pitch_submissions:", JSON.stringify(insertData, null, 2));
 
-    // Insert into email_submissions table
+    // Insert into email_pitch_submissions table
     const { data, error } = await supabase
-      .from("email_submissions")
+      .from("email_pitch_submissions")
       .insert(insertData)
       .select();
 
@@ -194,7 +201,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: error.message, 
           details: error,
-          insertData: insertData // Include the data we tried to insert for debugging
+          insertData: insertData 
         }),
         {
           status: 500,
@@ -203,10 +210,14 @@ serve(async (req) => {
       );
     }
 
-    console.log("Successfully inserted email submission:", data);
+    console.log("Successfully inserted email pitch submission:", data);
 
     return new Response(
-      JSON.stringify({ success: true, id: data[0].id }),
+      JSON.stringify({ 
+        success: true, 
+        id: data[0].id,
+        message: "Email pitch submission successfully stored" 
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

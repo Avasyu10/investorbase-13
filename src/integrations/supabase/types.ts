@@ -109,6 +109,68 @@ export type Database = {
           },
         ]
       }
+      email_pitch_submissions: {
+        Row: {
+          analysis_error: string | null
+          analysis_status: string | null
+          attachment_name: string | null
+          attachment_url: string | null
+          company_name: string | null
+          created_at: string
+          external_id: string
+          has_attachment: boolean | null
+          id: string
+          processed_at: string | null
+          received_at: string | null
+          report_id: string | null
+          sender_email: string
+          sender_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          analysis_error?: string | null
+          analysis_status?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          external_id: string
+          has_attachment?: boolean | null
+          id?: string
+          processed_at?: string | null
+          received_at?: string | null
+          report_id?: string | null
+          sender_email: string
+          sender_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          analysis_error?: string | null
+          analysis_status?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          external_id?: string
+          has_attachment?: boolean | null
+          id?: string
+          processed_at?: string | null
+          received_at?: string | null
+          report_id?: string | null
+          sender_email?: string
+          sender_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_pitch_submissions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_submissions: {
         Row: {
           attachment_url: string | null
