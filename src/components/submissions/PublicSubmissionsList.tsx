@@ -47,6 +47,7 @@ export function PublicSubmissionsList() {
         
         setIsLoading(true);
         console.log("Fetching public submissions for user:", user.id);
+        console.log("User email:", user.email);
         
         // Fetch reports that are public submissions and assigned to this user
         const { data: reportData, error: reportError } = await supabase
@@ -113,7 +114,7 @@ export function PublicSubmissionsList() {
         
         console.log("Email submissions fetched:", emailData?.length || 0);
         
-        // Fetch new email pitch submissions
+        // Fetch email pitch submissions for the current user
         const { data: emailPitchData, error: emailPitchError } = await supabase
           .from('email_pitch_submissions')
           .select(`
@@ -124,6 +125,7 @@ export function PublicSubmissionsList() {
               analysis_status
             )
           `)
+          .eq('sender_email', user.email)
           .order('created_at', { ascending: false });
           
         if (emailPitchError) {
@@ -207,7 +209,7 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Transform email pitch submissions data
+        // Transform email pitch submissions data - now filtered by the current user's email
         const transformedEmailPitchData = emailPitchData
           .filter(submission => {
             // Include submissions where:
