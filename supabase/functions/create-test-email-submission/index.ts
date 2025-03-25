@@ -34,8 +34,25 @@ serve(async (req) => {
     // Get the data from the request
     let requestData;
     try {
-      requestData = await req.json();
-      console.log(`Received request data:`, requestData);
+      const rawText = await req.text();
+      console.log(`Raw request body: ${rawText}`);
+      
+      try {
+        // Try to parse as JSON
+        requestData = JSON.parse(rawText);
+      } catch (jsonError) {
+        console.error("Failed to parse JSON:", jsonError);
+        // Attempt to extract key data using regex if it's not valid JSON
+        const actionMatch = rawText.match(/"action"\s*:\s*"([^"]+)"/);
+        if (actionMatch && actionMatch[1]) {
+          requestData = { action: actionMatch[1] };
+          console.log(`Extracted action using regex: ${requestData.action}`);
+        } else {
+          throw new Error(`Could not parse request body: ${rawText}`);
+        }
+      }
+      
+      console.log(`Processed request data:`, requestData);
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
       throw new Error("Invalid request format. Expected JSON data.");
@@ -74,14 +91,33 @@ serve(async (req) => {
     
     // CREATE operation - insert a new test submission
     if (action === 'create') {
+      if (!requestData.from_email && !requestData.fromEmail) {
+        // Try to use alternative field names or defaults
+        requestData.from_email = requestData.fromEmail || requestData.email || "test@example.com";
+      }
+      
+      if (!requestData.to_email && !requestData.toEmail) {
+        requestData.to_email = requestData.toEmail || "receiver@example.com";
+      }
+      
       if (!requestData.from_email || !requestData.to_email) {
         console.error("Missing required fields in test data");
         throw new Error("from_email and to_email are required");
       }
       
+      // Normalize field names (convert camelCase to snake_case if needed)
+      const normalizedData = {
+        from_email: requestData.from_email || requestData.fromEmail,
+        to_email: requestData.to_email || requestData.toEmail,
+        subject: requestData.subject || `Test Email ${new Date().toISOString()}`,
+        email_body: requestData.email_body || requestData.body || "This is a test email body",
+        attachment_url: requestData.attachment_url || requestData.attachmentUrl,
+        has_attachments: requestData.has_attachments || requestData.hasAttachments || !!requestData.attachment_url || !!requestData.attachmentUrl
+      };
+      
       // Check if we need to verify the attachment URL exists in storage
-      let attachmentUrl = requestData.attachment_url;
-      let hasAttachment = requestData.has_attachments || !!attachmentUrl;
+      let attachmentUrl = normalizedData.attachment_url;
+      let hasAttachment = normalizedData.has_attachments;
       
       // If no attachment URL is provided, use a default test value
       if (!attachmentUrl && hasAttachment) {
@@ -122,7 +158,7 @@ serve(async (req) => {
       
       // Create a submission object with verified attachment data
       const submissionData = {
-        ...requestData,
+        ...normalizedData,
         attachment_url: attachmentUrl,
         has_attachments: hasAttachment
       };

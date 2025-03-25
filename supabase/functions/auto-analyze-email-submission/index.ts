@@ -26,11 +26,35 @@ serve(async (req) => {
     let submissionId;
     let requestData;
     try {
-      requestData = await req.json();
-      submissionId = requestData.submissionId;
+      const rawText = await req.text();
+      console.log(`Raw request body: ${rawText}`);
+      
+      try {
+        // Try to parse as JSON
+        requestData = JSON.parse(rawText);
+      } catch (jsonError) {
+        console.error("Failed to parse JSON, attempting fallback parsing:", jsonError);
+        
+        // Fallback: Try to extract submissionId from raw string if it's not valid JSON
+        const idMatch = rawText.match(/"submissionId"\s*:\s*"([^"]+)"/);
+        if (idMatch && idMatch[1]) {
+          submissionId = idMatch[1];
+          console.log(`Extracted submission ID using regex: ${submissionId}`);
+          requestData = { submissionId };
+        } else {
+          throw new Error(`Could not parse request body: ${rawText}`);
+        }
+      }
+      
+      // If we successfully parsed JSON, get the submissionId
+      if (!submissionId && requestData) {
+        submissionId = requestData.submissionId || requestData.submission_id;
+        console.log(`Parsed submission ID from JSON: ${submissionId}`);
+      }
+      
       console.log(`Received request with data:`, requestData);
     } catch (parseError) {
-      console.error("Error parsing request JSON:", parseError);
+      console.error("Error parsing request data:", parseError);
       throw new Error("Invalid request format. Expected JSON with submissionId property.");
     }
     
@@ -102,11 +126,22 @@ serve(async (req) => {
 
     console.log(`Attempting to download attachment: ${emailSubmission.attachment_url}`);
 
-    // Try to download the attachment from storage
+    // Try to download the attachment from storage with timeout handling
     try {
-      const { data: fileData, error: downloadError } = await supabase.storage
+      const downloadPromise = supabase.storage
         .from("email_attachments")
         .download(emailSubmission.attachment_url);
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Download timed out after 10 seconds")), 10000);
+      });
+      
+      // Race the download against the timeout
+      const { data: fileData, error: downloadError } = await Promise.race([
+        downloadPromise,
+        timeoutPromise.then(() => ({ data: null, error: { message: "Download timed out" } }))
+      ]);
 
       if (downloadError) {
         console.error("Failed to download attachment:", downloadError);
