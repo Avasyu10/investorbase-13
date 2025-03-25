@@ -6,7 +6,16 @@ export async function analyzeReport(reportId: string) {
   try {
     console.log('Starting analysis for report:', reportId);
     
-    // First, check if this is from an email or email pitch submission
+    // Update report status to pending first
+    await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'pending',
+        analysis_error: null
+      })
+      .eq('id', reportId);
+    
+    // Check what type of submission this is
     const { data: emailSubmission } = await supabase
       .from('email_submissions')
       .select('*')
@@ -19,28 +28,28 @@ export async function analyzeReport(reportId: string) {
       .eq('report_id', reportId)
       .maybeSingle();
       
+    // First check if this is a public form submission 
+    // Check both "reports" table and "public_form_submissions" table
+    const { data: reportData } = await supabase
+      .from('reports')
+      .select('is_public_submission')
+      .eq('id', reportId)
+      .maybeSingle();
+      
     const { data: publicFormSubmission } = await supabase
       .from('public_form_submissions')
       .select('*')
       .eq('report_id', reportId)
       .maybeSingle();
     
-    // Update report status to pending
-    await supabase
-      .from('reports')
-      .update({
-        analysis_status: 'pending',
-        analysis_error: null
-      })
-      .eq('id', reportId);
-    
     // Determine which edge function to call based on submission type
     let endpoint = 'analyze-pdf';
+    const isPublicSubmission = publicFormSubmission || (reportData && reportData.is_public_submission);
     
     if (emailSubmission || emailPitchSubmission) {
       endpoint = 'analyze-email-pitch-pdf';
       console.log(`Will use ${endpoint} for analysis`);
-    } else if (publicFormSubmission) {
+    } else if (isPublicSubmission) {
       endpoint = 'analyze-public-pdf';
       console.log(`Will use ${endpoint} for public form submission analysis`);
     } else {

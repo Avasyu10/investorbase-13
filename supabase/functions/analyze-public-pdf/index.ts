@@ -5,7 +5,10 @@ import { corsHeaders } from "./cors.ts";
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
@@ -26,14 +29,22 @@ serve(async (req) => {
     
     console.log(`Processing public submission report: ${reportId}`);
     
+    // Forward all relevant headers from the original request
+    const headers = new Headers({
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+    });
+    
+    // Add origin header from the request if present
+    const origin = req.headers.get('origin');
+    if (origin) {
+      headers.set('Origin', origin);
+    }
+    
     // Call the analyze-pdf function directly with the report ID
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json',
-        'Origin': req.headers.get('origin') || '*' // Forward origin or use wildcard
-      },
+      headers,
       body: JSON.stringify({ reportId })
     });
     
