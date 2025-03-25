@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -28,6 +27,12 @@ serve(async (req) => {
     // Log request information for debugging
     console.log(`Auto-analyze function started at ${new Date().toISOString()}`);
     console.log(`Request method: ${req.method}, URL: ${req.url}`);
+    console.log(`Using Supabase URL: ${supabaseUrl}`);
+    
+    // Verify Supabase URL is set properly
+    if (!supabaseUrl || supabaseUrl === "") {
+      throw new Error("SUPABASE_URL environment variable is not set or empty");
+    }
     
     // Create Supabase client with service role key to bypass RLS
     console.log("Creating Supabase client with service role key");
