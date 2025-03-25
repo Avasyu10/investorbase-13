@@ -142,9 +142,7 @@ serve(async (req) => {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                      'Content-Type': 'application/json',
-                      'Access-Control-Allow-Origin': '*',
-                      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+                      'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                       companyId,
@@ -183,9 +181,7 @@ serve(async (req) => {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                  'Content-Type': 'application/json',
-                  'Access-Control-Allow-Origin': '*',
-                  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+                  'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                   reportId,

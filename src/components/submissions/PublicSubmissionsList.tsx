@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,34 +35,6 @@ export function PublicSubmissionsList() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Create a deduplicated list of submissions using useMemo
-  const deduplicatedSubmissions = useMemo(() => {
-    if (!submissions.length) return [];
-    
-    // Use a Map with a composite key to ensure we don't have duplicates
-    const submissionsMap = new Map();
-    
-    // Process all submissions and deduplicate based on multiple criteria
-    submissions.forEach(submission => {
-      // For email submissions, use a combination of report_id, title, and pdf_url
-      // For form submissions, use the report_id or submission id
-      const key = submission.source === "email" 
-        ? `${submission.report_id || ''}|${submission.title}|${submission.pdf_url || ''}`
-        : submission.report_id || submission.id;
-      
-      // Only add if not already in map or if the entry is newer
-      if (!submissionsMap.has(key) || 
-          new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
-        submissionsMap.set(key, submission);
-      }
-    });
-    
-    // Convert map back to array and sort by date
-    return Array.from(submissionsMap.values())
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      
-  }, [submissions]);
-
   useEffect(() => {
     async function fetchSubmissions() {
       try {
@@ -86,7 +57,6 @@ export function PublicSubmissionsList() {
             pdf_url,
             created_at,
             analysis_status,
-            source,
             companies:companies!reports_company_id_fkey(id)
           `)
           .eq('is_public_submission', true)
@@ -110,8 +80,7 @@ export function PublicSubmissionsList() {
             reports:report_id (
               id,
               company_id,
-              analysis_status,
-              source
+              analysis_status
             )
           `)
           .order('created_at', { ascending: false });
@@ -124,32 +93,25 @@ export function PublicSubmissionsList() {
         console.log("Public form submissions fetched:", formData?.length || 0);
         
         // Fetch email submissions for the current user
-        let emailData = [];
-        try {
-          const { data: emailResult, error: emailError } = await supabase
-            .from('email_submissions')
-            .select(`
-              *,
-              reports:report_id (
-                id,
-                company_id,
-                analysis_status,
-                source,
-                pdf_url
-              )
-            `)
-            .order('created_at', { ascending: false });
-            
-          if (emailError) {
-            console.error("Error fetching email submissions:", emailError);
-          } else {
-            emailData = emailResult || [];
-            console.log("Email submissions fetched:", emailData.length);
-          }
-        } catch (emailFetchError) {
-          console.error("Error fetching email submissions:", emailFetchError);
-          // Continue despite this error
+        const { data: emailData, error: emailError } = await supabase
+          .from('email_submissions')
+          .select(`
+            *,
+            reports:report_id (
+              id,
+              company_id,
+              analysis_status
+            )
+          `)
+          .eq('from_email', user.email)
+          .order('created_at', { ascending: false });
+          
+        if (emailError) {
+          console.error("Error fetching email submissions:", emailError);
+          throw emailError;
         }
+        
+        console.log("Email submissions fetched:", emailData?.length || 0);
         
         // Transform the report data to public submission format
         const transformedReportData = reportData
@@ -165,10 +127,7 @@ export function PublicSubmissionsList() {
             form_slug: "",
             pdf_url: report.pdf_url,
             report_id: report.id,
-            // Determine source based on pdf_url path or explicit source field
-            source: (report.source === 'email' || (report.pdf_url && report.pdf_url.includes('email_attachments'))) 
-              ? "email" as const 
-              : "public_form" as const
+            source: "public_form" as const
           }));
           
         console.log("Transformed report data:", transformedReportData.length);
@@ -200,7 +159,7 @@ export function PublicSubmissionsList() {
           
         console.log("Filtered public form submissions:", transformedFormData.length);
         
-        // Transform email submissions data - ensuring they have the correct source type
+        // Transform email submissions data
         const transformedEmailData = emailData
           .filter(submission => {
             // Include submissions where:
@@ -218,7 +177,7 @@ export function PublicSubmissionsList() {
             company_stage: null,
             industry: null,
             website_url: null,
-            created_at: submission.received_at || submission.created_at,
+            created_at: submission.received_at,
             form_slug: "",
             pdf_url: submission.attachment_url,
             report_id: submission.report_id,
@@ -228,10 +187,27 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Combine all submissions
-        const combinedSubmissions = [...transformedReportData, ...transformedFormData, ...transformedEmailData];
-        console.log("Combined submissions before deduplication:", combinedSubmissions.length);
+        // Combine all types of submissions, remove any potential duplicates, and sort by date
+        // Use a Map to ensure we don't have duplicates based on report_id
+        const submissionsMap = new Map();
         
+        [...transformedReportData, ...transformedFormData, ...transformedEmailData].forEach(submission => {
+          // If we have a report_id, use that as the key to prevent duplicates
+          // Otherwise use the submission id
+          const key = submission.report_id || submission.id;
+          
+          // Only add if not already in map or if the entry is newer
+          if (!submissionsMap.has(key) || 
+              new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
+            submissionsMap.set(key, submission);
+          }
+        });
+        
+        // Convert map back to array and sort
+        const combinedSubmissions = Array.from(submissionsMap.values())
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        console.log("Combined submissions after deduplication:", combinedSubmissions.length);
         setSubmissions(combinedSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);
@@ -264,6 +240,9 @@ export function PublicSubmissionsList() {
     
     try {
       console.log(`Calling analyze function with report ID: ${submission.report_id}`);
+      console.log("Checking if this is a public submission...");
+      console.log("Report is a public submission");
+      console.log("Will use analyze-public-pdf function for analysis");
       
       // Start the analysis process
       const result = await analyzeReport(submission.report_id);
@@ -299,9 +278,7 @@ export function PublicSubmissionsList() {
            errorMessage.includes("Failed to fetch") ||
            errorMessage.includes("Failed to send") ||
            errorMessage.includes("network") ||
-           errorMessage.includes("Connection") ||
-           errorMessage.includes("CORS policy") ||
-           errorMessage.includes("blocked by CORS")) && 
+           errorMessage.includes("Connection")) && 
           retryCount < 2) {
         
         setRetryCount(prevCount => prevCount + 1);
@@ -378,9 +355,9 @@ export function PublicSubmissionsList() {
         </div>
       </div>
 
-      {deduplicatedSubmissions.length > 0 ? (
+      {submissions.length > 0 ? (
         <PublicSubmissionsTable 
-          submissions={deduplicatedSubmissions} 
+          submissions={submissions} 
           onAnalyze={handleAnalyze} 
         />
       ) : (

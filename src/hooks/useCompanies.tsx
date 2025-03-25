@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -10,17 +9,14 @@ function mapDbCompanyToApi(company: any) {
     ? parseFloat(company.overall_score.toFixed(1))
     : 0;
   
-  // Determine source based on pdf_url location and specific source field
+  // Determine source based on pdf_url location
   let source = company.source || 'dashboard';
   
-  // If we have report data with pdf_url, use it to validate/override the source
+  // If we have report data with pdf_url, use it to determine the source
   if (company.report && company.report.pdf_url) {
-    // Email attachments are a strong indicator of email source
-    if (company.report.pdf_url.includes('email_attachments')) {
+    if (company.report.pdf_url.startsWith('email_attachments/')) {
       source = 'email';
-    } 
-    // Public form submissions should be marked as public_url
-    else if (company.source === 'public_url' || company.report.is_public_submission) {
+    } else if (company.source === 'public_url' || company.report.is_public_submission) {
       source = 'public_url';
     }
   }

@@ -9,31 +9,14 @@ export async function saveAnalysisResults(
   console.log("Saving analysis results to database");
   
   try {
-    // Check if a company record already exists for this report
-    const { data: existingCompany, error: checkError } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('report_id', report.id)
-      .maybeSingle();
-      
-    if (checkError) {
-      console.error("Error checking for existing company:", checkError);
-    }
-    
-    if (existingCompany?.id) {
-      console.log(`Company already exists for report ${report.id}, returning existing ID: ${existingCompany.id}`);
-      return existingCompany.id;
-    }
-    
     // First, create the company record
     const companyData = {
       name: analysis.companyName || report.title,
       overall_score: analysis.overallScore || 0,
       assessment_points: analysis.assessmentPoints || [],
       report_id: report.id,
-      // Determine the source based on if it's a public submission or email
-      source: report.is_public_submission ? 'public_url' : 
-             (report.pdf_url && report.pdf_url.includes('email_attachments')) ? 'email' : 'dashboard',
+      // Determine the source based on if it's a public submission
+      source: report.is_public_submission ? 'public_url' : 'dashboard',
       // Important: Use the report's user_id which should be the form owner's ID
       user_id: report.user_id
     };
