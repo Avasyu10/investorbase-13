@@ -29,6 +29,7 @@ serve(async (req) => {
     try {
       const { id } = await req.json();
       submissionId = id;
+      console.log(`Received submission ID: ${submissionId}`);
     } catch (e) {
       console.error("Error parsing request JSON:", e);
       return new Response(
