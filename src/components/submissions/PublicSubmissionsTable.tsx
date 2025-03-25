@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail, Send } from "lucide-react";
+import { FileText, Mail, Send, ExternalLink } from "lucide-react";
 
 interface PublicSubmission {
   id: string;
@@ -90,10 +90,20 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     }
   };
 
-  // Add debugging to check submissions data
+  // Add more debugging to understand what's being rendered
   console.log("Rendering submissions in table:", submissions);
   console.log("Email pitch submissions count:", 
     submissions.filter(s => s.source === 'email_pitch').length);
+  
+  // Log each email pitch submission to understand what's going on
+  submissions.filter(s => s.source === 'email_pitch').forEach((submission, index) => {
+    console.log(`Email pitch ${index}:`, {
+      id: submission.id,
+      title: submission.title,
+      source: submission.source,
+      created_at: submission.created_at
+    });
+  });
 
   return (
     <div className="border rounded-md">
@@ -130,9 +140,10 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
                     href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline"
+                    className="text-blue-500 hover:underline flex items-center gap-1"
                   >
                     {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
+                    <ExternalLink className="h-3 w-3" />
                   </a>
                 ) : (
                   "—"

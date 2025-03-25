@@ -20,6 +20,11 @@ export type Report = {
   analysis_error?: string;
 };
 
+async function parsePdfFromBlob(blob: Blob): Promise<ParsedPdfSegment[]> {
+  console.log("PDF parsing requested but implementation is elsewhere");
+  return [];
+}
+
 export async function getReports() {
   const { data: { user } } = await supabase.auth.getUser();
   

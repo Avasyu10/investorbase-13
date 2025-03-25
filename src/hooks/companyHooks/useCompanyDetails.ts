@@ -1,10 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { apiClient } from '@/lib/api/apiClient';
 import { CompanyDetailed } from '@/lib/api/apiContract';
 import { formatCompanyData } from './utils';
-
-// Remove the autoAnalyzePublicReport import since it doesn't exist
 
 export function useCompanyDetails(companyId: string | undefined) {
   const [company, setCompany] = useState<CompanyDetailed | null>(null);
@@ -46,11 +45,6 @@ export function useCompanyDetails(companyId: string | undefined) {
             console.log('Found company by direct UUID lookup:', companyData);
             setCompany(transformCompanyData(companyData));
             setIsLoading(false);
-            
-            // If there's a report_id and the company is from a public submission,
-            // we don't need to auto-analyze since the function doesn't exist
-            // Remove the auto-analyze call
-            
             return;
           }
         }
@@ -88,11 +82,6 @@ export function useCompanyDetails(companyId: string | undefined) {
             console.log('Successfully fetched company details:', companyData);
             setCompany(transformCompanyData(companyData));
             setIsLoading(false);
-            
-            // If there's a report_id and the company is from a public submission,
-            // we don't need to auto-analyze since the function doesn't exist
-            // Remove the auto-analyze call
-            
             return;
           }
         }
