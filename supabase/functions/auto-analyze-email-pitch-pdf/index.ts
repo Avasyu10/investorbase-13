@@ -29,7 +29,6 @@ serve(async (req) => {
     try {
       const { id } = await req.json();
       submissionId = id;
-      console.log(`Received request for submission ID: ${submissionId}`);
     } catch (e) {
       console.error("Error parsing request JSON:", e);
       return new Response(
@@ -63,7 +62,7 @@ serve(async (req) => {
     // Get the submission
     const { data: submission, error: submissionError } = await serviceClient
       .from('email_pitch_submissions')
-      .select('sender_email, report_id, attachment_url')
+      .select('sender_email, report_id')
       .eq('id', submissionId)
       .maybeSingle();
       
@@ -83,57 +82,15 @@ serve(async (req) => {
       );
     }
     
-    if (!submission.attachment_url) {
-      console.error("No attachment URL found for this submission");
+    if (!submission.report_id) {
+      console.error("No report ID associated with this submission");
       return new Response(
         JSON.stringify({ 
-          error: "No attachment URL found for this submission", 
-          success: false 
+          error: "No report ID associated with this submission", 
+          success: false
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
-    }
-    
-    if (!submission.report_id) {
-      console.error("No report ID associated with this submission");
-      
-      // Create a report entry for this submission
-      const { data: report, error: reportError } = await serviceClient
-        .from('reports')
-        .insert({
-          title: `Email pitch from ${submission.sender_email}`,
-          description: `Automatically analyzed email pitch from ${submission.sender_email}`,
-          pdf_url: submission.attachment_url,
-          is_public_submission: false,
-          analysis_status: 'pending'
-        })
-        .select()
-        .single();
-        
-      if (reportError) {
-        console.error("Error creating report:", reportError);
-        return new Response(
-          JSON.stringify({ error: reportError.message, success: false }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-      
-      // Update the submission with the report ID
-      const { error: updateError } = await serviceClient
-        .from('email_pitch_submissions')
-        .update({ report_id: report.id })
-        .eq('id', submissionId);
-        
-      if (updateError) {
-        console.error("Error updating submission with report ID:", updateError);
-        return new Response(
-          JSON.stringify({ error: updateError.message, success: false }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-      
-      submission.report_id = report.id;
-      console.log(`Created new report with ID: ${report.id} for email: ${submission.sender_email}`);
     }
     
     console.log(`Found report ID: ${submission.report_id} for email: ${submission.sender_email}`);
