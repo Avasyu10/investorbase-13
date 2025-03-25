@@ -10,8 +10,8 @@ const corsHeaders = {
 
 // Define the expected webhook payload structure
 interface MailAttachment {
-  key_0: string; // Typically the file name
-  key_1: string; // Typically the file URL or path
+  key_0: string; // The file name
+  key_1: string; // The download link
 }
 
 interface MailSender {
@@ -99,24 +99,26 @@ serve(async (req) => {
     const fromEmail = sender.address;
     
     // Prepare attachment data if available
+    let attachmentName = null;
     let attachmentUrl = null;
     let hasAttachments = false;
     
     if (payload.mail_attachment && payload.mail_attachment.length > 0) {
-      // Assuming key_1 is the attachment URL
+      // Extract both file name and download URL
+      attachmentName = payload.mail_attachment[0].key_0;
       attachmentUrl = payload.mail_attachment[0].key_1;
       hasAttachments = true;
+      console.log(`Found attachment: ${attachmentName}, URL: ${attachmentUrl}`);
     }
 
-    // The database error is likely happening here - we need to make sure the data is properly formatted
-    // Convert any complex objects to strings to avoid JSON parsing issues
+    // Prepare the data for insertion - use stringified values for any complex objects
     const insertData = {
       from_email: fromEmail,
       to_email: "pitchdeck@example.com", // Replace with actual destination email
       subject: payload.company_name || "Pitch Deck Submission",
       email_body: `Email from ${fromEmail} received at ${payload.received_at}`,
       has_attachments: hasAttachments,
-      attachment_url: attachmentUrl,
+      attachment_url: attachmentUrl, // Store the download URL
       received_at: payload.received_at || new Date().toISOString(),
     };
     
