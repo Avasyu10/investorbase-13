@@ -41,13 +41,15 @@ serve(async (req) => {
       throw new Error(`Report not found: ${reportError.message}`);
     }
     
+    console.log("Successfully retrieved report data, forwarding to analyze-pdf");
+    
     // Call the analyze-pdf function directly with the report ID
-    // This is a simpler approach that doesn't require handling the PDF ourselves
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': '*' // Add origin header
       },
       body: JSON.stringify({ reportId })
     });

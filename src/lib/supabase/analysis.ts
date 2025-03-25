@@ -39,60 +39,79 @@ export async function analyzeReport(reportId: string) {
     
     if (emailSubmission || emailPitchSubmission) {
       endpoint = 'analyze-email-pitch-pdf';
+      console.log(`Will use ${endpoint} for analysis`);
     } else if (publicFormSubmission) {
       endpoint = 'analyze-public-pdf';
+      console.log(`Will use ${endpoint} for public form submission analysis`);
+    } else {
+      console.log(`Will use default ${endpoint} for analysis`);
     }
     
-    console.log(`Using endpoint: ${endpoint} for analysis`);
+    console.log(`Using endpoint: ${endpoint} for analysis of report ${reportId}`);
     
-    // Call the appropriate edge function
-    const { data, error } = await supabase.functions.invoke(endpoint, {
-      body: { reportId }
-    });
-    
-    if (error) {
-      console.error(`Error invoking ${endpoint} function:`, error);
+    // Call the appropriate edge function with better error handling
+    try {
+      const { data, error } = await supabase.functions.invoke(endpoint, {
+        body: { reportId }
+      });
       
-      // Update report status to failed
+      if (error) {
+        console.error(`Error invoking ${endpoint} function:`, error);
+        
+        // Update report status to failed
+        await supabase
+          .from('reports')
+          .update({
+            analysis_status: 'failed',
+            analysis_error: error.message
+          })
+          .eq('id', reportId);
+          
+        throw error;
+      }
+      
+      if (!data || data.error) {
+        const errorMessage = data?.error || `Unknown error occurred during analysis with ${endpoint}`;
+        console.error('API returned error:', errorMessage);
+        
+        // Update report status to failed
+        await supabase
+          .from('reports')
+          .update({
+            analysis_status: 'failed',
+            analysis_error: errorMessage
+          })
+          .eq('id', reportId);
+          
+        throw new Error(errorMessage);
+      }
+      
+      console.log('Analysis result:', data);
+      
+      // Update report status to completed
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'completed',
+          company_id: data.companyId
+        })
+        .eq('id', reportId);
+      
+      return data;
+    } catch (innerError) {
+      console.error(`Error during ${endpoint} function call:`, innerError);
+      
+      // Update report status to failed if not already done
       await supabase
         .from('reports')
         .update({
           analysis_status: 'failed',
-          analysis_error: error.message
+          analysis_error: innerError instanceof Error ? innerError.message : String(innerError)
         })
         .eq('id', reportId);
-        
-      throw error;
-    }
-    
-    if (!data || data.error) {
-      const errorMessage = data?.error || `Unknown error occurred during analysis with ${endpoint}`;
-      console.error('API returned error:', errorMessage);
       
-      // Update report status to failed
-      await supabase
-        .from('reports')
-        .update({
-          analysis_status: 'failed',
-          analysis_error: errorMessage
-        })
-        .eq('id', reportId);
-        
-      throw new Error(errorMessage);
+      throw innerError;
     }
-    
-    console.log('Analysis result:', data);
-    
-    // Update report status to completed
-    await supabase
-      .from('reports')
-      .update({
-        analysis_status: 'completed',
-        company_id: data.companyId
-      })
-      .eq('id', reportId);
-    
-    return data;
   } catch (error) {
     console.error('Error analyzing report:', error);
     throw error;
