@@ -143,8 +143,7 @@ const PublicUpload = () => {
                 {formData ? formData.form_name : "Submit Your Pitch Deck"}
               </h1>
               <p className="text-muted-foreground">
-                Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses.
-                Adding your company website will enhance the analysis with additional context.
+                Upload a PDF of your Pitch Deck along with the following information
               </p>
             </div>
             
