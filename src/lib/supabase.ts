@@ -241,13 +241,54 @@ export async function analyzeReport(reportId: string) {
   try {
     console.log('Starting analysis for report:', reportId);
     
-    // Call the analyze-pdf edge function
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+    // First, check if this is from an email or email pitch submission
+    const { data: emailSubmission } = await supabase
+      .from('email_submissions')
+      .select('*')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
+    const { data: emailPitchSubmission } = await supabase
+      .from('email_pitch_submissions')
+      .select('*')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
+    const { data: publicFormSubmission } = await supabase
+      .from('public_form_submissions')
+      .select('*')
+      .eq('report_id', reportId)
+      .maybeSingle();
+    
+    let endpoint = 'analyze-pdf';
+    
+    // Determine which edge function to call based on submission type
+    if (emailSubmission || emailPitchSubmission) {
+      console.log('This is an email submission, using analyze-email-pitch-pdf function');
+      endpoint = 'analyze-email-pitch-pdf';
+    } else if (publicFormSubmission) {
+      console.log('This is a public form submission, using analyze-public-pdf function');
+      endpoint = 'analyze-public-pdf';
+    } else {
+      console.log('This is a regular report, using standard analyze-pdf function');
+    }
+    
+    // Update report status to pending
+    await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'pending',
+        analysis_error: null
+      })
+      .eq('id', reportId);
+    
+    // Call the appropriate edge function
+    const { data, error } = await supabase.functions.invoke(endpoint, {
       body: { reportId }
     });
     
     if (error) {
-      console.error('Error invoking analyze-pdf function:', error);
+      console.error(`Error invoking ${endpoint} function:`, error);
       
       // Update report status to failed
       await supabase
@@ -262,7 +303,7 @@ export async function analyzeReport(reportId: string) {
     }
     
     if (!data || data.error) {
-      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      const errorMessage = data?.error || `Unknown error occurred during analysis with ${endpoint}`;
       console.error('API returned error:', errorMessage);
       
       // Update report status to failed
@@ -417,3 +458,4 @@ export async function uploadPublicReport(file: File, title: string, description:
     throw error;
   }
 }
+

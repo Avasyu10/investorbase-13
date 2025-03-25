@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail, Send, ExternalLink } from "lucide-react";
+import { FileText, Mail, ExternalLink } from "lucide-react";
 
 interface PublicSubmission {
   id: string;
@@ -33,8 +33,6 @@ interface PublicSubmissionsTableProps {
 }
 
 export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmissionsTableProps) {
-  // Add detailed logging to see exactly what's coming in
-  
   if (!submissions) {
     return (
       <div className="text-center py-8">
@@ -50,21 +48,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       </div>
     );
   }
-  
-  // Log individual submissions with their sources and ids
-  submissions.forEach((sub, index) => {
-    console.log(`PublicSubmissionsTable - Submission #${index}:`, {
-      id: sub.id,
-      title: sub.title,
-      source: sub.source,
-      report_id: sub.report_id
-    });
-  });
-  
-  // Check if each type exists
-  const emailCount = submissions.filter(s => s.source === 'email').length;
-  const pitchCount = submissions.filter(s => s.source === 'email_pitch').length;
-  const formCount = submissions.filter(s => s.source === 'public_form').length;
   
   if (submissions.length === 0) {
     return (
@@ -83,7 +66,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch (error) {
-      console.error("Date formatting error:", error, "for date:", dateString);
       return dateString;
     }
   };
@@ -107,7 +89,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
             className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
           >
             <Mail className="h-3 w-3" />
-            <span>Email</span>
+            <span>Email Pitch</span>
           </Badge>
         );
       case 'public_form':
@@ -123,8 +105,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
         );
     }
   };
-
-  // Debug the submission values right before rendering
   
   return (
     <div className="border rounded-md">
@@ -141,13 +121,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
           </TableRow>
         </TableHeader>
         <TableBody>
-          {submissions.map((submission, index) => {
-            console.log(`PublicSubmissionsTable - Rendering row #${index} for submission:`, {
-              id: submission.id,
-              title: submission.title,
-              source: submission.source
-            });
-            
+          {submissions.map((submission) => {
             try {
               return (
                 <TableRow key={submission.id}>
@@ -193,7 +167,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
                 </TableRow>
               );
             } catch (error) {
-              console.error(`PublicSubmissionsTable - Error rendering row #${index}:`, error, "Submission data:", submission);
               return null; // Skip rendering this row if there's an error
             }
           })}

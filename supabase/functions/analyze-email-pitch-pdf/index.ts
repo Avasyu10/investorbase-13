@@ -1,7 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { corsHeaders } from "./cors.ts";
+
+// CORS headers for browser requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -28,19 +33,21 @@ serve(async (req) => {
       throw new Error('Report ID is required');
     }
     
-    console.log(`Processing public submission report: ${reportId}`);
+    console.log(`Processing email submission report: ${reportId}`);
     
-    // Get public form submission data
-    const { data: publicSubmission, error: submissionError } = await supabase
-      .from('public_form_submissions')
-      .select('pdf_url')
+    // First check if it's an email or email pitch submission
+    const { data: emailSubmission } = await supabase
+      .from('email_submissions')
+      .select('attachment_url, from_email')
       .eq('report_id', reportId)
       .maybeSingle();
       
-    if (submissionError) {
-      console.error('Error fetching public submission:', submissionError);
-    }
-    
+    const { data: emailPitchSubmission } = await supabase
+      .from('email_pitch_submissions')
+      .select('attachment_url, sender_email')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
     // Get report data
     const { data: report, error: reportError } = await supabase
       .from('reports')
@@ -55,23 +62,21 @@ serve(async (req) => {
     // Determine PDF path
     let pdfPath = '';
     
-    if (publicSubmission && publicSubmission.pdf_url) {
-      // For public submissions, the PDF is stored in the public-uploads folder
-      pdfPath = `public-uploads/${publicSubmission.pdf_url}`;
-      console.log(`Using public submission PDF: ${pdfPath}`);
-    } else if (report.pdf_url) {
-      // Fallback to report's PDF URL
-      pdfPath = report.pdf_url;
-      console.log(`Using report PDF: ${pdfPath}`);
+    if (emailSubmission && emailSubmission.attachment_url) {
+      pdfPath = emailSubmission.attachment_url;
+      console.log(`Using email submission attachment: ${pdfPath}`);
+    } else if (emailPitchSubmission && emailPitchSubmission.attachment_url) {
+      pdfPath = emailPitchSubmission.attachment_url;
+      console.log(`Using email pitch submission attachment: ${pdfPath}`);
     } else {
-      throw new Error('No PDF found for this submission');
+      throw new Error('No attachment found for this email submission');
     }
     
     // Download the PDF from storage
     let fileData;
     try {
       const { data, error } = await supabase.storage
-        .from('report_pdfs')
+        .from('email_attachments')
         .download(pdfPath);
         
       if (error) {
@@ -79,16 +84,16 @@ serve(async (req) => {
       }
       
       fileData = data;
-      console.log('Successfully downloaded PDF from storage');
+      console.log('Successfully downloaded PDF from email_attachments bucket');
     } catch (downloadError) {
       console.error('Error downloading PDF from primary path:', downloadError);
       
-      // Try alternative path
+      // Try to download using just the filename (without folders)
       const filename = pdfPath.split('/').pop() || '';
       
       try {
         const { data, error } = await supabase.storage
-          .from('report_pdfs')
+          .from('email_attachments')
           .download(filename);
           
         if (error) {
@@ -114,6 +119,7 @@ serve(async (req) => {
     console.log('Successfully converted PDF to base64');
     
     // Now forward the PDF to the main analyze-pdf function to process
+    // We'll call the analyze-pdf edge function to avoid duplicating code
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
       method: 'POST',
       headers: {
@@ -139,7 +145,7 @@ serve(async (req) => {
       status: 200
     });
   } catch (error) {
-    console.error('Error in analyze-public-pdf function:', error);
+    console.error('Error in analyze-email-pitch-pdf function:', error);
     
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
