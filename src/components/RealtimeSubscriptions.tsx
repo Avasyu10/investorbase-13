@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { subscribeToEmailPitchSubmissions } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function RealtimeSubscriptions() {
   useEffect(() => {

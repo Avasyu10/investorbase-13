@@ -62,15 +62,21 @@ serve(async (req) => {
     // Check if we're dealing with a URL-encoded format or JSON
     let payload: WebhookPayload;
     
-    if (reqText.startsWith('?') || reqText.includes('&')) {
+    if (reqText.includes('=')) {
       // Handle URL-encoded format
       console.log("Detected URL-encoded format");
       
-      // Parse URL-encoded data
-      const params = new URLSearchParams(reqText.startsWith('?') ? reqText.substring(1) : reqText);
+      // Remove leading ? if present
+      const cleanText = reqText.startsWith('?') ? reqText.substring(1) : reqText;
       
-      // Extract basic fields
+      // Parse URL-encoded data
+      const params = new URLSearchParams(cleanText);
+      
+      // Extract the id directly without checking if it exists
       const id = params.get('id') || '';
+      console.log("Extracted ID:", id);
+      
+      // Extract other basic fields
       const received_at = params.get('received_at') || '';
       const processed_at = params.get('processed_at') || '';
       const company_name = params.get('company_name') || '';
