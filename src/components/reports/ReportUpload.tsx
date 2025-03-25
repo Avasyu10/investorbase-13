@@ -520,7 +520,7 @@ export function ReportUpload({
           {isPublic && !hideEmailField && (
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium">
-                Your Email (required to receive results)
+                Your Email 
               </label>
               <input
                 id="email"
