@@ -1,2 +1,5 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.auto-analyze-email-pitch-pdf]
+verify_jwt = false
