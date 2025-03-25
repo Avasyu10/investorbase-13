@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { corsHeaders } from "./cors.ts";
 
 serve(async (req) => {
@@ -33,7 +32,7 @@ serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         'Content-Type': 'application/json',
-        'Origin': '*' // Add origin header
+        'Origin': req.headers.get('origin') || '*' // Forward origin or use wildcard
       },
       body: JSON.stringify({ reportId })
     });

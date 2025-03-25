@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +48,6 @@ export function PublicSubmissionsList() {
         console.log("Fetching public submissions for user:", user.id);
         console.log("User email:", user.email);
         
-        // Fetch reports that are public submissions and assigned to this user
         const { data: reportData, error: reportError } = await supabase
           .from('reports')
           .select(`
@@ -63,7 +61,7 @@ export function PublicSubmissionsList() {
           `)
           .eq('is_public_submission', true)
           .eq('user_id', user.id)
-          .is('company_id', null)  // Only include reports that haven't been analyzed yet
+          .is('company_id', null)
           .order('created_at', { ascending: false });
           
         if (reportError) {
@@ -73,7 +71,6 @@ export function PublicSubmissionsList() {
         
         console.log("Public submissions from reports:", reportData?.length || 0);
         
-        // Fetch public form submissions with associated report information
         const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -93,7 +90,6 @@ export function PublicSubmissionsList() {
         
         console.log("Public form submissions fetched:", formData?.length || 0);
         
-        // Fetch email submissions for the current user
         const { data: emailData, error: emailError } = await supabase
           .from('email_submissions')
           .select(`
@@ -114,7 +110,6 @@ export function PublicSubmissionsList() {
         
         console.log("Email submissions fetched:", emailData?.length || 0);
         
-        // Fetch email pitch submissions - no filtering on query side anymore since RLS is removed
         let emailPitchData = [];
         try {
           const { data: pitchData, error: emailPitchError } = await supabase
@@ -136,7 +131,6 @@ export function PublicSubmissionsList() {
             console.log("Email pitch submissions fetched:", pitchData?.length || 0);
             console.log("Sample email pitch submission:", pitchData?.[0]);
             
-            // Filter client-side to show only submissions matching user's email
             emailPitchData = pitchData?.filter(submission => 
               submission.sender_email === user.email
             ) || [];
@@ -148,9 +142,8 @@ export function PublicSubmissionsList() {
           // Continue with other data
         }
         
-        // Transform the report data to public submission format
         const transformedReportData = reportData
-          .filter(report => report.analysis_status !== 'completed' && !report.companies?.id) // Skip analyzed reports
+          .filter(report => report.analysis_status !== 'completed' && !report.companies?.id)
           .map(report => ({
             id: report.id,
             title: report.title,
@@ -167,12 +160,8 @@ export function PublicSubmissionsList() {
           
         console.log("Transformed report data:", transformedReportData.length);
         
-        // Transform the data to filter out submissions that have already been analyzed
         const transformedFormData = formData
           .filter(submission => {
-            // Include submissions where:
-            // 1. Report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -194,12 +183,8 @@ export function PublicSubmissionsList() {
           
         console.log("Filtered public form submissions:", transformedFormData.length);
         
-        // Transform email submissions data
         const transformedEmailData = emailData
           .filter(submission => {
-            // Include submissions where:
-            // 1. Report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -222,12 +207,8 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Transform email pitch submissions data
         const transformedEmailPitchData = emailPitchData
           .filter(submission => {
-            // Include submissions where:
-            // 1. Report doesn't exist, or
-            // 2. Report exists but analysis hasn't created a company yet, or is pending/failed
             return !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
@@ -250,29 +231,22 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email pitch submissions:", transformedEmailPitchData.length);
         
-        // Combine all types of submissions, remove any potential duplicates, and sort by date
-        // Use a Map to ensure we don't have duplicates based on report_id
         const submissionsMap = new Map();
         
         [...transformedReportData, ...transformedFormData, ...transformedEmailData, ...transformedEmailPitchData].forEach(submission => {
-          // If we have a report_id, use that as the key to prevent duplicates
-          // Otherwise use the submission id
           const key = submission.report_id || submission.id;
           
-          // Only add if not already in map or if the entry is newer
           if (!submissionsMap.has(key) || 
               new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
             submissionsMap.set(key, submission);
           }
         });
         
-        // Convert map back to array and sort
         const combinedSubmissions = Array.from(submissionsMap.values())
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         console.log("Combined submissions after deduplication:", combinedSubmissions.length);
         
-        // Add additional debugging to see if email pitch submissions are included in the final list
         const emailPitchCount = combinedSubmissions.filter(s => s.source === 'email_pitch').length;
         console.log("Email pitch submissions in final combined list:", emailPitchCount);
         
@@ -309,10 +283,20 @@ export function PublicSubmissionsList() {
     try {
       console.log(`Calling analyze function with report ID: ${submission.report_id}`);
       console.log("Checking if this is a public submission...");
-      console.log("Report is a public submission");
-      console.log("Will use analyze-public-pdf function for analysis");
       
-      // Start the analysis process
+      const { data: formSubmission } = await supabase
+        .from('public_form_submissions')
+        .select('*')
+        .eq('report_id', submission.report_id)
+        .maybeSingle();
+        
+      if (formSubmission) {
+        console.log("Report is a public submission");
+        console.log("Will use analyze-public-pdf function for analysis");
+      } else {
+        console.log("Not a public form submission, will use default analyze-pdf");
+      }
+      
       const result = await analyzeReport(submission.report_id);
       
       if (result && result.companyId) {
@@ -321,7 +305,6 @@ export function PublicSubmissionsList() {
           description: "The submission has been successfully analyzed",
         });
         
-        // Redirect to the company page
         navigate(`/company/${result.companyId}`);
       } else {
         throw new Error("Analysis completed but no company ID was returned");
@@ -331,7 +314,6 @@ export function PublicSubmissionsList() {
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
-      // If this is storage related error
       if (errorMessage.includes("Storage") || 
           errorMessage.includes("downloading") || 
           errorMessage.includes("PDF")) {
@@ -341,10 +323,11 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
       }
-      // If this is a network error and we haven't retried too many times, suggest retrying
       else if ((errorMessage.includes("Network error") || 
            errorMessage.includes("Failed to fetch") ||
            errorMessage.includes("Failed to send") ||
+           errorMessage.includes("CORS") ||
+           errorMessage.includes("Origin") ||
            errorMessage.includes("network") ||
            errorMessage.includes("Connection")) && 
           retryCount < 2) {
@@ -357,14 +340,12 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
       } else if (retryCount >= 2) {
-        // If we've retried multiple times, suggest a different approach
         toast({
           title: "Persistent connection issue",
           description: "We're having trouble connecting to the analysis service. Please try again later or contact support.",
           variant: "destructive",
         });
       } else {
-        // Don't display another error toast if one was already shown in the analyzeReport function
         if (!errorMessage.includes("Network error") && 
             !errorMessage.includes("timed out") &&
             !errorMessage.includes("analysis failed") &&
