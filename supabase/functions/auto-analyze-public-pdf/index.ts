@@ -1,257 +1,141 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
+// CORS Headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        ...corsHeaders,
+      },
+    });
   }
 
   try {
-    // Check environment variables
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
-    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY) {
-      console.error("Supabase credentials are not configured");
-      return new Response(
-        JSON.stringify({ 
-          error: 'Supabase credentials are not configured',
-          success: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing environment variables');
     }
-
-    // Parse request data
-    let reqData;
-    try {
-      reqData = await req.json();
-    } catch (e) {
-      console.error("Error parsing request JSON:", e);
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid request format. Expected JSON with reportId property.",
-          success: false 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    const { reportId } = reqData;
     
-    // Validate reportId
+    // Create a Supabase client with the service key
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Parse the request body to get the report ID
+    const { reportId } = await req.json();
+    
     if (!reportId) {
-      console.error("Missing reportId in request");
       return new Response(
-        JSON.stringify({ error: "Report ID is required", success: false }),
+        JSON.stringify({ success: false, error: 'Report ID is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
-    // UUID validation
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(reportId)) {
-      console.error(`Invalid reportId format: "${reportId}"`);
-      return new Response(
-        JSON.stringify({ 
-          error: `Invalid report ID format. Expected a UUID, got: ${reportId}`,
-          success: false 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    console.log(`Processing report ${reportId} for auto-analysis check`);
+    console.log(`Auto-analyzing public PDF report: ${reportId}`);
     
-    // Create a service client for direct database access
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    
-    // Get the report and check if it's from a public submission
-    const { data: report, error: reportError } = await serviceClient
+    // Check if the report already has an associated company (to prevent duplicate analysis)
+    const { data: existingReport, error: checkError } = await supabase
       .from('reports')
-      .select('submission_form_id, is_public_submission, analysis_status')
+      .select('company_id, analysis_status')
       .eq('id', reportId)
       .maybeSingle();
       
-    if (reportError) {
-      console.error("Error fetching report:", reportError);
-      return new Response(
-        JSON.stringify({ error: reportError.message, success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+    if (checkError) {
+      console.error("Error checking report status:", checkError);
+      throw checkError;
     }
     
-    if (!report) {
-      console.error("Report not found");
-      return new Response(
-        JSON.stringify({ error: "Report not found", success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
-    
-    // Check if it's a public submission
-    if (!report.is_public_submission) {
-      console.log("Not a public submission, skipping auto-analyze check");
+    if (existingReport?.company_id) {
+      console.log(`Report ${reportId} already has a company with ID ${existingReport.company_id}, skipping analysis`);
       return new Response(
         JSON.stringify({ 
-          message: "Not a public submission, skipping auto-analyze check",
-          success: true,
-          autoAnalyze: false
+          success: true, 
+          message: 'Analysis already completed', 
+          companyId: existingReport.company_id 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Already analyzed or processing
-    if (report.analysis_status !== 'manual_pending' && report.analysis_status !== 'pending') {
-      console.log(`Report already in status: ${report.analysis_status}, skipping`);
+    // If analysis is already in progress, don't start another one
+    if (existingReport?.analysis_status === 'analyzing') {
+      console.log(`Report ${reportId} is already being analyzed, skipping new analysis request`);
       return new Response(
         JSON.stringify({ 
-          message: `Report already in status: ${report.analysis_status}, skipping`,
-          success: true,
-          autoAnalyze: false
+          success: true, 
+          message: 'Analysis already in progress' 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Check the submission form's auto_analyze setting
-    if (!report.submission_form_id) {
-      console.log("No submission form ID found, cannot determine auto_analyze setting");
-      return new Response(
-        JSON.stringify({ 
-          message: "No submission form ID found, cannot determine auto_analyze setting",
-          success: true,
-          autoAnalyze: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
+    // Update the report status to indicate analysis is starting
+    await supabase
+      .from('reports')
+      .update({ analysis_status: 'analyzing' })
+      .eq('id', reportId);
     
-    const { data: formData, error: formError } = await serviceClient
-      .from('public_submission_forms')
-      .select('auto_analyze, user_id')
-      .eq('id', report.submission_form_id)
-      .maybeSingle();
+    // Call the analyze-pdf edge function, which will handle the actual PDF parsing and analysis
+    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+      body: { reportId }
+    });
+    
+    if (error) {
+      console.error('Error invoking analyze-pdf function:', error);
       
-    if (formError) {
-      console.error("Error fetching form data:", formError);
-      return new Response(
-        JSON.stringify({ error: formError.message, success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-    
-    if (!formData) {
-      console.log("Submission form not found");
-      return new Response(
-        JSON.stringify({ 
-          message: "Submission form not found",
-          success: true,
-          autoAnalyze: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
-    
-    // Check auto_analyze setting
-    const autoAnalyze = formData.auto_analyze || false;
-    console.log(`Form auto_analyze setting: ${autoAnalyze}`);
-    
-    if (!autoAnalyze) {
-      console.log("Auto-analyze is disabled for this form, skipping analysis");
-      return new Response(
-        JSON.stringify({ 
-          message: "Auto-analyze is disabled for this form, skipping analysis",
-          success: true,
-          autoAnalyze: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
-    
-    // Update status to pending if it was manual_pending
-    if (report.analysis_status === 'manual_pending') {
-      const { error: updateError } = await serviceClient
+      // Update report status to failed
+      await supabase
         .from('reports')
-        .update({ analysis_status: 'pending' })
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error.message
+        })
         .eq('id', reportId);
         
-      if (updateError) {
-        console.error("Error updating report status:", updateError);
-        // Non-blocking, continue with analysis
-      } else {
-        console.log("Updated report status from manual_pending to pending");
-      }
+      throw error;
     }
     
-    // Proceed with analysis - call the analyze-public-pdf function
-    console.log("Calling analyze-public-pdf function");
+    console.log('Analysis response:', data);
     
-    // Call the analyze-public-pdf function with the report ID
-    // Use anon key since we're running this as a service
-    try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({ reportId })
-      });
+    if (!data || !data.companyId) {
+      const errorMessage = data?.error || "Analysis did not return a company ID";
+      console.error(errorMessage);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error from analyze-public-pdf: ${response.status} - ${errorText}`);
-        return new Response(
-          JSON.stringify({ 
-            error: `Error from analyze-public-pdf: ${response.status}`,
-            details: errorText,
-            success: false
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
-        );
-      }
-      
-      const analysisResult = await response.json();
-      
-      console.log("Analysis completed successfully:", analysisResult);
-      
-      return new Response(
-        JSON.stringify({ 
-          message: "Analysis initiated successfully", 
-          companyId: analysisResult.companyId,
-          success: true,
-          autoAnalyze: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    } catch (analysisError) {
-      console.error("Error calling analyze-public-pdf:", analysisError);
-      return new Response(
-        JSON.stringify({ 
-          error: "Error calling analyze-public-pdf", 
-          details: analysisError instanceof Error ? analysisError.message : String(analysisError),
-          success: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      // Update report status to failed
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: errorMessage
+        })
+        .eq('id', reportId);
+        
+      throw new Error(errorMessage);
     }
-  } catch (error) {
-    console.error("Unexpected error:", error);
+    
     return new Response(
       JSON.stringify({ 
-        error: "An unexpected error occurred", 
-        details: error instanceof Error ? error.message : String(error),
-        success: false
+        success: true, 
+        message: 'Analysis completed successfully', 
+        companyId: data.companyId
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error in auto-analyze-public-pdf:', error);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );

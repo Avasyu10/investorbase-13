@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -242,9 +241,6 @@ export function PublicSubmissionsList() {
     
     try {
       console.log(`Calling analyze function with report ID: ${submission.report_id}`);
-      console.log("Checking if this is a public submission...");
-      console.log("Report is a public submission");
-      console.log("Will use analyze-public-pdf function for analysis");
       
       // Start the analysis process
       const result = await analyzeReport(submission.report_id);

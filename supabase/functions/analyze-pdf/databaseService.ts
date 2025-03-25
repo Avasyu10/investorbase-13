@@ -9,6 +9,22 @@ export async function saveAnalysisResults(
   console.log("Saving analysis results to database");
   
   try {
+    // Check if a company record already exists for this report
+    const { data: existingCompany, error: checkError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('report_id', report.id)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Error checking for existing company:", checkError);
+    }
+    
+    if (existingCompany?.id) {
+      console.log(`Company already exists for report ${report.id}, returning existing ID: ${existingCompany.id}`);
+      return existingCompany.id;
+    }
+    
     // First, create the company record
     const companyData = {
       name: analysis.companyName || report.title,
