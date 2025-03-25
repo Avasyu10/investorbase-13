@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -21,22 +20,6 @@ export type Report = {
   user_id?: string;
   analysis_status?: string;
   analysis_error?: string;
-};
-
-// Email submission type
-export type EmailSubmission = {
-  id: string;
-  from_email: string;
-  to_email: string;
-  subject: string | null;
-  email_body: string | null;
-  email_html: string | null;
-  has_attachments: boolean;
-  attachment_url: string | null;
-  received_at: string;
-  report_id: string | null;
-  created_at: string;
-  updated_at: string;
 };
 
 // Functions to interact with Supabase
@@ -258,52 +241,13 @@ export async function analyzeReport(reportId: string) {
   try {
     console.log('Starting analysis for report:', reportId);
     
-    // First, check if this is associated with an email submission
-    const { data: emailSubmissionData, error: emailError } = await supabase
-      .from('email_submissions')
-      .select('*')
-      .eq('report_id', reportId)
-      .maybeSingle();
-      
-    // Determine if this is from an email source
-    const isEmailSubmission = !emailError && emailSubmissionData;
-    console.log('Checking if this is a public submission...', isEmailSubmission ? 'Email submission' : 'Not email submission');
-    
-    // Get the report data to check if it's a public submission
-    const { data: reportData, error: reportError } = await supabase
-      .from('reports')
-      .select('is_public_submission')
-      .eq('id', reportId)
-      .single();
-      
-    if (reportError) {
-      console.error('Error checking if report is public:', reportError);
-      throw reportError;
-    }
-    
-    const isPublicSubmission = reportData.is_public_submission;
-    console.log('Report is a public submission:', isPublicSubmission);
-    
-    // Determine which function to call based on the source
-    let functionName;
-    if (isEmailSubmission) {
-      console.log('Will use analyze-email-pdf function for analysis');
-      functionName = 'analyze-email-pdf';
-    } else if (isPublicSubmission) {
-      console.log('Will use analyze-public-pdf function for analysis');
-      functionName = 'analyze-public-pdf';
-    } else {
-      console.log('Will use analyze-pdf function for analysis');
-      functionName = 'analyze-pdf';
-    }
-    
-    // Call the appropriate analyze function
-    const { data, error } = await supabase.functions.invoke(functionName, {
+    // Call the analyze-pdf edge function
+    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
       body: { reportId }
     });
     
     if (error) {
-      console.error(`Error invoking ${functionName} function:`, error);
+      console.error('Error invoking analyze-pdf function:', error);
       
       // Update report status to failed
       await supabase
