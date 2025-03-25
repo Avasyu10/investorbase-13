@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,7 +128,8 @@ export function PublicSubmissionsList() {
             form_slug: "",
             pdf_url: report.pdf_url,
             report_id: report.id,
-            source: "public_form" as const
+            // Determine source based on pdf_url path
+            source: (report.pdf_url && report.pdf_url.includes('email_attachments')) ? "email" : "public_form" as const
           }));
           
         console.log("Transformed report data:", transformedReportData.length);

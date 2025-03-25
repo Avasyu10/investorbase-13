@@ -216,7 +216,8 @@ serve(async (req) => {
             user_id: formOwnerId,
             is_public_submission: true,
             submitter_email: email,
-            submission_form_id: submissionFormId
+            submission_form_id: submissionFormId,
+            source: 'public_url' // Explicitly set source for public form submissions
           })
           .select()
           .single();
