@@ -1,72 +1,61 @@
+import React from 'react';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
+import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from '@/context/auth-context';
+import { ProtectedRoute } from '@/components/protected-route';
+import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
 
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-} from "react-router-dom";
-import Index from "@/pages/Index";
-import Signup from "@/pages/Signup";
-import Dashboard from "@/pages/Dashboard";
-import CompanyPage from "@/pages/CompanyPage";
-import SectionPage from "@/pages/SectionPage";
-import Report from "@/pages/Report";
-import UploadReport from "@/pages/UploadReport";
-import PublicUpload from "@/pages/PublicUpload";
-import AnalysisSummary from "@/pages/AnalysisSummary";
-import NotFound from "@/pages/NotFound";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { Navbar } from "@/components/layout/Navbar";
-import { Toaster } from "@/components/ui/toaster";
-import Profile from "@/pages/Profile";
-import ProfileSetup from "@/pages/ProfileSetup";
-import ProfileEdit from "@/pages/ProfileEdit";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
-import Feedback from "@/pages/Feedback";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-
-// Create a new query client instance
-const queryClient = new QueryClient();
+// Pages
+import HomePage from '@/pages/home';
+import LoginPage from '@/pages/login';
+import SignupPage from '@/pages/signup';
+import DashboardPage from '@/pages/dashboard';
+import ReportPage from '@/pages/report';
+import UploadPage from '@/pages/upload';
+import PublicUploadPage from '@/pages/public-upload';
+import SettingsPage from '@/pages/settings';
+import NotFoundPage from '@/pages/not-found';
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <ThemeProvider>
-            <main className="min-h-screen flex flex-col dark bg-background text-foreground">
-              <Navbar />
-              <div className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/company/:companyId" element={<CompanyPage />} />
-                  <Route path="/company/:companyId/section/:sectionId" element={<SectionPage />} />
-                  <Route path="/company/:companyId/analysis" element={<AnalysisSummary />} />
-                  <Route path="/company/:companyId/supplementary" element={<SupplementaryMaterials />} />
-                  <Route path="/reports/:id" element={<Report />} />
-                  <Route path="/report/:reportId" element={<Report />} />
-                  <Route path="/upload" element={<UploadReport />} />
-                  <Route path="/public-upload" element={<PublicUpload />} />
-                  <Route path="/submit/:formSlug" element={<PublicUpload />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/profile/setup" element={<ProfileSetup />} />
-                  <Route path="/profile/edit" element={<ProfileEdit />} />
-                  <Route path="/feedback" element={<Feedback />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
-              <Toaster />
-            </main>
-          </ThemeProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <AuthProvider>
+        <RealtimeSubscriptions />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/public-upload" element={<PublicUploadPage />} />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/report/:id" element={
+            <ProtectedRoute>
+              <ReportPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/upload" element={
+            <ProtectedRoute>
+              <UploadPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* 404 route */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+        <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

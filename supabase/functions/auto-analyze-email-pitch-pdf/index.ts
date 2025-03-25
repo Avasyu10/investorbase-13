@@ -62,7 +62,7 @@ serve(async (req) => {
     // Get the submission
     const { data: submission, error: submissionError } = await serviceClient
       .from('email_pitch_submissions')
-      .select('sender_email, report_id')
+      .select('sender_email, report_id, attachment_url')
       .eq('id', submissionId)
       .maybeSingle();
       
@@ -82,86 +82,182 @@ serve(async (req) => {
       );
     }
     
-    if (!submission.report_id) {
-      console.error("No report ID associated with this submission");
+    // If there's no attachment URL, we can't proceed with analysis
+    if (!submission.attachment_url) {
+      console.error("No attachment URL found in the submission");
       return new Response(
         JSON.stringify({ 
-          error: "No report ID associated with this submission", 
+          error: "No attachment URL found in the submission", 
           success: false
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
-    console.log(`Found report ID: ${submission.report_id} for email: ${submission.sender_email}`);
+    console.log(`Found attachment URL: ${submission.attachment_url} for email: ${submission.sender_email}`);
     
-    // Check if auto-analyze is enabled for this sender
-    const { data: investorPitchEmail, error: emailError } = await serviceClient
-      .from('investor_pitch_emails')
-      .select('auto_analyze')
-      .eq('email_address', submission.sender_email)
-      .maybeSingle();
+    // Check if this submission already has a report_id
+    if (submission.report_id) {
+      console.log(`Submission already has a report ID: ${submission.report_id}`);
       
-    if (emailError) {
-      console.error("Error fetching investor pitch email settings:", emailError);
+      // Check if auto-analyze is enabled for this sender
+      const { data: investorPitchEmail, error: emailError } = await serviceClient
+        .from('investor_pitch_emails')
+        .select('auto_analyze')
+        .eq('email_address', submission.sender_email)
+        .maybeSingle();
+        
+      if (emailError) {
+        console.error("Error fetching investor pitch email settings:", emailError);
+      }
+      
+      const autoAnalyzeEnabled = investorPitchEmail?.auto_analyze || false;
+      
+      if (!autoAnalyzeEnabled) {
+        console.log(`Auto-analyze not enabled for ${submission.sender_email}, skipping analysis`);
+        return new Response(
+          JSON.stringify({ 
+            message: "Auto-analyze not enabled for this email address", 
+            success: true, 
+            analyzed: false
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+      
+      console.log(`Auto-analyze enabled for ${submission.sender_email}, proceeding with analysis`);
+      
+      // Set the report status to pending
+      await serviceClient
+        .from('reports')
+        .update({ 
+          analysis_status: 'pending',
+          analysis_error: null
+        })
+        .eq('id', submission.report_id);
+      
+      // Invoke the analyze-email-pitch-pdf function
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-email-pitch-pdf`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reportId: submission.report_id })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
+      }
+      
+      const analysisResult = await response.json();
+      console.log('Analysis completed successfully');
+      
+      // Update the email_pitch_submissions record with the analysis status
+      await serviceClient
+        .from('email_pitch_submissions')
+        .update({
+          analysis_status: 'completed'
+        })
+        .eq('id', submissionId);
+      
+      return new Response(JSON.stringify(analysisResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    } else {
+      console.log("No report_id found, creating a new report");
+      
+      // Create a new report for the PDF
+      const { data: report, error: reportError } = await serviceClient
+        .from('reports')
+        .insert({
+          title: `Email Pitch from ${submission.sender_email}`,
+          description: `Automatically generated report from email pitch submission`,
+          pdf_url: submission.attachment_url,
+          analysis_status: 'pending'
+        })
+        .select()
+        .single();
+      
+      if (reportError) {
+        console.error("Error creating report:", reportError);
+        return new Response(
+          JSON.stringify({ error: reportError.message, success: false }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      console.log(`Created new report with ID: ${report.id}`);
+      
+      // Update the email_pitch_submissions record with the report_id
+      await serviceClient
+        .from('email_pitch_submissions')
+        .update({
+          report_id: report.id
+        })
+        .eq('id', submissionId);
+      
+      // Check if auto-analyze is enabled for this sender
+      const { data: investorPitchEmail, error: emailError } = await serviceClient
+        .from('investor_pitch_emails')
+        .select('auto_analyze')
+        .eq('email_address', submission.sender_email)
+        .maybeSingle();
+        
+      if (emailError) {
+        console.error("Error fetching investor pitch email settings:", emailError);
+      }
+      
+      const autoAnalyzeEnabled = investorPitchEmail?.auto_analyze || false;
+      
+      if (!autoAnalyzeEnabled) {
+        console.log(`Auto-analyze not enabled for ${submission.sender_email}, skipping analysis`);
+        return new Response(
+          JSON.stringify({ 
+            message: "Auto-analyze not enabled for this email address", 
+            success: true, 
+            analyzed: false,
+            reportId: report.id
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+      
+      console.log(`Auto-analyze enabled for ${submission.sender_email}, proceeding with analysis`);
+      
+      // Invoke the analyze-email-pitch-pdf function
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-email-pitch-pdf`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reportId: report.id })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
+      }
+      
+      const analysisResult = await response.json();
+      console.log('Analysis completed successfully');
+      
+      // Update the email_pitch_submissions record with the analysis status
+      await serviceClient
+        .from('email_pitch_submissions')
+        .update({
+          analysis_status: 'completed'
+        })
+        .eq('id', submissionId);
+      
+      return new Response(JSON.stringify({ ...analysisResult, reportId: report.id }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
     }
-    
-    const autoAnalyzeEnabled = investorPitchEmail?.auto_analyze || false;
-    
-    if (!autoAnalyzeEnabled) {
-      console.log(`Auto-analyze not enabled for ${submission.sender_email}, skipping analysis`);
-      return new Response(
-        JSON.stringify({ 
-          message: "Auto-analyze not enabled for this email address", 
-          success: true, 
-          analyzed: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
-    
-    console.log(`Auto-analyze enabled for ${submission.sender_email}, proceeding with analysis`);
-    
-    // Set the report status to pending
-    await serviceClient
-      .from('reports')
-      .update({ 
-        analysis_status: 'pending',
-        analysis_error: null
-      })
-      .eq('id', submission.report_id);
-    
-    // Invoke the analyze-email-pitch-pdf function
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-email-pitch-pdf`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ reportId: submission.report_id })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
-    }
-    
-    const analysisResult = await response.json();
-    console.log('Analysis completed successfully');
-    
-    // Update the email_pitch_submissions record with the analysis status
-    await serviceClient
-      .from('email_pitch_submissions')
-      .update({
-        analysis_status: 'completed'
-      })
-      .eq('id', submissionId);
-    
-    return new Response(JSON.stringify(analysisResult), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
-    
   } catch (error) {
     console.error('Error in auto-analyze-email-pitch-pdf function:', error);
     
