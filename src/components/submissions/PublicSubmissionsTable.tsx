@@ -34,11 +34,8 @@ interface PublicSubmissionsTableProps {
 
 export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmissionsTableProps) {
   // Add detailed logging to see exactly what's coming in
-  console.log("PublicSubmissionsTable - START RENDER");
-  console.log("PublicSubmissionsTable - Received submissions array:", submissions);
   
   if (!submissions) {
-    console.log("PublicSubmissionsTable - Submissions is undefined or null!");
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No submissions provided</p>
@@ -47,7 +44,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
   }
 
   if (!Array.isArray(submissions)) {
-    console.log("PublicSubmissionsTable - Submissions is not an array!", typeof submissions);
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">Invalid submissions data</p>
@@ -70,10 +66,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
   const pitchCount = submissions.filter(s => s.source === 'email_pitch').length;
   const formCount = submissions.filter(s => s.source === 'public_form').length;
   
-  console.log(`PublicSubmissionsTable - Submission counts by type: email=${emailCount}, email_pitch=${pitchCount}, public_form=${formCount}`);
-  
   if (submissions.length === 0) {
-    console.log("PublicSubmissionsTable - Submissions array is empty!");
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No submissions found</p>
@@ -96,7 +89,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
   };
 
   const getSourceBadge = (source: string) => {
-    console.log("PublicSubmissionsTable - getSourceBadge called with source:", source);
     switch (source) {
       case 'email':
         return (
@@ -133,7 +125,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
   };
 
   // Debug the submission values right before rendering
-  console.log("PublicSubmissionsTable - About to render table with submissions:", submissions.length);
   
   return (
     <div className="border rounded-md">
