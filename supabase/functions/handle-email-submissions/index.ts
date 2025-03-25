@@ -24,7 +24,7 @@ interface WebhookPayload {
   received_at: string;
   processed_at: string;
   company_name: string;
-  mail_attachment: MailAttachment[];
+  mail_attachment?: MailAttachment[];
   mail_sender: MailSender[];
 }
 
@@ -44,6 +44,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
+    // Check for proper request method
     if (req.method !== "POST") {
       return new Response(
         JSON.stringify({ error: "Method not allowed" }),
@@ -53,15 +54,39 @@ serve(async (req) => {
         }
       );
     }
-
+    
+    // Log the raw request for debugging
+    const reqText = await req.text();
+    console.log("Raw webhook payload:", reqText);
+    
     // Parse the webhook payload
-    const payload: WebhookPayload = await req.json();
-    console.log("Received webhook payload:", payload);
+    let payload: WebhookPayload;
+    try {
+      payload = JSON.parse(reqText);
+      console.log("Parsed webhook payload:", payload);
+    } catch (parseError) {
+      console.error("Error parsing JSON payload:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON payload", details: parseError.message, raw: reqText }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Validate required fields
     if (!payload.id || !payload.mail_sender || payload.mail_sender.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ 
+          error: "Missing required fields",
+          payload: payload,
+          missingFields: [
+            !payload.id ? "id" : null,
+            !payload.mail_sender ? "mail_sender" : null,
+            payload.mail_sender && payload.mail_sender.length === 0 ? "mail_sender empty" : null
+          ].filter(Boolean)
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -100,7 +125,7 @@ serve(async (req) => {
     if (error) {
       console.error("Error inserting data:", error);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: error.message, details: error }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
