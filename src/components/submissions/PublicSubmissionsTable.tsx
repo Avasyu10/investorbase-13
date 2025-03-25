@@ -90,9 +90,17 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     }
   };
 
-  // Add more debugging to understand what's being rendered
+  // Detailed logging to debug the rendering of submissions
   console.log("Rendering submissions in table:", submissions);
   console.log("Email pitch submissions count:", 
+    submissions.filter(s => s.source === 'email_pitch').length);
+  
+  // Log each submission by source type to see what we have
+  console.log("Public form submissions:", 
+    submissions.filter(s => s.source === 'public_form').length);
+  console.log("Email submissions:", 
+    submissions.filter(s => s.source === 'email').length);
+  console.log("Email pitch submissions:", 
     submissions.filter(s => s.source === 'email_pitch').length);
   
   // Log each email pitch submission to understand what's going on
@@ -107,6 +115,9 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
 
   // Log all submissions that will be rendered to ensure we don't filter anything out
   console.log("All submissions being rendered:", submissions.map(s => ({ id: s.id, source: s.source, title: s.title })));
+
+  // Create a copy of the submissions array to avoid mutating the original
+  const submissionsToRender = [...submissions];
 
   return (
     <div className="border rounded-md">
@@ -123,49 +134,52 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
           </TableRow>
         </TableHeader>
         <TableBody>
-          {submissions.map((submission) => (
-            <TableRow key={submission.id}>
-              <TableCell>
-                {getSourceBadge(submission.source)}
-              </TableCell>
-              <TableCell className="font-medium">
-                {truncateText(submission.title, 30)}
-              </TableCell>
-              <TableCell>
-                {submission.industry || "—"}
-              </TableCell>
-              <TableCell>
-                {submission.company_stage || "—"}
-              </TableCell>
-              <TableCell>
-                {submission.website_url ? (
-                  <a 
-                    href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline flex items-center gap-1"
+          {submissionsToRender.map((submission) => {
+            console.log(`Rendering row for submission: ${submission.id}, source: ${submission.source}`);
+            return (
+              <TableRow key={submission.id}>
+                <TableCell>
+                  {getSourceBadge(submission.source)}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {truncateText(submission.title, 30)}
+                </TableCell>
+                <TableCell>
+                  {submission.industry || "—"}
+                </TableCell>
+                <TableCell>
+                  {submission.company_stage || "—"}
+                </TableCell>
+                <TableCell>
+                  {submission.website_url ? (
+                    <a 
+                      href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline flex items-center gap-1"
+                    >
+                      {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell>
+                  {formatDate(submission.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    className="bg-gold text-gold-foreground hover:bg-gold/90"
+                    size="sm"
+                    onClick={() => onAnalyze(submission)}
                   >
-                    {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell>
-                {formatDate(submission.created_at)}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  className="bg-gold text-gold-foreground hover:bg-gold/90"
-                  size="sm"
-                  onClick={() => onAnalyze(submission)}
-                >
-                  Analyze
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+                    Analyze
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
