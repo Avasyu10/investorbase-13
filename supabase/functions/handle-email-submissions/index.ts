@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
@@ -9,8 +10,8 @@ const corsHeaders = {
 
 // Define the expected webhook payload structure
 interface MailAttachment {
-  key_0: string;
-  key_1: string;
+  key_0: string; // Typically the file name
+  key_1: string; // Typically the file URL or path
 }
 
 interface MailSender {
@@ -23,35 +24,16 @@ interface WebhookPayload {
   received_at: string;
   processed_at: string;
   company_name: string;
-  mail_attachment?: MailAttachment[];
+  mail_attachment: MailAttachment[];
   mail_sender: MailSender[];
 }
 
 serve(async (req) => {
-  console.log("Received request to handle-email-submissions");
-  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders,
     });
-  }
-
-  // Check for the authorization header
-  const authHeader = req.headers.get('authorization');
-  const expectedAuth = 'c3VwYWJhc2VmdW5jdGlvbnM6c3VwYWJhc2VmdW5jdGlvbnM=';
-  
-  if (!authHeader || authHeader !== `Bearer ${expectedAuth}`) {
-    return new Response(
-      JSON.stringify({ 
-        error: "Unauthorized", 
-        message: "Missing or invalid authorization header"
-      }),
-      {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
   }
 
   // Get environment variables
@@ -72,39 +54,9 @@ serve(async (req) => {
       );
     }
 
-    // Get the raw request body as text
-    const rawBody = await req.text();
-    console.log("Raw request body:", rawBody);
-    
-    let payload: WebhookPayload;
-    
-    try {
-      // Attempt to parse the payload
-      // Remove any Handlebars-like template markers
-      const cleanedBody = rawBody
-        .replace(/{{#each\s*\w+}}/g, '')
-        .replace(/{{\/each}}/g, '')
-        .replace(/{{#unless\s*@last}},{{\/unless}}/g, '')
-        .replace(/{{(\w+)}}/g, '"$1"');
-      
-      console.log("Cleaned body:", cleanedBody);
-      
-      payload = JSON.parse(cleanedBody);
-      console.log("Parsed webhook payload:", payload);
-    } catch (parseError) {
-      console.error("Error parsing JSON:", parseError);
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid JSON payload", 
-          details: parseError.message,
-          rawBody: rawBody 
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    // Parse the webhook payload
+    const payload: WebhookPayload = await req.json();
+    console.log("Received webhook payload:", payload);
 
     // Validate required fields
     if (!payload.id || !payload.mail_sender || payload.mail_sender.length === 0) {
@@ -120,7 +72,7 @@ serve(async (req) => {
     // Extract the sender's email from the payload
     const sender = payload.mail_sender[0];
     const fromEmail = sender.address;
-
+    
     // Prepare attachment data if available
     let attachmentUrl = null;
     let hasAttachments = false;
