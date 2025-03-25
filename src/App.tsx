@@ -26,6 +26,7 @@ import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 import Feedback from "@/pages/Feedback";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import TriggerDebug from "@/pages/TriggerDebug";
 
 // Create a new query client instance
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ function App() {
                   <Route path="/feedback" element={<Feedback />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/debug/triggers" element={<TriggerDebug />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
