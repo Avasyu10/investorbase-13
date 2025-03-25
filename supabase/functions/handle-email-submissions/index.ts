@@ -36,6 +36,20 @@ serve(async (req) => {
     });
   }
 
+  // Check for the authorization header
+  const authHeader = req.headers.get('authorization');
+  const expectedAuth = 'c3VwYWJhc2VmdW5jdGlvbnM6c3VwYWJhc2VmdW5jdGlvbnM=';
+  
+  if (!authHeader || authHeader !== `Bearer ${expectedAuth}`) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
   // Get environment variables
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
