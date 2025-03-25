@@ -37,6 +37,7 @@ const PublicUpload = () => {
       }
 
       try {
+        console.log("Fetching form data for slug:", activeFormSlug);
         const { data, error } = await supabase
           .from('public_submission_forms')
           .select('form_name, user_id, is_active, auto_analyze')
@@ -52,6 +53,7 @@ const PublicUpload = () => {
         } else if (!data.is_active) {
           setError("This form is no longer active");
         } else {
+          console.log("Form data loaded successfully:", data);
           setFormData(data);
         }
       } catch (err: any) {
@@ -153,7 +155,7 @@ const PublicUpload = () => {
               buttonText="Submit"
               skipAnalysis={!formData?.auto_analyze}
               formSlug={activeFormSlug}
-              hideEmailField={true}
+              hideEmailField={false}
               disableScrapingFeatures={true}
             />
           </>

@@ -14,7 +14,7 @@ export type RouteConfig = {
 export const routes: RouteConfig[] = [
   {
     path: "/",
-    label: "Home",
+    label: "InvestorBase",
     icon: Home,
   },
   {

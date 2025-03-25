@@ -24,6 +24,8 @@ import ProfileEdit from "@/pages/ProfileEdit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 import Feedback from "@/pages/Feedback";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 // Create a new query client instance
 const queryClient = new QueryClient();
@@ -54,6 +56,8 @@ function App() {
                   <Route path="/profile/setup" element={<ProfileSetup />} />
                   <Route path="/profile/edit" element={<ProfileEdit />} />
                   <Route path="/feedback" element={<Feedback />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>

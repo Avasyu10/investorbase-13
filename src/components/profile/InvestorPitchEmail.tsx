@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, CheckCircle, Mail, ExternalLink } from "lucide-react";
 
 type EmailStatus = 'none' | 'pending' | 'approved';
@@ -19,6 +20,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
   const [email, setEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -46,6 +49,7 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         if (data.email_address) {
           setStatus('approved');
           setEmail(data.email_address);
+          setAutoAnalyze(data.auto_analyze || false);
         } else {
           setStatus('pending');
         }
@@ -93,6 +97,42 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
     }
   };
 
+  const toggleAutoAnalyze = async () => {
+    if (!user) return;
+    
+    try {
+      setUpdatingAutoAnalyze(true);
+      
+      const newValue = !autoAnalyze;
+      
+      const { error } = await supabase
+        .from('investor_pitch_emails')
+        .update({ auto_analyze: newValue })
+        .eq('user_id', user.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      setAutoAnalyze(newValue);
+      
+      toast({
+        title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
+        description: newValue 
+          ? "Pitch decks sent to your email will be automatically analyzed" 
+          : "You'll need to manually analyze pitch decks received via email",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating setting",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingAutoAnalyze(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className={`w-full rounded-lg bg-secondary/10 p-4 ${isSetupPage ? 'opacity-50 filter blur-[1px] pointer-events-none' : ''}`}>
@@ -108,7 +148,7 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
       {status === 'none' && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Request your personalized InvestorBase Pitch Email to receive pitch decks directly from founders. Any deck sent to this email will be automatically synced with your InvestorBase dashboard, processed and analyzed end-to-end without any manual intervention.
+            Request your personalized InvestorBase Pitch Email. Receive pitch decks directly from founders—automatically synced, processed, and analyzed in your InvestorBase dashboard with zero manual effort.
           </p>
           <Button 
             onClick={requestEmail} 
@@ -180,6 +220,29 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
           <p className="text-sm text-muted-foreground">
             Share this email with founders to receive pitch decks directly to your dashboard.
           </p>
+          
+          {/* Auto-analyze toggle section - only visible for approved emails */}
+          <div className="flex items-center justify-between space-x-2 pt-4 border-t border-border/10">
+            <div className="flex-1">
+              <label htmlFor="auto-analyze-email" className="text-sm font-medium">
+                Auto-analyze Submissions from Email
+              </label>
+              <p className="text-xs text-muted-foreground mt-1">
+                {autoAnalyze ? 
+                  "Pitch decks sent to this email will be automatically analyzed" : 
+                  "Received pitch decks will require manual approval for analysis"}
+              </p>
+            </div>
+            <div className="flex items-center">
+              <Switch
+                id="auto-analyze-email"
+                checked={autoAnalyze}
+                onCheckedChange={toggleAutoAnalyze}
+                disabled={updatingAutoAnalyze}
+              />
+              {updatingAutoAnalyze && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+          </div>
         </div>
       )}
     </div>
