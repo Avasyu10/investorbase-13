@@ -24,11 +24,13 @@ interface WebhookPayload {
   received_at: string;
   processed_at: string;
   company_name: string;
-  mail_attachment: MailAttachment[];
+  mail_attachment?: MailAttachment[];
   mail_sender: MailSender[];
 }
 
 serve(async (req) => {
+  console.log("Received request to handle-email-submissions");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -68,9 +70,26 @@ serve(async (req) => {
       );
     }
 
-    // Parse the webhook payload
-    const payload: WebhookPayload = await req.json();
-    console.log("Received webhook payload:", payload);
+    // Get the raw request body as text
+    const rawBody = await req.text();
+    console.log("Raw request body:", rawBody);
+    
+    let payload: WebhookPayload;
+    
+    try {
+      // Parse the webhook payload
+      payload = JSON.parse(rawBody);
+      console.log("Parsed webhook payload:", payload);
+    } catch (parseError) {
+      console.error("Error parsing JSON:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON payload", details: parseError.message }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Validate required fields
     if (!payload.id || !payload.mail_sender || payload.mail_sender.length === 0) {
