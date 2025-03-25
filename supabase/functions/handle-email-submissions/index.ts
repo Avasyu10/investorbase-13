@@ -114,6 +114,10 @@ serve(async (req) => {
     // Extract the sender's email from the payload
     const sender = payload.mail_sender[0];
     const fromEmail = sender.address;
+
+    const receivedAt = payload.received_at ? payload.received_at.replace(' ', 'T') + 'Z' : new Date().toISOString();
+
+const processedAt = payload.processed_at ? payload.processed_at.replace(' ', 'T') + 'Z' : new Date().toISOString();
     
     // Prepare attachment data if available
     let attachmentUrl = null;
@@ -136,6 +140,7 @@ serve(async (req) => {
         has_attachments: hasAttachments,
         attachment_url: attachmentUrl,
         received_at: payload.received_at || new Date().toISOString(),
+        processed_at: processedAt,
       })
       .select();
 
