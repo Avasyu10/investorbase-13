@@ -14,6 +14,16 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
+// Configure fetch with timeout
+const fetchWithTimeout = (url: string, options: RequestInit, timeout = 10000) => {
+  return Promise.race([
+    fetch(url, options),
+    new Promise<Response>((_, reject) => 
+      setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout)
+    ) as Promise<Response>
+  ]);
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -37,7 +47,14 @@ serve(async (req) => {
     
     // Create Supabase client with service role key to bypass RLS
     console.log("Creating Supabase client with service role key");
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+      },
+      global: {
+        fetch: fetchWithTimeout,
+      },
+    });
 
     // Get the submission ID from the request
     let submissionId;
@@ -46,7 +63,7 @@ serve(async (req) => {
       requestData = await req.json();
       // Support both naming conventions (camelCase from DB trigger and lowercase from frontend)
       submissionId = requestData.submissionId || requestData.submission_id;
-      console.log(`Received request with data:`, requestData);
+      console.log(`Received request with data:`, JSON.stringify(requestData));
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
       throw new Error("Invalid request format. Expected JSON with submissionId property.");

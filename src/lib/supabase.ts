@@ -254,66 +254,107 @@ export async function autoAnalyzeEmailSubmission(submissionId: string) {
       throw new Error(errorMessage);
     }
     
-    // Call the auto-analyze-email-submission edge function directly
-    const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission', {
-      body: { submissionId }
-    });
+    // Call the auto-analyze-email-submission edge function directly with retry logic
+    const maxRetries = 3;
+    let retryCount = 0;
+    let lastError: any = null;
     
-    if (error) {
-      console.error('Error invoking auto-analyze-email-submission function:', error);
-      toast({
-        title: "Analysis Check Failed",
-        description: `Could not check auto-analyze status: ${error.message}`,
-        variant: "destructive"
-      });
-      throw error;
+    while (retryCount < maxRetries) {
+      try {
+        // Use longer timeout for this operation
+        const timeoutMs = 15000; // 15 seconds
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        
+        const response = await fetch(
+          "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission",
+          {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": supabaseAnonKey
+            },
+            body: JSON.stringify({ submissionId })
+          }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error response from auto-analyze function: ${response.status} - ${errorText}`);
+          throw new Error(`HTTP error ${response.status}: ${errorText}`);
+        }
+        
+        // Parse the response
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        console.log('Auto-analyze check result:', data);
+        
+        if (data.autoAnalyze) {
+          toast({
+            id: "auto-analyze-success",
+            title: "Auto-analysis started",
+            description: "Your pitch deck is being automatically analyzed",
+          });
+        } else if (data.reportId) {
+          toast({
+            id: "report-created",
+            title: "Report created",
+            description: "Your submission was processed successfully",
+          });
+        }
+        
+        return data;
+      } catch (error) {
+        lastError = error;
+        console.error(`Attempt ${retryCount + 1} failed:`, error);
+        
+        // Only retry on timeout or network errors
+        if (error instanceof Error && 
+           (error.name === 'AbortError' || error.name === 'TypeError' || error.message.includes('timeout'))) {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            // Exponential backoff
+            const delay = Math.pow(2, retryCount) * 1000;
+            console.log(`Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        } else {
+          // Don't retry on other types of errors
+          break;
+        }
+      }
     }
     
-    if (!data || data.error) {
-      const errorMessage = data?.error || "Unknown error occurred during auto-analyze check";
-      console.error('API returned error:', errorMessage);
+    // If we exhausted all retries or had a different error
+    if (lastError) {
+      const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
       
-      // Show a more user-friendly toast message based on the error
-      if (errorMessage.includes('Failed to download attachment')) {
+      // Show appropriate toast message
+      if (errorMessage.includes('timeout') || errorMessage.includes('AbortError')) {
         toast({
-          title: "Attachment Error",
-          description: "The email attachment could not be processed. It may be missing or corrupted.",
-          variant: "destructive"
-        });
-      } else if (errorMessage.includes('not found') || errorMessage.includes('404')) {
-        toast({
-          title: "File Not Found",
-          description: "The attachment file could not be found in storage.",
+          title: "Operation Timed Out",
+          description: "The request to process the email took too long. Please try again later.",
           variant: "destructive"
         });
       } else {
         toast({
           title: "Analysis Check Failed",
-          description: errorMessage,
+          description: `Error: ${errorMessage}`,
           variant: "destructive"
         });
       }
       
-      throw new Error(errorMessage);
+      throw lastError;
     }
     
-    console.log('Auto-analyze check result:', data);
-    
-    if (data.autoAnalyze) {
-      toast({
-        id: "auto-analyze-success",
-        title: "Auto-analysis started",
-        description: "Your pitch deck is being automatically analyzed",
-      });
-    } else if (data.reportId) {
-      toast({
-        id: "report-created",
-        title: "Report created",
-        description: "Your submission was processed successfully",
-      });
-    }
-    
-    return data;
+    return { success: false, autoAnalyze: false };
   } catch (error) {
     console.error('Error checking auto-analyze status:', error);
     // Don't throw error to prevent blocking other operations

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -65,9 +64,31 @@ export async function checkTriggerSetup() {
  */
 export async function debugTriggerFunction(submissionId: string) {
   try {
-    console.log("Manually testing trigger function for submission:", submissionId);
+    toast({
+      title: "Debugging Trigger Function",
+      description: "Testing the email submission trigger...",
+    });
     
-    // Direct call to the edge function
+    // First, verify the submission exists
+    const { data, error } = await supabase
+      .from('email_submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .single();
+      
+    if (error) {
+      console.error("Error fetching submission:", error);
+      toast({
+        title: "Verification Failed",
+        description: `Could not verify submission ID: ${error.message}`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log("Found submission:", data);
+    
+    // Now test the trigger functionality manually via the edge function
     const response = await fetch(
       "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission",
       {
@@ -76,33 +97,52 @@ export async function debugTriggerFunction(submissionId: string) {
           "Content-Type": "application/json",
           "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
         },
-        body: JSON.stringify({ submissionId })
+        body: JSON.stringify({ 
+          submissionId: submissionId,
+          _debug: true // Add debug flag to indicate this is from debugging tool
+        })
       }
     );
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error response from edge function:`, errorText);
-      throw new Error(`Failed to call edge function: ${response.status} ${response.statusText}`);
+    let responseText = "";
+    try {
+      responseText = await response.text();
+      const jsonResponse = JSON.parse(responseText);
+      
+      // Check if it was successful
+      if (jsonResponse.success) {
+        toast({
+          title: "Trigger Function Succeeded",
+          description: jsonResponse.reportId ? 
+            `Created report ID: ${jsonResponse.reportId}` : 
+            "Function completed successfully",
+        });
+      } else {
+        toast({
+          title: "Trigger Function Failed",
+          description: jsonResponse.error || "Unknown error occurred",
+          variant: "destructive"
+        });
+      }
+      
+      console.log("Trigger function response:", jsonResponse);
+      
+    } catch (parseError) {
+      console.error("Error parsing response:", parseError, "Raw response:", responseText);
+      toast({
+        title: "Invalid Response",
+        description: "Received non-JSON response from function",
+        variant: "destructive"
+      });
     }
     
-    const data = await response.json();
-    console.log("Edge function response:", data);
-    
-    toast({
-      title: "Function test successful",
-      description: "Edge function responded successfully. See console for details.",
-    });
-    
-    return true;
   } catch (error) {
-    console.error("Error testing function:", error);
+    console.error("Error testing trigger function:", error);
     toast({
-      title: "Function test failed",
-      description: "An error occurred when testing the function",
+      title: "Test Failed",
+      description: error instanceof Error ? error.message : "Unknown error occurred",
       variant: "destructive"
     });
-    return false;
   }
 }
 
@@ -146,20 +186,13 @@ export async function viewLatestEmailSubmissions() {
  */
 export async function createTestSubmission() {
   try {
-    console.log("Creating test submission using direct API call...");
+    // Generate unique test data
+    const testId = `test-${Date.now()}`;
+    const fromEmail = `sender-${testId}@example.com`;
+    const toEmail = `receiver-${testId}@example.com`;
+    const subject = `Test Subject ${testId}`;
     
-    // Create test data with better attachment URL - ensure it has a valid attachment
-    const testData = {
-      from_email: 'test@example.com',
-      to_email: 'investor@example.com',
-      subject: 'Test Submission for Debugging',
-      email_body: 'This is a test submission for debugging the trigger.',
-      attachment_url: 'test-attachment.pdf',
-      has_attachments: true,
-      action: 'create' // Add action parameter to identify this as a create operation
-    };
-    
-    // Use direct fetch to edge function
+    // Create a test submission via edge function
     const response = await fetch(
       "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/create-test-email-submission",
       {
@@ -168,42 +201,45 @@ export async function createTestSubmission() {
           "Content-Type": "application/json",
           "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
         },
-        body: JSON.stringify(testData)
+        body: JSON.stringify({
+          fromEmail,
+          toEmail,
+          subject,
+          body: `This is a test email body for ${testId}`,
+          attachmentName: "test-attachment.pdf"
+        })
       }
     );
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error response from create submission function:`, errorText);
-      throw new Error(`Failed to create test submission: ${response.status} ${response.statusText}`);
+      let errorText = await response.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorText = errorJson.error || errorText;
+      } catch (e) {
+        // Keep as text if not JSON
+      }
+      
+      throw new Error(`Failed to create test submission: ${response.status} - ${errorText}`);
     }
     
-    const data = await response.json();
+    const result = await response.json();
     
-    if (!data || !data.id) {
-      console.error("No submission ID returned from function");
-      toast({
-        title: "Test creation failed",
-        description: "No submission ID was returned",
-        variant: "destructive"
-      });
-      return null;
-    }
+    console.log("Created test submission:", result);
     
-    console.log("Created test submission:", data);
     toast({
-      title: "Test submission created",
-      description: `Created with ID: ${data.id}`,
+      title: "Test Submission Created",
+      description: `Created submission ID: ${result.id}`,
     });
     
-    return data;
+    return result;
   } catch (error) {
     console.error("Error creating test submission:", error);
     toast({
-      title: "Test creation failed",
-      description: "An error occurred creating the test submission",
+      title: "Creation Failed",
+      description: error instanceof Error ? error.message : "Failed to create test submission",
       variant: "destructive"
     });
-    return null;
+    throw error;
   }
 }
