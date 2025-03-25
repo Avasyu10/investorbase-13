@@ -119,6 +119,7 @@ serve(async (req) => {
         throw new Error("Attachment URL is empty or invalid");
       }
       
+      // Log the full path for debugging
       console.log(`Full attachment path: email_attachments/${emailSubmission.attachment_url}`);
       
       // Attempt to list files in the directory to verify access
