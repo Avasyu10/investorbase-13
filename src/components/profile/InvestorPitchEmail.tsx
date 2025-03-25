@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +21,7 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
   const [isRequesting, setIsRequesting] = useState(false);
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
+  const [recordId, setRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -49,7 +49,8 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
         if (data.email_address) {
           setStatus('approved');
           setEmail(data.email_address);
-          setAutoAnalyze(data.auto_analyze || false);
+          setAutoAnalyze(!!data.auto_analyze); // Ensure boolean conversion
+          setRecordId(data.id); // Store the record ID for update operations
         } else {
           setStatus('pending');
         }
@@ -98,36 +99,49 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
   };
 
   const toggleAutoAnalyze = async () => {
-    if (!user) return;
+    if (!user || !recordId) return;
     
     try {
       setUpdatingAutoAnalyze(true);
       
       const newValue = !autoAnalyze;
       
-      const { error } = await supabase
-        .from('investor_pitch_emails')
-        .update({ auto_analyze: newValue })
-        .eq('user_id', user.id);
-        
+      console.log("Updating auto_analyze to:", newValue);
+      console.log("Record ID being updated:", recordId);
+      
+      const { data, error } = await supabase.rpc('update_investor_pitch_email_setting', {
+        auto_analyze_value: newValue,
+        record_id: recordId
+      });
+      
+      console.log("Update response:", data);
+      
       if (error) {
+        console.error("Error updating auto_analyze:", error);
         throw error;
       }
       
-      setAutoAnalyze(newValue);
-      
-      toast({
-        title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
-        description: newValue 
-          ? "Pitch decks sent to your email will be automatically analyzed" 
-          : "You'll need to manually analyze pitch decks received via email",
-      });
+      if (data === true) {
+        setAutoAnalyze(newValue);
+        
+        toast({
+          title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
+          description: newValue 
+            ? "Pitch decks sent to your email will be automatically analyzed" 
+            : "You'll need to manually analyze pitch decks received via email",
+        });
+      } else {
+        console.error("Update operation was not successful");
+        fetchEmailStatus();
+      }
     } catch (error: any) {
+      console.error("Error in toggleAutoAnalyze:", error);
       toast({
         title: "Error updating setting",
         description: error.message,
         variant: "destructive",
       });
+      fetchEmailStatus();
     } finally {
       setUpdatingAutoAnalyze(false);
     }
@@ -221,7 +235,6 @@ export const InvestorPitchEmail = ({ isSetupPage = false }: InvestorPitchEmailPr
             Share this email with founders to receive pitch decks directly to your dashboard.
           </p>
           
-          {/* Auto-analyze toggle section - only visible for approved emails */}
           <div className="flex items-center justify-between space-x-2 pt-4 border-t border-border/10">
             <div className="flex-1">
               <label htmlFor="auto-analyze-email" className="text-sm font-medium">
