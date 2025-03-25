@@ -34,51 +34,95 @@ serve(async (req) => {
     // Get the data from the request
     let requestData;
     try {
-      // Try to get the raw text first before attempting to parse it
+      // Get the raw text first to examine it
       const rawText = await req.text();
-      console.log(`Raw request body: ${rawText}`);
+      console.log(`Raw request body length: ${rawText.length}`);
+      
+      // Log a safe preview of the raw text (in case it's very large)
+      const previewLength = Math.min(200, rawText.length);
+      console.log(`Raw request body preview: ${rawText.substring(0, previewLength)}${rawText.length > previewLength ? '...' : ''}`);
       
       try {
-        // First, try to parse as JSON
+        // First, try standard JSON parsing
         requestData = JSON.parse(rawText);
-        console.log("Successfully parsed JSON:", requestData);
+        console.log("Successfully parsed JSON using standard JSON.parse");
       } catch (jsonError) {
-        console.error("Failed to parse as JSON. Error:", jsonError);
+        console.error("Failed to parse as JSON. Error:", jsonError.message);
         
-        // More robust parsing attempt - handle both formatted and unformatted versions
+        // More robust parsing with better error handling
         try {
-          // Try to clean up the text before parsing
+          // Remove any characters that could break JSON parsing
           const cleanedText = rawText
+            .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, "") // Remove control characters
+            .replace(/\\[^"\\\/bfnrtu]/g, "\\\\") // Escape backslashes properly
+            .replace(/\(/g, "\\(").replace(/\)/g, "\\)") // Escape parentheses
             .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
             .replace(/\s+/g, " ")          // Normalize spaces
             .trim();                       // Trim whitespace
             
-          // Check if it's roughly in JSON format (has opening/closing braces)
+          console.log("Cleaned text for JSON parsing");
+          
+          // Try parsing the cleaned text
           if (cleanedText.startsWith("{") && cleanedText.endsWith("}")) {
-            console.log("Attempting to parse cleaned text as JSON");
-            requestData = JSON.parse(cleanedText);
+            try {
+              requestData = JSON.parse(cleanedText);
+              console.log("Successfully parsed JSON after cleaning text");
+            } catch (cleaningError) {
+              console.error("Failed to parse cleaned text:", cleaningError.message);
+              
+              // If still failing, try a more aggressive approach
+              const strictlyFormatted = cleanedText
+                .replace(/([{,])\s*([^"\s]+)\s*:/g, '$1"$2":') // Ensure property names are quoted
+                .replace(/:\s*'([^']*)'\s*([,}])/g, ':"$1"$2'); // Convert single quotes to double quotes
+                
+              try {
+                requestData = JSON.parse(strictlyFormatted);
+                console.log("Successfully parsed JSON after strict formatting");
+              } catch (formattingError) {
+                throw new Error(`Could not parse JSON after multiple attempts: ${formattingError.message}`);
+              }
+            }
           } else {
-            // If it's not JSON-like, try to extract key data using regex as fallback
+            // Last resort - extract data using regex if it's not valid JSON
             console.log("Falling back to regex extraction");
+            requestData = {};
+            
+            // Extract common fields using regex
             const actionMatch = rawText.match(/"action"\s*:\s*"([^"]+)"/);
             if (actionMatch && actionMatch[1]) {
-              requestData = { action: actionMatch[1] };
-              console.log(`Extracted action using regex: ${requestData.action}`);
+              requestData.action = actionMatch[1];
             } else {
-              throw new Error(`Could not parse request body as JSON: ${rawText}`);
+              requestData.action = 'create'; // Default action
             }
+            
+            const fromEmailMatch = rawText.match(/"from_?[eE]mail"\s*:\s*"([^"]+)"/);
+            if (fromEmailMatch && fromEmailMatch[1]) {
+              requestData.fromEmail = fromEmailMatch[1];
+            }
+            
+            const toEmailMatch = rawText.match(/"to_?[eE]mail"\s*:\s*"([^"]+)"/);
+            if (toEmailMatch && toEmailMatch[1]) {
+              requestData.toEmail = toEmailMatch[1];
+            }
+            
+            const subjectMatch = rawText.match(/"subject"\s*:\s*"([^"]+)"/);
+            if (subjectMatch && subjectMatch[1]) {
+              requestData.subject = subjectMatch[1];
+            }
+            
+            console.log("Extracted data using regex:", requestData);
           }
         } catch (fallbackError) {
-          console.error("Fallback parsing also failed:", fallbackError);
-          // Last resort - try to make sense of whatever we got
+          console.error("All parsing attempts failed:", fallbackError.message);
+          // Last resort - create a minimal valid object
           requestData = { action: 'create' };
           console.log("Using default action: create");
         }
       }
       
-      console.log(`Processed request data:`, requestData);
+      console.log(`Processed request data:`, JSON.stringify(requestData));
     } catch (parseError) {
-      console.error("Error processing request data:", parseError);
+      console.error("Error processing request data:", parseError.message);
       throw new Error("Invalid request format. Expected JSON data.");
     }
     
@@ -171,7 +215,7 @@ serve(async (req) => {
         }
       }
       
-      console.log("Creating test submission with data:", submissionData);
+      console.log("Creating test submission with data:", JSON.stringify(submissionData));
 
       // Insert the test submission using service role (bypasses RLS)
       const { data: submission, error: insertError } = await supabase
