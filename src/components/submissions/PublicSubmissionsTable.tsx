@@ -1,16 +1,17 @@
 
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import React from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
+import { ArrowRight, FileText, Mail, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail } from "lucide-react";
 
 interface PublicSubmission {
   id: string;
@@ -33,95 +34,83 @@ interface PublicSubmissionsTableProps {
 }
 
 export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmissionsTableProps) {
-  if (!submissions || submissions.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No submissions found</p>
-      </div>
-    );
-  }
-
-  const truncateText = (text: string | null, maxLength: number) => {
-    if (!text) return "—";
-    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+  // Helper function to get source icon
+  const getSourceIcon = (source: "email" | "public_form") => {
+    if (source === "email") return <Mail className="h-4 w-4 mr-1" />;
+    return <Globe className="h-4 w-4 mr-1" />;
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-    } catch (error) {
-      return dateString;
-    }
+  // Helper function to get source label
+  const getSourceLabel = (source: "email" | "public_form") => {
+    if (source === "email") return "Email";
+    return "Public Form";
   };
 
   return (
-    <div className="border rounded-md">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-1/6">Source</TableHead>
-            <TableHead className="w-1/5">Title</TableHead>
-            <TableHead className="w-1/6">Industry</TableHead>
-            <TableHead className="w-1/6">Stage</TableHead>
-            <TableHead className="w-1/6">Website</TableHead>
-            <TableHead className="w-1/6">Submitted</TableHead>
-            <TableHead className="w-1/6 text-right">Action</TableHead>
+            <TableHead>Source</TableHead>
+            <TableHead>Company</TableHead>
+            <TableHead className="hidden md:table-cell">Info</TableHead>
+            <TableHead className="hidden lg:table-cell">Received</TableHead>
+            <TableHead className="text-right">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {submissions.map((submission) => (
             <TableRow key={submission.id}>
               <TableCell>
-                <Badge 
-                  variant={submission.source === "email" ? "blue" : "green"}
-                  className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
-                >
-                  {submission.source === "email" ? (
-                    <>
-                      <Mail className="h-3 w-3" />
-                      <span>Email</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-3 w-3" />
-                      <span>Public Form</span>
-                    </>
-                  )}
-                </Badge>
+                <div className="flex items-center">
+                  <Badge variant="outline" className="flex items-center">
+                    {getSourceIcon(submission.source)}
+                    {getSourceLabel(submission.source)}
+                  </Badge>
+                </div>
               </TableCell>
               <TableCell className="font-medium">
-                {truncateText(submission.title, 30)}
+                <div className="flex flex-col">
+                  <span className="truncate max-w-[200px]">{submission.title}</span>
+                  {submission.from_email && (
+                    <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                      {submission.from_email}
+                    </span>
+                  )}
+                </div>
               </TableCell>
-              <TableCell>
-                {submission.industry || "—"}
+              <TableCell className="hidden md:table-cell">
+                <div className="flex flex-col">
+                  {submission.industry && (
+                    <span className="text-sm">{submission.industry}</span>
+                  )}
+                  {submission.company_stage && (
+                    <span className="text-xs text-muted-foreground">
+                      {submission.company_stage}
+                    </span>
+                  )}
+                  {!submission.industry && !submission.company_stage && (
+                    <span className="text-xs text-muted-foreground italic">
+                      No additional info
+                    </span>
+                  )}
+                </div>
               </TableCell>
-              <TableCell>
-                {submission.company_stage || "—"}
-              </TableCell>
-              <TableCell>
-                {submission.website_url ? (
-                  <a 
-                    href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline"
-                  >
-                    {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell>
-                {formatDate(submission.created_at)}
+              <TableCell className="hidden lg:table-cell text-muted-foreground">
+                {formatDistanceToNow(new Date(submission.created_at), {
+                  addSuffix: true,
+                })}
               </TableCell>
               <TableCell className="text-right">
                 <Button
-                  className="bg-gold text-gold-foreground hover:bg-gold/90"
+                  variant="outline"
                   size="sm"
+                  className="flex items-center gap-1"
                   onClick={() => onAnalyze(submission)}
                 >
-                  Analyze
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Analyze</span>
+                  <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </TableCell>
             </TableRow>

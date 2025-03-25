@@ -86,6 +86,7 @@ export function PublicSubmissionsList() {
             pdf_url,
             created_at,
             analysis_status,
+            source,
             companies:companies!reports_company_id_fkey(id)
           `)
           .eq('is_public_submission', true)
@@ -109,7 +110,8 @@ export function PublicSubmissionsList() {
             reports:report_id (
               id,
               company_id,
-              analysis_status
+              analysis_status,
+              source
             )
           `)
           .order('created_at', { ascending: false });
@@ -132,10 +134,10 @@ export function PublicSubmissionsList() {
                 id,
                 company_id,
                 analysis_status,
+                source,
                 pdf_url
               )
             `)
-            .eq('from_email', user.email)
             .order('created_at', { ascending: false });
             
           if (emailError) {
@@ -163,8 +165,10 @@ export function PublicSubmissionsList() {
             form_slug: "",
             pdf_url: report.pdf_url,
             report_id: report.id,
-            // Determine source based on pdf_url path
-            source: (report.pdf_url && report.pdf_url.includes('email_attachments')) ? "email" : "public_form" as const
+            // Determine source based on pdf_url path or explicit source field
+            source: (report.source === 'email' || (report.pdf_url && report.pdf_url.includes('email_attachments'))) 
+              ? "email" as const 
+              : "public_form" as const
           }));
           
         console.log("Transformed report data:", transformedReportData.length);
@@ -196,7 +200,7 @@ export function PublicSubmissionsList() {
           
         console.log("Filtered public form submissions:", transformedFormData.length);
         
-        // Transform email submissions data
+        // Transform email submissions data - ensuring they have the correct source type
         const transformedEmailData = emailData
           .filter(submission => {
             // Include submissions where:
@@ -214,7 +218,7 @@ export function PublicSubmissionsList() {
             company_stage: null,
             industry: null,
             website_url: null,
-            created_at: submission.received_at,
+            created_at: submission.received_at || submission.created_at,
             form_slug: "",
             pdf_url: submission.attachment_url,
             report_id: submission.report_id,
