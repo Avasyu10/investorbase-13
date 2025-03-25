@@ -19,9 +19,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing environment variables");
       return new Response(
         JSON.stringify({
-          error: "Missing environment variables",
+          error: 'Missing environment variables',
           success: false,
         }),
         {
@@ -35,19 +36,51 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse the multipart form data
-    const formData = await req.formData();
+    let formData;
+    try {
+      formData = await req.formData();
+      console.log("FormData parsed successfully");
+    } catch (formError) {
+      console.error("Error parsing FormData:", formError);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to parse form data",
+          details: formError instanceof Error ? formError.message : String(formError),
+          success: false,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    // Log available form fields for debugging
+    console.log("Form fields received:");
+    const formFieldNames = [];
+    for (const key of formData.keys()) {
+      formFieldNames.push(key);
+    }
+    console.log("Available fields:", formFieldNames.join(", "));
     
     // Basic validation
-    const file = formData.get("file") as File;
-    const title = formData.get("title") as string;
-    const email = formData.get("email") as string;
+    const file = formData.get("file") as File | null;
+    const title = formData.get("title") as string | null;
+    const email = formData.get("email") as string | null;
     const description = formData.get("description") as string || "";
     const websiteUrl = formData.get("websiteUrl") as string || "";
     
-    if (!file || !title || !email) {
+    const missingFields = [];
+    if (!file) missingFields.push("file");
+    if (!title) missingFields.push("title");
+    if (!email) missingFields.push("email");
+    
+    if (missingFields.length > 0) {
+      const errorMessage = `Missing required fields: ${missingFields.join(", ")}`;
+      console.error(errorMessage);
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: file, title, or email",
+          error: errorMessage,
           success: false,
         }),
         {

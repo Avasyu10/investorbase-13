@@ -46,6 +46,7 @@ export function PublicSubmissionsList() {
         }
         
         setIsLoading(true);
+        console.log("Fetching public submissions for user:", user.id);
         
         // Fetch public form submissions
         const { data: formData, error: formError } = await supabase
@@ -61,8 +62,11 @@ export function PublicSubmissionsList() {
           .order('created_at', { ascending: false });
           
         if (formError) {
+          console.error("Error fetching public form submissions:", formError);
           throw formError;
         }
+        
+        console.log("Public form submissions fetched:", formData?.length || 0);
         
         // Fetch email submissions for the current user
         const { data: emailData, error: emailError } = await supabase
@@ -79,8 +83,11 @@ export function PublicSubmissionsList() {
           .order('created_at', { ascending: false });
           
         if (emailError) {
+          console.error("Error fetching email submissions:", emailError);
           throw emailError;
         }
+        
+        console.log("Email submissions fetched:", emailData?.length || 0);
         
         // Transform the data to filter out submissions that have already been analyzed
         const transformedFormData = formData
@@ -107,6 +114,8 @@ export function PublicSubmissionsList() {
             source: "public_form" as const
           }));
           
+        console.log("Filtered public form submissions:", transformedFormData.length);
+        
         // Transform email submissions data
         const transformedEmailData = emailData
           .filter(submission => {
@@ -133,10 +142,13 @@ export function PublicSubmissionsList() {
             from_email: submission.from_email
           }));
         
+        console.log("Filtered email submissions:", transformedEmailData.length);
+        
         // Combine both types of submissions and sort by date
         const combinedSubmissions = [...transformedFormData, ...transformedEmailData]
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
+        console.log("Combined submissions:", combinedSubmissions.length);
         setSubmissions(combinedSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);

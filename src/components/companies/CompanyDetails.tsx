@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -13,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/useCompanies";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ORDERED_SECTIONS } from "@/lib/constants";
 
 export function CompanyDetails() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -34,7 +34,6 @@ export function CompanyDetails() {
       if (!company || !company.id) return;
       
       try {
-        // First check if there are company details available
         const { data: companyDetails } = await supabase
           .from('company_details')
           .select('website, stage, industry, introduction')
@@ -42,9 +41,6 @@ export function CompanyDetails() {
           .maybeSingle();
         
         if (companyDetails) {
-          console.log('Found company details:', companyDetails);
-          
-          // Company details from the AI extraction are available
           setCompanyInfo({
             website: companyDetails.website || "",
             stage: companyDetails.stage || "Not specified",
@@ -56,7 +52,6 @@ export function CompanyDetails() {
           return;
         }
         
-        // If no company details, use the original flow
         if (company.reportId) {
           const { data: report } = await supabase
             .from('reports')
@@ -218,6 +213,20 @@ export function CompanyDetails() {
     return "score-critical";
   };
 
+  const sortedSections = [...company.sections].sort((a, b) => {
+    const indexA = ORDERED_SECTIONS.indexOf(a.type);
+    const indexB = ORDERED_SECTIONS.indexOf(b.type);
+    
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+    
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    
+    return 0;
+  });
+
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
       <div className="mb-7 sm:mb-9">
@@ -278,7 +287,7 @@ export function CompanyDetails() {
         Section Metrics
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-        {company.sections.map((section) => (
+        {sortedSections.map((section) => (
           <SectionCard 
             key={section.id} 
             section={section} 
