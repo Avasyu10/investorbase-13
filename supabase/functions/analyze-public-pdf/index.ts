@@ -30,18 +30,6 @@ serve(async (req) => {
     
     console.log(`Processing public submission report: ${reportId}`);
     
-    // Get public form submission data
-    const { data: publicSubmission, error: submissionError } = await supabase
-      .from('public_form_submissions')
-      .select('pdf_url')
-      .eq('report_id', reportId)
-      .maybeSingle();
-      
-    if (submissionError) {
-      console.error('Error fetching public submission:', submissionError);
-      throw submissionError;
-    }
-    
     // Get report data
     const { data: report, error: reportError } = await supabase
       .from('reports')
@@ -53,78 +41,15 @@ serve(async (req) => {
       throw new Error(`Report not found: ${reportError.message}`);
     }
     
-    // Determine PDF path
-    let pdfPath = '';
-    
-    if (publicSubmission && publicSubmission.pdf_url) {
-      // For public submissions, the PDF is stored in the public-uploads folder
-      pdfPath = `public-uploads/${publicSubmission.pdf_url}`;
-      console.log(`Using public submission PDF: ${pdfPath}`);
-    } else if (report.pdf_url) {
-      // Fallback to report's PDF URL
-      pdfPath = report.pdf_url;
-      console.log(`Using report PDF: ${pdfPath}`);
-    } else {
-      throw new Error('No PDF found for this submission');
-    }
-    
-    // Download the PDF from storage
-    let fileData;
-    try {
-      const { data, error } = await supabase.storage
-        .from('report_pdfs')
-        .download(pdfPath);
-        
-      if (error) {
-        throw error;
-      }
-      
-      fileData = data;
-      console.log('Successfully downloaded PDF from storage');
-    } catch (downloadError) {
-      console.error('Error downloading PDF from primary path:', downloadError);
-      
-      // Try alternative path
-      const filename = pdfPath.split('/').pop() || '';
-      
-      try {
-        const { data, error } = await supabase.storage
-          .from('report_pdfs')
-          .download(filename);
-          
-        if (error) {
-          throw error;
-        }
-        
-        fileData = data;
-        console.log('Successfully downloaded PDF using filename only');
-      } catch (alternateError) {
-        throw new Error(`Failed to download PDF: ${alternateError}`);
-      }
-    }
-    
-    // Convert to base64
-    const arrayBuffer = await fileData.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const base64 = btoa(
-      Array.from(bytes)
-        .map(byte => String.fromCharCode(byte))
-        .join('')
-    );
-    
-    console.log('Successfully converted PDF to base64');
-    
-    // Now forward the PDF to the main analyze-pdf function to process
+    // Call the analyze-pdf function directly with the report ID
+    // This is a simpler approach that doesn't require handling the PDF ourselves
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        reportId,
-        pdfBase64: base64 // Pass the PDF content directly
-      })
+      body: JSON.stringify({ reportId })
     });
     
     if (!response.ok) {

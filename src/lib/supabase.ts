@@ -260,19 +260,6 @@ export async function analyzeReport(reportId: string) {
       .eq('report_id', reportId)
       .maybeSingle();
     
-    let endpoint = 'analyze-pdf';
-    
-    // Determine which edge function to call based on submission type
-    if (emailSubmission || emailPitchSubmission) {
-      console.log('This is an email submission, using analyze-email-pitch-pdf function');
-      endpoint = 'analyze-email-pitch-pdf';
-    } else if (publicFormSubmission) {
-      console.log('This is a public form submission, using analyze-public-pdf function');
-      endpoint = 'analyze-public-pdf';
-    } else {
-      console.log('This is a regular report, using standard analyze-pdf function');
-    }
-    
     // Update report status to pending
     await supabase
       .from('reports')
@@ -281,6 +268,17 @@ export async function analyzeReport(reportId: string) {
         analysis_error: null
       })
       .eq('id', reportId);
+    
+    // Determine which edge function to call based on submission type
+    let endpoint = 'analyze-pdf';
+    
+    if (emailSubmission || emailPitchSubmission) {
+      endpoint = 'analyze-email-pitch-pdf';
+    } else if (publicFormSubmission) {
+      endpoint = 'analyze-public-pdf';
+    }
+    
+    console.log(`Using endpoint: ${endpoint} for analysis`);
     
     // Call the appropriate edge function
     const { data, error } = await supabase.functions.invoke(endpoint, {
