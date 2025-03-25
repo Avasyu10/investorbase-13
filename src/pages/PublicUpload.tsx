@@ -37,7 +37,6 @@ const PublicUpload = () => {
       }
 
       try {
-        console.log("Fetching form data for slug:", activeFormSlug);
         const { data, error } = await supabase
           .from('public_submission_forms')
           .select('form_name, user_id, is_active, auto_analyze')
@@ -53,7 +52,6 @@ const PublicUpload = () => {
         } else if (!data.is_active) {
           setError("This form is no longer active");
         } else {
-          console.log("Form data loaded successfully:", data);
           setFormData(data);
         }
       } catch (err: any) {
@@ -133,7 +131,7 @@ const PublicUpload = () => {
             <AlertCircle className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-800">Success!</AlertTitle>
             <AlertDescription className="text-green-700">
-              Your pitch deck has been submitted successfully.
+              Your pitch deck has been submitted successfully. We'll analyze it and send the results to your email.
             </AlertDescription>
           </Alert>
         ) : (
@@ -143,7 +141,8 @@ const PublicUpload = () => {
                 {formData ? formData.form_name : "Submit Your Pitch Deck"}
               </h1>
               <p className="text-muted-foreground">
-                Upload a PDF of your Pitch Deck along with the following information
+                Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses.
+                Adding your company website will enhance the analysis with additional context.
               </p>
             </div>
             
@@ -154,7 +153,7 @@ const PublicUpload = () => {
               buttonText="Submit"
               skipAnalysis={!formData?.auto_analyze}
               formSlug={activeFormSlug}
-              hideEmailField={false}
+              hideEmailField={true}
               disableScrapingFeatures={true}
             />
           </>

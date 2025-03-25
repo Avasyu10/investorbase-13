@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { ORDERED_SECTIONS } from '@/lib/constants';
 
 export interface SectionDetail {
   id: string;
@@ -109,8 +108,6 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         detailedContent: description, // Use the description for detailed content
         createdAt: sectionData.created_at,
         updatedAt: sectionData.updated_at || sectionData.created_at,
-        // Add order index for sorting
-        orderIndex: ORDERED_SECTIONS.indexOf(sectionData.type)
       } as SectionDetail;
     },
     enabled: !!companyId && !!sectionId,

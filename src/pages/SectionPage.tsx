@@ -8,7 +8,6 @@ import { ChevronLeft, FileText } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
-import { ORDERED_SECTIONS } from "@/lib/constants";
 
 const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -28,39 +27,6 @@ const SectionPage = () => {
 
   const handleBackClick = () => {
     navigate(-1); // Navigate to the previous page in history
-  };
-
-  // Get adjacent sections (previous and next) based on the ordered array
-  const getAdjacentSections = () => {
-    if (!company || !section) return { prevSection: null, nextSection: null };
-    
-    // Sort sections according to the ordered array
-    const sortedSections = [...company.sections].sort((a, b) => {
-      const indexA = ORDERED_SECTIONS.indexOf(a.type);
-      const indexB = ORDERED_SECTIONS.indexOf(b.type);
-      
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      return 0;
-    });
-    
-    // Find current section index
-    const currentIndex = sortedSections.findIndex(s => s.id.toString() === sectionId);
-    
-    if (currentIndex === -1) return { prevSection: null, nextSection: null };
-    
-    // Get previous and next sections
-    const prevSection = currentIndex > 0 ? sortedSections[currentIndex - 1] : null;
-    const nextSection = currentIndex < sortedSections.length - 1 ? sortedSections[currentIndex + 1] : null;
-    
-    return { prevSection, nextSection };
-  };
-
-  const { prevSection, nextSection } = getAdjacentSections();
-
-  const navigateToSection = (sectionId: string | number) => {
-    navigate(`/company/${companyId}/section/${sectionId}`);
   };
 
   if (isLoading) {
@@ -104,30 +70,6 @@ const SectionPage = () => {
       </div>
       <div className="container mx-auto px-4">
         <SectionDetail section={section} isLoading={sectionLoading} />
-        
-        {/* Previous/Next Navigation */}
-        <div className="flex justify-between mt-8">
-          {prevSection && (
-            <Button 
-              variant="outline" 
-              onClick={() => navigateToSection(prevSection.id)}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="h-4 w-4" /> 
-              Previous: {prevSection.title}
-            </Button>
-          )}
-          <div></div> {/* Spacer */}
-          {nextSection && (
-            <Button 
-              variant="outline" 
-              onClick={() => navigateToSection(nextSection.id)}
-              className="flex items-center gap-2"
-            >
-              {nextSection.title} <ChevronLeft className="h-4 w-4 rotate-180" />
-            </Button>
-          )}
-        </div>
       </div>
     </div>
   );

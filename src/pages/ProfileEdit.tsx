@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -609,11 +610,6 @@ const ProfileEdit = () => {
               <Separator className="mb-4" />
               
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground mb-3">
-                  This URL creates a public portal where founders can submit their pitch decks directly to your dashboard. 
-                  Share this link with your network to streamline the submission process and maintain all potential investments in one organized location.
-                </p>
-                
                 {publicForm ? (
                   <div className="space-y-4 bg-secondary/10 p-4 rounded-md">
                     <div>

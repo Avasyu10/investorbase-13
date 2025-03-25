@@ -27,19 +27,5 @@ export const SECTION_TITLES = {
   [SECTION_TYPES.ASK]: "The Ask & Next Steps"
 };
 
-// Define the ordered array of sections for consistent display
-export const ORDERED_SECTIONS = [
-  SECTION_TYPES.PROBLEM,
-  SECTION_TYPES.MARKET,
-  SECTION_TYPES.SOLUTION,
-  SECTION_TYPES.COMPETITIVE_LANDSCAPE,
-  SECTION_TYPES.TRACTION,
-  SECTION_TYPES.BUSINESS_MODEL,
-  SECTION_TYPES.GTM_STRATEGY,
-  SECTION_TYPES.TEAM,
-  SECTION_TYPES.FINANCIALS,
-  SECTION_TYPES.ASK
-];
-
 // Array of all expected section types for validation
 export const EXPECTED_SECTION_TYPES = Object.values(SECTION_TYPES);

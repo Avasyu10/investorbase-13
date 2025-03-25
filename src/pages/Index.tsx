@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "react-router-dom";
 
 const Index = () => {
   const { user, isLoading, signInWithEmail, signUpWithEmail } = useAuth();
@@ -92,14 +91,6 @@ const Index = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                  </div>
-                  <div className="text-right">
-                    <Link 
-                      to="/forgot-password" 
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
                   </div>
                 </CardContent>
                 <CardFooter>

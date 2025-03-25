@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -170,60 +171,28 @@ export async function downloadReport(fileUrl: string, userId?: string) {
       }
     }
     
-    // Step 2: Check if the fileUrl already has a proper path format (like 'user_id/filename.pdf')
-    if (fileUrl.includes('/')) {
-      console.log('File URL contains a path separator, attempting to download directly:', fileUrl);
-      try {
-        const { data, error } = await supabase.storage
-          .from('report_pdfs')
-          .download(fileUrl);
-        
-        if (!error && data) {
-          console.log('Successfully downloaded file with direct path:', fileUrl);
-          return data;
-        }
-      } catch (directPathError) {
-        console.error('Error downloading with direct path:', directPathError);
-      }
-    }
-    
-    // Step 3: Try the standard report_pdfs bucket with userId prefixed path
-    if (userId) {
-      try {
-        const fullPath = `${userId}/${fileUrl}`;
-        console.log('Trying report_pdfs bucket with user path:', fullPath);
-        
-        const { data, error } = await supabase.storage
-          .from('report_pdfs')
-          .download(fullPath);
-
-        if (!error && data) {
-          console.log('Successfully downloaded from report_pdfs with user path:', fullPath);
-          return data;
-        }
-      } catch (userPathError) {
-        console.error('Error with user path, trying other approaches:', userPathError);
-      }
-    }
-    
-    // Step 4: Try public-uploads path for public submissions
+    // Step 2: Try the standard report_pdfs bucket with the provided path
     try {
-      const publicPath = `public-uploads/${fileUrl}`;
-      console.log('Trying report_pdfs bucket with public-uploads path:', publicPath);
+      let fullPath = fileUrl;
+      // If userId is provided and the file doesn't start with the userId, add it
+      if (userId && !fileUrl.startsWith(`${userId}/`) && !fileUrl.includes('email_attachments')) {
+        fullPath = `${userId}/${fileUrl}`;
+      }
       
+      console.log('Trying report_pdfs bucket with path:', fullPath);
       const { data, error } = await supabase.storage
         .from('report_pdfs')
-        .download(publicPath);
-        
+        .download(fullPath);
+
       if (!error && data) {
-        console.log('Successfully downloaded from public-uploads path');
+        console.log('Successfully downloaded from report_pdfs with path:', fullPath);
         return data;
       }
-    } catch (publicPathError) {
-      console.error('Error with public-uploads path:', publicPathError);
+    } catch (primaryError) {
+      console.error('Error with primary path, trying fallback:', primaryError);
     }
     
-    // Step 5: Try with the simple filename (last part of path)
+    // Step 3: Try with the simple filename (last part of path)
     const parts = fileUrl.split('/');
     const simpleFileName = parts[parts.length - 1];
     
@@ -241,7 +210,24 @@ export async function downloadReport(fileUrl: string, userId?: string) {
       console.error('Error with fallback path:', fallbackError);
     }
     
-    // Step 6: Final attempt - check if this is from an email submission
+    // Step 4: One last attempt with public_uploads bucket
+    if (fileUrl.includes('/')) {
+      try {
+        console.log('Trying public_uploads bucket with path:', fileUrl);
+        const { data: publicData, error: publicError } = await supabase.storage
+          .from('public_uploads')
+          .download(fileUrl);
+          
+        if (!publicError && publicData) {
+          console.log('Successfully downloaded from public_uploads bucket');
+          return publicData;
+        }
+      } catch (publicError) {
+        console.error('Error with public_uploads path:', publicError);
+      }
+    }
+    
+    // Step 5: Final attempt - check if this is from an email submission
     const { data: emailData } = await supabase
       .from('email_submissions')
       .select('attachment_url')

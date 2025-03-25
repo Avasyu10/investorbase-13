@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -419,10 +418,6 @@ const Profile = () => {
               <h3 className="text-base font-semibold text-foreground/80">Public Submission URL</h3>
             </div>
             <Separator className="mb-4" />
-            
-            <p className="text-sm text-muted-foreground mb-4">
-              Share this form on your website to let founders submit decks directly to your dashboard—streamlining submissions and keeping all potential investments organized in one place.
-            </p>
             
             <div className="bg-secondary/10 p-4 rounded-lg">
               {publicForm ? (

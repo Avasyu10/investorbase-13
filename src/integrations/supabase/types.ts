@@ -162,51 +162,9 @@ export type Database = {
           },
         ]
       }
-      fund_thesis_analysis: {
-        Row: {
-          analysis_text: string
-          company_id: string
-          created_at: string
-          id: string
-          prompt_sent: string | null
-          response_received: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          analysis_text: string
-          company_id: string
-          created_at?: string
-          id?: string
-          prompt_sent?: string | null
-          response_received?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          analysis_text?: string
-          company_id?: string
-          created_at?: string
-          id?: string
-          prompt_sent?: string | null
-          response_received?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fund_thesis_analysis_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       investor_pitch_emails: {
         Row: {
           approved_at: string | null
-          auto_analyze: boolean
           created_at: string
           email_address: string | null
           id: string
@@ -217,7 +175,6 @@ export type Database = {
         }
         Insert: {
           approved_at?: string | null
-          auto_analyze?: boolean
           created_at?: string
           email_address?: string | null
           id?: string
@@ -228,7 +185,6 @@ export type Database = {
         }
         Update: {
           approved_at?: string | null
-          auto_analyze?: boolean
           created_at?: string
           email_address?: string | null
           id?: string
@@ -660,12 +616,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      bytea_to_text: {
-        Args: {
-          data: string
-        }
-        Returns: string
-      }
       create_find_company_by_numeric_id_bigint_function: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -716,164 +666,18 @@ export type Database = {
           weakness_count: number
         }[]
       }
-      http: {
-        Args: {
-          request: Database["public"]["CompositeTypes"]["http_request"]
-        }
-        Returns: unknown
-      }
-      http_delete:
-        | {
-            Args: {
-              uri: string
-            }
-            Returns: unknown
-          }
-        | {
-            Args: {
-              uri: string
-              content: string
-              content_type: string
-            }
-            Returns: unknown
-          }
-      http_get:
-        | {
-            Args: {
-              uri: string
-            }
-            Returns: unknown
-          }
-        | {
-            Args: {
-              uri: string
-              data: Json
-            }
-            Returns: unknown
-          }
-      http_head: {
-        Args: {
-          uri: string
-        }
-        Returns: unknown
-      }
-      http_header: {
-        Args: {
-          field: string
-          value: string
-        }
-        Returns: Database["public"]["CompositeTypes"]["http_header"]
-      }
-      http_list_curlopt: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          curlopt: string
-          value: string
-        }[]
-      }
-      http_patch: {
-        Args: {
-          uri: string
-          content: string
-          content_type: string
-        }
-        Returns: unknown
-      }
-      http_post:
-        | {
-            Args: {
-              uri: string
-              content: string
-              content_type: string
-            }
-            Returns: unknown
-          }
-        | {
-            Args: {
-              uri: string
-              data: Json
-            }
-            Returns: unknown
-          }
-      http_put: {
-        Args: {
-          uri: string
-          content: string
-          content_type: string
-        }
-        Returns: unknown
-      }
-      http_reset_curlopt: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      http_set_curlopt: {
-        Args: {
-          curlopt: string
-          value: string
-        }
-        Returns: boolean
-      }
       is_admin: {
         Args: {
           user_id: string
         }
         Returns: boolean
       }
-      text_to_bytea: {
-        Args: {
-          data: string
-        }
-        Returns: string
-      }
-      update_investor_pitch_email_setting: {
-        Args: {
-          auto_analyze_value: boolean
-          record_id: string
-        }
-        Returns: boolean
-      }
-      urlencode:
-        | {
-            Args: {
-              data: Json
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              string: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              string: string
-            }
-            Returns: string
-          }
     }
     Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
-      http_header: {
-        field: string | null
-        value: string | null
-      }
-      http_request: {
-        method: unknown | null
-        uri: string | null
-        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
-        content_type: string | null
-        content: string | null
-      }
-      http_response: {
-        status: number | null
-        content_type: string | null
-        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
-        content: string | null
-      }
+      [_ in never]: never
     }
   }
 }

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -11,8 +12,6 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, metadata?: Record<string, string>) => Promise<boolean>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<boolean>;
-  updatePassword: (newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -156,61 +155,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetPassword = async (email: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Password Reset Email Sent",
-        description: "Check your email for the password reset link.",
-      });
-      
-      return true;
-    } catch (error: any) {
-      toast({
-        title: "Password reset failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updatePassword = async (newPassword: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Password Updated",
-        description: "Your password has been successfully updated.",
-      });
-      
-      navigate('/');
-      return true;
-    } catch (error: any) {
-      toast({
-        title: "Password update failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -220,8 +164,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithEmail,
         signUpWithEmail,
         signOut,
-        resetPassword,
-        updatePassword,
       }}
     >
       {children}

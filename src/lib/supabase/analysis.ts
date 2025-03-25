@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { parsePdfFromBlob } from '@/lib/pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -327,77 +328,5 @@ export async function autoAnalyzePublicReport(reportId: string) {
   } catch (error) {
     console.error('Error in autoAnalyzePublicReport:', error);
     throw error;
-  }
-}
-
-export async function autoAnalyzeEmailSubmission(submissionId: string) {
-  try {
-    console.log('Checking if email submission should be auto-analyzed:', submissionId);
-    
-    // Validate UUID format before sending
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!submissionId || !uuidRegex.test(submissionId)) {
-      const errorMessage = `Invalid submission ID format: ${submissionId}`;
-      console.error(errorMessage);
-      toast({
-        title: "Invalid Submission ID",
-        description: "The submission ID format is invalid.",
-        variant: "destructive"
-      });
-      throw new Error(errorMessage);
-    }
-    
-    // Call the auto-analyze-email-submission edge function directly
-    const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission', {
-      body: { submissionId }
-    });
-    
-    if (error) {
-      console.error('Error invoking auto-analyze-email-submission function:', error);
-      toast({
-        title: "Analysis Check Failed",
-        description: `Could not check auto-analyze status: ${error.message}`,
-        variant: "destructive"
-      });
-      throw error;
-    }
-    
-    if (!data || data.error) {
-      const errorMessage = data?.error || "Unknown error occurred during auto-analyze check";
-      console.error('API returned error:', errorMessage);
-      
-      // Show a more user-friendly toast message based on the error
-      if (errorMessage.includes('Failed to download attachment')) {
-        toast({
-          title: "Attachment Error",
-          description: "The email attachment could not be processed. It may be missing or corrupted.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Analysis Check Failed",
-          description: errorMessage,
-          variant: "destructive"
-        });
-      }
-      
-      throw new Error(errorMessage);
-    }
-    
-    console.log('Auto-analyze check result:', data);
-    
-    if (data.autoAnalyze) {
-      toast({
-        id: "auto-analyze-success",
-        title: "Auto-analysis started",
-        description: "Your pitch deck is being automatically analyzed",
-      });
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error checking auto-analyze status:', error);
-    // Don't throw error to prevent blocking other operations
-    return { success: false, autoAnalyze: false };
   }
 }

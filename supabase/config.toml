@@ -35,6 +35,3 @@ enable_confirmations = false
 
 [functions.analyze-pdf]
 verify_jwt = true
-
-[functions.auto-analyze-email-submission]
-verify_jwt = false
