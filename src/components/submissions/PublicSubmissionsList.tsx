@@ -114,7 +114,7 @@ export function PublicSubmissionsList() {
         
         console.log("Email submissions fetched:", emailData?.length || 0);
         
-        // Fetch email pitch submissions - now with direct access
+        // Fetch email pitch submissions - no filtering on query side anymore since RLS is removed
         let emailPitchData = [];
         try {
           const { data: pitchData, error: emailPitchError } = await supabase
@@ -136,7 +136,7 @@ export function PublicSubmissionsList() {
             console.log("Email pitch submissions fetched:", pitchData?.length || 0);
             console.log("Sample email pitch submission:", pitchData?.[0]);
             
-            // Filter on client side to match current user's email
+            // Filter client-side to show only submissions matching user's email
             emailPitchData = pitchData?.filter(submission => 
               submission.sender_email === user.email
             ) || [];
@@ -271,6 +271,11 @@ export function PublicSubmissionsList() {
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         console.log("Combined submissions after deduplication:", combinedSubmissions.length);
+        
+        // Add additional debugging to see if email pitch submissions are included in the final list
+        const emailPitchCount = combinedSubmissions.filter(s => s.source === 'email_pitch').length;
+        console.log("Email pitch submissions in final combined list:", emailPitchCount);
+        
         setSubmissions(combinedSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);

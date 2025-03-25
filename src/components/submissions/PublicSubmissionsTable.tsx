@@ -90,6 +90,11 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     }
   };
 
+  // Add debugging to check submissions data
+  console.log("Rendering submissions in table:", submissions);
+  console.log("Email pitch submissions count:", 
+    submissions.filter(s => s.source === 'email_pitch').length);
+
   return (
     <div className="border rounded-md">
       <Table>
