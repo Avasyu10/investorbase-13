@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
@@ -10,8 +9,8 @@ const corsHeaders = {
 
 // Define the expected webhook payload structure
 interface MailAttachment {
-  key_0: string; // Typically the file name
-  key_1: string; // Typically the file URL or path
+  key_0: string;
+  key_1: string;
 }
 
 interface MailSender {
@@ -42,17 +41,11 @@ serve(async (req) => {
   const authHeader = req.headers.get('authorization');
   const expectedAuth = 'c3VwYWJhc2VmdW5jdGlvbnM6c3VwYWJhc2VmdW5jdGlvbnM=';
   
-  console.log("Auth header received:", authHeader ? "Present" : "Missing");
-  
   if (!authHeader || authHeader !== `Bearer ${expectedAuth}`) {
-    console.error("Authorization failed. Expected: Bearer " + expectedAuth);
-    console.error("Received:", authHeader);
-    
     return new Response(
       JSON.stringify({ 
         error: "Unauthorized", 
-        message: "Missing or invalid authorization header",
-        note: "Please include 'Authorization: Bearer c3VwYWJhc2VmdW5jdGlvbnM6c3VwYWJhc2VmdW5jdGlvbnM=' in your request headers"
+        message: "Missing or invalid authorization header"
       }),
       {
         status: 401,
@@ -86,13 +79,26 @@ serve(async (req) => {
     let payload: WebhookPayload;
     
     try {
-      // Parse the webhook payload
-      payload = JSON.parse(rawBody);
+      // Attempt to parse the payload
+      // Remove any Handlebars-like template markers
+      const cleanedBody = rawBody
+        .replace(/{{#each\s*\w+}}/g, '')
+        .replace(/{{\/each}}/g, '')
+        .replace(/{{#unless\s*@last}},{{\/unless}}/g, '')
+        .replace(/{{(\w+)}}/g, '"$1"');
+      
+      console.log("Cleaned body:", cleanedBody);
+      
+      payload = JSON.parse(cleanedBody);
       console.log("Parsed webhook payload:", payload);
     } catch (parseError) {
       console.error("Error parsing JSON:", parseError);
       return new Response(
-        JSON.stringify({ error: "Invalid JSON payload", details: parseError.message }),
+        JSON.stringify({ 
+          error: "Invalid JSON payload", 
+          details: parseError.message,
+          rawBody: rawBody 
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -115,8 +121,6 @@ serve(async (req) => {
     const sender = payload.mail_sender[0];
     const fromEmail = sender.address;
 
-    const receivedAt = payload.received_at ? payload.received_at.replace(' ', 'T') + 'Z' : new Date().toISOString();
-    
     // Prepare attachment data if available
     let attachmentUrl = null;
     let hasAttachments = false;
