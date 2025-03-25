@@ -1,12 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-
-// CORS headers for browser requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "./cors.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -33,22 +28,45 @@ serve(async (req) => {
       throw new Error('Report ID is required');
     }
     
-    console.log(`Processing email submission report: ${reportId}`);
+    console.log(`Processing email/pitch submission report: ${reportId}`);
     
-    // First check if it's an email or email pitch submission
-    const { data: emailSubmission } = await supabase
+    // First, check if this is from email submissions
+    const { data: emailSubmission, error: emailError } = await supabase
       .from('email_submissions')
-      .select('attachment_url, from_email')
+      .select('attachment_url')
       .eq('report_id', reportId)
       .maybeSingle();
       
-    const { data: emailPitchSubmission } = await supabase
-      .from('email_pitch_submissions')
-      .select('attachment_url, sender_email')
-      .eq('report_id', reportId)
-      .maybeSingle();
+    if (emailError) {
+      console.error('Error fetching email submission:', emailError);
+    }
+
+    // If not from email submissions, check if it's from email pitch submissions
+    let attachmentUrl = null;
+    let storageSource = 'email_attachments';
+    
+    if (emailSubmission && emailSubmission.attachment_url) {
+      attachmentUrl = emailSubmission.attachment_url;
+      console.log(`Found email submission with attachment: ${attachmentUrl}`);
+    } else {
+      // Check for email pitch submission
+      const { data: pitchSubmission, error: pitchError } = await supabase
+        .from('email_pitch_submissions')
+        .select('attachment_url')
+        .eq('report_id', reportId)
+        .maybeSingle();
+        
+      if (pitchError) {
+        console.error('Error fetching pitch submission:', pitchError);
+      }
       
-    // Get report data
+      if (pitchSubmission && pitchSubmission.attachment_url) {
+        attachmentUrl = pitchSubmission.attachment_url;
+        console.log(`Found email pitch submission with attachment: ${attachmentUrl}`);
+      }
+    }
+    
+    // Get report data as a fallback
     const { data: report, error: reportError } = await supabase
       .from('reports')
       .select('*')
@@ -59,52 +77,50 @@ serve(async (req) => {
       throw new Error(`Report not found: ${reportError.message}`);
     }
     
-    // Determine PDF path
-    let pdfPath = '';
-    
-    if (emailSubmission && emailSubmission.attachment_url) {
-      pdfPath = emailSubmission.attachment_url;
-      console.log(`Using email submission attachment: ${pdfPath}`);
-    } else if (emailPitchSubmission && emailPitchSubmission.attachment_url) {
-      pdfPath = emailPitchSubmission.attachment_url;
-      console.log(`Using email pitch submission attachment: ${pdfPath}`);
-    } else {
-      throw new Error('No attachment found for this email submission');
-    }
-    
     // Download the PDF from storage
     let fileData;
-    try {
-      const { data, error } = await supabase.storage
-        .from('email_attachments')
-        .download(pdfPath);
-        
-      if (error) {
-        throw error;
-      }
-      
-      fileData = data;
-      console.log('Successfully downloaded PDF from email_attachments bucket');
-    } catch (downloadError) {
-      console.error('Error downloading PDF from primary path:', downloadError);
-      
-      // Try to download using just the filename (without folders)
-      const filename = pdfPath.split('/').pop() || '';
-      
+    
+    // Try to get the file from email attachments first
+    if (attachmentUrl) {
       try {
+        console.log(`Attempting to download from ${storageSource}/${attachmentUrl}`);
         const { data, error } = await supabase.storage
-          .from('email_attachments')
-          .download(filename);
+          .from(storageSource)
+          .download(attachmentUrl);
+          
+        if (error) {
+          console.error(`Error downloading from ${storageSource}:`, error);
+        } else {
+          fileData = data;
+          console.log(`Successfully downloaded PDF from ${storageSource}`);
+        }
+      } catch (downloadError) {
+        console.error(`Error downloading from ${storageSource}:`, downloadError);
+      }
+    }
+    
+    // If we couldn't get the file from email attachments or if there was no attachment, 
+    // fall back to the report PDF
+    if (!fileData && report.pdf_url) {
+      try {
+        console.log(`Falling back to report PDF: ${report.pdf_url}`);
+        const { data, error } = await supabase.storage
+          .from('report_pdfs')
+          .download(report.pdf_url);
           
         if (error) {
           throw error;
         }
         
         fileData = data;
-        console.log('Successfully downloaded PDF using filename only');
-      } catch (alternateError) {
-        throw new Error(`Failed to download PDF: ${alternateError}`);
+        console.log('Successfully downloaded PDF from report_pdfs');
+      } catch (reportDownloadError) {
+        throw new Error(`Failed to download PDF: ${reportDownloadError}`);
       }
+    }
+    
+    if (!fileData) {
+      throw new Error('No PDF found for this submission');
     }
     
     // Convert to base64
@@ -119,7 +135,6 @@ serve(async (req) => {
     console.log('Successfully converted PDF to base64');
     
     // Now forward the PDF to the main analyze-pdf function to process
-    // We'll call the analyze-pdf edge function to avoid duplicating code
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
       method: 'POST',
       headers: {

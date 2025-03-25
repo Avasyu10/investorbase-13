@@ -39,6 +39,7 @@ serve(async (req) => {
       
     if (submissionError) {
       console.error('Error fetching public submission:', submissionError);
+      throw submissionError;
     }
     
     // Get report data
