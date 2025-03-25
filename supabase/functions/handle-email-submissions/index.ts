@@ -55,24 +55,78 @@ serve(async (req) => {
       );
     }
     
-    // Log the raw request for debugging
+    // Parse the webhook data
     const reqText = await req.text();
     console.log("Raw webhook payload:", reqText);
     
-    // Parse the webhook payload
+    // Check if we're dealing with a URL-encoded format or JSON
     let payload: WebhookPayload;
-    try {
-      payload = JSON.parse(reqText);
-      console.log("Parsed webhook payload:", JSON.stringify(payload));
-    } catch (parseError) {
-      console.error("Error parsing JSON payload:", parseError);
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON payload", details: parseError.message, raw: reqText }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    
+    if (reqText.startsWith('?') || reqText.includes('&')) {
+      // Handle URL-encoded format
+      console.log("Detected URL-encoded format");
+      
+      // Parse URL-encoded data
+      const params = new URLSearchParams(reqText.startsWith('?') ? reqText.substring(1) : reqText);
+      
+      // Extract basic fields
+      const id = params.get('id') || '';
+      const received_at = params.get('received_at') || '';
+      const processed_at = params.get('processed_at') || '';
+      const company_name = params.get('company_name') || '';
+      
+      // Extract mail_attachment data
+      const mail_attachment: MailAttachment[] = [];
+      let index = 0;
+      while (params.has(`mail_attachment[${index}][key_0]`)) {
+        mail_attachment.push({
+          key_0: params.get(`mail_attachment[${index}][key_0]`) || '',
+          key_1: params.get(`mail_attachment[${index}][key_1]`) || ''
+        });
+        index++;
+      }
+      
+      // Extract mail_sender data
+      const mail_sender: MailSender[] = [];
+      index = 0;
+      while (params.has(`mail_sender[${index}][name]`)) {
+        mail_sender.push({
+          name: params.get(`mail_sender[${index}][name]`) || '',
+          address: params.get(`mail_sender[${index}][address]`) || ''
+        });
+        index++;
+      }
+      
+      // Construct the payload object
+      payload = {
+        id,
+        received_at,
+        processed_at,
+        company_name,
+        mail_attachment: mail_attachment.length > 0 ? mail_attachment : undefined,
+        mail_sender
+      };
+      
+      console.log("Parsed URL-encoded payload:", JSON.stringify(payload, null, 2));
+    } else {
+      // Try to parse as JSON if not URL-encoded
+      try {
+        payload = JSON.parse(reqText);
+        console.log("Parsed JSON payload:", JSON.stringify(payload, null, 2));
+      } catch (parseError) {
+        console.error("Error parsing payload:", parseError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Invalid payload format", 
+            details: parseError.message, 
+            raw: reqText 
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     // Validate required fields
