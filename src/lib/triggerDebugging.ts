@@ -148,13 +148,13 @@ export async function createTestSubmission() {
   try {
     console.log("Creating test submission using direct API call...");
     
-    // Create test data with better attachment URL
+    // Create test data with better attachment URL - ensure it has a valid attachment
     const testData = {
       from_email: 'test@example.com',
       to_email: 'investor@example.com',
       subject: 'Test Submission for Debugging',
       email_body: 'This is a test submission for debugging the trigger.',
-      attachment_url: '6737d05825e11f73f6d5a289_Ndc8GMUtaMNHOXDfqftyW1Jb7b5h2JE_ThY_Joc5Cf8.pdf',
+      attachment_url: 'test-attachment.pdf',
       has_attachments: true,
       action: 'create' // Add action parameter to identify this as a create operation
     };

@@ -79,8 +79,58 @@ serve(async (req) => {
         throw new Error("from_email and to_email are required");
       }
       
-      // Create a submission object without the action field
-      const { action: _, ...submissionData } = requestData;
+      // Check if we need to verify the attachment URL exists in storage
+      let attachmentUrl = requestData.attachment_url;
+      let hasAttachment = requestData.has_attachments || !!attachmentUrl;
+      
+      // If no attachment URL is provided, use a default test value
+      if (!attachmentUrl && hasAttachment) {
+        attachmentUrl = "test-attachment.pdf";
+        console.log(`Using default test attachment URL: ${attachmentUrl}`);
+        
+        // Check if the test attachment already exists
+        try {
+          const { data: fileList, error: listError } = await supabase.storage
+            .from("email_attachments")
+            .list();
+            
+          if (listError) {
+            console.warn("Could not check for existing test attachment:", listError);
+          } else {
+            const fileExists = fileList.some(f => f.name === attachmentUrl);
+            if (!fileExists) {
+              console.log("Test attachment doesn't exist. Creating an empty placeholder...");
+              // Create an empty file as a placeholder
+              const emptyFile = new Uint8Array([80, 68, 70]); // "PDF" in ASCII
+              const { error: uploadError } = await supabase.storage
+                .from("email_attachments")
+                .upload(attachmentUrl, emptyFile);
+                
+              if (uploadError) {
+                console.warn("Failed to create placeholder attachment:", uploadError);
+              } else {
+                console.log("Created placeholder attachment file");
+              }
+            } else {
+              console.log("Test attachment already exists in storage");
+            }
+          }
+        } catch (storageError) {
+          console.warn("Storage operation failed:", storageError);
+        }
+      }
+      
+      // Create a submission object with verified attachment data
+      const submissionData = {
+        ...requestData,
+        attachment_url: attachmentUrl,
+        has_attachments: hasAttachment
+      };
+      
+      // Remove the action field as it's not part of our database schema
+      delete submissionData.action;
+      
+      console.log("Creating test submission with data:", submissionData);
 
       // Insert the test submission using service role (bypasses RLS)
       const { data: submission, error: insertError } = await supabase
