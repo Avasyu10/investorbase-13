@@ -33,7 +33,27 @@ interface PublicSubmissionsTableProps {
 }
 
 export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmissionsTableProps) {
-  if (!submissions || submissions.length === 0) {
+  // Add logging to see what we receive
+  console.log("PublicSubmissionsTable - All submissions received:", submissions.map(s => ({
+    id: s.id,
+    title: s.title,
+    source: s.source,
+    created_at: s.created_at
+  })));
+  
+  // Check if each type exists
+  const emailCount = submissions.filter(s => s.source === 'email').length;
+  const pitchCount = submissions.filter(s => s.source === 'email_pitch').length;
+  const formCount = submissions.filter(s => s.source === 'public_form').length;
+  
+  console.log(`PublicSubmissionsTable - Submission counts by type: email=${emailCount}, email_pitch=${pitchCount}, public_form=${formCount}`);
+  
+  // Create a copy of submissions to ensure nothing is lost
+  const submissionsToRender = [...submissions];
+  
+  console.log("PublicSubmissionsTable - Submissions to render:", submissionsToRender.length);
+  
+  if (!submissionsToRender || submissionsToRender.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No submissions found</p>
@@ -90,23 +110,21 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     }
   };
 
-  // Add more debugging to understand what's being rendered
-  console.log("Rendering submissions in table:", submissions);
-  console.log("Email pitch submissions count:", 
-    submissions.filter(s => s.source === 'email_pitch').length);
+  // Add more logging right before rendering
+  console.log("PublicSubmissionsTable - Final render - Submissions count:", submissionsToRender.length);
+  console.log("PublicSubmissionsTable - Email pitch submissions to render:", 
+    submissionsToRender.filter(s => s.source === 'email_pitch').length);
   
-  // Log each email pitch submission to understand what's going on
-  submissions.filter(s => s.source === 'email_pitch').forEach((submission, index) => {
-    console.log(`Email pitch ${index}:`, {
+  // Log each email pitch submission to verify they're properly formatted
+  submissionsToRender.filter(s => s.source === 'email_pitch').forEach((submission, index) => {
+    console.log(`PublicSubmissionsTable - Email pitch ${index} for render:`, {
       id: submission.id,
       title: submission.title,
       source: submission.source,
-      created_at: submission.created_at
+      created_at: submission.created_at,
+      report_id: submission.report_id
     });
   });
-
-  // Log all submissions that will be rendered to ensure we don't filter anything out
-  console.log("All submissions being rendered:", submissions.map(s => ({ id: s.id, source: s.source, title: s.title })));
 
   return (
     <div className="border rounded-md">
@@ -123,49 +141,52 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
           </TableRow>
         </TableHeader>
         <TableBody>
-          {submissions.map((submission) => (
-            <TableRow key={submission.id}>
-              <TableCell>
-                {getSourceBadge(submission.source)}
-              </TableCell>
-              <TableCell className="font-medium">
-                {truncateText(submission.title, 30)}
-              </TableCell>
-              <TableCell>
-                {submission.industry || "—"}
-              </TableCell>
-              <TableCell>
-                {submission.company_stage || "—"}
-              </TableCell>
-              <TableCell>
-                {submission.website_url ? (
-                  <a 
-                    href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline flex items-center gap-1"
+          {submissionsToRender.map((submission) => {
+            console.log(`Rendering row for submission: ${submission.id}, source: ${submission.source}, title: ${submission.title}`);
+            return (
+              <TableRow key={submission.id}>
+                <TableCell>
+                  {getSourceBadge(submission.source)}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {truncateText(submission.title, 30)}
+                </TableCell>
+                <TableCell>
+                  {submission.industry || "—"}
+                </TableCell>
+                <TableCell>
+                  {submission.company_stage || "—"}
+                </TableCell>
+                <TableCell>
+                  {submission.website_url ? (
+                    <a 
+                      href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline flex items-center gap-1"
+                    >
+                      {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell>
+                  {formatDate(submission.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    className="bg-gold text-gold-foreground hover:bg-gold/90"
+                    size="sm"
+                    onClick={() => onAnalyze(submission)}
                   >
-                    {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell>
-                {formatDate(submission.created_at)}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  className="bg-gold text-gold-foreground hover:bg-gold/90"
-                  size="sm"
-                  onClick={() => onAnalyze(submission)}
-                >
-                  Analyze
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+                    Analyze
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
