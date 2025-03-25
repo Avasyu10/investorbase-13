@@ -34,21 +34,22 @@ serve(async (req) => {
       const previewLength = Math.min(200, rawText.length);
       console.log(`Raw request body preview: ${rawText.substring(0, previewLength)}${rawText.length > previewLength ? '...' : ''}`);
       
-      // Try multiple parsing approaches
+      // Enhanced JSON parsing with multiple fallback strategies
       try {
-        // First, try standard JSON parsing
+        // First attempt: Standard JSON parsing
         requestData = JSON.parse(rawText);
         console.log("Successfully parsed JSON using standard JSON.parse");
       } catch (jsonError) {
         console.error("Failed to parse as JSON. Error:", jsonError.message);
         
-        // Clean up the text before parsing
+        // Second attempt: Clean the text of problematic characters
         try {
-          // Remove any characters that could break JSON parsing
+          // More aggressive cleaning of problematic characters
           const cleanedText = rawText
             .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, "") // Remove control characters
             .replace(/\\[^"\\\/bfnrtu]/g, "\\\\") // Escape backslashes properly
             .replace(/\(/g, "\\(").replace(/\)/g, "\\)") // Escape parentheses
+            .replace(/'/g, "\"") // Replace single quotes with double quotes
             .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
             .replace(/\s+/g, " ")          // Normalize spaces
             .trim();                       // Trim whitespace
@@ -63,47 +64,72 @@ serve(async (req) => {
             } catch (cleaningError) {
               console.error("Failed to parse cleaned text:", cleaningError.message);
               
-              // If still failing, try a more aggressive approach
+              // Third attempt: Even more aggressive reformatting
               const strictlyFormatted = cleanedText
                 .replace(/([{,])\s*([^"\s]+)\s*:/g, '$1"$2":') // Ensure property names are quoted
-                .replace(/:\s*'([^']*)'\s*([,}])/g, ':"$1"$2'); // Convert single quotes to double quotes
+                .replace(/:\s*'([^']*)'\s*([,}])/g, ':"$1"$2')  // Convert single quotes to double quotes
+                .replace(/([{,])\s*"([^"]+)"\s*:\s*([^",{}\s][^,{}]*[^,{}\s])\s*([,}])/g, '$1"$2":"$3"$4'); // Quote unquoted values
                 
               try {
                 requestData = JSON.parse(strictlyFormatted);
                 console.log("Successfully parsed JSON after strict formatting");
               } catch (formattingError) {
                 console.error("Failed to parse strictly formatted text:", formattingError.message);
+                
+                // Fourth attempt: Extract key fields with regex
+                console.log("Falling back to regex extraction");
+                requestData = {};
+                
+                // Try to extract submissionId from raw string using more flexible patterns
+                const idMatch = rawText.match(/["']submissionId["']\s*[:=]\s*["']([^"']+)["']/i);
+                if (idMatch && idMatch[1]) {
+                  submissionId = idMatch[1];
+                  console.log(`Extracted submission ID using regex: ${submissionId}`);
+                  requestData.submissionId = submissionId;
+                } else {
+                  // Try alternate field name pattern
+                  const altIdMatch = rawText.match(/["']submission_id["']\s*[:=]\s*["']([^"']+)["']/i);
+                  if (altIdMatch && altIdMatch[1]) {
+                    submissionId = altIdMatch[1];
+                    console.log(`Extracted submission_id using regex: ${submissionId}`);
+                    requestData.submission_id = submissionId;
+                  } else {
+                    // Last resort - try to extract any UUID in the text
+                    const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+                    const uuidMatch = rawText.match(uuidPattern);
+                    if (uuidMatch) {
+                      submissionId = uuidMatch[0];
+                      console.log(`Extracted UUID using regex: ${submissionId}`);
+                      requestData.submissionId = submissionId;
+                    } else {
+                      throw new Error(`Could not parse request body or extract ID: ${rawText}`);
+                    }
+                  }
+                }
               }
             }
-          }
-          
-          // If we still don't have valid data, try regex as fallback
-          if (!requestData) {
-            console.log("Falling back to regex extraction");
+          } else {
+            // If it doesn't look like JSON at all, use regex directly
+            console.log("Input doesn't look like JSON, using regex directly");
             requestData = {};
             
-            // Try to extract submissionId from raw string if it's not valid JSON
-            const idMatch = rawText.match(/"submissionId"\s*:\s*"([^"]+)"/i);
+            // Extract using regex with more flexible patterns
+            const idMatch = rawText.match(/["']?submissionId["']?\s*[:=]\s*["']?([^"',}\s]+)["']?/i);
             if (idMatch && idMatch[1]) {
               submissionId = idMatch[1];
-              console.log(`Extracted submission ID using regex: ${submissionId}`);
               requestData.submissionId = submissionId;
             } else {
-              // Try alternate field name pattern
-              const altIdMatch = rawText.match(/"submission_id"\s*:\s*"([^"]+)"/i);
+              const altIdMatch = rawText.match(/["']?submission_id["']?\s*[:=]\s*["']?([^"',}\s]+)["']?/i);
               if (altIdMatch && altIdMatch[1]) {
                 submissionId = altIdMatch[1];
-                console.log(`Extracted submission_id using regex: ${submissionId}`);
                 requestData.submission_id = submissionId;
               } else {
+                // Try to extract any UUID in the text
                 const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
                 const uuidMatch = rawText.match(uuidPattern);
                 if (uuidMatch) {
                   submissionId = uuidMatch[0];
-                  console.log(`Extracted UUID using regex: ${submissionId}`);
                   requestData.submissionId = submissionId;
-                } else {
-                  throw new Error(`Could not parse request body or extract ID: ${rawText}`);
                 }
               }
             }
@@ -196,18 +222,18 @@ serve(async (req) => {
 
     // Try to download the attachment from storage with improved timeout handling
     try {
-      // Create an AbortController for timeout handling
+      // Create an AbortController for timeout handling - increased to 30 seconds
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        console.error(`Download timed out after 15 seconds for ${emailSubmission.attachment_url}`);
-      }, 15000);
+        console.error(`Download timed out after 30 seconds for ${emailSubmission.attachment_url}`);
+      }, 30000); // Increased timeout to 30 seconds
       
-      // Start the download with the abort signal
-      // Note: We're using a workaround here since storage.download() doesn't directly support AbortController
-      // Try fetching the public URL instead
+      // Start the download with multiple fallback methods
       let fileData;
       try {
+        // First try the public URL approach
+        console.log("Attempting to download via public URL");
         const { data: { publicUrl }, error: urlError } = await supabase.storage
           .from("email_attachments")
           .getPublicUrl(emailSubmission.attachment_url);
@@ -217,28 +243,69 @@ serve(async (req) => {
           throw urlError;
         }
         
+        console.log(`Using public URL: ${publicUrl}`);
+        
         // Fetch the file using the public URL
-        const response = await fetch(publicUrl, { signal: controller.signal });
+        const response = await fetch(publicUrl, { 
+          signal: controller.signal,
+          headers: {
+            "Cache-Control": "no-cache", // Try to prevent caching issues
+          }
+        });
+        
         if (!response.ok) {
           console.error(`Failed to download attachment from public URL. Status: ${response.status}`);
           throw new Error(`HTTP error: ${response.status}`);
         }
         
         fileData = await response.blob();
+        console.log(`Successfully downloaded attachment via public URL (${fileData.size} bytes)`);
       } catch (publicUrlError) {
         console.error("Failed with public URL, trying direct download:", publicUrlError);
         
-        // If public URL fails, fall back to direct download
-        const { data, error: downloadError } = await supabase.storage
-          .from("email_attachments")
-          .download(emailSubmission.attachment_url);
+        try {
+          // Next try the standard download method
+          const { data, error: downloadError } = await supabase.storage
+            .from("email_attachments")
+            .download(emailSubmission.attachment_url);
+            
+          if (downloadError) {
+            console.error("Failed to download attachment with standard method:", downloadError);
+            throw downloadError;
+          }
           
-        if (downloadError) {
-          console.error("Failed to download attachment:", downloadError);
-          throw downloadError;
+          fileData = data;
+          console.log(`Successfully downloaded attachment with standard method (${fileData.size} bytes)`);
+        } catch (downloadError) {
+          console.error("Standard download failed, trying signed URL:", downloadError);
+          
+          // Last attempt using signed URLs
+          const { data: { signedUrl }, error: signedUrlError } = await supabase.storage
+            .from("email_attachments")
+            .createSignedUrl(emailSubmission.attachment_url, 60); // 1 minute expiry
+            
+          if (signedUrlError) {
+            console.error("Failed to create signed URL:", signedUrlError);
+            throw signedUrlError;
+          }
+          
+          console.log(`Using signed URL for download`);
+          
+          const signedResponse = await fetch(signedUrl, { 
+            signal: controller.signal,
+            headers: {
+              "Cache-Control": "no-cache"
+            }
+          });
+          
+          if (!signedResponse.ok) {
+            console.error(`Failed to download from signed URL. Status: ${signedResponse.status}`);
+            throw new Error(`HTTP error from signed URL: ${signedResponse.status}`);
+          }
+          
+          fileData = await signedResponse.blob();
+          console.log(`Successfully downloaded attachment via signed URL (${fileData.size} bytes)`);
         }
-        
-        fileData = data;
       }
       
       // Clear the timeout since we got a response
@@ -328,8 +395,8 @@ serve(async (req) => {
           const analyzeController = new AbortController();
           const analyzeTimeout = setTimeout(() => {
             analyzeController.abort();
-            console.error(`Analysis request timed out after 15 seconds for report ${report.id}`);
-          }, 15000);
+            console.error(`Analysis request timed out after 30 seconds for report ${report.id}`);
+          }, 30000); // Increased to 30 seconds
           
           const analyzeResponse = await supabase.functions.invoke("analyze-pdf", {
             body: { reportId: report.id }
@@ -365,7 +432,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             success: false,
-            error: `Download timed out after 15 seconds. The attachment may be too large or unavailable.`
+            error: `Download timed out after 30 seconds. The attachment may be too large or unavailable.`
           }),
           {
             status: 408, // Request Timeout
