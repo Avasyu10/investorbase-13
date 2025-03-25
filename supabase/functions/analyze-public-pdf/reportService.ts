@@ -52,10 +52,17 @@ export async function getReportData(reportId: string, authHeader: string): Promi
     
     console.log(`Will attempt to download PDF from bucket: ${storageBucket}, path: ${storagePath}`);
     
-    // Download the email attachment
+    // Download the email attachment with extra logging and longer timeout
+    const downloadOptions = {
+      fileOptions: {
+        cacheControl: '3600',
+      },
+      signal: AbortSignal.timeout(60000) // 60 second timeout
+    };
+    
     const { data: fileData, error: fileError } = await serviceClient.storage
       .from(storageBucket)
-      .download(storagePath);
+      .download(storagePath, downloadOptions);
       
     if (fileError) {
       console.error(`Error downloading from ${storageBucket}/${storagePath}:`, fileError);
@@ -143,9 +150,16 @@ export async function getReportData(reportId: string, authHeader: string): Promi
   async function tryDownloadFromBucket(bucket: string, path: string) {
     console.log(`Attempting to download from bucket: ${bucket}, path: ${path}`);
     try {
+      const downloadOptions = {
+        fileOptions: {
+          cacheControl: '3600',
+        },
+        signal: AbortSignal.timeout(60000) // 60 second timeout
+      };
+      
       const { data, error } = await serviceClient.storage
         .from(bucket)
-        .download(path);
+        .download(path, downloadOptions);
         
       if (error) {
         console.error(`Error downloading from ${bucket}/${path}:`, error);
@@ -181,7 +195,7 @@ export async function getReportData(reportId: string, authHeader: string): Promi
     console.log("Primary download failed, trying alternatives...");
     
     // List of fallback buckets to try
-    const fallbackBuckets = ['public_uploads', 'report_pdfs'];
+    const fallbackBuckets = ['public_uploads', 'report_pdfs', 'email_attachments'];
     
     // Try alternative paths - removing folders or adding 'public/' prefix
     const alternativePaths = [

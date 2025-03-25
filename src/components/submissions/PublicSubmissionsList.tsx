@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,14 +189,16 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Combine all types of submissions, remove any potential duplicates, and sort by date
-        // Use a Map to ensure we don't have duplicates based on report_id
+        // Use a Map with a composite key to ensure we don't have duplicates based on multiple criteria
         const submissionsMap = new Map();
         
+        // Process all submissions and deduplicate based on multiple criteria
         [...transformedReportData, ...transformedFormData, ...transformedEmailData].forEach(submission => {
-          // If we have a report_id, use that as the key to prevent duplicates
-          // Otherwise use the submission id
-          const key = submission.report_id || submission.id;
+          // Create a composite key based on available identifiers
+          // For email submissions, use report_id, title, and pdf_url for more robust deduplication
+          const key = submission.source === "email" 
+            ? `${submission.report_id || ''}|${submission.title}|${submission.pdf_url || ''}`
+            : submission.report_id || submission.id;
           
           // Only add if not already in map or if the entry is newer
           if (!submissionsMap.has(key) || 
@@ -276,7 +279,9 @@ export function PublicSubmissionsList() {
            errorMessage.includes("Failed to fetch") ||
            errorMessage.includes("Failed to send") ||
            errorMessage.includes("network") ||
-           errorMessage.includes("Connection")) && 
+           errorMessage.includes("Connection") ||
+           errorMessage.includes("CORS policy") ||
+           errorMessage.includes("blocked by CORS")) && 
           retryCount < 2) {
         
         setRetryCount(prevCount => prevCount + 1);

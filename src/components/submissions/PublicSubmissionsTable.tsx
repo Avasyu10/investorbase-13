@@ -120,6 +120,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
                   className="bg-gold text-gold-foreground hover:bg-gold/90"
                   size="sm"
                   onClick={() => onAnalyze(submission)}
+                  disabled={!submission.report_id}
                 >
                   Analyze
                 </Button>

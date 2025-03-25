@@ -44,7 +44,7 @@ serve(async (req) => {
     // Check if the report already has an associated company (to prevent duplicate analysis)
     const { data: existingReport, error: checkError } = await supabase
       .from('reports')
-      .select('company_id, analysis_status')
+      .select('company_id, analysis_status, pdf_url')
       .eq('id', reportId)
       .maybeSingle();
       
@@ -77,19 +77,35 @@ serve(async (req) => {
       );
     }
     
+    // Check if this is from an email submission
+    const { data: emailSubmission, error: emailError } = await supabase
+      .from('email_submissions')
+      .select('id')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
+    const isEmailSubmission = !emailError && emailSubmission;
+    
     // Update the report status to indicate analysis is starting
     await supabase
       .from('reports')
-      .update({ analysis_status: 'analyzing' })
+      .update({ 
+        analysis_status: 'analyzing',
+        source: isEmailSubmission ? 'email' : 'public_url'  // Set the correct source
+      })
       .eq('id', reportId);
     
-    // Call the analyze-pdf edge function, which will handle the actual PDF parsing and analysis
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+    // Call the appropriate analyze function based on the source
+    const endpoint = isEmailSubmission ? 'analyze-pdf' : 'analyze-public-pdf';
+    console.log(`Using ${endpoint} for report ${reportId} (email submission: ${isEmailSubmission})`);
+    
+    // Call the analyze edge function, which will handle the actual PDF parsing and analysis
+    const { data, error } = await supabase.functions.invoke(endpoint, {
       body: { reportId }
     });
     
     if (error) {
-      console.error('Error invoking analyze-pdf function:', error);
+      console.error(`Error invoking ${endpoint} function:`, error);
       
       // Update report status to failed
       await supabase
