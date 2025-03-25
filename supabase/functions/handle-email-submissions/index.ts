@@ -63,7 +63,7 @@ serve(async (req) => {
     let payload: WebhookPayload;
     try {
       payload = JSON.parse(reqText);
-      console.log("Parsed webhook payload:", payload);
+      console.log("Parsed webhook payload:", JSON.stringify(payload));
     } catch (parseError) {
       console.error("Error parsing JSON payload:", parseError);
       return new Response(
@@ -105,24 +105,28 @@ serve(async (req) => {
     
     if (payload.mail_attachment && payload.mail_attachment.length > 0) {
       // Extract both file name and download URL
-      attachmentName = payload.mail_attachment[0].key_0;
-      attachmentUrl = payload.mail_attachment[0].key_1;
+      attachmentName = payload.mail_attachment[0].key_0 || null;
+      attachmentUrl = payload.mail_attachment[0].key_1 || null;
       hasAttachments = true;
       console.log(`Found attachment: ${attachmentName}, URL: ${attachmentUrl}`);
     }
 
-    // Prepare the data for insertion - use stringified values for any complex objects
+    // Create a simple string for the email body - avoid potential JSON parsing issues
+    const emailBody = `Email from ${fromEmail} received at ${payload.received_at || new Date().toISOString()}`;
+    
+    // Prepare the data for insertion - ensure all values are properly formatted and JSON safe
     const insertData = {
       from_email: fromEmail,
       to_email: "pitchdeck@example.com", // Replace with actual destination email
       subject: payload.company_name || "Pitch Deck Submission",
-      email_body: `Email from ${fromEmail} received at ${payload.received_at}`,
+      email_body: emailBody,
       has_attachments: hasAttachments,
-      attachment_url: attachmentUrl, // Store the download URL
+      attachment_url: attachmentUrl || null, // Ensure null if undefined
       received_at: payload.received_at || new Date().toISOString(),
     };
     
-    console.log("Inserting data:", JSON.stringify(insertData));
+    // Log the exact data structure being sent to the database
+    console.log("Inserting data:", JSON.stringify(insertData, null, 2));
 
     // Insert into email_submissions table
     const { data, error } = await supabase
