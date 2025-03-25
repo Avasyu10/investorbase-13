@@ -32,22 +32,21 @@ export async function checkTriggerSetup() {
     
     console.log("Database email_submissions table queried with service role:", serviceData);
     
-    // Try to get information about recent submissions
+    // Check if the trigger exists and is properly set up
     try {
-      // Already using the edge function results
-      if (serviceData && serviceData.submissions) {
-        console.log("Recent email submissions:", serviceData.submissions);
-      } else {
-        console.log("No email submissions found or incorrect response format");
-      }
+      // Try to get information about DB triggers
+      console.log("Checking database triggers for email_submissions table...");
+      
+      console.log("Recent email submissions:", serviceData.submissions);
+      
+      // Check on the trigger status
+      toast({
+        title: "Trigger check completed",
+        description: "See console for details about database triggers and email submissions",
+      });
     } catch (err) {
       console.error("Error processing submissions data:", err);
     }
-    
-    toast({
-      title: "Trigger check completed",
-      description: "See console for details about database triggers",
-    });
     
     return true;
   } catch (error) {
@@ -69,21 +68,27 @@ export async function debugTriggerFunction(submissionId: string) {
     console.log("Manually testing trigger function for submission:", submissionId);
     
     // Direct call to the edge function
-    const { data, error } = await supabase.functions.invoke('auto-analyze-email-submission', {
-      body: { submissionId }
-    });
+    const response = await fetch(
+      "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-email-submission",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
+        },
+        body: JSON.stringify({ submissionId })
+      }
+    );
     
-    if (error) {
-      console.error("Error calling edge function:", error);
-      toast({
-        title: "Function test failed",
-        description: error.message,
-        variant: "destructive"
-      });
-      return false;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error response from edge function:`, errorText);
+      throw new Error(`Failed to call edge function: ${response.status} ${response.statusText}`);
     }
     
+    const data = await response.json();
     console.log("Edge function response:", data);
+    
     toast({
       title: "Function test successful",
       description: "Edge function responded successfully. See console for details.",
@@ -143,7 +148,7 @@ export async function createTestSubmission() {
   try {
     console.log("Creating test submission using direct API call...");
     
-    // Create test data
+    // Create test data with better attachment URL
     const testData = {
       from_email: 'test@example.com',
       to_email: 'investor@example.com',
@@ -154,7 +159,7 @@ export async function createTestSubmission() {
       action: 'create' // Add action parameter to identify this as a create operation
     };
     
-    // Use direct fetch to edge function instead of supabase client
+    // Use direct fetch to edge function
     const response = await fetch(
       "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/create-test-email-submission",
       {

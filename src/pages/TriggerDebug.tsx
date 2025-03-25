@@ -10,7 +10,7 @@ import {
   createTestSubmission
 } from '@/lib/triggerDebugging';
 import { toast } from "@/hooks/use-toast";
-import { AlertCircle, CheckCircle, RefreshCw, PlayCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, RefreshCw, PlayCircle, Database } from 'lucide-react';
 
 export default function TriggerDebug() {
   const [submissionId, setSubmissionId] = useState("");
@@ -55,13 +55,20 @@ export default function TriggerDebug() {
     try {
       setLoading(true);
       
-      // Call our new function to create a test submission via edge function
+      // Call our function to create a test submission via edge function
       const result = await createTestSubmission();
       
       if (result && result.id) {
         setSubmissionId(result.id);
         // Refresh the list
         await loadSubmissions();
+        
+        // Automatically run the edge function on the new submission
+        toast({
+          title: "Testing trigger",
+          description: "Automatically testing the trigger with the new submission",
+        });
+        await handleRunEdgeFunction(result.id);
       }
     } catch (error) {
       console.error("Error in test:", error);
@@ -75,8 +82,10 @@ export default function TriggerDebug() {
     }
   }
   
-  async function handleRunEdgeFunction() {
-    if (!submissionId) {
+  async function handleRunEdgeFunction(id = null) {
+    const targetId = id || submissionId;
+    
+    if (!targetId) {
       toast({
         title: "Submission ID required",
         description: "Please enter a submission ID or select one from the list",
@@ -97,7 +106,7 @@ export default function TriggerDebug() {
             "Content-Type": "application/json",
             "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
           },
-          body: JSON.stringify({ submissionId })
+          body: JSON.stringify({ submissionId: targetId })
         }
       );
       
@@ -126,6 +135,44 @@ export default function TriggerDebug() {
       toast({
         title: "Request failed",
         description: "Error calling edge function. See console for details.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+  
+  async function handleCheckDBTrigger() {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await fetch(
+        "https://jhtnruktmtjqrfoiyrep.supabase.co/rest/v1/rpc/check_email_trigger_setup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({})
+        }
+      ).then(res => res.json());
+      
+      console.log("DB trigger check result:", data, error);
+      
+      toast({
+        title: error ? "Trigger check failed" : "Trigger check completed",
+        description: error 
+          ? `Error: ${error.message}` 
+          : "Database trigger status checked. See console for details.",
+        variant: error ? "destructive" : "default"
+      });
+    } catch (error) {
+      console.error("Error checking DB trigger:", error);
+      toast({
+        title: "Trigger check failed",
+        description: "An error occurred while checking the database trigger",
         variant: "destructive"
       });
     } finally {
@@ -192,7 +239,7 @@ export default function TriggerDebug() {
                 value={submissionId}
                 onChange={(e) => setSubmissionId(e.target.value)}
               />
-              <Button onClick={handleRunEdgeFunction} disabled={loading || !submissionId}>
+              <Button onClick={() => handleRunEdgeFunction()} disabled={loading || !submissionId}>
                 {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
                 Run Function
               </Button>
@@ -267,6 +314,18 @@ export default function TriggerDebug() {
                         Attachment: {submission.attachment_url}
                       </div>
                     )}
+                    <div className="mt-2 flex justify-end">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRunEdgeFunction(submission.id);
+                        }}
+                      >
+                        <PlayCircle className="h-4 w-4 mr-1" /> Test
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

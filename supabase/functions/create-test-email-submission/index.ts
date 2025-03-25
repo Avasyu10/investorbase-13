@@ -96,6 +96,26 @@ serve(async (req) => {
 
       console.log(`Successfully created test submission with ID: ${submission.id}`);
 
+      // Wait a moment to give the trigger a chance to execute
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check if the trigger executed by checking for updates
+      const { data: updatedSubmission, error: checkError } = await supabase
+        .from("email_submissions")
+        .select("*")
+        .eq("id", submission.id)
+        .single();
+
+      if (checkError) {
+        console.error(`Error checking submission status:`, checkError);
+      } else {
+        console.log(`Submission status after trigger check:`, {
+          id: updatedSubmission.id,
+          report_id: updatedSubmission.report_id,
+          hasAttachment: !!updatedSubmission.attachment_url
+        });
+      }
+
       return new Response(
         JSON.stringify(submission),
         { 
