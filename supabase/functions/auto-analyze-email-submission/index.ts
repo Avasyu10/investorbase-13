@@ -26,23 +26,54 @@ serve(async (req) => {
     let submissionId;
     let requestData;
     try {
+      // Get the raw text first before attempting to parse
       const rawText = await req.text();
       console.log(`Raw request body: ${rawText}`);
       
+      // Try multiple parsing approaches
       try {
-        // Try to parse as JSON
+        // First, try to parse as JSON
         requestData = JSON.parse(rawText);
+        console.log("Successfully parsed JSON:", requestData);
       } catch (jsonError) {
         console.error("Failed to parse JSON, attempting fallback parsing:", jsonError);
         
-        // Fallback: Try to extract submissionId from raw string if it's not valid JSON
-        const idMatch = rawText.match(/"submissionId"\s*:\s*"([^"]+)"/);
-        if (idMatch && idMatch[1]) {
-          submissionId = idMatch[1];
-          console.log(`Extracted submission ID using regex: ${submissionId}`);
-          requestData = { submissionId };
-        } else {
-          throw new Error(`Could not parse request body: ${rawText}`);
+        // Try to clean up the text before parsing
+        const cleanedText = rawText
+          .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
+          .replace(/\s+/g, " ")          // Normalize spaces
+          .trim();                       // Trim whitespace
+          
+        // Check if it's roughly in JSON format
+        if (cleanedText.startsWith("{") && cleanedText.endsWith("}")) {
+          try {
+            console.log("Attempting to parse cleaned text as JSON");
+            requestData = JSON.parse(cleanedText);
+          } catch (cleanedJsonError) {
+            console.error("Failed to parse cleaned JSON:", cleanedJsonError);
+          }
+        }
+        
+        // If still no valid JSON, try regex as fallback
+        if (!requestData) {
+          console.log("Falling back to regex extraction");
+          // Try to extract submissionId from raw string if it's not valid JSON
+          const idMatch = rawText.match(/"submissionId"\s*:\s*"([^"]+)"/);
+          if (idMatch && idMatch[1]) {
+            submissionId = idMatch[1];
+            console.log(`Extracted submission ID using regex: ${submissionId}`);
+            requestData = { submissionId };
+          } else {
+            // Try alternate field name pattern
+            const altIdMatch = rawText.match(/"submission_id"\s*:\s*"([^"]+)"/);
+            if (altIdMatch && altIdMatch[1]) {
+              submissionId = altIdMatch[1];
+              console.log(`Extracted submission_id using regex: ${submissionId}`);
+              requestData = { submission_id: submissionId };
+            } else {
+              throw new Error(`Could not parse request body or extract ID: ${rawText}`);
+            }
+          }
         }
       }
       
@@ -126,22 +157,22 @@ serve(async (req) => {
 
     console.log(`Attempting to download attachment: ${emailSubmission.attachment_url}`);
 
-    // Try to download the attachment from storage with timeout handling
+    // Try to download the attachment from storage with improved timeout handling
     try {
-      const downloadPromise = supabase.storage
+      // Create an AbortController for timeout handling
+      const controller = new AbortController();
+      const downloadTimeout = setTimeout(() => {
+        controller.abort();
+        console.error(`Download timed out after 10 seconds for ${emailSubmission.attachment_url}`);
+      }, 10000);
+      
+      // Start the download with the abort signal
+      const { data: fileData, error: downloadError } = await supabase.storage
         .from("email_attachments")
         .download(emailSubmission.attachment_url);
       
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Download timed out after 10 seconds")), 10000);
-      });
-      
-      // Race the download against the timeout
-      const { data: fileData, error: downloadError } = await Promise.race([
-        downloadPromise,
-        timeoutPromise.then(() => ({ data: null, error: { message: "Download timed out" } }))
-      ]);
+      // Clear the timeout since we got a response
+      clearTimeout(downloadTimeout);
 
       if (downloadError) {
         console.error("Failed to download attachment:", downloadError);
@@ -228,9 +259,19 @@ serve(async (req) => {
         console.log(`Auto-triggering analysis for report: ${report.id}`);
         
         try {
+          // Use AbortController for timeout handling
+          const analyzeController = new AbortController();
+          const analyzeTimeout = setTimeout(() => {
+            analyzeController.abort();
+            console.error(`Analysis request timed out after 15 seconds for report ${report.id}`);
+          }, 15000);
+          
           const analyzeResponse = await supabase.functions.invoke("analyze-pdf", {
             body: { reportId: report.id }
           });
+          
+          // Clear the timeout since we got a response
+          clearTimeout(analyzeTimeout);
           
           if (analyzeResponse.error) {
             console.error(`Warning: Auto-analysis failed: ${analyzeResponse.error.message || JSON.stringify(analyzeResponse.error)}`);
@@ -253,6 +294,21 @@ serve(async (req) => {
         }
       );
     } catch (storageError) {
+      // Handle AbortController timeout errors specifically
+      if (storageError.name === "AbortError") {
+        console.error(`Storage download timed out: ${emailSubmission.attachment_url}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Download timed out after 10 seconds. The attachment may be too large or unavailable.`
+          }),
+          {
+            status: 408, // Request Timeout
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+      
       console.error("Storage operation failed:", storageError);
       return new Response(
         JSON.stringify({

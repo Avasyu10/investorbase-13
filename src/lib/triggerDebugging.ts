@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -107,7 +108,20 @@ export async function debugTriggerFunction(submissionId: string) {
     let responseText = "";
     try {
       responseText = await response.text();
-      const jsonResponse = JSON.parse(responseText);
+      console.log("Raw response from auto-analyze-email-submission:", responseText);
+      
+      let jsonResponse;
+      try {
+        jsonResponse = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse response as JSON:", parseError);
+        toast({
+          title: "Invalid Response",
+          description: "Received non-JSON response from function. See console for details.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Check if it was successful
       if (jsonResponse.success) {
@@ -202,17 +216,23 @@ export async function createTestSubmission() {
           "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
         },
         body: JSON.stringify({
+          action: "create",
           fromEmail,
           toEmail,
           subject,
           body: `This is a test email body for ${testId}`,
-          attachmentName: "test-attachment.pdf"
+          attachmentName: "test-attachment.pdf",
+          hasAttachments: true
         })
       }
     );
     
+    // Log raw response for debugging
+    const responseText = await response.text();
+    console.log("Raw response from create-test-email-submission:", responseText);
+    
     if (!response.ok) {
-      let errorText = await response.text();
+      let errorText = responseText;
       try {
         const errorJson = JSON.parse(errorText);
         errorText = errorJson.error || errorText;
@@ -223,7 +243,13 @@ export async function createTestSubmission() {
       throw new Error(`Failed to create test submission: ${response.status} - ${errorText}`);
     }
     
-    const result = await response.json();
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("Error parsing response as JSON:", parseError);
+      throw new Error(`Invalid JSON response: ${responseText}`);
+    }
     
     console.log("Created test submission:", result);
     

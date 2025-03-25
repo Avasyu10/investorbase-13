@@ -34,32 +34,56 @@ serve(async (req) => {
     // Get the data from the request
     let requestData;
     try {
+      // Try to get the raw text first before attempting to parse it
       const rawText = await req.text();
       console.log(`Raw request body: ${rawText}`);
       
       try {
-        // Try to parse as JSON
+        // First, try to parse as JSON
         requestData = JSON.parse(rawText);
+        console.log("Successfully parsed JSON:", requestData);
       } catch (jsonError) {
-        console.error("Failed to parse JSON:", jsonError);
-        // Attempt to extract key data using regex if it's not valid JSON
-        const actionMatch = rawText.match(/"action"\s*:\s*"([^"]+)"/);
-        if (actionMatch && actionMatch[1]) {
-          requestData = { action: actionMatch[1] };
-          console.log(`Extracted action using regex: ${requestData.action}`);
-        } else {
-          throw new Error(`Could not parse request body: ${rawText}`);
+        console.error("Failed to parse as JSON. Error:", jsonError);
+        
+        // More robust parsing attempt - handle both formatted and unformatted versions
+        try {
+          // Try to clean up the text before parsing
+          const cleanedText = rawText
+            .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
+            .replace(/\s+/g, " ")          // Normalize spaces
+            .trim();                       // Trim whitespace
+            
+          // Check if it's roughly in JSON format (has opening/closing braces)
+          if (cleanedText.startsWith("{") && cleanedText.endsWith("}")) {
+            console.log("Attempting to parse cleaned text as JSON");
+            requestData = JSON.parse(cleanedText);
+          } else {
+            // If it's not JSON-like, try to extract key data using regex as fallback
+            console.log("Falling back to regex extraction");
+            const actionMatch = rawText.match(/"action"\s*:\s*"([^"]+)"/);
+            if (actionMatch && actionMatch[1]) {
+              requestData = { action: actionMatch[1] };
+              console.log(`Extracted action using regex: ${requestData.action}`);
+            } else {
+              throw new Error(`Could not parse request body as JSON: ${rawText}`);
+            }
+          }
+        } catch (fallbackError) {
+          console.error("Fallback parsing also failed:", fallbackError);
+          // Last resort - try to make sense of whatever we got
+          requestData = { action: 'create' };
+          console.log("Using default action: create");
         }
       }
       
       console.log(`Processed request data:`, requestData);
     } catch (parseError) {
-      console.error("Error parsing request JSON:", parseError);
+      console.error("Error processing request data:", parseError);
       throw new Error("Invalid request format. Expected JSON data.");
     }
     
     // Check the action to determine what operation to perform
-    const action = requestData.action || 'create';
+    const action = requestData?.action || 'create';
     
     // LIST operation - fetch recent email submissions
     if (action === 'list') {
@@ -91,38 +115,29 @@ serve(async (req) => {
     
     // CREATE operation - insert a new test submission
     if (action === 'create') {
-      if (!requestData.from_email && !requestData.fromEmail) {
-        // Try to use alternative field names or defaults
-        requestData.from_email = requestData.fromEmail || requestData.email || "test@example.com";
-      }
+      // Normalize field names - support both camelCase and snake_case
+      const fromEmail = requestData?.from_email || requestData?.fromEmail || "test@example.com";
+      const toEmail = requestData?.to_email || requestData?.toEmail || "receiver@example.com";
+      const subject = requestData?.subject || `Test Email ${new Date().toISOString()}`;
+      const emailBody = requestData?.email_body || requestData?.body || requestData?.emailBody || "This is a test email body";
+      const attachmentUrl = requestData?.attachment_url || requestData?.attachmentUrl;
+      const hasAttachments = requestData?.has_attachments || requestData?.hasAttachments || 
+                             !!attachmentUrl || !!requestData?.attachmentName;
       
-      if (!requestData.to_email && !requestData.toEmail) {
-        requestData.to_email = requestData.toEmail || "receiver@example.com";
-      }
-      
-      if (!requestData.from_email || !requestData.to_email) {
-        console.error("Missing required fields in test data");
-        throw new Error("from_email and to_email are required");
-      }
-      
-      // Normalize field names (convert camelCase to snake_case if needed)
-      const normalizedData = {
-        from_email: requestData.from_email || requestData.fromEmail,
-        to_email: requestData.to_email || requestData.toEmail,
-        subject: requestData.subject || `Test Email ${new Date().toISOString()}`,
-        email_body: requestData.email_body || requestData.body || "This is a test email body",
-        attachment_url: requestData.attachment_url || requestData.attachmentUrl,
-        has_attachments: requestData.has_attachments || requestData.hasAttachments || !!requestData.attachment_url || !!requestData.attachmentUrl
+      // Create a submission object with normalized data
+      const submissionData = {
+        from_email: fromEmail,
+        to_email: toEmail,
+        subject: subject,
+        email_body: emailBody,
+        attachment_url: attachmentUrl,
+        has_attachments: hasAttachments
       };
       
       // Check if we need to verify the attachment URL exists in storage
-      let attachmentUrl = normalizedData.attachment_url;
-      let hasAttachment = normalizedData.has_attachments;
-      
-      // If no attachment URL is provided, use a default test value
-      if (!attachmentUrl && hasAttachment) {
-        attachmentUrl = "test-attachment.pdf";
-        console.log(`Using default test attachment URL: ${attachmentUrl}`);
+      if (!attachmentUrl && hasAttachments && requestData?.attachmentName) {
+        submissionData.attachment_url = requestData.attachmentName;
+        console.log(`Using test attachment name: ${submissionData.attachment_url}`);
         
         // Check if the test attachment already exists
         try {
@@ -133,14 +148,14 @@ serve(async (req) => {
           if (listError) {
             console.warn("Could not check for existing test attachment:", listError);
           } else {
-            const fileExists = fileList.some(f => f.name === attachmentUrl);
+            const fileExists = fileList.some(f => f.name === submissionData.attachment_url);
             if (!fileExists) {
               console.log("Test attachment doesn't exist. Creating an empty placeholder...");
               // Create an empty file as a placeholder
               const emptyFile = new Uint8Array([80, 68, 70]); // "PDF" in ASCII
               const { error: uploadError } = await supabase.storage
                 .from("email_attachments")
-                .upload(attachmentUrl, emptyFile);
+                .upload(submissionData.attachment_url, emptyFile);
                 
               if (uploadError) {
                 console.warn("Failed to create placeholder attachment:", uploadError);
@@ -155,16 +170,6 @@ serve(async (req) => {
           console.warn("Storage operation failed:", storageError);
         }
       }
-      
-      // Create a submission object with verified attachment data
-      const submissionData = {
-        ...normalizedData,
-        attachment_url: attachmentUrl,
-        has_attachments: hasAttachment
-      };
-      
-      // Remove the action field as it's not part of our database schema
-      delete submissionData.action;
       
       console.log("Creating test submission with data:", submissionData);
 
