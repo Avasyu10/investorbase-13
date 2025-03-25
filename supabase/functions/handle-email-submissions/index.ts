@@ -62,65 +62,146 @@ serve(async (req) => {
     // Check if we're dealing with a URL-encoded format or JSON
     let payload: WebhookPayload;
     
-    if (reqText.includes('=')) {
+    if (reqText.includes('=') && (reqText.includes('mail_attachment') || reqText.includes('mail_sender'))) {
       // Handle URL-encoded format
-      console.log("Detected URL-encoded format");
+      console.log("Detected URL-encoded format with nested arrays");
       
       // Remove leading ? if present
       const cleanText = reqText.startsWith('?') ? reqText.substring(1) : reqText;
       
-      // Parse URL-encoded data
-      const params = new URLSearchParams(cleanText);
-      
-      // Extract the id directly without checking if it exists
-      const id = params.get('id') || '';
-      console.log("Extracted ID:", id);
-      
-      // Extract other basic fields
-      const received_at = params.get('received_at') || '';
-      const processed_at = params.get('processed_at') || '';
-      const company_name = params.get('company_name') || '';
-      
-      // Extract mail_attachment data
-      const mail_attachment: MailAttachment[] = [];
-      let index = 0;
-      while (params.has(`mail_attachment[${index}][key_0]`)) {
-        mail_attachment.push({
-          key_0: params.get(`mail_attachment[${index}][key_0]`) || '',
-          key_1: params.get(`mail_attachment[${index}][key_1]`) || ''
+      try {
+        // Parse URL-encoded data
+        const params = new URLSearchParams(cleanText);
+        
+        // Get all parameter keys to identify array indices
+        const paramKeys = Array.from(params.keys());
+        
+        // Extract the id and basic fields first
+        const id = params.get('id');
+        if (!id) {
+          console.error("Missing required ID field");
+          return new Response(
+            JSON.stringify({ 
+              error: "Missing required ID field",
+              params: Object.fromEntries(params),
+              rawText: reqText
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        
+        console.log("Extracted ID:", id);
+        
+        // Extract other basic fields
+        const received_at = params.get('received_at') || '';
+        const processed_at = params.get('processed_at') || '';
+        const company_name = params.get('company_name') || '';
+        
+        // Extract mail_attachment data by finding all keys that match the pattern
+        const mailAttachments: MailAttachment[] = [];
+        const attachmentIndices = new Set<number>();
+        
+        paramKeys.forEach(key => {
+          if (key.startsWith('mail_attachment[')) {
+            // Extract the index from the key, e.g. "mail_attachment[0][key_0]" → 0
+            const indexMatch = key.match(/mail_attachment\[(\d+)\]/);
+            if (indexMatch && indexMatch[1]) {
+              attachmentIndices.add(parseInt(indexMatch[1]));
+            }
+          }
         });
-        index++;
-      }
-      
-      // Extract mail_sender data
-      const mail_sender: MailSender[] = [];
-      index = 0;
-      while (params.has(`mail_sender[${index}][name]`)) {
-        mail_sender.push({
-          name: params.get(`mail_sender[${index}][name]`) || '',
-          address: params.get(`mail_sender[${index}][address]`) || ''
+        
+        // Now process each index we found
+        attachmentIndices.forEach(index => {
+          const key0 = params.get(`mail_attachment[${index}][key_0]`);
+          const key1 = params.get(`mail_attachment[${index}][key_1]`);
+          
+          if (key0 && key1) {
+            mailAttachments.push({
+              key_0: key0,
+              key_1: key1
+            });
+          }
         });
-        index++;
+        
+        console.log("Extracted attachments:", mailAttachments);
+        
+        // Extract mail_sender data similarly
+        const mailSenders: MailSender[] = [];
+        const senderIndices = new Set<number>();
+        
+        paramKeys.forEach(key => {
+          if (key.startsWith('mail_sender[')) {
+            const indexMatch = key.match(/mail_sender\[(\d+)\]/);
+            if (indexMatch && indexMatch[1]) {
+              senderIndices.add(parseInt(indexMatch[1]));
+            }
+          }
+        });
+        
+        senderIndices.forEach(index => {
+          const name = params.get(`mail_sender[${index}][name]`);
+          const address = params.get(`mail_sender[${index}][address]`);
+          
+          if (address) { // Address is required, name can be optional
+            mailSenders.push({
+              name: name || '',
+              address: address
+            });
+          }
+        });
+        
+        console.log("Extracted senders:", mailSenders);
+        
+        // Construct the payload object
+        payload = {
+          id,
+          received_at,
+          processed_at,
+          company_name,
+          mail_attachment: mailAttachments.length > 0 ? mailAttachments : undefined,
+          mail_sender: mailSenders.length > 0 ? mailSenders : []
+        };
+        
+        // Make sure we have at least one sender
+        if (payload.mail_sender.length === 0) {
+          return new Response(
+            JSON.stringify({ 
+              error: "No valid mail sender found",
+              params: Object.fromEntries(params)
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        
+        console.log("Parsed URL-encoded payload:", JSON.stringify(payload, null, 2));
+      } catch (parseError) {
+        console.error("Error parsing URL-encoded data:", parseError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Failed to parse URL-encoded data", 
+            details: parseError.message,
+            rawText: reqText
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
-      
-      // Construct the payload object
-      payload = {
-        id,
-        received_at,
-        processed_at,
-        company_name,
-        mail_attachment: mail_attachment.length > 0 ? mail_attachment : undefined,
-        mail_sender
-      };
-      
-      console.log("Parsed URL-encoded payload:", JSON.stringify(payload, null, 2));
     } else {
       // Try to parse as JSON if not URL-encoded
       try {
         payload = JSON.parse(reqText);
         console.log("Parsed JSON payload:", JSON.stringify(payload, null, 2));
       } catch (parseError) {
-        console.error("Error parsing payload:", parseError);
+        console.error("Error parsing payload as JSON:", parseError);
         return new Response(
           JSON.stringify({ 
             error: "Invalid payload format", 
