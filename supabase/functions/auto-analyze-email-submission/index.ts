@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -104,7 +103,7 @@ serve(async (req) => {
 
     // Try to download the attachment from storage
     try {
-      // First check if the bucket exists and is accessible
+      // First, check available storage buckets
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
         
@@ -119,10 +118,11 @@ serve(async (req) => {
         throw new Error("Attachment URL is empty or invalid");
       }
       
-      // Log the full path for debugging
-      console.log(`Full attachment path: email_attachments/${emailSubmission.attachment_url}`);
+      // Clean the attachment URL - remove any path prefixes if they exist
+      const cleanAttachmentUrl = emailSubmission.attachment_url.split('/').pop() || emailSubmission.attachment_url;
+      console.log(`Cleaned attachment URL: ${cleanAttachmentUrl}`);
       
-      // Attempt to list files in the directory to verify access
+      // List files in the email_attachments bucket for debugging
       const { data: filesList, error: listError } = await supabase.storage
         .from("email_attachments")
         .list();
@@ -131,23 +131,48 @@ serve(async (req) => {
         console.error("Failed to list files in email_attachments bucket:", listError);
       } else {
         console.log("Files in email_attachments bucket:", filesList.map(f => f.name));
+        
+        // Check if our file is in the list
+        const fileExists = filesList.some(f => f.name === cleanAttachmentUrl);
+        console.log(`File '${cleanAttachmentUrl}' exists in bucket: ${fileExists}`);
       }
 
-      // Try to download the attachment file directly
-      const { data: fileData, error: downloadError } = await supabase.storage
+      // First try to download with the raw attachment URL
+      let fileData;
+      let downloadError;
+      
+      console.log(`Trying to download with original path: ${emailSubmission.attachment_url}`);
+      const originalPathResult = await supabase.storage
         .from("email_attachments")
         .download(emailSubmission.attachment_url);
-
-      if (downloadError) {
-        console.error("Failed to download attachment:", downloadError);
-        console.error("Download error details:", JSON.stringify(downloadError));
         
-        // Check if this is a path issue
-        if (downloadError.message?.includes("not found") || downloadError.status === 404) {
-          throw new Error(`Attachment file not found at path: ${emailSubmission.attachment_url}`);
+      if (originalPathResult.error) {
+        console.log(`Failed with original path: ${originalPathResult.error.message}`);
+        downloadError = originalPathResult.error;
+        
+        // Try with cleaned path if original fails
+        console.log(`Trying with cleaned path: ${cleanAttachmentUrl}`);
+        const cleanPathResult = await supabase.storage
+          .from("email_attachments")
+          .download(cleanAttachmentUrl);
+          
+        if (cleanPathResult.error) {
+          console.log(`Failed with cleaned path: ${cleanPathResult.error.message}`);
+          // Keep the original error if both fail
+        } else {
+          // Use the successful result
+          fileData = cleanPathResult.data;
+          downloadError = null;
+          console.log(`Successfully downloaded with cleaned path (${fileData.size} bytes)`);
         }
-        
-        throw new Error(`Failed to download attachment: ${JSON.stringify(downloadError)}`);
+      } else {
+        fileData = originalPathResult.data;
+        console.log(`Successfully downloaded with original path (${fileData.size} bytes)`);
+      }
+      
+      if (downloadError) {
+        console.error("All download attempts failed:", downloadError);
+        throw downloadError;
       }
 
       if (!fileData || fileData.size === 0) {
@@ -175,7 +200,7 @@ serve(async (req) => {
         .insert([{
           title: title,
           description: description,
-          pdf_url: emailSubmission.attachment_url,
+          pdf_url: cleanAttachmentUrl, // Use the cleaned attachment URL
           is_public_submission: false,
           analysis_status: "pending",
           submitter_email: emailSubmission.from_email

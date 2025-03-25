@@ -305,6 +305,12 @@ export async function autoAnalyzeEmailSubmission(submissionId: string) {
         title: "Auto-analysis started",
         description: "Your pitch deck is being automatically analyzed",
       });
+    } else if (data.reportId) {
+      toast({
+        id: "report-created",
+        title: "Report created",
+        description: "Your submission was processed successfully",
+      });
     }
     
     return data;
