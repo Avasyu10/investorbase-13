@@ -491,9 +491,9 @@ export function ReportUpload({
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Upload Pitch Deck</CardTitle>
+        <CardTitle>Submit Your Pitch</CardTitle>
         <CardDescription>
-          Upload a PDF pitch deck for analysis. Our AI will evaluate the pitch deck and provide feedback.
+          Upload your pitch here to be reviewed by our Investments Team.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -520,7 +520,7 @@ export function ReportUpload({
           {isPublic && !hideEmailField && (
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium">
-                Your Email (required to receive results)
+                Your Email 
               </label>
               <input
                 id="email"
