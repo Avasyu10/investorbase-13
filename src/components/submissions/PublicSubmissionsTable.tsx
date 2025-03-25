@@ -105,6 +105,9 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     });
   });
 
+  // Log all submissions that will be rendered to ensure we don't filter anything out
+  console.log("All submissions being rendered:", submissions.map(s => ({ id: s.id, source: s.source, title: s.title })));
+
   return (
     <div className="border rounded-md">
       <Table>
