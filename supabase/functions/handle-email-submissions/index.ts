@@ -20,6 +20,7 @@ interface MailSender {
 }
 
 interface WebhookPayload {
+  id: string;
   received_at: string;
   processed_at: string;
   company_name: string;
@@ -68,6 +69,12 @@ serve(async (req) => {
       // Parse URL-encoded data
       const params = new URLSearchParams(reqText.startsWith('?') ? reqText.substring(1) : reqText);
       
+      // Extract basic fields
+      const id = params.get('id') || '';
+      const received_at = params.get('received_at') || '';
+      const processed_at = params.get('processed_at') || '';
+      const company_name = params.get('company_name') || '';
+      
       // Extract mail_attachment data
       const mail_attachment: MailAttachment[] = [];
       let index = 0;
@@ -92,9 +99,10 @@ serve(async (req) => {
       
       // Construct the payload object
       payload = {
-        received_at: params.get('received_at') || '',
-        processed_at: params.get('processed_at') || '',
-        company_name: params.get('company_name') || '',
+        id,
+        received_at,
+        processed_at,
+        company_name,
         mail_attachment: mail_attachment.length > 0 ? mail_attachment : undefined,
         mail_sender
       };
@@ -121,12 +129,17 @@ serve(async (req) => {
       }
     }
 
-    // Validate sender information
-    if (!payload.mail_sender || payload.mail_sender.length === 0) {
+    // Validate required fields
+    if (!payload.id || !payload.mail_sender || payload.mail_sender.length === 0) {
       return new Response(
         JSON.stringify({ 
-          error: "Missing sender information",
-          payload: payload
+          error: "Missing required fields",
+          payload: payload,
+          missingFields: [
+            !payload.id ? "id" : null,
+            !payload.mail_sender ? "mail_sender" : null,
+            payload.mail_sender && payload.mail_sender.length === 0 ? "mail_sender empty" : null
+          ].filter(Boolean)
         }),
         {
           status: 400,
@@ -159,6 +172,7 @@ serve(async (req) => {
     
     // Prepare the data for insertion into our new table
     const insertData = {
+      external_id: payload.id,
       company_name: payload.company_name || null,
       received_at: receivedDate,
       processed_at: payload.processed_at ? new Date(payload.processed_at).toISOString() : null,
