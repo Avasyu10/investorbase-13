@@ -1,0 +1,5 @@
+
+project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.handle-email-submissions]
+verify_jwt = false
