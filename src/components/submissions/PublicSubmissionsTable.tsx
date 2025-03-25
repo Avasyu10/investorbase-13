@@ -111,11 +111,11 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       case 'email_pitch':
         return (
           <Badge 
-            variant="gold"
+            variant="blue"
             className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
           >
-            <Send className="h-3 w-3" />
-            <span>Pitch Email</span>
+            <Mail className="h-3 w-3" />
+            <span>Email</span>
           </Badge>
         );
       case 'public_form':
