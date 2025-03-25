@@ -208,7 +208,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
           })}
         </TableBody>
       </Table>
-      {console.log("PublicSubmissionsTable - END RENDER")}
+      {/* Remove the console.log statement that's causing the error */}
     </div>
   );
 }
