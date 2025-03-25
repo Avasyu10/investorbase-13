@@ -491,7 +491,7 @@ export function ReportUpload({
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Send Pitch</CardTitle>
+        <CardTitle>Submit Your Pitch</CardTitle>
         <CardDescription>
           Upload your pitch here to be reviewed by our Investments Team.
         </CardDescription>
