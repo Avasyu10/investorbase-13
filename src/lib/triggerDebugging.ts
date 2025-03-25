@@ -9,10 +9,12 @@ export async function checkTriggerSetup() {
   try {
     // Check if we can query the database functions
     const { data: triggerFunctions, error: functionsError } = await supabase
-      .rpc('get_trigger_info');
+      .from('email_submissions')
+      .select('*')
+      .limit(1);
     
     if (functionsError) {
-      console.error("Error checking trigger functions:", functionsError);
+      console.error("Error checking email_submissions table:", functionsError);
       toast({
         title: "Trigger check failed",
         description: "Could not check database triggers. See console for details.",
@@ -21,7 +23,26 @@ export async function checkTriggerSetup() {
       return false;
     }
     
-    console.log("Database trigger info:", triggerFunctions);
+    console.log("Database email_submissions table exists:", triggerFunctions);
+    
+    // Try to get information about the trigger
+    try {
+      // Execute a simple query to check if the trigger is working
+      const { data, error } = await supabase
+        .from('email_submissions')
+        .select('id, from_email, to_email, subject')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) {
+        console.error("Error querying email submissions:", error);
+      } else {
+        console.log("Recent email submissions:", data);
+      }
+    } catch (err) {
+      console.error("Error executing trigger query:", err);
+    }
+    
     toast({
       title: "Trigger check completed",
       description: "See console for details about database triggers",
