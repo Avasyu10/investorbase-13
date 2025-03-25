@@ -51,12 +51,20 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     );
   }
   
+  // Log individual submissions with their sources and ids
+  submissions.forEach((sub, index) => {
+    console.log(`PublicSubmissionsTable - Submission #${index}:`, {
+      id: sub.id,
+      title: sub.title,
+      source: sub.source,
+      report_id: sub.report_id
+    });
+  });
+  
   // Check if each type exists
   const emailCount = submissions.filter(s => s.source === 'email').length;
   const pitchCount = submissions.filter(s => s.source === 'email_pitch').length;
   const formCount = submissions.filter(s => s.source === 'public_form').length;
-  
-  console.log(`Sources breakdown - Email: ${emailCount}, Pitch: ${pitchCount}, Form: ${formCount}`);
   
   if (submissions.length === 0) {
     return (
@@ -95,11 +103,11 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       case 'email_pitch':
         return (
           <Badge 
-            variant="pink"
+            variant="blue"
             className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
           >
-            <Send className="h-3 w-3" />
-            <span>Pitch Email</span>
+            <Mail className="h-3 w-3" />
+            <span>Email</span>
           </Badge>
         );
       case 'public_form':
@@ -115,6 +123,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
         );
     }
   };
+
+  // Debug the submission values right before rendering
   
   return (
     <div className="border rounded-md">
@@ -131,49 +141,62 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
           </TableRow>
         </TableHeader>
         <TableBody>
-          {submissions.map((submission) => (
-            <TableRow key={submission.id}>
-              <TableCell>
-                {getSourceBadge(submission.source)}
-              </TableCell>
-              <TableCell className="font-medium">
-                {truncateText(submission.title, 30)}
-              </TableCell>
-              <TableCell>
-                {submission.industry || "—"}
-              </TableCell>
-              <TableCell>
-                {submission.company_stage || "—"}
-              </TableCell>
-              <TableCell>
-                {submission.website_url ? (
-                  <a 
-                    href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline flex items-center gap-1"
-                  >
-                    {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell>
-                {formatDate(submission.created_at)}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  className="bg-gold text-gold-foreground hover:bg-gold/90"
-                  size="sm"
-                  onClick={() => onAnalyze(submission)}
-                >
-                  Analyze
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+          {submissions.map((submission, index) => {
+            console.log(`PublicSubmissionsTable - Rendering row #${index} for submission:`, {
+              id: submission.id,
+              title: submission.title,
+              source: submission.source
+            });
+            
+            try {
+              return (
+                <TableRow key={submission.id}>
+                  <TableCell>
+                    {getSourceBadge(submission.source)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {truncateText(submission.title, 30)}
+                  </TableCell>
+                  <TableCell>
+                    {submission.industry || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {submission.company_stage || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {submission.website_url ? (
+                      <a 
+                        href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline flex items-center gap-1"
+                      >
+                        {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {formatDate(submission.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      className="bg-gold text-gold-foreground hover:bg-gold/90"
+                      size="sm"
+                      onClick={() => onAnalyze(submission)}
+                    >
+                      Analyze
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            } catch (error) {
+              console.error(`PublicSubmissionsTable - Error rendering row #${index}:`, error, "Submission data:", submission);
+              return null; // Skip rendering this row if there's an error
+            }
+          })}
         </TableBody>
       </Table>
     </div>
