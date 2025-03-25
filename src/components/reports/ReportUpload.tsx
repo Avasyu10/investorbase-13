@@ -491,9 +491,9 @@ export function ReportUpload({
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Upload Pitch Deck</CardTitle>
+        <CardTitle>Send Pitch</CardTitle>
         <CardDescription>
-          Upload a PDF pitch deck for analysis. Our AI will evaluate the pitch deck and provide feedback.
+          Upload your pitch here to be reviewed by our Investments Team.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
