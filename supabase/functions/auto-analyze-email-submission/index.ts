@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -43,7 +44,8 @@ serve(async (req) => {
     let requestData;
     try {
       requestData = await req.json();
-      submissionId = requestData.submissionId;
+      // Support both naming conventions (camelCase from DB trigger and lowercase from frontend)
+      submissionId = requestData.submissionId || requestData.submission_id;
       console.log(`Received request with data:`, requestData);
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
