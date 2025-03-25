@@ -114,10 +114,9 @@ export function PublicSubmissionsList() {
         
         console.log("Email submissions fetched:", emailData?.length || 0);
         
-        // Try to fetch email pitch submissions
+        // Fetch email pitch submissions - now with direct access
         let emailPitchData = [];
         try {
-          // Fetch all email pitch submissions and filter client-side
           const { data: pitchData, error: emailPitchError } = await supabase
             .from('email_pitch_submissions')
             .select(`
@@ -135,10 +134,14 @@ export function PublicSubmissionsList() {
             // Continue with other data, don't throw error
           } else {
             console.log("Email pitch submissions fetched:", pitchData?.length || 0);
+            console.log("Sample email pitch submission:", pitchData?.[0]);
+            
             // Filter on client side to match current user's email
             emailPitchData = pitchData?.filter(submission => 
               submission.sender_email === user.email
             ) || [];
+            
+            console.log("Filtered email pitch submissions for current user:", emailPitchData.length);
           }
         } catch (pitchError) {
           console.error("Error in pitch email fetch:", pitchError);
