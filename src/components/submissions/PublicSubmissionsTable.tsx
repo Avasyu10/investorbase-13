@@ -90,21 +90,23 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
     }
   };
 
-  // Count each type of submission
-  const publicFormCount = submissions.filter(s => s.source === 'public_form').length;
-  const emailCount = submissions.filter(s => s.source === 'email').length;
-  const emailPitchCount = submissions.filter(s => s.source === 'email_pitch').length;
+  // Add more debugging to understand what's being rendered
+  console.log("Rendering submissions in table:", submissions);
+  console.log("Email pitch submissions count:", 
+    submissions.filter(s => s.source === 'email_pitch').length);
   
-  console.log("Submissions by type in table:");
-  console.log(`- Public forms: ${publicFormCount}`);
-  console.log(`- Emails: ${emailCount}`);
-  console.log(`- Email pitches: ${emailPitchCount}`);
-  console.log("Total submissions to render:", submissions.length);
-  
-  // Log all submissions to see exact content
-  submissions.forEach((submission, index) => {
-    console.log(`Submission ${index + 1}: ID=${submission.id}, Source=${submission.source}, Title=${submission.title}`);
+  // Log each email pitch submission to understand what's going on
+  submissions.filter(s => s.source === 'email_pitch').forEach((submission, index) => {
+    console.log(`Email pitch ${index}:`, {
+      id: submission.id,
+      title: submission.title,
+      source: submission.source,
+      created_at: submission.created_at
+    });
   });
+
+  // Log all submissions that will be rendered to ensure we don't filter anything out
+  console.log("All submissions being rendered:", submissions.map(s => ({ id: s.id, source: s.source, title: s.title })));
 
   return (
     <div className="border rounded-md">
