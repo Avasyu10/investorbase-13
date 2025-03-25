@@ -208,7 +208,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
           })}
         </TableBody>
       </Table>
-      {/* Remove the console.log statement that's causing the error */}
     </div>
   );
 }
