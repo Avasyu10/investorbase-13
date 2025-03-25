@@ -18,9 +18,6 @@ serve(async (req) => {
       throw new Error('Missing Supabase environment variables');
     }
     
-    // Create Supabase client with service role key
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
     // Parse request data
     const { reportId } = await req.json();
     
@@ -29,19 +26,6 @@ serve(async (req) => {
     }
     
     console.log(`Processing public submission report: ${reportId}`);
-    
-    // Get report data
-    const { data: report, error: reportError } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('id', reportId)
-      .single();
-      
-    if (reportError) {
-      throw new Error(`Report not found: ${reportError.message}`);
-    }
-    
-    console.log("Successfully retrieved report data, forwarding to analyze-pdf");
     
     // Call the analyze-pdf function directly with the report ID
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
