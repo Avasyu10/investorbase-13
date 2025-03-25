@@ -27,7 +27,11 @@ serve(async (req) => {
     }
     
     // Create a Supabase client with the service key
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: {
+        headers: corsHeaders,
+      }
+    });
     
     // Parse the request body to get the report ID
     const { reportId } = await req.json();
@@ -44,7 +48,7 @@ serve(async (req) => {
     // Check if the report already has an associated company (to prevent duplicate analysis)
     const { data: existingReport, error: checkError } = await supabase
       .from('reports')
-      .select('company_id, analysis_status, pdf_url')
+      .select('company_id, analysis_status, pdf_url, is_public_submission')
       .eq('id', reportId)
       .maybeSingle();
       
@@ -66,7 +70,7 @@ serve(async (req) => {
     }
     
     // If analysis is already in progress, don't start another one
-    if (existingReport?.analysis_status === 'analyzing') {
+    if (existingReport?.analysis_status === 'analyzing' || existingReport?.analysis_status === 'processing') {
       console.log(`Report ${reportId} is already being analyzed, skipping new analysis request`);
       return new Response(
         JSON.stringify({ 
@@ -77,14 +81,8 @@ serve(async (req) => {
       );
     }
     
-    // Check if this is from an email submission
-    const { data: emailSubmission, error: emailError } = await supabase
-      .from('email_submissions')
-      .select('id')
-      .eq('report_id', reportId)
-      .maybeSingle();
-      
-    const isEmailSubmission = !emailError && emailSubmission;
+    // Check if this is from an email submission based on the pdf_url
+    const isEmailSubmission = existingReport?.pdf_url && existingReport.pdf_url.includes('email_attachments');
     
     // Update the report status to indicate analysis is starting
     await supabase
@@ -96,12 +94,13 @@ serve(async (req) => {
       .eq('id', reportId);
     
     // Call the appropriate analyze function based on the source
-    const endpoint = isEmailSubmission ? 'analyze-pdf' : 'analyze-public-pdf';
+    const endpoint = isEmailSubmission ? 'analyze-public-pdf' : 'analyze-pdf';
     console.log(`Using ${endpoint} for report ${reportId} (email submission: ${isEmailSubmission})`);
     
     // Call the analyze edge function, which will handle the actual PDF parsing and analysis
     const { data, error } = await supabase.functions.invoke(endpoint, {
-      body: { reportId }
+      body: { reportId },
+      headers: corsHeaders
     });
     
     if (error) {
@@ -141,7 +140,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Analysis completed successfully', 
-        companyId: data.companyId
+        companyId: data.companyId,
+        autoAnalyze: true
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

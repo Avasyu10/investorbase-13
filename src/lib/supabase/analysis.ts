@@ -7,13 +7,52 @@ export async function analyzeReport(reportId: string) {
   try {
     console.log('Starting analysis for report:', reportId);
     
-    // Call the analyze-pdf edge function
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-      body: { reportId }
-    });
+    // Update report status to processing before invoking the function
+    const { error: updateError } = await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'processing',
+        analysis_error: null // Clear any previous errors
+      })
+      .eq('id', reportId);
+      
+    if (updateError) {
+      console.error('Error updating report status:', updateError);
+      // Continue despite the error
+    }
+    
+    // Determine the appropriate function to call based on report metadata
+    const { data: reportData, error: reportError } = await supabase
+      .from('reports')
+      .select('pdf_url, is_public_submission')
+      .eq('id', reportId)
+      .single();
+      
+    if (reportError) {
+      console.error('Error fetching report data:', reportError);
+      throw reportError;
+    }
+    
+    // Determine if this is an email submission (pdf_url path contains email_attachments)
+    const isEmailSubmission = reportData?.pdf_url && reportData.pdf_url.includes('email_attachments');
+    
+    console.log(`Analyzing report ${reportId} from source: ${isEmailSubmission ? 'email' : 'public form'}`);
+    
+    // Use auto-analyze-public-pdf for email submissions to bypass CORS issues
+    // This function has special handling for email attachments
+    const { data, error } = await supabase.functions.invoke(
+      isEmailSubmission ? 'auto-analyze-public-pdf' : 'analyze-pdf',
+      {
+        body: { reportId },
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+        }
+      }
+    );
     
     if (error) {
-      console.error('Error invoking analyze-pdf function:', error);
+      console.error(`Error invoking ${isEmailSubmission ? 'auto-analyze-public-pdf' : 'analyze-pdf'} function:`, error);
       
       // Update report status to failed
       await supabase
@@ -83,7 +122,11 @@ export async function autoAnalyzePublicReport(reportId: string) {
       console.log(`Invoking auto-analyze-public-pdf function with report ID: ${reportId}`);
       
       const { data, error } = await supabase.functions.invoke('auto-analyze-public-pdf', {
-        body: { reportId }
+        body: { reportId },
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+        }
       });
       
       if (error) {

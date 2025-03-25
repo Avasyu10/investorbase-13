@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,34 @@ export function PublicSubmissionsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Create a deduplicated list of submissions using useMemo
+  const deduplicatedSubmissions = useMemo(() => {
+    if (!submissions.length) return [];
+    
+    // Use a Map with a composite key to ensure we don't have duplicates
+    const submissionsMap = new Map();
+    
+    // Process all submissions and deduplicate based on multiple criteria
+    submissions.forEach(submission => {
+      // For email submissions, use a combination of report_id, title, and pdf_url
+      // For form submissions, use the report_id or submission id
+      const key = submission.source === "email" 
+        ? `${submission.report_id || ''}|${submission.title}|${submission.pdf_url || ''}`
+        : submission.report_id || submission.id;
+      
+      // Only add if not already in map or if the entry is newer
+      if (!submissionsMap.has(key) || 
+          new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
+        submissionsMap.set(key, submission);
+      }
+    });
+    
+    // Convert map back to array and sort by date
+    return Array.from(submissionsMap.values())
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+  }, [submissions]);
 
   useEffect(() => {
     async function fetchSubmissions() {
@@ -94,25 +122,32 @@ export function PublicSubmissionsList() {
         console.log("Public form submissions fetched:", formData?.length || 0);
         
         // Fetch email submissions for the current user
-        const { data: emailData, error: emailError } = await supabase
-          .from('email_submissions')
-          .select(`
-            *,
-            reports:report_id (
-              id,
-              company_id,
-              analysis_status
-            )
-          `)
-          .eq('from_email', user.email)
-          .order('created_at', { ascending: false });
-          
-        if (emailError) {
-          console.error("Error fetching email submissions:", emailError);
-          throw emailError;
+        let emailData = [];
+        try {
+          const { data: emailResult, error: emailError } = await supabase
+            .from('email_submissions')
+            .select(`
+              *,
+              reports:report_id (
+                id,
+                company_id,
+                analysis_status,
+                pdf_url
+              )
+            `)
+            .eq('from_email', user.email)
+            .order('created_at', { ascending: false });
+            
+          if (emailError) {
+            console.error("Error fetching email submissions:", emailError);
+          } else {
+            emailData = emailResult || [];
+            console.log("Email submissions fetched:", emailData.length);
+          }
+        } catch (emailFetchError) {
+          console.error("Error fetching email submissions:", emailFetchError);
+          // Continue despite this error
         }
-        
-        console.log("Email submissions fetched:", emailData?.length || 0);
         
         // Transform the report data to public submission format
         const transformedReportData = reportData
@@ -189,29 +224,10 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Use a Map with a composite key to ensure we don't have duplicates based on multiple criteria
-        const submissionsMap = new Map();
+        // Combine all submissions
+        const combinedSubmissions = [...transformedReportData, ...transformedFormData, ...transformedEmailData];
+        console.log("Combined submissions before deduplication:", combinedSubmissions.length);
         
-        // Process all submissions and deduplicate based on multiple criteria
-        [...transformedReportData, ...transformedFormData, ...transformedEmailData].forEach(submission => {
-          // Create a composite key based on available identifiers
-          // For email submissions, use report_id, title, and pdf_url for more robust deduplication
-          const key = submission.source === "email" 
-            ? `${submission.report_id || ''}|${submission.title}|${submission.pdf_url || ''}`
-            : submission.report_id || submission.id;
-          
-          // Only add if not already in map or if the entry is newer
-          if (!submissionsMap.has(key) || 
-              new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
-            submissionsMap.set(key, submission);
-          }
-        });
-        
-        // Convert map back to array and sort
-        const combinedSubmissions = Array.from(submissionsMap.values())
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        
-        console.log("Combined submissions after deduplication:", combinedSubmissions.length);
         setSubmissions(combinedSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);
@@ -358,9 +374,9 @@ export function PublicSubmissionsList() {
         </div>
       </div>
 
-      {submissions.length > 0 ? (
+      {deduplicatedSubmissions.length > 0 ? (
         <PublicSubmissionsTable 
-          submissions={submissions} 
+          submissions={deduplicatedSubmissions} 
           onAnalyze={handleAnalyze} 
         />
       ) : (

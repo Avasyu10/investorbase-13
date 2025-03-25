@@ -1,2 +1,6 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.auto-analyze-public-pdf]
+verify_jwt = false
+
