@@ -23,44 +23,84 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Creating test email submission with service role key");
+    console.log("Creating Supabase client with service role key");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the test data from the request
-    let testData;
+    // Get the data from the request
+    let requestData;
     try {
-      testData = await req.json();
-      console.log(`Received test data:`, testData);
+      requestData = await req.json();
+      console.log(`Received request data:`, requestData);
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
-      throw new Error("Invalid request format. Expected JSON with email submission data.");
+      throw new Error("Invalid request format. Expected JSON data.");
     }
     
-    if (!testData.from_email || !testData.to_email) {
-      console.error("Missing required fields in test data");
-      throw new Error("from_email and to_email are required");
-    }
+    // Check the action to determine what operation to perform
+    const action = requestData.action || 'create';
+    
+    // LIST operation - fetch recent email submissions
+    if (action === 'list') {
+      console.log("Fetching email submissions with service role");
+      
+      const { data: submissions, error: fetchError } = await supabase
+        .from("email_submissions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
 
-    // Insert the test submission using service role (bypasses RLS)
-    const { data: submission, error: insertError } = await supabase
-      .from("email_submissions")
-      .insert([testData])
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error(`Failed to insert test submission:`, insertError);
-      throw new Error(`Failed to insert test submission: ${insertError.message}`);
-    }
-
-    console.log(`Successfully created test submission with ID: ${submission.id}`);
-
-    return new Response(
-      JSON.stringify(submission),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      if (fetchError) {
+        console.error(`Failed to fetch submissions:`, fetchError);
+        throw new Error(`Failed to fetch submissions: ${fetchError.message}`);
       }
-    );
+
+      console.log(`Found ${submissions?.length || 0} email submissions`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          submissions: submissions || []
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+    
+    // CREATE operation - insert a new test submission
+    if (action === 'create') {
+      if (!requestData.from_email || !requestData.to_email) {
+        console.error("Missing required fields in test data");
+        throw new Error("from_email and to_email are required");
+      }
+      
+      // Create a submission object without the action field
+      const { action: _, ...submissionData } = requestData;
+
+      // Insert the test submission using service role (bypasses RLS)
+      const { data: submission, error: insertError } = await supabase
+        .from("email_submissions")
+        .insert([submissionData])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error(`Failed to insert test submission:`, insertError);
+        throw new Error(`Failed to insert test submission: ${insertError.message}`);
+      }
+
+      console.log(`Successfully created test submission with ID: ${submission.id}`);
+
+      return new Response(
+        JSON.stringify(submission),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+    
+    // Unknown action
+    throw new Error(`Unknown action: ${action}`);
   } catch (error) {
     console.error(`Error in create-test-email-submission function:`, error);
     

@@ -7,40 +7,33 @@ import { toast } from "@/hooks/use-toast";
  */
 export async function checkTriggerSetup() {
   try {
-    // Check if we can query the database functions
-    const { data: triggerFunctions, error: functionsError } = await supabase
-      .from('email_submissions')
-      .select('*')
-      .limit(1);
+    // Call our edge function to check email submissions using the service role key
+    const { data: serviceData, error: serviceError } = await supabase.functions.invoke('create-test-email-submission', {
+      body: { action: 'list' } // Add an action parameter to identify this as a list operation
+    });
     
-    if (functionsError) {
-      console.error("Error checking email_submissions table:", functionsError);
+    if (serviceError) {
+      console.error("Error checking email_submissions with service role:", serviceError);
       toast({
         title: "Trigger check failed",
-        description: "Could not check database triggers. See console for details.",
+        description: "Could not check submissions with service role. See console for details.",
         variant: "destructive"
       });
       return false;
     }
     
-    console.log("Database email_submissions table exists:", triggerFunctions);
+    console.log("Database email_submissions table queried with service role:", serviceData);
     
-    // Try to get information about the trigger
+    // Try to get information about recent submissions
     try {
-      // Execute a simple query to check if the trigger is working
-      const { data, error } = await supabase
-        .from('email_submissions')
-        .select('id, from_email, to_email, subject')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (error) {
-        console.error("Error querying email submissions:", error);
+      // Already using the edge function results
+      if (serviceData && serviceData.submissions) {
+        console.log("Recent email submissions:", serviceData.submissions);
       } else {
-        console.log("Recent email submissions:", data);
+        console.log("No email submissions found or incorrect response format");
       }
     } catch (err) {
-      console.error("Error executing trigger query:", err);
+      console.error("Error processing submissions data:", err);
     }
     
     toast({
@@ -105,19 +98,19 @@ export async function debugTriggerFunction(submissionId: string) {
  */
 export async function viewLatestEmailSubmissions() {
   try {
-    const { data, error } = await supabase
-      .from('email_submissions')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
+    // Use the service role through edge function instead of direct query
+    const { data, error } = await supabase.functions.invoke('create-test-email-submission', {
+      body: { action: 'list' }
+    });
       
     if (error) {
       console.error("Error fetching email submissions:", error);
       return [];
     }
     
-    console.log("Latest email submissions:", data);
-    return data;
+    const submissions = data?.submissions || [];
+    console.log("Latest email submissions:", submissions);
+    return submissions;
   } catch (error) {
     console.error("Error viewing submissions:", error);
     return [];
@@ -138,7 +131,8 @@ export async function createTestSubmission() {
       subject: 'Test Submission for Debugging',
       email_body: 'This is a test submission for debugging the trigger.',
       attachment_url: '6737d05825e11f73f6d5a289_Ndc8GMUtaMNHOXDfqftyW1Jb7b5h2JE_ThY_Joc5Cf8.pdf',
-      has_attachments: true
+      has_attachments: true,
+      action: 'create' // Add action parameter to identify this as a create operation
     };
     
     // Use edge function to create submission which will bypass RLS
