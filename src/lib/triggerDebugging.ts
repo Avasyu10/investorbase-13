@@ -7,20 +7,28 @@ import { toast } from "@/hooks/use-toast";
  */
 export async function checkTriggerSetup() {
   try {
-    // Call our edge function to check email submissions using the service role key
-    const { data: serviceData, error: serviceError } = await supabase.functions.invoke('create-test-email-submission', {
-      body: { action: 'list' } // Add an action parameter to identify this as a list operation
-    });
+    console.log("Checking email submissions with service role...");
     
-    if (serviceError) {
-      console.error("Error checking email_submissions with service role:", serviceError);
-      toast({
-        title: "Trigger check failed",
-        description: "Could not check submissions with service role. See console for details.",
-        variant: "destructive"
-      });
-      return false;
+    // Call our edge function to check email submissions using the service role key
+    const response = await fetch(
+      "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/create-test-email-submission",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
+        },
+        body: JSON.stringify({ action: 'list' })
+      }
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error response from service role function:`, errorText);
+      throw new Error(`Failed to check submissions with service role: ${response.status} ${response.statusText}`);
     }
+    
+    const serviceData = await response.json();
     
     console.log("Database email_submissions table queried with service role:", serviceData);
     
@@ -46,7 +54,7 @@ export async function checkTriggerSetup() {
     console.error("Error checking triggers:", error);
     toast({
       title: "Trigger check failed",
-      description: "An error occurred when checking triggers",
+      description: "Could not check submissions with service role. See console for details.",
       variant: "destructive"
     });
     return false;
@@ -98,17 +106,28 @@ export async function debugTriggerFunction(submissionId: string) {
  */
 export async function viewLatestEmailSubmissions() {
   try {
-    // Use the service role through edge function instead of direct query
-    const { data, error } = await supabase.functions.invoke('create-test-email-submission', {
-      body: { action: 'list' }
-    });
-      
-    if (error) {
-      console.error("Error fetching email submissions:", error);
-      return [];
+    // Use direct fetch to edge function instead of supabase client
+    const response = await fetch(
+      "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/create-test-email-submission",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
+        },
+        body: JSON.stringify({ action: 'list' })
+      }
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error response from list submissions function:`, errorText);
+      throw new Error(`Failed to fetch submissions: ${response.status} ${response.statusText}`);
     }
     
+    const data = await response.json();
     const submissions = data?.submissions || [];
+    
     console.log("Latest email submissions:", submissions);
     return submissions;
   } catch (error) {
@@ -135,20 +154,26 @@ export async function createTestSubmission() {
       action: 'create' // Add action parameter to identify this as a create operation
     };
     
-    // Use edge function to create submission which will bypass RLS
-    const { data, error } = await supabase.functions.invoke('create-test-email-submission', {
-      body: testData
-    });
+    // Use direct fetch to edge function instead of supabase client
+    const response = await fetch(
+      "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/create-test-email-submission",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY"
+        },
+        body: JSON.stringify(testData)
+      }
+    );
     
-    if (error) {
-      console.error("Error calling create-test-email-submission function:", error);
-      toast({
-        title: "Test creation failed",
-        description: `Error: ${error.message}`,
-        variant: "destructive"
-      });
-      return null;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error response from create submission function:`, errorText);
+      throw new Error(`Failed to create test submission: ${response.status} ${response.statusText}`);
     }
+    
+    const data = await response.json();
     
     if (!data || !data.id) {
       console.error("No submission ID returned from function");
