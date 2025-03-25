@@ -442,7 +442,7 @@ export function ReportUpload({
       } else if (isPublic) {
         setProgress(100);
         toast.success("Submission received", {
-          description: "Your pitch deck has been submitted successfully! Results will be sent to your email."
+          description: "Your pitch deck has been submitted successfully!"
         });
         
         setFile(null);
