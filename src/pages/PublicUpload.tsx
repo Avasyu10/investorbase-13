@@ -133,7 +133,7 @@ const PublicUpload = () => {
             <AlertCircle className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-800">Success!</AlertTitle>
             <AlertDescription className="text-green-700">
-              Your pitch deck has been submitted successfully. We'll analyze it and send the results to your email.
+              Your pitch deck has been submitted successfully.
             </AlertDescription>
           </Alert>
         ) : (
