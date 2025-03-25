@@ -157,13 +157,8 @@ serve(async (req) => {
       new Date(payload.received_at).toISOString() : 
       new Date().toISOString();
     
-    // Generate a unique external_id if none was provided
-    // We'll use a combination of timestamp and random string to ensure uniqueness
-    const external_id = `mail_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    
     // Prepare the data for insertion into our new table
     const insertData = {
-      external_id, // Add the generated external_id
       company_name: payload.company_name || null,
       received_at: receivedDate,
       processed_at: payload.processed_at ? new Date(payload.processed_at).toISOString() : null,

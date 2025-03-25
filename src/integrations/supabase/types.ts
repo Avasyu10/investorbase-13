@@ -117,7 +117,7 @@ export type Database = {
           attachment_url: string | null
           company_name: string | null
           created_at: string
-          external_id: string | null
+          external_id: string
           has_attachment: boolean | null
           id: string
           processed_at: string | null
@@ -134,7 +134,7 @@ export type Database = {
           attachment_url?: string | null
           company_name?: string | null
           created_at?: string
-          external_id?: string | null
+          external_id: string
           has_attachment?: boolean | null
           id?: string
           processed_at?: string | null
@@ -151,7 +151,7 @@ export type Database = {
           attachment_url?: string | null
           company_name?: string | null
           created_at?: string
-          external_id?: string | null
+          external_id?: string
           has_attachment?: boolean | null
           id?: string
           processed_at?: string | null
