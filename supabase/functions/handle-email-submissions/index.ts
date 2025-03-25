@@ -170,9 +170,6 @@ serve(async (req) => {
       new Date(payload.received_at).toISOString() : 
       new Date().toISOString();
     
-    // Create a simple string for the email body
-    const emailBody = `Email from ${senderEmail} received at ${receivedDate}`;
-    
     // Prepare the data for insertion into our new table
     const insertData = {
       external_id: payload.id,

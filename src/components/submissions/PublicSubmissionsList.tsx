@@ -114,25 +114,35 @@ export function PublicSubmissionsList() {
         
         console.log("Email submissions fetched:", emailData?.length || 0);
         
-        // Fetch email pitch submissions for the current user
-        const { data: emailPitchData, error: emailPitchError } = await supabase
-          .from('email_pitch_submissions')
-          .select(`
-            *,
-            reports:report_id (
-              id,
-              company_id,
-              analysis_status
-            )
-          `)
-          .eq('sender_email', user.email)
-          .order('created_at', { ascending: false });
+        // Try to fetch email pitch submissions
+        let emailPitchData = [];
+        try {
+          // Fetch all email pitch submissions and filter client-side
+          const { data: pitchData, error: emailPitchError } = await supabase
+            .from('email_pitch_submissions')
+            .select(`
+              *,
+              reports:report_id (
+                id,
+                company_id,
+                analysis_status
+              )
+            `)
+            .order('created_at', { ascending: false });
           
-        if (emailPitchError) {
-          console.error("Error fetching email pitch submissions:", emailPitchError);
-          // Continue with other data, don't throw error
-        } else {
-          console.log("Email pitch submissions fetched:", emailPitchData?.length || 0);
+          if (emailPitchError) {
+            console.error("Error fetching email pitch submissions:", emailPitchError);
+            // Continue with other data, don't throw error
+          } else {
+            console.log("Email pitch submissions fetched:", pitchData?.length || 0);
+            // Filter on client side to match current user's email
+            emailPitchData = pitchData?.filter(submission => 
+              submission.sender_email === user.email
+            ) || [];
+          }
+        } catch (pitchError) {
+          console.error("Error in pitch email fetch:", pitchError);
+          // Continue with other data
         }
         
         // Transform the report data to public submission format
@@ -209,8 +219,8 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
-        // Transform email pitch submissions data - using emailPitchData or empty array if undefined
-        const transformedEmailPitchData = (emailPitchData || [])
+        // Transform email pitch submissions data
+        const transformedEmailPitchData = emailPitchData
           .filter(submission => {
             // Include submissions where:
             // 1. Report doesn't exist, or

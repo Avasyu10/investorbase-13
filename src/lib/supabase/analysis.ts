@@ -60,3 +60,32 @@ export async function analyzeReport(reportId: string) {
     throw error;
   }
 }
+
+// Helper function to check if a submission is already being analyzed or has already been analyzed
+export async function checkAnalysisStatus(reportId: string) {
+  try {
+    console.log('Checking analysis status for report:', reportId);
+    
+    const { data, error } = await supabase
+      .from('reports')
+      .select('analysis_status, analysis_error, company_id')
+      .eq('id', reportId)
+      .single();
+      
+    if (error) {
+      console.error('Error checking analysis status:', error);
+      return { status: 'unknown', error: error.message };
+    }
+    
+    console.log('Analysis status for report:', data);
+    
+    return {
+      status: data.analysis_status,
+      error: data.analysis_error,
+      companyId: data.company_id
+    };
+  } catch (error) {
+    console.error('Error checking analysis status:', error);
+    return { status: 'unknown', error: 'Error checking analysis status' };
+  }
+}
