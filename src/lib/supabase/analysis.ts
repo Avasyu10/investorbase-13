@@ -1,14 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
-import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
+import { ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
 
-// These are provided by your Supabase project
 const supabaseUrl = 'https://jhtnruktmtjqrfoiyrep.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Types for our database
 export type Report = {
   id: string;
   title: string;
@@ -22,8 +20,6 @@ export type Report = {
   analysis_error?: string;
 };
 
-// Functions to interact with Supabase
-
 export async function getReports() {
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -32,7 +28,6 @@ export async function getReports() {
     return [];
   }
 
-  // Get reports from the reports table - strictly enforcing user_id filter
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
@@ -60,7 +55,6 @@ export async function getReportById(id: string) {
     throw new Error('User not authenticated');
   }
 
-  // Get the report from the reports table - strictly enforcing user_id filter
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*')
@@ -80,19 +74,15 @@ export async function getReportById(id: string) {
   const report = tableData as Report;
 
   try {
-    // Download the file
     const pdfBlob = await downloadReport(report.pdf_url, user.id);
     
-    // Parse the PDF content
     const parsedSegments = await parsePdfFromBlob(pdfBlob);
     
-    // Add parsed segments to the report
     report.parsedSegments = parsedSegments;
     
     return report;
   } catch (error) {
     console.error('Error parsing PDF content:', error);
-    // Return the report without parsed segments if parsing fails
     return report;
   }
 }
@@ -112,7 +102,6 @@ export async function downloadReport(fileUrl: string, userId: string) {
 
 export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
   try {
-    // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -121,7 +110,6 @@ export async function uploadReport(file: File, title: string, description: strin
     
     console.log('Uploading report for user:', user.id);
     
-    // If website URL is provided, scrape it first
     let scrapedContent = null;
     if (websiteUrl && websiteUrl.trim()) {
       try {
@@ -142,7 +130,6 @@ export async function uploadReport(file: File, title: string, description: strin
           scrapedContent = data.scrapedContent;
           console.log('Website scraped successfully:', scrapedContent.substring(0, 100) + '...');
           
-          // Store scraped content in database for debugging
           const { error: storeError } = await supabase
             .from('website_scrapes')
             .insert({
@@ -155,7 +142,6 @@ export async function uploadReport(file: File, title: string, description: strin
             console.error('Error storing scraped content:', storeError);
           }
           
-          // Enhance description with scraped content
           if (description) {
             description += '\n\nWebsite Content:\n' + scrapedContent;
           } else {
@@ -165,7 +151,6 @@ export async function uploadReport(file: File, title: string, description: strin
       } catch (scrapingError) {
         console.error('Error during website scraping:', scrapingError);
         
-        // Store scraping error in database
         try {
           await supabase
             .from('website_scrapes')
@@ -180,12 +165,10 @@ export async function uploadReport(file: File, title: string, description: strin
       }
     }
     
-    // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
     
-    // Upload the file to storage
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
       .upload(filePath, file);
@@ -197,7 +180,6 @@ export async function uploadReport(file: File, title: string, description: strin
     
     console.log('File uploaded to storage successfully, saving record to database');
     
-    // Insert a record in the reports table
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
@@ -216,7 +198,6 @@ export async function uploadReport(file: File, title: string, description: strin
 
     console.log('Report record created successfully:', report);
     
-    // If we scraped a website, update the website_scrapes table with report_id
     if (scrapedContent && report) {
       const { error: updateError } = await supabase
         .from('website_scrapes')
@@ -226,7 +207,6 @@ export async function uploadReport(file: File, title: string, description: strin
         
       if (updateError) {
         console.error('Error linking scrape to report:', updateError);
-        // Non-blocking error, continue
       }
     }
     
@@ -241,7 +221,6 @@ export async function analyzeReport(reportId: string) {
   try {
     console.log('Starting analysis for report:', reportId);
     
-    // Call the analyze-pdf edge function
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
       body: { reportId }
     });
@@ -249,7 +228,6 @@ export async function analyzeReport(reportId: string) {
     if (error) {
       console.error('Error invoking analyze-pdf function:', error);
       
-      // Update report status to failed
       await supabase
         .from('reports')
         .update({
@@ -265,7 +243,6 @@ export async function analyzeReport(reportId: string) {
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
-      // Update report status to failed
       await supabase
         .from('reports')
         .update({
@@ -279,7 +256,6 @@ export async function analyzeReport(reportId: string) {
     
     console.log('Analysis result:', data);
     
-    // Update report status to completed
     await supabase
       .from('reports')
       .update({
@@ -299,12 +275,10 @@ export async function analyzeReportDirect(file: File, title: string, description
   try {
     console.log('Converting file to base64...');
     
-    // Convert file to base64
     const base64String = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // Extract just the base64 data part
         const base64 = result.split(',')[1];
         resolve(base64);
       };
@@ -314,7 +288,6 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('File converted to base64, calling analyze-pdf-direct function');
     
-    // Call the edge function without authentication
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
@@ -380,7 +353,6 @@ export async function uploadPublicReport(file: File, title: string, description:
   try {
     console.log('Uploading public report');
     
-    // Create FormData for direct submission to the edge function
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', title);
@@ -394,7 +366,6 @@ export async function uploadPublicReport(file: File, title: string, description:
       formData.append('websiteUrl', websiteUrl);
     }
     
-    // Use direct fetch to edge function instead of Supabase client
     const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
       method: 'POST',
       body: formData,
@@ -414,6 +385,26 @@ export async function uploadPublicReport(file: File, title: string, description:
     return { id: result.reportId };
   } catch (error) {
     console.error('Error uploading public report:', error);
+    throw error;
+  }
+}
+
+export async function autoAnalyzePublicReport(reportId: string) {
+  try {
+    console.log('Auto-analyzing public report:', reportId);
+    
+    const { data, error } = await supabase.functions.invoke('analyze-public-pdf', {
+      body: { reportId }
+    });
+    
+    if (error) {
+      console.error('Error auto-analyzing public report:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in autoAnalyzePublicReport:', error);
     throw error;
   }
 }

@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { apiClient } from '@/lib/api/apiClient';
 import { CompanyDetailed } from '@/lib/api/apiContract';
 import { formatCompanyData } from './utils';
-import { autoAnalyzePublicReport } from '@/lib/supabase/analysis';
+
+// Remove the autoAnalyzePublicReport import since it doesn't exist
 
 export function useCompanyDetails(companyId: string | undefined) {
   const [company, setCompany] = useState<CompanyDetailed | null>(null);
@@ -48,15 +48,8 @@ export function useCompanyDetails(companyId: string | undefined) {
             setIsLoading(false);
             
             // If there's a report_id and the company is from a public submission,
-            // check if it should be auto-analyzed
-            if (companyData.report_id && companyData.source === 'public_url') {
-              try {
-                await autoAnalyzePublicReport(companyData.report_id);
-              } catch (autoAnalyzeError) {
-                console.error('Non-blocking error checking auto-analyze:', autoAnalyzeError);
-                // Non-blocking, continue with rendering the company
-              }
-            }
+            // we don't need to auto-analyze since the function doesn't exist
+            // Remove the auto-analyze call
             
             return;
           }
@@ -97,15 +90,8 @@ export function useCompanyDetails(companyId: string | undefined) {
             setIsLoading(false);
             
             // If there's a report_id and the company is from a public submission,
-            // check if it should be auto-analyzed
-            if (companyData.report_id && companyData.source === 'public_url') {
-              try {
-                await autoAnalyzePublicReport(companyData.report_id);
-              } catch (autoAnalyzeError) {
-                console.error('Non-blocking error checking auto-analyze:', autoAnalyzeError);
-                // Non-blocking, continue with rendering the company
-              }
-            }
+            // we don't need to auto-analyze since the function doesn't exist
+            // Remove the auto-analyze call
             
             return;
           }
