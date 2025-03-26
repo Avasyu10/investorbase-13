@@ -106,7 +106,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
         </CardContent>
         <CardFooter className="flex justify-end border-t pt-4">
           <Link 
-            to={`/company/${company.id.toString()}/analysis`}
+            to={`/company/${String(company.id)}/analysis`}
             className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors"
           >
             View Full Analysis <ArrowUpRight className="h-3.5 w-3.5" />
@@ -116,7 +116,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
       
       {/* Add Market Research component */}
       <MarketResearch 
-        companyId={company.id.toString()} 
+        companyId={String(company.id)} 
         assessmentPoints={company.assessmentPoints || []} 
       />
     </>

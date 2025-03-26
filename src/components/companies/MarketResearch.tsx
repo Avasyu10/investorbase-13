@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -30,10 +29,14 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     const checkExistingResearch = async () => {
       try {
         setIsCheckingExisting(true);
+        
+        // Ensure companyId is a string
+        const companyIdStr = String(companyId);
+        
         const { data, error } = await supabase
           .from('market_research')
           .select('*')
-          .eq('company_id', companyId)
+          .eq('company_id', companyIdStr)
           .order('requested_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -64,10 +67,18 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     try {
       setIsLoading(true);
       
+      // Ensure companyId is a string
+      const companyIdStr = String(companyId);
+      
+      console.log('Calling real-time-perplexity-research function with:', {
+        companyId: companyIdStr,
+        assessmentPoints: assessmentPoints.length
+      });
+      
       // Call the edge function to get real-time research
       const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
         body: { 
-          companyId,
+          companyId: companyIdStr,
           assessmentPoints 
         }
       });
