@@ -15,11 +15,6 @@ const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { companyId, sectionId } = useParams<{ companyId: string; sectionId: string }>();
-  
-  // Ensure we have valid IDs, converting string to number when needed for API calls
-  const companyIdNum = companyId ? parseInt(companyId, 10) : undefined;
-  const sectionIdNum = sectionId ? parseInt(sectionId, 10) : undefined;
-  
   const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
   const { section, isLoading: sectionLoading } = useSectionDetails(companyId, sectionId);
   const [isModalOpen, setIsModalOpen] = useState(false);
