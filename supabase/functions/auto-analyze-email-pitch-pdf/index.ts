@@ -4,20 +4,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 import { corsHeaders } from "./cors.ts";
 
 serve(async (req) => {
+  console.log("=========== AUTO-ANALYZE FUNCTION STARTED ===========");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { 
       headers: corsHeaders,
       status: 204
     });
   }
 
-  console.log("Auto-analyze-email-pitch-pdf function called");
+  console.log("Processing request method:", req.method);
   
   try {
     // Get environment variables
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    console.log("Environment variables check:");
+    console.log("- SUPABASE_URL present:", !!SUPABASE_URL);
+    console.log("- SUPABASE_SERVICE_ROLE_KEY present:", !!SUPABASE_SERVICE_ROLE_KEY);
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.error("Missing Supabase environment variables");
@@ -25,21 +32,36 @@ serve(async (req) => {
     }
     
     // Create Supabase client with admin privileges
+    console.log("Creating Supabase client");
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
     // Parse request data
     let submissionId;
+    let requestBody;
     try {
       console.log("Parsing request body");
-      const body = await req.json();
-      console.log("Request body:", JSON.stringify(body));
-      submissionId = body.id;
-      console.log(`Received submission ID: ${submissionId}`);
+      const bodyText = await req.text();
+      console.log("Raw request body:", bodyText);
+      
+      try {
+        requestBody = JSON.parse(bodyText);
+        console.log("Parsed JSON body:", JSON.stringify(requestBody));
+        submissionId = requestBody.id;
+        console.log(`Received submission ID: ${submissionId}`);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.log("Attempting to parse body as URL-encoded");
+        
+        // Try to parse as URL-encoded form data
+        const formData = new URLSearchParams(bodyText);
+        submissionId = formData.get('id');
+        console.log(`Extracted submission ID from form data: ${submissionId}`);
+      }
     } catch (e) {
-      console.error("Error parsing request JSON:", e);
+      console.error("Error accessing request body:", e);
       return new Response(
         JSON.stringify({ 
-          error: "Invalid request format. Expected JSON with id property.",
+          error: "Invalid request format. Could not read request body.",
           success: false
         }),
         { 
@@ -66,6 +88,7 @@ serve(async (req) => {
     console.log(`Processing email pitch submission: ${submissionId}`);
     
     // Get the submission
+    console.log("Fetching submission data from database");
     const { data: submission, error: submissionError } = await serviceClient
       .from('email_pitch_submissions')
       .select('sender_email, report_id, attachment_url')
@@ -73,7 +96,7 @@ serve(async (req) => {
       .maybeSingle();
       
     if (submissionError) {
-      console.error("Error fetching submission:", submissionError);
+      console.error("Database error fetching submission:", submissionError);
       return new Response(
         JSON.stringify({ error: submissionError.message, success: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -81,7 +104,7 @@ serve(async (req) => {
     }
     
     if (!submission) {
-      console.error("Submission not found");
+      console.error("Submission not found in database");
       return new Response(
         JSON.stringify({ error: "Submission not found", success: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
@@ -89,6 +112,7 @@ serve(async (req) => {
     }
     
     console.log(`Found submission for email: ${submission.sender_email}`);
+    console.log("Full submission data:", JSON.stringify(submission));
     
     // If there's no attachment URL, we can't proceed with analysis
     if (!submission.attachment_url) {
@@ -109,9 +133,10 @@ serve(async (req) => {
       console.log(`Submission already has a report ID: ${submission.report_id}`);
       
       // Check if auto-analyze is enabled for this sender
+      console.log("Checking if auto-analyze is enabled for sender");
       const { data: investorPitchEmail, error: emailError } = await serviceClient
         .from('investor_pitch_emails')
-        .select('auto_analyze')
+        .select('auto_analyze, email_address')
         .eq('email_address', submission.sender_email)
         .maybeSingle();
         
@@ -119,6 +144,7 @@ serve(async (req) => {
         console.error("Error fetching investor pitch email settings:", emailError);
       }
       
+      console.log("Investor pitch email settings:", JSON.stringify(investorPitchEmail));
       const autoAnalyzeEnabled = investorPitchEmail?.auto_analyze || false;
       
       if (!autoAnalyzeEnabled) {
@@ -136,25 +162,36 @@ serve(async (req) => {
       console.log(`Auto-analyze enabled for ${submission.sender_email}, proceeding with analysis`);
       
       // Set the report status to pending
-      await serviceClient
+      console.log("Updating report status to pending");
+      const { error: updateError } = await serviceClient
         .from('reports')
         .update({ 
           analysis_status: 'pending',
           analysis_error: null
         })
         .eq('id', submission.report_id);
+        
+      if (updateError) {
+        console.error("Error updating report status:", updateError);
+      }
       
       // Invoke the analyze-public-pdf function
       console.log(`Calling analyze-public-pdf for report ID: ${submission.report_id}`);
       try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
+        const analysePdfUrl = `${SUPABASE_URL}/functions/v1/analyze-public-pdf`;
+        console.log(`Making request to: ${analysePdfUrl}`);
+        
+        const response = await fetch(analysePdfUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...corsHeaders
           },
           body: JSON.stringify({ reportId: submission.report_id })
         });
+        
+        console.log(`analyze-public-pdf response status: ${response.status}`);
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -166,6 +203,7 @@ serve(async (req) => {
         console.log('Analysis completed successfully:', JSON.stringify(analysisResult));
         
         // Update the email_pitch_submissions record with the analysis status
+        console.log("Updating email_pitch_submissions record with analysis status");
         await serviceClient
           .from('email_pitch_submissions')
           .update({
@@ -189,6 +227,7 @@ serve(async (req) => {
       
       // Create a new report for the PDF
       try {
+        console.log("Creating new report record");
         const { data: report, error: reportError } = await serviceClient
           .from('reports')
           .insert({
@@ -212,17 +251,23 @@ serve(async (req) => {
         console.log(`Created new report with ID: ${report.id}`);
         
         // Update the email_pitch_submissions record with the report_id
-        await serviceClient
+        console.log("Updating email_pitch_submissions with report_id");
+        const { error: updateError } = await serviceClient
           .from('email_pitch_submissions')
           .update({
             report_id: report.id
           })
           .eq('id', submissionId);
+          
+        if (updateError) {
+          console.error("Error updating email_pitch_submissions:", updateError);
+        }
         
         // Check if auto-analyze is enabled for this sender
+        console.log("Checking if auto-analyze is enabled for sender");
         const { data: investorPitchEmail, error: emailError } = await serviceClient
           .from('investor_pitch_emails')
-          .select('auto_analyze')
+          .select('auto_analyze, email_address')
           .eq('email_address', submission.sender_email)
           .maybeSingle();
           
@@ -230,6 +275,7 @@ serve(async (req) => {
           console.error("Error fetching investor pitch email settings:", emailError);
         }
         
+        console.log("Investor pitch email settings:", JSON.stringify(investorPitchEmail));
         const autoAnalyzeEnabled = investorPitchEmail?.auto_analyze || false;
         
         if (!autoAnalyzeEnabled) {
@@ -250,14 +296,20 @@ serve(async (req) => {
         // Invoke the analyze-public-pdf function
         console.log(`Calling analyze-public-pdf for report ID: ${report.id}`);
         try {
-          const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
+          const analysePdfUrl = `${SUPABASE_URL}/functions/v1/analyze-public-pdf`;
+          console.log(`Making request to: ${analysePdfUrl}`);
+          
+          const response = await fetch(analysePdfUrl, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              ...corsHeaders
             },
             body: JSON.stringify({ reportId: report.id })
           });
+          
+          console.log(`analyze-public-pdf response status: ${response.status}`);
           
           if (!response.ok) {
             const errorText = await response.text();
@@ -269,6 +321,7 @@ serve(async (req) => {
           console.log('Analysis completed successfully:', JSON.stringify(analysisResult));
           
           // Update the email_pitch_submissions record with the analysis status
+          console.log("Updating email_pitch_submissions record with analysis status");
           await serviceClient
             .from('email_pitch_submissions')
             .update({
@@ -305,5 +358,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: error instanceof Error && error.message.includes('not found') ? 404 : 500
     });
+  } finally {
+    console.log("=========== AUTO-ANALYZE FUNCTION COMPLETED ===========");
   }
 });
