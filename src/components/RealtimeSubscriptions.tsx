@@ -35,10 +35,8 @@ export function RealtimeSubscriptions() {
           })
           .then(response => {
             console.log('Auto-analyze function response received');
-            console.log('Response status:', response.status);
-            console.log('Response data:', response.data);
-            console.log('Response error:', response.error);
             
+            // Fix: Check response.error first since status may not exist on error responses
             if (response.error) {
               console.error('Error from auto-analyze function:', response.error);
               
@@ -69,6 +67,10 @@ export function RealtimeSubscriptions() {
               });
               return;
             }
+            
+            // Now it's safe to check data and status
+            console.log('Response status:', response.status);
+            console.log('Response data:', response.data);
             
             toast({
               title: 'New pitch submission',

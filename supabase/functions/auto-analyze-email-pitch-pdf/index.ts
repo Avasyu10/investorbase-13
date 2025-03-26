@@ -7,6 +7,7 @@ serve(async (req) => {
   // Initialize failure flag
   let hasFailedEarly = false;
   let failureReason = '';
+  let requestInfo = {};
   
   console.log("=========== AUTO-ANALYZE FUNCTION STARTED v2 ===========");
   
@@ -14,6 +15,13 @@ serve(async (req) => {
     // First, log the basic request information
     console.log("Request method:", req.method);
     console.log("Request URL:", req.url);
+    
+    // Log all request headers for debugging
+    const headers = {};
+    req.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    console.log("Request headers:", JSON.stringify(headers));
     
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -46,6 +54,7 @@ serve(async (req) => {
         console.log("Attempting to parse as JSON");
         requestBody = JSON.parse(bodyText);
         console.log("Parsed JSON body:", JSON.stringify(requestBody));
+        requestInfo = { requestBody };
         
         // Extract the submission ID
         submissionId = requestBody.id;
@@ -58,6 +67,7 @@ serve(async (req) => {
         const formData = new URLSearchParams(bodyText);
         submissionId = formData.get('id');
         console.log(`Extracted submission ID from form data: ${submissionId}`);
+        requestInfo = { formData: Object.fromEntries(formData.entries()) };
         
         if (!submissionId) {
           failureReason = 'Could not parse request body as JSON or form data';
@@ -70,7 +80,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         error: failureReason || "Invalid request format: " + bodyError.message,
         success: false,
-        bodyReceived: bodyText
+        bodyReceived: bodyText,
+        requestInfo
       }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
@@ -83,7 +94,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         error: "Submission ID is required",
         success: false,
-        bodyReceived: bodyText
+        bodyReceived: bodyText,
+        requestInfo
       }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
@@ -104,7 +116,9 @@ serve(async (req) => {
       console.error("Missing Supabase environment variables");
       return new Response(JSON.stringify({ 
         error: "Server configuration error: Missing environment variables",
-        success: false
+        success: false,
+        supabaseUrl: !!SUPABASE_URL,
+        supabaseKey: !!SUPABASE_SERVICE_ROLE_KEY
       }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
@@ -152,7 +166,8 @@ serve(async (req) => {
         console.error("Submission not found");
         return new Response(JSON.stringify({ 
           error: "Submission not found",
-          success: false
+          success: false,
+          submissionId
         }), { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404 
@@ -166,7 +181,8 @@ serve(async (req) => {
         console.error("No attachment URL found");
         return new Response(JSON.stringify({ 
           error: "No attachment URL found in submission",
-          success: false
+          success: false,
+          submission: JSON.stringify(submission)
         }), { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -214,7 +230,6 @@ serve(async (req) => {
       }
       
       // Return success without calling analyze-public-pdf for now
-      // This is just to test if we can get this far
       return new Response(JSON.stringify({ 
         success: true, 
         message: "Test report created successfully",
