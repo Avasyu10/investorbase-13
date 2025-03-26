@@ -1,21 +1,22 @@
-import { Home } from "@/pages/Home";
-import { Login } from "@/pages/Login";
-import { Signup } from "@/pages/Signup";
-import { Dashboard } from "@/pages/Dashboard";
-import { Upload } from "@/pages/Upload";
-import { Report } from "@/pages/Report";
-import { CompanyPage } from "@/pages/CompanyPage";
-import { SectionPage } from "@/pages/SectionPage";
-import { Supplementary } from "@/pages/Supplementary";
-import { PublicForm } from "@/pages/PublicForm";
-import { PublicSubmission } from "@/pages/PublicSubmission";
-import { AnalysisSummary } from "@/pages/AnalysisSummary";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import Dashboard from "@/pages/Dashboard";
+import UploadReport from "@/pages/UploadReport";
+import Report from "@/pages/Report";
+import CompanyPage from "@/pages/CompanyPage";
+import SectionPage from "@/pages/SectionPage";
+import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
+import PublicUpload from "@/pages/PublicUpload";
+import AnalysisSummary from "@/pages/AnalysisSummary";
+import NotFound from "@/pages/NotFound";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export const routes = [
   {
     path: "/",
-    element: <Home />,
+    element: <Index />,
   },
   {
     path: "/login",
@@ -37,7 +38,7 @@ export const routes = [
     path: "/upload",
     element: (
       <ProtectedRoute>
-        <Upload />
+        <UploadReport />
       </ProtectedRoute>
     ),
   },
@@ -77,17 +78,13 @@ export const routes = [
     path: "/company/:companyId/supplementary",
     element: (
       <ProtectedRoute>
-        <Supplementary />
+        <SupplementaryMaterials />
       </ProtectedRoute>
     ),
   },
   {
-    path: "/public-form",
-    element: <PublicForm />,
-  },
-  {
-    path: "/public-submission/:submissionId",
-    element: <PublicSubmission />,
+    path: "/public-upload",
+    element: <PublicUpload />,
   },
   {
     path: "/company/:companyId/analysis",
@@ -97,4 +94,8 @@ export const routes = [
       </ProtectedRoute>
     ),
   },
+  {
+    path: "*",
+    element: <NotFound />,
+  }
 ];

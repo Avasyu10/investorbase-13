@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
@@ -104,7 +103,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
       </CardContent>
       <CardFooter className="flex justify-end border-t pt-4">
         <Link 
-          to={`/company/${company.id}/analysis`} 
+          to={`/company/${company.id.toString()}/analysis`}
           className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors"
         >
           View Full Analysis <ArrowUpRight className="h-3.5 w-3.5" />
