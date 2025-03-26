@@ -20,7 +20,6 @@ interface MailSender {
 }
 
 interface WebhookPayload {
-  id: string;
   received_at: string;
   processed_at: string;
   company_name: string;
@@ -62,146 +61,52 @@ serve(async (req) => {
     // Check if we're dealing with a URL-encoded format or JSON
     let payload: WebhookPayload;
     
-    if (reqText.includes('=') && (reqText.includes('mail_attachment') || reqText.includes('mail_sender'))) {
+    if (reqText.startsWith('?') || reqText.includes('&')) {
       // Handle URL-encoded format
-      console.log("Detected URL-encoded format with nested arrays");
+      console.log("Detected URL-encoded format");
       
-      // Remove leading ? if present
-      const cleanText = reqText.startsWith('?') ? reqText.substring(1) : reqText;
+      // Parse URL-encoded data
+      const params = new URLSearchParams(reqText.startsWith('?') ? reqText.substring(1) : reqText);
       
-      try {
-        // Parse URL-encoded data
-        const params = new URLSearchParams(cleanText);
-        
-        // Get all parameter keys to identify array indices
-        const paramKeys = Array.from(params.keys());
-        
-        // Extract the id and basic fields first
-        const id = params.get('id');
-        if (!id) {
-          console.error("Missing required ID field");
-          return new Response(
-            JSON.stringify({ 
-              error: "Missing required ID field",
-              params: Object.fromEntries(params),
-              rawText: reqText
-            }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
-        }
-        
-        console.log("Extracted ID:", id);
-        
-        // Extract other basic fields
-        const received_at = params.get('received_at') || '';
-        const processed_at = params.get('processed_at') || '';
-        const company_name = params.get('company_name') || '';
-        
-        // Extract mail_attachment data by finding all keys that match the pattern
-        const mailAttachments: MailAttachment[] = [];
-        const attachmentIndices = new Set<number>();
-        
-        paramKeys.forEach(key => {
-          if (key.startsWith('mail_attachment[')) {
-            // Extract the index from the key, e.g. "mail_attachment[0][key_0]" → 0
-            const indexMatch = key.match(/mail_attachment\[(\d+)\]/);
-            if (indexMatch && indexMatch[1]) {
-              attachmentIndices.add(parseInt(indexMatch[1]));
-            }
-          }
+      // Extract mail_attachment data
+      const mail_attachment: MailAttachment[] = [];
+      let index = 0;
+      while (params.has(`mail_attachment[${index}][key_0]`)) {
+        mail_attachment.push({
+          key_0: params.get(`mail_attachment[${index}][key_0]`) || '',
+          key_1: params.get(`mail_attachment[${index}][key_1]`) || ''
         });
-        
-        // Now process each index we found
-        attachmentIndices.forEach(index => {
-          const key0 = params.get(`mail_attachment[${index}][key_0]`);
-          const key1 = params.get(`mail_attachment[${index}][key_1]`);
-          
-          if (key0 && key1) {
-            mailAttachments.push({
-              key_0: key0,
-              key_1: key1
-            });
-          }
-        });
-        
-        console.log("Extracted attachments:", mailAttachments);
-        
-        // Extract mail_sender data similarly
-        const mailSenders: MailSender[] = [];
-        const senderIndices = new Set<number>();
-        
-        paramKeys.forEach(key => {
-          if (key.startsWith('mail_sender[')) {
-            const indexMatch = key.match(/mail_sender\[(\d+)\]/);
-            if (indexMatch && indexMatch[1]) {
-              senderIndices.add(parseInt(indexMatch[1]));
-            }
-          }
-        });
-        
-        senderIndices.forEach(index => {
-          const name = params.get(`mail_sender[${index}][name]`);
-          const address = params.get(`mail_sender[${index}][address]`);
-          
-          if (address) { // Address is required, name can be optional
-            mailSenders.push({
-              name: name || '',
-              address: address
-            });
-          }
-        });
-        
-        console.log("Extracted senders:", mailSenders);
-        
-        // Construct the payload object
-        payload = {
-          id,
-          received_at,
-          processed_at,
-          company_name,
-          mail_attachment: mailAttachments.length > 0 ? mailAttachments : undefined,
-          mail_sender: mailSenders.length > 0 ? mailSenders : []
-        };
-        
-        // Make sure we have at least one sender
-        if (payload.mail_sender.length === 0) {
-          return new Response(
-            JSON.stringify({ 
-              error: "No valid mail sender found",
-              params: Object.fromEntries(params)
-            }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
-        }
-        
-        console.log("Parsed URL-encoded payload:", JSON.stringify(payload, null, 2));
-      } catch (parseError) {
-        console.error("Error parsing URL-encoded data:", parseError);
-        return new Response(
-          JSON.stringify({ 
-            error: "Failed to parse URL-encoded data", 
-            details: parseError.message,
-            rawText: reqText
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        index++;
       }
+      
+      // Extract mail_sender data
+      const mail_sender: MailSender[] = [];
+      index = 0;
+      while (params.has(`mail_sender[${index}][name]`)) {
+        mail_sender.push({
+          name: params.get(`mail_sender[${index}][name]`) || '',
+          address: params.get(`mail_sender[${index}][address]`) || ''
+        });
+        index++;
+      }
+      
+      // Construct the payload object
+      payload = {
+        received_at: params.get('received_at') || '',
+        processed_at: params.get('processed_at') || '',
+        company_name: params.get('company_name') || '',
+        mail_attachment: mail_attachment.length > 0 ? mail_attachment : undefined,
+        mail_sender
+      };
+      
+      console.log("Parsed URL-encoded payload:", JSON.stringify(payload, null, 2));
     } else {
       // Try to parse as JSON if not URL-encoded
       try {
         payload = JSON.parse(reqText);
         console.log("Parsed JSON payload:", JSON.stringify(payload, null, 2));
       } catch (parseError) {
-        console.error("Error parsing payload as JSON:", parseError);
+        console.error("Error parsing payload:", parseError);
         return new Response(
           JSON.stringify({ 
             error: "Invalid payload format", 
@@ -216,17 +121,12 @@ serve(async (req) => {
       }
     }
 
-    // Validate required fields
-    if (!payload.id || !payload.mail_sender || payload.mail_sender.length === 0) {
+    // Validate sender information
+    if (!payload.mail_sender || payload.mail_sender.length === 0) {
       return new Response(
         JSON.stringify({ 
-          error: "Missing required fields",
-          payload: payload,
-          missingFields: [
-            !payload.id ? "id" : null,
-            !payload.mail_sender ? "mail_sender" : null,
-            payload.mail_sender && payload.mail_sender.length === 0 ? "mail_sender empty" : null
-          ].filter(Boolean)
+          error: "Missing sender information",
+          payload: payload
         }),
         {
           status: 400,
@@ -257,9 +157,13 @@ serve(async (req) => {
       new Date(payload.received_at).toISOString() : 
       new Date().toISOString();
     
+    // Generate a unique external_id if none was provided
+    // We'll use a combination of timestamp and random string to ensure uniqueness
+    const external_id = `mail_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    
     // Prepare the data for insertion into our new table
     const insertData = {
-      external_id: payload.id,
+      external_id, // Add the generated external_id
       company_name: payload.company_name || null,
       received_at: receivedDate,
       processed_at: payload.processed_at ? new Date(payload.processed_at).toISOString() : null,
