@@ -9,8 +9,13 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log(`[CORS DEBUG] Received ${req.method} request`);
+  console.log(`[CORS DEBUG] Request URL: ${req.url}`);
+  console.log(`[CORS DEBUG] Request headers:`, Object.fromEntries([...req.headers.entries()]));
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log(`[CORS DEBUG] Handling OPTIONS preflight request`);
     return new Response(null, { 
       headers: corsHeaders,
       status: 204
@@ -21,23 +26,29 @@ serve(async (req) => {
     // Get Perplexity API key from environment
     const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
     if (!PERPLEXITY_API_KEY) {
+      console.error('[CORS DEBUG] Missing PERPLEXITY_API_KEY');
       throw new Error('PERPLEXITY_API_KEY is not configured');
     }
 
     // Parse request
-    const { companyId, assessmentPoints } = await req.json();
+    const requestData = await req.json();
+    console.log(`[CORS DEBUG] Request data:`, JSON.stringify(requestData));
+    
+    const { companyId, assessmentPoints } = requestData;
     
     if (!companyId || !assessmentPoints || !Array.isArray(assessmentPoints) || assessmentPoints.length === 0) {
+      console.error('[CORS DEBUG] Invalid request data', { companyId, assessmentPointsLength: assessmentPoints?.length });
       throw new Error('Invalid request. Expected companyId and non-empty assessmentPoints array');
     }
 
-    console.log(`Processing research request for company ${companyId}`);
+    console.log(`[CORS DEBUG] Processing research request for company ${companyId}`);
     
     // Create the Supabase client for database operations
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[CORS DEBUG] Missing Supabase credentials');
       throw new Error('Missing Supabase credentials');
     }
     
@@ -53,7 +64,7 @@ serve(async (req) => {
       .single();
 
     if (companyError) {
-      console.error('Error fetching company:', companyError);
+      console.error('[CORS DEBUG] Error fetching company:', companyError);
       throw new Error(`Failed to fetch company: ${companyError.message}`);
     }
 
@@ -72,7 +83,7 @@ serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error('Error creating research record:', insertError);
+      console.error('[CORS DEBUG] Error creating research record:', insertError);
       throw new Error(`Failed to create research record: ${insertError.message}`);
     }
 
@@ -108,7 +119,7 @@ Provide a 3-paragraph executive summary that:
 
 Format your response in Markdown with clear section headers. Ensure all data is accurate, recent (2023-2024), and from reputable sources. Include URLs for ALL sources cited.`;
 
-    console.log("Sending request to Perplexity API");
+    console.log("[CORS DEBUG] Sending request to Perplexity API");
     
     // Call Perplexity API
     const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -144,7 +155,7 @@ Format your response in Markdown with clear section headers. Ensure all data is 
     // Check for errors
     if (!perplexityResponse.ok) {
       const errorText = await perplexityResponse.text();
-      console.error(`Perplexity API error (${perplexityResponse.status}):`, errorText);
+      console.error(`[CORS DEBUG] Perplexity API error (${perplexityResponse.status}):`, errorText);
       
       // Update the research record with error status
       await supabase
@@ -160,10 +171,10 @@ Format your response in Markdown with clear section headers. Ensure all data is 
 
     // Process the response
     const responseData = await perplexityResponse.json();
-    console.log("Received response from Perplexity API");
+    console.log("[CORS DEBUG] Received response from Perplexity API");
     
     if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
-      console.error("Invalid response format from Perplexity:", responseData);
+      console.error("[CORS DEBUG] Invalid response format from Perplexity:", responseData);
       
       // Update the research record with error status
       await supabase
@@ -198,11 +209,12 @@ Format your response in Markdown with clear section headers. Ensure all data is 
       .eq('id', newResearch.id);
 
     if (updateError) {
-      console.error("Error updating research record:", updateError);
+      console.error("[CORS DEBUG] Error updating research record:", updateError);
       throw new Error(`Failed to update research: ${updateError.message}`);
     }
 
-    console.log(`Successfully completed research for company ${companyId}`);
+    console.log(`[CORS DEBUG] Successfully completed research for company ${companyId}`);
+    console.log("[CORS DEBUG] Preparing response with CORS headers");
 
     // Return the research data
     return new Response(
@@ -222,7 +234,7 @@ Format your response in Markdown with clear section headers. Ensure all data is 
       }
     );
   } catch (error) {
-    console.error("Error in real-time-perplexity-research function:", error);
+    console.error("[CORS DEBUG] Error in real-time-perplexity-research function:", error);
     return new Response(
       JSON.stringify({
         success: false,
@@ -305,7 +317,7 @@ function extractMarketInsights(text: string): any[] {
     
     // Extract URL
     const urlMatch = item.match(/(https?:\/\/[^\s)]+)/);
-    const url = urlMatch ? urlMatch[1].trim() : '';
+    const url = urlMatch ? urlMatch[0].trim() : '';
     
     // Extract source
     const sourceMatch = item.match(/\(([^)]+)\)/);
