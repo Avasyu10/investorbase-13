@@ -37,12 +37,3 @@ export function handleCors(req: Request) {
   
   return null;
 }
-
-// Update corsHeaders to use a function that dynamically sets origin
-export const corsHeaders = (origin?: string) => ({
-  'Access-Control-Allow-Origin': origin || '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, origin, x-requested-with',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-  'Vary': 'Origin'
-});
