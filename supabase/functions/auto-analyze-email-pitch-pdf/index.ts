@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 import { corsHeaders } from "./cors.ts";
@@ -14,7 +13,7 @@ serve(async (req) => {
     error: null
   };
   
-  console.log("=========== AUTO-ANALYZE FUNCTION STARTED v3 ===========");
+  console.log("=========== AUTO-ANALYZE FUNCTION STARTED v4 (DEBUG) ===========");
   
   try {
     // First, log the basic request information
@@ -357,6 +356,6 @@ serve(async (req) => {
       status: 500
     });
   } finally {
-    console.log("=========== AUTO-ANALYZE FUNCTION COMPLETED v3 ===========");
+    console.log("=========== AUTO-ANALYZE FUNCTION COMPLETED v4 (DEBUG) ===========");
   }
 });
