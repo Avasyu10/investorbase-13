@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 import { corsHeaders } from "./cors.ts";
@@ -13,10 +14,10 @@ serve(async (req) => {
     error: null
   };
   
-  console.log("=========== AUTO-ANALYZE FUNCTION STARTED v4 (DEBUG) ===========");
+  console.log("=========== AUTO-ANALYZE FUNCTION STARTED v5 ===========");
   
   try {
-    // First, log the basic request information
+    // Log the basic request information
     console.log("Request method:", req.method);
     console.log("Request URL:", req.url);
     
@@ -39,10 +40,6 @@ serve(async (req) => {
     
     console.log("Processing POST request");
     diagnostics.processingStage = "reading_request_body";
-    
-    // Check content type
-    const contentType = req.headers.get('content-type') || '';
-    console.log("Content-Type:", contentType);
     
     // Read and log the request body
     let bodyText = '';
@@ -163,7 +160,7 @@ serve(async (req) => {
       console.log("Fetching email_pitch_submission with ID:", submissionId);
       const { data: submission, error: fetchError } = await serviceClient
         .from('email_pitch_submissions')
-        .select('sender_email, attachment_url')
+        .select('sender_email, attachment_url, attachment_name')
         .eq('id', submissionId)
         .maybeSingle();
         
@@ -356,6 +353,6 @@ serve(async (req) => {
       status: 500
     });
   } finally {
-    console.log("=========== AUTO-ANALYZE FUNCTION COMPLETED v4 (DEBUG) ===========");
+    console.log("=========== AUTO-ANALYZE FUNCTION COMPLETED v5 ===========");
   }
 });

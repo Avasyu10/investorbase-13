@@ -1,3 +1,4 @@
+
 // cors.ts
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*', // Or specify your exact origin

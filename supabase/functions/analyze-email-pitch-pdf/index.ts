@@ -9,6 +9,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("========== ANALYZE-EMAIL-PITCH-PDF FUNCTION STARTED v2 ==========");
+  let startTime = new Date().getTime();
+  
   try {
     // Get environment variables
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -22,13 +25,29 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
     // Parse request data
-    const { reportId } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log("Request data:", JSON.stringify(requestData));
+    } catch (jsonError) {
+      console.error("Error parsing JSON request:", jsonError);
+      return new Response(JSON.stringify({ 
+        error: "Invalid JSON in request body", 
+        success: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+    
+    const { reportId } = requestData;
     
     if (!reportId) {
       throw new Error('Report ID is required');
     }
     
     console.log(`Processing email/pitch submission report: ${reportId}`);
+    console.log(`Time elapsed: ${new Date().getTime() - startTime}ms`);
     
     // First, check if this is from email submissions
     const { data: emailSubmission, error: emailError } = await supabase
@@ -77,6 +96,8 @@ serve(async (req) => {
       throw new Error(`Report not found: ${reportError.message}`);
     }
     
+    console.log(`Report data retrieved. Time elapsed: ${new Date().getTime() - startTime}ms`);
+    
     // Download the PDF from storage
     let fileData;
     
@@ -123,6 +144,8 @@ serve(async (req) => {
       throw new Error('No PDF found for this submission');
     }
     
+    console.log(`PDF downloaded. Time elapsed: ${new Date().getTime() - startTime}ms`);
+    
     // Convert to base64
     const arrayBuffer = await fileData.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
@@ -133,8 +156,11 @@ serve(async (req) => {
     );
     
     console.log('Successfully converted PDF to base64');
+    console.log(`Base64 length: ${base64.length} chars`);
+    console.log(`Conversion complete. Time elapsed: ${new Date().getTime() - startTime}ms`);
     
     // Now forward the PDF to the main analyze-pdf function to process
+    console.log(`Calling analyze-pdf function with report ID: ${reportId}`);
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
       method: 'POST',
       headers: {
@@ -147,6 +173,9 @@ serve(async (req) => {
       })
     });
     
+    console.log(`analyze-pdf function called. Time elapsed: ${new Date().getTime() - startTime}ms`);
+    console.log(`analyze-pdf response status: ${response.status}`);
+    
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
@@ -154,6 +183,7 @@ serve(async (req) => {
     
     const analysisResult = await response.json();
     console.log('Analysis completed successfully');
+    console.log(`Total time elapsed: ${new Date().getTime() - startTime}ms`);
     
     return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -161,6 +191,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in analyze-email-pitch-pdf function:', error);
+    console.log(`Total time elapsed on error: ${new Date().getTime() - startTime}ms`);
     
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -169,5 +200,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: error instanceof Error && error.message.includes('not found') ? 404 : 500
     });
+  } finally {
+    console.log("========== ANALYZE-EMAIL-PITCH-PDF FUNCTION COMPLETED v2 ==========");
   }
 });

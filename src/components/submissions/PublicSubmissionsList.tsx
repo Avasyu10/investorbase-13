@@ -268,6 +268,88 @@ export function PublicSubmissionsList() {
 
   const handleAnalyze = async (submission: PublicSubmission) => {
     if (!submission.report_id) {
+      if (submission.source === "email_pitch") {
+        setCurrentSubmission(submission);
+        setShowModal(true);
+        setIsAnalyzing(true);
+        
+        try {
+          console.log(`Initiating auto-analyze for email pitch submission: ${submission.id}`);
+          
+          const response = await supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
+            body: { id: submission.id }
+          });
+          
+          console.log('Auto-analyze function response:', response);
+          
+          if (response.error) {
+            throw new Error(`Auto-analyze failed: ${response.error.message || JSON.stringify(response.error)}`);
+          }
+          
+          if (!response.data || !response.data.reportId) {
+            throw new Error("No report ID returned from auto-analyze function");
+          }
+          
+          const reportId = response.data.reportId;
+          console.log(`Report created with ID: ${reportId}`);
+          
+          let analysisComplete = false;
+          let retries = 0;
+          let companyId = null;
+          
+          while (!analysisComplete && retries < 30) {
+            const { data: reportData, error: reportError } = await supabase
+              .from('reports')
+              .select('*')
+              .eq('id', reportId)
+              .single();
+              
+            if (reportError) {
+              console.error("Error fetching report:", reportError);
+              retries++;
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+              continue;
+            }
+            
+            if (reportData.analysis_status === 'completed' && reportData.company_id) {
+              analysisComplete = true;
+              companyId = reportData.company_id;
+              break;
+            } else if (reportData.analysis_status === 'failed') {
+              throw new Error(`Analysis failed: ${reportData.analysis_error || "Unknown error"}`);
+            }
+            
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+          }
+          
+          if (companyId) {
+            toast({
+              title: "Analysis complete",
+              description: "The submission has been successfully analyzed",
+            });
+            
+            navigate(`/company/${companyId}`);
+          } else {
+            throw new Error("Analysis timed out. Please check the report status later.");
+          }
+          
+        } catch (error) {
+          console.error("Error during auto-analyze:", error);
+          
+          toast({
+            title: "Analysis failed",
+            description: error instanceof Error ? error.message : "An unknown error occurred",
+            variant: "destructive",
+          });
+        } finally {
+          setIsAnalyzing(false);
+          setShowModal(false);
+        }
+        
+        return;
+      }
+      
       toast({
         title: "Cannot analyze submission",
         description: "No report ID associated with this submission",
