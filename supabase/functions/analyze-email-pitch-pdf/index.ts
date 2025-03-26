@@ -9,7 +9,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log("========== ANALYZE-EMAIL-PITCH-PDF FUNCTION STARTED v2 ==========");
+  console.log("========== ANALYZE-EMAIL-PITCH-PDF FUNCTION STARTED v3 ==========");
   let startTime = new Date().getTime();
   
   try {
@@ -62,11 +62,14 @@ serve(async (req) => {
 
     // If not from email submissions, check if it's from email pitch submissions
     let attachmentUrl = null;
+    let isExternalUrl = false;
     let storageSource = 'email_attachments';
     
     if (emailSubmission && emailSubmission.attachment_url) {
       attachmentUrl = emailSubmission.attachment_url;
-      console.log(`Found email submission with attachment: ${attachmentUrl}`);
+      // Check if this is an external URL (like mailparser.io)
+      isExternalUrl = attachmentUrl.startsWith('http');
+      console.log(`Found email submission with attachment: ${attachmentUrl} (isExternal: ${isExternalUrl})`);
     } else {
       // Check for email pitch submission
       const { data: pitchSubmission, error: pitchError } = await supabase
@@ -81,7 +84,9 @@ serve(async (req) => {
       
       if (pitchSubmission && pitchSubmission.attachment_url) {
         attachmentUrl = pitchSubmission.attachment_url;
-        console.log(`Found email pitch submission with attachment: ${attachmentUrl}`);
+        // Check if this is an external URL (like mailparser.io)
+        isExternalUrl = attachmentUrl.startsWith('http');
+        console.log(`Found email pitch submission with attachment: ${attachmentUrl} (isExternal: ${isExternalUrl})`);
       }
     }
     
@@ -98,30 +103,72 @@ serve(async (req) => {
     
     console.log(`Report data retrieved. Time elapsed: ${new Date().getTime() - startTime}ms`);
     
-    // Download the PDF from storage
+    // Download the PDF - either from storage or from external URL
     let fileData;
     
-    // Try to get the file from email attachments first
     if (attachmentUrl) {
-      try {
-        console.log(`Attempting to download from ${storageSource}/${attachmentUrl}`);
-        const { data, error } = await supabase.storage
-          .from(storageSource)
-          .download(attachmentUrl);
+      if (isExternalUrl) {
+        // For external URLs (like mailparser.io links), download directly using fetch
+        try {
+          console.log(`Downloading from external URL: ${attachmentUrl}`);
+          const response = await fetch(attachmentUrl);
           
-        if (error) {
-          console.error(`Error downloading from ${storageSource}:`, error);
-        } else {
-          fileData = data;
-          console.log(`Successfully downloaded PDF from ${storageSource}`);
+          if (!response.ok) {
+            throw new Error(`Failed to download: ${response.status} ${response.statusText}`);
+          }
+          
+          fileData = await response.blob();
+          console.log('Successfully downloaded PDF from external URL');
+          
+          // Optionally save the file to our own storage for future reference
+          if (fileData) {
+            try {
+              const fileName = `external_${reportId}_${Date.now()}.pdf`;
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('report_pdfs')
+                .upload(fileName, fileData);
+                
+              if (uploadError) {
+                console.error('Error saving external file to storage:', uploadError);
+              } else {
+                console.log(`Saved external file to report_pdfs/${fileName}`);
+                
+                // Update the report with the new PDF URL
+                await supabase
+                  .from('reports')
+                  .update({ pdf_url: fileName })
+                  .eq('id', reportId);
+              }
+            } catch (saveError) {
+              console.error('Error saving external file:', saveError);
+              // Non-blocking error, continue with analysis
+            }
+          }
+        } catch (fetchError) {
+          console.error(`Error downloading from external URL:`, fetchError);
+          // Fall back to report PDF if external download fails
         }
-      } catch (downloadError) {
-        console.error(`Error downloading from ${storageSource}:`, downloadError);
+      } else {
+        // For internal storage URLs, download from Supabase storage
+        try {
+          console.log(`Attempting to download from ${storageSource}/${attachmentUrl}`);
+          const { data, error } = await supabase.storage
+            .from(storageSource)
+            .download(attachmentUrl);
+            
+          if (error) {
+            console.error(`Error downloading from ${storageSource}:`, error);
+          } else {
+            fileData = data;
+            console.log(`Successfully downloaded PDF from ${storageSource}`);
+          }
+        } catch (downloadError) {
+          console.error(`Error downloading from ${storageSource}:`, downloadError);
+        }
       }
     }
     
-    // If we couldn't get the file from email attachments or if there was no attachment, 
-    // fall back to the report PDF
+    // If we couldn't get the file from the attachment URL, fall back to the report PDF
     if (!fileData && report.pdf_url) {
       try {
         console.log(`Falling back to report PDF: ${report.pdf_url}`);
@@ -201,6 +248,6 @@ serve(async (req) => {
       status: error instanceof Error && error.message.includes('not found') ? 404 : 500
     });
   } finally {
-    console.log("========== ANALYZE-EMAIL-PITCH-PDF FUNCTION COMPLETED v2 ==========");
+    console.log("========== ANALYZE-EMAIL-PITCH-PDF FUNCTION COMPLETED v3 ==========");
   }
 });
