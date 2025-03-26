@@ -86,9 +86,9 @@ export function CompanyInfoCard({
         
         <CardFooter className="p-4 pt-0 flex justify-end border-t bg-muted/30">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             size="sm" 
-            className="text-sm text-primary font-medium hover:text-primary/80 flex items-center gap-1.5 transition-colors"
+            className="text-sm font-medium flex items-center gap-1.5 transition-colors"
             onClick={handleViewMore}
           >
             View More <ExternalLink className="h-3.5 w-3.5" />
