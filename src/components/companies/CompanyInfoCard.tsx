@@ -20,7 +20,7 @@ export function CompanyInfoCard({
   introduction = "No detailed information available for this company."
 }: CompanyInfoProps) {
   const navigate = useNavigate();
-  const { id: companyId } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
 
   // Format website URL for display and linking
   const displayWebsite = website && website !== "https://example.com" 
@@ -32,8 +32,8 @@ export function CompanyInfoCard({
     : null;
 
   const handleViewMore = () => {
-    if (companyId) {
-      navigate(`/company/${companyId}/overview`);
+    if (id) {
+      navigate(`/company/${id}/overview`);
     }
   };
 

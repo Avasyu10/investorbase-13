@@ -15,10 +15,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 
 export function CompanyDetails() {
-  const { companyId } = useParams<{ companyId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { company, isLoading } = useCompanyDetails(companyId);
+  const { company, isLoading } = useCompanyDetails(id);
   const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
   const [companyInfo, setCompanyInfo] = useState({
     website: "",
@@ -79,7 +79,7 @@ export function CompanyDetails() {
             const { data: sections } = await supabase
               .from('sections')
               .select('title, description')
-              .eq('company_id', companyId);
+              .eq('company_id', id);
             
             let intro = "";
             let industry = "Not specified";
@@ -127,10 +127,10 @@ export function CompanyDetails() {
     if (company) {
       fetchCompanyInfo();
     }
-  }, [company, companyId]);
+  }, [company, id]);
 
   const handleSectionClick = (sectionId: number | string) => {
-    navigate(`/company/${companyId}/section/${sectionId}`);
+    navigate(`/company/${id}/section/${sectionId}`);
   };
 
   const navigateToReport = () => {
@@ -147,14 +147,14 @@ export function CompanyDetails() {
   };
 
   const navigateToSupplementaryMaterials = () => {
-    navigate(`/company/${companyId}/supplementary`);
+    navigate(`/company/${id}/supplementary`);
   };
 
   const onResearchFetched = () => {
     console.log("Research fetched successfully, invalidating company query");
     setHasResearchUpdated(true);
     queryClient.invalidateQueries({
-      queryKey: ['company', companyId],
+      queryKey: ['company', id],
     });
   };
 

@@ -9,11 +9,12 @@ import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
 import { ORDERED_SECTIONS } from "@/lib/constants";
+import { SectionDetailed } from "@/lib/api/apiContract";
 
 const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { companyId, sectionId } = useParams();
+  const { companyId, sectionId } = useParams<{ companyId: string; sectionId: string }>();
   const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
   const { section, isLoading: sectionLoading } = useSectionDetails(companyId, sectionId);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,6 +43,7 @@ const SectionPage = () => {
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       if (indexA !== -1) return -1;
       if (indexB !== -1) return 1;
+      
       return 0;
     });
     
@@ -103,7 +105,7 @@ const SectionPage = () => {
         </div>
       </div>
       <div className="container mx-auto px-4">
-        <SectionDetail section={section} isLoading={sectionLoading} />
+        {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
         
         {/* Previous/Next Navigation */}
         <div className="flex justify-between mt-8">
