@@ -48,10 +48,10 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
     
     try {
       // Call the edge function with abort controller
-      const { data, error } = await supabase.functions.invoke('research-with-perplexity', {
+      const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
         body: { 
           companyId,
-          assessmentText
+          assessmentPoints: assessmentText.split('\n\n').filter(point => point.trim() !== '')
         }
       });
       
