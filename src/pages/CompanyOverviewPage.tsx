@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { ChevronLeft, Globe, Building, Users, Mail, TrendingUp, Layers, External
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { MarketResearch } from "@/components/MarketResearch";
 
 const CompanyOverviewPage = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -287,6 +287,11 @@ const CompanyOverviewPage = () => {
           </CardContent>
         </Card>
       )}
+      
+      <MarketResearch 
+        companyId={companyId}
+        assessmentPoints={company?.assessment_points || []}
+      />
     </div>
   );
 };
