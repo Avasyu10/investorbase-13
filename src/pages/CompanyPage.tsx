@@ -25,7 +25,7 @@ const CompanyPage = () => {
           <ChevronLeft className="mr-1" /> Back
         </Button>
       </div>
-      <CompanyDetails id={id || ''} />
+      <CompanyDetails />
     </div>
   );
 };

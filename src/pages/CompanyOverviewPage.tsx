@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ const CompanyOverviewPage = () => {
         const { data: companyDetails } = await supabase
           .from('company_details')
           .select('website, stage, industry, introduction')
-          .eq('company_id', String(company.id))
+          .eq('company_id', company.id)
           .maybeSingle();
         
         if (companyDetails) {
@@ -84,7 +85,7 @@ const CompanyOverviewPage = () => {
           const { data: sections } = await supabase
             .from('sections')
             .select('title, description')
-            .eq('company_id', String(company.id));
+            .eq('company_id', company.id);
           
           let intro = "No detailed information available for this company.";
           let industry = "Not specified";

@@ -31,9 +31,7 @@ serve(async (req) => {
       throw new Error('Invalid request. Expected companyId and non-empty assessmentPoints array');
     }
 
-    // Convert companyId to string if it's a number
-    const companyIdStr = String(companyId);
-    console.log(`Processing research request for company ${companyIdStr}`);
+    console.log(`Processing research request for company ${companyId}`);
     
     // Create the Supabase client for database operations
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -51,7 +49,7 @@ serve(async (req) => {
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('name')
-      .eq('id', companyIdStr)
+      .eq('id', companyId)
       .single();
 
     if (companyError) {
@@ -66,7 +64,7 @@ serve(async (req) => {
     const { data: newResearch, error: insertError } = await supabase
       .from('market_research')
       .insert({
-        company_id: companyIdStr,
+        company_id: companyId,
         prompt: assessmentText,
         status: 'pending',
       })
@@ -204,7 +202,7 @@ Format your response in Markdown with clear section headers. Ensure all data is 
       throw new Error(`Failed to update research: ${updateError.message}`);
     }
 
-    console.log(`Successfully completed research for company ${companyIdStr}`);
+    console.log(`Successfully completed research for company ${companyId}`);
 
     // Return the research data
     return new Response(
