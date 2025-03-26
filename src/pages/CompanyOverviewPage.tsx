@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-export function CompanyOverviewPage() {
+const CompanyOverviewPage = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
@@ -22,10 +22,6 @@ export function CompanyOverviewPage() {
     introduction: ""
   });
   const [infoLoading, setInfoLoading] = useState(true);
-
-  const ensureStringId = (id: string | number): string => {
-    return typeof id === 'number' ? id.toString() : id;
-  };
 
   useEffect(() => {
     async function fetchCompanyInfo() {
@@ -293,6 +289,6 @@ export function CompanyOverviewPage() {
       )}
     </div>
   );
-}
+};
 
 export default CompanyOverviewPage;

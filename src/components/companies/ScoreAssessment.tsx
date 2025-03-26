@@ -114,7 +114,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
         </CardFooter>
       </Card>
       
-      {/* Add Market Research component with proper string conversion */}
+      {/* Add Market Research component */}
       <MarketResearch 
         companyId={company.id.toString()} 
         assessmentPoints={company.assessmentPoints || []} 
