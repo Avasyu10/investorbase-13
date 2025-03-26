@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -304,4 +303,3 @@ function getSectionSpecificFeedback(score: number, sectionTitle: string): string
   if (score >= 2.5) return "This aspect meets basic requirements but has room for improvement in execution and strategic alignment.";
   return "This aspect shows significant weaknesses that require substantial revision to meet investor expectations.";
 }
-

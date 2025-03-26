@@ -23,6 +23,7 @@ export function useCompanyDetails(companyId: string | undefined) {
   async function fetchCompanyDetails() {
     try {
       setIsLoading(true);
+      console.log('Fetching company details for ID:', companyId);
       
       const { data: { user } } = await supabase.auth.getUser();
       
