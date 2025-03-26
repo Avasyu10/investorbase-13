@@ -22,14 +22,22 @@ export function RealtimeSubscriptions() {
           
           // Get the submission ID
           const submissionId = payload.new.id;
-          console.log(`Triggering auto-analyze for submission ID: ${submissionId}`);
+          console.log(`Submission ID: ${submissionId}`);
           
-          // Call the auto-analyze edge function
+          // Call the auto-analyze edge function - WITH FULL LOGGING OF EACH STEP
+          console.log(`About to invoke auto-analyze-email-pitch-pdf for submission ID: ${submissionId}`);
+          
           supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
-            body: { id: submissionId }
+            body: { 
+              id: submissionId,
+              debug: true // Add a debug flag to enable verbose logging
+            }
           })
           .then(response => {
-            console.log('Auto-analyze function response:', response);
+            console.log('Auto-analyze function response received');
+            console.log('Response status:', response.status);
+            console.log('Response data:', response.data);
+            console.log('Response error:', response.error);
             
             if (response.error) {
               console.error('Error from auto-analyze function:', response.error);
