@@ -88,7 +88,7 @@ export function CompanyInfoCard({
           <Button 
             variant="outline" 
             size="sm" 
-            className="text-sm font-medium flex items-center gap-1.5 transition-colors"
+            className="text-sm font-medium flex items-center gap-1.5 transition-colors hover:bg-primary hover:text-primary-foreground"
             onClick={handleViewMore}
           >
             View More <ExternalLink className="h-3.5 w-3.5" />
