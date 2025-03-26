@@ -1,8 +1,7 @@
-
 // CORS headers implementation
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, origin, x-requested-with',
+  'Access-Control-Allow-Headers': 'apikey, authorization, content-type, origin, x-requested-with, x-app-version',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Max-Age': '86400',
   'Vary': 'Origin'
@@ -17,21 +16,18 @@ export function handleCors(req: Request) {
   const origin = req.headers.get('origin');
   console.log(`[CORS DEBUG] Origin: ${origin}`);
   console.log(`[CORS DEBUG] Method: ${req.method}`);
-  
-  // Dynamic CORS headers based on the request origin
-  const dynamicCorsHeaders = {
-    'Access-Control-Allow-Origin': origin || '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, origin, x-requested-with',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Max-Age': '86400',
-    'Vary': 'Origin'
-  };
-  
+
   // Return a 204 No Content response with CORS headers
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
-      headers: dynamicCorsHeaders
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Headers': 'apikey, authorization, content-type, origin, x-requested-with, x-app-version',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin'
+      }
     });
   }
   
