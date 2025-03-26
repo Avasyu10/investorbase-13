@@ -2,16 +2,28 @@
 import React from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
+import { Navbar } from '@/components/layout/Navbar';
+import { Routes, Route } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import Dashboard from '@/pages/Dashboard';
+import Index from '@/pages/Index';
+import NotFound from '@/pages/NotFound';
 
 function App() {
+  const { user } = useAuth();
+
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
       <RealtimeSubscriptions />
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
       <Toaster />
-      <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="mt-4">Welcome to the dashboard.</p>
-      </div>
     </div>
   );
 }
