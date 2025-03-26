@@ -1,11 +1,3 @@
 
 # Config for the real-time-perplexity-research edge function
 project_id = "jhtnruktmtjqrfoiyrep"
-
-# Allow CORS from all origins
-[[headers]]
-for = "/*"
-[headers.values]
-Access-Control-Allow-Origin = "*"
-Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-Access-Control-Allow-Headers = "authorization, x-client-info, apikey, content-type, origin, x-requested-with"
