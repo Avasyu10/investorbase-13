@@ -137,8 +137,9 @@ serve(async (req) => {
         })
         .eq('id', submission.report_id);
       
-      // Invoke the analyze-email-pitch-pdf function
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-email-pitch-pdf`, {
+      // Invoke the analyze-public-pdf function instead of analyze-email-pitch-pdf 
+      // to match the public PDF analysis flow
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
@@ -177,7 +178,8 @@ serve(async (req) => {
           title: `Email Pitch from ${submission.sender_email}`,
           description: `Automatically generated report from email pitch submission`,
           pdf_url: submission.attachment_url,
-          analysis_status: 'pending'
+          analysis_status: 'pending',
+          is_public_submission: true // Setting this to ensure it follows the public analysis flow
         })
         .select()
         .single();
@@ -228,8 +230,8 @@ serve(async (req) => {
       
       console.log(`Auto-analyze enabled for ${submission.sender_email}, proceeding with analysis`);
       
-      // Invoke the analyze-email-pitch-pdf function
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-email-pitch-pdf`, {
+      // Invoke the analyze-public-pdf function to match the public PDF flow
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
