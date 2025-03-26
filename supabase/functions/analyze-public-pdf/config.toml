@@ -1,5 +1,3 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
-
-[functions.analyze-public-pdf]
 verify_jwt = false

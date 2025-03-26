@@ -12,12 +12,15 @@ serve(async (req) => {
     });
   }
 
+  console.log("Auto-analyze-email-pitch-pdf function called");
+  
   try {
     // Get environment variables
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Missing Supabase environment variables");
       throw new Error('Missing Supabase environment variables');
     }
     
@@ -27,8 +30,10 @@ serve(async (req) => {
     // Parse request data
     let submissionId;
     try {
-      const { id } = await req.json();
-      submissionId = id;
+      console.log("Parsing request body");
+      const body = await req.json();
+      console.log("Request body:", JSON.stringify(body));
+      submissionId = body.id;
       console.log(`Received submission ID: ${submissionId}`);
     } catch (e) {
       console.error("Error parsing request JSON:", e);
@@ -82,6 +87,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
+    
+    console.log(`Found submission for email: ${submission.sender_email}`);
     
     // If there's no attachment URL, we can't proceed with analysis
     if (!submission.attachment_url) {
@@ -137,129 +144,156 @@ serve(async (req) => {
         })
         .eq('id', submission.report_id);
       
-      // Invoke the analyze-public-pdf function instead of analyze-email-pitch-pdf 
-      // to match the public PDF analysis flow
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reportId: submission.report_id })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
+      // Invoke the analyze-public-pdf function
+      console.log(`Calling analyze-public-pdf for report ID: ${submission.report_id}`);
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ reportId: submission.report_id })
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
+          throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
+        }
+        
+        const analysisResult = await response.json();
+        console.log('Analysis completed successfully:', JSON.stringify(analysisResult));
+        
+        // Update the email_pitch_submissions record with the analysis status
+        await serviceClient
+          .from('email_pitch_submissions')
+          .update({
+            analysis_status: 'completed'
+          })
+          .eq('id', submissionId);
+        
+        return new Response(JSON.stringify(analysisResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      } catch (fetchError) {
+        console.error("Error calling analyze-public-pdf:", fetchError);
+        return new Response(
+          JSON.stringify({ error: fetchError.message, success: false }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
-      
-      const analysisResult = await response.json();
-      console.log('Analysis completed successfully');
-      
-      // Update the email_pitch_submissions record with the analysis status
-      await serviceClient
-        .from('email_pitch_submissions')
-        .update({
-          analysis_status: 'completed'
-        })
-        .eq('id', submissionId);
-      
-      return new Response(JSON.stringify(analysisResult), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
     } else {
       console.log("No report_id found, creating a new report");
       
       // Create a new report for the PDF
-      const { data: report, error: reportError } = await serviceClient
-        .from('reports')
-        .insert({
-          title: `Email Pitch from ${submission.sender_email}`,
-          description: `Automatically generated report from email pitch submission`,
-          pdf_url: submission.attachment_url,
-          analysis_status: 'pending',
-          is_public_submission: true // Setting this to ensure it follows the public analysis flow
-        })
-        .select()
-        .single();
-      
-      if (reportError) {
-        console.error("Error creating report:", reportError);
+      try {
+        const { data: report, error: reportError } = await serviceClient
+          .from('reports')
+          .insert({
+            title: `Email Pitch from ${submission.sender_email}`,
+            description: `Automatically generated report from email pitch submission`,
+            pdf_url: submission.attachment_url,
+            analysis_status: 'pending',
+            is_public_submission: true // Setting this to ensure it follows the public analysis flow
+          })
+          .select()
+          .single();
+        
+        if (reportError) {
+          console.error("Error creating report:", reportError);
+          return new Response(
+            JSON.stringify({ error: reportError.message, success: false }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+        console.log(`Created new report with ID: ${report.id}`);
+        
+        // Update the email_pitch_submissions record with the report_id
+        await serviceClient
+          .from('email_pitch_submissions')
+          .update({
+            report_id: report.id
+          })
+          .eq('id', submissionId);
+        
+        // Check if auto-analyze is enabled for this sender
+        const { data: investorPitchEmail, error: emailError } = await serviceClient
+          .from('investor_pitch_emails')
+          .select('auto_analyze')
+          .eq('email_address', submission.sender_email)
+          .maybeSingle();
+          
+        if (emailError) {
+          console.error("Error fetching investor pitch email settings:", emailError);
+        }
+        
+        const autoAnalyzeEnabled = investorPitchEmail?.auto_analyze || false;
+        
+        if (!autoAnalyzeEnabled) {
+          console.log(`Auto-analyze not enabled for ${submission.sender_email}, skipping analysis`);
+          return new Response(
+            JSON.stringify({ 
+              message: "Auto-analyze not enabled for this email address", 
+              success: true, 
+              analyzed: false,
+              reportId: report.id
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
+        }
+        
+        console.log(`Auto-analyze enabled for ${submission.sender_email}, proceeding with analysis`);
+        
+        // Invoke the analyze-public-pdf function
+        console.log(`Calling analyze-public-pdf for report ID: ${report.id}`);
+        try {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reportId: report.id })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
+            throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
+          }
+          
+          const analysisResult = await response.json();
+          console.log('Analysis completed successfully:', JSON.stringify(analysisResult));
+          
+          // Update the email_pitch_submissions record with the analysis status
+          await serviceClient
+            .from('email_pitch_submissions')
+            .update({
+              analysis_status: 'completed'
+            })
+            .eq('id', submissionId);
+          
+          return new Response(JSON.stringify({ ...analysisResult, reportId: report.id }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          });
+        } catch (fetchError) {
+          console.error("Error calling analyze-public-pdf:", fetchError);
+          return new Response(
+            JSON.stringify({ error: fetchError.message, success: false }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+      } catch (createReportError) {
+        console.error("Error in report creation process:", createReportError);
         return new Response(
-          JSON.stringify({ error: reportError.message, success: false }),
+          JSON.stringify({ error: createReportError.message, success: false }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
-      
-      console.log(`Created new report with ID: ${report.id}`);
-      
-      // Update the email_pitch_submissions record with the report_id
-      await serviceClient
-        .from('email_pitch_submissions')
-        .update({
-          report_id: report.id
-        })
-        .eq('id', submissionId);
-      
-      // Check if auto-analyze is enabled for this sender
-      const { data: investorPitchEmail, error: emailError } = await serviceClient
-        .from('investor_pitch_emails')
-        .select('auto_analyze')
-        .eq('email_address', submission.sender_email)
-        .maybeSingle();
-        
-      if (emailError) {
-        console.error("Error fetching investor pitch email settings:", emailError);
-      }
-      
-      const autoAnalyzeEnabled = investorPitchEmail?.auto_analyze || false;
-      
-      if (!autoAnalyzeEnabled) {
-        console.log(`Auto-analyze not enabled for ${submission.sender_email}, skipping analysis`);
-        return new Response(
-          JSON.stringify({ 
-            message: "Auto-analyze not enabled for this email address", 
-            success: true, 
-            analyzed: false,
-            reportId: report.id
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        );
-      }
-      
-      console.log(`Auto-analyze enabled for ${submission.sender_email}, proceeding with analysis`);
-      
-      // Invoke the analyze-public-pdf function to match the public PDF flow
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-public-pdf`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reportId: report.id })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to analyze PDF: ${response.status} - ${errorText}`);
-      }
-      
-      const analysisResult = await response.json();
-      console.log('Analysis completed successfully');
-      
-      // Update the email_pitch_submissions record with the analysis status
-      await serviceClient
-        .from('email_pitch_submissions')
-        .update({
-          analysis_status: 'completed'
-        })
-        .eq('id', submissionId);
-      
-      return new Response(JSON.stringify({ ...analysisResult, reportId: report.id }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
     }
   } catch (error) {
     console.error('Error in auto-analyze-email-pitch-pdf function:', error);

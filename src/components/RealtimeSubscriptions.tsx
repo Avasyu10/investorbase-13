@@ -31,6 +31,16 @@ export function RealtimeSubscriptions() {
           .then(response => {
             console.log('Auto-analyze function response:', response);
             
+            if (response.error) {
+              console.error('Error from auto-analyze function:', response.error);
+              toast({
+                title: 'Error processing submission',
+                description: `Failed to analyze submission: ${response.error.message || 'Unknown error'}`,
+                variant: "destructive"
+              });
+              return;
+            }
+            
             toast({
               title: 'New pitch submission',
               description: `Processing submission from ${payload.new.sender_email || 'unknown'}`,
