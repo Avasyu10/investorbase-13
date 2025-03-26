@@ -22,7 +22,6 @@ import Report from '@/pages/Report';
 import CompanyPage from '@/pages/CompanyPage';
 import SectionPage from '@/pages/SectionPage';
 import SupplementaryMaterials from '@/pages/SupplementaryMaterials';
-import CompanyOverviewPage from '@/pages/CompanyOverviewPage';
 import UploadReport from '@/pages/UploadReport';
 import PublicUpload from '@/pages/PublicUpload';
 import Feedback from '@/pages/Feedback';
@@ -82,11 +81,6 @@ function App() {
               <Route path="/company/:companyId/section/:sectionId" element={
                 <ProtectedRoute>
                   <SectionPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/company/:companyId/overview" element={
-                <ProtectedRoute>
-                  <CompanyOverviewPage />
                 </ProtectedRoute>
               } />
               <Route path="/company/:companyId/supplementary" element={
