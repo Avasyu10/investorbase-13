@@ -2,13 +2,14 @@
 import { CompanyDetails } from "@/components/companies/CompanyDetails";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
 const CompanyPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { id: companyId } = useParams();  // Fix: Extract companyId from URL params
 
   useEffect(() => {
     if (!isLoading && !user) {
