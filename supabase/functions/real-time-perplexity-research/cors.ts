@@ -1,7 +1,8 @@
+
 // CORS headers implementation
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'apikey, authorization, content-type, origin, x-requested-with, x-app-version',
+  'Access-Control-Allow-Headers': 'apikey, authorization, x-client-info, content-type, origin, x-requested-with, x-app-version',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Max-Age': '86400',
   'Vary': 'Origin'
@@ -21,13 +22,7 @@ export function handleCors(req: Request) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': origin || '*',
-        'Access-Control-Allow-Headers': 'apikey, authorization, content-type, origin, x-requested-with, x-app-version',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Max-Age': '86400',
-        'Vary': 'Origin'
-      }
+      headers: corsHeaders
     });
   }
   

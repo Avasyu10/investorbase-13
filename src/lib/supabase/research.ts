@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 export async function getLatestResearch(companyId: string, assessmentText: string) {
   try {
-    console.log('Calling research-with-perplexity function with company ID:', companyId);
+    console.log('Calling real-time-perplexity-research function with company ID:', companyId);
     
     // Validate input parameters
     if (!companyId || !assessmentText) {
@@ -47,11 +47,17 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
-      // Call the edge function with abort controller
+      // Call the edge function with abort controller and proper content type
       const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
         body: { 
           companyId,
           assessmentPoints: assessmentText.split('\n\n').filter(point => point.trim() !== '')
+        },
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-app-version': '1.0.0'
+          // Do not include 'Access-Control-Allow-Origin' header here
         }
       });
       
@@ -59,7 +65,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       clearTimeout(timeoutId);
       
       if (error) {
-        console.error('Error invoking research-with-perplexity function:', error);
+        console.error('Error invoking real-time-perplexity-research function:', error);
         
         // If we have existing data, return it instead of failing but don't show an error toast
         if (existingData?.perplexity_response) {

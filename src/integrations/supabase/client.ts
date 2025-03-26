@@ -22,8 +22,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: (url, options) => fetch(url, options),
     headers: { 
       'x-app-version': '1.0.0',
-      // Allow all origins
-      'Access-Control-Allow-Origin': '*',
+      // Don't set Access-Control-Allow-Origin here as it causes CORS issues
     },
   },
 });
