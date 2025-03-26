@@ -9,7 +9,7 @@ import { ChevronLeft } from "lucide-react";
 const CompanyPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { id: companyId } = useParams();  // Extract companyId from URL params
+  const { id: companyId } = useParams<{ id: string }>();  // Extract companyId from URL params
 
   useEffect(() => {
     if (!isLoading && !user) {
