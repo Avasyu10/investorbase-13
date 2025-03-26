@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,7 @@ const getSortOrder = (option: SortOption): 'asc' | 'desc' => {
   return option === 'name' || option === 'source' ? 'asc' : 'desc';
 };
 
+// Helper to get source info with appropriate styling
 const getSourceInfo = (source: string | undefined) => {
   if (source === 'public_url') {
     return {
@@ -57,6 +59,7 @@ const getSourceInfo = (source: string | undefined) => {
     };
   }
   
+  // Default to Dashboard (gold color)
   return {
     label: "Dashboard",
     className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
@@ -128,6 +131,7 @@ export function CompaniesList() {
     return pages;
   };
 
+  // Add the RealtimeSubscriptions component to listen for new email pitch submissions
   return (
     <>
       <RealtimeSubscriptions />

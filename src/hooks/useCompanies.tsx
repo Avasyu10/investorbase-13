@@ -10,23 +10,16 @@ function mapDbCompanyToApi(company: any) {
     ? parseFloat(company.overall_score.toFixed(1))
     : 0;
   
-  // Determine source based on pdf_url location or report information
+  // Determine source based on pdf_url location
   let source = company.source || 'dashboard';
   
   // If we have report data with pdf_url, use it to determine the source
-  if (company.report) {
-    if (company.report.pdf_url && company.report.pdf_url.startsWith('email_attachments/')) {
+  if (company.report && company.report.pdf_url) {
+    if (company.report.pdf_url.startsWith('email_attachments/')) {
       source = 'email';
     } else if (company.source === 'public_url' || company.report.is_public_submission) {
       source = 'public_url';
-    } else if (company.source === 'email_pitch') {
-      source = 'email_pitch';
     }
-  }
-  
-  // Special check for email_pitch submissions
-  if (company.email_pitch_submission) {
-    source = 'email_pitch';
   }
   
   return {
