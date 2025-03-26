@@ -9,7 +9,7 @@ import { ChevronLeft } from "lucide-react";
 const CompanyPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { id: companyId } = useParams();  // Fix: Extract companyId from URL params
+  const { id: companyId } = useParams();  // Extract companyId from URL params
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -43,7 +43,7 @@ const CompanyPage = () => {
           <ChevronLeft className="mr-1" /> Back
         </Button>
       </div>
-      <CompanyDetails />
+      {companyId && <CompanyDetails />}
     </div>
   );
 };

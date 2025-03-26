@@ -16,6 +16,8 @@ export function useCompanyDetails(companyId: string | undefined) {
     }
     
     fetchCompanyDetails();
+    
+    // Include companyId in the dependency array to refetch when it changes
   }, [companyId]);
   
   async function fetchCompanyDetails() {
