@@ -68,14 +68,15 @@ export function RealtimeSubscriptions() {
               return;
             }
             
-            // Now it's safe to check data and status
-            console.log('Response status:', response.status);
-            console.log('Response data:', response.data);
-            
-            toast({
-              title: 'New pitch submission',
-              description: `Processing submission from ${payload.new.sender_email || 'unknown'}`,
-            });
+            // Now it's safe to check status and data (on success response only)
+            if (response.data) {
+              console.log('Response data:', response.data);
+              
+              toast({
+                title: 'New pitch submission',
+                description: `Processing submission from ${payload.new.sender_email || 'unknown'}`,
+              });
+            }
           })
           .catch(error => {
             console.error('Error calling auto-analyze function:', error);
