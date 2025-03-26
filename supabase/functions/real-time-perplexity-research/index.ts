@@ -270,7 +270,7 @@ function extractNewsHighlights(text: string): any[] {
     
     // Extract URL
     const urlMatch = item.match(/(https?:\/\/[^\s)]+)/);
-    const url = urlMatch ? urlMatch[1].trim() : '';
+    const url = urlMatch ? urlMatch[0].trim() : '';
     
     // Extract content (everything else)
     let content = item
