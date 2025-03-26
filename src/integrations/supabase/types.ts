@@ -342,6 +342,63 @@ export type Database = {
           },
         ]
       }
+      market_research: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          market_insights: Json | null
+          news_highlights: Json | null
+          prompt: string
+          requested_at: string
+          research_text: string | null
+          sources: Json | null
+          status: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt: string
+          requested_at?: string
+          research_text?: string | null
+          sources?: Json | null
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt?: string
+          requested_at?: string
+          research_text?: string | null
+          sources?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_research_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
