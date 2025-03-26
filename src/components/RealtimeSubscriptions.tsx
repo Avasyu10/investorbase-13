@@ -1,13 +1,15 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export function RealtimeSubscriptions() {
+  const [processingSubmissions, setProcessingSubmissions] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     console.log('Setting up realtime subscription for email_pitch_submissions');
     
-    // Subscribe to email pitch submissions with detailed logging
+    // Subscribe to email pitch submissions
     const channel = supabase
       .channel('email_pitch_submissions_channel')
       .on(
@@ -24,77 +26,23 @@ export function RealtimeSubscriptions() {
           const submissionId = payload.new.id;
           console.log(`Submission ID: ${submissionId}`);
           
-          // Call the auto-analyze edge function - WITH FULL LOGGING OF EACH STEP
-          console.log(`About to invoke auto-analyze-email-pitch-pdf for submission ID: ${submissionId}`);
+          // Prevent duplicate processing
+          if (processingSubmissions[submissionId]) {
+            console.log(`Already processing submission ${submissionId}, skipping`);
+            return;
+          }
+
+          setProcessingSubmissions(prev => ({...prev, [submissionId]: true}));
           
-          // Use supabase.functions.invoke instead of direct fetch to ensure proper URL construction
-          supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
-            body: { 
-              id: submissionId,
-              debug: true // Add a debug flag to enable verbose logging
-            }
-          })
-          .then(response => {
-            console.log('Auto-analyze function response received');
-            
-            // Fix: Check response.error first since status may not exist on error responses
-            if (response.error) {
-              console.error('Error from auto-analyze function:', response.error);
-              
-              // Get more detailed error information
-              let errorMsg = response.error.message || 'Unknown error';
-              let errorDetails = '';
-              
-              try {
-                // Check if the error might contain more detailed JSON info
-                if (typeof response.error === 'object' && response.error.context) {
-                  errorDetails = ` - ${JSON.stringify(response.error.context)}`;
-                }
-                if (typeof response.error.message === 'string' && response.error.message.includes('{')) {
-                  const jsonPart = response.error.message.substring(response.error.message.indexOf('{'));
-                  const parsedError = JSON.parse(jsonPart);
-                  if (parsedError.error) {
-                    errorMsg = parsedError.error;
-                  }
-                }
-              } catch (e) {
-                console.log('Could not parse additional error info:', e);
-              }
-              
-              toast({
-                title: 'Error processing submission',
-                description: `Failed to analyze submission: ${errorMsg}${errorDetails}`,
-                variant: "destructive"
+          // Create a new report directly through the database instead of calling the edge function
+          handleNewSubmission(submissionId, payload.new)
+            .finally(() => {
+              setProcessingSubmissions(prev => {
+                const updated = {...prev};
+                delete updated[submissionId];
+                return updated;
               });
-              return;
-            }
-            
-            // Now it's safe to check status and data (on success response only)
-            if (response.data) {
-              console.log('Response data:', response.data);
-              
-              toast({
-                title: 'New pitch submission',
-                description: `Processing submission from ${payload.new.sender_email || 'unknown'}`,
-              });
-            }
-          })
-          .catch(error => {
-            console.error('Error calling auto-analyze function:', error);
-            
-            // Try to get more detailed error information
-            let errorMessage = error.message || 'Unknown error';
-            
-            if (typeof error === 'object' && error.context) {
-              console.error('Error context:', error.context);
-            }
-            
-            toast({
-              title: 'Error processing submission',
-              description: `Failed to analyze submission: ${errorMessage}`,
-              variant: "destructive"
             });
-          });
         }
       )
       .subscribe((status) => {
@@ -107,6 +55,117 @@ export function RealtimeSubscriptions() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Process the submission directly without calling the edge function
+  const handleNewSubmission = async (submissionId: string, submissionData: any) => {
+    try {
+      console.log(`Processing submission: ${submissionId}`);
+      
+      // First, check if this submission has already been processed
+      const { data: existingSubmission, error: checkError } = await supabase
+        .from('email_pitch_submissions')
+        .select('report_id')
+        .eq('id', submissionId)
+        .single();
+      
+      if (checkError) {
+        console.error('Error checking submission:', checkError);
+        throw checkError;
+      }
+      
+      if (existingSubmission.report_id) {
+        console.log(`Submission ${submissionId} already has report_id ${existingSubmission.report_id}, skipping`);
+        return;
+      }
+      
+      if (!submissionData.attachment_url) {
+        console.error('No attachment URL found for submission:', submissionId);
+        toast({
+          title: 'Missing attachment',
+          description: `Email pitch submission ${submissionId} has no attachment.`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log(`Creating report for submission: ${submissionId}`);
+      
+      // 1. Create a new report directly
+      const { data: report, error: reportError } = await supabase
+        .from('reports')
+        .insert({
+          title: `Email Pitch from ${submissionData.sender_email || 'unknown'}`,
+          description: "Auto-generated from email pitch submission",
+          pdf_url: submissionData.attachment_url,
+          is_public_submission: true,
+          analysis_status: 'pending'
+        })
+        .select()
+        .single();
+      
+      if (reportError) {
+        console.error('Error creating report:', reportError);
+        toast({
+          title: 'Error processing submission',
+          description: `Failed to create report: ${reportError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log(`Report created with ID: ${report.id}`);
+      
+      // 2. Update the submission with the report ID
+      const { error: updateError } = await supabase
+        .from('email_pitch_submissions')
+        .update({ report_id: report.id })
+        .eq('id', submissionId);
+      
+      if (updateError) {
+        console.error('Error updating submission with report ID:', updateError);
+        // Continue despite this error
+      }
+      
+      // 3. Now call the analyze-email-pitch-pdf function to process the report
+      console.log(`Initiating analysis for report: ${report.id}`);
+      
+      // Use the invoke method which properly handles the URL formation
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke(
+        'analyze-email-pitch-pdf',
+        {
+          body: { reportId: report.id }
+        }
+      );
+      
+      if (analysisError) {
+        console.error('Error analyzing report:', analysisError);
+        toast({
+          title: 'Analysis failed',
+          description: `Failed to analyze submission: ${analysisError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('Analysis completed:', analysisData);
+      
+      toast({
+        title: 'New pitch submission',
+        description: `Successfully processed submission from ${submissionData.sender_email || 'unknown'}`,
+      });
+      
+    } catch (error) {
+      console.error('Error processing submission:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      toast({
+        title: 'Error processing submission',
+        description: `Failed to process submission: ${errorMessage}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   // This component doesn't render anything
   return null;
