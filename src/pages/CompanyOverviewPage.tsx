@@ -7,6 +7,7 @@ import { ChevronLeft, Globe, Building, Users, Mail, TrendingUp, Layers, External
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import MarketResearch from "@/components/companies/MarketResearch";
 
 const CompanyOverviewPage = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -256,6 +257,18 @@ const CompanyOverviewPage = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Add Market Research component */}
+      {company.id && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Market Research</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MarketResearch companyId={String(company.id)} />
+          </CardContent>
+        </Card>
+      )}
       
       {companyInfo.founderLinkedIns.length > 0 && (
         <Card className="mb-8">
