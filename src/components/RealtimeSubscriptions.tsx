@@ -27,6 +27,7 @@ export function RealtimeSubscriptions() {
           // Call the auto-analyze edge function - WITH FULL LOGGING OF EACH STEP
           console.log(`About to invoke auto-analyze-email-pitch-pdf for submission ID: ${submissionId}`);
           
+          // Use supabase.functions.invoke instead of direct fetch to ensure proper URL construction
           supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
             body: { 
               id: submissionId,
