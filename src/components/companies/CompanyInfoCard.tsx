@@ -2,13 +2,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Globe, TrendingUp, Briefcase, ExternalLink } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 type CompanyInfoProps = {
   website?: string;
@@ -25,7 +19,8 @@ export function CompanyInfoCard({
   founderLinkedIns = [],
   introduction = "No detailed information available for this company."
 }: CompanyInfoProps) {
-  const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const navigate = useNavigate();
+  const { id: companyId } = useParams<{ id: string }>();
 
   // Format website URL for display and linking
   const displayWebsite = website && website !== "https://example.com" 
@@ -35,6 +30,12 @@ export function CompanyInfoCard({
   const websiteUrl = website && website !== "https://example.com" 
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
+
+  const handleViewMore = () => {
+    if (companyId) {
+      navigate(`/company/${companyId}/overview`);
+    }
+  };
 
   return (
     <div className="mb-7">
@@ -88,47 +89,12 @@ export function CompanyInfoCard({
             variant="ghost" 
             size="sm" 
             className="text-sm text-primary font-medium hover:text-primary/80 flex items-center gap-1.5 transition-colors"
-            onClick={() => setShowMoreInfo(true)}
+            onClick={handleViewMore}
           >
             View More <ExternalLink className="h-3.5 w-3.5" />
           </Button>
         </CardFooter>
       </Card>
-      
-      <Dialog open={showMoreInfo} onOpenChange={setShowMoreInfo}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Additional Company Information</DialogTitle>
-          </DialogHeader>
-
-          <div>
-            <h4 className="text-base font-medium mb-2">About</h4>
-            <p className="text-muted-foreground">{introduction}</p>
-          </div>
-        
-          {founderLinkedIns && founderLinkedIns.length > 0 && (
-            <div className="space-y-6 py-4">
-              <div>
-                <h4 className="text-base font-medium mb-2">Founders</h4>
-                <ul className="list-disc pl-5 space-y-1">
-                  {founderLinkedIns.map((linkedin, index) => (
-                    <li key={index}>
-                      <a 
-                        href={linkedin.startsWith('http') ? linkedin : `https://${linkedin}`}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '')}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
