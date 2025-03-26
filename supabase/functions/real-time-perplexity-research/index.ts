@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Define CORS headers with origin explicitly allowed
@@ -204,7 +203,7 @@ Format your response in Markdown with clear section headers. Ensure all data is 
 
     console.log(`Successfully completed research for company ${companyId}`);
 
-    // Return the research data
+    // Make sure all responses include the CORS headers
     return new Response(
       JSON.stringify({
         success: true,
