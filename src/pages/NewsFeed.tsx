@@ -103,12 +103,12 @@ const NewsFeed = () => {
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center mb-6">
+        <div className="flex flex-col mb-6">
           <Button
             variant="outline"
             size="sm"
             onClick={handleBackClick}
-            className="mr-4"
+            className="mr-auto mb-4 flex items-center"
           >
             <ChevronLeft className="mr-1" /> Back
           </Button>
