@@ -78,28 +78,12 @@ const NewsFeed = () => {
         
         // Handle market_insights
         if (item.market_insights) {
-          if (typeof item.market_insights === 'string') {
-            try {
-              marketInsights = JSON.parse(item.market_insights);
-            } catch (e) {
-              console.error('Error parsing market_insights', e);
-            }
-          } else if (Array.isArray(item.market_insights)) {
-            marketInsights = item.market_insights as unknown as MarketInsight[];
-          }
+          marketInsights = item.market_insights as MarketInsight[];
         }
         
         // Handle news_highlights
         if (item.news_highlights) {
-          if (typeof item.news_highlights === 'string') {
-            try {
-              newsHighlights = JSON.parse(item.news_highlights);
-            } catch (e) {
-              console.error('Error parsing news_highlights', e);
-            }
-          } else if (Array.isArray(item.news_highlights)) {
-            newsHighlights = item.news_highlights as unknown as NewsItem[];
-          }
+          newsHighlights = item.news_highlights as NewsItem[];
         }
         
         return {
@@ -162,34 +146,35 @@ const NewsFeed = () => {
           <TabsContent value="news">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {researches.flatMap(research => 
-                (research.news_highlights || []).map((news, index) => (
-                  <Card key={`${research.id}-news-${index}`} className="h-full">
-                    <CardHeader>
-                      <CardTitle className="line-clamp-2">{news.headline}</CardTitle>
-                      <CardDescription className="flex justify-between items-center">
-                        <span>{research.companyName}</span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="line-clamp-4 text-sm">{news.content}</p>
-                      {news.url && (
-                        <a 
-                          href={news.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline mt-2 inline-block text-sm"
-                        >
-                          Read more
-                        </a>
-                      )}
-                      {news.source && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Source: {news.source}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                (research.news_highlights && research.news_highlights.length > 0) ? 
+                  research.news_highlights.map((news, index) => (
+                    <Card key={`${research.id}-news-${index}`} className="h-full">
+                      <CardHeader>
+                        <CardTitle className="line-clamp-2">{news.headline}</CardTitle>
+                        <CardDescription className="flex justify-between items-center">
+                          <span>{research.companyName}</span>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="line-clamp-4 text-sm">{news.content}</p>
+                        {news.url && (
+                          <a 
+                            href={news.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline mt-2 inline-block text-sm"
+                          >
+                            Read more
+                          </a>
+                        )}
+                        {news.source && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Source: {news.source}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )) : []
               )}
               
               {researches.length === 0 || 
@@ -204,32 +189,33 @@ const NewsFeed = () => {
           <TabsContent value="insights">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {researches.flatMap(research => 
-                (research.market_insights || []).map((insight, index) => (
-                  <Card key={`${research.id}-insight-${index}`} className="h-full">
-                    <CardHeader>
-                      <CardTitle className="line-clamp-2">{insight.title}</CardTitle>
-                      <CardDescription>{research.companyName}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm">{insight.content}</p>
-                      {insight.url && (
-                        <a 
-                          href={insight.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline mt-2 inline-block text-sm"
-                        >
-                          Read more
-                        </a>
-                      )}
-                      {insight.source && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Source: {insight.source}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                (research.market_insights && research.market_insights.length > 0) ?
+                  research.market_insights.map((insight, index) => (
+                    <Card key={`${research.id}-insight-${index}`} className="h-full">
+                      <CardHeader>
+                        <CardTitle className="line-clamp-2">{insight.title}</CardTitle>
+                        <CardDescription>{research.companyName}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm">{insight.content}</p>
+                        {insight.url && (
+                          <a 
+                            href={insight.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline mt-2 inline-block text-sm"
+                          >
+                            Read more
+                          </a>
+                        )}
+                        {insight.source && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Source: {insight.source}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )) : []
               )}
               
               {researches.length === 0 || 
