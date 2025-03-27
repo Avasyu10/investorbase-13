@@ -35,7 +35,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       if (requestedAt && requestedAt > tenMinutesAgo) {
         console.log('Using existing research data from database (less than 10 minutes old)');
         return {
-          research: existingData.perplexity_response,
+          research: formatResearchHtml(existingData.perplexity_response),
           requestedAt: existingData.perplexity_requested_at
         };
       }
@@ -57,7 +57,6 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         headers: {
           'Content-Type': 'application/json',
           'x-app-version': '1.0.0'
-          // Do not include 'Access-Control-Allow-Origin' header here
         }
       });
       
@@ -71,7 +70,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         if (existingData?.perplexity_response) {
           console.log('Falling back to existing research data due to edge function error');
           return {
-            research: existingData.perplexity_response,
+            research: formatResearchHtml(existingData.perplexity_response),
             requestedAt: existingData.perplexity_requested_at
           };
         }
@@ -88,7 +87,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         if (existingData?.perplexity_response) {
           console.log('Falling back to existing research data due to API error');
           return {
-            research: existingData.perplexity_response,
+            research: formatResearchHtml(existingData.perplexity_response),
             requestedAt: existingData.perplexity_requested_at
           };
         }
@@ -112,7 +111,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       } else if (updatedCompany && updatedCompany.perplexity_response) {
         // Update the research with the fresh data from database
         console.log('Updated research data from database:', updatedCompany.perplexity_response);
-        data.research = updatedCompany.perplexity_response;
+        data.research = formatResearchHtml(updatedCompany.perplexity_response);
         data.requestedAt = updatedCompany.perplexity_requested_at;
         
         toast.success("Research complete", {
@@ -134,7 +133,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         if (existingData?.perplexity_response) {
           console.log('Falling back to existing research data due to timeout');
           return {
-            research: existingData.perplexity_response,
+            research: formatResearchHtml(existingData.perplexity_response),
             requestedAt: existingData.perplexity_requested_at
           };
         }
@@ -161,7 +160,7 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
         console.log('Using last resort fallback to existing research data');
         // Don't show error toast since we have existing data to display
         return {
-          research: lastResortData.perplexity_response,
+          research: formatResearchHtml(lastResortData.perplexity_response),
           requestedAt: lastResortData.perplexity_requested_at
         };
       }
@@ -172,4 +171,22 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
     // Throw the error without showing toast (toast will be shown in the component)
     throw error;
   }
+}
+
+// Helper function to format the research text as HTML
+function formatResearchHtml(text: string): string {
+  if (!text) return '';
+  
+  return text
+    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-3 mt-6">$1</h1>') // h1
+    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-2 mt-5">$1</h2>') // h2
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
+    .replace(/^#### (.*$)/gim, '<h4 class="text-base font-bold mb-1 mt-3">$1</h4>') // h4
+    .replace(/^##### (.*$)/gim, '<h5 class="font-bold mb-1 mt-2">$1</h5>') // h5
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>') // bold
+    .replace(/\*(.*?)\*/gim, '<em>$1</em>') // italic
+    .replace(/\n\n/gim, '</p><p class="mb-4">') // paragraphs
+    .replace(/^\s*(?:[-*+]|\d+\.)\s+(.*)/gim, '<li>$1</li>') // list items
+    .replace(/<\/li>\n<li>/gim, '</li><li>') // fix list items
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
 }
