@@ -2,18 +2,49 @@
 import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkle } from "lucide-react";
+import { ChevronLeft, Sparkle, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
+import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
+  const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
   const { company, isLoading } = useCompanyDetails(id);
+  const [hasFundThesis, setHasFundThesis] = useState(false);
+  
+  // Check if user has a fund thesis document
+  useEffect(() => {
+    const checkFundThesis = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { count, error } = await supabase
+            .from('fund_thesis_analysis')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+            
+          if (error) {
+            console.error('Error checking fund thesis:', error);
+            return;
+          }
+          
+          setHasFundThesis(count !== null && count > 0);
+        }
+      } catch (error) {
+        console.error('Error checking fund thesis:', error);
+      }
+    };
+    
+    checkFundThesis();
+  }, []);
   
   const handleBack = () => {
     navigate(-1);
@@ -21,6 +52,12 @@ const CompanyPage = () => {
 
   const handleOpenResearchModal = () => {
     setIsResearchModalOpen(true);
+  };
+  
+  const handleOpenFundThesisModal = () => {
+    if (!company) return;
+    
+    setIsFundThesisModalOpen(true);
   };
 
   return (
@@ -35,23 +72,37 @@ const CompanyPage = () => {
             <ChevronLeft className="mr-1" /> Back
           </Button>
           
-          {!isLoading && company && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleOpenResearchModal}
-              className="bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
-            >
-              <Sparkle className="mr-2 h-4 w-4" />
-              Analyze in Real Time
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {!isLoading && company && hasFundThesis && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleOpenFundThesisModal}
+                className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
+              >
+                <Lightbulb className="mr-2 h-4 w-4" />
+                Analyze with Fund Thesis
+              </Button>
+            )}
+            
+            {!isLoading && company && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleOpenResearchModal}
+                className="bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
+              >
+                <Sparkle className="mr-2 h-4 w-4" />
+                Analyze in Real Time
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       
       <CompanyDetails />
       
-      {/* Market Research Modal - Only show in modal */}
+      {/* Market Research Modal */}
       <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
         <DialogContent className="max-w-4xl w-[95vw]">
           <DialogHeader>
@@ -66,6 +117,27 @@ const CompanyPage = () => {
               <MarketResearch 
                 companyId={company.id.toString()} 
                 assessmentPoints={company.assessmentPoints || []} 
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Fund Thesis Alignment Modal */}
+      <Dialog open={isFundThesisModalOpen} onOpenChange={setIsFundThesisModalOpen}>
+        <DialogContent className="max-w-4xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-blue-500" />
+              Fund Thesis Alignment
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {company && (
+              <FundThesisAlignment 
+                companyId={company.id.toString()}
+                companyName={company.name}
               />
             )}
           </div>
