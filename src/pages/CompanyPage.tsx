@@ -75,12 +75,12 @@ const CompanyPage = () => {
           <div className="flex gap-2">
             {!isLoading && company && hasFundThesis && (
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
                 onClick={handleOpenFundThesisModal}
-                className="border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-800"
+                className="bg-[#5D4AFF] hover:bg-[#4A3AD0] text-white border-[#5D4AFF]"
               >
-                <Lightbulb className="mr-2 h-4 w-4 text-purple-600" />
+                <Lightbulb className="mr-2 h-4 w-4 text-white" />
                 Fund Thesis Alignment
               </Button>
             )}
@@ -128,7 +128,7 @@ const CompanyPage = () => {
         <DialogContent className="max-w-4xl w-[95vw]">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-purple-600" />
+              <Lightbulb className="h-5 w-5 text-[#5D4AFF]" />
               Fund Thesis Alignment
             </DialogTitle>
           </DialogHeader>

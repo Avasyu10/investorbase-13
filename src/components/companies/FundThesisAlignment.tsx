@@ -105,7 +105,7 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
     <Card className="shadow-md border bg-card overflow-hidden mb-8">
       <CardHeader className="bg-muted/50 border-b pb-4">
         <div className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-purple-600" />
+          <Lightbulb className="h-5 w-5 text-[#5D4AFF]" />
           <CardTitle className="text-xl font-semibold">Fund Thesis Alignment</CardTitle>
         </div>
       </CardHeader>
@@ -113,7 +113,7 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
       <CardContent className="pt-5 px-4 sm:px-6">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-600 mb-4" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#5D4AFF] mb-4" />
             <p className="text-sm text-muted-foreground">Analyzing alignment with your fund thesis...</p>
           </div>
         ) : (
@@ -128,9 +128,9 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
                   {assessmentPoints.map((point, index) => (
                     <div 
                       key={index} 
-                      className="flex items-start gap-3 p-4 rounded-lg border border-purple-200 bg-purple-50/60"
+                      className="flex items-start gap-3 p-4 rounded-lg border border-[#5D4AFF]/20 bg-[#5D4AFF]/5"
                     >
-                      <Lightbulb className="h-5 w-5 mt-0.5 text-purple-600 shrink-0" />
+                      <Lightbulb className="h-5 w-5 mt-0.5 text-[#5D4AFF] shrink-0" />
                       <span className="text-sm leading-relaxed">{point}</span>
                     </div>
                   ))}
@@ -145,7 +145,7 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
             <div className="pt-2">
               <Button 
                 variant="outline" 
-                className="flex items-center gap-2 text-purple-700"
+                className="flex items-center gap-2 text-[#5D4AFF]"
                 onClick={handleViewThesis}
               >
                 <span>View Your Fund Thesis</span>
