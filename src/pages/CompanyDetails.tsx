@@ -1,129 +1,161 @@
 
-import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { SectionCard } from "@/components/companies/SectionCard";
-import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
-import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2 } from "lucide-react";
-import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
-import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
+import { ChevronLeft } from "lucide-react";
+import { ErrorCard } from "@/components/ErrorCard";
+import { supabase } from "@/integrations/supabase/client";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
+import { CompanyDetails as CompanyDetailsComponent } from "@/components/companies/CompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
-import { LatestResearch } from "@/components/companies/LatestResearch";
+import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 
-function CompanyDetails() {
-  const { id } = useParams<{ id: string }>();
+export default function CompanyDetails() {
+  const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
-  const { isLoading: authLoading, user } = useAuth();
-  const { company, isLoading } = useCompanyDetails(id || "");
+  const { user, isLoading: authLoading } = useAuth();
+  const [company, setCompany] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    if (!company && !isLoading) {
-      setError("Company not found");
+    if (!authLoading && !user) {
+      navigate('/login', { state: { from: '/companies' } });
+    } else if (companyId && user) {
+      fetchCompanyDetails();
     }
-  }, [company, isLoading]);
+  }, [companyId, user, authLoading, navigate]);
 
-  // Early return for loading state
-  if (authLoading || isLoading) {
+  const fetchCompanyDetails = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (!companyId) {
+        throw new Error("Company ID is required");
+      }
+
+      // Fetch company details
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select(`
+          *,
+          sections(*)
+        `)
+        .eq('id', companyId)
+        .single();
+
+      if (companyError) {
+        throw companyError;
+      }
+
+      if (!companyData) {
+        throw new Error("Company not found");
+      }
+
+      setCompany(companyData);
+    } catch (error: any) {
+      console.error("Error fetching company details:", error);
+      setError(error.message || "Failed to load company details");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (authLoading || (isLoading && !error)) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <ErrorCard
+        title="Error Loading Company"
+        message={error}
+        actionText="Back to Companies"
+        onAction={() => navigate('/companies')}
+      />
     );
   }
 
-  // Early return for error state
-  if (error || !company) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
-            Company Not Found
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            The company you're looking for doesn't exist or you don't have access to it.
-          </p>
-          <Button onClick={() => navigate('/')}>Return to Dashboard</Button>
-        </div>
-      </div>
-    );
-  }
+  if (!company) return null;
+
+  // Safely access company data
+  const companyName = company.name || "Unknown Company";
+  const overallScore = typeof company.overall_score === 'number' ? company.overall_score.toString() : "0";
+  const assessmentPoints = Array.isArray(company.assessment_points) 
+    ? company.assessment_points 
+    : [];
 
   return (
     <div className="container mx-auto px-4 py-6 animate-fade-in">
-      {/* Back Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center"
-      >
-        <ChevronLeft className="mr-1" /> Back
-      </Button>
-
-      {/* Company Info and Score */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2">
-          <CompanyInfoCard
-            website=""
-            stage=""
-            industry=""
-            introduction={company.description || "No description available"}
-          />
-        </div>
+      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
         <div>
-          <ScoreAssessment company={company} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/companies')}
+            className="mb-2 flex items-center"
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Companies
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">{companyName}</h1>
         </div>
       </div>
 
-      {/* Fund Thesis Alignment */}
-      <FundThesisAlignment companyId={company.id} companyName={company.name} />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-1">
+          <CompanyInfoCard 
+            company={company}
+            overallScore={overallScore}
+          />
+        </div>
 
-      {/* Market Research */}
-      <MarketResearch 
-        companyId={company.id} 
-        assessmentPoints={company.assessmentPoints || []} 
-      />
+        <div className="lg:col-span-3">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-4 w-full mb-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="details">Detailed Analysis</TabsTrigger>
+              <TabsTrigger value="market-research">Market Research</TabsTrigger>
+              <TabsTrigger value="thesis-alignment">Thesis Alignment</TabsTrigger>
+            </TabsList>
 
-      {/* Overall Assessment */}
-      <OverallAssessment
-        score={company.overallScore || 0}
-        assessmentPoints={company.assessmentPoints || []}
-      />
+            <TabsContent value="overview" className="mt-0">
+              <OverallAssessment 
+                company={company} 
+                overallScore={overallScore}
+                sections={company.sections || []}
+              />
+            </TabsContent>
+            
+            <TabsContent value="details" className="mt-0">
+              <CompanyDetailsComponent 
+                company={company}
+                sections={company.sections || []}
+              />
+            </TabsContent>
 
-      {/* Latest Research */}
-      <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
+            <TabsContent value="market-research" className="mt-0">
+              <MarketResearch 
+                companyId={companyId || ''} 
+                assessmentPoints={assessmentPoints}
+              />
+            </TabsContent>
 
-      {/* Sections */}
-      <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {company.sections &&
-          company.sections.map((section) => (
-            <SectionCard
-              key={section.id}
-              section={section}
-              onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
-            />
-          ))}
-        {(!company.sections || company.sections.length === 0) && (
-          <Card className="col-span-full">
-            <CardHeader>
-              <CardTitle>No Analysis Sections Available</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                There are no detailed analysis sections available for this company.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+            <TabsContent value="thesis-alignment" className="mt-0">
+              <FundThesisAlignment 
+                companyId={companyId || ''}
+                companyName={companyName}
+                assessmentPoints={assessmentPoints}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
 }
-
-export default CompanyDetails;
