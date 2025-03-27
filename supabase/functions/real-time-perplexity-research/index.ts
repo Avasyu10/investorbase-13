@@ -86,7 +86,7 @@ serve(async (req) => {
 Company Assessment Points:
 ${assessmentPoints.join('\n')}
 
-Your research should include:
+YOUR RESEARCH SHOULD BE IN THIS FORMAT ONLY, THIS IS THE MOST IMPORTANT PART IN FORMATTING YOUR RESPONSE:
 
 # Market Research: ${companyName} 
 
