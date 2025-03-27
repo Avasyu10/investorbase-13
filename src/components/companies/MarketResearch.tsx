@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,7 +22,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
   const [researchData, setResearchData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
-  const [company, setCompany] = useState<any>(null);
+  const [companyName, setCompanyName] = useState<string>("");
 
   useEffect(() => {
     if (!companyId) return;
@@ -29,6 +30,18 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     const checkExistingResearch = async () => {
       try {
         setIsCheckingExisting(true);
+        
+        // Get company name
+        const { data: companyData, error: companyError } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', companyId)
+          .single();
+          
+        if (!companyError && companyData) {
+          setCompanyName(companyData.name);
+        }
+        
         const { data, error } = await supabase
           .from('market_research')
           .select('*')
@@ -41,7 +54,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           console.error('Error checking existing research:', error);
         } else if (data) {
           setResearchData(data);
-          setCompany(data.company);
         }
       } catch (error) {
         console.error('Error in checkExistingResearch:', error);
@@ -256,9 +268,9 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="text-xl">Market Research Analysis</DialogTitle>
-            {company && (
+            {companyName && (
               <DialogDescription className="text-muted-foreground">
-                Key market insights and analysis for {company.name}
+                Key market insights and analysis for {companyName}
               </DialogDescription>
             )}
           </DialogHeader>
@@ -272,7 +284,13 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             
             <ScrollArea className="h-[60vh]">
               <TabsContent value="summary" className="mt-0 p-4">
-                {researchData?.research_text ? (
+                {researchData?.research_summary ? (
+                  <div className="prose prose-sm max-w-none">
+                    <div dangerouslySetInnerHTML={{ 
+                      __html: formatResearchHtml(researchData.research_summary) 
+                    }} />
+                  </div>
+                ) : researchData?.research_text ? (
                   <div className="prose prose-sm max-w-none">
                     <div dangerouslySetInnerHTML={{ 
                       __html: extractSection(researchData.research_text, "RESEARCH SUMMARY") 
@@ -322,7 +340,9 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                   <div className="space-y-6">
                     {researchData.market_insights.map((insight: any, index: number) => (
                       <div key={index} className="border rounded-lg p-4 bg-card">
-                        <h3 className="text-lg font-semibold mb-1">{insight.headline || insight.title}</h3>
+                        <h3 className="text-lg font-semibold mb-1">
+                          {insight.headline || insight.title}
+                        </h3>
                         {insight.source && (
                           <p className="text-sm text-primary mb-2">{insight.source}</p>
                         )}
@@ -414,4 +434,19 @@ function extractSection(text: string, sectionName: string): string {
   }
   
   return html;
+}
+
+function formatResearchHtml(text: string): string {
+  if (!text) return '<p>No research summary available</p>';
+  
+  return text
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // bold
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>') // italic
+    .replace(/\n\n/g, '</p><p class="mb-4">') // paragraphs
+    .replace(/^- (.*$)/gim, '<li>$1</li>') // list items
+    .replace(/\n- /g, '</p><ul><li>') // list start
+    .replace(/<\/li>\n- /g, '</li><li>') // consecutive list items
+    .replace(/<\/p><ul>/g, '<ul>') // fix paragraph to list transition
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
 }
