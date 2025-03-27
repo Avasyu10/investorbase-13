@@ -56,19 +56,14 @@ const CompanyPage = () => {
   // Check if the user has a fund thesis document
   useEffect(() => {
     const checkFundThesis = async () => {
-      // Use a more specific query to avoid type errors
       const { data, error } = await supabase
         .from('vc_documents')
         .select('id')
         .eq('document_type', 'fund_thesis')
         .limit(1);
       
-      console.log("Fund thesis documents:", data);
-      
       if (!error && data && data.length > 0) {
         setHasFundThesis(true);
-      } else if (error) {
-        console.error("Error checking fund thesis:", error);
       }
     };
 

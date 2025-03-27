@@ -111,10 +111,11 @@ const SectionPage = () => {
         
         {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
         
-        {/* Fund Thesis Alignment Component - updated to match expected props */}
-        {!isLoading && company && companyId && (
+        {/* Fund Thesis Alignment Component */}
+        {!isLoading && company && (
           <FundThesisAlignment 
-            companyId={companyId} 
+            companyId={companyId || ''} 
+            companyName={company.name} 
           />
         )}
         
