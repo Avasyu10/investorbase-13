@@ -78,9 +78,9 @@ const CompanyPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleOpenFundThesisModal}
-                className="border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                className="border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-800"
               >
-                <Lightbulb className="mr-2 h-4 w-4 text-gray-600" />
+                <Lightbulb className="mr-2 h-4 w-4 text-purple-600" />
                 Fund Thesis Alignment
               </Button>
             )}
@@ -128,7 +128,7 @@ const CompanyPage = () => {
         <DialogContent className="max-w-4xl w-[95vw]">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-gray-700" />
+              <Lightbulb className="h-5 w-5 text-purple-600" />
               Fund Thesis Alignment
             </DialogTitle>
           </DialogHeader>
