@@ -1,184 +1,160 @@
 
 import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Target, Loader2 } from "lucide-react";
-import { supabase } from '@/integrations/supabase/client';
+import { Lightbulb, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FundThesisAlignmentProps {
   companyId: string;
-  companyName: string;
-  assessmentPoints: string[];
+  companyName?: string;
 }
 
-export function FundThesisAlignment({ companyId, companyName, assessmentPoints }: FundThesisAlignmentProps) {
-  const { user } = useAuth();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
+export function FundThesisAlignment({ companyId, companyName = "This company" }: FundThesisAlignmentProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [assessmentPoints, setAssessmentPoints] = useState<string[]>([]);
 
   useEffect(() => {
-    const checkExistingAnalysis = async () => {
+    async function analyzeThesisAlignment() {
       try {
-        setIsAnalysisLoading(true);
+        setIsLoading(true);
         
-        if (!companyId || !user?.id) return;
+        const { data: { user } } = await supabase.auth.getUser();
         
-        const { data, error } = await supabase
-          .from('fund_thesis_analysis')
-          .select('*')
-          .eq('company_id', companyId)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .maybeSingle();
+        if (!user) {
+          toast.error("You need to be logged in to analyze thesis alignment");
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data, error } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
+          body: { 
+            company_id: companyId,
+            user_id: user.id
+          }
+        });
+        
+        if (error) {
+          console.error("Error analyzing fund thesis alignment:", error);
+          toast.error("Failed to analyze fund thesis alignment");
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data.error) {
+          console.error("API error:", data.error);
+          toast.error(data.error);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Process the analysis text into points for display
+        if (data.analysis) {
+          setAnalysis(data.analysis);
           
-        if (error) throw error;
-        
-        if (data) {
-          setAnalysis(data);
+          // Convert the analysis text into points for display
+          const lines = data.analysis.split('\n').filter(line => line.trim() !== '');
+          const points = lines.filter(line => !line.match(/^\d+\./)); // Filter out section headings
+          setAssessmentPoints(points);
         }
       } catch (error) {
-        console.error('Error checking existing analysis:', error);
+        console.error("Error in thesis alignment analysis:", error);
+        toast.error("Failed to analyze fund thesis alignment");
       } finally {
-        setIsAnalysisLoading(false);
+        setIsLoading(false);
       }
-    };
+    }
     
-    checkExistingAnalysis();
-  }, [companyId, user?.id]);
+    analyzeThesisAlignment();
+  }, [companyId]);
 
-  const generateAlignment = async () => {
+  const handleViewThesis = async () => {
     try {
-      setIsLoading(true);
-      setIsDialogOpen(true);
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user?.id) {
-        toast.error('You must be logged in to analyze thesis alignment');
+      if (!user) {
+        toast.error("You need to be logged in to view your fund thesis");
         return;
       }
       
-      // Call the edge function to analyze the thesis alignment
-      const { data, error } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
+      // Redirect to handle-vc-document-upload to view the fund thesis
+      const { data, error } = await supabase.functions.invoke('handle-vc-document-upload', {
         body: { 
-          companyId,
-          assessmentPoints 
+          action: 'get_url', 
+          userId: user.id,
+          documentType: 'fund_thesis' 
         }
       });
       
-      if (error) {
-        console.error('Error invoking analyze-fund-thesis-alignment function:', error);
-        toast.error('Failed to analyze thesis alignment');
+      if (error || !data?.url) {
+        toast.error("Failed to retrieve fund thesis document");
         return;
       }
       
-      if (data.error) {
-        console.error('API error:', data.error);
-        toast.error(data.error);
-        return;
-      }
-      
-      setAnalysis(data.analysis);
-      toast.success('Thesis alignment analysis complete');
-      
+      // Open the fund thesis in a new tab
+      window.open(data.url, '_blank');
     } catch (error) {
-      console.error('Error in generateAlignment:', error);
-      toast.error('An unexpected error occurred');
-    } finally {
-      setIsLoading(false);
+      console.error("Error viewing fund thesis:", error);
+      toast.error("Failed to retrieve fund thesis document");
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
-  
   return (
-    <>
-      <Card className="shadow-md border">
-        <CardHeader className="pb-4">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-semibold flex items-center">
-              <Target className="mr-2 h-5 w-5 text-primary" />
-              Fund Thesis Alignment
-            </CardTitle>
-            
-            {analysis && (
-              <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
-                View Analysis
-              </Button>
-            )}
+    <Card className="shadow-md border bg-card overflow-hidden mb-8">
+      <CardHeader className="bg-muted/50 border-b pb-4">
+        <div className="flex items-center gap-2">
+          <Lightbulb className="h-5 w-5 text-emerald-600" />
+          <CardTitle className="text-xl font-semibold">Fund Thesis Alignment</CardTitle>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-5 px-4 sm:px-6">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-4" />
+            <p className="text-sm text-muted-foreground">Analyzing alignment with your fund thesis...</p>
           </div>
-        </CardHeader>
-        
-        <CardContent>
-          {isAnalysisLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : analysis ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                This analysis compares the company's profile with your investment thesis to determine alignment.
-              </p>
-              
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-primary">Analysis Available</Badge>
-                <span className="text-xs text-muted-foreground">
-                  Created on {formatDate(analysis.created_at)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 space-y-4">
-              <Target className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold">No Thesis Alignment Analysis</h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Generate an analysis to see how well {companyName} aligns with your fund's investment thesis.
-              </p>
-            </div>
-          )}
-        </CardContent>
-        
-        <CardFooter className="flex justify-end border-t pt-4 pb-4 bg-muted/30">
-          <Button 
-            onClick={generateAlignment} 
-            disabled={isLoading}
-            className="bg-primary hover:bg-primary/90"
-          >
-            {isLoading ? (
+        ) : (
+          <div className="space-y-6">
+            {analysis ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
+                <p className="text-sm text-muted-foreground">
+                  Analysis of how well {companyName} aligns with your investment thesis and strategic focus areas.
+                </p>
+                
+                <div className="space-y-4 mt-4">
+                  {assessmentPoints.map((point, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-start gap-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50/50"
+                    >
+                      <Lightbulb className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />
+                      <span className="text-sm leading-relaxed">{point}</span>
+                    </div>
+                  ))}
+                </div>
               </>
             ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                {analysis ? "Regenerate Analysis" : "Analyze Thesis Alignment"}
-              </>
+              <p className="text-sm text-muted-foreground py-4">
+                Failed to analyze alignment with your fund thesis. Please make sure you have uploaded a fund thesis document.
+              </p>
             )}
-          </Button>
-        </CardFooter>
-      </Card>
-      
-      {/* Analysis Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Fund Thesis Alignment Analysis</DialogTitle>
-          </DialogHeader>
-          
-          {analysis && (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <div dangerouslySetInnerHTML={{ __html: analysis.analysis_text }} />
+            
+            <div className="pt-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50"
+                onClick={handleViewThesis}
+              >
+                <span>View Your Fund Thesis</span>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

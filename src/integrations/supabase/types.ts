@@ -350,7 +350,7 @@ export type Database = {
           id: string
           market_insights: Json | null
           news_highlights: Json | null
-          prompt: string | null
+          prompt: string
           requested_at: string
           research_text: string | null
           sources: Json | null
@@ -363,7 +363,7 @@ export type Database = {
           id?: string
           market_insights?: Json | null
           news_highlights?: Json | null
-          prompt?: string | null
+          prompt: string
           requested_at?: string
           research_text?: string | null
           sources?: Json | null
@@ -376,7 +376,7 @@ export type Database = {
           id?: string
           market_insights?: Json | null
           news_highlights?: Json | null
-          prompt?: string | null
+          prompt?: string
           requested_at?: string
           research_text?: string | null
           sources?: Json | null
