@@ -109,7 +109,11 @@ Provide 5-7 key market insights directly relevant to this company, each with:
 - Concrete trends affecting this specific business
 - Reference to reputable sources with URLs
 
-Format each with a clear title, 3-4 sentences with DATA, and source link.
+Format each as:
+### [HEADLINE]
+**Source:** [PUBLICATION], [DATE]
+**Summary:** [2-3 SENTENCES WITH CONCRETE DATA POINTS]
+**URL:** [ACTUAL URL]
 
 ## 3. RESEARCH SUMMARY
 Synthesize your findings into a concise summary with:
