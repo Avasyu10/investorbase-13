@@ -1,7 +1,6 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Loader2, Newspaper } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MarketInsight, NewsItem } from "@/components/types";
+import { useNavigate } from "react-router-dom";
 
 interface MarketResearchData {
   id: string;
@@ -20,19 +20,15 @@ interface MarketResearchData {
 }
 
 const NewsFeed = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [researches, setResearches] = useState<MarketResearchData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("news");
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login', { state: { from: '/news-feed' } });
-    } else if (user) {
-      fetchMarketResearch();
-    }
-  }, [user, authLoading, navigate]);
+    fetchMarketResearch();
+  }, []);
 
   const fetchMarketResearch = async () => {
     try {
@@ -96,15 +92,13 @@ const NewsFeed = () => {
     navigate(-1);
   };
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
-  if (!user) return null;
 
   return (
     <div className="animate-fade-in">

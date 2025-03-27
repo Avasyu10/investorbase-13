@@ -1,3 +1,4 @@
+
 import Index from "@/pages/Index";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -135,11 +136,7 @@ export const routes = [
   },
   {
     path: "/news-feed",
-    element: (
-      <ProtectedRoute>
-        <NewsFeed />
-      </ProtectedRoute>
-    ),
+    element: <NewsFeed />, // Removed ProtectedRoute wrapper to make it public
   },
   {
     path: "*",
