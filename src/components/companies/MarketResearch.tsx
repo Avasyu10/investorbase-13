@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe, TrendingUp, Newspaper } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,7 +22,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
   const [researchData, setResearchData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
-  const [companyName, setCompanyName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!companyId) return;
@@ -31,18 +30,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     const checkExistingResearch = async () => {
       try {
         setIsCheckingExisting(true);
-        
-        // Get company name first
-        const { data: companyData, error: companyError } = await supabase
-          .from('companies')
-          .select('name')
-          .eq('id', companyId)
-          .single();
-          
-        if (!companyError && companyData) {
-          setCompanyName(companyData.name);
-        }
-        
         const { data, error } = await supabase
           .from('market_research')
           .select('*')
@@ -271,12 +258,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl">
-              {companyName ? `Market Research Analysis: ${companyName}` : "Market Research Analysis"}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              Real-time market insights and competitive analysis
-            </DialogDescription>
+            <DialogTitle className="text-xl">Market Research Analysis</DialogTitle>
           </DialogHeader>
           
           <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab} className="w-full">
