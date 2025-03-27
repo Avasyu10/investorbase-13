@@ -13,7 +13,6 @@ import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
-import { LatestResearch } from "./LatestResearch";
 
 const CompanyDetails = () => {
   // Use string type for id to fix the TypeScript error
@@ -21,7 +20,6 @@ const CompanyDetails = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { company, isLoading } = useCompanyDetails(id);
-  const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
   const [companyInfo, setCompanyInfo] = useState({
     website: "",
     stage: "",
@@ -152,20 +150,6 @@ const CompanyDetails = () => {
   const navigateToSupplementaryMaterials = () => {
     navigate(`/company/${id}/supplementary`);
   };
-
-  const onResearchFetched = () => {
-    console.log("Research fetched successfully, invalidating company query");
-    setHasResearchUpdated(true);
-    queryClient.invalidateQueries({
-      queryKey: ['company', id],
-    });
-  };
-
-  useEffect(() => {
-    if (hasResearchUpdated && company?.perplexityResponse) {
-      setHasResearchUpdated(false);
-    }
-  }, [company?.perplexityResponse, hasResearchUpdated]);
 
   if (isLoading) {
     return (
@@ -298,16 +282,6 @@ const CompanyDetails = () => {
           />
         ))}
       </div>
-      
-      {company && company.assessmentPoints && company.assessmentPoints.length > 0 && (
-        <LatestResearch
-          companyId={company.id.toString()}
-          assessmentPoints={company.assessmentPoints}
-          existingResearch={company.perplexityResponse}
-          requestedAt={company.perplexityRequestedAt}
-          onSuccess={onResearchFetched}
-        />
-      )}
     </div>
   );
 };
