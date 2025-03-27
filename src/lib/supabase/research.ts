@@ -47,18 +47,17 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
-      // Call the edge function with proper content type
+      // Call the edge function with abort controller and proper content type
       const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
         body: { 
           companyId,
           assessmentPoints: assessmentText.split('\n\n').filter(point => point.trim() !== '')
         },
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'x-app-version': '1.0.0'
-        },
-        // Using an AbortController needs to be handled differently with Supabase Functions
-        // so we'll remove the signal property
+        }
       });
       
       // Clear the timeout as we got a response
