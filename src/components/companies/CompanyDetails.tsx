@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import { LatestResearch } from "./LatestResearch";
+import { FundThesisAlignment } from "./FundThesisAlignment";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -296,14 +297,8 @@ const CompanyDetails = () => {
         ))}
       </div>
       
-      {company && company.assessmentPoints && company.assessmentPoints.length > 0 && (
-        <LatestResearch
-          companyId={company.id.toString()}
-          assessmentPoints={company.assessmentPoints}
-          existingResearch={company.perplexityResponse}
-          requestedAt={company.perplexityRequestedAt}
-          onSuccess={onResearchFetched}
-        />
+      {company && (
+        <FundThesisAlignment companyId={company.id.toString()} />
       )}
     </div>
   );
