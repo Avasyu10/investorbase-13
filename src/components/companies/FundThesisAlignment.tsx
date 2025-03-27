@@ -36,7 +36,7 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
     <Card className="shadow-md border bg-card overflow-hidden mb-8">
       <CardHeader className="bg-muted/50 border-b pb-4">
         <div className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-amber-500" />
+          <Lightbulb className="h-5 w-5 text-[#5D4AFF]" />
           <CardTitle className="text-xl font-semibold">Fund Thesis Alignment</CardTitle>
         </div>
       </CardHeader>
@@ -52,9 +52,9 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
             {assessmentPoints.map((point, index) => (
               <div 
                 key={index} 
-                className="flex items-start gap-3 p-4 rounded-lg border border-amber-200/20 bg-amber-500/5"
+                className="flex items-start gap-3 p-4 rounded-lg border border-[#5D4AFF]/20 bg-[#5D4AFF]/5"
               >
-                <Lightbulb className="h-5 w-5 mt-0.5 text-amber-500 shrink-0" />
+                <Lightbulb className="h-5 w-5 mt-0.5 text-[#5D4AFF] shrink-0" />
                 <span className="text-sm leading-relaxed">{point}</span>
               </div>
             ))}
@@ -63,7 +63,7 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
           <div className="pt-2">
             <Button 
               variant="outline" 
-              className="flex items-center gap-2 text-primary"
+              className="flex items-center gap-2 text-[#5D4AFF]"
               onClick={handleViewThesis}
             >
               <span>View Your Fund Thesis</span>
