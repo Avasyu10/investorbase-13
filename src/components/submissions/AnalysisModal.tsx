@@ -7,7 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronDown, ChevronUp } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface PublicSubmission {
   id: string;
@@ -46,17 +47,6 @@ export function AnalysisModal({
     similarities: true,
     differences: true,
   });
-
-  // Ensure sections are always expanded when the modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setExpandedSections({
-        summary: true,
-        similarities: true,
-        differences: true,
-      });
-    }
-  }, [isOpen]);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -125,12 +115,14 @@ export function AnalysisModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <FileText className="h-5 w-5 text-primary" />
-            Fund Thesis Alignment Analysis
+            {isAnalyzing ? "Analyzing Submission" : "Fund Thesis Alignment Analysis"}
           </DialogTitle>
           <DialogDescription>
             {submission?.title 
-              ? `Analysis of "${submission.title}" against your fund thesis`
-              : "Fund Thesis Analysis"}
+              ? isAnalyzing 
+                ? `Analyzing "${submission.title}"` 
+                : `Analysis of "${submission.title}" against your fund thesis`
+              : "Processing your request"}
           </DialogDescription>
         </DialogHeader>
 
@@ -237,9 +229,9 @@ export function AnalysisModal({
           </div>
         ) : (
           <div className="py-6 text-center">
-            <p className="text-center">No analysis available.</p>
+            <p className="text-center">Analysis complete!</p>
             {!analysisText && (
-              <p className="text-sm text-muted-foreground mt-2">Please try again or contact support if the issue persists.</p>
+              <p className="text-sm text-muted-foreground mt-2">No detailed analysis results available.</p>
             )}
           </div>
         )}
