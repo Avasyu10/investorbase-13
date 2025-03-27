@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, Newspaper } from "lucide-react";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
@@ -38,13 +38,22 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <Button 
-            onClick={() => navigate("/upload")} 
-            className="mt-4 sm:mt-0"
-          >
-            <FileUp className="mr-2 h-4 w-4" />
-            Upload New Deck
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+            <Button 
+              onClick={() => navigate("/news-feed")} 
+              variant="outline"
+              className="flex items-center"
+            >
+              <Newspaper className="mr-2 h-4 w-4" />
+              News Feed
+            </Button>
+            <Button 
+              onClick={() => navigate("/upload")} 
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              Upload New Deck
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -16,6 +16,7 @@ import Profile from "@/pages/Profile";
 import ProfileEdit from "@/pages/ProfileEdit";
 import Feedback from "@/pages/Feedback";
 import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
+import NewsFeed from "@/pages/NewsFeed";
 
 export const routes = [
   {
@@ -135,6 +136,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <CompanyOverviewPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/news-feed",
+    element: (
+      <ProtectedRoute>
+        <NewsFeed />
       </ProtectedRoute>
     ),
   },

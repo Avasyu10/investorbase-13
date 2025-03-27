@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import { LatestResearch } from "./LatestResearch";
 
-export function CompanyDetails() {
+const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -308,3 +308,5 @@ export function CompanyDetails() {
     </div>
   );
 };
+
+export default CompanyDetails;
