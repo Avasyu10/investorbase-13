@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkle, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
@@ -108,8 +108,11 @@ const CompanyPage = () => {
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <Sparkle className="h-5 w-5 text-amber-500" />
-              Real-Time Market Research
+              {company ? `Market Research Analysis: ${company.name}` : "Real-Time Market Research"}
             </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Real-time market insights and competitive analysis
+            </DialogDescription>
           </DialogHeader>
           
           <div className="mt-4">
@@ -129,8 +132,11 @@ const CompanyPage = () => {
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-emerald-600" />
-              Fund Thesis Alignment
+              {company ? `Fund Thesis Alignment: ${company.name}` : "Fund Thesis Alignment"}
             </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Analyze alignment with your investment thesis
+            </DialogDescription>
           </DialogHeader>
           
           <div className="mt-4">
