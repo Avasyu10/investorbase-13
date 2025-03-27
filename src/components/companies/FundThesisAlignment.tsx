@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Lightbulb, ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { AnalysisModal } from '@/components/submissions/AnalysisModal';
 
 interface FundThesisAlignmentProps {
   companyId: string;
@@ -16,6 +17,8 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [assessmentPoints, setAssessmentPoints] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     async function analyzeThesisAlignment() {
@@ -191,110 +194,157 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     }
   };
 
+  const handleOpenAnalysisModal = () => {
+    setIsAnalysisModalOpen(true);
+  };
+
   return (
-    <Card className="shadow-md border bg-card overflow-hidden mb-8">
-      <CardHeader className="bg-muted/50 border-b pb-4">
-        <div className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-emerald-600" />
-          <CardTitle className="text-xl font-semibold">Fund Thesis Alignment</CardTitle>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-5 px-4 sm:px-6">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-4" />
-            <p className="text-sm text-muted-foreground">Analyzing alignment with your fund thesis...</p>
+    <>
+      <Card className="shadow-md border bg-card overflow-hidden mb-8">
+        <CardHeader className="bg-muted/50 border-b pb-4">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-emerald-600" />
+            <CardTitle className="text-xl font-semibold">Fund Thesis Alignment</CardTitle>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {error ? (
-              <div className="p-4 border border-red-200 bg-red-50 rounded-md">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-red-700">{error}</p>
-                    <p className="text-sm text-red-600 mt-1">
-                      Please make sure you have uploaded a fund thesis document in your profile.
-                    </p>
+        </CardHeader>
+        
+        <CardContent className="pt-5 px-4 sm:px-6">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-4" />
+              <p className="text-sm text-muted-foreground">Analyzing alignment with your fund thesis...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {error ? (
+                <div className="p-4 border border-red-200 bg-red-50 rounded-md">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-700">{error}</p>
+                      <p className="text-sm text-red-600 mt-1">
+                        Please make sure you have uploaded a fund thesis document in your profile.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : analysis ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Analysis of how well {companyName} aligns with your investment thesis and strategic focus areas.
-                </p>
-                
-                <div className="space-y-4 mt-4">
-                  {assessmentPoints.length > 0 ? (
-                    assessmentPoints.map((point, index) => {
-                      const isHeading = point.startsWith("Summary:");
-                      const isSimilarity = point.startsWith("Similarity:");
-                      const isDifference = point.startsWith("Difference:");
-                      
-                      let bgColor = "bg-emerald-50/50";
-                      let borderColor = "border-emerald-200";
-                      let textColor = "text-emerald-900";
-                      let icon = <Lightbulb className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />;
-                      
-                      if (isSimilarity) {
-                        bgColor = "bg-blue-50/50";
-                        borderColor = "border-blue-200";
-                        textColor = "text-blue-900";
-                        icon = <Lightbulb className="h-5 w-5 mt-0.5 text-blue-600 shrink-0" />;
-                      } else if (isDifference) {
-                        bgColor = "bg-amber-50/50";
-                        borderColor = "border-amber-200";
-                        textColor = "text-amber-900";
-                        icon = <Lightbulb className="h-5 w-5 mt-0.5 text-amber-600 shrink-0" />;
-                      }
-                      
-                      const [category, ...content] = point.split(':');
-                      const displayText = content.join(':').trim();
-                      
-                      return (
-                        <div 
-                          key={index} 
-                          className={`flex items-start gap-3 p-4 rounded-lg border ${borderColor} ${bgColor}`}
-                        >
-                          {icon}
-                          <div>
-                            <span className="font-medium text-sm block mb-1">{category}</span>
-                            <span className={`text-sm leading-relaxed ${textColor}`}>{displayText}</span>
+              ) : analysis ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Analysis of how well {companyName} aligns with your investment thesis and strategic focus areas.
+                  </p>
+                  
+                  <div className="space-y-4 mt-4">
+                    {assessmentPoints.length > 0 ? (
+                      <>
+                        {assessmentPoints.slice(0, 3).map((point, index) => {
+                          const isHeading = point.startsWith("Summary:");
+                          const isSimilarity = point.startsWith("Similarity:");
+                          const isDifference = point.startsWith("Difference:");
+                          
+                          let bgColor = "bg-emerald-50/50";
+                          let borderColor = "border-emerald-200";
+                          let textColor = "text-emerald-900";
+                          let icon = <Lightbulb className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />;
+                          
+                          if (isSimilarity) {
+                            bgColor = "bg-blue-50/50";
+                            borderColor = "border-blue-200";
+                            textColor = "text-blue-900";
+                            icon = <Lightbulb className="h-5 w-5 mt-0.5 text-blue-600 shrink-0" />;
+                          } else if (isDifference) {
+                            bgColor = "bg-amber-50/50";
+                            borderColor = "border-amber-200";
+                            textColor = "text-amber-900";
+                            icon = <Lightbulb className="h-5 w-5 mt-0.5 text-amber-600 shrink-0" />;
+                          }
+                          
+                          const [category, ...content] = point.split(':');
+                          const displayText = content.join(':').trim();
+                          
+                          return (
+                            <div 
+                              key={index} 
+                              className={`flex items-start gap-3 p-4 rounded-lg border ${borderColor} ${bgColor}`}
+                            >
+                              {icon}
+                              <div>
+                                <span className="font-medium text-sm block mb-1">{category}</span>
+                                <span className={`text-sm leading-relaxed ${textColor}`}>{displayText}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {assessmentPoints.length > 3 && (
+                          <div className="flex justify-center mt-2">
+                            <Button 
+                              variant="outline" 
+                              onClick={handleOpenAnalysisModal}
+                              className="text-sm"
+                            >
+                              View full analysis
+                            </Button>
                           </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="p-4 border border-amber-200 bg-amber-50 rounded-md">
+                        <p className="text-sm text-amber-700">
+                          Analysis completed but no specific points were extracted. Click below to view the full analysis.
+                        </p>
+                        <div className="mt-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleOpenAnalysisModal}
+                          >
+                            View full analysis
+                          </Button>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div className="p-4 border border-amber-200 bg-amber-50 rounded-md">
-                      <p className="text-sm text-amber-700">
-                        Analysis completed but no specific points were extracted. This could be due to formatting issues.
-                      </p>
-                      <p className="text-sm text-amber-600 mt-2">{analysis}</p>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4">
-                Failed to analyze alignment with your fund thesis. Please make sure you have uploaded a fund thesis document.
-              </p>
-            )}
-            
-            <div className="pt-2">
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50"
-                onClick={handleViewThesis}
-              >
-                <span>View Your Fund Thesis</span>
-                <ExternalLink className="h-4 w-4" />
-              </Button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4">
+                  Failed to analyze alignment with your fund thesis. Please make sure you have uploaded a fund thesis document.
+                </p>
+              )}
+              
+              <div className="pt-2">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50"
+                  onClick={handleViewThesis}
+                >
+                  <span>View Your Fund Thesis</span>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      <AnalysisModal
+        isOpen={isAnalysisModalOpen}
+        isAnalyzing={isAnalyzing}
+        submission={{ 
+          id: companyId,
+          title: companyName || "Company Analysis",
+          description: null,
+          company_stage: null,
+          industry: null,
+          website_url: null,
+          created_at: new Date().toISOString(),
+          form_slug: "",
+          pdf_url: null,
+          report_id: null
+        }}
+        onClose={() => setIsAnalysisModalOpen(false)}
+        analysisText={analysis}
+      />
+    </>
   );
 }

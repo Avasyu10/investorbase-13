@@ -6,7 +6,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface PublicSubmission {
   id: string;
@@ -26,30 +28,213 @@ interface AnalysisModalProps {
   isAnalyzing: boolean;
   submission: PublicSubmission | null;
   onClose: () => void;
+  analysisText?: string;
 }
 
-export function AnalysisModal({ isOpen, isAnalyzing, submission, onClose }: AnalysisModalProps) {
+export function AnalysisModal({ 
+  isOpen, 
+  isAnalyzing, 
+  submission, 
+  onClose, 
+  analysisText 
+}: AnalysisModalProps) {
+  const [expandedSections, setExpandedSections] = useState<{
+    summary: boolean;
+    similarities: boolean;
+    differences: boolean;
+  }>({
+    summary: true,
+    similarities: true,
+    differences: true,
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Parse the analysis text into sections
+  const parseAnalysis = (text: string) => {
+    if (!text) return { summary: [], similarities: [], differences: [] };
+    
+    const sections: { 
+      summary: string[]; 
+      similarities: string[]; 
+      differences: string[];
+    } = {
+      summary: [],
+      similarities: [],
+      differences: [],
+    };
+    
+    let currentSection = '';
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    for (const line of lines) {
+      if (line.match(/^(\*\*)?1\.\s*Overall\s*Summary(\*\*)?/i) || 
+          line.includes('Overall Summary')) {
+        currentSection = 'summary';
+        continue;
+      } else if (line.match(/^(\*\*)?2\.\s*Key\s*Similarities(\*\*)?/i) || 
+                line.includes('Key Similarities')) {
+        currentSection = 'similarities';
+        continue;
+      } else if (line.match(/^(\*\*)?3\.\s*Key\s*Differences(\*\*)?/i) || 
+                line.includes('Key Differences')) {
+        currentSection = 'differences';
+        continue;
+      }
+      
+      // Skip section headers or empty lines
+      if (line.match(/^\*\*.*\*\*$/) || !line.trim() || line.match(/^\d+\.$/) || line === '---') {
+        continue;
+      }
+      
+      // Add content to current section
+      if (currentSection && sections[currentSection as keyof typeof sections]) {
+        // Clean bullet points and formatting
+        let cleanedLine = line.replace(/^\*\s*/, '').trim();
+        cleanedLine = cleanedLine.replace(/^\*\*|\*\*$/g, '').trim();
+        
+        if (cleanedLine) {
+          sections[currentSection as keyof typeof sections].push(cleanedLine);
+        }
+      }
+    }
+    
+    return sections;
+  };
+
+  const parsedAnalysis = analysisText ? parseAnalysis(analysisText) : null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Analyzing Submission</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <FileText className="h-5 w-5 text-primary" />
+            {isAnalyzing ? "Analyzing Submission" : "Fund Thesis Alignment Analysis"}
+          </DialogTitle>
           <DialogDescription>
-            {submission?.title ? `Analyzing "${submission.title}"` : "Processing your request"}
+            {submission?.title 
+              ? isAnalyzing 
+                ? `Analyzing "${submission.title}"` 
+                : `Analysis of "${submission.title}" against your fund thesis`
+              : "Processing your request"}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col items-center justify-center py-6">
-          {isAnalyzing ? (
-            <>
-              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-              <p className="text-center text-sm text-muted-foreground">
-                This may take a minute or two. Please don't close this window.
-              </p>
-            </>
-          ) : (
+
+        {isAnalyzing ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+            <p className="text-center text-sm text-muted-foreground">
+              This may take a minute or two. Please don't close this window.
+            </p>
+          </div>
+        ) : parsedAnalysis ? (
+          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+            {/* Summary Section */}
+            <div className="border rounded-lg overflow-hidden">
+              <button 
+                onClick={() => toggleSection('summary')}
+                className="w-full flex items-center justify-between bg-muted/50 p-4 text-left font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 text-primary">
+                    <span className="text-sm font-bold">1</span>
+                  </div>
+                  <h3 className="text-lg font-semibold">Overall Summary</h3>
+                </div>
+                {expandedSections.summary ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+              
+              {expandedSections.summary && (
+                <div className="p-4 space-y-3 bg-white">
+                  {parsedAnalysis.summary.length > 0 ? (
+                    parsedAnalysis.summary.map((point, i) => (
+                      <p key={i} className="text-sm text-muted-foreground leading-relaxed">
+                        {point}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground">No summary information available</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Similarities Section */}
+            <div className="border rounded-lg overflow-hidden">
+              <button 
+                onClick={() => toggleSection('similarities')}
+                className="w-full flex items-center justify-between bg-muted/50 p-4 text-left font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-green-100 text-green-700">
+                    <span className="text-sm font-bold">2</span>
+                  </div>
+                  <h3 className="text-lg font-semibold">Key Similarities</h3>
+                </div>
+                {expandedSections.similarities ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+              
+              {expandedSections.similarities && (
+                <div className="p-4 space-y-2 bg-white">
+                  {parsedAnalysis.similarities.length > 0 ? (
+                    parsedAnalysis.similarities.map((point, i) => (
+                      <div key={i} className="flex items-start gap-2 mb-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-muted-foreground">{point}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground">No similarities identified</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Differences Section */}
+            <div className="border rounded-lg overflow-hidden">
+              <button 
+                onClick={() => toggleSection('differences')}
+                className="w-full flex items-center justify-between bg-muted/50 p-4 text-left font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-amber-100 text-amber-700">
+                    <span className="text-sm font-bold">3</span>
+                  </div>
+                  <h3 className="text-lg font-semibold">Key Differences</h3>
+                </div>
+                {expandedSections.differences ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+              
+              {expandedSections.differences && (
+                <div className="p-4 space-y-2 bg-white">
+                  {parsedAnalysis.differences.length > 0 ? (
+                    parsedAnalysis.differences.map((point, i) => (
+                      <div key={i} className="flex items-start gap-2 mb-3">
+                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-muted-foreground">{point}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground">No differences identified</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="py-6 text-center">
             <p className="text-center">Analysis complete!</p>
-          )}
-        </div>
+            {!analysisText && (
+              <p className="text-sm text-muted-foreground mt-2">No detailed analysis results available.</p>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
