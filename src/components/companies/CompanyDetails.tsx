@@ -1,8 +1,8 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
-import { LatestResearch } from "./LatestResearch";
 import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,14 +150,6 @@ export function CompanyDetails() {
     navigate(`/company/${id}/supplementary`);
   };
 
-  const onResearchFetched = () => {
-    console.log("Research fetched successfully, invalidating company query");
-    setHasResearchUpdated(true);
-    queryClient.invalidateQueries({
-      queryKey: ['company', id],
-    });
-  };
-
   useEffect(() => {
     if (hasResearchUpdated && company?.perplexityResponse) {
       setHasResearchUpdated(false);
@@ -295,14 +287,6 @@ export function CompanyDetails() {
           />
         ))}
       </div>
-      
-      <LatestResearch 
-        companyId={company.id.toString()} 
-        assessmentPoints={company.assessmentPoints || []}
-        existingResearch={company.perplexityResponse}
-        requestedAt={company.perplexityRequestedAt}
-        onSuccess={onResearchFetched}
-      />
     </div>
   );
 }
