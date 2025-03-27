@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 
@@ -181,6 +182,12 @@ EXTREMELY IMPORTANT:
     console.log("[DEBUG] Research text length:", researchText.length);
     console.log("[DEBUG] Research text preview:", researchText.substring(0, 200) + "...");
 
+    // Extract research summary from the response
+    console.log("[DEBUG] Extracting research summary");
+    const researchSummary = extractResearchSummary(researchText);
+    console.log("[DEBUG] Research summary length:", researchSummary.length);
+    console.log("[DEBUG] Research summary preview:", researchSummary.substring(0, 200) + "...");
+
     // Extract sources, news highlights, and market insights
     console.log("[DEBUG] Extracting sources");
     const sources = extractSources(researchText);
@@ -220,6 +227,7 @@ EXTREMELY IMPORTANT:
       .insert({
         company_id: companyId,
         research_text: researchText,
+        research_summary: researchSummary, // Store the extracted research summary
         sources: sources,
         news_highlights: newsHighlights,
         market_insights: marketInsights,
@@ -246,6 +254,7 @@ EXTREMELY IMPORTANT:
         researchId: researchData.id,
         companyName,
         research: researchText,
+        researchSummary, // Include the research summary in the response
         newsHighlights,
         marketInsights,
         sources,
@@ -276,6 +285,35 @@ EXTREMELY IMPORTANT:
     );
   }
 });
+
+// New function to specifically extract the Research Summary section
+function extractResearchSummary(text: string): string {
+  try {
+    // Look for the research summary section in the text
+    const researchSummaryRegex = /## 3\.\s*RESEARCH SUMMARY\s*([\s\S]*?)(?=(##|$))/i;
+    const match = text.match(researchSummaryRegex);
+    
+    if (match && match[1]) {
+      console.log("[DEBUG] Successfully extracted research summary section");
+      return match[1].trim();
+    }
+    
+    // If the above regex doesn't match, try an alternative approach
+    const altResearchSummaryRegex = /(?:RESEARCH SUMMARY|Research Summary)[\s\S]*?((?:###[^#]+)+)/i;
+    const altMatch = text.match(altResearchSummaryRegex);
+    
+    if (altMatch && altMatch[1]) {
+      console.log("[DEBUG] Extracted research summary using alternative pattern");
+      return altMatch[1].trim();
+    }
+    
+    console.log("[WARNING] Could not extract research summary section");
+    return "";
+  } catch (error) {
+    console.error("[ERROR] Error extracting research summary:", error);
+    return "";
+  }
+}
 
 function extractSources(text: string): Source[] {
   const sources: Source[] = [];
