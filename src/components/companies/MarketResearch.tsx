@@ -121,30 +121,137 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
 
   return (
     <>
-      {/* Market Research section is now hidden from the main page view */}
-      
-      <Card className="bg-muted/30">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 font-medium text-sm mb-2">
-            <Newspaper className="h-4 w-4 text-green-500" />
-            Latest News
+{/*       <Card className="shadow-md border bg-card overflow-hidden mb-8">
+        <CardHeader className="bg-muted/50 border-b pb-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <BarChart2 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl font-semibold">Real-Time Market Research</CardTitle>
+            </div>
+            
+            <Button 
+              variant={researchData ? "outline" : "default"}
+              onClick={handleRequestResearch}
+              disabled={isLoading || isCheckingExisting}
+              className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkle className="mr-2 h-4 w-4" />
+                  {researchData ? "Update Research" : "Real-Time Analysis"}
+                </>
+              )}
+            </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Recent industry news and events with relevant implications for this company.
-          </p>
+        </CardHeader>
+        
+        <CardContent className="pt-5 px-4 sm:px-6">
+          {isCheckingExisting ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-pulse">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-muted-foreground">Checking for existing research...</p>
+            </div>
+          ) : researchData ? (
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold">Research Status</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant={researchData.status === 'completed' ? "default" : researchData.status === 'failed' ? "destructive" : "secondary"}>
+                      {researchData.status.toUpperCase()}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {researchData.status === 'completed' 
+                        ? `Completed on ${formatDate(researchData.completed_at)}` 
+                        : `Requested on ${formatDate(researchData.requested_at)}`}
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsDialogOpen(true)}
+                  disabled={researchData.status !== 'completed'}
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  View Research
+                </Button>
+              </div>
+              
+              {researchData.status === 'failed' && (
+                <div className="bg-destructive/10 text-destructive rounded-md p-4 mt-4">
+                  <h4 className="font-semibold">Error Details</h4>
+                  <p className="text-sm mt-1">{researchData.error_message || "Unknown error occurred"}</p>
+                </div>
+              )}
+              
+              {researchData.status === 'completed' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                  <Card className="bg-muted/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                        <Globe className="h-4 w-4 text-blue-500" />
+                        Market Research
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Comprehensive market analysis with up-to-date insights from reputable sources.
+                      </p>
+                    </CardContent>
+                  </Card> */}
+                  
+                  <Card className="bg-muted/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                        <Newspaper className="h-4 w-4 text-green-500" />
+                        Latest News
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Recent industry news and events with relevant implications for this company.
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-muted/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                        <TrendingUp className="h-4 w-4 text-amber-500" />
+                        Market Trends
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Current trends, market size data, and competitive landscape analysis.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Search className="h-12 w-12 mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-lg font-semibold mb-2">No Market Research Available</h3>
+              <p className="text-muted-foreground max-w-md mb-6">
+                Get real-time market research, industry news, and competitive analysis for this company.
+              </p>
+              <p className="text-sm text-muted-foreground max-w-md mb-8">
+                Our AI will analyze recent news, market trends, and industry data to provide actionable insights.
+              </p>
+            </div>
+          )}
         </CardContent>
-      </Card>
-      
-      <Card className="bg-muted/30">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 font-medium text-sm mb-2">
-            <TrendingUp className="h-4 w-4 text-amber-500" />
-            Market Trends
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Current trends, market size data, and competitive landscape analysis.
-          </p>
-        </CardContent>
+        
+        {(researchData?.sources?.length > 0) && (
+          <CardFooter className="flex justify-end border-t pt-4 bg-muted/30 px-6">
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">{researchData.sources.length}</span> sources referenced
+            </div>
+          </CardFooter>
+        )}
       </Card>
       
       {/* Research Dialog */}
