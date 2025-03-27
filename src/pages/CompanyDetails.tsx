@@ -5,7 +5,6 @@ import { SectionCard } from "@/components/companies/SectionCard";
 import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
-import { sections } from "@/lib/companyData";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
@@ -15,13 +14,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { LatestResearch } from "@/components/companies/LatestResearch";
 
-import { supabase } from "@/integrations/supabase/client";
-
 function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isLoading: authLoading, user } = useAuth();
-  const { company, isLoading, error } = useCompanyDetails(id || "");
+  const { company, isLoading } = useCompanyDetails(id || "");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!company && !isLoading) {
+      setError("Company not found");
+    }
+  }, [company, isLoading]);
 
   // Early return for loading state
   if (authLoading || isLoading) {
@@ -65,29 +69,26 @@ function CompanyDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2">
           <CompanyInfoCard
-            name={company.name}
-            description={company.description || "No description available"}
-            pitchUrl={company.pitchUrl}
-            reportId={company.reportId}
+            website=""
+            stage=""
+            industry=""
+            introduction={company.description || "No description available"}
           />
         </div>
         <div>
-          <ScoreAssessment 
-            overallScore={company.overallScore.toString()} 
-            sections={company.sections || []} 
-          />
+          <ScoreAssessment company={company} />
         </div>
       </div>
 
       {/* Fund Thesis Alignment */}
-      <FundThesisAlignment companyId={company.id} />
+      <FundThesisAlignment companyId={company.id} companyName={company.name} />
 
       {/* Market Research */}
       <MarketResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Overall Assessment */}
       <OverallAssessment
-        companyName={company.name}
+        score={company.overallScore}
         assessmentPoints={company.assessmentPoints || []}
       />
 
@@ -101,14 +102,8 @@ function CompanyDetails() {
           company.sections.map((section) => (
             <SectionCard
               key={section.id}
-              id={section.id}
-              title={section.title}
-              type={section.type}
-              score={section.score}
-              description={section.description || ""}
-              strengthsCount={section.strengthsCount || 0}
-              weaknessesCount={section.weaknessesCount || 0}
-              companyId={company.id}
+              section={section}
+              onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
             />
           ))}
         {(!company.sections || company.sections.length === 0) && (

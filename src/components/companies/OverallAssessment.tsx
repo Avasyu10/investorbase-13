@@ -25,7 +25,7 @@ export function OverallAssessment({
   const progressPercentage = (score / maxScore) * 100;
   
   // Format score to one decimal place
-  const formattedScore = score.toFixed(1);
+  const formattedScore = typeof score === 'number' ? score.toFixed(1) : '0.0';
 
   return (
     <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">

@@ -60,7 +60,7 @@ const NewsFeed = () => {
           market_insights, 
           news_highlights,
           requested_at,
-          companies(name)
+          companies!market_research_company_id_fkey(name)
         `)
         .order('requested_at', { ascending: false });
       
@@ -69,14 +69,48 @@ const NewsFeed = () => {
       }
       
       // Format the data
-      const formattedData = data?.map(item => ({
-        id: item.id,
-        company_id: item.company_id,
-        companyName: item.companies?.name || 'Unknown Company',
-        market_insights: item.market_insights || [],
-        news_highlights: item.news_highlights || [],
-        created_at: item.requested_at
-      })) || [];
+      const formattedData = data?.map(item => {
+        const companyName = item.companies ? item.companies.name : 'Unknown Company';
+        
+        // Parse JSON strings if they come as strings
+        let marketInsights: MarketInsight[] = [];
+        let newsHighlights: NewsItem[] = [];
+        
+        // Handle market_insights
+        if (item.market_insights) {
+          if (typeof item.market_insights === 'string') {
+            try {
+              marketInsights = JSON.parse(item.market_insights);
+            } catch (e) {
+              console.error('Error parsing market_insights', e);
+            }
+          } else if (Array.isArray(item.market_insights)) {
+            marketInsights = item.market_insights as MarketInsight[];
+          }
+        }
+        
+        // Handle news_highlights
+        if (item.news_highlights) {
+          if (typeof item.news_highlights === 'string') {
+            try {
+              newsHighlights = JSON.parse(item.news_highlights);
+            } catch (e) {
+              console.error('Error parsing news_highlights', e);
+            }
+          } else if (Array.isArray(item.news_highlights)) {
+            newsHighlights = item.news_highlights as NewsItem[];
+          }
+        }
+        
+        return {
+          id: item.id,
+          company_id: item.company_id,
+          companyName: companyName,
+          market_insights: marketInsights,
+          news_highlights: newsHighlights,
+          created_at: item.requested_at
+        };
+      }) || [];
       
       setResearches(formattedData);
     } catch (error) {

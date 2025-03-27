@@ -8,10 +8,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface FundThesisAlignmentProps {
   companyId: string;
-  companyName: string;
+  companyName?: string;
 }
 
-export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignmentProps) {
+export function FundThesisAlignment({ companyId, companyName = "This company" }: FundThesisAlignmentProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [assessmentPoints, setAssessmentPoints] = useState<string[]>([]);

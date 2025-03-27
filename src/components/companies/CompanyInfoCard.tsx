@@ -10,17 +10,26 @@ type CompanyInfoProps = {
   industry?: string;
   founderLinkedIns?: string[];
   introduction?: string;
-}
+  description?: string; // Added for backward compatibility
+  pitchUrl?: string;    // Added for backward compatibility
+  reportId?: string;    // Added for backward compatibility
+};
 
 export function CompanyInfoCard({
   website = "https://example.com",
   stage = "Not specified",
   industry = "Not specified",
   founderLinkedIns = [],
-  introduction = "No detailed information available for this company."
+  introduction = "No detailed information available for this company.",
+  description, // For backward compatibility
+  pitchUrl,    // For backward compatibility
+  reportId     // For backward compatibility
 }: CompanyInfoProps) {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+
+  // Use introduction or description (for backward compatibility)
+  const displayIntroduction = introduction || description || "No detailed information available for this company.";
 
   // Format website URL for display and linking
   const displayWebsite = website && website !== "https://example.com" 
