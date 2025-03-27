@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { getLatestResearch } from "@/lib/supabase/research";
+import { MarketResearch } from "@/components/companies/MarketResearch";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,19 +24,6 @@ const CompanyPage = () => {
 
   const handleOpenResearchModal = async () => {
     setIsResearchModalOpen(true);
-    
-    if (!researchData && company) {
-      try {
-        setIsResearchLoading(true);
-        const assessmentText = company.assessmentPoints?.join('\n\n') || '';
-        const data = await getLatestResearch(company.id.toString(), assessmentText);
-        setResearchData(data);
-      } catch (error) {
-        console.error("Error fetching research:", error);
-      } finally {
-        setIsResearchLoading(false);
-      }
-    }
   };
 
   return (
@@ -66,7 +54,7 @@ const CompanyPage = () => {
       
       <CompanyDetails />
       
-      {/* Research Modal */}
+      {/* Market Research Modal */}
       <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
         <DialogContent className="max-w-4xl w-[95vw]">
           <DialogHeader>
@@ -78,42 +66,10 @@ const CompanyPage = () => {
           
           <div className="mt-4">
             {company && (
-              <div className="prose max-w-none">
-                {isResearchLoading ? (
-                  <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                    <p className="text-muted-foreground">Analyzing market data...</p>
-                  </div>
-                ) : researchData?.research ? (
-                  <div className="mt-2 overflow-y-auto max-h-[60vh]">
-                    <div dangerouslySetInnerHTML={{ __html: researchData.research }} />
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No research data available yet.</p>
-                    <Button 
-                      className="mt-4 bg-amber-500 hover:bg-amber-600"
-                      onClick={async () => {
-                        if (company) {
-                          try {
-                            setIsResearchLoading(true);
-                            const assessmentText = company.assessmentPoints?.join('\n\n') || '';
-                            const data = await getLatestResearch(company.id.toString(), assessmentText);
-                            setResearchData(data);
-                          } catch (error) {
-                            console.error("Error fetching research:", error);
-                          } finally {
-                            setIsResearchLoading(false);
-                          }
-                        }
-                      }}
-                    >
-                      <Sparkle className="mr-2 h-4 w-4" />
-                      Start Research
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <MarketResearch 
+                companyId={company.id.toString()} 
+                assessmentPoints={company.assessmentPoints || []} 
+              />
             )}
           </div>
         </DialogContent>

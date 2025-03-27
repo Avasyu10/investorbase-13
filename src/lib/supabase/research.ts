@@ -53,7 +53,6 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
           companyId,
           assessmentPoints: assessmentText.split('\n\n').filter(point => point.trim() !== '')
         },
-        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'x-app-version': '1.0.0'

@@ -1,15 +1,15 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
-import { LatestResearch } from "./LatestResearch";
 import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useCompanyDetails } from "@/hooks/useCompanies";
+import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
@@ -295,14 +295,6 @@ export function CompanyDetails() {
           />
         ))}
       </div>
-      
-      <LatestResearch 
-        companyId={company.id.toString()} 
-        assessmentPoints={company.assessmentPoints || []}
-        existingResearch={company.perplexityResponse}
-        requestedAt={company.perplexityRequestedAt}
-        onSuccess={onResearchFetched}
-      />
     </div>
   );
 }
