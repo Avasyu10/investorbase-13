@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -38,7 +37,7 @@ export function CompanyDetails() {
         const { data: companyDetails } = await supabase
           .from('company_details')
           .select('website, stage, industry, introduction')
-          .eq('company_id', company.id)
+          .eq('company_id', company.id.toString())
           .maybeSingle();
         
         if (companyDetails) {
@@ -283,20 +282,11 @@ export function CompanyDetails() {
         <ScoreAssessment company={company} />
       </div>
       
-      {company && company.assessmentPoints && company.assessmentPoints.length > 0 && (
-        <LatestResearch
-          companyId={company.id.toString()}
-          assessmentPoints={company.assessmentPoints}
-          existingResearch={company.perplexityResponse}
-          requestedAt={company.perplexityRequestedAt}
-          onSuccess={onResearchFetched}
-        />
-      )}
-      
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
         <BarChart2 className="h-5 w-5 text-primary" />
         Section Metrics
       </h2>
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
         {sortedSections.map((section) => (
           <SectionCard 
@@ -306,6 +296,16 @@ export function CompanyDetails() {
           />
         ))}
       </div>
+      
+      {company && company.assessmentPoints && company.assessmentPoints.length > 0 && (
+        <LatestResearch
+          companyId={company.id.toString()}
+          assessmentPoints={company.assessmentPoints}
+          existingResearch={company.perplexityResponse}
+          requestedAt={company.perplexityRequestedAt}
+          onSuccess={onResearchFetched}
+        />
+      )}
     </div>
   );
 };

@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
-import { getLatestResearch } from "@/lib/supabase/research";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 
 const CompanyPage = () => {
@@ -15,14 +14,12 @@ const CompanyPage = () => {
   const navigate = useNavigate();
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
   const { company, isLoading } = useCompanyDetails(id);
-  const [isResearchLoading, setIsResearchLoading] = useState(false);
-  const [researchData, setResearchData] = useState<any>(null);
   
   const handleBack = () => {
     navigate(-1);
   };
 
-  const handleOpenResearchModal = async () => {
+  const handleOpenResearchModal = () => {
     setIsResearchModalOpen(true);
   };
 
