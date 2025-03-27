@@ -8,7 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, FileText } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import { SectionDetailed } from "@/lib/api/apiContract";
@@ -95,6 +95,9 @@ const SectionPage = () => {
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogDescription className="sr-only">
+                  View the pitch deck document
+                </DialogDescription>
                 <div className="flex-1 overflow-auto">
                   <ReportViewer reportId={company.reportId} />
                 </div>

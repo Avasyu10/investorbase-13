@@ -55,9 +55,43 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           setAnalysis(data.analysis);
           
           // Convert the analysis text into points for display
+          // Parse the analysis to properly separate sections
+          const sections: Record<string, string[]> = {
+            summary: [],
+            similarities: [],
+            differences: []
+          };
+          
+          let currentSection = 'summary';
           const lines = data.analysis.split('\n').filter(line => line.trim() !== '');
-          const points = lines.filter(line => !line.match(/^\d+\./)); // Filter out section headings
-          setAssessmentPoints(points);
+          
+          for (const line of lines) {
+            // Check for section headings
+            if (line.includes('Summary') || line.includes('Overall Summary')) {
+              currentSection = 'summary';
+              continue;
+            } else if (line.includes('Key Similarities') || line.includes('Similarities')) {
+              currentSection = 'similarities';
+              continue;
+            } else if (line.includes('Key Differences') || line.includes('Differences')) {
+              currentSection = 'differences';
+              continue;
+            }
+            
+            // Add content lines to the appropriate section
+            if (!line.match(/^\d+\./)) { // Skip numbered list markers
+              sections[currentSection].push(line);
+            }
+          }
+          
+          // Combine all points for display
+          const allPoints = [
+            ...sections.summary,
+            ...sections.similarities,
+            ...sections.differences
+          ];
+          
+          setAssessmentPoints(allPoints.filter(p => p.trim() !== ''));
         }
       } catch (error) {
         console.error("Error in thesis alignment analysis:", error);
