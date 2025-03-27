@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe, TrendingUp, Newspaper } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,11 +21,11 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
   const [researchData, setResearchData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("summary");
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
+  const [company, setCompany] = useState<any>(null);
 
   useEffect(() => {
     if (!companyId) return;
     
-    // Check if we already have research for this company
     const checkExistingResearch = async () => {
       try {
         setIsCheckingExisting(true);
@@ -42,6 +41,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           console.error('Error checking existing research:', error);
         } else if (data) {
           setResearchData(data);
+          setCompany(data.company);
         }
       } catch (error) {
         console.error('Error in checkExistingResearch:', error);
@@ -64,7 +64,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     try {
       setIsLoading(true);
       
-      // Call the edge function to get real-time research
       const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
         body: { 
           companyId,
@@ -81,7 +80,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
       }
       
       if (data.success) {
-        // Refresh the research data from the database
         const { data: refreshedData, error: refreshError } = await supabase
           .from('market_research')
           .select('*')
@@ -254,11 +252,15 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
         )}
       </Card>
       
-      {/* Research Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="text-xl">Market Research Analysis</DialogTitle>
+            {company && (
+              <DialogDescription className="text-muted-foreground">
+                Key market insights and analysis for {company.name}
+              </DialogDescription>
+            )}
           </DialogHeader>
           
           <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -270,7 +272,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             
             <ScrollArea className="h-[60vh]">
               <TabsContent value="summary" className="mt-0 p-4">
-                {/* Show the summary section from the research text */}
                 {researchData?.research_text ? (
                   <div className="prose prose-sm max-w-none">
                     <div dangerouslySetInnerHTML={{ 
@@ -283,7 +284,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
               </TabsContent>
               
               <TabsContent value="news" className="mt-0 p-4">
-                {/* Show news highlights */}
                 {researchData?.news_highlights && researchData.news_highlights.length > 0 ? (
                   <div className="space-y-6">
                     {researchData.news_highlights.map((news: any, index: number) => (
@@ -318,12 +318,11 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
               </TabsContent>
               
               <TabsContent value="insights" className="mt-0 p-4">
-                {/* Show market insights */}
                 {researchData?.market_insights && researchData.market_insights.length > 0 ? (
                   <div className="space-y-6">
                     {researchData.market_insights.map((insight: any, index: number) => (
                       <div key={index} className="border rounded-lg p-4 bg-card">
-                        <h3 className="text-lg font-semibold mb-1">{insight.title}</h3>
+                        <h3 className="text-lg font-semibold mb-1">{insight.headline || insight.title}</h3>
                         {insight.source && (
                           <p className="text-sm text-primary mb-2">{insight.source}</p>
                         )}
@@ -354,7 +353,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             </ScrollArea>
           </Tabs>
           
-          {/* Sources */}
           {researchData?.sources && researchData.sources.length > 0 && (
             <div className="mt-4 pt-4 border-t">
               <h4 className="text-sm font-medium mb-2">Sources</h4>
@@ -379,7 +377,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
   );
 }
 
-// Helper component for loading state
 function ResearchSkeleton() {
   return (
     <div className="space-y-4">
@@ -394,28 +391,24 @@ function ResearchSkeleton() {
   );
 }
 
-// Helper function to extract a section from the research text
 function extractSection(text: string, sectionName: string): string {
-  // Find the section by its header
   const sectionRegex = new RegExp(`#+\\s*${sectionName}[\\s\\S]*?(?=#+\\s*|$)`, 'i');
   const sectionMatch = text.match(sectionRegex);
   
   if (!sectionMatch) return '<p>Section not found</p>';
   
-  // Convert markdown to HTML (very basic conversion)
   let html = sectionMatch[0]
-    .replace(/^#+\s*([^\n]+)/gm, '<h3>$1</h3>') // Headers
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Bold
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Italic
-    .replace(/\n\n/g, '</p><p>') // Paragraphs
-    .replace(/\n- /g, '</p><ul><li>') // List items
-    .replace(/\n  - /g, '</p><ul><li>') // Nested list items
-    .replace(/<\/li>\n- /g, '</li><li>') // Multiple list items
-    .replace(/<\/p><ul>/g, '<ul>') // Fix paragraph before list
-    .replace(/\n/g, ' ') // Replace remaining newlines with spaces
-    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // Links
+    .replace(/^#+\s*([^\n]+)/gm, '<h3>$1</h3>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n- /g, '</p><ul><li>')
+    .replace(/\n  - /g, '</p><ul><li>')
+    .replace(/<\/li>\n- /g, '</li><li>')
+    .replace(/<\/p><ul>/g, '<ul>')
+    .replace(/\n/g, ' ')
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>');
   
-  // Wrap in p tags if not already
   if (!html.startsWith('<')) {
     html = `<p>${html}</p>`;
   }
