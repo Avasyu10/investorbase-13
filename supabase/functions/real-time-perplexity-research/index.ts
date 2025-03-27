@@ -155,8 +155,6 @@ EXTREMELY IMPORTANT:
         max_tokens: 4000,
         top_p: 0.9,
         frequency_penalty: 0.5,
-        presence_penalty: 0.1,
-        search_domain_filter: ["news.google.com", "bloomberg.com", "forbes.com", "wsj.com", "ft.com", "cnbc.com", "reuters.com", "techcrunch.com"],
         search_recency_filter: "month"
       })
     });
