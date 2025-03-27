@@ -3,8 +3,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 
 serve(async (req) => {
+  // Log the request details for debugging
+  console.log(`Request method: ${req.method}`);
+  console.log(`Request headers:`, JSON.stringify(Object.fromEntries(req.headers.entries())));
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request with CORS headers');
     return new Response(null, { 
       headers: corsHeaders,
       status: 204
@@ -21,7 +26,22 @@ serve(async (req) => {
     }
     
     // Parse request data
-    const { reportId } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log('Received request data:', JSON.stringify(requestData));
+    } catch (error) {
+      console.error('Error parsing request JSON:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
+    const { reportId } = requestData;
     
     if (!reportId) {
       throw new Error('Report ID is required');

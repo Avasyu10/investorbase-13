@@ -5,9 +5,17 @@ import { corsHeaders } from "./cors.ts";
 
 // Define CORS headers
 serve(async (req) => {
+  // Log the request details for debugging
+  console.log(`Request method: ${req.method}`);
+  console.log(`Request headers:`, JSON.stringify(Object.fromEntries(req.headers.entries())));
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('Handling OPTIONS request with CORS headers');
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
@@ -19,10 +27,27 @@ serve(async (req) => {
       throw new Error('Gemini API key is not configured');
     }
 
-    const { company_id, user_id } = await req.json();
+    // Parse the request body
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log('Received request data:', JSON.stringify(requestData));
+    } catch (error) {
+      console.error('Error parsing request JSON:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    const { company_id, user_id } = requestData;
 
     // Validate input
     if (!company_id || !user_id) {
+      console.error('Missing required parameters:', { company_id, user_id });
       return new Response(
         JSON.stringify({ error: 'Company ID and User ID are required' }), 
         { 
@@ -38,6 +63,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     
     if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(
         JSON.stringify({ error: 'Authorization header is required' }), 
         { 
@@ -51,9 +77,14 @@ serve(async (req) => {
     const existingAnalysisResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis?company_id=eq.${company_id}&user_id=eq.${user_id}`, {
       headers: {
         'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY as string,
       }
     });
+    
+    if (!existingAnalysisResponse.ok) {
+      console.error('Error fetching existing analysis:', await existingAnalysisResponse.text());
+      throw new Error(`Error checking for existing analysis: ${existingAnalysisResponse.status}`);
+    }
     
     const existingAnalysis = await existingAnalysisResponse.json();
     
@@ -82,7 +113,7 @@ serve(async (req) => {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY
+        'apikey': SUPABASE_ANON_KEY as string
       },
       body: JSON.stringify({ 
         action: 'download', 
@@ -103,7 +134,7 @@ serve(async (req) => {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY
+        'apikey': SUPABASE_ANON_KEY as string
       },
       body: JSON.stringify({ 
         action: 'download', 
@@ -194,6 +225,7 @@ serve(async (req) => {
       analysisText = geminiData.candidates[0].content.parts[0].text;
       rawResponse = JSON.stringify(geminiData);
       console.log('Analysis text length:', analysisText.length);
+      console.log('Analysis text sample:', analysisText.substring(0, 200));
     } else {
       console.error('Unexpected response format from Gemini API:', JSON.stringify(geminiData));
       throw new Error('Unexpected response format from Gemini API');
@@ -205,7 +237,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY as string,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, ExternalLink, Loader2 } from "lucide-react";
+import { Lightbulb, ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -75,43 +75,38 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           const lines = data.analysis.split('\n').filter(line => line.trim() !== '');
           
           for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            // Skip empty lines
+            if (trimmedLine === '') continue;
+            
             // Check for section headings with various possible formats
-            if (line.match(/^\d+\.\s*Overall\s*Summary/i) || 
-                line.match(/^\d+\.\s*Summary/i) || 
-                line.includes('Summary') || 
-                line.includes('summary')) {
+            if (trimmedLine.match(/^(?:\d+\.\s*)?Overall\s*Summary/i) || 
+                trimmedLine.match(/^(?:\d+\.\s*)?Summary/i)) {
               currentSection = 'summary';
-              console.log("Found summary section:", line);
+              console.log("Found summary section:", trimmedLine);
               continue;
-            } else if (line.match(/^\d+\.\s*Key\s*Similarities/i) || 
-                      line.match(/^\d+\.\s*Similarities/i) || 
-                      line.includes('Similarities') || 
-                      line.includes('similarities')) {
+            } else if (trimmedLine.match(/^(?:\d+\.\s*)?Key\s*Similarities/i) || 
+                       trimmedLine.match(/^(?:\d+\.\s*)?Similarities/i)) {
               currentSection = 'similarities';
-              console.log("Found similarities section:", line);
+              console.log("Found similarities section:", trimmedLine);
               continue;
-            } else if (line.match(/^\d+\.\s*Key\s*Differences/i) || 
-                      line.match(/^\d+\.\s*Differences/i) || 
-                      line.includes('Differences') || 
-                      line.includes('differences')) {
+            } else if (trimmedLine.match(/^(?:\d+\.\s*)?Key\s*Differences/i) || 
+                       trimmedLine.match(/^(?:\d+\.\s*)?Differences/i)) {
               currentSection = 'differences';
-              console.log("Found differences section:", line);
+              console.log("Found differences section:", trimmedLine);
               continue;
             }
             
-            // Skip numbered list markers and empty lines
-            if (line.match(/^\d+\.$/) || line.trim() === '') {
+            // Skip lines that are just numbers (like "1." or "2.")
+            if (trimmedLine.match(/^\d+\.?\s*$/)) {
               continue;
             }
             
-            // Skip lines that only have a number (like "1.")
-            if (line.match(/^\d+\.\s*$/)) {
-              continue;
-            }
+            // Clean the line by removing numbering or bullet points
+            let cleanedLine = trimmedLine.replace(/^(\d+\.\s*)/, '').trim();
+            cleanedLine = cleanedLine.replace(/^[-•*]\s*/, '').trim();
             
-            // Process content lines
-            // Remove numbering from the beginning of points if present
-            const cleanedLine = line.replace(/^(\d+\.\s*)/, '').trim();
             if (cleanedLine) {
               sections[currentSection].push(cleanedLine);
               console.log(`Added to ${currentSection}:`, cleanedLine);
@@ -139,14 +134,13 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           
           // Combine all points for display
           const allPoints = [
-            ...sections.summary,
-            ...sections.similarities,
-            ...sections.differences
+            ...sections.summary.map(point => `Summary: ${point}`),
+            ...sections.similarities.map(point => `Similarity: ${point}`),
+            ...sections.differences.map(point => `Difference: ${point}`)
           ];
           
           const filteredPoints = allPoints
-            .filter(p => p.trim() !== '')
-            .map(p => p.replace(/^(-\s*)/, '').trim()); // Remove leading dashes if present
+            .filter(p => p.trim() !== '');
           
           console.log("Final assessment points:", filteredPoints);
           setAssessmentPoints(filteredPoints);
@@ -216,10 +210,15 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           <div className="space-y-6">
             {error ? (
               <div className="p-4 border border-red-200 bg-red-50 rounded-md">
-                <p className="text-sm text-red-600">{error}</p>
-                <p className="text-sm text-red-500 mt-2">
-                  Please make sure you have uploaded a fund thesis document in your profile.
-                </p>
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                    <p className="text-sm text-red-600 mt-1">
+                      Please make sure you have uploaded a fund thesis document in your profile.
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : analysis ? (
               <>
@@ -229,20 +228,50 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
                 
                 <div className="space-y-4 mt-4">
                   {assessmentPoints.length > 0 ? (
-                    assessmentPoints.map((point, index) => (
-                      <div 
-                        key={index} 
-                        className="flex items-start gap-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50/50"
-                      >
-                        <Lightbulb className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />
-                        <span className="text-sm leading-relaxed">{point}</span>
-                      </div>
-                    ))
+                    assessmentPoints.map((point, index) => {
+                      const isHeading = point.startsWith("Summary:");
+                      const isSimilarity = point.startsWith("Similarity:");
+                      const isDifference = point.startsWith("Difference:");
+                      
+                      let bgColor = "bg-emerald-50/50";
+                      let borderColor = "border-emerald-200";
+                      let textColor = "text-emerald-900";
+                      let icon = <Lightbulb className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />;
+                      
+                      if (isSimilarity) {
+                        bgColor = "bg-blue-50/50";
+                        borderColor = "border-blue-200";
+                        textColor = "text-blue-900";
+                        icon = <Lightbulb className="h-5 w-5 mt-0.5 text-blue-600 shrink-0" />;
+                      } else if (isDifference) {
+                        bgColor = "bg-amber-50/50";
+                        borderColor = "border-amber-200";
+                        textColor = "text-amber-900";
+                        icon = <Lightbulb className="h-5 w-5 mt-0.5 text-amber-600 shrink-0" />;
+                      }
+                      
+                      const [category, ...content] = point.split(':');
+                      const displayText = content.join(':').trim();
+                      
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex items-start gap-3 p-4 rounded-lg border ${borderColor} ${bgColor}`}
+                        >
+                          {icon}
+                          <div>
+                            <span className="font-medium text-sm block mb-1">{category}</span>
+                            <span className={`text-sm leading-relaxed ${textColor}`}>{displayText}</span>
+                          </div>
+                        </div>
+                      );
+                    })
                   ) : (
                     <div className="p-4 border border-amber-200 bg-amber-50 rounded-md">
                       <p className="text-sm text-amber-700">
                         Analysis completed but no specific points were extracted. This could be due to formatting issues.
                       </p>
+                      <p className="text-sm text-amber-600 mt-2">{analysis}</p>
                     </div>
                   )}
                 </div>

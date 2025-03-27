@@ -89,6 +89,10 @@ export function RealtimeSubscriptions() {
               console.error('Error context:', error.context);
             }
             
+            if (errorMessage.includes('blocked by CORS policy')) {
+              errorMessage = 'Access blocked by CORS policy. Please check your server configuration.';
+            }
+            
             toast({
               title: 'Error processing submission',
               description: `Failed to analyze submission: ${errorMessage}`,
