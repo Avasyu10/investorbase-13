@@ -27,8 +27,8 @@ interface MarketResearchData {
   id: string;
   company_id: string;
   companyName?: string;
-  market_insights?: MarketInsight[];
-  news_highlights?: NewsItem[];
+  market_insights?: MarketInsight[] | null;
+  news_highlights?: NewsItem[] | null;
   created_at: string;
 }
 
@@ -85,7 +85,7 @@ const NewsFeed = () => {
               console.error('Error parsing market_insights', e);
             }
           } else if (Array.isArray(item.market_insights)) {
-            marketInsights = item.market_insights as MarketInsight[];
+            marketInsights = item.market_insights as unknown as MarketInsight[];
           }
         }
         
@@ -98,7 +98,7 @@ const NewsFeed = () => {
               console.error('Error parsing news_highlights', e);
             }
           } else if (Array.isArray(item.news_highlights)) {
-            newsHighlights = item.news_highlights as NewsItem[];
+            newsHighlights = item.news_highlights as unknown as NewsItem[];
           }
         }
         

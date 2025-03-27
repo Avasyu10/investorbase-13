@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,13 +18,13 @@ import {
 
 interface LatestResearchProps {
   companyId: string;
-  assessmentPoints: string[];
+  assessmentPoints?: string[];
   existingResearch?: string;
   requestedAt?: string;
   onSuccess?: () => void;
 }
 
-export function LatestResearch({ companyId, assessmentPoints, existingResearch, requestedAt, onSuccess }: LatestResearchProps) {
+export function LatestResearch({ companyId, assessmentPoints = [], existingResearch, requestedAt, onSuccess }: LatestResearchProps) {
   const [research, setResearch] = useState<string | undefined>(existingResearch);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fetchTrigger, setFetchTrigger] = useState<number>(0);

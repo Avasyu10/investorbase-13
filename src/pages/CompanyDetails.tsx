@@ -84,16 +84,19 @@ function CompanyDetails() {
       <FundThesisAlignment companyId={company.id} companyName={company.name} />
 
       {/* Market Research */}
-      <MarketResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
+      <MarketResearch 
+        companyId={company.id} 
+        assessmentPoints={company.assessmentPoints || []} 
+      />
 
       {/* Overall Assessment */}
       <OverallAssessment
-        score={company.overallScore}
+        score={company.overallScore || 0}
         assessmentPoints={company.assessmentPoints || []}
       />
 
       {/* Latest Research */}
-      <LatestResearch companyId={company.id} />
+      <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>

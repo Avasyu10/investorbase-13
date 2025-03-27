@@ -1,52 +1,72 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, handleCors } from "./cors.ts";
+import { corsHeaders } from "./cors.ts";
+
+type NewsHighlight = {
+  headline: string;
+  content: string;
+  source?: string;
+  url?: string;
+};
+
+type MarketInsight = {
+  title: string;
+  content: string;
+  source?: string;
+  url?: string;
+};
+
+type Source = {
+  name: string;
+  url: string;
+};
 
 serve(async (req) => {
-  console.log(`[DEBUG] Request received: ${req.method} ${req.url}`);
-  console.log(`[DEBUG] Request headers:`, Object.fromEntries([...req.headers.entries()]));
-  
-  // Handle CORS preflight requests
-  const corsResponse = handleCors(req);
-  if (corsResponse) {
-    return corsResponse;
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: corsHeaders
+    });
   }
 
   try {
-    // Get Perplexity API key from environment
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!PERPLEXITY_API_KEY) {
-      console.error('[DEBUG] Missing PERPLEXITY_API_KEY');
-      throw new Error('PERPLEXITY_API_KEY is not configured');
-    }
+    console.log("[DEBUG] Request received:", req.method, req.url);
+    console.log("[DEBUG] Request headers:", JSON.stringify(req.headers));
 
-    // Parse request
+    // CORS debugging
+    console.log("[CORS DEBUG] Request URL:", req.url);
+    console.log("[CORS DEBUG] Origin:", req.headers.get("origin"));
+    console.log("[CORS DEBUG] Method:", req.method);
+
+    // Get request data
     const requestData = await req.json();
-    console.log(`[DEBUG] Request data:`, JSON.stringify(requestData));
-    
-    const { companyId, assessmentPoints } = requestData;
-    
-    if (!companyId || !assessmentPoints || !Array.isArray(assessmentPoints) || assessmentPoints.length === 0) {
-      console.error('[DEBUG] Invalid request data', { companyId, assessmentPointsLength: assessmentPoints?.length });
-      throw new Error('Invalid request. Expected companyId and non-empty assessmentPoints array');
+    console.log("[DEBUG] Request data:", JSON.stringify(requestData));
+
+    if (!requestData.companyId) {
+      throw new Error("Company ID is required");
     }
 
-    console.log(`[DEBUG] Processing research request for company ${companyId}`);
-    
-    // Create the Supabase client for database operations
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const companyId = requestData.companyId;
+    const assessmentPoints = Array.isArray(requestData.assessmentPoints) 
+      ? requestData.assessmentPoints 
+      : [requestData.assessmentPoints];
+
+    console.log("[DEBUG] Processing research request for company", companyId);
+
+    // Get company name from the database
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[DEBUG] Missing Supabase credentials');
-      throw new Error('Missing Supabase credentials');
+      throw new Error("Missing Supabase credentials");
     }
     
-    // Create a Supabase client with the service role key
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.3');
+    // Create Supabase client with the service role key
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.27.0");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get company info to include in the prompt
+    // Get company name
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('name')
@@ -54,65 +74,65 @@ serve(async (req) => {
       .single();
 
     if (companyError) {
-      console.error('[DEBUG] Error fetching company:', companyError);
+      console.error("Error fetching company:", companyError);
       throw new Error(`Failed to fetch company: ${companyError.message}`);
     }
 
-    const companyName = companyData.name || 'the company';
-    const assessmentText = assessmentPoints.join("\n\n");
+    const companyName = companyData?.name || "Unknown";
 
-    // Create a new research record in the database with pending status
-    const { data: newResearch, error: insertError } = await supabase
-      .from('market_research')
-      .insert({
-        company_id: companyId,
-        prompt: assessmentText,
-        status: 'pending',
-      })
-      .select()
-      .single();
+    // Create a prompt for Perplexity
+    const prompt = `You are a top-tier venture capital (VC) analyst providing comprehensive research about ${companyName}. Based on the following assessment of the company, I need you to conduct deep market research and provide detailed analysis focusing on the LATEST and MOST RELEVANT market information.
 
-    if (insertError) {
-      console.error('[DEBUG] Error creating research record:', insertError);
-      throw new Error(`Failed to create research record: ${insertError.message}`);
+Company Assessment Points:
+${assessmentPoints.join('\n')}
+
+Your research should include:
+
+# Market Research: ${companyName} 
+
+## 1. LATEST NEWS (2023-2024)
+Provide 6-8 recent news articles directly relevant to this company's market, each with:
+- Compelling headline specific to this company's sector
+- Publication source and date (in parentheses)
+- Brief 2-3 sentence summary with SPECIFIC NUMBERS relevant to this company
+- URL to the source
+
+Format each as:
+### [HEADLINE]
+**Source:** [PUBLICATION], [DATE]
+**Summary:** [2-3 SENTENCES WITH CONCRETE DATA POINTS]
+**URL:** [ACTUAL URL]
+
+## 2. MARKET INSIGHTS
+Provide 5-7 key market insights directly relevant to this company, each with:
+- Specific market data with EXACT dollar figures (market size, growth rates, etc.)
+- Concrete trends affecting this specific business
+- Reference to reputable sources with URLs
+
+Format each with a clear title, 3-4 sentences with DATA, and source link.
+
+## 3. RESEARCH SUMMARY
+Synthesize your findings into a concise summary with:
+- Overview of market size, growth projections, and competitive landscape
+- Specific opportunities and risks for this company
+- Strategic recommendations based on latest market data
+
+EXTREMELY IMPORTANT:
+- ONLY include FACTUAL, RECENT information from reputable sources
+- EVERY insight must include SPECIFIC NUMERICAL DATA (dollar amounts, percentages, timeframes)
+- Focus EXCLUSIVELY on information directly relevant to this company's business model
+- Include ACTUAL URLs to all sources
+- Structure exactly as outlined above with clear sections and formatting`;
+
+    // Call Perplexity API
+    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+    if (!PERPLEXITY_API_KEY) {
+      throw new Error("Perplexity API key is not configured");
     }
-
-    // Create prompt for Perplexity
-    const prompt = `You are a top-tier venture capital (VC) analyst providing comprehensive research about ${companyName}. Based on the following assessment of the company, I need you to conduct deep market research and provide detailed, actionable insights in a structured format.
-
-COMPANY ASSESSMENT:
-${assessmentText}
-
-Please organize your response into these three distinct sections:
-
-1. LATEST NEWS (2023-2024)
-Provide 3-5 recent, relevant news items about this specific industry or market. Each news item should include:
-- Headline
-- Publication source and date
-- 2-3 sentence summary with specific numbers/facts relevant to ${companyName}'s business
-- URL to the original source
-
-2. MARKET INSIGHTS
-Provide 3-5 strategic market insights including:
-- Market size and growth projections with specific data points
-- Competitive landscape analysis relevant to ${companyName}
-- Emerging trends that could impact ${companyName}'s business model
-- Each insight must include specific percentages, figures, and data points
-- Each insight must cite reputable sources
-
-3. RESEARCH SUMMARY
-Provide a 3-paragraph executive summary that:
-- Synthesizes the collected information
-- Highlights the most important strategic considerations
-- Identifies key risks and opportunities for ${companyName}
-- Includes specific actionable advice for the company
-
-Format your response in Markdown with clear section headers. Ensure all data is accurate, recent (2023-2024), and from reputable sources. Include URLs for ALL sources cited.`;
 
     console.log("[DEBUG] Sending request to Perplexity API");
     console.log("[DEBUG] Prompt:", prompt.substring(0, 200) + "...");
-    
-    // Call Perplexity API
+
     const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -120,11 +140,11 @@ Format your response in Markdown with clear section headers. Ensure all data is 
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: "sonar-pro",
+        model: "llama-3.1-sonar-small-128k-online",
         messages: [
           {
             role: 'system',
-            content: 'You are a venture capital research analyst providing factual, in-depth market research with specific data points and proper citations.'
+            content: 'You are a financial analyst specializing in market research. Provide factual, recent information with specific data points. Always include source URLs.'
           },
           {
             role: 'user',
@@ -132,360 +152,285 @@ Format your response in Markdown with clear section headers. Ensure all data is 
           }
         ],
         temperature: 0.2,
+        max_tokens: 4000,
         top_p: 0.9,
-        max_tokens: 2000,
-        search_recency_filter: "month",
-        frequency_penalty: 1,
-        presence_penalty: 0,
-        return_images: false,
-        return_related_questions: false
+        frequency_penalty: 0.5,
+        presence_penalty: 0.1,
+        search_domain_filter: ["news.google.com", "bloomberg.com", "forbes.com", "wsj.com", "ft.com", "cnbc.com", "reuters.com", "techcrunch.com"],
+        search_recency_filter: "month"
       })
     });
 
-    // Check for errors
-    console.log(`[DEBUG] Perplexity API response status: ${perplexityResponse.status}`);
+    console.log("[DEBUG] Perplexity API response status:", perplexityResponse.status);
     
     if (!perplexityResponse.ok) {
       const errorText = await perplexityResponse.text();
-      console.error(`[DEBUG] Perplexity API error (${perplexityResponse.status}):`, errorText);
-      
-      // Update the research record with error status
-      await supabase
-        .from('market_research')
-        .update({
-          status: 'failed',
-          error_message: `Perplexity API error: ${perplexityResponse.status} - ${errorText}`,
-        })
-        .eq('id', newResearch.id);
-        
       throw new Error(`Perplexity API error: ${perplexityResponse.status} - ${errorText}`);
     }
 
-    // Process the response
     const responseData = await perplexityResponse.json();
     console.log("[DEBUG] Received response from Perplexity API");
     console.log("[DEBUG] Response structure:", JSON.stringify(Object.keys(responseData)));
-    
+
     if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
-      console.error("[DEBUG] Invalid response format from Perplexity:", responseData);
-      
-      // Update the research record with error status
-      await supabase
-        .from('market_research')
-        .update({
-          status: 'failed',
-          error_message: "Invalid response format from Perplexity API",
-        })
-        .eq('id', newResearch.id);
-        
       throw new Error("Invalid response format from Perplexity API");
     }
 
     const researchText = responseData.choices[0].message.content;
     console.log("[DEBUG] Research text length:", researchText.length);
     console.log("[DEBUG] Research text preview:", researchText.substring(0, 200) + "...");
-    
-    // Extract sources, news highlights, and market insights from the research text
+
+    // Extract sources, news highlights, and market insights
+    console.log("[DEBUG] Extracting sources");
     const sources = extractSources(researchText);
-    const newsHighlights = extractNewsHighlights(researchText);
-    const marketInsights = extractMarketInsights(researchText);
-    
     console.log("[DEBUG] Extracted sources count:", sources.length);
+
+    console.log("[DEBUG] Extracting news highlights");
+    const newsHighlights = extractNewsHighlights(researchText);
     console.log("[DEBUG] Extracted news highlights count:", newsHighlights.length);
-    console.log("[DEBUG] Extracted market insights count:", marketInsights.length);
-    
-    // Log the data being inserted for debugging
     console.log("[DEBUG] News highlights sample:", newsHighlights.length > 0 ? JSON.stringify(newsHighlights[0]) : "none");
+
+    console.log("[DEBUG] Extracting market insights");
+    const marketInsights = extractMarketInsights(researchText);
+    console.log("[DEBUG] Extracted market insights count:", marketInsights.length);
     console.log("[DEBUG] Market insights sample:", marketInsights.length > 0 ? JSON.stringify(marketInsights[0]) : "none");
+
+    // Store research in the database
+    const timestamp = new Date().toISOString();
     
-    // Update the research record with the results
-    const { error: updateError } = await supabase
-      .from('market_research')
+    // First, store the research text in the companies table
+    const { error: updateCompanyError } = await supabase
+      .from('companies')
       .update({
+        perplexity_response: researchText,
+        perplexity_requested_at: timestamp
+      })
+      .eq('id', companyId);
+
+    if (updateCompanyError) {
+      console.error("Error updating company with research text:", updateCompanyError);
+      throw new Error(`Failed to update company with research text: ${updateCompanyError.message}`);
+    }
+
+    // Then, store the structured data in the market_research table
+    const { data: researchData, error: insertResearchError } = await supabase
+      .from('market_research')
+      .insert({
+        company_id: companyId,
         research_text: researchText,
         sources: sources,
         news_highlights: newsHighlights,
         market_insights: marketInsights,
         status: 'completed',
-        completed_at: new Date().toISOString()
+        requested_at: timestamp,
+        completed_at: timestamp
       })
-      .eq('id', newResearch.id);
+      .select()
+      .single();
 
-    if (updateError) {
-      console.error("[DEBUG] Error updating research record:", updateError);
-      throw new Error(`Failed to update research: ${updateError.message}`);
+    if (insertResearchError) {
+      console.error("Error storing market research:", insertResearchError);
+      throw new Error(`Failed to store market research: ${insertResearchError.message}`);
     }
 
-    console.log(`[DEBUG] Successfully completed research for company ${companyId}`);
-    console.log("[DEBUG] Preparing response with CORS headers");
+    console.log("[DEBUG] Successfully completed research for company", companyId);
 
     // Return the research data
+    console.log("[DEBUG] Preparing response with CORS headers");
     return new Response(
       JSON.stringify({
         success: true,
-        researchId: newResearch.id,
-        research: {
-          text: researchText,
-          sources: sources,
-          newsHighlights: newsHighlights,
-          marketInsights: marketInsights
-        }
+        researchId: researchData.id,
+        companyName,
+        research: researchText,
+        newsHighlights,
+        marketInsights,
+        sources,
+        timestamp
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
   } catch (error) {
-    console.error("[DEBUG] Error in real-time-perplexity-research function:", error);
-    console.error("[DEBUG] Error stack:", error.stack);
+    console.error("Error in perplexity research function:", error);
+    
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error"
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         status: 500
       }
     );
   }
 });
 
-// Helper function to extract URLs from text
-function extractSources(text: string): any[] {
-  console.log("[DEBUG] Extracting sources");
-  const urlRegex = /(https?:\/\/[^\s)]+)/g;
-  const matches = text.match(urlRegex) || [];
+function extractSources(text: string): Source[] {
+  const sources: Source[] = [];
+  const urlRegex = /\*\*URL:\*\* (https?:\/\/[^\s]+)/g;
+  const nameUrlRegex = /\*\*Source:\*\* ([^(]+?)(?: \(([^)]+)\))? \((https?:\/\/[^\s]+)\)/g;
   
-  // Convert to JSONB compatible format
-  return matches.map(url => ({
-    url: url.trim().replace(/[.,;:!]$/, '') // Clean up URLs
-  }));
+  // Extract URLs from the "URL:" format
+  let match;
+  while ((match = urlRegex.exec(text)) !== null) {
+    const url = match[1].trim();
+    if (url && !sources.some(s => s.url === url)) {
+      sources.push({
+        name: "Source",
+        url: url
+      });
+    }
+  }
+  
+  // Extract name-URL pairs from the Source: format
+  const sourceLines = text.match(/\*\*Source:\*\*.*$/gm) || [];
+  for (const line of sourceLines) {
+    const sourceName = line.match(/\*\*Source:\*\* ([^(]+)/) || [];
+    const urlMatch = line.match(/(https?:\/\/[^\s)]+)(?:\))?$/);
+    
+    if (urlMatch && urlMatch[1]) {
+      const url = urlMatch[1].replace(/\)$/, ''); // Remove trailing parenthesis if present
+      if (url && !sources.some(s => s.url === url)) {
+        sources.push({
+          name: sourceName[1] ? sourceName[1].trim() : "Source",
+          url: url
+        });
+      }
+    }
+  }
+  
+  return sources;
 }
 
-// Helper function to extract news highlights from text
-function extractNewsHighlights(text: string): any[] {
-  console.log("[DEBUG] Extracting news highlights");
+function extractNewsHighlights(text: string): NewsHighlight[] {
+  const newsHighlights: NewsHighlight[] = [];
   
-  // Find "LATEST NEWS" section
-  const newsSectionRegex = /#+\s*LATEST NEWS[\s\S]*?(?=#+\s*MARKET INSIGHTS|$)/i;
-  const newsSectionMatch = text.match(newsSectionRegex);
+  // Find the LATEST NEWS section
+  const latestNewsSection = text.match(/## 1\. LATEST NEWS[\s\S]*?(?=## 2\.|$)/i);
   
-  if (!newsSectionMatch) {
+  if (!latestNewsSection) {
     console.log("[DEBUG] No LATEST NEWS section found");
-    return [];
+    return newsHighlights;
   }
   
-  const newsSectionText = newsSectionMatch[0];
-  console.log("[DEBUG] Found LATEST NEWS section, length:", newsSectionText.length);
+  const newsSection = latestNewsSection[0];
   
-  // Extract individual news items - look for headlines which typically start with ### or after newlines with bullet points
-  const newsItemsRegex = /###\s*([^\n]+)[\s\S]*?(?=###|$)|(?:^|\n)[-*•]\s*([^\n]+)[\s\S]*?(?=\n[-*•]|\n##|$)/gm;
-  const newsItemsMatches = [...newsSectionText.matchAll(newsItemsRegex)];
+  // Extract individual news items
+  const newsItems = newsSection.split(/### /g).slice(1); // Skip the section header
   
-  console.log("[DEBUG] Found", newsItemsMatches.length, "news item matches");
-  
-  if (newsItemsMatches.length === 0) {
-    // Alternative approach: split by newlines and look for patterns
-    const lines = newsSectionText.split('\n').filter(line => line.trim());
-    const newsItems = [];
+  for (const item of newsItems) {
+    const headlineMatch = item.match(/^([^\n]+)/);
+    const sourceMatch = item.match(/\*\*Source:\*\* ([^\n]+)/);
+    const summaryMatch = item.match(/\*\*Summary:\*\* ([^\n]+)/);
+    const urlMatch = item.match(/\*\*URL:\*\* (https?:\/\/[^\s]+)/);
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+    if (headlineMatch) {
+      const headline = headlineMatch[1].trim();
+      const source = sourceMatch ? sourceMatch[1].trim() : undefined;
+      const content = summaryMatch ? summaryMatch[1].trim() : "";
+      const url = urlMatch ? urlMatch[1].trim() : undefined;
       
-      // Look for headlines (typically in bold or after bullet points or numbers)
-      if (line.startsWith('**') || line.match(/^[-*•]\s+/) || line.match(/^\d+\.\s+/)) {
-        const headline = line.replace(/^[-*•\d.]\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
-        
-        // Collect the next few lines as content until we hit another potential headline
-        let j = i + 1;
-        let content = '';
-        let source = '';
-        let url = '';
-        
-        while (j < lines.length && 
-              !lines[j].match(/^[-*•]\s+/) && 
-              !lines[j].match(/^\d+\.\s+/) && 
-              !lines[j].startsWith('**') &&
-              !lines[j].startsWith('#')) {
-          
-          // Check for source/publication
-          if (lines[j].includes('(') && lines[j].includes(')')) {
-            const sourceMatch = lines[j].match(/\(([^)]+)\)/);
-            if (sourceMatch) source = sourceMatch[1].trim();
-          }
-          
-          // Check for URL
-          const urlMatch = lines[j].match(/(https?:\/\/[^\s)]+)/);
-          if (urlMatch) url = urlMatch[0].trim();
-          
-          content += lines[j] + ' ';
-          j++;
-        }
-        
-        // Add to news items if we have at least a headline
-        if (headline) {
-          newsItems.push({
-            headline,
-            content: content.trim(),
-            source,
-            url
-          });
-        }
-        
-        // Skip processed lines
-        i = j - 1;
-      }
+      newsHighlights.push({
+        headline,
+        content,
+        source,
+        url
+      });
     }
-    
-    console.log("[DEBUG] Alternative extraction found", newsItems.length, "news items");
-    return newsItems;
   }
   
-  return newsItemsMatches.map(match => {
-    // Get the headline from the captured group
-    const headline = (match[1] || match[2] || '').trim();
-    
-    // Get the full match text
-    const itemText = match[0];
-    
-    // Extract source/publication (typically in parentheses)
-    const sourceMatch = itemText.match(/\*\*(?:Source|Publication):\*\*\s*([^(]*\([^)]*\)[^\n]*)|(\([^)]+\))/i);
-    const source = sourceMatch ? sourceMatch[1] || sourceMatch[2] : '';
-    
-    // Extract URL
-    const urlMatch = itemText.match(/(https?:\/\/[^\s)]+)/);
-    const url = urlMatch ? urlMatch[0].trim() : '';
-    
-    // Extract content (everything else, removing the headline, source, and URL)
-    let content = itemText
-      .replace(headline, '')
-      .replace(sourceMatch ? sourceMatch[0] : '', '')
-      .replace(urlMatch ? urlMatch[0] : '', '')
-      .trim();
-      
-    // Clean up markdown and other formatting
-    content = content.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim();
-    
-    return {
-      headline,
-      content,
-      source: source.replace(/^\(|\)$/g, '').trim(), // Remove surrounding parentheses
-      url
-    };
-  }).filter(item => item.headline); // Filter out items without headlines
+  return newsHighlights;
 }
 
-// Helper function to extract market insights from text
-function extractMarketInsights(text: string): any[] {
-  console.log("[DEBUG] Extracting market insights");
+function extractMarketInsights(text: string): MarketInsight[] {
+  const marketInsights: MarketInsight[] = [];
   
-  // Find "MARKET INSIGHTS" section
-  const insightsSectionRegex = /#+\s*MARKET INSIGHTS[\s\S]*?(?=#+\s*RESEARCH SUMMARY|$)/i;
-  const insightsSectionMatch = text.match(insightsSectionRegex);
+  // Find the MARKET INSIGHTS section
+  const marketInsightsSection = text.match(/## 2\. MARKET INSIGHTS[\s\S]*?(?=## 3\.|$)/i);
   
-  if (!insightsSectionMatch) {
+  if (!marketInsightsSection) {
     console.log("[DEBUG] No MARKET INSIGHTS section found");
-    return [];
+    return marketInsights;
   }
   
-  const insightsSectionText = insightsSectionMatch[0];
-  console.log("[DEBUG] Found MARKET INSIGHTS section, length:", insightsSectionText.length);
+  const insightsSection = marketInsightsSection[0];
   
-  // Extract individual insight items - similar approach as news items
-  const insightItemsRegex = /###\s*([^\n]+)[\s\S]*?(?=###|$)|(?:^|\n)[-*•]\s*([^\n]+)[\s\S]*?(?=\n[-*•]|\n##|$)/gm;
-  const insightItemsMatches = [...insightsSectionText.matchAll(insightItemsRegex)];
+  // Extract individual insight items
+  const insightItems = insightsSection.split(/### |(?=^[A-Z][^\n]+\n)/gm).slice(1);
   
-  console.log("[DEBUG] Found", insightItemsMatches.length, "insight item matches");
-  
-  if (insightItemsMatches.length === 0) {
-    // Alternative approach: split by newlines and look for patterns
-    const lines = insightsSectionText.split('\n').filter(line => line.trim());
-    const insights = [];
+  if (insightItems.length === 0) {
+    // Try another approach if the first split didn't work
+    const paragraphs = insightsSection.split(/\n\n+/).slice(1);
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+    for (const paragraph of paragraphs) {
+      if (paragraph.trim() === '') continue;
       
-      // Look for titles (typically in bold or after bullet points or numbers)
-      if (line.startsWith('**') || line.match(/^[-*•]\s+/) || line.match(/^\d+\.\s+/)) {
-        const title = line.replace(/^[-*•\d.]\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
+      const titleMatch = paragraph.match(/^([^\n\.]+)/);
+      const sourceMatch = paragraph.match(/\*\*Source:\*\* ([^\n]+)/);
+      const urlMatch = paragraph.match(/(https?:\/\/[^\s\)]+)/);
+      
+      if (titleMatch) {
+        const title = titleMatch[1].trim();
+        const source = sourceMatch ? sourceMatch[1].trim() : undefined;
+        const url = urlMatch ? urlMatch[1].trim() : undefined;
         
-        // Collect the next few lines as content until we hit another potential title
-        let j = i + 1;
-        let content = '';
-        let source = '';
-        let url = '';
-        
-        while (j < lines.length && 
-              !lines[j].match(/^[-*•]\s+/) && 
-              !lines[j].match(/^\d+\.\s+/) && 
-              !lines[j].startsWith('**') &&
-              !lines[j].startsWith('#')) {
+        // Remove title, source, and URL from content
+        let content = paragraph
+          .replace(/^[^\n\.]+/, '')
+          .replace(/\*\*Source:\*\* [^\n]+/, '')
+          .replace(/https?:\/\/[^\s\)]+/, '')
+          .trim();
           
-          // Check for source/publication
-          if (lines[j].includes('(') && lines[j].includes(')')) {
-            const sourceMatch = lines[j].match(/\(([^)]+)\)/);
-            if (sourceMatch) source = sourceMatch[1].trim();
-          }
-          
-          // Check for URL
-          const urlMatch = lines[j].match(/(https?:\/\/[^\s)]+)/);
-          if (urlMatch) url = urlMatch[0].trim();
-          
-          content += lines[j] + ' ';
-          j++;
-        }
-        
-        // Add to insights if we have at least a title
-        if (title) {
-          insights.push({
-            title,
-            content: content.trim(),
-            source,
-            url
-          });
-        }
-        
-        // Skip processed lines
-        i = j - 1;
+        marketInsights.push({
+          title,
+          content,
+          source,
+          url
+        });
       }
     }
-    
-    console.log("[DEBUG] Alternative extraction found", insights.length, "market insights");
-    return insights;
+  } else {
+    for (const item of insightItems) {
+      if (item.trim() === '') continue;
+      
+      const titleMatch = item.match(/^([^\n]+)/);
+      const sourceMatch = item.match(/\*\*Source:\*\* ([^\n]+)/);
+      const urlMatch = item.match(/(https?:\/\/[^\s\)]+)/);
+      
+      if (titleMatch) {
+        const title = titleMatch[1].trim();
+        const source = sourceMatch ? sourceMatch[1].trim() : undefined;
+        const url = urlMatch ? urlMatch[1].trim() : undefined;
+        
+        // Extract content (everything between title and source/URL)
+        let content = item.substring(titleMatch[0].length).trim();
+        if (sourceMatch) {
+          content = content.substring(0, content.indexOf('**Source')).trim();
+        } else if (urlMatch) {
+          const urlIndex = content.indexOf(urlMatch[1]);
+          if (urlIndex !== -1) {
+            content = content.substring(0, urlIndex).trim();
+          }
+        }
+        
+        marketInsights.push({
+          title,
+          content,
+          source,
+          url
+        });
+      }
+    }
   }
   
-  return insightItemsMatches.map(match => {
-    // Get the title from the captured group
-    const title = (match[1] || match[2] || '').trim();
-    
-    // Get the full match text
-    const itemText = match[0];
-    
-    // Extract source (typically in parentheses)
-    const sourceMatch = itemText.match(/\*\*(?:Source):\*\*\s*([^(]*\([^)]*\)[^\n]*)|(\([^)]+\))/i);
-    const source = sourceMatch ? sourceMatch[1] || sourceMatch[2] : '';
-    
-    // Extract URL
-    const urlMatch = itemText.match(/(https?:\/\/[^\s)]+)/);
-    const url = urlMatch ? urlMatch[0].trim() : '';
-    
-    // Extract content (everything else, removing the title, source, and URL)
-    let content = itemText
-      .replace(title, '')
-      .replace(sourceMatch ? sourceMatch[0] : '', '')
-      .replace(urlMatch ? urlMatch[0] : '', '')
-      .trim();
-      
-    // Clean up markdown and other formatting
-    content = content.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim();
-    
-    return {
-      title,
-      content,
-      source: source.replace(/^\(|\)$/g, '').trim(), // Remove surrounding parentheses
-      url
-    };
-  }).filter(item => item.title); // Filter out items without titles
+  return marketInsights;
 }
