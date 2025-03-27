@@ -50,8 +50,8 @@ const NewsFeed = () => {
     try {
       setIsLoading(true);
       
-      // Query the market_research table with the correct relationship specification
-      // We're using the explicit "fk_company" foreign key relationship
+      // Query the market_research table
+      // Fix the query to specify which relationship to use with companies
       const { data, error } = await supabase
         .from('market_research')
         .select(`
@@ -60,7 +60,7 @@ const NewsFeed = () => {
           market_insights, 
           news_highlights,
           created_at,
-          companies!fk_company(name)
+          companies:company_id(name)
         `)
         .order('created_at', { ascending: false });
       
@@ -68,7 +68,7 @@ const NewsFeed = () => {
         throw error;
       }
       
-      // Format the data - fixing the property access for company name
+      // Format the data
       const formattedData = data.map(item => ({
         id: item.id,
         company_id: item.company_id,
