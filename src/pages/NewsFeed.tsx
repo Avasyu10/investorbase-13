@@ -10,16 +10,17 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface NewsItem {
-  title: string;
+  headline: string;
   content: string;
   source?: string;
-  date?: string;
   url?: string;
 }
 
 interface MarketInsight {
   title: string;
   content: string;
+  source?: string;
+  url?: string;
 }
 
 interface MarketResearchData {
@@ -58,10 +59,10 @@ const NewsFeed = () => {
           company_id, 
           market_insights, 
           news_highlights,
-          created_at,
+          requested_at,
           companies(name)
         `)
-        .order('created_at', { ascending: false });
+        .order('requested_at', { ascending: false });
       
       if (error) {
         throw error;
@@ -74,7 +75,7 @@ const NewsFeed = () => {
         companyName: item.companies?.name || 'Unknown Company',
         market_insights: item.market_insights || [],
         news_highlights: item.news_highlights || [],
-        created_at: item.created_at
+        created_at: item.requested_at
       })) || [];
       
       setResearches(formattedData);
@@ -130,10 +131,9 @@ const NewsFeed = () => {
                 (research.news_highlights || []).map((news, index) => (
                   <Card key={`${research.id}-news-${index}`} className="h-full">
                     <CardHeader>
-                      <CardTitle className="line-clamp-2">{news.title}</CardTitle>
+                      <CardTitle className="line-clamp-2">{news.headline}</CardTitle>
                       <CardDescription className="flex justify-between items-center">
                         <span>{research.companyName}</span>
-                        {news.date && <span className="text-xs">{news.date}</span>}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -178,6 +178,21 @@ const NewsFeed = () => {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm">{insight.content}</p>
+                      {insight.url && (
+                        <a 
+                          href={insight.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline mt-2 inline-block text-sm"
+                        >
+                          Read more
+                        </a>
+                      )}
+                      {insight.source && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Source: {insight.source}
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 ))

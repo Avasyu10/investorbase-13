@@ -194,6 +194,10 @@ Format your response in Markdown with clear section headers. Ensure all data is 
     console.log("[DEBUG] Extracted news highlights count:", newsHighlights.length);
     console.log("[DEBUG] Extracted market insights count:", marketInsights.length);
     
+    // Log the data being inserted for debugging
+    console.log("[DEBUG] News highlights sample:", newsHighlights.length > 0 ? JSON.stringify(newsHighlights[0]) : "none");
+    console.log("[DEBUG] Market insights sample:", marketInsights.length > 0 ? JSON.stringify(marketInsights[0]) : "none");
+    
     // Update the research record with the results
     const { error: updateError } = await supabase
       .from('market_research')
@@ -263,79 +267,225 @@ function extractSources(text: string): any[] {
 // Helper function to extract news highlights from text
 function extractNewsHighlights(text: string): any[] {
   console.log("[DEBUG] Extracting news highlights");
+  
   // Find "LATEST NEWS" section
-  const newsSection = text.match(/#+\s*LATEST NEWS[\s\S]*?(?=#+\s*MARKET INSIGHTS|$)/i);
+  const newsSectionRegex = /#+\s*LATEST NEWS[\s\S]*?(?=#+\s*MARKET INSIGHTS|$)/i;
+  const newsSectionMatch = text.match(newsSectionRegex);
   
-  if (!newsSection) return [];
+  if (!newsSectionMatch) {
+    console.log("[DEBUG] No LATEST NEWS section found");
+    return [];
+  }
   
-  const newsSectionText = newsSection[0];
+  const newsSectionText = newsSectionMatch[0];
+  console.log("[DEBUG] Found LATEST NEWS section, length:", newsSectionText.length);
   
-  // Extract news items - look for headlines which are typically after newlines and possibly with markdown formatting
-  const newsItems = newsSectionText.split(/\n-|\n\d+\.|\n\*/).slice(1);
+  // Extract individual news items - look for headlines which typically start with ### or after newlines with bullet points
+  const newsItemsRegex = /###\s*([^\n]+)[\s\S]*?(?=###|$)|(?:^|\n)[-*•]\s*([^\n]+)[\s\S]*?(?=\n[-*•]|\n##|$)/gm;
+  const newsItemsMatches = [...newsSectionText.matchAll(newsItemsRegex)];
   
-  return newsItems.map(item => {
-    // Extract headline
-    const headlineMatch = item.match(/^[^\n]*?([^.\n]+)/);
-    const headline = headlineMatch ? headlineMatch[1].trim() : '';
+  console.log("[DEBUG] Found", newsItemsMatches.length, "news item matches");
+  
+  if (newsItemsMatches.length === 0) {
+    // Alternative approach: split by newlines and look for patterns
+    const lines = newsSectionText.split('\n').filter(line => line.trim());
+    const newsItems = [];
     
-    // Extract source/date
-    const sourceMatch = item.match(/\(([^)]+)\)/);
-    const source = sourceMatch ? sourceMatch[1].trim() : '';
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Look for headlines (typically in bold or after bullet points or numbers)
+      if (line.startsWith('**') || line.match(/^[-*•]\s+/) || line.match(/^\d+\.\s+/)) {
+        const headline = line.replace(/^[-*•\d.]\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
+        
+        // Collect the next few lines as content until we hit another potential headline
+        let j = i + 1;
+        let content = '';
+        let source = '';
+        let url = '';
+        
+        while (j < lines.length && 
+              !lines[j].match(/^[-*•]\s+/) && 
+              !lines[j].match(/^\d+\.\s+/) && 
+              !lines[j].startsWith('**') &&
+              !lines[j].startsWith('#')) {
+          
+          // Check for source/publication
+          if (lines[j].includes('(') && lines[j].includes(')')) {
+            const sourceMatch = lines[j].match(/\(([^)]+)\)/);
+            if (sourceMatch) source = sourceMatch[1].trim();
+          }
+          
+          // Check for URL
+          const urlMatch = lines[j].match(/(https?:\/\/[^\s)]+)/);
+          if (urlMatch) url = urlMatch[0].trim();
+          
+          content += lines[j] + ' ';
+          j++;
+        }
+        
+        // Add to news items if we have at least a headline
+        if (headline) {
+          newsItems.push({
+            headline,
+            content: content.trim(),
+            source,
+            url
+          });
+        }
+        
+        // Skip processed lines
+        i = j - 1;
+      }
+    }
+    
+    console.log("[DEBUG] Alternative extraction found", newsItems.length, "news items");
+    return newsItems;
+  }
+  
+  return newsItemsMatches.map(match => {
+    // Get the headline from the captured group
+    const headline = (match[1] || match[2] || '').trim();
+    
+    // Get the full match text
+    const itemText = match[0];
+    
+    // Extract source/publication (typically in parentheses)
+    const sourceMatch = itemText.match(/\*\*(?:Source|Publication):\*\*\s*([^(]*\([^)]*\)[^\n]*)|(\([^)]+\))/i);
+    const source = sourceMatch ? sourceMatch[1] || sourceMatch[2] : '';
     
     // Extract URL
-    const urlMatch = item.match(/(https?:\/\/[^\s)]+)/);
+    const urlMatch = itemText.match(/(https?:\/\/[^\s)]+)/);
     const url = urlMatch ? urlMatch[0].trim() : '';
     
-    // Extract content (everything else)
-    let content = item
+    // Extract content (everything else, removing the headline, source, and URL)
+    let content = itemText
       .replace(headline, '')
       .replace(sourceMatch ? sourceMatch[0] : '', '')
       .replace(urlMatch ? urlMatch[0] : '', '')
       .trim();
       
-    // Clean up content
-    content = content.replace(/^[:\s-]+/, '').trim();
+    // Clean up markdown and other formatting
+    content = content.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim();
     
-    return { headline, source, url, content };
-  }).filter(item => item.headline); // Filter out empty items
+    return {
+      headline,
+      content,
+      source: source.replace(/^\(|\)$/g, '').trim(), // Remove surrounding parentheses
+      url
+    };
+  }).filter(item => item.headline); // Filter out items without headlines
 }
 
 // Helper function to extract market insights from text
 function extractMarketInsights(text: string): any[] {
   console.log("[DEBUG] Extracting market insights");
+  
   // Find "MARKET INSIGHTS" section
-  const insightsSection = text.match(/#+\s*MARKET INSIGHTS[\s\S]*?(?=#+\s*RESEARCH SUMMARY|$)/i);
+  const insightsSectionRegex = /#+\s*MARKET INSIGHTS[\s\S]*?(?=#+\s*RESEARCH SUMMARY|$)/i;
+  const insightsSectionMatch = text.match(insightsSectionRegex);
   
-  if (!insightsSection) return [];
+  if (!insightsSectionMatch) {
+    console.log("[DEBUG] No MARKET INSIGHTS section found");
+    return [];
+  }
   
-  const insightsSectionText = insightsSection[0];
+  const insightsSectionText = insightsSectionMatch[0];
+  console.log("[DEBUG] Found MARKET INSIGHTS section, length:", insightsSectionText.length);
   
-  // Extract insight items - look for items which are typically after newlines and possibly with markdown formatting
-  const insightItems = insightsSectionText.split(/\n-|\n\d+\.|\n\*/).slice(1);
+  // Extract individual insight items - similar approach as news items
+  const insightItemsRegex = /###\s*([^\n]+)[\s\S]*?(?=###|$)|(?:^|\n)[-*•]\s*([^\n]+)[\s\S]*?(?=\n[-*•]|\n##|$)/gm;
+  const insightItemsMatches = [...insightsSectionText.matchAll(insightItemsRegex)];
   
-  return insightItems.map(item => {
-    // Extract title (first sentence or line)
-    const titleMatch = item.match(/^[^\n.]*?([^.\n]+)/);
-    const title = titleMatch ? titleMatch[1].trim() : '';
+  console.log("[DEBUG] Found", insightItemsMatches.length, "insight item matches");
+  
+  if (insightItemsMatches.length === 0) {
+    // Alternative approach: split by newlines and look for patterns
+    const lines = insightsSectionText.split('\n').filter(line => line.trim());
+    const insights = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Look for titles (typically in bold or after bullet points or numbers)
+      if (line.startsWith('**') || line.match(/^[-*•]\s+/) || line.match(/^\d+\.\s+/)) {
+        const title = line.replace(/^[-*•\d.]\s+/, '').replace(/^\*\*|\*\*$/g, '').trim();
+        
+        // Collect the next few lines as content until we hit another potential title
+        let j = i + 1;
+        let content = '';
+        let source = '';
+        let url = '';
+        
+        while (j < lines.length && 
+              !lines[j].match(/^[-*•]\s+/) && 
+              !lines[j].match(/^\d+\.\s+/) && 
+              !lines[j].startsWith('**') &&
+              !lines[j].startsWith('#')) {
+          
+          // Check for source/publication
+          if (lines[j].includes('(') && lines[j].includes(')')) {
+            const sourceMatch = lines[j].match(/\(([^)]+)\)/);
+            if (sourceMatch) source = sourceMatch[1].trim();
+          }
+          
+          // Check for URL
+          const urlMatch = lines[j].match(/(https?:\/\/[^\s)]+)/);
+          if (urlMatch) url = urlMatch[0].trim();
+          
+          content += lines[j] + ' ';
+          j++;
+        }
+        
+        // Add to insights if we have at least a title
+        if (title) {
+          insights.push({
+            title,
+            content: content.trim(),
+            source,
+            url
+          });
+        }
+        
+        // Skip processed lines
+        i = j - 1;
+      }
+    }
+    
+    console.log("[DEBUG] Alternative extraction found", insights.length, "market insights");
+    return insights;
+  }
+  
+  return insightItemsMatches.map(match => {
+    // Get the title from the captured group
+    const title = (match[1] || match[2] || '').trim();
+    
+    // Get the full match text
+    const itemText = match[0];
+    
+    // Extract source (typically in parentheses)
+    const sourceMatch = itemText.match(/\*\*(?:Source):\*\*\s*([^(]*\([^)]*\)[^\n]*)|(\([^)]+\))/i);
+    const source = sourceMatch ? sourceMatch[1] || sourceMatch[2] : '';
     
     // Extract URL
-    const urlMatch = item.match(/(https?:\/\/[^\s)]+)/);
+    const urlMatch = itemText.match(/(https?:\/\/[^\s)]+)/);
     const url = urlMatch ? urlMatch[0].trim() : '';
     
-    // Extract source
-    const sourceMatch = item.match(/\(([^)]+)\)/);
-    const source = sourceMatch ? sourceMatch[1].trim() : '';
-    
-    // Extract content (everything else)
-    let content = item
-      .replace(titleMatch ? titleMatch[0] : '', '')
-      .replace(urlMatch ? urlMatch[0] : '', '')
+    // Extract content (everything else, removing the title, source, and URL)
+    let content = itemText
+      .replace(title, '')
       .replace(sourceMatch ? sourceMatch[0] : '', '')
+      .replace(urlMatch ? urlMatch[0] : '', '')
       .trim();
       
-    // Clean up content
-    content = content.replace(/^[:\s-]+/, '').trim();
+    // Clean up markdown and other formatting
+    content = content.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim();
     
-    return { title, content, source, url };
-  }).filter(item => item.title || item.content); // Filter out empty items
+    return {
+      title,
+      content,
+      source: source.replace(/^\(|\)$/g, '').trim(), // Remove surrounding parentheses
+      url
+    };
+  }).filter(item => item.title); // Filter out items without titles
 }
