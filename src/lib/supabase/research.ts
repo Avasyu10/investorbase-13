@@ -43,25 +43,19 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
     
     // Set a timeout for the edge function call (60 seconds)
     const timeoutMs = 60000;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     try {
-      // Call the edge function with abort controller and proper content type
+      // Call the edge function without the abort controller
       const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
         body: { 
           companyId,
           assessmentPoints: assessmentText.split('\n\n').filter(point => point.trim() !== '')
         },
-        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'x-app-version': '1.0.0'
         }
       });
-      
-      // Clear the timeout as we got a response
-      clearTimeout(timeoutId);
       
       if (error) {
         console.error('Error invoking real-time-perplexity-research function:', error);
@@ -122,9 +116,6 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
       
       return data;
     } catch (innerError) {
-      // Clear the timeout to prevent potential memory leaks
-      clearTimeout(timeoutId);
-      
       // Handle timeout specifically
       if (innerError.name === 'AbortError') {
         console.error('Research timed out after', timeoutMs / 1000, 'seconds');
