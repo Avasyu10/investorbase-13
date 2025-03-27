@@ -352,7 +352,6 @@ export type Database = {
           news_highlights: Json | null
           prompt: string | null
           requested_at: string
-          research_summary: string | null
           research_text: string | null
           sources: Json | null
           status: string
@@ -366,7 +365,6 @@ export type Database = {
           news_highlights?: Json | null
           prompt?: string | null
           requested_at?: string
-          research_summary?: string | null
           research_text?: string | null
           sources?: Json | null
           status?: string
@@ -380,7 +378,6 @@ export type Database = {
           news_highlights?: Json | null
           prompt?: string | null
           requested_at?: string
-          research_summary?: string | null
           research_text?: string | null
           sources?: Json | null
           status?: string
