@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -16,7 +15,6 @@ import { ORDERED_SECTIONS } from "@/lib/constants";
 import { LatestResearch } from "./LatestResearch";
 
 const CompanyDetails = () => {
-  // Use string type for id to fix the TypeScript error
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -81,7 +79,7 @@ const CompanyDetails = () => {
             const { data: sections } = await supabase
               .from('sections')
               .select('title, description')
-              .eq('company_id', id);
+              .eq('company_id', id as string);
             
             let intro = "";
             let industry = "Not specified";
@@ -132,7 +130,6 @@ const CompanyDetails = () => {
   }, [company, id]);
 
   const handleSectionClick = (sectionId: number | string) => {
-    // Convert sectionId to string to ensure type safety
     navigate(`/company/${id}/section/${sectionId.toString()}`);
   };
 
