@@ -1,4 +1,7 @@
+
 import { SectionDetail } from "@/components/companies/SectionDetail";
+import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
+import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -14,9 +17,6 @@ const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { companyId, sectionId } = useParams<{ companyId: string; sectionId: string }>();
-  
-  const companyIdNum = companyId ? parseInt(companyId, 10) : undefined;
-  const sectionIdNum = sectionId ? parseInt(sectionId, 10) : undefined;
   
   const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
   const { section, isLoading: sectionLoading } = useSectionDetails(companyId, sectionId);
@@ -104,7 +104,20 @@ const SectionPage = () => {
         </div>
       </div>
       <div className="container mx-auto px-4">
+        {/* Overall Assessment */}
+        {!isLoading && company && (
+          <OverallAssessment score={4.7} />
+        )}
+        
         {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
+        
+        {/* Fund Thesis Alignment Component */}
+        {!isLoading && company && (
+          <FundThesisAlignment 
+            companyId={companyId || ''} 
+            companyName={company.name} 
+          />
+        )}
         
         <div className="flex justify-between mt-8">
           {prevSection && (
