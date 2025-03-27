@@ -1,6 +1,4 @@
-
 import Index from "@/pages/Index";
-import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
 import UploadReport from "@/pages/UploadReport";
@@ -22,10 +20,6 @@ export const routes = [
   {
     path: "/",
     element: <Index />,
-  },
-  {
-    path: "/login",
-    element: <Login />,
   },
   {
     path: "/signup",

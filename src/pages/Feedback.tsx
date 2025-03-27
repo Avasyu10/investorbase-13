@@ -12,7 +12,7 @@ const Feedback = () => {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      navigate('/login', { state: { from: '/feedback' } });
+      navigate('/', { state: { from: '/feedback' } });
     }
   }, [user, isLoading, navigate]);
 
