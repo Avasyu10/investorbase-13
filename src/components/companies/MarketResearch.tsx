@@ -121,7 +121,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
 
   return (
     <>
-      <Card className="shadow-md border bg-card overflow-hidden mb-8">
+{/*       <Card className="shadow-md border bg-card overflow-hidden mb-8">
         <CardHeader className="bg-muted/50 border-b pb-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                         Comprehensive market analysis with up-to-date insights from reputable sources.
                       </p>
                     </CardContent>
-                  </Card>
+                  </Card> */}
                   
                   <Card className="bg-muted/30">
                     <CardContent className="p-4">
