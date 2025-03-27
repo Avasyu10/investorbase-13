@@ -113,7 +113,8 @@ serve(async (req) => {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY as string
+        'apikey': SUPABASE_ANON_KEY as string,
+        'x-app-version': '1.0.0'
       },
       body: JSON.stringify({ 
         action: 'download', 
@@ -125,7 +126,17 @@ serve(async (req) => {
     if (!fundThesisResponse.ok) {
       const errorText = await fundThesisResponse.text();
       console.error('Failed to fetch fund thesis:', errorText);
-      throw new Error(`Failed to fetch fund thesis: ${fundThesisResponse.status} - ${errorText}`);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Could not fetch fund thesis document',
+          details: errorText
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      );
     }
 
     console.log('Fetching pitch deck document');
@@ -134,7 +145,8 @@ serve(async (req) => {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY as string
+        'apikey': SUPABASE_ANON_KEY as string,
+        'x-app-version': '1.0.0'
       },
       body: JSON.stringify({ 
         action: 'download', 
@@ -145,7 +157,16 @@ serve(async (req) => {
     if (!pitchDeckResponse.ok) {
       const errorText = await pitchDeckResponse.text();
       console.error('Failed to fetch pitch deck:', errorText);
-      throw new Error(`Failed to fetch pitch deck: ${pitchDeckResponse.status} - ${errorText}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Could not fetch company pitch deck',
+          details: errorText
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      );
     }
 
     const fundThesisBlob = await fundThesisResponse.blob();
@@ -155,11 +176,29 @@ serve(async (req) => {
     console.log(`Pitch deck size: ${pitchDeckBlob.size} bytes`);
 
     if (fundThesisBlob.size === 0) {
-      throw new Error('Fund thesis document is empty');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Fund thesis document is empty',
+          details: 'Please upload a valid fund thesis document in your profile settings'
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
     }
 
     if (pitchDeckBlob.size === 0) {
-      throw new Error('Pitch deck document is empty');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Pitch deck document is empty',
+          details: 'The company pitch deck appears to be empty or inaccessible'
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
     }
 
     // Convert blobs to base64

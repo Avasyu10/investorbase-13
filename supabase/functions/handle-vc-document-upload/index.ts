@@ -138,22 +138,55 @@ async function handleDownload(
       console.log(`Looking for fund thesis document for user ${userId}`);
       
       // Find the user's fund thesis document
-      const { data: vcProfileData } = await supabase
+      const { data: vcProfileData, error: profileError } = await supabase
         .from('vc_profiles')
         .select('fund_thesis_url')
         .eq('id', userId)
         .single();
+
+      if (profileError) {
+        console.error("Error fetching VC profile:", profileError);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to fetch VC profile",
+            details: profileError.message,
+            success: false,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
       
       if (vcProfileData?.fund_thesis_url) {
         console.log(`Found fund thesis URL: ${vcProfileData.fund_thesis_url}`);
-        path = `${userId}/${vcProfileData.fund_thesis_url}`;
+        // Make sure we have the direct path without userId prefix (will be added in download)
+        path = vcProfileData.fund_thesis_url.includes('/') 
+          ? vcProfileData.fund_thesis_url 
+          : `${userId}/${vcProfileData.fund_thesis_url}`;
       } else {
         console.log('No fund thesis URL found in profile');
         
         // Try to find any document in the user's folder that might be a fund thesis
-        const { data: folderData } = await supabase.storage
+        const { data: folderData, error: folderError } = await supabase.storage
           .from('vc-documents')
-          .list(userId);
+          .list(`${userId}`);
+
+        if (folderError) {
+          console.error("Error listing user folder:", folderError);
+          return new Response(
+            JSON.stringify({
+              error: "Failed to list documents",
+              details: folderError.message,
+              success: false,
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
         
         if (folderData && folderData.length > 0) {
           // Look for PDF files that might be fund thesis
@@ -178,6 +211,7 @@ async function handleDownload(
       }
       
       if (!path) {
+        console.log("No fund thesis document found for user:", userId);
         return new Response(
           JSON.stringify({
             error: "No fund thesis document found for this user",
@@ -195,38 +229,88 @@ async function handleDownload(
       console.log(`Looking for pitch deck for company ${companyId}`);
       
       // Find the company's report to get the PDF URL
-      const { data: reportData } = await supabase
+      const { data: reportData, error: reportError } = await supabase
         .from('reports')
         .select('pdf_url, user_id')
         .eq('company_id', companyId)
         .single();
+
+      if (reportError && reportError.code !== 'PGRST116') {
+        console.error("Error fetching report:", reportError);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to fetch report data",
+            details: reportError.message,
+            success: false,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
       
       if (reportData?.pdf_url && reportData?.user_id) {
         console.log(`Found report with PDF: ${reportData.pdf_url}`);
-        path = `${reportData.user_id}/${reportData.pdf_url}`;
+        path = reportData.pdf_url.includes('/') 
+          ? reportData.pdf_url 
+          : `${reportData.user_id}/${reportData.pdf_url}`;
       } else {
         // If no report is found, try to find the company record
-        const { data: companyData } = await supabase
+        const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('report_id')
           .eq('id', companyId)
           .single();
+
+        if (companyError && companyError.code !== 'PGRST116') {
+          console.error("Error fetching company:", companyError);
+          return new Response(
+            JSON.stringify({
+              error: "Failed to fetch company data",
+              details: companyError.message,
+              success: false,
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
         
         if (companyData?.report_id) {
-          const { data: reportFromCompany } = await supabase
+          const { data: reportFromCompany, error: reportFromCompanyError } = await supabase
             .from('reports')
             .select('pdf_url, user_id')
             .eq('id', companyData.report_id)
             .single();
+
+          if (reportFromCompanyError && reportFromCompanyError.code !== 'PGRST116') {
+            console.error("Error fetching report via company:", reportFromCompanyError);
+            return new Response(
+              JSON.stringify({
+                error: "Failed to fetch report data via company",
+                details: reportFromCompanyError.message,
+                success: false,
+              }),
+              {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
           
           if (reportFromCompany?.pdf_url && reportFromCompany?.user_id) {
             console.log(`Found report via company with PDF: ${reportFromCompany.pdf_url}`);
-            path = `${reportFromCompany.user_id}/${reportFromCompany.pdf_url}`;
+            path = reportFromCompany.pdf_url.includes('/')
+              ? reportFromCompany.pdf_url
+              : `${reportFromCompany.user_id}/${reportFromCompany.pdf_url}`;
           }
         }
       }
       
       if (!path) {
+        console.log("No pitch deck found for company:", companyId);
         return new Response(
           JSON.stringify({
             error: "No pitch deck found for this company",
@@ -253,7 +337,7 @@ async function handleDownload(
     
     console.log(`Downloading file from path: ${path}`);
     
-    // Download the file
+    // Attempt to download the file
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('vc-documents')
       .download(path);
@@ -262,47 +346,83 @@ async function handleDownload(
       console.error("Error downloading file:", downloadError);
       
       // Try alternate paths if the primary path fails
+      const alternativePaths = [];
+      
+      // Try without userId prefix if it's included
       if (path.includes('/')) {
-        const filename = path.split('/').pop();
-        console.log(`Trying alternate path with just filename: ${filename}`);
+        const segments = path.split('/');
+        const filename = segments[segments.length - 1];
+        alternativePaths.push(filename);
+      }
+      
+      // Try with just the user ID folder
+      if (userId && path.includes('/')) {
+        const filename = path.split('/').pop() || '';
+        alternativePaths.push(`${userId}/${filename}`);
+      }
+      
+      // Try in root folder
+      if (path.includes('/')) {
+        const filename = path.split('/').pop() || '';
+        alternativePaths.push(filename);
+      }
+      
+      // Try alternates
+      for (const altPath of alternativePaths) {
+        console.log(`Trying alternate path: ${altPath}`);
         
         const { data: altFileData, error: altDownloadError } = await supabase.storage
           .from('vc-documents')
-          .download(filename as string);
+          .download(altPath);
         
-        if (altDownloadError || !altFileData) {
-          console.error("Alternate download also failed:", altDownloadError);
+        if (!altDownloadError && altFileData) {
+          console.log(`Alternate download successful from path: ${altPath}, file size: ${altFileData.size} bytes`);
           return new Response(
-            JSON.stringify({
-              error: "Failed to download document",
-              details: downloadError.message,
-              success: false,
-            }),
+            altFileData,
             {
-              status: 404,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                "Content-Type": altFileData.type || "application/octet-stream",
+                "Content-Disposition": `attachment; filename="${altPath.split('/').pop()}"`,
+              },
             }
           );
         }
+      }
+      
+      // List the vc-documents bucket contents to help with debugging
+      console.log("Listing storage bucket contents to debug...");
+      let listResult;
+      
+      if (userId) {
+        const { data: userFolderContents, error: listError } = await supabase.storage
+          .from('vc-documents')
+          .list(userId);
         
-        console.log(`Alternate download successful, file size: ${altFileData.size} bytes`);
-        return new Response(
-          altFileData,
-          {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": altFileData.type || "application/octet-stream",
-              "Content-Disposition": `attachment; filename="${filename}"`,
-            },
-          }
-        );
+        if (!listError && userFolderContents) {
+          console.log(`Files in user folder ${userId}:`, JSON.stringify(userFolderContents));
+          listResult = userFolderContents;
+        } else {
+          console.log("Error listing user folder or empty folder:", listError);
+        }
+      }
+      
+      // List root bucket
+      const { data: rootContents, error: rootListError } = await supabase.storage
+        .from('vc-documents')
+        .list();
+      
+      if (!rootListError && rootContents) {
+        console.log("Files in root folder:", JSON.stringify(rootContents));
       }
       
       return new Response(
         JSON.stringify({
           error: "Failed to download document",
           details: downloadError.message,
+          path: path,
+          availableFiles: listResult || [],
           success: false,
         }),
         {
