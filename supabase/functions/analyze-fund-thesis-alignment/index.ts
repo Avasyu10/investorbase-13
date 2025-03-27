@@ -32,6 +32,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Processing fund thesis alignment for company ${company_id} and user ${user_id}`);
+
     // First check if analysis already exists in the database
     const authHeader = req.headers.get('Authorization');
     
@@ -45,6 +47,7 @@ serve(async (req) => {
       );
     }
     
+    console.log('Checking for existing analysis in database');
     const existingAnalysisResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis?company_id=eq.${company_id}&user_id=eq.${user_id}`, {
       headers: {
         'Authorization': authHeader,
@@ -56,6 +59,7 @@ serve(async (req) => {
     
     if (existingAnalysis && existingAnalysis.length > 0) {
       // Return existing analysis
+      console.log('Found existing analysis, returning it');
       return new Response(
         JSON.stringify({ 
           analysis: existingAnalysis[0].analysis_text,
@@ -69,12 +73,16 @@ serve(async (req) => {
       );
     }
 
+    console.log('No existing analysis found, creating new one');
+
     // Fetch the fund thesis and pitch deck documents
+    console.log('Fetching fund thesis document');
     const fundThesisResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY
       },
       body: JSON.stringify({ 
         action: 'download', 
@@ -83,11 +91,19 @@ serve(async (req) => {
       })
     });
 
+    if (!fundThesisResponse.ok) {
+      const errorText = await fundThesisResponse.text();
+      console.error('Failed to fetch fund thesis:', errorText);
+      throw new Error(`Failed to fetch fund thesis: ${fundThesisResponse.status} - ${errorText}`);
+    }
+
+    console.log('Fetching pitch deck document');
     const pitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY
       },
       body: JSON.stringify({ 
         action: 'download', 
@@ -95,8 +111,25 @@ serve(async (req) => {
       })
     });
 
+    if (!pitchDeckResponse.ok) {
+      const errorText = await pitchDeckResponse.text();
+      console.error('Failed to fetch pitch deck:', errorText);
+      throw new Error(`Failed to fetch pitch deck: ${pitchDeckResponse.status} - ${errorText}`);
+    }
+
     const fundThesisBlob = await fundThesisResponse.blob();
     const pitchDeckBlob = await pitchDeckResponse.blob();
+
+    console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
+    console.log(`Pitch deck size: ${pitchDeckBlob.size} bytes`);
+
+    if (fundThesisBlob.size === 0) {
+      throw new Error('Fund thesis document is empty');
+    }
+
+    if (pitchDeckBlob.size === 0) {
+      throw new Error('Pitch deck document is empty');
+    }
 
     // Convert blobs to base64
     const fundThesisBase64 = await blobToBase64(fundThesisBlob);
@@ -116,6 +149,7 @@ serve(async (req) => {
                 Pitch Deck PDF Content:
                 ${pitchDeckBase64}`;
 
+    console.log('Calling Gemini API to analyze alignment');
     // Call Gemini to analyze alignment
     const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
@@ -142,7 +176,15 @@ serve(async (req) => {
       }),
     });
 
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
+    }
+
     const geminiData = await geminiResponse.json();
+    console.log('Received response from Gemini API');
+    
     let analysisText = '';
     let rawResponse = '';
     
@@ -151,11 +193,14 @@ serve(async (req) => {
         geminiData.candidates[0].content.parts.length > 0) {
       analysisText = geminiData.candidates[0].content.parts[0].text;
       rawResponse = JSON.stringify(geminiData);
+      console.log('Analysis text length:', analysisText.length);
     } else {
+      console.error('Unexpected response format from Gemini API:', JSON.stringify(geminiData));
       throw new Error('Unexpected response format from Gemini API');
     }
 
     // Store analysis in Supabase
+    console.log('Storing analysis in Supabase');
     const supabaseStoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
       method: 'POST',
       headers: {
@@ -173,7 +218,14 @@ serve(async (req) => {
       })
     });
 
+    if (!supabaseStoreResponse.ok) {
+      const errorText = await supabaseStoreResponse.text();
+      console.error('Failed to store analysis:', errorText);
+      throw new Error(`Failed to store analysis: ${supabaseStoreResponse.status} - ${errorText}`);
+    }
+
     const storedAnalysis = await supabaseStoreResponse.json();
+    console.log('Analysis stored successfully');
 
     return new Response(JSON.stringify({ 
       analysis: analysisText,

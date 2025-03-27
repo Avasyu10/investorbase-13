@@ -15,19 +15,25 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
   const [isLoading, setIsLoading] = useState(true);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [assessmentPoints, setAssessmentPoints] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function analyzeThesisAlignment() {
       try {
         setIsLoading(true);
+        setError(null);
         
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
           toast.error("You need to be logged in to analyze thesis alignment");
           setIsLoading(false);
+          setError("Authentication required");
           return;
         }
+        
+        console.log("Analyzing fund thesis alignment for company:", companyId);
+        console.log("User ID:", user.id);
         
         const { data, error } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
           body: { 
@@ -37,15 +43,19 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         });
         
         if (error) {
-          console.error("Error analyzing fund thesis alignment:", error);
+          console.error("Error invoking analyze-fund-thesis-alignment:", error);
           toast.error("Failed to analyze fund thesis alignment");
+          setError(`API error: ${error.message}`);
           setIsLoading(false);
           return;
         }
         
+        console.log("Response from analyze-fund-thesis-alignment:", data);
+        
         if (data.error) {
           console.error("API error:", data.error);
           toast.error(data.error);
+          setError(`API error: ${data.error}`);
           setIsLoading(false);
           return;
         }
@@ -54,7 +64,6 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         if (data.analysis) {
           setAnalysis(data.analysis);
           
-          // Convert the analysis text into points for display
           // Parse the analysis to properly separate sections
           const sections: Record<string, string[]> = {
             summary: [],
@@ -66,21 +75,65 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           const lines = data.analysis.split('\n').filter(line => line.trim() !== '');
           
           for (const line of lines) {
-            // Check for section headings
-            if (line.includes('Summary') || line.includes('Overall Summary')) {
+            // Check for section headings with various possible formats
+            if (line.match(/^\d+\.\s*Overall\s*Summary/i) || 
+                line.match(/^\d+\.\s*Summary/i) || 
+                line.includes('Summary') || 
+                line.includes('summary')) {
               currentSection = 'summary';
+              console.log("Found summary section:", line);
               continue;
-            } else if (line.includes('Key Similarities') || line.includes('Similarities')) {
+            } else if (line.match(/^\d+\.\s*Key\s*Similarities/i) || 
+                      line.match(/^\d+\.\s*Similarities/i) || 
+                      line.includes('Similarities') || 
+                      line.includes('similarities')) {
               currentSection = 'similarities';
+              console.log("Found similarities section:", line);
               continue;
-            } else if (line.includes('Key Differences') || line.includes('Differences')) {
+            } else if (line.match(/^\d+\.\s*Key\s*Differences/i) || 
+                      line.match(/^\d+\.\s*Differences/i) || 
+                      line.includes('Differences') || 
+                      line.includes('differences')) {
               currentSection = 'differences';
+              console.log("Found differences section:", line);
               continue;
             }
             
-            // Add content lines to the appropriate section
-            if (!line.match(/^\d+\./)) { // Skip numbered list markers
-              sections[currentSection].push(line);
+            // Skip numbered list markers and empty lines
+            if (line.match(/^\d+\.$/) || line.trim() === '') {
+              continue;
+            }
+            
+            // Skip lines that only have a number (like "1.")
+            if (line.match(/^\d+\.\s*$/)) {
+              continue;
+            }
+            
+            // Process content lines
+            // Remove numbering from the beginning of points if present
+            const cleanedLine = line.replace(/^(\d+\.\s*)/, '').trim();
+            if (cleanedLine) {
+              sections[currentSection].push(cleanedLine);
+              console.log(`Added to ${currentSection}:`, cleanedLine);
+            }
+          }
+          
+          // If no sections were found, treat the entire text as one section
+          if (sections.summary.length === 0 && 
+              sections.similarities.length === 0 && 
+              sections.differences.length === 0) {
+            console.log("No sections found, treating entire text as one section");
+            
+            // Split by paragraphs or lines
+            const paragraphs = data.analysis.split('\n\n')
+              .filter(p => p.trim() !== '')
+              .map(p => p.trim());
+            
+            if (paragraphs.length > 0) {
+              sections.summary = paragraphs;
+            } else {
+              // Last resort: just use the whole text as one point
+              sections.summary = [data.analysis.trim()];
             }
           }
           
@@ -91,11 +144,19 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
             ...sections.differences
           ];
           
-          setAssessmentPoints(allPoints.filter(p => p.trim() !== ''));
+          const filteredPoints = allPoints
+            .filter(p => p.trim() !== '')
+            .map(p => p.replace(/^(-\s*)/, '').trim()); // Remove leading dashes if present
+          
+          console.log("Final assessment points:", filteredPoints);
+          setAssessmentPoints(filteredPoints);
+        } else {
+          setError("No analysis data received from API");
         }
       } catch (error) {
         console.error("Error in thesis alignment analysis:", error);
         toast.error("Failed to analyze fund thesis alignment");
+        setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
@@ -113,7 +174,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         return;
       }
       
-      // Redirect to handle-vc-document-upload to view the fund thesis
+      // Get the URL of the fund thesis document
       const { data, error } = await supabase.functions.invoke('handle-vc-document-upload', {
         body: { 
           action: 'get_url', 
@@ -123,6 +184,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       });
       
       if (error || !data?.url) {
+        console.error("Error getting fund thesis URL:", error);
         toast.error("Failed to retrieve fund thesis document");
         return;
       }
@@ -152,22 +214,37 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           </div>
         ) : (
           <div className="space-y-6">
-            {analysis ? (
+            {error ? (
+              <div className="p-4 border border-red-200 bg-red-50 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+                <p className="text-sm text-red-500 mt-2">
+                  Please make sure you have uploaded a fund thesis document in your profile.
+                </p>
+              </div>
+            ) : analysis ? (
               <>
                 <p className="text-sm text-muted-foreground">
                   Analysis of how well {companyName} aligns with your investment thesis and strategic focus areas.
                 </p>
                 
                 <div className="space-y-4 mt-4">
-                  {assessmentPoints.map((point, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-start gap-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50/50"
-                    >
-                      <Lightbulb className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />
-                      <span className="text-sm leading-relaxed">{point}</span>
+                  {assessmentPoints.length > 0 ? (
+                    assessmentPoints.map((point, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-start gap-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50/50"
+                      >
+                        <Lightbulb className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />
+                        <span className="text-sm leading-relaxed">{point}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 border border-amber-200 bg-amber-50 rounded-md">
+                      <p className="text-sm text-amber-700">
+                        Analysis completed but no specific points were extracted. This could be due to formatting issues.
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </>
             ) : (
