@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Section } from "@/types/company";
 
 interface OverallAssessmentProps {
-  company?: any;
-  overallScore?: string;
-  sections?: Section[];
+  company: any;
+  overallScore: string;
+  sections: Section[];
 }
 
-export function OverallAssessment({ company, overallScore = "0", sections = [] }: OverallAssessmentProps) {
+export function OverallAssessment({ company, overallScore, sections }: OverallAssessmentProps) {
   const [showAllPoints, setShowAllPoints] = useState(false);
   
   // Format section data for the chart
@@ -27,7 +27,7 @@ export function OverallAssessment({ company, overallScore = "0", sections = [] }
     .slice(0, 7); // Limit to 7 sections for the chart
   
   // Format assessment points for display
-  const assessmentPoints = company && Array.isArray(company.assessment_points) ? company.assessment_points : [];
+  const assessmentPoints = Array.isArray(company.assessment_points) ? company.assessment_points : [];
   
   // Get color class based on score
   const getScoreClass = () => {
@@ -170,7 +170,7 @@ export function OverallAssessment({ company, overallScore = "0", sections = [] }
               <ul className="space-y-2">
                 {assessmentPoints
                   .slice(0, showAllPoints ? assessmentPoints.length : 5)
-                  .map((point: string, index: number) => (
+                  .map((point, index) => (
                     <li key={index} className="flex items-start">
                       <ArrowUpRight className="h-5 w-5 text-primary mr-2 flex-shrink-0 mt-0.5" />
                       <span className="text-sm">{point}</span>

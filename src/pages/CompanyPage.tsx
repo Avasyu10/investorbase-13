@@ -1,4 +1,5 @@
 
+import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkle, Lightbulb } from "lucide-react";
@@ -10,7 +11,6 @@ import { MarketResearch } from "@/components/companies/MarketResearch";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import CompanyDetailsComponent from "@/pages/CompanyDetails";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -100,7 +100,7 @@ const CompanyPage = () => {
         </div>
       </div>
       
-      <CompanyDetailsComponent />
+      <CompanyDetails />
       
       {/* Market Research Modal */}
       <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
@@ -138,7 +138,6 @@ const CompanyPage = () => {
               <FundThesisAlignment 
                 companyId={company.id.toString()}
                 companyName={company.name}
-                assessmentPoints={company.assessmentPoints || []}
               />
             )}
           </div>

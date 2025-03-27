@@ -78,28 +78,12 @@ const NewsFeed = () => {
         
         // Handle market_insights
         if (item.market_insights) {
-          if (typeof item.market_insights === 'string') {
-            try {
-              marketInsights = JSON.parse(item.market_insights);
-            } catch (e) {
-              console.error("Error parsing market_insights JSON:", e);
-            }
-          } else if (Array.isArray(item.market_insights)) {
-            marketInsights = item.market_insights as unknown as MarketInsight[];
-          }
+          marketInsights = item.market_insights as MarketInsight[];
         }
         
         // Handle news_highlights
         if (item.news_highlights) {
-          if (typeof item.news_highlights === 'string') {
-            try {
-              newsHighlights = JSON.parse(item.news_highlights);
-            } catch (e) {
-              console.error("Error parsing news_highlights JSON:", e);
-            }
-          } else if (Array.isArray(item.news_highlights)) {
-            newsHighlights = item.news_highlights as unknown as NewsItem[];
-          }
+          newsHighlights = item.news_highlights as NewsItem[];
         }
         
         return {
