@@ -8,7 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MarketInsight, NewsItem } from "@/components/types";
+
+interface NewsItem {
+  headline: string;
+  content: string;
+  source?: string;
+  url?: string;
+}
+
+interface MarketInsight {
+  title: string;
+  content: string;
+  source?: string;
+  url?: string;
+}
 
 interface MarketResearchData {
   id: string;
@@ -180,7 +193,7 @@ const NewsFeed = () => {
                   research.market_insights.map((insight, index) => (
                     <Card key={`${research.id}-insight-${index}`} className="h-full">
                       <CardHeader>
-                        <CardTitle className="line-clamp-2">{insight.headline}</CardTitle>
+                        <CardTitle className="line-clamp-2">{insight.title}</CardTitle>
                         <CardDescription>{research.companyName}</CardDescription>
                       </CardHeader>
                       <CardContent>
