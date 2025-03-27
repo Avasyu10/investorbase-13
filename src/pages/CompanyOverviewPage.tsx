@@ -1,294 +1,142 @@
-
-import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { SectionDetail } from "@/components/companies/SectionDetail";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, Globe, Building, Users, Mail, TrendingUp, Layers, ExternalLink } from "lucide-react";
-import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { ChevronLeft, FileText } from "lucide-react";
+import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ReportViewer } from "@/components/reports/ReportViewer";
+import { ORDERED_SECTIONS } from "@/lib/constants";
+import { SectionDetailed } from "@/lib/api/apiContract";
 
-const CompanyOverviewPage = () => {
-  const { companyId } = useParams<{ companyId: string }>();
+const SectionPage = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { company, isLoading } = useCompanyDetails(companyId);
-  const [companyInfo, setCompanyInfo] = useState({
-    name: "",
-    email: "",
-    website: "",
-    stage: "",
-    industry: "",
-    founderLinkedIns: [] as string[],
-    introduction: ""
-  });
-  const [infoLoading, setInfoLoading] = useState(true);
+  const { companyId, sectionId } = useParams<{ companyId: string; sectionId: string }>();
+  
+  // Ensure we have valid IDs, converting string to number when needed for API calls
+  const companyIdNum = companyId ? parseInt(companyId, 10) : undefined;
+  const sectionIdNum = sectionId ? parseInt(sectionId, 10) : undefined;
+  
+  const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
+  const { section, isLoading: sectionLoading } = useSectionDetails(companyId, sectionId);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    async function fetchCompanyInfo() {
-      if (!company || !company.id) return;
-      
-      try {
-        setInfoLoading(true);
-        
-        // First check company_details table
-        const { data: companyDetails } = await supabase
-          .from('company_details')
-          .select('website, stage, industry, introduction')
-          .eq('company_id', company.id)
-          .maybeSingle();
-        
-        if (companyDetails) {
-          setCompanyInfo({
-            name: company.name,
-            email: "",
-            website: companyDetails.website || "",
-            stage: companyDetails.stage || "Not specified",
-            industry: companyDetails.industry || "Not specified",
-            founderLinkedIns: [],
-            introduction: companyDetails.introduction || "No description available."
-          });
-          setInfoLoading(false);
-          return;
-        }
-        
-        // Next check for public submission data
-        if (company.reportId) {
-          const { data: report } = await supabase
-            .from('reports')
-            .select('is_public_submission, submission_form_id, submitter_email')
-            .eq('id', company.reportId)
-            .single();
-          
-          if (report?.is_public_submission) {
-            const { data: submission } = await supabase
-              .from('public_form_submissions')
-              .select('website_url, company_stage, industry, founder_linkedin_profiles, description')
-              .eq('report_id', company.reportId)
-              .single();
-            
-            if (submission) {
-              setCompanyInfo({
-                name: company.name,
-                email: report.submitter_email || "",
-                website: submission.website_url || "",
-                stage: submission.company_stage || "Not specified",
-                industry: submission.industry || "Not specified",
-                founderLinkedIns: submission.founder_linkedin_profiles || [],
-                introduction: submission.description || "No description available."
-              });
-              setInfoLoading(false);
-              return;
-            }
-          }
-          
-          // If not from public submission, try to extract from sections
-          const { data: sections } = await supabase
-            .from('sections')
-            .select('title, description')
-            .eq('company_id', company.id);
-          
-          let intro = "No detailed information available for this company.";
-          let industry = "Not specified";
-          let stage = "Not specified";
-          
-          sections?.forEach(section => {
-            const title = section.title.toLowerCase();
-            const description = section.description || "";
-            
-            if (title.includes('company') || title.includes('introduction') || title.includes('about')) {
-              intro = description;
-            }
-            
-            if (description.toLowerCase().includes('industry')) {
-              const industryMatch = description.match(/industry.{0,5}:?\s*([^\.]+)/i);
-              if (industryMatch && industryMatch[1]) {
-                industry = industryMatch[1].trim();
-              }
-            }
-            
-            if (description.toLowerCase().includes('stage')) {
-              const stageMatch = description.match(/stage.{0,5}:?\s*([^\.]+)/i);
-              if (stageMatch && stageMatch[1]) {
-                stage = stageMatch[1].trim();
-              }
-            }
-          });
-          
-          setCompanyInfo({
-            name: company.name,
-            email: report.submitter_email || "",
-            website: "",
-            stage,
-            industry,
-            founderLinkedIns: [],
-            introduction: intro
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching company information:", error);
-        toast({
-          title: "Error loading company data",
-          description: "Could not retrieve company information",
-          variant: "destructive"
-        });
-      } finally {
-        setInfoLoading(false);
-      }
+    if (!authLoading && !user) {
+      navigate('/');
     }
-    
-    if (company) {
-      fetchCompanyInfo();
-    }
-  }, [company, companyId]);
+  }, [user, authLoading, navigate]);
+
+  const isLoading = authLoading || companyLoading || sectionLoading;
 
   const handleBackClick = () => {
-    navigate(-1);
+    navigate(-1); // Navigate to the previous page in history
   };
 
-  if (isLoading || infoLoading) {
+  // Get adjacent sections (previous and next) based on the ordered array
+  const getAdjacentSections = () => {
+    if (!company || !section) return { prevSection: null, nextSection: null };
+    
+    // Sort sections according to the ordered array
+    const sortedSections = [...company.sections].sort((a, b) => {
+      const indexA = ORDERED_SECTIONS.indexOf(a.type);
+      const indexB = ORDERED_SECTIONS.indexOf(b.type);
+      
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      return 0;
+    });
+    
+    // Find current section index
+    const currentIndex = sortedSections.findIndex(s => s.id.toString() === sectionId);
+    
+    if (currentIndex === -1) return { prevSection: null, nextSection: null };
+    
+    // Get previous and next sections
+    const prevSection = currentIndex > 0 ? sortedSections[currentIndex - 1] : null;
+    const nextSection = currentIndex < sortedSections.length - 1 ? sortedSections[currentIndex + 1] : null;
+    
+    return { prevSection, nextSection };
+  };
+
+  const { prevSection, nextSection } = getAdjacentSections();
+
+  const navigateToSection = (sectionId: string | number) => {
+    navigate(`/company/${companyId}/section/${sectionId}`);
+  };
+
+  if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-6 bg-secondary rounded w-1/4"></div>
-          <div className="h-12 bg-secondary rounded w-1/2"></div>
-          <div className="h-32 bg-secondary rounded"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="h-24 bg-secondary rounded"></div>
-            <div className="h-24 bg-secondary rounded"></div>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <div className="loader"></div>
       </div>
     );
   }
 
-  if (!company) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <p>Company not found</p>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
-    <div className="container mx-auto px-4 py-6 animate-fade-in">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleBackClick}
-        className="mb-6"
-      >
-        <ChevronLeft className="mr-1" /> Back
-      </Button>
-      
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">{companyInfo.name}</h1>
-        <p className="text-muted-foreground mt-2">{companyInfo.industry} • {companyInfo.stage}</p>
+    <div className="animate-fade-in">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBackClick}
+          >
+            <ChevronLeft className="mr-1" /> Back
+          </Button>
+          
+          {company?.reportId && (
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  View Deck
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col">
+                <div className="flex-1 overflow-auto">
+                  <ReportViewer reportId={company.reportId} />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card className="col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-primary" />
-              Company Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose max-w-none">
-              <p>{companyInfo.introduction}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto px-4">
+        {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
         
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              Company Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {companyInfo.website && (
-              <div>
-                <h3 className="text-sm font-medium">Website</h3>
-                <a 
-                  href={companyInfo.website.startsWith('http') ? companyInfo.website : `https://${companyInfo.website}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline flex items-center gap-1"
-                >
-                  {companyInfo.website.replace(/^https?:\/\/(www\.)?/, '')}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-            
-            <div>
-              <h3 className="text-sm font-medium flex items-center gap-1">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Stage
-              </h3>
-              <p>{companyInfo.stage}</p>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium flex items-center gap-1">
-                <Layers className="h-4 w-4 text-primary" />
-                Industry
-              </h3>
-              <p>{companyInfo.industry}</p>
-            </div>
-            
-            {companyInfo.email && (
-              <div>
-                <h3 className="text-sm font-medium flex items-center gap-1">
-                  <Mail className="h-4 w-4 text-primary" />
-                  Contact Email
-                </h3>
-                <a 
-                  href={`mailto:${companyInfo.email}`}
-                  className="text-primary hover:underline"
-                >
-                  {companyInfo.email}
-                </a>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Previous/Next Navigation */}
+        <div className="flex justify-between mt-8">
+          {prevSection && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigateToSection(prevSection.id)}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" /> 
+              Previous: {prevSection.title}
+            </Button>
+          )}
+          <div></div> {/* Spacer */}
+          {nextSection && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigateToSection(nextSection.id)}
+              className="flex items-center gap-2"
+            >
+              {nextSection.title} <ChevronLeft className="h-4 w-4 rotate-180" />
+            </Button>
+          )}
+        </div>
       </div>
-      
-      {companyInfo.founderLinkedIns.length > 0 && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Founding Team
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {companyInfo.founderLinkedIns.map((linkedin, index) => (
-                <Card key={index} className="overflow-hidden shadow-sm border-0">
-                  <CardContent className="p-4">
-                    <h3 className="font-medium">Founder {index + 1}</h3>
-                    <a 
-                      href={linkedin.startsWith('http') ? linkedin : `https://${linkedin}`}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline flex items-center gap-1 mt-1"
-                    >
-                      LinkedIn Profile
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
-};
+}
 
-export default CompanyOverviewPage;
+export default SectionPage;

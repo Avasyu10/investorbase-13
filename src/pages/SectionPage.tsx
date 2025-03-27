@@ -1,4 +1,3 @@
-
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -16,7 +15,6 @@ const SectionPage = () => {
   const navigate = useNavigate();
   const { companyId, sectionId } = useParams<{ companyId: string; sectionId: string }>();
   
-  // Ensure we have valid IDs, converting string to number when needed for API calls
   const companyIdNum = companyId ? parseInt(companyId, 10) : undefined;
   const sectionIdNum = sectionId ? parseInt(sectionId, 10) : undefined;
   
@@ -33,14 +31,12 @@ const SectionPage = () => {
   const isLoading = authLoading || companyLoading || sectionLoading;
 
   const handleBackClick = () => {
-    navigate(-1); // Navigate to the previous page in history
+    navigate(-1);
   };
 
-  // Get adjacent sections (previous and next) based on the ordered array
   const getAdjacentSections = () => {
     if (!company || !section) return { prevSection: null, nextSection: null };
     
-    // Sort sections according to the ordered array
     const sortedSections = [...company.sections].sort((a, b) => {
       const indexA = ORDERED_SECTIONS.indexOf(a.type);
       const indexB = ORDERED_SECTIONS.indexOf(b.type);
@@ -52,12 +48,10 @@ const SectionPage = () => {
       return 0;
     });
     
-    // Find current section index
     const currentIndex = sortedSections.findIndex(s => s.id.toString() === sectionId);
     
     if (currentIndex === -1) return { prevSection: null, nextSection: null };
     
-    // Get previous and next sections
     const prevSection = currentIndex > 0 ? sortedSections[currentIndex - 1] : null;
     const nextSection = currentIndex < sortedSections.length - 1 ? sortedSections[currentIndex + 1] : null;
     
@@ -112,7 +106,6 @@ const SectionPage = () => {
       <div className="container mx-auto px-4">
         {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
         
-        {/* Previous/Next Navigation */}
         <div className="flex justify-between mt-8">
           {prevSection && (
             <Button 
@@ -124,7 +117,7 @@ const SectionPage = () => {
               Previous: {prevSection.title}
             </Button>
           )}
-          <div></div> {/* Spacer */}
+          <div></div>
           {nextSection && (
             <Button 
               variant="outline" 
