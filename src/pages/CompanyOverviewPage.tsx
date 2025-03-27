@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const CompanyOverviewPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
-  const { company, isLoading: companyLoading } = useCompanyDetails(id ? id.toString() : undefined);
+  const { company, isLoading } = useCompanyDetails(companyId);
   const [companyInfo, setCompanyInfo] = useState({
     name: "",
     email: "",
@@ -138,13 +139,13 @@ const CompanyOverviewPage = () => {
     if (company) {
       fetchCompanyInfo();
     }
-  }, [company, id]);
+  }, [company, companyId]);
 
   const handleBackClick = () => {
     navigate(-1);
   };
 
-  if (companyLoading || infoLoading) {
+  if (isLoading || infoLoading) {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="animate-pulse space-y-6">
