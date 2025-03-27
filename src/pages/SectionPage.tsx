@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogDescription } from "@/compo
 import { ReportViewer } from "@/components/reports/ReportViewer";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import { SectionDetailed } from "@/lib/api/apiContract";
+import { supabase } from "@/integrations/supabase/client";
 
 const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -21,12 +22,38 @@ const SectionPage = () => {
   const { company, isLoading: companyLoading } = useCompanyDetails(companyId);
   const { section, isLoading: sectionLoading } = useSectionDetails(companyId, sectionId);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasFundThesis, setHasFundThesis] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/');
     }
   }, [user, authLoading, navigate]);
+
+  // Check if user has a fund thesis document
+  useEffect(() => {
+    const checkFundThesis = async () => {
+      try {
+        if (!user) return;
+        
+        const { count, error } = await supabase
+          .from('fund_thesis_analysis')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error('Error checking fund thesis:', error);
+          return;
+        }
+        
+        setHasFundThesis(count !== null && count > 0);
+      } catch (error) {
+        console.error('Error checking fund thesis:', error);
+      }
+    };
+    
+    checkFundThesis();
+  }, [user]);
 
   const isLoading = authLoading || companyLoading || sectionLoading;
 
@@ -114,12 +141,14 @@ const SectionPage = () => {
         
         {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
         
-        {/* Fund Thesis Alignment Component */}
-        {!isLoading && company && (
-          <FundThesisAlignment 
-            companyId={companyId || ''} 
-            companyName={company.name} 
-          />
+        {/* Fund Thesis Alignment Component - only if user has a fund thesis */}
+        {!isLoading && company && hasFundThesis && (
+          <div className="mt-8">
+            <FundThesisAlignment 
+              companyId={companyId || ''} 
+              companyName={company.name} 
+            />
+          </div>
         )}
         
         <div className="flex justify-between mt-8">

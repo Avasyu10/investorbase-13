@@ -16,7 +16,6 @@ const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
-  const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
   const { company, isLoading } = useCompanyDetails(id);
   const [hasFundThesis, setHasFundThesis] = useState(false);
   
@@ -53,12 +52,6 @@ const CompanyPage = () => {
   const handleOpenResearchModal = () => {
     setIsResearchModalOpen(true);
   };
-  
-  const handleOpenFundThesisModal = () => {
-    if (!company) return;
-    
-    setIsFundThesisModalOpen(true);
-  };
 
   return (
     <div className="animate-fade-in">
@@ -73,18 +66,6 @@ const CompanyPage = () => {
           </Button>
           
           <div className="flex gap-2">
-            {!isLoading && company && hasFundThesis && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleOpenFundThesisModal}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
-              >
-                <Lightbulb className="mr-2 h-4 w-4 text-white" />
-                Fund Thesis Alignment
-              </Button>
-            )}
-            
             {!isLoading && company && (
               <Button
                 variant="default"
@@ -101,6 +82,16 @@ const CompanyPage = () => {
       </div>
       
       <CompanyDetails />
+      
+      {/* Conditionally render FundThesisAlignment if the user has a fund thesis */}
+      {!isLoading && company && hasFundThesis && (
+        <div className="container mx-auto px-4 py-4">
+          <FundThesisAlignment 
+            companyId={company.id.toString()} 
+            companyName={company.name}
+          />
+        </div>
+      )}
       
       {/* Market Research Modal */}
       <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
@@ -120,30 +111,6 @@ const CompanyPage = () => {
               <MarketResearch 
                 companyId={company.id.toString()} 
                 assessmentPoints={company.assessmentPoints || []} 
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Fund Thesis Alignment Modal */}
-      <Dialog open={isFundThesisModalOpen} onOpenChange={setIsFundThesisModalOpen}>
-        <DialogContent className="max-w-4xl w-[95vw]">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-emerald-600" />
-              Fund Thesis Alignment
-            </DialogTitle>
-            <DialogDescription>
-              Analysis of how well this company aligns with your investment thesis
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            {company && (
-              <FundThesisAlignment 
-                companyId={company.id.toString()}
-                companyName={company.name}
               />
             )}
           </div>
