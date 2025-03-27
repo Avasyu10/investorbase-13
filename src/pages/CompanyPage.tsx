@@ -1,5 +1,5 @@
 
-import { CompanyDetails } from "@/components/companies/CompanyDetails";
+import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkle } from "lucide-react";
