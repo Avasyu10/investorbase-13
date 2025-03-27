@@ -139,27 +139,21 @@ serve(async (req) => {
       );
     }
 
-    console.log('Fetching pitch deck document');
-    const pitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
-      method: 'POST',
+    // Fetch the pitch deck document - Use the reports table to find the pitch deck
+    console.log('Fetching company report data to locate pitch deck');
+    const reportsResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?company_id=eq.${company_id}&select=id,pdf_url,user_id`, {
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY as string,
-        'x-app-version': '1.0.0'
-      },
-      body: JSON.stringify({ 
-        action: 'download', 
-        companyId: company_id 
-      })
+      }
     });
 
-    if (!pitchDeckResponse.ok) {
-      const errorText = await pitchDeckResponse.text();
-      console.error('Failed to fetch pitch deck:', errorText);
+    if (!reportsResponse.ok) {
+      const errorText = await reportsResponse.text();
+      console.error('Failed to fetch company reports:', errorText);
       return new Response(
         JSON.stringify({ 
-          error: 'Could not fetch company pitch deck',
+          error: 'Could not fetch company reports',
           details: errorText
         }), 
         { 
@@ -169,6 +163,119 @@ serve(async (req) => {
       );
     }
 
+    const reports = await reportsResponse.json();
+    if (!reports || reports.length === 0) {
+      console.error('No reports found for company:', company_id);
+      return new Response(
+        JSON.stringify({ 
+          error: 'No reports found for this company',
+          details: 'Company does not have any associated reports'
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      );
+    }
+
+    console.log('Found reports for company:', reports);
+    const report = reports[0]; // Use the first report
+    
+    // Now fetch the actual pitch deck PDF using the report data
+    console.log('Fetching pitch deck document using report data');
+    const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${report.user_id}/${report.pdf_url}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY as string,
+      }
+    });
+
+    if (!pitchDeckResponse.ok) {
+      const errorText = await pitchDeckResponse.text();
+      console.error('Failed to fetch pitch deck directly:', errorText);
+      
+      // Try the handle-vc-document-upload function as a fallback
+      console.log('Trying alternative method to fetch pitch deck');
+      const altPitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY as string,
+          'x-app-version': '1.0.0'
+        },
+        body: JSON.stringify({ 
+          action: 'download', 
+          companyId: company_id 
+        })
+      });
+      
+      if (!altPitchDeckResponse.ok) {
+        const altErrorText = await altPitchDeckResponse.text();
+        console.error('Failed to fetch pitch deck with alternative method:', altErrorText);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Could not fetch company pitch deck',
+            details: altErrorText
+          }), 
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 404
+          }
+        );
+      }
+      
+      const fundThesisBlob = await fundThesisResponse.blob();
+      const pitchDeckBlob = await altPitchDeckResponse.blob();
+      
+      console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
+      console.log(`Pitch deck size: ${pitchDeckBlob.size} bytes`);
+      
+      if (fundThesisBlob.size === 0) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Fund thesis document is empty',
+            details: 'Please upload a valid fund thesis document in your profile settings'
+          }), 
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400
+          }
+        );
+      }
+      
+      if (pitchDeckBlob.size === 0) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Pitch deck document is empty',
+            details: 'The company pitch deck appears to be empty or inaccessible'
+          }), 
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400
+          }
+        );
+      }
+      
+      // Convert blobs to base64
+      const fundThesisBase64 = await blobToBase64(fundThesisBlob);
+      const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
+      
+      // Call Gemini and process the results
+      return await processDocumentsWithGemini(
+        GEMINI_API_KEY,
+        fundThesisBase64,
+        pitchDeckBase64,
+        company_id,
+        user_id,
+        authHeader,
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+    }
+    
+    // If we get here, both document fetches were successful
     const fundThesisBlob = await fundThesisResponse.blob();
     const pitchDeckBlob = await pitchDeckResponse.blob();
 
@@ -205,108 +312,17 @@ serve(async (req) => {
     const fundThesisBase64 = await blobToBase64(fundThesisBlob);
     const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
 
-    // Prepare the prompt for Gemini
-    const promptText = `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
-                Provide your analysis in exactly the following format with these three sections ONLY:
-                
-                1. Overall Summary - A concise evaluation of the overall alignment
-                2. Key Similarities - The main points where the pitch deck aligns with the fund thesis
-                3. Key Differences - The main areas where the pitch deck diverges from the fund thesis
-                
-                Fund Thesis PDF Content:
-                ${fundThesisBase64}
-
-                Pitch Deck PDF Content:
-                ${pitchDeckBase64}`;
-
-    console.log('Calling Gemini API to analyze alignment');
-    // Call Gemini to analyze alignment
-    const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-    const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
-
-    const geminiResponse = await fetch(urlWithApiKey, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: promptText
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 2048
-        }
-      }),
-    });
-
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
-    }
-
-    const geminiData = await geminiResponse.json();
-    console.log('Received response from Gemini API');
-    
-    let analysisText = '';
-    let rawResponse = '';
-    
-    if (geminiData.candidates && geminiData.candidates.length > 0 && 
-        geminiData.candidates[0].content && geminiData.candidates[0].content.parts && 
-        geminiData.candidates[0].content.parts.length > 0) {
-      analysisText = geminiData.candidates[0].content.parts[0].text;
-      rawResponse = JSON.stringify(geminiData);
-      console.log('Analysis text length:', analysisText.length);
-      console.log('Analysis text sample:', analysisText.substring(0, 200));
-    } else {
-      console.error('Unexpected response format from Gemini API:', JSON.stringify(geminiData));
-      throw new Error('Unexpected response format from Gemini API');
-    }
-
-    // Store analysis in Supabase
-    console.log('Storing analysis in Supabase');
-    const supabaseStoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY as string,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({
-        company_id,
-        user_id,
-        analysis_text: analysisText,
-        prompt_sent: promptText,
-        response_received: rawResponse
-      })
-    });
-
-    if (!supabaseStoreResponse.ok) {
-      const errorText = await supabaseStoreResponse.text();
-      console.error('Failed to store analysis:', errorText);
-      throw new Error(`Failed to store analysis: ${supabaseStoreResponse.status} - ${errorText}`);
-    }
-
-    const storedAnalysis = await supabaseStoreResponse.json();
-    console.log('Analysis stored successfully');
-
-    return new Response(JSON.stringify({ 
-      analysis: analysisText,
-      prompt_sent: promptText,
-      response_received: rawResponse,
-      storedAnalysis 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
+    // Call Gemini and process the results
+    return await processDocumentsWithGemini(
+      GEMINI_API_KEY,
+      fundThesisBase64,
+      pitchDeckBase64,
+      company_id,
+      user_id,
+      authHeader,
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
 
   } catch (error) {
     console.error('Error in fund thesis alignment analysis:', error);
@@ -329,5 +345,120 @@ async function blobToBase64(blob: Blob): Promise<string> {
     };
     reader.onerror = reject;
     reader.readAsDataURL(blob);
+  });
+}
+
+// Function to process documents with Gemini API
+async function processDocumentsWithGemini(
+  GEMINI_API_KEY: string,
+  fundThesisBase64: string,
+  pitchDeckBase64: string,
+  company_id: string,
+  user_id: string,
+  authHeader: string,
+  SUPABASE_URL: string,
+  SUPABASE_ANON_KEY: string
+): Promise<Response> {
+  // Prepare the prompt for Gemini
+  const promptText = `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
+              Provide your analysis in exactly the following format with these three sections ONLY:
+              
+              1. Overall Summary - A concise evaluation of the overall alignment
+              2. Key Similarities - The main points where the pitch deck aligns with the fund thesis
+              3. Key Differences - The main areas where the pitch deck diverges from the fund thesis
+              
+              Fund Thesis PDF Content:
+              ${fundThesisBase64}
+
+              Pitch Deck PDF Content:
+              ${pitchDeckBase64}`;
+
+  console.log('Calling Gemini API to analyze alignment');
+  // Call Gemini to analyze alignment
+  const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
+
+  const geminiResponse = await fetch(urlWithApiKey, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: promptText
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 2048
+      }
+    }),
+  });
+
+  if (!geminiResponse.ok) {
+    const errorText = await geminiResponse.text();
+    console.error('Gemini API error:', errorText);
+    throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
+  }
+
+  const geminiData = await geminiResponse.json();
+  console.log('Received response from Gemini API');
+  
+  let analysisText = '';
+  let rawResponse = '';
+  
+  if (geminiData.candidates && geminiData.candidates.length > 0 && 
+      geminiData.candidates[0].content && geminiData.candidates[0].content.parts && 
+      geminiData.candidates[0].content.parts.length > 0) {
+    analysisText = geminiData.candidates[0].content.parts[0].text;
+    rawResponse = JSON.stringify(geminiData);
+    console.log('Analysis text length:', analysisText.length);
+    console.log('Analysis text sample:', analysisText.substring(0, 200));
+  } else {
+    console.error('Unexpected response format from Gemini API:', JSON.stringify(geminiData));
+    throw new Error('Unexpected response format from Gemini API');
+  }
+
+  // Store analysis in Supabase
+  console.log('Storing analysis in Supabase');
+  const supabaseStoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+      'apikey': SUPABASE_ANON_KEY as string,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify({
+      company_id,
+      user_id,
+      analysis_text: analysisText,
+      prompt_sent: promptText,
+      response_received: rawResponse
+    })
+  });
+
+  if (!supabaseStoreResponse.ok) {
+    const errorText = await supabaseStoreResponse.text();
+    console.error('Failed to store analysis:', errorText);
+    throw new Error(`Failed to store analysis: ${supabaseStoreResponse.status} - ${errorText}`);
+  }
+
+  const storedAnalysis = await supabaseStoreResponse.json();
+  console.log('Analysis stored successfully');
+
+  return new Response(JSON.stringify({ 
+    analysis: analysisText,
+    prompt_sent: promptText,
+    response_received: rawResponse,
+    storedAnalysis 
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 200
   });
 }
