@@ -53,12 +53,12 @@ export async function getLatestResearch(companyId: string, assessmentText: strin
           companyId,
           assessmentPoints: assessmentText.split('\n\n').filter(point => point.trim() !== '')
         },
-        signal: controller.signal,
+        // Use AbortController but only pass the signal property explicitly
         headers: {
           'Content-Type': 'application/json',
           'x-app-version': '1.0.0'
-          // Do not include 'Access-Control-Allow-Origin' header here
-        }
+        },
+        abortSignal: controller.signal // Use abortSignal instead of signal
       });
       
       // Clear the timeout as we got a response
