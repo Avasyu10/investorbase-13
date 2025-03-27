@@ -106,7 +106,7 @@ serve(async (req) => {
 
     console.log('No existing analysis found, creating new one');
 
-    // Fetch the fund thesis and pitch deck documents
+    // Fetch the fund thesis document
     console.log('Fetching fund thesis document');
     const fundThesisResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
       method: 'POST',
