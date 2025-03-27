@@ -12,6 +12,10 @@ import PublicUpload from "@/pages/PublicUpload";
 import AnalysisSummary from "@/pages/AnalysisSummary";
 import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import Profile from "@/pages/Profile";
+import ProfileEdit from "@/pages/ProfileEdit";
+import Feedback from "@/pages/Feedback";
+import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
 
 export const routes = [
   {
@@ -91,6 +95,46 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <AnalysisSummary />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile/edit",
+    element: (
+      <ProtectedRoute>
+        <ProfileEdit />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile/setup",
+    element: (
+      <ProtectedRoute>
+        <ProfileEdit />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/feedback",
+    element: (
+      <ProtectedRoute>
+        <Feedback />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/company/:companyId/overview",
+    element: (
+      <ProtectedRoute>
+        <CompanyOverviewPage />
       </ProtectedRoute>
     ),
   },
