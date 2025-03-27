@@ -106,7 +106,11 @@ const SectionPage = () => {
       <div className="container mx-auto px-4">
         {/* Overall Assessment */}
         {!isLoading && company && (
-          <OverallAssessment score={4.7} />
+          <OverallAssessment 
+            company={company}
+            overallScore={company.overallScore?.toString() || "0"}
+            sections={company.sections || []}
+          />
         )}
         
         {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
@@ -116,6 +120,7 @@ const SectionPage = () => {
           <FundThesisAlignment 
             companyId={companyId || ''} 
             companyName={company.name} 
+            assessmentPoints={company.assessmentPoints || []}
           />
         )}
         

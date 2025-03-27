@@ -12,10 +12,10 @@ import { useAuth } from '@/hooks/useAuth';
 interface FundThesisAlignmentProps {
   companyId: string;
   companyName: string;
-  assessmentPoints: string[];
+  assessmentPoints?: string[];
 }
 
-export function FundThesisAlignment({ companyId, companyName, assessmentPoints }: FundThesisAlignmentProps) {
+export function FundThesisAlignment({ companyId, companyName, assessmentPoints = [] }: FundThesisAlignmentProps) {
   const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
