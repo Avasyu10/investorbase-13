@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -67,14 +68,14 @@ const NewsFeed = () => {
       }
       
       // Format the data
-      const formattedData = data.map(item => ({
+      const formattedData = data?.map(item => ({
         id: item.id,
         company_id: item.company_id,
         companyName: item.companies?.name || 'Unknown Company',
         market_insights: item.market_insights || [],
         news_highlights: item.news_highlights || [],
         created_at: item.created_at
-      }));
+      })) || [];
       
       setResearches(formattedData);
     } catch (error) {

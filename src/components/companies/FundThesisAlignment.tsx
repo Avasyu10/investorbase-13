@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, ExternalLink } from "lucide-react";
-import { toast } from '@/hooks/use-toast';
+import { Lightbulb, ExternalLink, Loader2 } from "lucide-react";
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 interface FundThesisAlignmentProps {
@@ -12,24 +12,93 @@ interface FundThesisAlignmentProps {
 }
 
 export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignmentProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [assessmentPoints, setAssessmentPoints] = useState<string[]>([
-    "The global remote patient monitoring market is projected to reach $175.2 billion by 2030, growing at a CAGR of 17.1%, presenting a significant opportunity for PulseGuard.",
-    "PulseGuard's 30% reduction in hospital readmissions from pilot programs is a strong proof point, but more data is needed to validate the results.",
-    "The company's business model is based on subscription-based revenue, data analytics services, and value-added partnerships, providing multiple revenue streams.",
-    "The team has a strong combination of clinical, technical, and operational expertise, increasing the likelihood of success.",
-    "PulseGuard is seeking $2.5M in seed capital to accelerate product development, expand go-to-market initiatives, and ensure regulatory compliance, a reasonable ask for a seed-stage company."
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [assessmentPoints, setAssessmentPoints] = useState<string[]>([]);
 
-  const handleViewThesis = () => {
-    // In a real implementation, this would navigate to or open the fund thesis document
-    toast({
-      title: "Fund Thesis Document",
-      description: "Opening your fund thesis document...",
-    });
+  useEffect(() => {
+    async function analyzeThesisAlignment() {
+      try {
+        setIsLoading(true);
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast.error("You need to be logged in to analyze thesis alignment");
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data, error } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
+          body: { 
+            company_id: companyId,
+            user_id: user.id
+          }
+        });
+        
+        if (error) {
+          console.error("Error analyzing fund thesis alignment:", error);
+          toast.error("Failed to analyze fund thesis alignment");
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data.error) {
+          console.error("API error:", data.error);
+          toast.error(data.error);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Process the analysis text into points for display
+        if (data.analysis) {
+          setAnalysis(data.analysis);
+          
+          // Convert the analysis text into points for display
+          const lines = data.analysis.split('\n').filter(line => line.trim() !== '');
+          const points = lines.filter(line => !line.match(/^\d+\./)); // Filter out section headings
+          setAssessmentPoints(points);
+        }
+      } catch (error) {
+        console.error("Error in thesis alignment analysis:", error);
+        toast.error("Failed to analyze fund thesis alignment");
+      } finally {
+        setIsLoading(false);
+      }
+    }
     
-    // For demo purposes, let's just log to console
-    console.log("Viewing fund thesis document");
+    analyzeThesisAlignment();
+  }, [companyId]);
+
+  const handleViewThesis = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You need to be logged in to view your fund thesis");
+        return;
+      }
+      
+      // Redirect to handle-vc-document-upload to view the fund thesis
+      const { data, error } = await supabase.functions.invoke('handle-vc-document-upload', {
+        body: { 
+          action: 'get_url', 
+          userId: user.id,
+          documentType: 'fund_thesis' 
+        }
+      });
+      
+      if (error || !data?.url) {
+        toast.error("Failed to retrieve fund thesis document");
+        return;
+      }
+      
+      // Open the fund thesis in a new tab
+      window.open(data.url, '_blank');
+    } catch (error) {
+      console.error("Error viewing fund thesis:", error);
+      toast.error("Failed to retrieve fund thesis document");
+    }
   };
 
   return (
@@ -42,35 +111,49 @@ export function FundThesisAlignment({ companyId, companyName }: FundThesisAlignm
       </CardHeader>
       
       <CardContent className="pt-5 px-4 sm:px-6">
-        <div className="space-y-6">
-          <p className="text-sm text-muted-foreground">
-            Assess how well {companyName} aligns with your investment thesis and strategic focus areas. 
-            Review your fund thesis document to compare against this opportunity.
-          </p>
-          
-          <div className="space-y-4 mt-4">
-            {assessmentPoints.map((point, index) => (
-              <div 
-                key={index} 
-                className="flex items-start gap-3 p-4 rounded-lg border border-[#5D4AFF]/20 bg-[#5D4AFF]/5"
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-[#5D4AFF] mb-4" />
+            <p className="text-sm text-muted-foreground">Analyzing alignment with your fund thesis...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {analysis ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Analysis of how well {companyName} aligns with your investment thesis and strategic focus areas.
+                </p>
+                
+                <div className="space-y-4 mt-4">
+                  {assessmentPoints.map((point, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-start gap-3 p-4 rounded-lg border border-[#5D4AFF]/20 bg-[#5D4AFF]/5"
+                    >
+                      <Lightbulb className="h-5 w-5 mt-0.5 text-[#5D4AFF] shrink-0" />
+                      <span className="text-sm leading-relaxed">{point}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4">
+                Failed to analyze alignment with your fund thesis. Please make sure you have uploaded a fund thesis document.
+              </p>
+            )}
+            
+            <div className="pt-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 text-[#5D4AFF]"
+                onClick={handleViewThesis}
               >
-                <Lightbulb className="h-5 w-5 mt-0.5 text-[#5D4AFF] shrink-0" />
-                <span className="text-sm leading-relaxed">{point}</span>
-              </div>
-            ))}
+                <span>View Your Fund Thesis</span>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          
-          <div className="pt-2">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2 text-[#5D4AFF]"
-              onClick={handleViewThesis}
-            >
-              <span>View Your Fund Thesis</span>
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
