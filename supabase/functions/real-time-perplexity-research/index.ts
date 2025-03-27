@@ -120,7 +120,7 @@ Format your response in Markdown with clear section headers. Ensure all data is 
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: "sonar-deep-research",
+        model: "sonar-pro",
         messages: [
           {
             role: 'system',
