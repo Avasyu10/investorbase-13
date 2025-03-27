@@ -51,7 +51,6 @@ const NewsFeed = () => {
       setIsLoading(true);
       
       // Query the market_research table
-      // Fix the query to specify which relationship to use with companies
       const { data, error } = await supabase
         .from('market_research')
         .select(`
@@ -60,7 +59,7 @@ const NewsFeed = () => {
           market_insights, 
           news_highlights,
           created_at,
-          companies:company_id(name)
+          companies(name)
         `)
         .order('created_at', { ascending: false });
       
