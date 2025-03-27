@@ -1,4 +1,3 @@
-
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
@@ -12,6 +11,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import { SectionDetailed } from "@/lib/api/apiContract";
+import { Section as SectionType } from "@/types/section";
 
 const SectionPage = () => {
   const { user, isLoading: authLoading } = useAuth();
