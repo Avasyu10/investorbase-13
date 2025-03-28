@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
+import { InvestorResearch } from "@/components/companies/InvestorResearch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,15 +18,19 @@ const CompanyPage = () => {
   const navigate = useNavigate();
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
   const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
+  const [isInvestorResearchModalOpen, setIsInvestorResearchModalOpen] = useState(false);
   const { company, isLoading } = useCompanyDetails(id);
   const [hasFundThesis, setHasFundThesis] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   
-  // Check if user has a fund thesis document
+  // Check if user has a fund thesis document and get user ID
   useEffect(() => {
     const checkFundThesis = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          setUserId(user.id);
+          
           const { count, error } = await supabase
             .from('fund_thesis_analysis')
             .select('*', { count: 'exact', head: true })
@@ -60,11 +65,11 @@ const CompanyPage = () => {
     setIsFundThesisModalOpen(true);
   };
   
-  const navigateToInvestorResearch = () => {
-     if (company) {
-       navigate(`/company/${id}/investor-research`);
-     }
-   };
+  const handleOpenInvestorResearchModal = () => {
+    if (!company) return;
+    
+    setIsInvestorResearchModalOpen(true);
+  };
   
   return (
     <div className="animate-fade-in">
@@ -79,18 +84,17 @@ const CompanyPage = () => {
           </Button>
           
           <div className="flex gap-2">
-
-            {!isLoading && company && (
-               <Button
-                 variant="outline"
-                 size="sm"
-                 onClick={navigateToInvestorResearch}
-                 className="flex items-center gap-2 text-[#1EAEDB] hover:bg-[#1EAEDB]/10 border-[#1EAEDB]"
-               >
-                 <BookText className="h-4 w-4" />
-                 Investor Research
-               </Button>
-             )}
+            {!isLoading && company && userId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenInvestorResearchModal}
+                className="flex items-center gap-2 text-[#1EAEDB] hover:bg-[#1EAEDB]/10 border-[#1EAEDB]"
+              >
+                <BookText className="h-4 w-4" />
+                Investor Research
+              </Button>
+            )}
             
             {!isLoading && company && hasFundThesis && (
               <Button
@@ -163,6 +167,31 @@ const CompanyPage = () => {
               <FundThesisAlignment 
                 companyId={company.id.toString()}
                 companyName={company.name}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Investor Research Modal */}
+      <Dialog open={isInvestorResearchModalOpen} onOpenChange={setIsInvestorResearchModalOpen}>
+        <DialogContent className="max-w-4xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <BookText className="h-5 w-5 text-[#1EAEDB]" />
+              Investor Research
+            </DialogTitle>
+            <DialogDescription>
+              Comprehensive investor-focused research and analysis for this company
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {company && userId && (
+              <InvestorResearch 
+                companyId={company.id.toString()}
+                assessmentPoints={company.assessmentPoints || []}
+                userId={userId}
               />
             )}
           </div>
