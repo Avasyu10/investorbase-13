@@ -307,12 +307,17 @@ function ResearchSkeleton() {
   );
 }
 
-// New function to extract content outside of <think></think> tags
+// Updated function to extract content outside of <think></think> tags and remove link references
 function extractContentOutsideThinkTags(text: string): string {
   if (!text) return '';
   
-  // Replace <think>...</think> blocks with empty string
-  return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  // First, replace <think>...</think> blocks with empty string
+  let content = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  
+  // Remove link references like [1], [23], etc.
+  content = content.replace(/\[\d+\]/g, '');
+  
+  return content;
 }
 
 function formatResearchHtml(text: string): string {
