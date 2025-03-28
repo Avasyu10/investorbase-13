@@ -5,41 +5,18 @@ import { ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisModal } from '@/components/submissions/AnalysisModal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface FundThesisAlignmentProps {
   companyId: string;
   companyName?: string;
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
-export function FundThesisAlignment({ 
-  companyId, 
-  companyName = "This company", 
-  isOpen = false,
-  onOpenChange
-}: FundThesisAlignmentProps) {
+export function FundThesisAlignment({ companyId, companyName = "This company" }: FundThesisAlignmentProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  // Control the modal state from parent component if provided
-  useEffect(() => {
-    if (isOpen !== undefined) {
-      setIsAnalysisModalOpen(isOpen);
-    }
-  }, [isOpen]);
-
-  // Notify parent component of modal state changes
-  const handleModalStateChange = (state: boolean) => {
-    setIsAnalysisModalOpen(state);
-    if (onOpenChange) {
-      onOpenChange(state);
-    }
-  };
 
   useEffect(() => {
     async function analyzeThesisAlignment() {
@@ -88,9 +65,7 @@ export function FundThesisAlignment({
         if (data.analysis) {
           setAnalysis(data.analysis);
           // Automatically open the analysis modal once the data is loaded
-          if (!isOpen) {
-            handleModalStateChange(true);
-          }
+          setIsAnalysisModalOpen(true);
         } else {
           setError("No analysis data received from API");
         }
@@ -104,7 +79,7 @@ export function FundThesisAlignment({
     }
     
     analyzeThesisAlignment();
-  }, [companyId, isOpen]);
+  }, [companyId]);
 
   const handleViewThesis = async () => {
     try {
@@ -139,7 +114,7 @@ export function FundThesisAlignment({
   };
 
   // If there's an error loading, show an error message with a button to view thesis
-  if (isLoading && isOpen) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-4" />
@@ -148,7 +123,7 @@ export function FundThesisAlignment({
     );
   }
 
-  if (error && isOpen) {
+  if (error) {
     return (
       <div className="p-4 border border-red-200 bg-red-50 rounded-md">
         <div className="flex items-start gap-2">
@@ -174,44 +149,8 @@ export function FundThesisAlignment({
     );
   }
 
-  // For the controlled case, when used with an external dialog
-  if (isOpen !== undefined) {
-    return (
-      <div>
-        {!isLoading && !error && (
-          <AnalysisModal
-            isOpen={isAnalysisModalOpen}
-            isAnalyzing={isAnalyzing}
-            submission={{ 
-              id: companyId,
-              title: companyName || "Company Analysis",
-              description: "",
-              company_stage: "",
-              industry: "",
-              website_url: "",
-              created_at: new Date().toISOString(),
-              form_slug: "",
-              pdf_url: null,
-              report_id: null
-            }}
-            onClose={() => handleModalStateChange(false)}
-            analysisText={analysis}
-          />
-        )}
-        
-        <Button 
-          variant="outline" 
-          className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 mt-4"
-          onClick={handleViewThesis}
-        >
-          <span>View Your Fund Thesis</span>
-          <ExternalLink className="h-4 w-4" />
-        </Button>
-      </div>
-    );
-  }
-
-  // For the standalone case, when used as a self-contained component
+  // The component now renders nothing visible initially, 
+  // just the modal that will open automatically when analysis is loaded
   return (
     <>
       <Button 
@@ -229,16 +168,16 @@ export function FundThesisAlignment({
         submission={{ 
           id: companyId,
           title: companyName || "Company Analysis",
-          description: "",
-          company_stage: "",
-          industry: "",
-          website_url: "",
+          description: null,
+          company_stage: null,
+          industry: null,
+          website_url: null,
           created_at: new Date().toISOString(),
           form_slug: "",
           pdf_url: null,
           report_id: null
         }}
-        onClose={() => handleModalStateChange(false)}
+        onClose={() => setIsAnalysisModalOpen(false)}
         analysisText={analysis}
       />
     </>
