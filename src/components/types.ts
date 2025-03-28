@@ -1,3 +1,4 @@
+
 export interface MarketResearchData {
   id: string;
   company_id: string;
