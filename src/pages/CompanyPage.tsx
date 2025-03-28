@@ -2,7 +2,7 @@
 import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkle, Lightbulb } from "lucide-react";
+import { ChevronLeft, Sparkle, Lightbulb, BookText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -60,6 +60,12 @@ const CompanyPage = () => {
     setIsFundThesisModalOpen(true);
   };
 
+  const navigateToInvestorResearch = () => {
+    if (company) {
+      navigate(`/company/${id}/investor-research`);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-4">
@@ -73,6 +79,18 @@ const CompanyPage = () => {
           </Button>
           
           <div className="flex gap-2">
+            {!isLoading && company && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={navigateToInvestorResearch}
+                className="flex items-center gap-2 text-[#1EAEDB] hover:bg-[#1EAEDB]/10 border-[#1EAEDB]"
+              >
+                <BookText className="h-4 w-4" />
+                Investor Research
+              </Button>
+            )}
+          
             {!isLoading && company && hasFundThesis && (
               <Button
                 variant="default"
