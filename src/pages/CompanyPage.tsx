@@ -2,7 +2,7 @@
 import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkle, Lightbulb, BookText } from "lucide-react";
+import { ChevronLeft, Sparkle, Lightbulb, BookText, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { InvestorResearch } from "@/components/companies/InvestorResearch";
+import { CompanyChatbot } from "@/components/companies/CompanyChatbot";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -19,6 +20,7 @@ const CompanyPage = () => {
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
   const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
   const [isInvestorResearchModalOpen, setIsInvestorResearchModalOpen] = useState(false);
+  const [isChatbotModalOpen, setIsChatbotModalOpen] = useState(false);
   const { company, isLoading } = useCompanyDetails(id);
   const [hasFundThesis, setHasFundThesis] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -71,6 +73,12 @@ const CompanyPage = () => {
     setIsInvestorResearchModalOpen(true);
   };
   
+  const handleOpenChatbotModal = () => {
+    if (!company) return;
+    
+    setIsChatbotModalOpen(true);
+  };
+  
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-4">
@@ -84,6 +92,18 @@ const CompanyPage = () => {
           </Button>
           
           <div className="flex gap-2">
+            {!isLoading && company && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenChatbotModal}
+                className="flex items-center gap-2 text-purple-500 hover:bg-purple-500/10 border-purple-500"
+              >
+                <MessageCircle className="h-4 w-4" />
+                AI Assistant
+              </Button>
+            )}
+          
             {!isLoading && company && userId && (
               <Button
                 variant="outline"
@@ -192,6 +212,30 @@ const CompanyPage = () => {
                 companyId={company.id.toString()}
                 assessmentPoints={company.assessmentPoints || []}
                 userId={userId}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* AI Assistant Modal */}
+      <Dialog open={isChatbotModalOpen} onOpenChange={setIsChatbotModalOpen}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-purple-500" />
+              AI Company Assistant
+            </DialogTitle>
+            <DialogDescription>
+              Chat with an AI assistant to learn more about this company
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4 flex-1 overflow-hidden">
+            {company && (
+              <CompanyChatbot 
+                companyId={company.id.toString()}
+                companyName={company.name}
               />
             )}
           </div>
