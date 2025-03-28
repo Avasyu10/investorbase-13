@@ -8,6 +8,7 @@ interface OverallAssessmentProps {
   score: number;
   maxScore?: number;
   assessmentPoints?: string[];
+  onInvestorResearchClick?: () => void;
 }
 
 export function OverallAssessment({ 
@@ -19,7 +20,8 @@ export function OverallAssessment({
     "The company's business model is based on subscription-based revenue, data analytics services, and value-added partnerships, providing multiple revenue streams.",
     "The team has a strong combination of clinical, technical, and operational expertise, increasing the likelihood of success.",
     "PulseGuard is seeking $2.5M in seed capital to accelerate product development, expand go-to-market initiatives, and ensure regulatory compliance, a reasonable ask for a seed-stage company."
-  ] 
+  ],
+  onInvestorResearchClick
 }: OverallAssessmentProps) {
   // Calculate progress percentage
   const progressPercentage = (score / maxScore) * 100;
@@ -66,6 +68,7 @@ export function OverallAssessment({
           <Button 
             variant="default" 
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+            onClick={onInvestorResearchClick}
           >
             <Search className="h-4 w-4" />
             Investor Research
