@@ -20,6 +20,9 @@ const CompanyPage = () => {
   const { company, isLoading } = useCompanyDetails(id);
   const [hasFundThesis, setHasFundThesis] = useState(false);
   
+  // Add console.log to check what's being loaded
+  console.log("CompanyPage rendering with id:", id, "company:", company);
+  
   // Check if user has a fund thesis document
   useEffect(() => {
     const checkFundThesis = async () => {

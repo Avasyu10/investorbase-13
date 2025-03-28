@@ -82,20 +82,20 @@ function CompanyDetails() {
       </div>
 
       {/* Fund Thesis Alignment */}
-      <FundThesisAlignment companyId={company.id.toString()} companyName={company.name} />
+      <FundThesisAlignment companyId={company.id} companyName={company.name} />
 
       {/* Overall Assessment */}
       <OverallAssessment
-        score={company.overallScore || 0}
+        score={company.overallScore}
         assessmentPoints={company.assessmentPoints || []}
       />
 
       {/* Latest Research */}
-      <LatestResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
+      <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Investor Research - Make sure this is visible */}
       {user && (
-        <InvestorResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
+        <InvestorResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
       )}
 
       {/* Sections */}

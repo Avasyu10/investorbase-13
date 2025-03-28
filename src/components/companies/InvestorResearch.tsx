@@ -61,6 +61,7 @@ export function InvestorResearch({ companyId, assessmentPoints }: InvestorResear
       }
       
       if (data) {
+        console.log("Found investor research data:", data);
         setResearch({
           id: data.id,
           research: data.response,
@@ -71,6 +72,8 @@ export function InvestorResearch({ companyId, assessmentPoints }: InvestorResear
           status: data.status,
           requested_at: data.requested_at
         });
+      } else {
+        console.log("No investor research found for this company");
       }
     } catch (error) {
       console.error("Error fetching investor research:", error);
