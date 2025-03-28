@@ -114,9 +114,12 @@ export function useCompanyDetails(companyId: string | undefined) {
       id: rawData.id,
       name: rawData.name,
       overallScore: rawData.overall_score,
+      score: rawData.overall_score || 0, // For backward compatibility
       reportId: rawData.report_id,
       perplexityResponse: rawData.perplexity_response,
+      perplexityPrompt: rawData.perplexity_prompt || null,
       perplexityRequestedAt: rawData.perplexity_requested_at,
+      source: rawData.source || "",
       assessmentPoints: rawData.assessment_points || [],
       sections: rawData.sections?.map((section: any) => ({
         id: section.id,

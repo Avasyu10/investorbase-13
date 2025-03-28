@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MarketInsight, NewsItem } from "@/components/types";
+import { MarketInsight, NewsItem } from "@/lib/api/apiContract";
 import { useNavigate } from "react-router-dom";
 
 interface MarketResearchData {
@@ -59,14 +58,26 @@ const NewsFeed = () => {
         let marketInsights: MarketInsight[] = [];
         let newsHighlights: NewsItem[] = [];
         
-        // Handle market_insights
+        // Handle market_insights with proper type conversion
         if (item.market_insights) {
-          marketInsights = item.market_insights as MarketInsight[];
+          const insights = item.market_insights as any[];
+          marketInsights = insights.map(insight => ({
+            headline: insight.headline || insight.title || '',
+            content: insight.content || '',
+            source: insight.source,
+            url: insight.url
+          }));
         }
         
-        // Handle news_highlights
+        // Handle news_highlights with proper type conversion
         if (item.news_highlights) {
-          newsHighlights = item.news_highlights as NewsItem[];
+          const news = item.news_highlights as any[];
+          newsHighlights = news.map(item => ({
+            headline: item.headline || item.title || '',
+            content: item.content || '',
+            source: item.source,
+            url: item.url
+          }));
         }
         
         return {
