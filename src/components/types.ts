@@ -21,3 +21,6 @@ export interface NewsItem {
   source?: string;
   url?: string;
 }
+
+// Add a JSON type helper for properly casting Supabase JSON data
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];

@@ -113,6 +113,7 @@ export function useCompanyDetails(companyId: string | undefined) {
     return {
       id: rawData.id,
       name: rawData.name,
+      description: rawData.response_received || '',  // Add description field
       overallScore: rawData.overall_score,
       reportId: rawData.report_id,
       perplexityResponse: rawData.perplexity_response,

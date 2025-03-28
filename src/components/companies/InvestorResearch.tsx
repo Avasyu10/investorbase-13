@@ -7,7 +7,7 @@ import { Loader2, Lightbulb, Newspaper, BookOpen, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { MarketInsight, NewsItem } from "@/components/types";
+import { MarketInsight, NewsItem, Json } from "@/components/types";
 
 interface InvestorResearchProps {
   companyId: string;
@@ -65,9 +65,9 @@ export function InvestorResearch({ companyId, assessmentPoints }: InvestorResear
           id: data.id,
           research: data.response,
           researchSummary: data.research_summary,
-          marketInsights: data.market_insights as MarketInsight[],
-          newsHighlights: data.news_highlights as NewsItem[],
-          sources: data.sources as { name: string; url: string }[],
+          marketInsights: data.market_insights as unknown as MarketInsight[],
+          newsHighlights: data.news_highlights as unknown as NewsItem[],
+          sources: data.sources as unknown as { name: string; url: string }[],
           status: data.status,
           requested_at: data.requested_at
         });
