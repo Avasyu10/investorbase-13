@@ -6,7 +6,7 @@ import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, BookText } from "lucide-react";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
@@ -53,6 +53,11 @@ function CompanyDetails() {
     );
   }
 
+  const handleInvestorResearch = () => {
+    // Navigate to investor research page or open modal
+    navigate(`/company/${company.id}/investor-research`);
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 animate-fade-in">
       {/* Back Button */}
@@ -89,7 +94,19 @@ function CompanyDetails() {
         assessmentPoints={company.assessmentPoints || []}
       />
 
-      {/* Latest Research */}
+      {/* Latest Research with Investor Research Button */}
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-2xl font-bold">Latest Market Insights</h2>
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={handleInvestorResearch}
+          className="bg-[#1EAEDB] hover:bg-[#0FA0CE] text-white"
+        >
+          <BookText className="mr-2 h-4 w-4" />
+          Investor Research
+        </Button>
+      </div>
       <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
