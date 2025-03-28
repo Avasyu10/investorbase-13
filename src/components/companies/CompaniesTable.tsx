@@ -112,7 +112,6 @@ const CompaniesTable = ({ data, isLoading }: CompaniesTableProps) => {
     getCoreRowModel: getCoreRowModel(),
   })
 
-  // Fix the type error on line 102
   const handleOpenCompany = (id: string | number) => {
     navigate(`/company/${id.toString()}`);
   };
@@ -140,7 +139,6 @@ const CompaniesTable = ({ data, isLoading }: CompaniesTableProps) => {
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            // Render skeleton rows while loading
             [...Array(5)].map((_, i) => (
               <TableRow key={`skeleton-${i}`}>
                 {columns.map((column) => (
