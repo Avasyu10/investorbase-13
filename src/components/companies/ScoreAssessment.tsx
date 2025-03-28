@@ -7,6 +7,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { MarketResearch } from "./MarketResearch";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { FundThesisAlignment } from "./FundThesisAlignment";
 
 interface ScoreAssessmentProps {
   company: CompanyDetailed;
@@ -18,6 +21,33 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   
   // Calculate progress percentage (0-100 scale) from score (0-5 scale)
   const progressPercentage = formattedScore * 20;
+  
+  // State for fund thesis button visibility
+  const [hasFundThesis, setHasFundThesis] = useState(false);
+  const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
+  
+  // Check if user has a fund thesis
+  useEffect(() => {
+    const checkFundThesis = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { count, error } = await supabase
+            .from('fund_thesis_analysis')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+            
+          if (!error) {
+            setHasFundThesis(count !== null && count > 0);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking fund thesis:', error);
+      }
+    };
+    
+    checkFundThesis();
+  }, []);
   
   // Get score color class
   const getScoreColor = (score: number) => {
@@ -46,6 +76,11 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
     return `Not Recommended (${score}/5): This company shows critical deficiencies across multiple dimensions, presenting unacceptable investment risk. Fundamental business model or execution issues require complete overhaul.`;
   };
 
+  // Handle opening fund thesis modal
+  const handleOpenFundThesisModal = () => {
+    setIsFundThesisModalOpen(true);
+  };
+
   // Highlight numbers in assessment points
   const highlightNumbers = (text: string) => {
     return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
@@ -57,10 +92,24 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
       <Card className="mb-8 shadow-card border-0">
         <CardHeader className="bg-secondary/50 border-b pb-4">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-semibold flex items-center gap-2">
-              <BarChart2 className="h-5 w-5" />
-              Overall Assessment
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <BarChart2 className="h-5 w-5" />
+                Overall Assessment
+              </CardTitle>
+              
+              {hasFundThesis && (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                  onClick={handleOpenFundThesisModal}
+                >
+                  <Lightbulb className="h-4 w-4 text-white" />
+                  Fund Thesis Alignment
+                </Button>
+              )}
+            </div>
             <div className="flex items-center">
               <span className={`text-xl font-bold ${getScoreColor(formattedScore)}`}>
                 {formattedScore}/5
@@ -119,6 +168,16 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
         companyId={company.id.toString()} 
         assessmentPoints={company.assessmentPoints || []} 
       />
+      
+      {/* Fund Thesis Alignment Modal */}
+      {hasFundThesis && (
+        <FundThesisAlignment 
+          companyId={company.id.toString()}
+          companyName={company.name}
+          isOpen={isFundThesisModalOpen}
+          onOpenChange={setIsFundThesisModalOpen}
+        />
+      )}
     </>
   );
 }

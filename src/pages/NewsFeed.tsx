@@ -1,214 +1,189 @@
-
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, Newspaper } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MarketInsight, NewsItem } from "@/components/types";
-import { useNavigate } from "react-router-dom";
+import { Sparkle, BookText } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from 'sonner';
 
-interface MarketResearchData {
-  id: string;
-  company_id: string;
-  companyName?: string;
-  market_insights?: MarketInsight[] | null;
-  news_highlights?: NewsItem[] | null;
+interface MarketInsight {
+  id: number;
+  title: string;
+  content: string;
+  source_url: string;
   created_at: string;
 }
 
+interface NewsItem {
+  id: number;
+  title: string;
+  link: string;
+  source: string;
+  published_date: string;
+}
+
 const NewsFeed = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [researches, setResearches] = useState<MarketResearchData[]>([]);
+  const [marketInsights, setMarketInsights] = useState<MarketInsight[]>([]);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("news");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMarketResearch();
+    const fetchNewsFeed = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from('news_feed')
+          .select('market_insights, news_items')
+          .single();
+
+        if (error) {
+          console.error('Error fetching news feed:', error);
+          setError(error.message);
+          toast.error("Error fetching news feed", {
+            description: "Failed to load the latest market insights and news. Please try again later."
+          });
+        }
+
+        if (data) {
+          // Type cast the data fetched from Supabase
+          const marketInsights = (data.market_insights || []) as unknown as MarketInsight[];
+          const newsItems = (data.news_items || []) as unknown as NewsItem[];
+
+          setMarketInsights(marketInsights);
+          setNewsItems(newsItems);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching news feed:', err);
+        setError('An unexpected error occurred.');
+        toast.error("Unexpected error", {
+          description: "An unexpected error occurred while loading the news feed. Please try again."
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNewsFeed();
   }, []);
 
-  const fetchMarketResearch = async () => {
+  const formatDate = (dateString: string): string => {
     try {
-      setIsLoading(true);
-      
-      // Query the market_research table
-      const { data, error } = await supabase
-        .from('market_research')
-        .select(`
-          id, 
-          company_id, 
-          market_insights, 
-          news_highlights,
-          requested_at,
-          companies!market_research_company_id_fkey(name)
-        `)
-        .order('requested_at', { ascending: false });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Format the data
-      const formattedData = data?.map(item => {
-        const companyName = item.companies ? item.companies.name : 'Unknown Company';
-        
-        // Parse JSON strings if they come as strings
-        let marketInsights: MarketInsight[] = [];
-        let newsHighlights: NewsItem[] = [];
-        
-        // Handle market_insights
-        if (item.market_insights) {
-          marketInsights = item.market_insights as MarketInsight[];
-        }
-        
-        // Handle news_highlights
-        if (item.news_highlights) {
-          newsHighlights = item.news_highlights as NewsItem[];
-        }
-        
-        return {
-          id: item.id,
-          company_id: item.company_id,
-          companyName: companyName,
-          market_insights: marketInsights,
-          news_highlights: newsHighlights,
-          created_at: item.requested_at
-        };
-      }) || [];
-      
-      setResearches(formattedData);
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
     } catch (error) {
-      console.error('Error fetching market research:', error);
-      toast.error("Failed to load news feed");
-    } finally {
-      setIsLoading(false);
+      console.error('Error formatting date:', error);
+      return 'Unknown Date';
     }
   };
 
-  const handleBackClick = () => {
-    navigate(-1);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div className="animate-fade-in">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col mb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBackClick}
-            className="mr-auto mb-4 flex items-center"
-          >
-            <ChevronLeft className="mr-1" /> Back
-          </Button>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center">
-            <Newspaper className="mr-2 h-7 w-7" />
-            News Feed
-          </h1>
-        </div>
+    <div className="container mx-auto px-4 py-6 animate-fade-in">
+      <h1 className="text-3xl font-bold mb-6">Market Insights & News</h1>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="news">News Highlights</TabsTrigger>
-            <TabsTrigger value="insights">Market Insights</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="news">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {researches.flatMap(research => 
-                (research.news_highlights && research.news_highlights.length > 0) ? 
-                  research.news_highlights.map((news, index) => (
-                    <Card key={`${research.id}-news-${index}`} className="h-full">
-                      <CardHeader>
-                        <CardTitle className="line-clamp-2">{news.headline}</CardTitle>
-                        <CardDescription className="flex justify-between items-center">
-                          <span>{research.companyName}</span>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="line-clamp-4 text-sm">{news.content}</p>
-                        {news.url && (
-                          <a 
-                            href={news.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline mt-2 inline-block text-sm"
-                          >
-                            Read more
-                          </a>
-                        )}
-                        {news.source && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Source: {news.source}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )) : []
-              )}
-              
-              {researches.length === 0 || 
-               researches.every(r => !r.news_highlights || r.news_highlights.length === 0) ? (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">No news articles found.</p>
-                </div>
-              ) : null}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="insights">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {researches.flatMap(research => 
-                (research.market_insights && research.market_insights.length > 0) ?
-                  research.market_insights.map((insight, index) => (
-                    <Card key={`${research.id}-insight-${index}`} className="h-full">
-                      <CardHeader>
-                        <CardTitle className="line-clamp-2">{insight.headline}</CardTitle>
-                        <CardDescription>{research.companyName}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm">{insight.content}</p>
-                        {insight.url && (
-                          <a 
-                            href={insight.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline mt-2 inline-block text-sm"
-                          >
-                            Read more
-                          </a>
-                        )}
-                        {insight.source && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Source: {insight.source}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )) : []
-              )}
-              
-              {researches.length === 0 || 
-               researches.every(r => !r.market_insights || r.market_insights.length === 0) ? (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">No market insights found.</p>
-                </div>
-              ) : null}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+      {isLoading && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle><Skeleton className="h-6 w-64" /></CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle><Skeleton className="h-6 w-64" /></CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {error && (
+        <div className="text-red-500 mb-4">Error: {error}</div>
+      )}
+
+      {!isLoading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <Sparkle className="h-5 w-5 text-amber-500" />
+              Latest Market Insights
+            </h2>
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-4">
+                {marketInsights.map((insight) => (
+                  <Card key={insight.id} className="bg-secondary/30">
+                    <CardHeader>
+                      <CardTitle>{insight.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm">
+                      <p className="line-clamp-3 mb-2">{insight.content}</p>
+                      <a
+                        href={insight.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        Read more
+                      </a>
+                    </CardContent>
+                  </Card>
+                ))}
+                {marketInsights.length === 0 && (
+                  <div className="text-muted-foreground">No market insights available.</div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <BookText className="h-5 w-5 text-[#1EAEDB]" />
+              Industry News
+            </h2>
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-4">
+                {newsItems.map((item) => (
+                  <Card key={item.id} className="bg-secondary/30">
+                    <CardHeader>
+                      <CardTitle>{item.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm">
+                      <p className="text-muted-foreground">
+                        Source: {item.source} - {formatDate(item.published_date)}
+                      </p>
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        Read full article
+                      </a>
+                    </CardContent>
+                  </Card>
+                ))}
+                {newsItems.length === 0 && (
+                  <div className="text-muted-foreground">No news items available.</div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
