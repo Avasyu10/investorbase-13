@@ -5,11 +5,10 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe, TrendingUp, Newspaper } from "lucide-react";
+import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface InvestorResearchProps {
   companyId: string;
@@ -21,7 +20,6 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [researchData, setResearchData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string>("summary");
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const [companyName, setCompanyName] = useState<string>("");
 
@@ -209,34 +207,10 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 font-medium text-sm mb-2">
                         <Globe className="h-4 w-4 text-blue-500" />
-                        Market Research
+                        Investor Research
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Comprehensive market analysis with up-to-date insights from reputable sources.
-                      </p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="bg-muted/30">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                        <Newspaper className="h-4 w-4 text-green-500" />
-                        Latest News
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Recent industry news and events with relevant implications for this company.
-                      </p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="bg-muted/30">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                        <TrendingUp className="h-4 w-4 text-amber-500" />
-                        Market Trends
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Current trends, market size data, and competitive landscape analysis.
+                        Comprehensive investor analysis with actionable insights for decision-making.
                       </p>
                     </CardContent>
                   </Card>
@@ -269,130 +243,50 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl">Investor Research Analysis</DialogTitle>
-            {companyName && (
-              <DialogDescription className="text-muted-foreground">
-                Investor insights and analysis for {companyName}
-              </DialogDescription>
-            )}
+            <DialogTitle className="text-xl">
+              Investor Research Report: {companyName}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Comprehensive investor analysis and insights
+            </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="summary">Research Summary</TabsTrigger>
-              <TabsTrigger value="news">Latest News</TabsTrigger>
-              <TabsTrigger value="insights">Market Insights</TabsTrigger>
-            </TabsList>
-            
-            <ScrollArea className="h-[60vh]">
-              <TabsContent value="summary" className="mt-0 p-4">
-                {researchData?.research_summary ? (
-                  <div className="prose prose-sm max-w-none">
-                    <div dangerouslySetInnerHTML={{ 
-                      __html: formatResearchHtml(researchData.research_summary) 
-                    }} />
-                  </div>
-                ) : researchData?.response ? (
-                  <div className="prose prose-sm max-w-none">
-                    <div dangerouslySetInnerHTML={{ 
-                      __html: extractSection(researchData.response, "MARKET OVERVIEW") 
-                    }} />
-                  </div>
+          <ScrollArea className="h-[70vh] pr-4">
+            {researchData?.status === 'completed' ? (
+              <div className="p-4 prose prose-sm max-w-none">
+                {researchData?.response ? (
+                  <div dangerouslySetInnerHTML={{ 
+                    __html: formatResearchHtml(researchData.response) 
+                  }} />
                 ) : (
-                  <ResearchSkeleton />
+                  <p>No research data available.</p>
                 )}
-              </TabsContent>
-              
-              <TabsContent value="news" className="mt-0 p-4">
-                {researchData?.news_highlights && researchData.news_highlights.length > 0 ? (
-                  <div className="space-y-6">
-                    {researchData.news_highlights.map((news: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-4 bg-card">
-                        <h3 className="text-lg font-semibold mb-1">{news.headline}</h3>
-                        {news.source && (
-                          <p className="text-sm text-primary mb-2">{news.source}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground mb-3">{news.content}</p>
-                        {news.url && (
-                          <a 
-                            href={news.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs flex items-center gap-1 text-blue-500 hover:underline"
-                          >
-                            Read source <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    ))}
+                
+                {researchData?.sources && researchData.sources.length > 0 && (
+                  <div className="mt-8 pt-4 border-t">
+                    <h4 className="text-base font-medium mb-2">Sources</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {researchData.sources.map((source: any, index: number) => (
+                        <a
+                          key={index}
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs flex items-center gap-1 text-blue-500 hover:underline bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded"
+                        >
+                          Source {index + 1} <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                ) : researchData?.response ? (
-                  <div className="prose prose-sm max-w-none">
-                    <div dangerouslySetInnerHTML={{ 
-                      __html: extractSection(researchData.response, "LATEST NEWS") 
-                    }} />
-                  </div>
-                ) : (
-                  <ResearchSkeleton />
                 )}
-              </TabsContent>
-              
-              <TabsContent value="insights" className="mt-0 p-4">
-                {researchData?.market_insights && researchData.market_insights.length > 0 ? (
-                  <div className="space-y-6">
-                    {researchData.market_insights.map((insight: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-4 bg-card">
-                        <h3 className="text-lg font-semibold mb-1">
-                          {insight.headline || insight.title}
-                        </h3>
-                        {insight.source && (
-                          <p className="text-sm text-primary mb-2">{insight.source}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground mb-3">{insight.content}</p>
-                        {insight.url && (
-                          <a 
-                            href={insight.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs flex items-center gap-1 text-blue-500 hover:underline"
-                          >
-                            Read source <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : researchData?.response ? (
-                  <div className="prose prose-sm max-w-none">
-                    <div dangerouslySetInnerHTML={{ 
-                      __html: extractSection(researchData.response, "INVESTOR INSIGHTS") 
-                    }} />
-                  </div>
-                ) : (
-                  <ResearchSkeleton />
-                )}
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
-          
-          {researchData?.sources && researchData.sources.length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <h4 className="text-sm font-medium mb-2">Sources</h4>
-              <div className="flex flex-wrap gap-2">
-                {researchData.sources.map((source: any, index: number) => (
-                  <a
-                    key={index}
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs flex items-center gap-1 text-blue-500 hover:underline bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded"
-                  >
-                    Source {index + 1} <ExternalLink className="h-3 w-3" />
-                  </a>
-                ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="p-4">
+                <ResearchSkeleton />
+              </div>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
@@ -413,42 +307,22 @@ function ResearchSkeleton() {
   );
 }
 
-function extractSection(text: string, sectionName: string): string {
-  const sectionRegex = new RegExp(`#+\\s*${sectionName}[\\s\\S]*?(?=#+\\s*|$)`, 'i');
-  const sectionMatch = text.match(sectionRegex);
-  
-  if (!sectionMatch) return '<p>Section not found</p>';
-  
-  let html = sectionMatch[0]
-    .replace(/^#+\s*([^\n]+)/gm, '<h3>$1</h3>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n- /g, '</p><ul><li>')
-    .replace(/\n  - /g, '</p><ul><li>')
-    .replace(/<\/li>\n- /g, '</li><li>')
-    .replace(/<\/p><ul>/g, '<ul>')
-    .replace(/\n/g, ' ')
-    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>');
-  
-  if (!html.startsWith('<')) {
-    html = `<p>${html}</p>`;
-  }
-  
-  return html;
-}
-
 function formatResearchHtml(text: string): string {
-  if (!text) return '<p>No research summary available</p>';
+  if (!text) return '<p>No research data available</p>';
   
   return text
+    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-3 mt-6">$1</h1>') // h1
+    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-2 mt-5">$1</h2>') // h2
     .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // bold
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>') // italic
-    .replace(/\n\n/g, '</p><p class="mb-4">') // paragraphs
+    .replace(/^#### (.*$)/gim, '<h4 class="text-base font-bold mb-1 mt-3">$1</h4>') // h4
+    .replace(/^##### (.*$)/gim, '<h5 class="font-bold mb-1 mt-2">$1</h5>') // h5
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>') // bold
+    .replace(/\*(.*?)\*/gim, '<em>$1</em>') // italic
+    .replace(/\n\n/gim, '</p><p class="mb-4">') // paragraphs
     .replace(/^- (.*$)/gim, '<li>$1</li>') // list items
-    .replace(/\n- /g, '</p><ul><li>') // list start
+    .replace(/\n- /g, '</p><ul class="my-2"><li>') // list start
     .replace(/<\/li>\n- /g, '</li><li>') // consecutive list items
-    .replace(/<\/p><ul>/g, '<ul>') // fix paragraph to list transition
+    .replace(/<\/p><ul/g, '<ul') // fix paragraph to list transition
+    .replace(/<\/li>(?!\n<li>|\n<\/ul>)/g, '</li></ul>') // close lists
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
 }
