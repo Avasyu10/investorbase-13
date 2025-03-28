@@ -84,10 +84,10 @@ function CompanyDetails() {
       <FundThesisAlignment companyId={company.id} companyName={company.name} />
 
       {/* Market Research */}
-      <MarketResearch 
+{/*       <MarketResearch 
         companyId={company.id} 
         assessmentPoints={company.assessmentPoints || []} 
-      />
+      /> */}
 
       {/* Overall Assessment */}
       <OverallAssessment
