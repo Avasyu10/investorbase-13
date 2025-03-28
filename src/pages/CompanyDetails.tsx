@@ -91,7 +91,7 @@ function CompanyDetails() {
           <span>Investor Research</span>
         </Button>
         
-        <FundThesisAlignment companyId={company.id} companyName={company.name} />
+        <FundThesisAlignment companyId={company.id.toString()} companyName={company.name} />
       </div>
 
       {/* Overall Assessment */}
@@ -101,7 +101,7 @@ function CompanyDetails() {
       />
 
       {/* Latest Research */}
-      <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
+      <LatestResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>
