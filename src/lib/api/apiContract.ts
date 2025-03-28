@@ -1,5 +1,143 @@
+/**
+ * API Contract
+ * 
+ * This file defines the API contract between the frontend and backend.
+ * It includes TypeScript interfaces for all data structures and API endpoints.
+ */
 
-// HTTP Method enum
+// Base data types
+export interface BaseEntity {
+  id: number;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+}
+
+export interface CompanyBase extends BaseEntity {
+  name: string;
+  overallScore: number; // 0-5 scale
+  assessmentPoints?: string[]; // Add this property to ensure it's available
+  perplexityResponse?: string; // Latest research from Perplexity
+  perplexityPrompt?: string; // Prompt sent to Perplexity
+  perplexityRequestedAt?: string; // When the research was requested
+  reportId?: string; // ID of the associated report
+  source?: 'dashboard' | 'public_url'; // Added source property
+}
+
+export interface CompanyListItem extends CompanyBase {
+  // For compatibility with current UI
+  score?: number;  
+}
+
+export type SectionType = 
+  | "PROBLEM" 
+  | "MARKET" 
+  | "SOLUTION" 
+  | "PRODUCT" 
+  | "COMPETITIVE_LANDSCAPE" 
+  | "TRACTION" 
+  | "BUSINESS_MODEL" 
+  | "GTM_STRATEGY" 
+  | "TEAM" 
+  | "FINANCIALS" 
+  | "ASK";
+
+export interface SectionBase extends BaseEntity {
+  type: SectionType;
+  title: string;
+  score: number; // 0-5 scale
+  description: string;
+}
+
+export interface CompanyDetailed extends CompanyBase {
+  sections: SectionBase[];
+  assessmentPoints: string[];
+  perplexityResponse?: string;
+  reportId?: string; // Added reportId here too for explicit typing
+}
+
+export interface SectionDetailed extends SectionBase {
+  strengths: string[];
+  weaknesses: string[];
+  detailedContent: string;
+}
+
+// Request Payloads
+export interface CompanyCreateRequest {
+  name: string;
+  // Initial assessment data if available
+  sections?: Omit<SectionBase, keyof BaseEntity>[];
+  assessmentPoints?: string[];
+}
+
+export interface CompanyUpdateRequest {
+  name?: string;
+  overallScore?: number;
+  // Any other updatable fields
+}
+
+export interface SectionCreateRequest {
+  type: SectionType;
+  title: string;
+  score: number;
+  description: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  detailedContent?: string;
+}
+
+export interface SectionUpdateRequest {
+  title?: string;
+  score?: number;
+  description?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  detailedContent?: string;
+}
+
+// Pagination, Filtering and Sorting
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface CompanyFilterParams {
+  search?: string;
+  minScore?: number;
+  maxScore?: number;
+  sortBy?: 'name' | 'overallScore' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+// API Endpoints
+export const API_VERSION = 'v1';
+export const BASE_URL = `/api/${API_VERSION}`;
+
+export const API_ENDPOINTS = {
+  // Companies
+  GET_COMPANIES: `${BASE_URL}/companies`,
+  GET_COMPANY: (id: number) => `${BASE_URL}/companies/${id}`,
+  CREATE_COMPANY: `${BASE_URL}/companies`,
+  UPDATE_COMPANY: (id: number) => `${BASE_URL}/companies/${id}`,
+  DELETE_COMPANY: (id: number) => `${BASE_URL}/companies/${id}`,
+  
+  // Sections
+  GET_SECTION: (companyId: number, sectionId: number | string) => 
+    `${BASE_URL}/companies/${companyId}/sections/${sectionId}`,
+  GET_SECTIONS: (companyId: number) =>
+    `${BASE_URL}/companies/${companyId}/sections`,
+  CREATE_SECTION: (companyId: number) =>
+    `${BASE_URL}/companies/${companyId}/sections`,
+  UPDATE_SECTION: (companyId: number, sectionId: number | string) =>
+    `${BASE_URL}/companies/${companyId}/sections/${sectionId}`,
+  DELETE_SECTION: (companyId: number, sectionId: number | string) =>
+    `${BASE_URL}/companies/${companyId}/sections/${sectionId}`,
+  
+  // Analysis
+  GET_COMPANY_ANALYSIS: (companyId: number) => 
+    `${BASE_URL}/companies/${companyId}/analysis`,
+};
+
+// HTTP Methods
 export enum HttpMethod {
   GET = 'GET',
   POST = 'POST',
@@ -8,52 +146,7 @@ export enum HttpMethod {
   DELETE = 'DELETE'
 }
 
-// API Endpoints
-export const API_ENDPOINTS = {
-  GET_COMPANIES: '/companies',
-  GET_COMPANY: (id: number) => `/companies/${id}`,
-  CREATE_COMPANY: '/companies',
-  UPDATE_COMPANY: (id: number) => `/companies/${id}`,
-  DELETE_COMPANY: (id: number) => `/companies/${id}`,
-  
-  GET_SECTIONS: (companyId: number) => `/companies/${companyId}/sections`,
-  GET_SECTION: (companyId: number, sectionId: number | string) => `/companies/${companyId}/sections/${sectionId}`,
-  CREATE_SECTION: (companyId: number) => `/companies/${companyId}/sections`,
-  UPDATE_SECTION: (companyId: number, sectionId: number | string) => `/companies/${companyId}/sections/${sectionId}`,
-  DELETE_SECTION: (companyId: number, sectionId: number | string) => `/companies/${companyId}/sections/${sectionId}`,
-  
-  GET_COMPANY_ANALYSIS: (companyId: number) => `/companies/${companyId}/analysis`,
-};
-
-// API Response and Error types
-export interface ApiResponse<T = any> {
-  data: T;
-  status: number;
-  message?: string;
-}
-
-export interface ApiError {
-  status: number;
-  message: string;
-  errors?: any[];
-  code?: string;
-}
-
-// Base entity interface for models
-export interface BaseEntity {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Pagination and filtering
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: SortOrder;
-}
-
+// Response types with pagination
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
@@ -64,150 +157,35 @@ export interface PaginatedResponse<T> {
   };
 }
 
-export interface CompanyFilterParams {
-  search?: string;
-  minScore?: number;
-  maxScore?: number;
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message?: string;
 }
 
-// Section type enum
-export type SectionType = 
-  'PROBLEM' | 
-  'MARKET' | 
-  'SOLUTION' | 
-  'PRODUCT' | 
-  'COMPETITIVE_LANDSCAPE' | 
-  'TRACTION' | 
-  'BUSINESS_MODEL' | 
-  'GTM_STRATEGY' | 
-  'TEAM' | 
-  'FINANCIALS' | 
-  'ASK';
-
-// Company request types
-export interface CompanyCreateRequest {
-  name: string;
-  description?: string;
-  overallScore?: number;
+// Error response
+export interface ApiError {
+  status: number;
+  message: string;
+  errors?: Record<string, string[]>;
+  code?: string; // For specific error codes
 }
 
-export interface CompanyUpdateRequest {
-  name?: string;
-  description?: string;
-  overallScore?: number;
+// Auth related
+export interface AuthHeader {
+  Authorization: string; // Format: "Bearer {token}"
 }
 
-// Section request types
-export interface SectionCreateRequest {
-  title: string;
-  type: SectionType;
-  description?: string;
-  score?: number;
+export interface ApiRequestConfig {
+  method: HttpMethod;
+  headers?: AuthHeader & Record<string, string>;
+  params?: Record<string, any>;
+  data?: any;
 }
 
-export interface SectionUpdateRequest {
-  title?: string;
-  type?: SectionType;
-  description?: string;
-  score?: number;
-}
-
-// Basic company list item
-export interface CompanyListItem {
-  id: string;
-  name: string;
-  overallScore: number;
-  createdAt: string;
-  updatedAt: string;
-  score?: number; // For backward compatibility
-  assessmentPoints?: any[];
-  source?: string;
-}
-
-// Section base interface
-export interface SectionBase {
-  id: string;
-  type: string;
-  title: string;
-  score: number;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MarketInsight {
-  headline: string;
-  content: string;
-  source?: string;
-  url?: string;
-  title?: string; // For backward compatibility
-}
-
-export interface NewsItem {
-  headline: string;
-  content: string;
-  source?: string;
-  url?: string;
-  title?: string; // For backward compatibility
-}
-
-export interface Company {
-  id: string;
-  name: string;
-  overallScore: number;
-  createdAt: string;
-  updatedAt: string;
-  score: number; // For backward compatibility
-  assessmentPoints: any[];
-  reportId: string | null;
-  perplexityResponse: any;
-  perplexityPrompt: string | null;
-  perplexityRequestedAt: string | null;
-  source: string;
-}
-
-export interface CompanyDetailed extends Company {
-  sections: Section[];
-  description?: string; // Added description field
-}
-
-export interface Section {
-  id: string;
-  type: string;
-  title: string;
-  score: number;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SectionDetailed extends Section {
-  strengths: string[];
-  weaknesses: string[];
-  detailedContent: string;
-}
-
-export interface Report {
-  id: string;
-  title: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AssessmentPoint {
-  id: string;
-  label: string;
-  value: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type SortOrder = 'asc' | 'desc';
+// Endpoint method mapping
+export const ENDPOINT_METHODS = {
+  [API_ENDPOINTS.GET_COMPANIES]: HttpMethod.GET,
+  [API_ENDPOINTS.CREATE_COMPANY]: HttpMethod.POST,
+  // Define methods for all endpoints...
+};

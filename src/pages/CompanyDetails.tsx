@@ -6,7 +6,7 @@ import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, BookText } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
@@ -80,19 +80,8 @@ function CompanyDetails() {
         </div>
       </div>
 
-      {/* Buttons Row */}
-      <div className="flex gap-3 mb-6">
-        <Button 
-          variant="outline" 
-          className="flex items-center gap-2 text-[#1EAEDB] hover:bg-[#1EAEDB]/10 border-[#1EAEDB]"
-          onClick={() => navigate(`/company/${company.id}/investor-research`)}
-        >
-          <BookText className="h-4 w-4" />
-          <span>Investor Research</span>
-        </Button>
-        
-        <FundThesisAlignment companyId={company.id.toString()} companyName={company.name} />
-      </div>
+      {/* Fund Thesis Alignment */}
+      <FundThesisAlignment companyId={company.id} companyName={company.name} />
 
       {/* Overall Assessment */}
       <OverallAssessment
@@ -101,7 +90,7 @@ function CompanyDetails() {
       />
 
       {/* Latest Research */}
-      <LatestResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
+      <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>

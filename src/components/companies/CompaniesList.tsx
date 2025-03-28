@@ -14,7 +14,7 @@ import { ListFilter, Grid, Table as TableIcon, AlertTriangle } from "lucide-reac
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { Button } from "@/components/ui/button";
-import CompaniesTable from "./CompaniesTable"; // Fixed import
+import { CompaniesTable } from "./CompaniesTable";
 import { Badge } from "@/components/ui/badge";
 import {
   Pagination,

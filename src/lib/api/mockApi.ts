@@ -6,8 +6,7 @@ import {
   BaseEntity,
   PaginatedResponse,
   CompanyFilterParams,
-  PaginationParams,
-  Section
+  PaginationParams
 } from './apiContract';
 import { COMPANIES_DETAILED_DATA_WITH_ASSESSMENT } from '@/lib/companyData';
 
@@ -24,13 +23,12 @@ const NOW = new Date().toISOString();
 
 // Transform the existing dummy data to match the API contract with BaseEntity properties
 export const mockCompanies: CompanyListItem[] = Object.values(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT).map(company => ({
-  id: String(company.id),
+  id: company.id,
   name: company.name,
   overallScore: company.overallScore,
   score: company.overallScore, // For UI compatibility
   createdAt: NOW,
   updatedAt: NOW,
-  assessmentPoints: company.assessmentPoints || [],
 }));
 
 // Transform sections to include BaseEntity properties
@@ -40,25 +38,16 @@ const transformSections = (companies: typeof COMPANIES_DETAILED_DATA_WITH_ASSESS
   Object.entries(companies).forEach(([id, company]) => {
     const numId = Number(id);
     result[numId] = {
-      id: String(numId),
+      id: numId,
       name: company.name,
       overallScore: company.overallScore,
-      score: company.overallScore, // For backward compatibility
       createdAt: NOW,
       updatedAt: NOW,
-      perplexityResponse: null,
-      perplexityPrompt: null,
-      perplexityRequestedAt: null,
-      reportId: null,
-      source: "",
       sections: company.sections.map(section => ({
-        id: String(section.id.replace('sec', '')), // Convert string IDs like 'sec1' to strings
+        ...section,
+        id: Number(section.id.replace('sec', '')), // Convert string IDs like 'sec1' to numbers
         createdAt: NOW,
         updatedAt: NOW,
-        type: section.type,
-        title: section.title,
-        score: section.score,
-        description: section.description,
       })),
       assessmentPoints: company.assessmentPoints || [],
     };
@@ -147,18 +136,18 @@ export async function getMockSectionDetails(companyId: number, sectionId: number
   const company = mockCompanyDetails[companyId];
   if (!company) return null;
 
-  const stringifiedSectionId = typeof sectionId === 'string' 
-    ? sectionId.replace('sec', '') 
-    : String(sectionId);
+  const numericSectionId = typeof sectionId === 'string' 
+    ? Number(sectionId.replace('sec', '')) 
+    : sectionId;
     
-  const section = company.sections.find(s => s.id === stringifiedSectionId);
+  const section = company.sections.find(s => s.id === numericSectionId);
   if (!section) return null;
 
   return {
     ...section,
-    detailedContent: getSectionDetailedContent(section.type as SectionType),
-    strengths: getStrengths(section.type as SectionType),
-    weaknesses: getWeaknesses(section.type as SectionType),
+    detailedContent: getSectionDetailedContent(section.type),
+    strengths: getStrengths(section.type),
+    weaknesses: getWeaknesses(section.type),
   };
 }
 
