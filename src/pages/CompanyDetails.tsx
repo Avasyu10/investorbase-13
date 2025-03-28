@@ -13,7 +13,6 @@ import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { LatestResearch } from "@/components/companies/LatestResearch";
-import { InvestorResearch } from "@/components/companies/InvestorResearch";
 
 function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
@@ -86,17 +85,12 @@ function CompanyDetails() {
 
       {/* Overall Assessment */}
       <OverallAssessment
-        score={company.overallScore}
+        score={company.overallScore || 0}
         assessmentPoints={company.assessmentPoints || []}
       />
 
       {/* Latest Research */}
       <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
-
-      {/* Investor Research - Make sure this is visible */}
-      {user && (
-        <InvestorResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
-      )}
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>
