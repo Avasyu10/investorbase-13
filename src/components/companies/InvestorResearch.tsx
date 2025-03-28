@@ -256,7 +256,7 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
               <div className="p-4 prose prose-sm max-w-none">
                 {researchData?.response ? (
                   <div dangerouslySetInnerHTML={{ 
-                    __html: formatResearchHtml(researchData.response) 
+                    __html: formatResearchHtml(extractContentOutsideThinkTags(researchData.response))
                   }} />
                 ) : (
                   <p>No research data available.</p>
@@ -305,6 +305,14 @@ function ResearchSkeleton() {
       <Skeleton className="h-4 w-full" />
     </div>
   );
+}
+
+// New function to extract content outside of <think></think> tags
+function extractContentOutsideThinkTags(text: string): string {
+  if (!text) return '';
+  
+  // Replace <think>...</think> blocks with empty string
+  return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 }
 
 function formatResearchHtml(text: string): string {
