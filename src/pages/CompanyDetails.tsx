@@ -6,14 +6,13 @@ import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, Sparkle } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { LatestResearch } from "@/components/companies/LatestResearch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
@@ -21,18 +20,12 @@ function CompanyDetails() {
   const { isLoading: authLoading, user } = useAuth();
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
-  const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
 
   useEffect(() => {
     if (!company && !isLoading) {
       setError("Company not found");
     }
   }, [company, isLoading]);
-
-  // Open the market research modal
-  const handleInvestorResearchClick = () => {
-    setIsResearchModalOpen(true);
-  };
 
   // Early return for loading state
   if (authLoading || isLoading) {
@@ -88,17 +81,16 @@ function CompanyDetails() {
       </div>
 
       {/* Fund Thesis Alignment */}
-      <FundThesisAlignment companyId={company.id.toString()} companyName={company.name} />
+      <FundThesisAlignment companyId={company.id} companyName={company.name} />
 
       {/* Overall Assessment */}
       <OverallAssessment
         score={company.overallScore || 0}
         assessmentPoints={company.assessmentPoints || []}
-        onInvestorResearchClick={handleInvestorResearchClick}
       />
 
       {/* Latest Research */}
-      <LatestResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
+      <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>
@@ -124,27 +116,6 @@ function CompanyDetails() {
           </Card>
         )}
       </div>
-
-      {/* Market Research Modal */}
-      <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <Sparkle className="h-5 w-5 text-amber-500" />
-              Investor Research
-            </DialogTitle>
-            <DialogDescription>
-              Market insights and competitive intelligence for this company
-            </DialogDescription>
-          </DialogHeader>
-          {company && (
-            <MarketResearch 
-              companyId={company.id.toString()} 
-              assessmentPoints={company.assessmentPoints || []} 
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
