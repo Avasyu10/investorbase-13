@@ -207,38 +207,12 @@ serve(async (req) => {
 function generatePrompt(companyName: string, companyStage: string, assessmentPoints: string[]): string {
   const assessmentText = assessmentPoints.join("\n\n");
   
-  return `You are a top-tier venture capital (VC) analyst providing comprehensive research about ${companyName} - ${companyStage}. Based on the following assessment of the company, I need you to conduct deep market research and provide investor-focused insights:
+  return `You are a top-tier venture capital (VC) Investor and Partner providing comprehensive research about ${companyName} - ${companyStage}. Based on the following assessment of the company, I need you to conduct deep market research like a professional investor, and provide investor-focused insights:
 
 Assessment Points:
 ${assessmentText}
 
-Please format your response as follows:
-
-# Market Research: ${companyName} - ${companyStage}
-
-## 1. LATEST NEWS (2023-2024)
-
-[Provide 5-7 recent and relevant news items about the company or its market, each with a headline, brief content, source, and URL if available]
-
-## 2. MARKET OVERVIEW
-
-[Provide a comprehensive overview of the market size, growth trends, and key segments]
-
-## 3. COMPETITIVE LANDSCAPE
-
-[Analyze main competitors, their market positions, strengths, and weaknesses]
-
-## 4. INVESTOR INSIGHTS
-
-[Provide key insights for investors including risk factors, valuation comparables, and exit opportunities]
-
-## 5. REGULATORY CONSIDERATIONS
-
-[Highlight any regulatory issues or compliance requirements that might impact the business]
-
-## 6. SOURCES
-
-[List all sources used for this research]
+Please only response with the text that will be shown on the UI screen to real-life investors.
 
 Be specific, precise, and factual. Focus on providing high-quality, actionable intelligence for investment decision-making.`;
 }
