@@ -301,6 +301,68 @@ export type Database = {
         }
         Relationships: []
       }
+      investor_research: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          market_insights: Json | null
+          news_highlights: Json | null
+          prompt: string | null
+          requested_at: string
+          research_summary: string | null
+          response: string | null
+          sources: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt?: string | null
+          requested_at?: string
+          research_summary?: string | null
+          response?: string | null
+          sources?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt?: string | null
+          requested_at?: string
+          research_summary?: string | null
+          response?: string | null
+          sources?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_research_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       linkedin_profile_scrapes: {
         Row: {
           content: string | null
