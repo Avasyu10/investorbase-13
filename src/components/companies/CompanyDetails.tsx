@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -37,7 +38,7 @@ const CompanyDetails = () => {
         const { data: companyDetails } = await supabase
           .from('company_details')
           .select('website, stage, industry, introduction')
-          .eq('company_id', company.id)
+          .eq('company_id', company.id.toString())  // Convert id to string here
           .maybeSingle();
         
         if (companyDetails) {

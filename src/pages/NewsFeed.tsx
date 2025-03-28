@@ -59,14 +59,46 @@ const NewsFeed = () => {
         let marketInsights: MarketInsight[] = [];
         let newsHighlights: NewsItem[] = [];
         
-        // Handle market_insights
+        // Handle market_insights with proper type conversion
         if (item.market_insights) {
-          marketInsights = item.market_insights as MarketInsight[];
+          try {
+            // Use type assertion with proper validation
+            const rawInsights = Array.isArray(item.market_insights) 
+              ? item.market_insights 
+              : typeof item.market_insights === 'string' 
+                ? JSON.parse(item.market_insights)
+                : [];
+                
+            marketInsights = rawInsights.map((insight: any) => ({
+              headline: insight.headline || insight.title || "Untitled Insight",
+              content: insight.content || "",
+              source: insight.source || "",
+              url: insight.url || ""
+            }));
+          } catch (e) {
+            console.error("Error parsing market insights:", e);
+          }
         }
         
-        // Handle news_highlights
+        // Handle news_highlights with proper type conversion
         if (item.news_highlights) {
-          newsHighlights = item.news_highlights as NewsItem[];
+          try {
+            // Use type assertion with proper validation
+            const rawNews = Array.isArray(item.news_highlights) 
+              ? item.news_highlights 
+              : typeof item.news_highlights === 'string' 
+                ? JSON.parse(item.news_highlights)
+                : [];
+                
+            newsHighlights = rawNews.map((news: any) => ({
+              headline: news.headline || news.title || "Untitled News",
+              content: news.content || "",
+              source: news.source || "",
+              url: news.url || ""
+            }));
+          } catch (e) {
+            console.error("Error parsing news highlights:", e);
+          }
         }
         
         return {
