@@ -5,11 +5,10 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, CircleDollarSign, Users } from "lucide-react";
+import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface InvestorResearchProps {
   companyId: string;
@@ -23,7 +22,6 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
   const [researchData, setResearchData] = useState<any>(null);
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const [companyName, setCompanyName] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("overview");
 
   useEffect(() => {
     if (!companyId) return;
@@ -245,88 +243,50 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <CircleDollarSign className="h-5 w-5 text-primary" />
-              <span>Investor Research Report: {companyName}</span>
+            <DialogTitle className="text-xl">
+              Investor Research Report: {companyName}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Comprehensive investor analysis and insights
             </DialogDescription>
           </DialogHeader>
           
-          {researchData?.status === 'completed' ? (
-            <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-3 mb-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="risks">Risks & Concerns</TabsTrigger>
-                <TabsTrigger value="financials">Financial Analysis</TabsTrigger>
-              </TabsList>
-              
-              <ScrollArea className="h-[65vh] pr-4">
-                <TabsContent value="overview" className="p-4 mt-0 space-y-6">
-                  {researchData?.response ? (
-                    <div className="prose prose-sm max-w-none">
-                      <div className="formatted-research" dangerouslySetInnerHTML={{ 
-                        __html: formatResearchSection(extractContentOutsideThinkTags(researchData.response), "Market Opportunity") 
-                      }} />
-                    </div>
-                  ) : (
-                    <ResearchSkeleton />
-                  )}
-                </TabsContent>
+          <ScrollArea className="h-[70vh] pr-4">
+            {researchData?.status === 'completed' ? (
+              <div className="p-4 prose prose-sm max-w-none">
+                {researchData?.response ? (
+                  <div dangerouslySetInnerHTML={{ 
+                    __html: formatResearchHtml(extractContentOutsideThinkTags(researchData.response))
+                  }} />
+                ) : (
+                  <p>No research data available.</p>
+                )}
                 
-                <TabsContent value="risks" className="p-4 mt-0 space-y-6">
-                  {researchData?.response ? (
-                    <div className="prose prose-sm max-w-none">
-                      <div className="formatted-research" dangerouslySetInnerHTML={{ 
-                        __html: formatResearchSection(extractContentOutsideThinkTags(researchData.response), "Key Investor Concerns") 
-                      }} />
+                {researchData?.sources && researchData.sources.length > 0 && (
+                  <div className="mt-8 pt-4 border-t">
+                    <h4 className="text-base font-medium mb-2">Sources</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {researchData.sources.map((source: any, index: number) => (
+                        <a
+                          key={index}
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs flex items-center gap-1 text-blue-500 hover:underline bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded"
+                        >
+                          Source {index + 1} <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ))}
                     </div>
-                  ) : (
-                    <ResearchSkeleton />
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="financials" className="p-4 mt-0 space-y-6">
-                  {researchData?.response ? (
-                    <div className="prose prose-sm max-w-none">
-                      <div className="formatted-research" dangerouslySetInnerHTML={{ 
-                        __html: formatResearchSection(extractContentOutsideThinkTags(researchData.response), "Financial & Traction") 
-                      }} />
-                    </div>
-                  ) : (
-                    <ResearchSkeleton />
-                  )}
-                </TabsContent>
-              </ScrollArea>
-              
-              {researchData?.sources && researchData.sources.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-base font-medium mb-2 flex items-center gap-1.5">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    Sources
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {researchData.sources.map((source: any, index: number) => (
-                      <a
-                        key={index}
-                        href={source.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs flex items-center gap-1 text-blue-500 hover:underline bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded"
-                      >
-                        Source {index + 1} <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ))}
                   </div>
-                </div>
-              )}
-            </Tabs>
-          ) : (
-            <div className="p-4">
-              <ResearchSkeleton />
-            </div>
-          )}
+                )}
+              </div>
+            ) : (
+              <div className="p-4">
+                <ResearchSkeleton />
+              </div>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
@@ -360,124 +320,22 @@ function extractContentOutsideThinkTags(text: string): string {
   return content;
 }
 
-// Enhanced formatting function to make research visually appealing
 function formatResearchHtml(text: string): string {
   if (!text) return '<p>No research data available</p>';
   
   return text
-    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-3 mt-6 text-primary">$1</h1>') // h1
-    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-2 mt-5 text-primary/90">$1</h2>') // h2
-    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4 text-primary/80">$1</h3>') // h3
-    .replace(/^#### (.*$)/gim, '<h4 class="text-base font-bold mb-1 mt-3 text-primary/70">$1</h4>') // h4
-    .replace(/^##### (.*$)/gim, '<h5 class="font-bold mb-1 mt-2 text-primary/60">$1</h5>') // h5
-    .replace(/\*\*(.*?)\*\*/gim, '<strong class="text-foreground">$1</strong>') // bold
+    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-3 mt-6">$1</h1>') // h1
+    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-2 mt-5">$1</h2>') // h2
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
+    .replace(/^#### (.*$)/gim, '<h4 class="text-base font-bold mb-1 mt-3">$1</h4>') // h4
+    .replace(/^##### (.*$)/gim, '<h5 class="font-bold mb-1 mt-2">$1</h5>') // h5
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>') // bold
     .replace(/\*(.*?)\*/gim, '<em>$1</em>') // italic
     .replace(/\n\n/gim, '</p><p class="mb-4">') // paragraphs
-    .replace(/^- (.*$)/gim, '<li class="ml-5 mb-1">$1</li>') // list items
-    .replace(/\n- /g, '</p><ul class="my-3 space-y-1"><li class="ml-5 mb-1">') // list start
-    .replace(/<\/li>\n- /g, '</li><li class="ml-5 mb-1">') // consecutive list items
+    .replace(/^- (.*$)/gim, '<li>$1</li>') // list items
+    .replace(/\n- /g, '</p><ul class="my-2"><li>') // list start
+    .replace(/<\/li>\n- /g, '</li><li>') // consecutive list items
     .replace(/<\/p><ul/g, '<ul') // fix paragraph to list transition
     .replace(/<\/li>(?!\n<li>|\n<\/ul>)/g, '</li></ul>') // close lists
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
-}
-
-// Function to extract and format specific sections of the research
-function formatResearchSection(text: string, sectionName: string): string {
-  if (!text) return '<p>No research data available</p>';
-  
-  // Extract section based on heading (exact or partial match)
-  const sections = text.split(/^#+\s+/m);
-  let sectionContent = '';
-  
-  for (let i = 0; i < sections.length; i++) {
-    if (sections[i].trim().startsWith(sectionName) || 
-        sections[i].toLowerCase().trim().startsWith(sectionName.toLowerCase())) {
-      sectionContent = sections[i];
-      break;
-    }
-  }
-  
-  if (!sectionContent) {
-    // If exact heading not found, try to find content containing the section name
-    const regex = new RegExp(`(${sectionName}[\\s\\S]*?)(?=^#+\\s+|$)`, 'im');
-    const match = text.match(regex);
-    sectionContent = match ? match[1] : '';
-  }
-  
-  if (!sectionContent) {
-    return `<p>No ${sectionName} section found in research</p>`;
-  }
-  
-  // Apply special formatting based on section type
-  let result = '';
-  
-  switch (sectionName.toLowerCase()) {
-    case 'market opportunity':
-      result = `<div class="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 mb-6">
-        <h2 class="text-xl font-bold mb-3 text-blue-700 dark:text-blue-400 flex items-center">
-          <TrendingUp className="mr-2 h-5 w-5" />
-          Market Opportunity & Competitive Risks
-        </h2>
-        ${formatSectionContent(sectionContent, 'blue')}
-      </div>`;
-      break;
-      
-    case 'key investor concerns':
-      result = `<div class="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800 mb-6">
-        <h2 class="text-xl font-bold mb-3 text-amber-700 dark:text-amber-400 flex items-center">
-          <AlertTriangle className="mr-2 h-5 w-5" />
-          Key Investor Concerns
-        </h2>
-        ${formatSectionContent(sectionContent, 'amber')}
-      </div>`;
-      break;
-      
-    case 'financial & traction':
-      result = `<div class="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800 mb-6">
-        <h2 class="text-xl font-bold mb-3 text-green-700 dark:text-green-400 flex items-center">
-          <CircleDollarSign className="mr-2 h-5 w-5" />
-          Financial & Traction Metrics
-        </h2>
-        ${formatSectionContent(sectionContent, 'green')}
-      </div>`;
-      break;
-      
-    default:
-      result = `<div class="p-4 rounded-lg border mb-6">
-        <h2 class="text-xl font-bold mb-3 flex items-center">
-          ${sectionName}
-        </h2>
-        ${formatSectionContent(sectionContent, 'gray')}
-      </div>`;
-  }
-  
-  return result;
-}
-
-function formatSectionContent(content: string, colorTheme: string): string {
-  // Remove the title from the content
-  const lines = content.split('\n');
-  lines.shift(); // Remove first line (title)
-  content = lines.join('\n');
-  
-  // Apply formatting based on color theme
-  let formattedContent = content
-    .replace(/^(Market sizing gaps|Unaddressed saturation risks|Problem-Solution Fit|Unit Economics|Execution Risks|Financial & Traction Red Flags|Unsubstantiated projections):/gim, 
-      `<h3 class="text-${colorTheme}-600 dark:text-${colorTheme}-400 font-bold mt-4 mb-2">$1</h3>`)
-    .replace(/\*\*(.*?)\*\*/gim, `<strong class="text-${colorTheme}-700 dark:text-${colorTheme}-300">$1</strong>`) // bold
-    .replace(/\*(.*?)\*/gim, '<em>$1</em>') // italic
-    .replace(/\n\n/gim, '</p><p class="mb-3 text-sm">') // paragraphs
-    .replace(/^([0-9]+\.) (.*$)/gim, '<div class="flex gap-2 mb-2"><span class="font-bold text-black dark:text-white">$1</span><span>$2</span></div>') // numbered items
-    .replace(/^- (.*$)/gim, `<li class="ml-5 mb-1 text-sm marker:text-${colorTheme}-500">$1</li>`) // list items
-    .replace(/\n- /g, `</p><ul class="my-3 list-disc space-y-1 text-sm"><li class="ml-5 marker:text-${colorTheme}-500">`) // list start
-    .replace(/<\/li>\n- /g, '</li><li class="ml-5">') // consecutive list items
-    .replace(/<\/p><ul/g, '<ul') // fix paragraph to list transition
-    .replace(/<\/li>(?!\n<li>|\n<\/ul>)/g, '</li></ul>'); // close lists
-  
-  // Wrap in paragraph if not starting with formatted element
-  if (!formattedContent.startsWith('<')) {
-    formattedContent = `<p class="mb-3 text-sm">${formattedContent}</p>`;
-  }
-  
-  return formattedContent;
 }
