@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart2, Lightbulb, ExternalLink } from "lucide-react";
+import { BarChart2, Lightbulb, ExternalLink, Search } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 
@@ -62,7 +62,15 @@ export function OverallAssessment({
           ))}
         </div>
         
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-between items-center mt-6">
+          <Button 
+            variant="default" 
+            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+          >
+            <Search className="h-4 w-4" />
+            Investor Research
+          </Button>
+          
           <Button 
             variant="link" 
             className="text-amber-500 hover:text-amber-400 flex items-center gap-1 px-0"
