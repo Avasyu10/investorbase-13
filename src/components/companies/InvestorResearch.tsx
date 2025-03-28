@@ -172,7 +172,7 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
                   onClick={handleOpenFundThesisModal}
                 >
                   <Lightbulb className="mr-2 h-4 w-4 text-white" />
-                  Analyze Fund Thesis
+                  Fund Thesis Alignment
                 </Button>
               )}
               
