@@ -210,7 +210,7 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
                         Investor Research
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Comprehensive investor analysis with actionable insights for decision-making.
+                        Tailored Expert Research for Investment Decisions.
                       </p>
                     </CardContent>
                   </Card>
@@ -222,10 +222,10 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
               <Search className="h-12 w-12 mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-semibold mb-2">No Investor Research Available</h3>
               <p className="text-muted-foreground max-w-md mb-6">
-                Get comprehensive investor-focused research and analysis for this company.
+                Get expert research and insights crafted for investors.
               </p>
               <p className="text-sm text-muted-foreground max-w-md mb-8">
-                Our AI will analyze recent news, competitive landscape, and industry data to provide actionable investor insights.
+                InvestorBase uses advanced algorithms to analyze the latest news, competitors, and market trends, delivering actionable insights for smarter investment decisions.
               </p>
             </div>
           )}
