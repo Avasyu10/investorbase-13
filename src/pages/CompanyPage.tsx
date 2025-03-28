@@ -10,11 +10,8 @@ import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { InvestorResearch } from "@/components/companies/InvestorResearch";
-import { CompanyChatbotWidget } from "@/components/companies/CompanyChatbotWidget";
-import { CompanyChatbotMobile } from "@/components/companies/CompanyChatbotMobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { useMediaQuery } from "@/hooks/use-mobile";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +22,6 @@ const CompanyPage = () => {
   const { company, isLoading } = useCompanyDetails(id);
   const [hasFundThesis, setHasFundThesis] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const isMobile = useMediaQuery("(max-width: 768px)");
   
   // Check if user has a fund thesis document and get user ID
   useEffect(() => {
@@ -201,22 +197,6 @@ const CompanyPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Company Chatbot - Desktop version */}
-      {company && !isMobile && (
-        <CompanyChatbotWidget 
-          companyId={company.id.toString()} 
-          companyName={company.name}
-        />
-      )}
-      
-      {/* Company Chatbot - Mobile version */}
-      {company && isMobile && (
-        <CompanyChatbotMobile 
-          companyId={company.id.toString()} 
-          companyName={company.name}
-        />
-      )}
     </div>
   );
 };
