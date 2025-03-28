@@ -10,7 +10,7 @@ import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { InvestorResearch } from "@/components/companies/InvestorResearch";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();

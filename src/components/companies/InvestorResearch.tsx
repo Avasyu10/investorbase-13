@@ -164,24 +164,37 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
               <CardTitle className="text-xl font-semibold">Investor Research</CardTitle>
             </div>
             
-            <Button 
-              variant={researchData ? "outline" : "default"}
-              onClick={handleRequestResearch}
-              disabled={isLoading || isCheckingExisting}
-              className={researchData ? "" : "bg-blue-500 hover:bg-blue-600 text-white border-blue-500"}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkle className="mr-2 h-4 w-4" />
-                  {researchData ? "Update Research" : "Generate Research"}
-                </>
+            <div className="flex gap-2">
+              {hasFundThesis && (
+                <Button 
+                  variant="outline"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                  onClick={handleOpenFundThesisModal}
+                >
+                  <Lightbulb className="mr-2 h-4 w-4 text-white" />
+                  Analyze Fund Thesis
+                </Button>
               )}
-            </Button>
+              
+              <Button 
+                variant={researchData ? "outline" : "default"}
+                onClick={handleRequestResearch}
+                disabled={isLoading || isCheckingExisting}
+                className={researchData ? "" : "bg-blue-500 hover:bg-blue-600 text-white border-blue-500"}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkle className="mr-2 h-4 w-4" />
+                    {researchData ? "Update Research" : "Generate Research"}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         
@@ -285,19 +298,6 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
                   }} />
                 ) : (
                   <p>No research data available.</p>
-                )}
-                
-                {hasFundThesis && (
-                  <div className="mt-8 mb-4">
-                    <Button 
-                      variant="default"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
-                      onClick={handleOpenFundThesisModal}
-                    >
-                      <Lightbulb className="mr-2 h-4 w-4 text-white" />
-                      Analyze Fund Thesis Alignment
-                    </Button>
-                  </div>
                 )}
                 
                 {researchData?.sources && researchData.sources.length > 0 && (

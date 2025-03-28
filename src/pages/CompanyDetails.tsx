@@ -7,11 +7,9 @@ import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Loader2 } from "lucide-react";
-import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MarketResearch } from "@/components/companies/MarketResearch";
 import { LatestResearch } from "@/components/companies/LatestResearch";
 
 function CompanyDetails() {
@@ -72,16 +70,13 @@ function CompanyDetails() {
             website=""
             stage=""
             industry=""
-            introduction={company.description || "No description available"}
+            introduction={company.description || ""}
           />
         </div>
         <div>
           <ScoreAssessment company={company} />
         </div>
       </div>
-
-      {/* Fund Thesis Alignment */}
-      <FundThesisAlignment companyId={company.id} companyName={company.name} />
 
       {/* Overall Assessment */}
       <OverallAssessment
@@ -90,7 +85,7 @@ function CompanyDetails() {
       />
 
       {/* Latest Research */}
-      <LatestResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
+      <LatestResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>

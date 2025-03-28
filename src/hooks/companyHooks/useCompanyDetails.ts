@@ -118,6 +118,7 @@ export function useCompanyDetails(companyId: string | undefined) {
       perplexityResponse: rawData.perplexity_response,
       perplexityRequestedAt: rawData.perplexity_requested_at,
       assessmentPoints: rawData.assessment_points || [],
+      description: rawData.description || "",
       sections: rawData.sections?.map((section: any) => ({
         id: section.id,
         title: section.title,
