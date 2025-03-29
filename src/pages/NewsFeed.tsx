@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -61,12 +60,28 @@ const NewsFeed = () => {
         
         // Handle market_insights
         if (item.market_insights) {
-          marketInsights = item.market_insights as MarketInsight[];
+          const marketInsights = (item.market_insights as unknown) as MarketInsight[];
+          marketInsights = marketInsights.map(insight => {
+            return {
+              headline: insight.headline,
+              content: insight.content,
+              url: insight.url,
+              source: insight.source
+            };
+          });
         }
         
         // Handle news_highlights
         if (item.news_highlights) {
-          newsHighlights = item.news_highlights as NewsItem[];
+          const newsHighlights = (item.news_highlights as unknown) as NewsItem[];
+          newsHighlights = newsHighlights.map(news => {
+            return {
+              headline: news.headline,
+              content: news.content,
+              url: news.url,
+              source: news.source
+            };
+          });
         }
         
         return {

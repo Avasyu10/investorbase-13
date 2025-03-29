@@ -1,137 +1,139 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { apiClient } from '@/lib/api/apiClient';
-import { CompanyDetailed } from '@/lib/api/apiContract';
-import { formatCompanyData } from './utils';
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { CompanyDetailed } from "@/types/company";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useCompanyDetails(companyId: string | undefined) {
   const [company, setCompany] = useState<CompanyDetailed | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
   useEffect(() => {
     if (!companyId) {
-      setIsLoading(false);
+      setLoading(false);
       return;
     }
-    
-    fetchCompanyDetails();
-    
-    // Include companyId in the dependency array to refetch when it changes
-  }, [companyId]);
-  
-  async function fetchCompanyDetails() {
-    try {
-      setIsLoading(true);
-      console.log('Fetching company details for ID:', companyId);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        console.log('Trying to fetch company details from Supabase for:', companyId);
-        
-        // First, check if the companyId is a full UUID (contains dashes)
-        if (companyId && companyId.includes('-')) {
-          // Direct UUID lookup
-          const { data: companyData, error: companyError } = await supabase
-            .from('companies')
-            .select('*, sections(*)')
-            .eq('id', companyId)
+
+    async function fetchCompanyDetails() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // First, get the company record
+        const { data: companyData, error: companyError } = await supabase
+          .from("companies")
+          .select(`
+            *,
+            reports (
+              id,
+              title,
+              description,
+              pdf_url,
+              created_at,
+              submitter_email
+            ),
+            sections (
+              id,
+              title,
+              type,
+              score,
+              description,
+              section_type,
+              section_details (
+                id,
+                detail_type,
+                content
+              )
+            )
+          `)
+          .eq("id", companyId)
+          .single();
+
+        if (companyError) {
+          throw companyError;
+        }
+
+        if (!companyData) {
+          throw new Error("Company not found");
+        }
+
+        // Check if the user has access to this company
+        if (user && companyData.user_id !== user.id) {
+          const { data: accessData, error: accessError } = await supabase
+            .from("company_access")
+            .select("*")
+            .eq("company_id", companyId)
+            .eq("user_id", user.id)
             .maybeSingle();
+
+          if (accessError) {
+            console.error("Error checking company access:", accessError);
+          }
+
+          if (!accessData) {
+            // Check if the company is from a public submission
+            if (companyData.source !== "public_url") {
+              throw new Error("You don't have access to this company");
+            }
+          }
+        }
+
+        // Process sections to group by type
+        const sectionsByType: Record<string, any[]> = {};
+        
+        if (companyData.sections) {
+          companyData.sections.forEach((section) => {
+            const type = section.section_type || section.type;
+            if (!sectionsByType[type]) {
+              sectionsByType[type] = [];
+            }
             
-          if (companyError) {
-            console.error('Error fetching company by UUID:', companyError);
-            throw companyError;
-          }
-          
-          if (companyData) {
-            console.log('Found company by direct UUID lookup:', companyData);
-            setCompany(transformCompanyData(companyData));
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // If companyId is numeric or UUID lookup failed, try to find by numeric ID
-        console.log('Attempting to find company by numeric ID:', companyId);
-        
-        const { data: uuidData, error: uuidError } = await supabase
-          .rpc('find_company_by_numeric_id_bigint', {
-            numeric_id: companyId.toString().replace(/-/g, '')
+            // Process section details
+            const strengths = section.section_details
+              ? section.section_details
+                  .filter((detail) => detail.detail_type === "strength")
+                  .map((detail) => detail.content)
+              : [];
+              
+            const weaknesses = section.section_details
+              ? section.section_details
+                  .filter((detail) => detail.detail_type === "weakness")
+                  .map((detail) => detail.content)
+              : [];
+            
+            sectionsByType[type].push({
+              ...section,
+              strengths,
+              weaknesses,
+            });
           });
-        
-        if (uuidError) {
-          console.error('Error finding company UUID by numeric ID:', uuidError);
-          throw uuidError;
         }
-        
-        if (uuidData && uuidData.length > 0) {
-          // Extract the UUID string from the result array
-          const companyUuid = uuidData[0].id;
-          console.log('Found company UUID:', companyUuid);
-          
-          const { data: companyData, error: companyError } = await supabase
-            .from('companies')
-            .select('*, sections(*)')
-            .eq('id', companyUuid)
-            .maybeSingle();
-          
-          if (companyError) {
-            console.error('Error fetching company details:', companyError);
-            throw companyError;
-          }
-          
-          if (companyData) {
-            console.log('Successfully fetched company details:', companyData);
-            setCompany(transformCompanyData(companyData));
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        console.log('No company found in Supabase, falling back to mock API');
+
+        // Format the data for the UI
+        const formattedCompany: CompanyDetailed = {
+          ...companyData,
+          sectionsByType,
+        };
+
+        setCompany(formattedCompany);
+      } catch (err: any) {
+        console.error("Error fetching company details:", err);
+        setError(err.message);
+        toast({
+          title: "Error",
+          description: err.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-      
-      // Fallback to mock API
-      const companyResult = await apiClient.getCompany(Number(companyId));
-      
-      if (companyResult?.data) {
-        console.log('Fetched company from mock API:', companyResult.data);
-        setCompany(companyResult.data);
-      } else {
-        console.error('Company not found in mock API either');
-        setCompany(null);
-      }
-    } catch (error) {
-      console.error('Error in fetchCompanyDetails:', error);
-    } finally {
-      setIsLoading(false);
     }
-  }
-  
-  function transformCompanyData(rawData: any): CompanyDetailed {
-    return {
-      id: rawData.id,
-      name: rawData.name,
-      overallScore: rawData.overall_score,
-      reportId: rawData.report_id,
-      perplexityResponse: rawData.perplexity_response,
-      perplexityRequestedAt: rawData.perplexity_requested_at,
-      assessmentPoints: rawData.assessment_points || [],
-      description: rawData.description || "",
-      sections: rawData.sections?.map((section: any) => ({
-        id: section.id,
-        title: section.title,
-        type: section.type,
-        score: section.score,
-        description: section.description,
-        createdAt: section.created_at,
-        updatedAt: section.updated_at,
-      })) || [],
-      createdAt: rawData.created_at,
-      updatedAt: rawData.updated_at,
-    };
-  }
-  
-  return { company, isLoading };
+
+    fetchCompanyDetails();
+  }, [companyId, toast, user]);
+
+  return { company, loading, error };
 }
