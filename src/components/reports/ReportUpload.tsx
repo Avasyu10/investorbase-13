@@ -218,12 +218,6 @@ export function ReportUpload({
         if (industry) {
           formData.append('industry', industry);
         }
-
-        // Add question to form data if provided
-        if (question && question.trim()) {
-          formData.append('question', question);
-          console.log("Adding question to form data:", question.length > 50 ? question.substring(0, 50) + "..." : question);
-        }
         
         // Add LinkedIn profiles as JSON string
         const filteredProfiles = founderLinkedIns.filter(profile => profile.trim());
@@ -462,7 +456,6 @@ export function ReportUpload({
         setIndustry("");
         setFounderLinkedIns([""]);
         setEmailForResults("");
-        setQuestion("");
         
         if (onSuccess) {
           onSuccess();

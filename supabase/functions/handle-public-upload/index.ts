@@ -73,8 +73,6 @@ serve(async (req) => {
       const question = formData.get('question') as string || '';
       
       console.log("Processing submission with form slug:", formSlug);
-      console.log("Email provided:", email);
-      console.log("Question provided:", question ? "Yes" : "No");
       
       // Extract optional fields with fallbacks
       const companyStage = formData.get('companyStage') as string || '';
@@ -220,7 +218,7 @@ serve(async (req) => {
             pdf_url: filePath, // Use the full path here as well
             user_id: formOwnerId,
             is_public_submission: true,
-            submitter_email: email, // Store the submitter's email
+            submitter_email: email,
             submission_form_id: submissionFormId
           })
           .select()
