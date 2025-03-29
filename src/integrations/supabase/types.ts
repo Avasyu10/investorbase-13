@@ -509,6 +509,7 @@ export type Database = {
           pdf_url: string | null
           question: string | null
           report_id: string | null
+          submitter_email: string | null
           supplementary_materials_urls: string[] | null
           title: string
           website_url: string | null
@@ -524,6 +525,7 @@ export type Database = {
           pdf_url?: string | null
           question?: string | null
           report_id?: string | null
+          submitter_email?: string | null
           supplementary_materials_urls?: string[] | null
           title: string
           website_url?: string | null
@@ -539,6 +541,7 @@ export type Database = {
           pdf_url?: string | null
           question?: string | null
           report_id?: string | null
+          submitter_email?: string | null
           supplementary_materials_urls?: string[] | null
           title?: string
           website_url?: string | null

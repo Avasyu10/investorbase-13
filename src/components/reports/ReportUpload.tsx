@@ -225,6 +225,12 @@ export function ReportUpload({
           formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
         }
         
+        // Add question field to form data
+        if (question) {
+          formData.append('question', question);
+          console.log("Adding question to submission:", question);
+        }
+        
         // Log form data entries for debugging
         console.log("FormData entries:");
         for (const [key, value] of formData.entries()) {

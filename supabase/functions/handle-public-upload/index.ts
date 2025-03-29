@@ -183,7 +183,8 @@ serve(async (req) => {
           company_stage: companyStage,
           industry,
           founder_linkedin_profiles: linkedInProfiles,
-          question // Store the question field
+          question, // Store the question field
+          submitter_email: email // Store the submitter's email
         })
         .select()
         .single();
