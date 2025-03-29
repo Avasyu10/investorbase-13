@@ -69,6 +69,8 @@ serve(async (req) => {
       const websiteUrl = formData.get('websiteUrl') as string || '';
       // Extract the form slug from the form data
       const formSlug = formData.get('formSlug') as string || '';
+      // Extract question field
+      const question = formData.get('question') as string || '';
       
       console.log("Processing submission with form slug:", formSlug);
       
@@ -180,7 +182,8 @@ serve(async (req) => {
           form_slug: formSlug, // Save the form slug to the database
           company_stage: companyStage,
           industry,
-          founder_linkedin_profiles: linkedInProfiles
+          founder_linkedin_profiles: linkedInProfiles,
+          question // Store the question field
         })
         .select()
         .single();

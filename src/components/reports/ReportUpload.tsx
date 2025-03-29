@@ -54,6 +54,7 @@ export function ReportUpload({
   const [progressStage, setProgressStage] = useState("");
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const [emailForResults, setEmailForResults] = useState("");
+  const [question, setQuestion] = useState("");
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,7 +192,8 @@ export function ReportUpload({
           industry,
           linkedInProfiles: founderLinkedIns.filter(ln => ln.trim()).length,
           hideEmailField,
-          formSlug
+          formSlug,
+          question
         });
         
         if (briefIntroduction) {
@@ -594,6 +596,18 @@ export function ReportUpload({
                 ))}
               </div>
             )}
+          </div>
+          
+          <div className="space-y-2 pt-2 border-t">
+            <h3 className="text-md font-medium">Have a Question? Let Us Know.</h3>
+            <textarea
+              id="question"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Do you have any questions about our investment process or anything else? Feel free to ask."
+              disabled={isProcessing}
+            />
           </div>
           
           {isProcessing && (

@@ -507,6 +507,7 @@ export type Database = {
           id: string
           industry: string | null
           pdf_url: string | null
+          question: string | null
           report_id: string | null
           supplementary_materials_urls: string[] | null
           title: string
@@ -521,6 +522,7 @@ export type Database = {
           id?: string
           industry?: string | null
           pdf_url?: string | null
+          question?: string | null
           report_id?: string | null
           supplementary_materials_urls?: string[] | null
           title: string
@@ -535,6 +537,7 @@ export type Database = {
           id?: string
           industry?: string | null
           pdf_url?: string | null
+          question?: string | null
           report_id?: string | null
           supplementary_materials_urls?: string[] | null
           title?: string
