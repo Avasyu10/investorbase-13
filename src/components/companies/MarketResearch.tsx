@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -138,17 +139,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             </div>
             
             <div className="flex items-center gap-2">
-              {researchData && researchData.status === 'completed' && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsDialogOpen(true)}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  View Research
-                </Button>
-              )}
-              
               <Button 
                 variant={researchData ? "outline" : "default"}
                 onClick={handleRequestResearch}
@@ -167,6 +157,17 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                   </>
                 )}
               </Button>
+              
+              {researchData && researchData.status === 'completed' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  View Research
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -181,7 +182,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <div>
-                  <h3 className="text-lg font-semibold">Research Status</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant={researchData.status === 'completed' ? "default" : researchData.status === 'failed' ? "destructive" : "secondary"}>
                       {researchData.status.toUpperCase()}
