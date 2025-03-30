@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -139,34 +140,77 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             
             <div className="flex items-center gap-2">
               {researchData && researchData.status === 'completed' && (
+                <>
+                  <Button 
+                    variant={researchData ? "outline" : "default"}
+                    onClick={handleRequestResearch}
+                    disabled={isLoading || isCheckingExisting}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkle className="mr-2 h-4 w-4" />
+                        {researchData ? "Update Research" : "Real-Time Analysis"}
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsDialogOpen(true)}
+                  >
+                    <Search className="mr-2 h-4 w-4" />
+                    View Research
+                  </Button>
+                </>
+              )}
+              
+              {(researchData && researchData.status !== 'completed') && (
                 <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsDialogOpen(true)}
+                  variant={researchData ? "outline" : "default"}
+                  onClick={handleRequestResearch}
+                  disabled={isLoading || isCheckingExisting}
+                  className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
                 >
-                  <Search className="mr-2 h-4 w-4" />
-                  View Research
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkle className="mr-2 h-4 w-4" />
+                      {researchData ? "Update Research" : "Real-Time Analysis"}
+                    </>
+                  )}
                 </Button>
               )}
               
-              <Button 
-                variant={researchData ? "outline" : "default"}
-                onClick={handleRequestResearch}
-                disabled={isLoading || isCheckingExisting}
-                className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkle className="mr-2 h-4 w-4" />
-                    {researchData ? "Update Research" : "Real-Time Analysis"}
-                  </>
-                )}
-              </Button>
+              {!researchData && (
+                <Button 
+                  variant="default"
+                  onClick={handleRequestResearch}
+                  disabled={isLoading || isCheckingExisting}
+                  className="bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkle className="mr-2 h-4 w-4" />
+                      Real-Time Analysis
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -179,22 +223,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             </div>
           ) : researchData ? (
             <div className="space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-semibold">Research Status</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={researchData.status === 'completed' ? "default" : researchData.status === 'failed' ? "destructive" : "secondary"}>
-                      {researchData.status.toUpperCase()}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {researchData.status === 'completed' 
-                        ? `Completed on ${formatDate(researchData.completed_at)}` 
-                        : `Requested on ${formatDate(researchData.requested_at)}`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
               {researchData.status === 'failed' && (
                 <div className="bg-destructive/10 text-destructive rounded-md p-4 mt-4">
                   <h4 className="font-semibold">Error Details</h4>
