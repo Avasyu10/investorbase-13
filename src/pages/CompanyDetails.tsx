@@ -70,7 +70,7 @@ function CompanyDetails() {
             website=""
             stage=""
             industry=""
-            introduction={company.introduction || ""}
+            introduction={company.description || ""}
           />
         </div>
         <div>
@@ -82,8 +82,6 @@ function CompanyDetails() {
       <OverallAssessment
         score={company.overallScore || 0}
         assessmentPoints={company.assessmentPoints || []}
-        companyId={company.id.toString()}
-        companyName={company.name}
       />
 
       {/* Latest Research */}
