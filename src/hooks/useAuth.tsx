@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -117,6 +118,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) throw error;
+      
+      // Automatically navigate to profile setup for new users
+      const checkRedirectNeeded = async () => {
+        try {
+          const { data, error: profileError } = await supabase
+            .from('vc_profiles')
+            .select('id')
+            .eq('id', user?.id)
+            .maybeSingle();
+            
+          if (profileError || !data) {
+            // If no profile is found, redirect to setup
+            navigate('/profile/setup');
+          }
+        } catch (err) {
+          console.error("Error checking profile:", err);
+        }
+      };
+      
+      // Check after a short delay to ensure auth is complete
+      setTimeout(checkRedirectNeeded, 1000);
       
       toast({
         title: "Confirmation Link Sent",

@@ -13,6 +13,7 @@ import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Profile from "@/pages/Profile";
 import ProfileEdit from "@/pages/ProfileEdit";
+import ProfileSetup from "@/pages/ProfileSetup";
 import Feedback from "@/pages/Feedback";
 import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
 import NewsFeed from "@/pages/NewsFeed";
@@ -114,7 +115,7 @@ export const routes = [
     path: "/profile/setup",
     element: (
       <ProtectedRoute>
-        <ProfileEdit />
+        <ProfileSetup />
       </ProtectedRoute>
     ),
   },

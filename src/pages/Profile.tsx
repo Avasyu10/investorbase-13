@@ -46,6 +46,7 @@ const Profile = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<VCProfile | null>(null);
+  const [profileChecked, setProfileChecked] = useState(false);
   const [thesisFilename, setThesisFilename] = useState<string | null>(null);
   const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
   const [generatingUrl, setGeneratingUrl] = useState(false);
@@ -66,11 +67,15 @@ const Profile = () => {
           .from('vc_profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
           
         if (error) {
           console.error("Error fetching profile:", error);
-          if (error.code === 'PGRST116') {
+          // Don't navigate if profile not found, just mark as checked
+          setProfileChecked(true);
+          
+          // Only navigate to setup from direct profile access
+          if (window.location.pathname === '/profile' && error.code === 'PGRST116') {
             navigate('/profile/setup');
           }
           return;
@@ -78,6 +83,7 @@ const Profile = () => {
         
         const profileData = data as VCProfile;
         setProfile(profileData);
+        setProfileChecked(true);
         
         if (profileData.fund_thesis_url) {
           setThesisFilename(profileData.fund_thesis_url.split('/').pop() || "Fund Thesis.pdf");
@@ -96,6 +102,7 @@ const Profile = () => {
         }
       } catch (error) {
         console.error("Error:", error);
+        setProfileChecked(true);
       } finally {
         setLoading(false);
       }
@@ -225,7 +232,8 @@ const Profile = () => {
     );
   }
 
-  if (!profile) {
+  // Show a "create profile" card if profile is not found but we've checked for it
+  if (!profile && profileChecked) {
     return (
       <div className="container max-w-4xl mx-auto px-4 py-12">
         <Card className="border-none shadow-lg">
