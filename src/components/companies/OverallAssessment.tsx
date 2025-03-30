@@ -1,13 +1,18 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart2, Lightbulb, ExternalLink } from "lucide-react";
+import { BarChart2, Lightbulb, ExternalLink, HelpCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useState } from "react";
+import { AnalysisModal } from "@/components/submissions/AnalysisModal";
 
 interface OverallAssessmentProps {
   score: number;
   maxScore?: number;
   assessmentPoints?: string[];
+  companyId?: string;
+  companyName?: string;
 }
 
 export function OverallAssessment({ 
@@ -19,13 +24,32 @@ export function OverallAssessment({
     "The company's business model is based on subscription-based revenue, data analytics services, and value-added partnerships, providing multiple revenue streams.",
     "The team has a strong combination of clinical, technical, and operational expertise, increasing the likelihood of success.",
     "PulseGuard is seeking $2.5M in seed capital to accelerate product development, expand go-to-market initiatives, and ensure regulatory compliance, a reasonable ask for a seed-stage company."
-  ] 
+  ],
+  companyId,
+  companyName
 }: OverallAssessmentProps) {
   // Calculate progress percentage
   const progressPercentage = (score / maxScore) * 100;
   
   // Format score to one decimal place
   const formattedScore = typeof score === 'number' ? score.toFixed(1) : '0.0';
+  
+  // State for the fund thesis alignment modal
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+
+  // Get score description
+  const getScoreDescription = (score: number): string => {
+    if (score >= 4.5) return `Outstanding Investment Opportunity (${score}/5): This company demonstrates exceptional market position, business model, and growth metrics.`;
+    if (score >= 3.5) return `Strong Investment Candidate (${score}/5): This company shows solid fundamentals with some competitive advantages.`;
+    if (score >= 2.5) return `Moderate Investment Potential (${score}/5): This company has sound basic operations but several areas need improvement.`;
+    if (score >= 1.5) return `High-Risk Investment (${score}/5): Significant flaws in business model, market approach, or financials create substantial concerns.`;
+    return `Not Recommended (${score}/5): This company shows critical deficiencies across multiple dimensions.`;
+  };
+
+  const handleOpenFundThesisModal = () => {
+    if (!companyId) return;
+    setIsAnalysisModalOpen(true);
+  };
 
   return (
     <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
@@ -35,9 +59,35 @@ export function OverallAssessment({
             <BarChart2 className="h-5 w-5 text-primary" />
             <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
-            <span className="text-sm text-muted-foreground">/{maxScore}</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
+              <span className="text-sm text-muted-foreground">/{maxScore}</span>
+              <TooltipProvider>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                    <p>{getScoreDescription(score)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            {companyId && (
+              <Button 
+                variant="outline"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                onClick={handleOpenFundThesisModal}
+              >
+                <Lightbulb className="mr-2 h-4 w-4 text-white" />
+                Fund Thesis Alignment
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -71,6 +121,27 @@ export function OverallAssessment({
           </Button>
         </div>
       </CardContent>
+      
+      {/* Fund Thesis Alignment Modal */}
+      {companyId && (
+        <AnalysisModal
+          isOpen={isAnalysisModalOpen}
+          isAnalyzing={false}
+          submission={{ 
+            id: companyId,
+            title: companyName || "Company Analysis",
+            description: null,
+            company_stage: null,
+            industry: null,
+            website_url: null,
+            created_at: new Date().toISOString(),
+            form_slug: "",
+            pdf_url: null,
+            report_id: null
+          }}
+          onClose={() => setIsAnalysisModalOpen(false)}
+        />
+      )}
     </Card>
   );
 }

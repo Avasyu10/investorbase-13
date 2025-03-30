@@ -1,4 +1,3 @@
-
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
@@ -109,18 +108,14 @@ const SectionPage = () => {
       <div className="container mx-auto px-4">
         {/* Overall Assessment */}
         {!isLoading && company && (
-          <OverallAssessment score={4.7} />
+          <OverallAssessment 
+            score={4.7} 
+            companyId={companyId}
+            companyName={company.name}
+          />
         )}
         
         {section && <SectionDetail section={section as unknown as SectionDetailed} isLoading={sectionLoading} />}
-        
-        {/* Fund Thesis Alignment Component */}
-        {!isLoading && company && (
-          <FundThesisAlignment 
-            companyId={companyId || ''} 
-            companyName={company.name} 
-          />
-        )}
         
         <div className="flex justify-between mt-8">
           {prevSection && (
