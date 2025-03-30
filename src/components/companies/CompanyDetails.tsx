@@ -170,7 +170,7 @@ const CompanyDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-secondary rounded w-1/3"></div>
           <div className="h-6 bg-secondary rounded w-1/2"></div>
@@ -199,7 +199,7 @@ const CompanyDetails = () => {
 
   if (!company) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4">
         <p>Company not found</p>
       </div>
     );
@@ -232,7 +232,7 @@ const CompanyDetails = () => {
   });
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
+    <div className="container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in">
       <div className="mb-7 sm:mb-9">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
           <div className="flex items-center gap-4">

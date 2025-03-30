@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -51,7 +52,7 @@ function CompanyDetails() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 animate-fade-in">
+    <div className="container mx-auto px-4 pt-0 pb-6 animate-fade-in">
       {/* Back Button */}
       <Button
         variant="outline"
@@ -69,7 +70,7 @@ function CompanyDetails() {
             website=""
             stage=""
             industry=""
-            introduction={company.introduction || ""}
+            introduction={company?.introduction || ""}
           />
         </div>
         <div>
