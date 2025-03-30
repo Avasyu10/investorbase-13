@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -7,7 +6,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, ChevronLeft } from "lucide-react";
+import { FileText, BarChart2, Files } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -147,10 +146,6 @@ const CompanyDetails = () => {
     }
   };
 
-  const handleBack = () => {
-    navigate(-1);
-  };
-
   const navigateToSupplementaryMaterials = () => {
     navigate(`/company/${id}/supplementary`);
   };
@@ -236,15 +231,7 @@ const CompanyDetails = () => {
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
       <div className="mb-7 sm:mb-9">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBack}
-              className="flex items-center"
-            >
-              <ChevronLeft className="mr-1" /> Back
-            </Button>
+          <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
           </div>
           <div className="flex items-center gap-4 mt-2 sm:mt-0">

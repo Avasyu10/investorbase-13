@@ -5,10 +5,11 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe } from "lucide-react";
+import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FundThesisAlignment } from './FundThesisAlignment';
 
 interface InvestorResearchProps {
   companyId: string;
@@ -19,9 +20,11 @@ interface InvestorResearchProps {
 export function InvestorResearch({ companyId, assessmentPoints, userId }: InvestorResearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
   const [researchData, setResearchData] = useState<any>(null);
   const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const [companyName, setCompanyName] = useState<string>("");
+  const [hasFundThesis, setHasFundThesis] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
@@ -39,6 +42,23 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
           
         if (!companyError && companyData) {
           setCompanyName(companyData.name);
+        }
+        
+        // Check if user has a fund thesis
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { count, error } = await supabase
+              .from('fund_thesis_analysis')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', user.id);
+              
+            if (!error) {
+              setHasFundThesis(count !== null && count > 0);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking fund thesis:', error);
         }
         
         const { data, error } = await supabase
@@ -124,6 +144,11 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
     }
   };
 
+  const handleOpenFundThesisModal = () => {
+    if (!companyId || !companyName) return;
+    setIsFundThesisModalOpen(true);
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
@@ -140,6 +165,17 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
             </div>
             
             <div className="flex gap-2">
+              {hasFundThesis && (
+                <Button 
+                  variant="outline"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                  onClick={handleOpenFundThesisModal}
+                >
+                  <Lightbulb className="mr-2 h-4 w-4 text-white" />
+                  Fund Thesis Alignment
+                </Button>
+              )}
+              
               <Button 
                 variant={researchData ? "outline" : "default"}
                 onClick={handleRequestResearch}
@@ -289,6 +325,30 @@ export function InvestorResearch({ companyId, assessmentPoints, userId }: Invest
               </div>
             )}
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Fund Thesis Alignment Modal */}
+      <Dialog open={isFundThesisModalOpen} onOpenChange={setIsFundThesisModalOpen}>
+        <DialogContent className="max-w-4xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-emerald-600" />
+              Fund Thesis Alignment
+            </DialogTitle>
+            <DialogDescription>
+              Analysis of how well this company aligns with your investment thesis
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {companyId && companyName && (
+              <FundThesisAlignment 
+                companyId={companyId}
+                companyName={companyName}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

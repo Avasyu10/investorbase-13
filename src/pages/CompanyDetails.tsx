@@ -53,34 +53,28 @@ function CompanyDetails() {
 
   return (
     <div className="container mx-auto px-4 py-6 animate-fade-in">
-      {/* Back Button moved inside company info and score section */}
-      
+      {/* Back Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center"
+      >
+        <ChevronLeft className="mr-1" /> Back
+      </Button>
+
       {/* Company Info and Score */}
-      <div className="flex flex-col mb-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="flex items-center"
-          >
-            <ChevronLeft className="mr-1" /> Back
-          </Button>
-          <h1 className="text-2xl font-bold">{company.name}</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          <CompanyInfoCard
+            website=""
+            stage=""
+            industry=""
+            introduction={company.description || ""}
+          />
         </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <CompanyInfoCard
-              website=""
-              stage=""
-              industry=""
-              introduction={company.description || ""}
-            />
-          </div>
-          <div>
-            <ScoreAssessment company={company} />
-          </div>
+        <div>
+          <ScoreAssessment company={company} />
         </div>
       </div>
 
@@ -88,8 +82,6 @@ function CompanyDetails() {
       <OverallAssessment
         score={company.overallScore || 0}
         assessmentPoints={company.assessmentPoints || []}
-        companyId={company.id.toString()}
-        companyName={company.name}
       />
 
       {/* Latest Research */}
