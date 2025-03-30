@@ -50,7 +50,7 @@ export function CompanyInfoCard({
     <div className="mb-7">
       <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
         <Briefcase className="h-5 w-5 text-primary" />
-        Company Information
+        Overview
       </h3>
       
       <Card className="border-0 shadow-card">
@@ -92,17 +92,6 @@ export function CompanyInfoCard({
             </div>
           </div>
         </CardContent>
-        
-        <CardFooter className="p-4 pt-0 flex justify-end border-t bg-muted/30">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-sm font-medium flex items-center gap-1.5 transition-colors"
-            onClick={handleViewMore}
-          >
-            View More <ExternalLink className="h-3.5 w-3.5" />
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );
