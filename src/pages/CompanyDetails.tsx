@@ -10,7 +10,6 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LatestResearch } from "@/components/companies/LatestResearch";
 
 function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
@@ -83,9 +82,6 @@ function CompanyDetails() {
         score={company.overallScore || 0}
         assessmentPoints={company.assessmentPoints || []}
       />
-
-      {/* Latest Research */}
-      <LatestResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>
