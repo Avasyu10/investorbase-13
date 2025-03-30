@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -57,7 +56,7 @@ function CompanyDetails() {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate(-1)}
+        onClick={() => navigate("/dashboard")}
         className="mb-6 flex items-center"
       >
         <ChevronLeft className="mr-1" /> Back
@@ -70,7 +69,7 @@ function CompanyDetails() {
             website=""
             stage=""
             industry=""
-            introduction={company.description || ""}
+            introduction={company.introduction || ""}
           />
         </div>
         <div>

@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -19,7 +18,7 @@ const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { company, isLoading } = useCompanyDetails(id);
+  const { company, isLoading } = useCompanyDetails(id || "");
   const [hasResearchUpdated, setHasResearchUpdated] = useState(false);
   const [companyInfo, setCompanyInfo] = useState({
     website: "",
@@ -148,7 +147,7 @@ const CompanyDetails = () => {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    navigate("/dashboard");
   };
 
   const navigateToSupplementaryMaterials = () => {
@@ -245,10 +244,10 @@ const CompanyDetails = () => {
             >
               <ChevronLeft className="mr-1" /> Back
             </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company?.name}</h1>
           </div>
           <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            {company.reportId && (
+            {company?.reportId && (
               <Button 
                 onClick={navigateToReport} 
                 variant="outline" 
@@ -268,7 +267,7 @@ const CompanyDetails = () => {
             </Button>
             <div className="flex items-center">
               <span className="text-xl sm:text-2xl font-bold text-primary mr-3">
-                {formattedScore}
+                {company ? parseFloat(company.overallScore.toFixed(1)) : 0}
               </span>
               <span className="text-sm text-muted-foreground">/5</span>
             </div>

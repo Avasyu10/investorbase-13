@@ -1,4 +1,3 @@
-
 import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -37,9 +36,7 @@ const CompanyPage = () => {
   }, []);
   
   return (
-    <div className="animate-fade-in">
-      {/* Header section removed as requested */}
-      
+    <div className="animate-fade-in">      
       <CompanyDetails />
       
       {/* Market Research Modal */}
