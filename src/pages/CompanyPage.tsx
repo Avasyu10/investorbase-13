@@ -1,5 +1,5 @@
 
-import CompanyDetails from "@/components/companies/CompanyDetails";
+import CompanyDetails from "@/pages/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
