@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import { ListFilter, Grid, Table as TableIcon, AlertTriangle } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
-import { CompanyListItem } from "@/lib/api/apiContract";
 import { Button } from "@/components/ui/button";
 import { CompaniesTable } from "./CompaniesTable";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +43,6 @@ const getSortOrder = (option: SortOption): 'asc' | 'desc' => {
   return option === 'name' || option === 'source' ? 'asc' : 'desc';
 };
 
-// Helper to get source info with appropriate styling
 const getSourceInfo = (source: string | undefined) => {
   if (source === 'public_url') {
     return {
@@ -59,7 +56,6 @@ const getSourceInfo = (source: string | undefined) => {
     };
   }
   
-  // Default to Dashboard (gold color)
   return {
     label: "Dashboard",
     className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
@@ -96,6 +92,7 @@ export function CompaniesList() {
 
   const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
+    window.scrollTo(0, 0);
   };
 
   const goToPage = (page: number) => {
@@ -131,7 +128,6 @@ export function CompaniesList() {
     return pages;
   };
 
-  // Add the RealtimeSubscriptions component to listen for new email pitch submissions
   return (
     <>
       <RealtimeSubscriptions />

@@ -21,6 +21,9 @@ const Dashboard = () => {
     } else if (user) {
       console.log("Dashboard loaded for user:", user.id);
     }
+    
+    // Scroll to top when dashboard loads
+    window.scrollTo(0, 0);
   }, [user, isLoading, navigate]);
 
   if (isLoading) {
