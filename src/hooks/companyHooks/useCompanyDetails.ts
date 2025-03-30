@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { apiClient } from '@/lib/api/apiClient';
@@ -117,7 +118,10 @@ export function useCompanyDetails(companyId: string | undefined) {
       perplexityResponse: rawData.perplexity_response,
       perplexityRequestedAt: rawData.perplexity_requested_at,
       assessmentPoints: rawData.assessment_points || [],
-      introduction: rawData.description || "",
+      description: rawData.description || "",
+      website: rawData.website || "",
+      industry: rawData.industry || "",
+      stage: rawData.stage || "",
       sections: rawData.sections?.map((section: any) => ({
         id: section.id,
         title: section.title,
