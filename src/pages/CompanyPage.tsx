@@ -1,20 +1,15 @@
 
 import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkle, BookText } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 import { InvestorResearch } from "@/components/companies/InvestorResearch";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
   const [isInvestorResearchModalOpen, setIsInvestorResearchModalOpen] = useState(false);
   const { company, isLoading } = useCompanyDetails(id);
@@ -36,59 +31,9 @@ const CompanyPage = () => {
     getUser();
   }, []);
   
-  const handleBack = () => {
-    navigate(-1);
-  };
-
-  const handleOpenResearchModal = () => {
-    setIsResearchModalOpen(true);
-  };
-  
-  const handleOpenInvestorResearchModal = () => {
-    if (!company) return;
-    
-    setIsInvestorResearchModalOpen(true);
-  };
-  
   return (
     <div className="animate-fade-in">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBack}
-          >
-            <ChevronLeft className="mr-1" /> Back
-          </Button>
-          
-          <div className="flex gap-2">
-            {!isLoading && company && userId && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleOpenInvestorResearchModal}
-                className="flex items-center gap-2 text-[#1EAEDB] hover:bg-[#1EAEDB]/10 border-[#1EAEDB]"
-              >
-                <BookText className="h-4 w-4" />
-                Investor Research
-              </Button>
-            )}
-            
-            {!isLoading && company && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleOpenResearchModal}
-                className="bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
-              >
-                <Sparkle className="mr-2 h-4 w-4" />
-                Analyze in Real Time
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Header section removed as requested */}
       
       <CompanyDetails />
       
@@ -97,7 +42,7 @@ const CompanyPage = () => {
         <DialogContent className="max-w-4xl w-[95vw]">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              <Sparkle className="h-5 w-5 text-amber-500" />
+              <span className="h-5 w-5 text-amber-500"></span>
               Real-Time Market Research
             </DialogTitle>
             <DialogDescription>
@@ -121,7 +66,7 @@ const CompanyPage = () => {
         <DialogContent className="max-w-4xl w-[95vw]">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              <BookText className="h-5 w-5 text-[#1EAEDB]" />
+              <span className="h-5 w-5 text-[#1EAEDB]"></span>
               Investor Research
             </DialogTitle>
             <DialogDescription>
