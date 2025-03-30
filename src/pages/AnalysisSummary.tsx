@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -76,8 +77,16 @@ export default function AnalysisSummary() {
 
   return (
     <div className="container max-w-5xl mx-auto px-4 py-8">
-      {company.reportId && (
-        <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/company/${companyId}`)}
+        >
+          <ChevronLeft className="mr-1" /> Back to Company Details
+        </Button>
+        
+        {company.reportId && (
           <Button
             variant="outline"
             size="sm"
@@ -86,8 +95,8 @@ export default function AnalysisSummary() {
             <Maximize className="mr-2 h-4 w-4" />
             View Deck
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       <Card className="mb-8">
         <CardHeader className="pb-3">
