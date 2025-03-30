@@ -109,9 +109,9 @@ const PublicUpload = () => {
   return (
     <div className="animate-fade-in">
       <Toaster position="top-center" />
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 flex flex-col items-center">
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-6 w-full max-w-2xl">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>
@@ -129,7 +129,7 @@ const PublicUpload = () => {
         )}
         
         {success ? (
-          <Alert className="mb-6 bg-green-50 border-green-200">
+          <Alert className="mb-6 bg-green-50 border-green-200 w-full max-w-2xl">
             <AlertCircle className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-800">Success!</AlertTitle>
             <AlertDescription className="text-green-700">
@@ -137,8 +137,8 @@ const PublicUpload = () => {
             </AlertDescription>
           </Alert>
         ) : (
-          <>
-            <div className="mb-6">
+          <div className="w-full max-w-2xl">
+            <div className="text-center mb-8">
               <h1 className="text-2xl font-bold tracking-tight mb-2">
                 {formData ? formData.form_name : "Submit Your Pitch Deck"}
               </h1>
@@ -157,7 +157,7 @@ const PublicUpload = () => {
               hideEmailField={false}
               disableScrapingFeatures={true}
             />
-          </>
+          </div>
         )}
       </div>
     </div>
