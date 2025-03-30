@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -31,7 +30,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
       try {
         setIsCheckingExisting(true);
         
-        // Get company name
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('name')
@@ -139,24 +137,37 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
               <CardTitle className="text-xl font-semibold">Real-Time Market Research</CardTitle>
             </div>
             
-            <Button 
-              variant={researchData ? "outline" : "default"}
-              onClick={handleRequestResearch}
-              disabled={isLoading || isCheckingExisting}
-              className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkle className="mr-2 h-4 w-4" />
-                  {researchData ? "Update Research" : "Real-Time Analysis"}
-                </>
+            <div className="flex items-center gap-2">
+              {researchData && researchData.status === 'completed' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  View Research
+                </Button>
               )}
-            </Button>
+              
+              <Button 
+                variant={researchData ? "outline" : "default"}
+                onClick={handleRequestResearch}
+                disabled={isLoading || isCheckingExisting}
+                className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkle className="mr-2 h-4 w-4" />
+                    {researchData ? "Update Research" : "Real-Time Analysis"}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         
@@ -182,16 +193,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                     </span>
                   </div>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsDialogOpen(true)}
-                  disabled={researchData.status !== 'completed'}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  View Research
-                </Button>
               </div>
               
               {researchData.status === 'failed' && (
