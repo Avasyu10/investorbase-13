@@ -181,17 +181,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           ) : researchData ? (
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={researchData.status === 'completed' ? "default" : researchData.status === 'failed' ? "destructive" : "secondary"}>
-                      {researchData.status.toUpperCase()}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {researchData.status === 'completed' 
-                        ? `Completed on ${formatDate(researchData.completed_at)}` 
-                        : `Requested on ${formatDate(researchData.requested_at)}`}
-                    </span>
-                  </div>
                 </div>
               </div>
               
