@@ -35,6 +35,10 @@ const CompanyPage = () => {
     
     getUser();
   }, []);
+  
+  const handleBack = () => {
+    navigate(-1);
+  };
 
   const handleOpenResearchModal = () => {
     setIsResearchModalOpen(true);
@@ -47,6 +51,17 @@ const CompanyPage = () => {
   };
   
   return (
+    <div className="animate-fade-in">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBack}
+          >
+            <ChevronLeft className="mr-1" /> Back
+          </Button>
+          
           <div className="flex gap-2">
             {!isLoading && company && userId && (
               <Button
