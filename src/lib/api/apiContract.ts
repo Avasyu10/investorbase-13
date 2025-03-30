@@ -50,3 +50,131 @@ export interface PublicFormSubmission {
   description: string;
   created_at: string;
 }
+
+// Additional interfaces needed based on import errors
+export interface CompanyListItem {
+  id: number;
+  name: string;
+  overallScore: number;
+  score?: number;
+  assessmentPoints?: string[];
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SectionBase extends Section {}
+
+export interface SectionDetailed extends Section {
+  detailedContent?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+}
+
+export enum HttpMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  PATCH = 'PATCH',
+  DELETE = 'DELETE'
+}
+
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message?: string;
+}
+
+export interface ApiError {
+  status: number;
+  message: string;
+  errors?: any;
+  code?: string;
+}
+
+export interface BaseEntity {
+  id: string | number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface CompanyFilterParams {
+  search?: string;
+  minScore?: number;
+  maxScore?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface CompanyCreateRequest {
+  name: string;
+  // Add additional properties as needed
+}
+
+export interface CompanyUpdateRequest {
+  name?: string;
+  overallScore?: number;
+  // Add additional properties as needed
+}
+
+export interface SectionCreateRequest {
+  title: string;
+  type: string;
+  description?: string;
+  score: number;
+}
+
+export interface SectionUpdateRequest {
+  title?: string;
+  type?: string;
+  description?: string;
+  score?: number;
+}
+
+// Define API endpoints for reference in apiClient
+export const API_ENDPOINTS = {
+  GET_COMPANIES: '/companies',
+  GET_COMPANY: (id: number) => `/companies/${id}`,
+  CREATE_COMPANY: '/companies',
+  UPDATE_COMPANY: (id: number) => `/companies/${id}`,
+  DELETE_COMPANY: (id: number) => `/companies/${id}`,
+  
+  GET_SECTIONS: (companyId: number) => `/companies/${companyId}/sections`,
+  GET_SECTION: (companyId: number, sectionId: number | string) => 
+    `/companies/${companyId}/sections/${sectionId}`,
+  CREATE_SECTION: (companyId: number) => `/companies/${companyId}/sections`,
+  UPDATE_SECTION: (companyId: number, sectionId: number | string) => 
+    `/companies/${companyId}/sections/${sectionId}`,
+  DELETE_SECTION: (companyId: number, sectionId: number | string) => 
+    `/companies/${companyId}/sections/${sectionId}`,
+  
+  GET_COMPANY_ANALYSIS: (companyId: number) => `/companies/${companyId}/analysis`,
+};
+
+export type SectionType = 
+  | 'PROBLEM'
+  | 'MARKET'
+  | 'SOLUTION'
+  | 'PRODUCT'
+  | 'COMPETITIVE_LANDSCAPE'
+  | 'TRACTION'
+  | 'BUSINESS_MODEL'
+  | 'GTM_STRATEGY'
+  | 'TEAM'
+  | 'FINANCIALS'
+  | 'ASK';

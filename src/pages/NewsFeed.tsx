@@ -59,14 +59,14 @@ const NewsFeed = () => {
         let marketInsights: MarketInsight[] = [];
         let newsHighlights: NewsItem[] = [];
         
-        // Handle market_insights
+        // Handle market_insights with proper type casting
         if (item.market_insights) {
-          marketInsights = item.market_insights as MarketInsight[];
+          marketInsights = item.market_insights as unknown as MarketInsight[];
         }
         
-        // Handle news_highlights
+        // Handle news_highlights with proper type casting
         if (item.news_highlights) {
-          newsHighlights = item.news_highlights as NewsItem[];
+          newsHighlights = item.news_highlights as unknown as NewsItem[];
         }
         
         return {
