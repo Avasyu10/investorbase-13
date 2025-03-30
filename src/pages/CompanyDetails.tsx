@@ -10,6 +10,7 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LatestResearch } from "@/components/companies/LatestResearch";
 
 function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
@@ -69,7 +70,7 @@ function CompanyDetails() {
             website=""
             stage=""
             industry=""
-            introduction={company?.description || ""}
+            introduction={company?.introduction || ""}
           />
         </div>
         <div>
@@ -83,28 +84,8 @@ function CompanyDetails() {
         assessmentPoints={company.assessmentPoints || []}
       />
 
-      {/* Company Information (replacing Latest Research) */}
-      <Card className="mb-8 shadow-md">
-        <CardHeader className="bg-muted/50 border-b">
-          <CardTitle className="text-xl font-semibold">Company Information</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Description</h3>
-              <p className="text-muted-foreground">{company.description || "No description available."}</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium mb-2">Industry Details</h3>
-              <ul className="space-y-2">
-                <li><span className="font-medium">Industry:</span> {company.industry || "Not specified"}</li>
-                <li><span className="font-medium">Stage:</span> {company.stage || "Not specified"}</li>
-                <li><span className="font-medium">Website:</span> {company.website || "Not available"}</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Latest Research */}
+      <LatestResearch companyId={company.id.toString()} assessmentPoints={company.assessmentPoints || []} />
 
       {/* Sections */}
       <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>
