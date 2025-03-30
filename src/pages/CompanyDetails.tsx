@@ -125,6 +125,23 @@ function CompanyDetails() {
                 {company.introduction || "No detailed description available."}
               </p>
             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <h3 className="font-medium mb-1">Industry</h3>
+                <p className="text-muted-foreground">Not specified</p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-1">Stage</h3>
+                <p className="text-muted-foreground">Not specified</p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-1">Website</h3>
+                <p className="text-muted-foreground">Not available</p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
