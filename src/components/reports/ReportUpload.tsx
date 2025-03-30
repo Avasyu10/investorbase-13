@@ -557,7 +557,7 @@ export function ReportUpload({
           
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <h3 className="text-md font-medium">Supplementary Materials</h3>
+              <h3 className="text-md font-medium">Supplementary Materials (Optional)</h3>
               <Button
                 type="button"
                 variant="outline"
