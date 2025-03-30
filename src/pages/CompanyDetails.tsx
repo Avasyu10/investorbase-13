@@ -6,7 +6,7 @@ import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, Briefcase } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,6 +107,27 @@ function CompanyDetails() {
           </Card>
         )}
       </div>
+      
+      {/* Company Information Section */}
+      <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+        <Briefcase className="h-5 w-5" />
+        Company Information
+      </h2>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg">About {company.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-medium mb-2">Description</h3>
+              <p className="text-muted-foreground whitespace-pre-line">
+                {company.introduction || "No detailed description available."}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

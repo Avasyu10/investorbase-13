@@ -1,13 +1,12 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { CompanyInfoCard } from "./CompanyInfoCard";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, ChevronLeft } from "lucide-react";
+import { FileText, BarChart2, Files, ChevronLeft, Briefcase } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -292,6 +291,54 @@ const CompanyDetails = () => {
           />
         ))}
       </div>
+
+      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+        <Briefcase className="h-5 w-5 text-primary" />
+        Company Information
+      </h2>
+      <Card className="mb-8 border-0 shadow-card">
+        <CardHeader>
+          <CardTitle className="text-lg">About {company.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-medium mb-2">Description</h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">
+                {companyInfo.introduction || "No detailed description available."}
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <h3 className="font-medium mb-1">Industry</h3>
+                <p className="text-sm text-muted-foreground">{companyInfo.industry || "Not specified"}</p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-1">Stage</h3>
+                <p className="text-sm text-muted-foreground">{companyInfo.stage || "Not specified"}</p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-1">Website</h3>
+                {companyInfo.website ? (
+                  <a 
+                    href={companyInfo.website.startsWith('http') ? companyInfo.website : `https://${companyInfo.website}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {companyInfo.website.replace(/^https?:\/\/(www\.)?/, '')}
+                  </a>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not available</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
