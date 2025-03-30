@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,12 +11,31 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ReportViewer } from '@/components/reports/ReportViewer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { InvestorResearch } from '@/components/companies/InvestorResearch';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  // Get user ID
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+        }
+      } catch (error) {
+        console.error('Error getting user:', error);
+      }
+    };
+    
+    getUser();
+  }, []);
 
   if (isLoading) {
     return (
@@ -111,16 +131,14 @@ export default function AnalysisSummary() {
             </p>
           </div>
 
+          {/* Investor Research Component (replacing Key Assessment Points) */}
           <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Key Assessment Points</h3>
-            {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
-              <ul className="list-disc pl-5 space-y-2">
-                {company.assessmentPoints.map((point, index) => (
-                  <li key={index} className="text-muted-foreground">{point}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground italic">No assessment points available</p>
+            {userId && company && (
+              <InvestorResearch 
+                companyId={company.id.toString()}
+                assessmentPoints={company.assessmentPoints || []}
+                userId={userId}
+              />
             )}
           </div>
 
