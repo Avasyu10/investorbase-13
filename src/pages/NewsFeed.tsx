@@ -34,7 +34,8 @@ const NewsFeed = () => {
     try {
       setIsLoading(true);
       
-      // Query the market_research table
+      // Query the market_research table - without any user filtering
+      // to show all research data to all users
       const { data, error } = await supabase
         .from('market_research')
         .select(`
