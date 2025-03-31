@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart2, Lightbulb, ExternalLink } from "lucide-react";
+import { BarChart2, Lightbulb, ExternalLink, Rocket } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 
@@ -35,9 +35,22 @@ export function OverallAssessment({
             <BarChart2 className="h-5 w-5 text-primary" />
             <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
             <span className="text-sm text-muted-foreground">/{maxScore}</span>
+            <Button 
+              variant="outline"
+              className="ml-4 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+            >
+              <Lightbulb className="mr-2 h-4 w-4 text-white" />
+              Fund Thesis Alignment
+            </Button>
+            <Button 
+              variant="outline"
+              className="ml-2 bg-primary/90 hover:bg-primary text-white border-primary/90"
+            >
+              <Rocket className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>
