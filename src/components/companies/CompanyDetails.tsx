@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -441,7 +440,7 @@ const CompanyDetails = () => {
         <div className="w-1/2 h-screen flex flex-col border-l border-border bg-background shadow-card">
           <div className="p-4 border-b border-border flex justify-between items-center">
             <div>
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="font-semibold text-lg flex items-center gap-2 text-primary">
                 InsightMaster
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
