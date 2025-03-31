@@ -27,10 +27,9 @@ const CompanyDetails = () => {
   });
   const [infoLoading, setInfoLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
-  const [messages, setMessages] = useState<Array<{content: string, role: 'user' | 'assistant'}>>([
-    { content: "Hello! I'm InsightMaster by InvestorBase. How can I help you analyze this company?", role: 'assistant' }
-  ]);
+  const [messages, setMessages] = useState<Array<{content: string, role: 'user' | 'assistant'}>>([]);
   const [currentMessage, setCurrentMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   useEffect(() => {
     async function fetchCompanyInfo() {
@@ -120,6 +119,8 @@ const CompanyDetails = () => {
             });
           }
         }
+        
+        setInfoLoading(false);
       } catch (error) {
         console.error("Error fetching company information:", error);
       } finally {
@@ -131,6 +132,17 @@ const CompanyDetails = () => {
       fetchCompanyInfo();
     }
   }, [company, id]);
+
+  // Initialize the chat with company information when opened
+  useEffect(() => {
+    if (showChat && messages.length === 0 && companyInfo.introduction) {
+      // Set initial welcome message from the assistant
+      setMessages([{ 
+        content: `Hello! I'm InsightMaster by InvestorBase. How can I help you analyze ${company?.name || 'this company'}?`, 
+        role: 'assistant' 
+      }]);
+    }
+  }, [showChat, messages.length, companyInfo.introduction, company?.name]);
 
   const handleSectionClick = (sectionId: number | string) => {
     navigate(`/company/${id}/section/${sectionId.toString()}`);
@@ -161,19 +173,77 @@ const CompanyDetails = () => {
     setShowChat(!showChat);
   };
 
-  const handleSendMessage = () => {
-    if (!currentMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || isSendingMessage) return;
     
-    setMessages([...messages, { content: currentMessage, role: 'user' }]);
+    const userMessage = { content: currentMessage, role: 'user' as const };
+    setMessages(prev => [...prev, userMessage]);
+    setCurrentMessage('');
+    setIsSendingMessage(true);
     
-    setTimeout(() => {
+    try {
+      // Create the conversation history for context
+      const conversationHistory = messages.map(msg => ({
+        content: msg.content,
+        role: msg.role
+      }));
+      
+      // Add the current user message
+      conversationHistory.push(userMessage);
+      
+      // Call the company-chatbot edge function with the company introduction and conversation history
+      const { data, error } = await supabase.functions.invoke('company-chatbot', {
+        body: { 
+          companyId: id,
+          companyName: company?.name || 'Company',
+          companyIntroduction: companyInfo.introduction,
+          companyIndustry: companyInfo.industry,
+          companyStage: companyInfo.stage,
+          messages: conversationHistory
+        }
+      });
+      
+      if (error) {
+        console.error('Error invoking company-chatbot function:', error);
+        setMessages(prev => [...prev, { 
+          content: "I'm sorry, I encountered an error. Please try again later.", 
+          role: 'assistant' 
+        }]);
+        
+        toast({
+          title: "Error",
+          description: "Failed to get a response from the chatbot",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       setMessages(prev => [...prev, { 
-        content: `I'll help you analyze ${company?.name || 'this company'}. What specific aspects would you like to know more about?`, 
+        content: data.response || "I'm analyzing this company, but I don't have enough information to provide a detailed response.", 
         role: 'assistant' 
       }]);
-    }, 1000);
-    
-    setCurrentMessage('');
+    } catch (error) {
+      console.error('Error in handleSendMessage:', error);
+      setMessages(prev => [...prev, { 
+        content: "I'm sorry, I encountered an error processing your request.", 
+        role: 'assistant' 
+      }]);
+      
+      toast({
+        title: "Error",
+        description: "Failed to process your message",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
 
   if (isLoading) {
@@ -408,6 +478,17 @@ const CompanyDetails = () => {
                   </div>
                 </div>
               ))}
+              {isSendingMessage && (
+                <div className="flex justify-start">
+                  <div className="bg-muted text-foreground max-w-[80%] rounded-lg p-3 mr-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
+                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-75"></div>
+                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-150"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -417,11 +498,16 @@ const CompanyDetails = () => {
                 type="text"
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyPress={handleKeyPress}
                 placeholder="Ask about this company..."
                 className="flex-1 p-2 rounded-md border border-input bg-background"
+                disabled={isSendingMessage}
               />
-              <Button onClick={handleSendMessage} size="icon">
+              <Button 
+                onClick={handleSendMessage} 
+                size="icon"
+                disabled={isSendingMessage || !currentMessage.trim()}
+              >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
