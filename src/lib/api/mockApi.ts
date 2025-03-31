@@ -152,7 +152,7 @@ export async function getMockSectionDetails(companyId: number, sectionId: number
 }
 
 // Helper functions to generate detailed content based on section type
-function getSectionDetailedContent(sectionType: string): string {
+function getSectionDetailedContent(sectionType: SectionType): string {
   const contentMap: Record<string, string> = {
     PROBLEM: "The company has clearly identified a significant market pain point that affects a large number of potential customers. The problem statement is well articulated with supporting market research and customer validation. The problem's urgency and impact on customers are well documented.",
     MARKET: "The total addressable market is substantial with a clear growth trajectory. Market analysis shows strong potential for scaling with limited regulatory barriers. The company has identified specific market segments with the highest potential for early adoption.",
@@ -170,7 +170,7 @@ function getSectionDetailedContent(sectionType: string): string {
   return contentMap[sectionType] || "Detailed analysis will be provided soon.";
 }
 
-function getStrengths(sectionType: string): string[] {
+function getStrengths(sectionType: SectionType): string[] {
   const strengthsMap: Record<string, string[]> = {
     PROBLEM: [
       "Clear articulation of customer pain points",
@@ -243,7 +243,7 @@ function getStrengths(sectionType: string): string[] {
   return strengthsMap[sectionType] || ["Strengths analysis will be provided soon."];
 }
 
-function getWeaknesses(sectionType: string): string[] {
+function getWeaknesses(sectionType: SectionType): string[] {
   const weaknessesMap: Record<string, string[]> = {
     PROBLEM: [
       "Consider more quantitative evidence of problem impact",

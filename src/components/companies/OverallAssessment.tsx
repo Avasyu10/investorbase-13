@@ -1,10 +1,8 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart2, Lightbulb, ExternalLink, Maximize2 } from "lucide-react";
+import { BarChart2, Lightbulb, ExternalLink } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { SplitView } from "./SplitView";
 
 interface OverallAssessmentProps {
   score: number;
@@ -26,70 +24,53 @@ export function OverallAssessment({
   // Calculate progress percentage
   const progressPercentage = (score / maxScore) * 100;
   
-  // State to control the split view
-  const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
+  // Format score to one decimal place
+  const formattedScore = typeof score === 'number' ? score.toFixed(1) : '0.0';
 
   return (
-    <>
-      <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
-        <CardHeader className="border-b pb-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <BarChart2 className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
-            </div>
-            <Button 
-              variant="primary"
-              size="sm"
-              className="gap-2 bg-primary text-white hover:bg-primary/90"
-              onClick={() => setIsSplitViewOpen(true)}
-            >
-              <Maximize2 className="h-4 w-4" />
-              Split View
-            </Button>
+    <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
+      <CardHeader className="border-b pb-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <BarChart2 className="h-5 w-5 text-primary" />
+            <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
           </div>
-        </CardHeader>
-        
-        <CardContent className="pt-5">
-          <div className="mb-6">
-            <Progress 
-              value={progressPercentage} 
-              className="h-2" 
-            />
+          <div className="flex items-center gap-1">
+            <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
+            <span className="text-sm text-muted-foreground">/{maxScore}</span>
           </div>
-          
-          <div className="space-y-4">
-            {assessmentPoints.map((point, index) => (
-              <div 
-                key={index} 
-                className="flex items-start gap-3 p-4 rounded-lg border-0"
-              >
-                <Lightbulb className="h-5 w-5 mt-0.5 text-amber-500 shrink-0" />
-                <span className="text-sm leading-relaxed">{point}</span>
-              </div>
-            ))}
-          </div>
-          
-          <div className="flex justify-end mt-6">
-            <Button 
-              variant="link" 
-              className="text-amber-500 hover:text-amber-400 flex items-center gap-1 px-0"
-            >
-              View Full Analysis <ExternalLink className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardHeader>
       
-      {/* Render the split view when the button is clicked */}
-      {isSplitViewOpen && (
-        <SplitView 
-          score={score}
-          maxScore={maxScore}
-          isOpen={isSplitViewOpen} 
-          onClose={() => setIsSplitViewOpen(false)} 
-        />
-      )}
-    </>
+      <CardContent className="pt-5">
+        <div className="mb-6">
+          <Progress 
+            value={progressPercentage} 
+            className="h-2" 
+          />
+        </div>
+        
+        <div className="space-y-4">
+          {assessmentPoints.map((point, index) => (
+            <div 
+              key={index} 
+              className="flex items-start gap-3 p-4 rounded-lg border-0"
+            >
+              <Lightbulb className="h-5 w-5 mt-0.5 text-amber-500 shrink-0" />
+              <span className="text-sm leading-relaxed">{point}</span>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-end mt-6">
+          <Button 
+            variant="link" 
+            className="text-amber-500 hover:text-amber-400 flex items-center gap-1 px-0"
+          >
+            View Full Analysis <ExternalLink className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
