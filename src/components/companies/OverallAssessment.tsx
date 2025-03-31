@@ -39,9 +39,9 @@ export function OverallAssessment({
               <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
             </div>
             <Button 
-              variant="outline"
+              variant="primary"
               size="sm"
-              className="gap-2 bg-primary text-white hover:bg-primary/90 border-primary"
+              className="gap-2 bg-primary text-white hover:bg-primary/90"
               onClick={() => setIsSplitViewOpen(true)}
             >
               <Maximize2 className="h-4 w-4" />
