@@ -1,4 +1,3 @@
-
 export interface Section {
   id: string | number;
   title: string;
