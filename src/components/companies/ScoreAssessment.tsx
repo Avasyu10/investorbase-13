@@ -74,12 +74,26 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
             .from('vc_profiles')
             .select('fund_thesis_url')
             .eq('id', user.id)
-            .maybeSingle();
+            .single();
             
           if (!error && data && data.fund_thesis_url) {
             setHasFundThesis(true);
           } else {
-            setHasFundThesis(false);
+            // If first query fails, the profile might be using a different ID structure
+            // Try to get the profile directly without filtering
+            console.log("Trying alternative method to find fund thesis...");
+            const { data: profileData, error: profileError } = await supabase
+              .from('vc_profiles')
+              .select('fund_thesis_url')
+              .single();
+              
+            if (!profileError && profileData && profileData.fund_thesis_url) {
+              setHasFundThesis(true);
+              console.log("Found fund thesis with alternative method");
+            } else {
+              console.log("No fund thesis found:", profileError);
+              setHasFundThesis(false);
+            }
           }
         }
       } catch (error) {
