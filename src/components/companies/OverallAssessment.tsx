@@ -26,9 +26,6 @@ export function OverallAssessment({
   // Calculate progress percentage
   const progressPercentage = (score / maxScore) * 100;
   
-  // Format score to one decimal place
-  const formattedScore = typeof score === 'number' ? score.toFixed(1) : '0.0';
-  
   // State to control the split view
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
 
