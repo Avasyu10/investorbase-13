@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -12,6 +13,7 @@ import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
+import ReactMarkdown from 'react-markdown';
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -470,7 +472,13 @@ const CompanyDetails = () => {
                         : 'bg-muted text-foreground mr-4'
                     }`}
                   >
-                    {message.content}
+                    {message.role === 'user' ? (
+                      message.content
+                    ) : (
+                      <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
+                        {message.content}
+                      </ReactMarkdown>
+                    )}
                   </div>
                 </div>
               ))}
