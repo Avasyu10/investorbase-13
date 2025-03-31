@@ -444,7 +444,7 @@ const CompanyDetails = () => {
                 InsightMaster
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Get Real-Time Industry and Market Insights about {company?.name}
+                Discuss {company?.name}'s investment opportunity with InsightMaster
               </p>
             </div>
             <Button 
