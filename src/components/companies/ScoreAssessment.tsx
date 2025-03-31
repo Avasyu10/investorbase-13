@@ -69,14 +69,17 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
         if (user) {
           setUserId(user.id);
           
-          // Check if user has a fund thesis
-          const { count, error } = await supabase
-            .from('fund_thesis_analysis')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+          // Check if user has a fund thesis by looking for a non-null thesis URL
+          const { data, error } = await supabase
+            .from('vc_profiles')
+            .select('fund_thesis_url')
+            .eq('id', user.id)
+            .maybeSingle();
             
-          if (!error) {
-            setHasFundThesis(count !== null && count > 0);
+          if (!error && data && data.fund_thesis_url) {
+            setHasFundThesis(true);
+          } else {
+            setHasFundThesis(false);
           }
         }
       } catch (error) {
