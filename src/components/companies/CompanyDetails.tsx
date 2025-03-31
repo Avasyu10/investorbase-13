@@ -7,7 +7,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, ChevronLeft, Briefcase, MessageSquare } from "lucide-react";
+import { FileText, BarChart2, Files, ChevronLeft, Briefcase, MessageSquare, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -27,6 +27,11 @@ const CompanyDetails = () => {
     introduction: ""
   });
   const [infoLoading, setInfoLoading] = useState(true);
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState<Array<{content: string, role: 'user' | 'assistant'}>>([
+    { content: "Hello! I'm your AI assistant. How can I help you analyze this company?", role: 'assistant' }
+  ]);
+  const [currentMessage, setCurrentMessage] = useState('');
 
   useEffect(() => {
     async function fetchCompanyInfo() {
@@ -154,10 +159,24 @@ const CompanyDetails = () => {
   };
   
   const handleChatbotClick = () => {
-    toast({
-      title: "Chatbot",
-      description: "Chatbot functionality coming soon!",
-    });
+    setShowChat(!showChat);
+  };
+
+  const handleSendMessage = () => {
+    if (!currentMessage.trim()) return;
+    
+    // Add user message
+    setMessages([...messages, { content: currentMessage, role: 'user' }]);
+    
+    // Simulate AI response
+    setTimeout(() => {
+      setMessages(prev => [...prev, { 
+        content: `I'll help you analyze ${company?.name || 'this company'}. What specific aspects would you like to know more about?`, 
+        role: 'assistant' 
+      }]);
+    }, 1000);
+    
+    setCurrentMessage('');
   };
 
   if (isLoading) {
@@ -224,131 +243,188 @@ const CompanyDetails = () => {
   });
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in">
-      <div className="mb-7 sm:mb-9">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBack}
-              className="flex items-center"
-            >
-              <ChevronLeft className="mr-1" /> Back
-            </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company?.name}</h1>
-          </div>
-          <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            {company?.reportId && (
+    <div className={`flex w-full ${showChat ? 'flex-row' : 'flex-col'}`}>
+      <div className={`container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in ${showChat ? 'w-1/2' : 'w-full'}`}>
+        <div className="mb-7 sm:mb-9">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBack}
+                className="flex items-center"
+              >
+                <ChevronLeft className="mr-1" /> Back
+              </Button>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company?.name}</h1>
+            </div>
+            <div className="flex items-center gap-4 mt-2 sm:mt-0">
+              {company?.reportId && (
+                <Button 
+                  onClick={navigateToReport} 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  View Deck
+                </Button>
+              )}
               <Button 
-                onClick={navigateToReport} 
+                onClick={navigateToSupplementaryMaterials} 
                 variant="outline" 
                 className="flex items-center gap-2"
               >
-                <FileText className="h-4 w-4" />
-                View Deck
+                <Files className="h-4 w-4" />
+                Supplementary Material
               </Button>
-            )}
-            <Button 
-              onClick={navigateToSupplementaryMaterials} 
-              variant="outline" 
-              className="flex items-center gap-2"
-            >
-              <Files className="h-4 w-4" />
-              Supplementary Material
-            </Button>
-            <Button
-              onClick={handleChatbotClick}
-              variant="primary"
-              className="flex items-center gap-2 bg-primary text-primary-foreground"
-            >
-              <MessageSquare className="h-4 w-4" />
-              Chat Assistant
-            </Button>
+              <Button
+                onClick={handleChatbotClick}
+                variant="default"
+                className={`flex items-center gap-2 ${showChat ? 'bg-secondary' : 'bg-primary'}`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Chat Assistant
+              </Button>
+            </div>
           </div>
+          
+          <div className="mt-6 mb-8">
+            <CompanyInfoCard 
+              website={companyInfo.website}
+              stage={companyInfo.stage}
+              industry={companyInfo.industry}
+              founderLinkedIns={companyInfo.founderLinkedIns}
+              introduction={companyInfo.introduction}
+            />
+          </div>
+          
+          <div className="mb-5">
+            <Progress 
+              value={progressPercentage} 
+              className={`h-2 ${getScoreColor(company.overallScore)}`} 
+            />
+          </div>
+
+          <ScoreAssessment company={company} />
         </div>
         
-        <div className="mt-6 mb-8">
-          <CompanyInfoCard 
-            website={companyInfo.website}
-            stage={companyInfo.stage}
-            industry={companyInfo.industry}
-            founderLinkedIns={companyInfo.founderLinkedIns}
-            introduction={companyInfo.introduction}
-          />
-        </div>
-        
-        <div className="mb-5">
-          <Progress 
-            value={progressPercentage} 
-            className={`h-2 ${getScoreColor(company.overallScore)}`} 
-          />
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+          <BarChart2 className="h-5 w-5 text-primary" />
+          Section Metrics
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+          {sortedSections.map((section) => (
+            <SectionCard 
+              key={section.id} 
+              section={section} 
+              onClick={() => handleSectionClick(section.id)} 
+            />
+          ))}
         </div>
 
-        <ScoreAssessment company={company} />
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+          <Briefcase className="h-5 w-5 text-primary" />
+          Company Information
+        </h2>
+        <Card className="mb-8 border-0 shadow-card">
+          <CardHeader>
+            <CardTitle className="text-lg">About {company.name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-2">Description</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {companyInfo.introduction || "No detailed description available."}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <h3 className="font-medium mb-1">Industry</h3>
+                  <p className="text-sm text-muted-foreground">{companyInfo.industry || "Not specified"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-1">Stage</h3>
+                  <p className="text-sm text-muted-foreground">{companyInfo.stage || "Not specified"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-1">Website</h3>
+                  {companyInfo.website ? (
+                    <a 
+                      href={companyInfo.website.startsWith('http') ? companyInfo.website : `https://${companyInfo.website}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {companyInfo.website.replace(/^https?:\/\/(www\.)?/, '')}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Not available</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-        <BarChart2 className="h-5 w-5 text-primary" />
-        Section Metrics
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-        {sortedSections.map((section) => (
-          <SectionCard 
-            key={section.id} 
-            section={section} 
-            onClick={() => handleSectionClick(section.id)} 
-          />
-        ))}
-      </div>
-
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-        <Briefcase className="h-5 w-5 text-primary" />
-        Company Information
-      </h2>
-      <Card className="mb-8 border-0 shadow-card">
-        <CardHeader>
-          <CardTitle className="text-lg">About {company.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-medium mb-2">Description</h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-line">
-                {companyInfo.introduction || "No detailed description available."}
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <h3 className="font-medium mb-1">Industry</h3>
-                <p className="text-sm text-muted-foreground">{companyInfo.industry || "Not specified"}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-1">Stage</h3>
-                <p className="text-sm text-muted-foreground">{companyInfo.stage || "Not specified"}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-1">Website</h3>
-                {companyInfo.website ? (
-                  <a 
-                    href={companyInfo.website.startsWith('http') ? companyInfo.website : `https://${companyInfo.website}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
+      {/* Chat Panel */}
+      {showChat && (
+        <div className="w-1/2 border-l border-border h-screen flex flex-col">
+          <div className="p-4 border-b">
+            <h2 className="font-semibold text-lg flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              Chat with AI Assistant
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Ask questions about {company?.name} to get detailed insights
+            </p>
+          </div>
+          
+          <div className="flex-1 overflow-auto p-4 bg-secondary/10">
+            <div className="flex flex-col space-y-4">
+              {messages.map((message, index) => (
+                <div 
+                  key={index} 
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.role === 'user' 
+                        ? 'bg-primary text-primary-foreground ml-4' 
+                        : 'bg-muted text-foreground mr-4'
+                    }`}
                   >
-                    {companyInfo.website.replace(/^https?:\/\/(www\.)?/, '')}
-                  </a>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Not available</p>
-                )}
-              </div>
+                    {message.content}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+          
+          <div className="p-4 border-t">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask about this company..."
+                className="flex-1 p-2 rounded-md border border-input bg-background"
+              />
+              <Button onClick={handleSendMessage} size="icon">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Press Enter to send your message
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

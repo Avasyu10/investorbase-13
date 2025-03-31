@@ -1,4 +1,3 @@
-
 import { 
   CompanyListItem, 
   CompanyDetailed, 
@@ -144,12 +143,7 @@ export async function getMockSectionDetails(companyId: number, sectionId: number
   const section = company.sections.find(s => s.id === numericSectionId);
   if (!section) return null;
 
-  return {
-    ...section,
-    detailedContent: getSectionDetailedContent(section.type as SectionType),
-    strengths: getStrengths(section.type as SectionType),
-    weaknesses: getWeaknesses(section.type as SectionType),
-  };
+  return getSectionWithDetails(section);
 }
 
 // Helper functions to generate detailed content based on section type
@@ -304,4 +298,16 @@ function getWeaknesses(sectionType: SectionType): string[] {
   };
   
   return weaknessesMap[sectionType] || ["Areas for improvement will be provided soon."];
+}
+
+function getSectionWithDetails(section: any) {
+  // Type casting to ensure type safety
+  const sectionType = section.type as SectionType;
+
+  return {
+    ...section,
+    detailedContent: getSectionDetailedContent(sectionType),
+    strengths: getStrengths(sectionType),
+    weaknesses: getWeaknesses(sectionType),
+  };
 }
