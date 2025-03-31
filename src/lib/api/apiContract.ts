@@ -50,7 +50,6 @@ export interface PublicFormSubmission {
   created_at: string;
 }
 
-// Additional interfaces needed based on import errors
 export interface CompanyListItem {
   id: number;
   name: string;
@@ -145,7 +144,6 @@ export interface SectionUpdateRequest {
   score?: number;
 }
 
-// Define API endpoints for reference in apiClient
 export const API_ENDPOINTS = {
   GET_COMPANIES: '/companies',
   GET_COMPANY: (id: number) => `/companies/${id}`,
@@ -165,15 +163,16 @@ export const API_ENDPOINTS = {
   GET_COMPANY_ANALYSIS: (companyId: number) => `/companies/${companyId}/analysis`,
 };
 
-export type SectionType = 
-  | 'PROBLEM'
-  | 'MARKET'
-  | 'SOLUTION'
-  | 'PRODUCT'
-  | 'COMPETITIVE_LANDSCAPE'
-  | 'TRACTION'
-  | 'BUSINESS_MODEL'
-  | 'GTM_STRATEGY'
-  | 'TEAM'
-  | 'FINANCIALS'
-  | 'ASK';
+export enum SectionType {
+  PROBLEM = 'PROBLEM',
+  MARKET = 'MARKET',
+  SOLUTION = 'SOLUTION',
+  PRODUCT = 'PRODUCT',
+  COMPETITIVE_LANDSCAPE = 'COMPETITIVE_LANDSCAPE',
+  TRACTION = 'TRACTION',
+  BUSINESS_MODEL = 'BUSINESS_MODEL',
+  GTM_STRATEGY = 'GTM_STRATEGY',
+  TEAM = 'TEAM',
+  FINANCIALS = 'FINANCIALS',
+  ASK = 'ASK'
+}

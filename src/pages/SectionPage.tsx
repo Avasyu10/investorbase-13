@@ -1,4 +1,3 @@
-
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -29,7 +28,9 @@ const SectionPage = () => {
   const isLoading = authLoading || companyLoading || sectionLoading;
 
   const handleBackClick = () => {
-    navigate(-1);
+    if (companyId) {
+      navigate(`/company/${companyId}`);
+    }
   };
 
   const getAdjacentSections = () => {
