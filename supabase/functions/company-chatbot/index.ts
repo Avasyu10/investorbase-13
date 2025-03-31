@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
 
 // Define CORS headers with additional allowed headers
 const corsHeaders = {
@@ -17,9 +17,9 @@ serve(async (req) => {
   }
 
   try {
-    // Check if Gemini API key is set
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not set in environment variables");
+    // Check if Perplexity API key is set
+    if (!PERPLEXITY_API_KEY) {
+      throw new Error("PERPLEXITY_API_KEY is not set in environment variables");
     }
 
     // Parse request body
@@ -61,86 +61,55 @@ Formatting instructions:
 
 If you don't know something, say so honestly rather than making up information.`;
 
-    // Prepare the conversation history for Gemini
-    const conversationHistory = messages.map(msg => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }]
+    // Prepare the conversation history for Perplexity
+    // Format messages according to Perplexity API requirements
+    const formattedMessages = messages.map(msg => ({
+      role: msg.role === "user" ? "user" : "assistant",
+      content: msg.content
     }));
+    
+    // Add system message to the beginning of the array
+    formattedMessages.unshift({
+      role: "system",
+      content: systemPrompt
+    });
 
-    // If this is the first message, add context about the company
-    if (messages.length <= 2) {
-      // Add some initial context to help the model
-      conversationHistory.unshift({
-        role: "user",
-        parts: [{ text: `I want to analyze ${companyName}. Here's what I know about it: ${companyIntroduction}` }]
-      });
-      conversationHistory.unshift({
-        role: "model",
-        parts: [{ text: "I'll help you analyze this company based on the information available." }]
-      });
-    }
-
-    // Prepare the request to Gemini API
-    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
-    // Make the API request to Gemini
-    const response = await fetch(`${apiUrl}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
+    // Prepare the request to Perplexity API
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: systemPrompt }]
-          },
-          ...conversationHistory
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 800,
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          }
-        ]
+        model: "llama-3.1-sonar-small-128k-online",
+        messages: formattedMessages,
+        temperature: 0.7,
+        top_p: 0.9,
+        max_tokens: 800,
+        frequency_penalty: 1,
+        presence_penalty: 0,
+        return_images: false,
+        return_related_questions: false
       }),
     });
 
-    // Process Gemini API response
+    // Process Perplexity API response
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Gemini API error:", errorData);
-      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+      console.error("Perplexity API error:", errorData);
+      throw new Error(`Perplexity API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    console.log("Gemini API response:", JSON.stringify(data));
+    console.log("Perplexity API response:", JSON.stringify(data));
 
     // Extract the generated text
     let generatedText = "I'm sorry, I couldn't generate a response at this time.";
-    if (data.candidates && data.candidates.length > 0 && 
-        data.candidates[0].content && 
-        data.candidates[0].content.parts && 
-        data.candidates[0].content.parts.length > 0) {
-      generatedText = data.candidates[0].content.parts[0].text;
+    if (data.choices && data.choices.length > 0 && 
+        data.choices[0].message && 
+        data.choices[0].message.content) {
+      generatedText = data.choices[0].message.content;
     }
 
     // Return the response
