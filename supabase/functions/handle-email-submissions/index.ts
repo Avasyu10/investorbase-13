@@ -5,7 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 // Set up CORS headers for cross-origin requests
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-app-version, referer, user-agent",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 // Define the expected webhook payload structure
@@ -94,6 +95,32 @@ serve(async (req) => {
         }
         
         console.log("Extracted ID:", id);
+        
+        // Check if this submission already exists to prevent duplicates
+        const { data: existingSubmission, error: checkError } = await supabase
+          .from("email_pitch_submissions")
+          .select("id")
+          .eq("external_id", id)
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error("Error checking for existing submission:", checkError);
+          // Continue processing as we'd rather risk a duplicate than miss a submission
+        } else if (existingSubmission) {
+          console.log("Submission already exists with external_id:", id);
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              id: existingSubmission.id,
+              message: "Email pitch submission already processed",
+              alreadyExists: true
+            }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
         
         // Extract other basic fields
         const received_at = params.get('received_at') || '';
@@ -200,6 +227,34 @@ serve(async (req) => {
       try {
         payload = JSON.parse(reqText);
         console.log("Parsed JSON payload:", JSON.stringify(payload, null, 2));
+        
+        // Check if this submission already exists
+        if (payload.id) {
+          const { data: existingSubmission, error: checkError } = await supabase
+            .from("email_pitch_submissions")
+            .select("id")
+            .eq("external_id", payload.id)
+            .maybeSingle();
+            
+          if (checkError) {
+            console.error("Error checking for existing submission:", checkError);
+            // Continue processing as we'd rather risk a duplicate than miss a submission
+          } else if (existingSubmission) {
+            console.log("Submission already exists with external_id:", payload.id);
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                id: existingSubmission.id,
+                message: "Email pitch submission already processed",
+                alreadyExists: true
+              }),
+              {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+        }
       } catch (parseError) {
         console.error("Error parsing payload as JSON:", parseError);
         return new Response(
