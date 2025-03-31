@@ -133,10 +133,8 @@ const CompanyDetails = () => {
     }
   }, [company, id]);
 
-  // Initialize the chat with company information when opened
   useEffect(() => {
     if (showChat && messages.length === 0 && companyInfo.introduction) {
-      // Set initial welcome message from the assistant
       setMessages([{ 
         content: `Hello! I'm InsightMaster by InvestorBase. How can I help you analyze ${company?.name || 'this company'}?`, 
         role: 'assistant' 
@@ -182,16 +180,13 @@ const CompanyDetails = () => {
     setIsSendingMessage(true);
     
     try {
-      // Create the conversation history for context
       const conversationHistory = messages.map(msg => ({
         content: msg.content,
         role: msg.role
       }));
       
-      // Add the current user message
       conversationHistory.push(userMessage);
       
-      // Call the company-chatbot edge function with the company introduction and conversation history
       const { data, error } = await supabase.functions.invoke('company-chatbot', {
         body: { 
           companyId: id,
@@ -199,6 +194,7 @@ const CompanyDetails = () => {
           companyIntroduction: companyInfo.introduction,
           companyIndustry: companyInfo.industry,
           companyStage: companyInfo.stage,
+          assessmentPoints: company?.assessmentPoints || [],
           messages: conversationHistory
         }
       });
