@@ -7,7 +7,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, ChevronLeft, Briefcase } from "lucide-react";
+import { FileText, BarChart2, Files, ChevronLeft, Briefcase, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -152,6 +152,13 @@ const CompanyDetails = () => {
   const navigateToSupplementaryMaterials = () => {
     navigate(`/company/${id}/supplementary`);
   };
+  
+  const handleChatbotClick = () => {
+    toast({
+      title: "Chatbot",
+      description: "Chatbot functionality coming soon!",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -250,12 +257,14 @@ const CompanyDetails = () => {
               <Files className="h-4 w-4" />
               Supplementary Material
             </Button>
-            <div className="flex items-center">
-              <span className="text-xl sm:text-2xl font-bold text-primary mr-3">
-                {company ? parseFloat(company.overallScore.toFixed(1)) : 0}
-              </span>
-              <span className="text-sm text-muted-foreground">/5</span>
-            </div>
+            <Button
+              onClick={handleChatbotClick}
+              variant="primary"
+              className="flex items-center gap-2 bg-primary text-primary-foreground"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Chat Assistant
+            </Button>
           </div>
         </div>
         

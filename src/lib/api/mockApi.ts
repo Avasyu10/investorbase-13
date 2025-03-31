@@ -1,3 +1,4 @@
+
 import { 
   CompanyListItem, 
   CompanyDetailed, 
@@ -145,9 +146,9 @@ export async function getMockSectionDetails(companyId: number, sectionId: number
 
   return {
     ...section,
-    detailedContent: getSectionDetailedContent(section.type),
-    strengths: getStrengths(section.type),
-    weaknesses: getWeaknesses(section.type),
+    detailedContent: getSectionDetailedContent(section.type as SectionType),
+    strengths: getStrengths(section.type as SectionType),
+    weaknesses: getWeaknesses(section.type as SectionType),
   };
 }
 
