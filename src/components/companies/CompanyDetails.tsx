@@ -28,7 +28,7 @@ const CompanyDetails = () => {
   const [infoLoading, setInfoLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<Array<{content: string, role: 'user' | 'assistant'}>>([
-    { content: "Hello! I'm your AI assistant. How can I help you analyze this company?", role: 'assistant' }
+    { content: "Hello! I'm InsightMaster by InvestorBase. How can I help you analyze this company?", role: 'assistant' }
   ]);
   const [currentMessage, setCurrentMessage] = useState('');
 
@@ -374,7 +374,7 @@ const CompanyDetails = () => {
           <div className="p-4 border-b border-border flex justify-between items-center">
             <div>
               <h2 className="font-semibold text-lg flex items-center gap-2">
-                InsightMaster by InvestorBase
+                InsightMaster
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Ask questions about {company?.name} to get detailed insights
