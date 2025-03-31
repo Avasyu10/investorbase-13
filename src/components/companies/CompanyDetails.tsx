@@ -6,7 +6,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, ChevronLeft, Briefcase, MessageSquare, Send, X } from "lucide-react";
+import { FileText, BarChart2, Files, ChevronLeft, Briefcase, BotMessageSquare, Send, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -280,7 +280,7 @@ const CompanyDetails = () => {
                   variant={showChat ? "secondary" : "default"}
                   className="flex items-center gap-2"
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <BotMessageSquare className="h-4 w-4" />
                   Chat Assistant
                 </Button>
               </div>
@@ -375,8 +375,7 @@ const CompanyDetails = () => {
           <div className="p-4 border-b border-border flex justify-between items-center">
             <div>
               <h2 className="font-semibold text-lg flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-primary" />
-                Chat with AI Assistant
+                <BotMessageSquare className="h-4 w-4 text-primary" />
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Ask questions about {company?.name} to get detailed insights
