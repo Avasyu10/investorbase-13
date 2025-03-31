@@ -81,7 +81,7 @@ If you don't know something, say so honestly rather than making up information.`
     }
 
     // Prepare the request to Gemini API
-    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
+    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
     // Make the API request to Gemini
     const response = await fetch(`${apiUrl}?key=${GEMINI_API_KEY}`, {
