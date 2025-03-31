@@ -374,7 +374,7 @@ const CompanyDetails = () => {
           <div className="p-4 border-b border-border flex justify-between items-center">
             <div>
               <h2 className="font-semibold text-lg flex items-center gap-2">
-                <BotMessageSquare className="h-4 w-4 text-primary" />
+                InsightMaster by InvestorBase
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Ask questions about {company?.name} to get detailed insights
