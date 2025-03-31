@@ -29,6 +29,7 @@ serve(async (req) => {
       companyIntroduction, 
       companyIndustry,
       companyStage,
+      assessmentPoints,
       messages 
     } = requestData;
 
@@ -45,7 +46,18 @@ Current company information:
 - Stage: ${companyStage || 'Unknown'}
 - Description: ${companyIntroduction || 'No detailed description available.'}
 
-Your goal is to help users analyze this company, provide market insights, and answer questions related to the business. Be professional, concise, and insightful. When appropriate, mention specific details from the company description. If you don't know something, say so honestly rather than making up information.`;
+${assessmentPoints && assessmentPoints.length > 0 
+  ? `Key assessment points:\n${assessmentPoints.map(point => `- ${point}`).join('\n')}`
+  : 'No assessment points available.'}
+
+Your goal is to help users analyze this company, provide market insights, and answer questions related to the business. Be professional, concise, and insightful. When appropriate, mention specific details from the company description. If you don't know something, say so honestly rather than making up information.
+
+Important formatting instructions:
+1. Use proper markdown formatting for your responses.
+2. For bullet points, use proper bullet point formatting (e.g., "• Point" or "- Point") with line breaks between items.
+3. Do not use asterisks (*) for bullet points, as they don't render correctly.
+4. Use proper paragraph breaks between different sections.
+5. Format any headers, lists, and emphasized text properly.`;
 
     // Prepare the conversation history for Gemini
     const conversationHistory = messages.map(msg => ({
