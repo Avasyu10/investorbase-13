@@ -139,85 +139,95 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the pitch deck document - Use the reports table to find the pitch deck
-    console.log('Fetching company report data to locate pitch deck');
-    const reportsResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?company_id=eq.${company_id}&select=id,pdf_url,user_id`, {
+    // Fetch the company information to get title or company name
+    console.log('Fetching company information');
+    const companyResponse = await fetch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${company_id}&select=id,name,prompt_sent,response_received,report_id`, {
       headers: {
         'Authorization': authHeader,
         'apikey': SUPABASE_ANON_KEY as string,
       }
     });
 
-    if (!reportsResponse.ok) {
-      const errorText = await reportsResponse.text();
-      console.error('Failed to fetch company reports:', errorText);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Could not fetch company reports',
-          details: errorText
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404
-        }
-      );
+    if (!companyResponse.ok) {
+      const errorText = await companyResponse.text();
+      console.error('Failed to fetch company information:', errorText);
     }
-
-    const reports = await reportsResponse.json();
-    if (!reports || reports.length === 0) {
-      console.error('No reports found for company:', company_id);
-      return new Response(
-        JSON.stringify({ 
-          error: 'No reports found for this company',
-          details: 'Company does not have any associated reports'
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404
-        }
-      );
-    }
-
-    console.log('Found reports for company:', reports);
-    const report = reports[0]; // Use the first report
     
-    // Now fetch the actual pitch deck PDF using the report data
-    console.log('Fetching pitch deck document using report data');
-    const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${report.user_id}/${report.pdf_url}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY as string,
+    let companyData = null;
+    try {
+      const companyResults = await companyResponse.json();
+      if (companyResults && companyResults.length > 0) {
+        companyData = companyResults[0];
+        console.log('Found company data:', companyData);
       }
-    });
+    } catch (error) {
+      console.error('Error parsing company response:', error);
+    }
 
-    if (!pitchDeckResponse.ok) {
-      const errorText = await pitchDeckResponse.text();
-      console.error('Failed to fetch pitch deck directly:', errorText);
+    // If we have a report_id from company data, use that directly
+    let pitchDeckBlob = null;
+    let report_id = companyData?.report_id;
+    
+    if (report_id) {
+      console.log(`Using report_id ${report_id} from company data`);
       
-      // Try the handle-vc-document-upload function as a fallback
-      console.log('Trying alternative method to fetch pitch deck');
-      const altPitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
-        method: 'POST',
+      // Fetch report details to get the PDF URL
+      const reportResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?id=eq.${report_id}&select=id,pdf_url,user_id`, {
         headers: {
           'Authorization': authHeader,
-          'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY as string,
-          'x-app-version': '1.0.0'
-        },
-        body: JSON.stringify({ 
-          action: 'download', 
-          companyId: company_id 
-        })
+        }
       });
       
-      if (!altPitchDeckResponse.ok) {
-        const altErrorText = await altPitchDeckResponse.text();
-        console.error('Failed to fetch pitch deck with alternative method:', altErrorText);
+      if (reportResponse.ok) {
+        const reportData = await reportResponse.json();
+        if (reportData && reportData.length > 0) {
+          const report = reportData[0];
+          console.log(`Found report with PDF: ${report.pdf_url}`);
+          
+          // Download the pitch deck using the report data
+          try {
+            const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${report.user_id}/${report.pdf_url}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': authHeader,
+                'apikey': SUPABASE_ANON_KEY as string,
+              }
+            });
+            
+            if (pitchDeckResponse.ok) {
+              pitchDeckBlob = await pitchDeckResponse.blob();
+              console.log(`Downloaded pitch deck successfully, size: ${pitchDeckBlob.size} bytes`);
+            } else {
+              console.error('Failed to download pitch deck from report_pdfs:', await pitchDeckResponse.text());
+            }
+          } catch (downloadError) {
+            console.error('Error downloading pitch deck from report_pdfs:', downloadError);
+          }
+        }
+      } else {
+        console.error('Failed to fetch report details:', await reportResponse.text());
+      }
+    }
+    
+    // If we didn't get the pitch deck from the report_id approach, try the original methods
+    if (!pitchDeckBlob) {
+      // Try the original method first - fetch the pitch deck from reports table
+      console.log('Fetching company report data to locate pitch deck');
+      const reportsResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?company_id=eq.${company_id}&select=id,pdf_url,user_id`, {
+        headers: {
+          'Authorization': authHeader,
+          'apikey': SUPABASE_ANON_KEY as string,
+        }
+      });
+
+      if (!reportsResponse.ok) {
+        const errorText = await reportsResponse.text();
+        console.error('Failed to fetch company reports:', errorText);
         return new Response(
           JSON.stringify({ 
-            error: 'Could not fetch company pitch deck',
-            details: altErrorText
+            error: 'Could not fetch company reports',
+            details: errorText
           }), 
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -225,63 +235,134 @@ serve(async (req) => {
           }
         );
       }
-      
-      const fundThesisBlob = await fundThesisResponse.blob();
-      const pitchDeckBlob = await altPitchDeckResponse.blob();
-      
-      console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
-      console.log(`Pitch deck size: ${pitchDeckBlob.size} bytes`);
-      
-      if (fundThesisBlob.size === 0) {
+
+      const reports = await reportsResponse.json();
+      if (!reports || reports.length === 0) {
+        console.error('No reports found for company:', company_id);
         return new Response(
           JSON.stringify({ 
-            error: 'Fund thesis document is empty',
-            details: 'Please upload a valid fund thesis document in your profile settings'
+            error: 'No reports found for this company',
+            details: 'Company does not have any associated reports'
           }), 
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400
+            status: 404
           }
         );
       }
+
+      console.log('Found reports for company:', reports);
+      const report = reports[0]; // Use the first report
       
-      if (pitchDeckBlob.size === 0) {
+      // Now try to fetch the actual pitch deck PDF using the report data
+      console.log('Fetching pitch deck document using report data');
+      try {
+        const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${report.user_id}/${report.pdf_url}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': authHeader,
+            'apikey': SUPABASE_ANON_KEY as string,
+          }
+        });
+
+        if (pitchDeckResponse.ok) {
+          pitchDeckBlob = await pitchDeckResponse.blob();
+          console.log(`Pitch deck fetched successfully, size: ${pitchDeckBlob.size} bytes`);
+        } else {
+          const errorText = await pitchDeckResponse.text();
+          console.error('Failed to fetch pitch deck directly:', errorText);
+          
+          // Try the handle-vc-document-upload function as a fallback
+          console.log('Trying alternative method to fetch pitch deck');
+          const altPitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY as string,
+              'x-app-version': '1.0.0'
+            },
+            body: JSON.stringify({ 
+              action: 'download', 
+              companyId: company_id 
+            })
+          });
+          
+          if (altPitchDeckResponse.ok) {
+            pitchDeckBlob = await altPitchDeckResponse.blob();
+            console.log(`Alternative pitch deck fetched successfully, size: ${pitchDeckBlob.size} bytes`);
+          } else {
+            const altErrorText = await altPitchDeckResponse.text();
+            console.error('Failed to fetch pitch deck with alternative method:', altErrorText);
+            
+            // One last attempt - try fetching from reports table with the report_id from company
+            if (companyData?.report_id) {
+              console.log(`Trying to fetch pitch deck using report_id ${companyData.report_id} from company data`);
+              const finalReportResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?id=eq.${companyData.report_id}&select=id,pdf_url,user_id`, {
+                headers: {
+                  'Authorization': authHeader,
+                  'apikey': SUPABASE_ANON_KEY as string,
+                }
+              });
+              
+              if (finalReportResponse.ok) {
+                const finalReportData = await finalReportResponse.json();
+                if (finalReportData && finalReportData.length > 0) {
+                  const finalReport = finalReportData[0];
+                  console.log(`Found report with PDF: ${finalReport.pdf_url}`);
+                  
+                  const finalPitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${finalReport.user_id}/${finalReport.pdf_url}`, {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': authHeader,
+                      'apikey': SUPABASE_ANON_KEY as string,
+                    }
+                  });
+                  
+                  if (finalPitchDeckResponse.ok) {
+                    pitchDeckBlob = await finalPitchDeckResponse.blob();
+                    console.log(`Final attempt pitch deck fetched successfully, size: ${pitchDeckBlob.size} bytes`);
+                  } else {
+                    console.error('Failed on final attempt to fetch pitch deck:', await finalPitchDeckResponse.text());
+                  }
+                }
+              }
+            }
+            
+            if (!pitchDeckBlob) {
+              return new Response(
+                JSON.stringify({ 
+                  error: 'Could not fetch company pitch deck',
+                  details: altErrorText
+                }), 
+                { 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                  status: 404
+                }
+              );
+            }
+          }
+        }
+      } catch (fetchError) {
+        console.error('Error during pitch deck fetch:', fetchError);
         return new Response(
           JSON.stringify({ 
-            error: 'Pitch deck document is empty',
-            details: 'The company pitch deck appears to be empty or inaccessible'
+            error: 'Error fetching pitch deck',
+            details: fetchError instanceof Error ? fetchError.message : String(fetchError)
           }), 
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400
+            status: 500
           }
         );
       }
-      
-      // Convert blobs to base64
-      const fundThesisBase64 = await blobToBase64(fundThesisBlob);
-      const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
-      
-      // Call Gemini and process the results
-      return await processDocumentsWithGemini(
-        GEMINI_API_KEY,
-        fundThesisBase64,
-        pitchDeckBase64,
-        company_id,
-        user_id,
-        authHeader,
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-      );
     }
     
-    // If we get here, both document fetches were successful
     const fundThesisBlob = await fundThesisResponse.blob();
-    const pitchDeckBlob = await pitchDeckResponse.blob();
-
+      
     console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
-    console.log(`Pitch deck size: ${pitchDeckBlob.size} bytes`);
-
+    console.log(`Pitch deck size: ${pitchDeckBlob ? pitchDeckBlob.size : 0} bytes`);
+    
     if (fundThesisBlob.size === 0) {
       return new Response(
         JSON.stringify({ 
@@ -294,8 +375,8 @@ serve(async (req) => {
         }
       );
     }
-
-    if (pitchDeckBlob.size === 0) {
+    
+    if (!pitchDeckBlob || pitchDeckBlob.size === 0) {
       return new Response(
         JSON.stringify({ 
           error: 'Pitch deck document is empty',
@@ -307,11 +388,11 @@ serve(async (req) => {
         }
       );
     }
-
+    
     // Convert blobs to base64
     const fundThesisBase64 = await blobToBase64(fundThesisBlob);
     const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
-
+    
     // Call Gemini and process the results
     return await processDocumentsWithGemini(
       GEMINI_API_KEY,
@@ -368,10 +449,10 @@ STARTUP EVALUATION FRAMEWORK
 A Step-by-Step Guide for Venture Capital Analysts
 1. OVERVIEW
 This document presents a multi-dimensional model designed to:
-1. Score a startup’s fundamentals (Problem, Market, Product, etc.)
+1. Score a startup's fundamentals (Problem, Market, Product, etc.)
 2. Incorporate cross-sectional synergy (how various sections reinforce or
 undermine each other)
-3. Adjust for risk factors relevant to the startup’s stage and the investor’s
+3. Adjust for risk factors relevant to the startup's stage and the investor's
 thesis
 thesis
 The end result is a Composite Score that helps analysts quickly compare
@@ -398,7 +479,7 @@ Traditionally, a pitch deck is divided into 10 sections:
 9. Financials
 10. The Ask
 10. The Ask
-Fromaninvestor’sperspective, typicalbaseweights(beforeanyriskadjustment)
+Fromaninvestor'sperspective, typicalbaseweights(beforeanyriskadjustment)
 might look like this:
 8. Team 10–15%
 Section Baseline Weight (W_i)
@@ -436,7 +517,7 @@ Each Scorei also ends up in the 1–5 range (assuming the sub-criteria weights
 sum to 1).
 4. CROSS-SECTIONAL SYNERGY
 4.1 Why Synergy Matters
-Astartupmightscorehighon“Product”butlowon“Go-to-Market.”Inisolation,
+Astartupmightscorehighon"Product"butlowon"Go-to-Market."Inisolation,
 those two sections might look acceptable, but if the startup cannot actually
 acquire customers to use its otherwise excellent product, the overall opportunity
 is weaker.
@@ -454,7 +535,7 @@ Each pair (i,k) in Shas a synergy weight Sik . Then we define a synergy
 function f(·):
 f(Scorei,Scorek ) = Scorei ×Scorek
 5 (if using a 1–5 scale)
-This means synergy is highest when both sections are rated high, and it’s
+This means synergy is highest when both sections are rated high, and it's
 lowest when either one is low (multiplicative effect).
 SynergyIndex=
 (Sik ×f(Scorei,Scorek ))
@@ -463,13 +544,13 @@ SynergyIndex=
 To incorporate synergy into the final score, we introduce a calibration factor
 λ that determines how heavily synergy affects the overall rating:
 Synergy Contribution= λ×SynergyIndex
-If synergy is extremely important to your fund’s thesis (e.g., you invest only in
+If synergy is extremely important to your fund's thesis (e.g., you invest only in
 startups that demonstrate a tightly integrated plan), set λ higher (e.g., 0.3). If
 synergy is just a minor supplement, set it lower (e.g., 0.1).
 5. RISK-ADJUSTED WEIGHTING
 5.1 Rationale
-Not all sections carry the same level of risk. If a startup’s technology is
-unproven, the “Product” or “Traction” sections might be inherently riskier.
+Not all sections carry the same level of risk. If a startup's technology is
+unproven, the "Product" or "Traction" sections might be inherently riskier.
 Meanwhile, a strong, experienced team may reduce the risk associated with
 execution.
 5.2 Risk Factor (Ri)
@@ -504,7 +585,7 @@ immediate term sheet.
 • 3.5 – 4.4: Promising but some concerns. Requires targeted due diligence
 and possibly negotiation of protective terms.
 • 2.5 – 3.4: Moderate to high risk or synergy gaps. Needs major improve-
-ments or might not meet your fund’s return threshold.
+ments or might not meet your fund's return threshold.
 • < 2.5: Weak opportunity. High risk and minimal synergy—probably pass.
 7. SCENARIO & SENSITIVITY ANALYSIS
 7.1 Identifying Key Assumptions
@@ -516,7 +597,7 @@ drive the composite score:
 slows?)
 7.2 Best-, Base-, and Worst-Case Scenarios
 Re-score key sections under different assumptions:
-• Best-Case: The startup’s claims hold up, synergy is high, minimal risk is
+• Best-Case: The startup's claims hold up, synergy is high, minimal risk is
 realized.
 • Base-Case: More conservative growth or market size.
 • Worst-Case: Competition intensifies, traction lags, synergy breaks down.
@@ -657,7 +738,7 @@ Appendix C: Synergy Pairs (Common Examples)
 • (Solution, Competitive Landscape)
 • (Business Model, Financials)
 • (Traction, Go-to-Market)
-• (Team, All Other Sections) – sometimes scored if the team’s skillset is
+• (Team, All Other Sections) – sometimes scored if the team's skillset is
 critical to overcoming certain market or product challenges.
               5. Calculate the final Synergy Score on a scale of 1-5(MOST IMPORTANT).
               
