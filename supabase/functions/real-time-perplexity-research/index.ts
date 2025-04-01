@@ -97,6 +97,7 @@ Provide 6-8 recent news articles that focus ONLY on breaking industry news, rece
 - Focus on NEWSWORTHY EVENTS that have happened recently (acquisitions, regulatory changes, new market entrants)
 - Include URLs to actual news sources
 - NEVER repeat information across different news items
+- DONT USE THE SAME NEWS ARTICLE ACROSS THE TWO SECTIONS
 - Focus on FACTS, not analysis
 
 Format each news item as:
