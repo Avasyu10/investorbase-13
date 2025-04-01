@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -312,7 +311,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             </TabsList>
             
             <ScrollArea className="h-[60vh]">
-              <TabsContent value="summary" className="mt-0 p-4">
+              <TabsContent value="summary" className="mt-0 p-4 bg-card">
                 {researchData?.research_summary ? (
                   <div className="prose prose-sm max-w-none">
                     <div dangerouslySetInnerHTML={{ 
