@@ -456,11 +456,7 @@ function extractSection(text: string, sectionName: string): string {
     .replace(/<\/li>\n- /g, '</li><li>')
     .replace(/<\/p><ul>/g, '<ul>')
     .replace(/\n/g, ' ')
-    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>')
-    // Remove "**Analysis:**" from the text
-    .replace(/\*\*Analysis:\*\*/g, '')
-    // Remove any potential double spaces that might be created
-    .replace(/\s+/g, ' ');
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>');
   
   if (!html.startsWith('<')) {
     html = `<p>${html}</p>`;
@@ -481,7 +477,5 @@ function formatResearchHtml(text: string): string {
     .replace(/\n- /g, '</p><ul><li>') // list start
     .replace(/<\/li>\n- /g, '</li><li>') // consecutive list items
     .replace(/<\/p><ul>/g, '<ul>') // fix paragraph to list transition
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>') // links
-    // Remove "**Analysis:**" from the text
-    .replace(/\*\*Analysis:\*\*/g, '');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
 }
