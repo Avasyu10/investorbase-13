@@ -2,7 +2,7 @@
 import { Suspense } from "react";
 import { routes } from "./lib/routes";
 import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BarcConfirmationEmail } from '@/components/BarConfirmationEmail';
 import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
