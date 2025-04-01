@@ -28,7 +28,6 @@ const UploadReport = () => {
   const [industry, setIndustry] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
-  const [question, setQuestion] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -179,20 +178,6 @@ const UploadReport = () => {
         });
       }
       
-      // Add question to description if provided
-      if (question.trim()) {
-        const { error: updateError } = await supabase
-          .from('reports')
-          .update({ 
-            description: description + `\n\nQuestion: ${question}`
-          })
-          .eq('id', report.id);
-          
-        if (updateError) {
-          console.error("Error updating report with question:", updateError);
-        }
-      }
-      
       // Start analysis
       setIsAnalyzing(true);
       
@@ -296,7 +281,9 @@ const UploadReport = () => {
           
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Label htmlFor="company-name">Company Name</Label>
+              <Label htmlFor="company-name" className="flex items-center">
+                Company Name <span className="text-red-500 ml-1">*</span>
+              </Label>
               <Input 
                 id="company-name" 
                 placeholder="Enter your company name" 
@@ -487,18 +474,6 @@ const UploadReport = () => {
                   <p className="text-sm text-muted-foreground">No supplementary files added (PDF only, max 10MB)</p>
                 )}
               </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="question">Have a Question? Let Us Know.</Label>
-              <Textarea 
-                id="question" 
-                placeholder="Do you have any questions about our investment process or anything else? Feel free to ask."
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                disabled={isProcessing}
-                className="mt-1 min-h-[100px]"
-              />
             </div>
             
             <div className="pt-2">
