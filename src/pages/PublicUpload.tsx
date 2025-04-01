@@ -140,7 +140,7 @@ const PublicUpload = () => {
           <div className="w-full max-w-2xl">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold tracking-tight mb-2">
-                {formData ? formData.form_name : "PSI - Lab to Launch Application Form"}
+                {formData ? formData.form_name : "Submit Your Pitch Deck"}
               </h1>
               <p className="text-muted-foreground">
                 Upload a PDF of your Pitch Deck along with the following information

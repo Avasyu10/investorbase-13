@@ -14,7 +14,6 @@ import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { Loader2, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
-import { AdditionalCompanyForm } from "./upload/AdditionalCompanyForm";
 import { FileUploadZone } from "./upload/FileUploadZone";
 import { ProgressIndicator } from "./upload/ProgressIndicator";
 import { scrapeWebsite } from "./upload/WebsiteService";
@@ -56,24 +55,6 @@ export function ReportUpload({
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const [emailForResults, setEmailForResults] = useState("");
   const [question, setQuestion] = useState("");
-  const [companyRegistrationType, setCompanyRegistrationType] = useState("");
-  const [registrationNumber, setRegistrationNumber] = useState("");
-  const [dpiitNumber, setDpiitNumber] = useState("");
-  const [indianShareholding, setIndianShareholding] = useState("");
-  const [executiveSummary, setExecutiveSummary] = useState("");
-  const [companyType, setCompanyType] = useState("");
-  const [productsServices, setProductsServices] = useState("");
-  const [employeeCount, setEmployeeCount] = useState("");
-  const [fundsRaised, setFundsRaised] = useState("");
-  const [valuation, setValuation] = useState("");
-  const [lastFyRevenue, setLastFyRevenue] = useState("");
-  const [lastQuarterRevenue, setLastQuarterRevenue] = useState("");
-  const [founderName, setFounderName] = useState("");
-  const [founderGender, setFounderGender] = useState("");
-  const [founderEmail, setFounderEmail] = useState("");
-  const [founderContact, setFounderContact] = useState("");
-  const [founderAddress, setFounderAddress] = useState("");
-  const [founderState, setFounderState] = useState("");
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,71 +127,6 @@ export function ReportUpload({
         description: "Please provide a company name for the report"
       });
       return;
-    }
-
-    if (isPublic) {
-      if (!companyRegistrationType) {
-        toast.error("Company registration type required", {
-          description: "Please select a registration type for your company"
-        });
-        return;
-      }
-      
-      if (!indianShareholding) {
-        toast.error("Indian shareholding required", {
-          description: "Please provide information about Indian shareholding in your startup"
-        });
-        return;
-      }
-      
-      if (!executiveSummary) {
-        toast.error("Executive summary required", {
-          description: "Please provide an executive summary of your company"
-        });
-        return;
-      }
-      
-      if (!companyType) {
-        toast.error("Company type required", {
-          description: "Please select your company type"
-        });
-        return;
-      }
-      
-      if (!founderName) {
-        toast.error("Founder name required", {
-          description: "Please provide the founder's name"
-        });
-        return;
-      }
-      
-      if (!founderEmail) {
-        toast.error("Founder email required", {
-          description: "Please provide the founder's email address"
-        });
-        return;
-      }
-      
-      if (!founderContact) {
-        toast.error("Founder contact required", {
-          description: "Please provide the founder's contact number"
-        });
-        return;
-      }
-      
-      if (!founderAddress) {
-        toast.error("Founder address required", {
-          description: "Please provide the founder's address"
-        });
-        return;
-      }
-      
-      if (!founderState) {
-        toast.error("Founder state required", {
-          description: "Please select the founder's state"
-        });
-        return;
-      }
     }
 
     if (isPublic && !hideEmailField && !emailForResults.trim()) {
@@ -301,79 +217,6 @@ export function ReportUpload({
         
         if (industry) {
           formData.append('industry', industry);
-        }
-        
-        // Add new form fields
-        if (companyRegistrationType) {
-          formData.append('companyRegistrationType', companyRegistrationType);
-        }
-        
-        if (registrationNumber) {
-          formData.append('registrationNumber', registrationNumber);
-        }
-        
-        if (dpiitNumber) {
-          formData.append('dpiitNumber', dpiitNumber);
-        }
-        
-        if (indianShareholding) {
-          formData.append('indianShareholding', indianShareholding);
-        }
-        
-        if (executiveSummary) {
-          formData.append('executiveSummary', executiveSummary);
-        }
-        
-        if (companyType) {
-          formData.append('companyType', companyType);
-        }
-        
-        if (productsServices) {
-          formData.append('productsServices', productsServices);
-        }
-        
-        if (employeeCount) {
-          formData.append('employeeCount', employeeCount);
-        }
-        
-        if (fundsRaised) {
-          formData.append('fundsRaised', fundsRaised);
-        }
-        
-        if (valuation) {
-          formData.append('valuation', valuation);
-        }
-        
-        if (lastFyRevenue) {
-          formData.append('lastFyRevenue', lastFyRevenue);
-        }
-        
-        if (lastQuarterRevenue) {
-          formData.append('lastQuarterRevenue', lastQuarterRevenue);
-        }
-        
-        if (founderName) {
-          formData.append('founderName', founderName);
-        }
-        
-        if (founderGender) {
-          formData.append('founderGender', founderGender);
-        }
-        
-        if (founderEmail) {
-          formData.append('founderEmail', founderEmail);
-        }
-        
-        if (founderContact) {
-          formData.append('founderContact', founderContact);
-        }
-        
-        if (founderAddress) {
-          formData.append('founderAddress', founderAddress);
-        }
-        
-        if (founderState) {
-          formData.append('founderState', founderState);
         }
         
         // Add LinkedIn profiles as JSON string
@@ -682,52 +525,10 @@ export function ReportUpload({
             isDisabled={isProcessing}
           />
           
-          {isPublic && (
-            <AdditionalCompanyForm
-              companyRegistrationType={companyRegistrationType}
-              setCompanyRegistrationType={setCompanyRegistrationType}
-              registrationNumber={registrationNumber}
-              setRegistrationNumber={setRegistrationNumber}
-              dpiitNumber={dpiitNumber}
-              setDpiitNumber={setDpiitNumber}
-              indianShareholding={indianShareholding}
-              setIndianShareholding={setIndianShareholding}
-              executiveSummary={executiveSummary}
-              setExecutiveSummary={setExecutiveSummary}
-              companyType={companyType}
-              setCompanyType={setCompanyType}
-              productsServices={productsServices}
-              setProductsServices={setProductsServices}
-              employeeCount={employeeCount}
-              setEmployeeCount={setEmployeeCount}
-              fundsRaised={fundsRaised}
-              setFundsRaised={setFundsRaised}
-              valuation={valuation}
-              setValuation={setValuation}
-              lastFyRevenue={lastFyRevenue}
-              setLastFyRevenue={setLastFyRevenue}
-              lastQuarterRevenue={lastQuarterRevenue}
-              setLastQuarterRevenue={setLastQuarterRevenue}
-              founderName={founderName}
-              setFounderName={setFounderName}
-              founderGender={founderGender}
-              setFounderGender={setFounderGender}
-              founderEmail={founderEmail}
-              setFounderEmail={setFounderEmail}
-              founderContact={founderContact}
-              setFounderContact={setFounderContact}
-              founderAddress={founderAddress}
-              setFounderAddress={setFounderAddress}
-              founderState={founderState}
-              setFounderState={setFounderState}
-              isDisabled={isProcessing}
-            />
-          )}
-          
           {isPublic && !hideEmailField && (
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium">
-                Your Email <span className="text-red-500">*</span>
+                Your Email 
               </label>
               <input
                 id="email"
@@ -752,7 +553,6 @@ export function ReportUpload({
             buttonText="Select PDF"
             disabled={isProcessing}
             required={true}
-            isRequired={true}
           />
           
           <div className="space-y-3">
