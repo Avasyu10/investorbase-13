@@ -28,7 +28,6 @@ interface ReportUploadProps {
   formSlug?: string | null;
   hideEmailField?: boolean;
   disableScrapingFeatures?: boolean;
-  simplifiedForm?: boolean;
 }
 
 export function ReportUpload({ 
@@ -39,8 +38,7 @@ export function ReportUpload({
   skipAnalysis = false,
   formSlug = null,
   hideEmailField = false,
-  disableScrapingFeatures = false,
-  simplifiedForm = false
+  disableScrapingFeatures = false
 }: ReportUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
@@ -704,214 +702,69 @@ export function ReportUpload({
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>{isPublic ? "Submit Your Pitch" : "Upload New Pitch Deck"}</CardTitle>
+        <CardTitle>Submit Your Pitch</CardTitle>
         <CardDescription>
-          {isPublic 
-            ? "Upload your pitch here to be reviewed by our Investments Team." 
-            : "Upload a PDF pitch deck to get an AI-powered analysis of its strengths and weaknesses."}
+          Upload your pitch here to be reviewed by our Investments Team.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
-          {isPublic ? (
-            <CompanyInfoForm
-              title={title}
-              setTitle={setTitle}
-              briefIntroduction={briefIntroduction}
-              setBriefIntroduction={setBriefIntroduction}
-              companyWebsite={companyWebsite}
-              setCompanyWebsite={setCompanyWebsite}
-              companyStage={companyStage}
-              setCompanyStage={setCompanyStage}
-              industry={industry}
-              setIndustry={setIndustry}
-              founderLinkedIns={founderLinkedIns}
-              setFounderLinkedIns={setFounderLinkedIns}
-              updateLinkedInProfile={updateLinkedInProfile}
-              addLinkedInProfile={addLinkedInProfile}
-              removeLinkedInProfile={removeLinkedInProfile}
-              isDisabled={isProcessing}
-              companyRegistrationType={companyRegistrationType}
-              setCompanyRegistrationType={setCompanyRegistrationType}
-              registrationNumber={registrationNumber}
-              setRegistrationNumber={setRegistrationNumber}
-              dpiitRecognitionNumber={dpiitRecognitionNumber}
-              setDpiitRecognitionNumber={setDpiitRecognitionNumber}
-              indianCitizenShareholding={indianCitizenShareholding}
-              setIndianCitizenShareholding={setIndianCitizenShareholding}
-              executiveSummary={executiveSummary}
-              setExecutiveSummary={setExecutiveSummary}
-              companyType={companyType}
-              setCompanyType={setCompanyType}
-              productsServices={productsServices}
-              setProductsServices={setProductsServices}
-              employeeCount={employeeCount}
-              setEmployeeCount={setEmployeeCount}
-              fundsRaised={fundsRaised}
-              setFundsRaised={setFundsRaised}
-              valuation={valuation}
-              setValuation={setValuation}
-              lastFyRevenue={lastFyRevenue}
-              setLastFyRevenue={setLastFyRevenue}
-              lastQuarterRevenue={lastQuarterRevenue}
-              setLastQuarterRevenue={setLastQuarterRevenue}
-              founderName={founderName}
-              setFounderName={setFounderName}
-              founderGender={founderGender}
-              setFounderGender={setFounderGender}
-              founderEmail={founderEmail}
-              setFounderEmail={setFounderEmail}
-              founderContact={founderContact}
-              setFounderContact={setFounderContact}
-              founderAddress={founderAddress}
-              setFounderAddress={setFounderAddress}
-              founderState={founderState}
-              setFounderState={setFounderState}
-            />
-          ) : (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="title" className="block text-sm font-medium">
-                  Company Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Enter your company name"
-                  disabled={isProcessing}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="briefIntroduction" className="block text-sm font-medium">
-                  Brief Introduction (Optional)
-                </label>
-                <textarea
-                  id="briefIntroduction"
-                  value={briefIntroduction}
-                  onChange={(e) => setBriefIntroduction(e.target.value)}
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Briefly describe your company (max 500 characters)"
-                  disabled={isProcessing}
-                  maxLength={500}
-                />
-                <div className="text-xs text-muted-foreground text-right">
-                  {briefIntroduction.length}/500 characters
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="founderLinkedIn" className="block text-sm font-medium">
-                  Founder LinkedIn Profiles (Optional)
-                </label>
-                {founderLinkedIns.map((linkedIn, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <input
-                      type="url"
-                      value={linkedIn}
-                      onChange={(e) => updateLinkedInProfile(index, e.target.value)}
-                      className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder="LinkedIn profile URL"
-                      disabled={isProcessing}
-                    />
-                    {index > 0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeLinkedInProfile(index)}
-                        disabled={isProcessing}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addLinkedInProfile}
-                  disabled={isProcessing}
-                  className="mt-2"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Another Founder
-                </Button>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="companyWebsite" className="block text-sm font-medium">
-                  Company Website (Optional)
-                </label>
-                <input
-                  id="companyWebsite"
-                  type="url"
-                  value={companyWebsite}
-                  onChange={(e) => setCompanyWebsite(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="https://example.com"
-                  disabled={isProcessing}
-                />
-                {companyWebsite && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    If provided, we'll scrape the website to enhance the analysis
-                  </p>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="companyStage" className="block text-sm font-medium">
-                    Stage of Company
-                  </label>
-                  <select
-                    id="companyStage"
-                    value={companyStage}
-                    onChange={(e) => setCompanyStage(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={isProcessing}
-                  >
-                    <option value="">Select stage</option>
-                    <option value="Idea">Idea</option>
-                    <option value="Pre-seed">Pre-seed</option>
-                    <option value="Seed">Seed</option>
-                    <option value="Series A">Series A</option>
-                    <option value="Series B">Series B</option>
-                    <option value="Series C+">Series C+</option>
-                    <option value="Profitable">Profitable</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="industry" className="block text-sm font-medium">
-                    Industry
-                  </label>
-                  <select
-                    id="industry"
-                    value={industry}
-                    onChange={(e) => setIndustry(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={isProcessing}
-                  >
-                    <option value="">Select industry</option>
-                    <option value="SaaS">SaaS</option>
-                    <option value="Fintech">Fintech</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="E-commerce">E-commerce</option>
-                    <option value="Marketplace">Marketplace</option>
-                    <option value="Consumer">Consumer</option>
-                    <option value="Enterprise">Enterprise</option>
-                    <option value="Deep Tech">Deep Tech</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
+          <CompanyInfoForm
+            title={title}
+            setTitle={setTitle}
+            briefIntroduction={briefIntroduction}
+            setBriefIntroduction={setBriefIntroduction}
+            companyWebsite={companyWebsite}
+            setCompanyWebsite={setCompanyWebsite}
+            companyStage={companyStage}
+            setCompanyStage={setCompanyStage}
+            industry={industry}
+            setIndustry={setIndustry}
+            founderLinkedIns={founderLinkedIns}
+            setFounderLinkedIns={setFounderLinkedIns}
+            updateLinkedInProfile={updateLinkedInProfile}
+            addLinkedInProfile={addLinkedInProfile}
+            removeLinkedInProfile={removeLinkedInProfile}
+            isDisabled={isProcessing}
+            // New company fields
+            companyRegistrationType={companyRegistrationType}
+            setCompanyRegistrationType={setCompanyRegistrationType}
+            registrationNumber={registrationNumber}
+            setRegistrationNumber={setRegistrationNumber}
+            dpiitRecognitionNumber={dpiitRecognitionNumber}
+            setDpiitRecognitionNumber={setDpiitRecognitionNumber}
+            indianCitizenShareholding={indianCitizenShareholding}
+            setIndianCitizenShareholding={setIndianCitizenShareholding}
+            executiveSummary={executiveSummary}
+            setExecutiveSummary={setExecutiveSummary}
+            companyType={companyType}
+            setCompanyType={setCompanyType}
+            productsServices={productsServices}
+            setProductsServices={setProductsServices}
+            employeeCount={employeeCount}
+            setEmployeeCount={setEmployeeCount}
+            fundsRaised={fundsRaised}
+            setFundsRaised={setFundsRaised}
+            valuation={valuation}
+            setValuation={setValuation}
+            lastFyRevenue={lastFyRevenue}
+            setLastFyRevenue={setLastFyRevenue}
+            lastQuarterRevenue={lastQuarterRevenue}
+            setLastQuarterRevenue={setLastQuarterRevenue}
+            // Founder information
+            founderName={founderName}
+            setFounderName={setFounderName}
+            founderGender={founderGender}
+            setFounderGender={setFounderGender}
+            founderEmail={founderEmail}
+            setFounderEmail={setFounderEmail}
+            founderContact={founderContact}
+            setFounderContact={setFounderContact}
+            founderAddress={founderAddress}
+            setFounderAddress={setFounderAddress}
+            founderState={founderState}
+            setFounderState={setFounderState}
+          />
           
           {isPublic && !hideEmailField && (
             <div className="space-y-2">
@@ -921,3 +774,116 @@ export function ReportUpload({
               <input
                 id="email"
                 type="email"
+                value={emailForResults}
+                onChange={(e) => setEmailForResults(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Form Submitter's Email"
+                disabled={isProcessing}
+                required={true}
+              />
+            </div>
+          )}
+          
+          <FileUploadZone
+            id="file"
+            label="Pitch Deck"
+            file={file}
+            onFileChange={handleFileChange}
+            accept=".pdf"
+            description="PDF files only, max 10MB"
+            buttonText="Select PDF"
+            disabled={isProcessing}
+            required={true}
+          />
+          
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-md font-medium">Supplementary Materials (Optional)</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const fileInput = document.getElementById('supplementFile');
+                  if (fileInput) fileInput.click();
+                }}
+                disabled={isProcessing}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add File
+              </Button>
+            </div>
+            
+            <input
+              id="supplementFile"
+              type="file"
+              accept=".pdf"
+              onChange={handleSupplementFileChange}
+              className="hidden"
+              disabled={isProcessing}
+            />
+            
+            {supplementFiles.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No supplementary files added (PDF only, max 10MB)</p>
+            ) : (
+              <div className="space-y-2">
+                {supplementFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-md">
+                    <span className="text-sm truncate max-w-[80%]">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeSupplementFile(index)}
+                      disabled={isProcessing}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-2 pt-2 border-t">
+            <h3 className="text-md font-medium">Have a Question? Let Us Know.</h3>
+            <textarea
+              id="question"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Do you have any questions about our investment process or anything else? Feel free to ask."
+              disabled={isProcessing}
+            />
+          </div>
+          
+          {isProcessing && (
+            <ProgressIndicator
+              progressStage={progressStage}
+              progress={progress}
+              isScrapingWebsite={isScrapingWebsite}
+              isAnalyzing={isAnalyzing}
+            />
+          )}
+        </CardContent>
+        
+        <CardFooter className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={isProcessing}
+            className="w-full md:w-auto"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isScrapingWebsite ? "Scraping website..." : isAnalyzing ? "Analyzing..." : "Uploading..."}
+              </>
+            ) : (
+              buttonText
+            )}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
