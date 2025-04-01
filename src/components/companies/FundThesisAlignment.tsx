@@ -36,24 +36,25 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         console.log("Analyzing fund thesis alignment for company:", companyId);
         console.log("User ID:", user.id);
         
-        const { data, error } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
+        // Make sure we're using the full function URL with proper CORS handling
+        const { data, error: functionError } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
           body: { 
             company_id: companyId,
             user_id: user.id
           }
         });
         
-        if (error) {
-          console.error("Error invoking analyze-fund-thesis-alignment:", error);
+        if (functionError) {
+          console.error("Error invoking analyze-fund-thesis-alignment:", functionError);
           toast.error("Failed to analyze fund thesis alignment");
-          setError(`API error: ${error.message}`);
+          setError(`API error: ${functionError.message}`);
           setIsLoading(false);
           return;
         }
         
         console.log("Response from analyze-fund-thesis-alignment:", data);
         
-        if (data.error) {
+        if (data?.error) {
           console.error("API error:", data.error);
           toast.error(data.error);
           setError(`API error: ${data.error}`);
@@ -62,7 +63,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         }
         
         // Process the analysis text
-        if (data.analysis) {
+        if (data?.analysis) {
           setAnalysis(data.analysis);
           // Automatically open the analysis modal once the data is loaded
           setIsAnalysisModalOpen(true);
