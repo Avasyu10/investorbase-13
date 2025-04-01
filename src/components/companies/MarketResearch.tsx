@@ -446,101 +446,67 @@ function extractSection(text: string, sectionName: string): string {
   if (!sectionMatch) return '<p>Section not found</p>';
   
   let html = sectionMatch[0]
-    // Format headings
-    .replace(/^# (.*$)/gim, '<h2 class="text-2xl font-bold mb-4 pb-2 border-b text-primary">$1</h2>')
-    .replace(/^## (.*$)/gim, '<h3 class="text-xl font-bold mb-3 mt-6 text-primary/90">$1</h3>')
+    .replace(/^# (.*$)/gim, '<h2 class="text-2xl font-bold mb-4 pb-2 border-b">$1</h2>')
+    .replace(/^## (.*$)/gim, '<h3 class="text-xl font-bold mb-3 mt-6">$1</h3>')
     .replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold mb-2 mt-4 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>$1</h4>')
-    // Format bold and italic text
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    // Format paragraphs
     .replace(/\n\n/g, '</p><p class="mb-4">')
-    // Format lists
     .replace(/\n- /g, '</p><ul class="list-disc pl-6 my-4 space-y-2"><li class="mb-1">')
     .replace(/\n  - /g, '</li><ul class="list-circle pl-6 my-2 space-y-1"><li>')
     .replace(/<\/li>\n- /g, '</li><li class="mb-1">')
     .replace(/<\/p><ul>/g, '<ul>')
-    // Clean up list endings
     .replace(/<\/li>(?!<li|<\/ul>)/g, '</li></ul>')
-    // Add styling to key points
-    .replace(/\n(\d+\. )(.*)/g, '</p><div class="pl-4 py-2 my-3 border-l-4 border-primary/20 bg-primary/5"><span class="font-semibold text-primary">$1</span>$2</div><p>')
-    // Remove Analysis: prefixes
+    .replace(/\n(\d+\. )(.*)/g, '</p><div class="pl-4 py-2 my-3 border-l-4 border-primary/20"><span class="font-semibold">$1</span>$2</div><p>')
     .replace(/\*\*Analysis:\*\*/g, '')
     .replace(/Analysis:/g, '')
-    // Remove Source: sections that contain URLs
     .replace(/Source:.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
-    // Remove URL sections
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
-    // Remove any remaining raw URLs
     .replace(/https?:\/\/[^\s]+/g, '')
-    // Clean up line breaks
     .replace(/\n/g, ' ');
 
-  // Ensure proper HTML structure
   if (!html.startsWith('<')) {
     html = `<p class="mb-4">${html}</p>`;
   }
   
-  // Wrap blocks in styled containers
-  if (sectionName.toLowerCase().includes('market overview')) {
-    html = `<div class="mb-6 p-5 rounded-lg bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/20 dark:to-transparent border border-blue-100 dark:border-blue-900">${html}</div>`;
-  } else if (sectionName.toLowerCase().includes('insight')) {
-    html = `<div class="mb-6 pt-4">${html}</div>`;
-  }
-  
-  return html;
+  return `<div class="mb-6 pt-4">${html}</div>`;
 }
 
 function formatResearchHtml(text: string): string {
   if (!text) return '<p>No research summary available</p>';
   
   const formatted = text
-    // Format main headings with accent background
-    .replace(/^# (.*$)/gim, '<div class="mb-6 p-4 rounded-lg bg-gradient-to-r from-amber-50 to-transparent dark:from-amber-950/20 dark:to-transparent border border-amber-100 dark:border-amber-900"><h2 class="text-2xl font-bold mb-2 text-amber-800 dark:text-amber-400">$1</h2>')
-    .replace(/^## (.*$)/gim, '<h3 class="text-xl font-bold mb-3 mt-6 pt-4 border-t text-primary/90">$1</h3></div><div class="mb-6">')
+    .replace(/^# (.*$)/gim, '<div class="mb-6"><h2 class="text-2xl font-bold mb-2">$1</h2>')
+    .replace(/^## (.*$)/gim, '<h3 class="text-xl font-bold mb-3 mt-6 pt-4 border-t">$1</h3></div><div class="mb-6">')
     .replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold mb-2 mt-4 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>$1</h4>')
-    // Format bold and italic
-    .replace(/\*\*([^*]+)\*\*/g, '<strong class="text-primary/90">$1</strong>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    // Format paragraphs with proper spacing
     .replace(/\n\n/g, '</p><p class="mb-4">')
-    // Format lists with bullet styling
     .replace(/^- (.*$)/gim, '<li class="flex items-start mb-2"><span class="inline-block h-1.5 w-1.5 rounded-full bg-primary/70 mt-1.5 mr-2 flex-shrink-0"></span><span>$1</span></li>')
     .replace(/\n- /g, '</p><ul class="my-4 space-y-1 pl-2">$&')
     .replace(/<\/li>\n- /g, '</li><li class="flex items-start mb-2"><span class="inline-block h-1.5 w-1.5 rounded-full bg-primary/70 mt-1.5 mr-2 flex-shrink-0"></span><span>')
     .replace(/<\/p><ul>/g, '<ul>')
-    // Add closing tags for lists
     .replace(/<\/li>(?!<li|<\/ul>)/g, '</li></ul>')
-    // Create highlighted sections for market statistics
     .replace(/(\$[0-9.,]+ (?:billion|million|trillion)|\d+% growth|market (?:value|size|cap) of \$[0-9.,]+ (?:billion|million|trillion))/gi, 
-             '<span class="px-1 py-0.5 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 rounded font-medium">$1</span>')
-    // Format numbered lists
-    .replace(/^(\d+)\. (.*$)/gim, '<div class="mb-4 pl-4 border-l-2 border-primary/20"><span class="font-bold text-primary">$1.</span> $2</div>')
-    // Remove Analysis: prefixes
+             '<span class="font-medium">$1</span>')
+    .replace(/^(\d+)\. (.*$)/gim, '<div class="mb-4 pl-4 border-l-2 border-primary/20"><span class="font-bold">$1.</span> $2</div>')
     .replace(/\*\*Analysis:\*\*/g, '')
     .replace(/Analysis:/g, '')
-    // Remove Source: sections that contain URLs
     .replace(/Source:.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
-    // Remove URL sections
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
-    // Remove any remaining raw URLs
     .replace(/https?:\/\/[^\s]+/g, '')
-    // Clean up line breaks and structure the content
     .replace(/\n/g, ' ')
-    // Add closing div for the last section
     + '</div>';
   
-  // Ensure proper wrapping if no paragraphs were created
   if (!formatted.includes('<p>') && !formatted.includes('<li>')) {
-    return `<div class="research-content p-4 rounded-lg bg-gradient-to-r from-blue-50/30 to-transparent dark:from-blue-950/10 dark:to-transparent">
+    return `<div class="research-content">
               <p class="mb-4">${formatted}</p>
             </div>`;
   }
 
-  // Add research overview container
-  return `<div class="research-content p-1 rounded-lg">
+  return `<div class="research-content">
             ${formatted}
           </div>`;
 }
