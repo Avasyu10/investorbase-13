@@ -169,38 +169,11 @@ serve(async (req) => {
       const arrayBuffer = await file.arrayBuffer();
       const fileBuffer = new Uint8Array(arrayBuffer);
       
-      // Check if the report_pdfs bucket exists, if not create it
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const reportPdfsBucketExists = buckets?.some(bucket => bucket.name === 'report_pdfs');
-      
-      if (!reportPdfsBucketExists) {
-        console.log("report_pdfs bucket does not exist, creating it...");
-        const { error: createBucketError } = await supabase.storage.createBucket('report_pdfs', {
-          public: false,
-        });
-        
-        if (createBucketError) {
-          console.error("Error creating report_pdfs bucket:", createBucketError);
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: "Storage initialization failed", 
-              details: createBucketError.message 
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500 
-            }
-          );
-        }
-      }
-      
       // Upload the file to storage
       const { error: uploadError } = await supabase.storage
         .from('report_pdfs')
         .upload(filePath, fileBuffer, {
-          contentType: file.type,
-          upsert: true
+          contentType: file.type
         });
         
       if (uploadError) {
