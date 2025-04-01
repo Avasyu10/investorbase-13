@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
-import { supabase } from "@/integrations/supabase/client";
 
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
