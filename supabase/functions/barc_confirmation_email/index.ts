@@ -5,6 +5,7 @@ import { Resend } from "npm:resend@2.0.0";
 
 // Configure Resend API
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
+console.log(`Resend API key exists: ${!!resendApiKey}`);
 const resend = new Resend(resendApiKey);
 
 // Configure Supabase client
@@ -41,9 +42,14 @@ function getEmailTemplate(companyName: string, submissionDate: string) {
 
 // Function to send an email
 async function sendEmail(to: string, subject: string, htmlContent: string) {
-  console.log(`Sending email to: ${to}`);
+  console.log(`Attempting to send email to: ${to}`);
   
   try {
+    if (!resendApiKey) {
+      console.error('No Resend API key provided');
+      return { success: false, error: 'No Resend API key configured' };
+    }
+    
     const emailResponse = await resend.emails.send({
       from: "BARC <onboarding@resend.dev>", // Update with your verified domain
       to: [to],
@@ -81,6 +87,8 @@ async function processSubmission(id: string) {
       return { success: false, error: 'Submission not found' };
     }
     
+    console.log('Found submission:', submission);
+    
     // Check if we have an email to send to
     const submitterEmail = submission.submitter_email;
     if (!submitterEmail) {
@@ -103,6 +111,8 @@ async function processSubmission(id: string) {
 }
 
 serve(async (req) => {
+  console.log("Starting barc_confirmation_email function", req.method, req.url);
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     console.log("Handling CORS preflight request");
@@ -110,7 +120,6 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting barc_confirmation_email function");
     const requestId = crypto.randomUUID();
     console.log(`Request ID: ${requestId}`);
 
@@ -129,6 +138,8 @@ serve(async (req) => {
       
       const testEmail = requestData.testEmail || 'test@example.com';
       const testCompanyName = requestData.testCompanyName || 'Test Company';
+      
+      console.log(`Sending test email to ${testEmail} for company ${testCompanyName}`);
       
       // Send a test email
       const emailResult = await sendEmail(
@@ -178,43 +189,10 @@ serve(async (req) => {
       );
     }
 
-    // Set up realtime subscription to public_form_submissions table
-    const channel = supabase
-      .channel('public_form_submissions_channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'public_form_submissions'
-        },
-        async (payload) => {
-          console.log(`New public form submission detected (${requestId}):`, payload.new.id);
-          
-          // Extract the submitter email
-          const submitterEmail = payload.new.submitter_email;
-          
-          if (!submitterEmail) {
-            console.log(`No submitter email found in the submission (${requestId}), skipping email send`);
-            return;
-          }
-          
-          console.log(`Sending confirmation email to (${requestId}): ${submitterEmail}`);
-          
-          // Send the email
-          await sendEmail(
-            submitterEmail,
-            "Your BARC Submission Has Been Received",
-            getEmailTemplate(payload.new.title, new Date(payload.new.created_at).toLocaleDateString())
-          );
-        }
-      )
-      .subscribe((status) => {
-        console.log(`Realtime subscription status (${requestId}):`, status);
-      });
+    // Initialize realtime subscription
+    console.log(`Initializing realtime subscription for public form submissions (${requestId})`);
     
     // Function can be invoked to initialize the subscription
-    // The main work happens in the subscription handler above
     return new Response(
       JSON.stringify({ 
         success: true, 
