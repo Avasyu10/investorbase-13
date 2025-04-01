@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -346,13 +347,14 @@ export function CompanyInfoForm({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="indianCitizenShareholding">Total Shareholding of Indian Citizen(s) in the Startup</Label>
+        <Label htmlFor="indianCitizenShareholding">Total Shareholding of Indian Citizen(s) in the Startup <span className="text-red-500">*</span></Label>
         <Input
           id="indianCitizenShareholding"
           value={indianCitizenShareholding}
           onChange={(e) => setIndianCitizenShareholding(e.target.value)}
           placeholder="Enter percentage"
           disabled={isDisabled}
+          required
         />
       </div>
       
@@ -376,7 +378,7 @@ export function CompanyInfoForm({
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="companyType">Company Type</Label>
+          <Label htmlFor="companyType">Company Type <span className="text-red-500">*</span></Label>
           <Select 
             value={companyType} 
             onValueChange={setCompanyType}
@@ -562,7 +564,7 @@ export function CompanyInfoForm({
       </div>
       
       <div className="border-t pt-4 mt-6">
-        <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+        <h3 className="text-lg font-medium mb-4">Founder Information</h3>
         
         <div className="space-y-2">
           <Label htmlFor="founderName">Name of Founder / Co-Founder <span className="text-red-500">*</span></Label>
