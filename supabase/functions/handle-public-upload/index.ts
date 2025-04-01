@@ -89,6 +89,28 @@ serve(async (req) => {
         }
       }
       
+      // Extract new company fields
+      const companyRegistrationType = formData.get('company_registration_type') as string || '';
+      const registrationNumber = formData.get('registration_number') as string || '';
+      const dpiitRecognitionNumber = formData.get('dpiit_recognition_number') as string || '';
+      const indianCitizenShareholding = formData.get('indian_citizen_shareholding') as string || '';
+      const executiveSummary = formData.get('executive_summary') as string || '';
+      const companyType = formData.get('company_type') as string || '';
+      const productsServices = formData.get('products_services') as string || '';
+      const employeeCount = formData.get('employee_count') as string || '';
+      const fundsRaised = formData.get('funds_raised') as string || '';
+      const valuation = formData.get('valuation') as string || '';
+      const lastFyRevenue = formData.get('last_fy_revenue') as string || '';
+      const lastQuarterRevenue = formData.get('last_quarter_revenue') as string || '';
+      
+      // Extract founder information
+      const founderName = formData.get('founder_name') as string || '';
+      const founderGender = formData.get('founder_gender') as string || '';
+      const founderEmail = formData.get('founder_email') as string || '';
+      const founderContact = formData.get('founder_contact') as string || '';
+      const founderAddress = formData.get('founder_address') as string || '';
+      const founderState = formData.get('founder_state') as string || '';
+      
       // Validate required fields
       if (!email) {
         return new Response(
@@ -171,6 +193,16 @@ serve(async (req) => {
       
       console.log("File uploaded successfully:", filePath);
       
+      // Parse employee count to number if provided
+      let employeeCountNum = null;
+      if (employeeCount) {
+        try {
+          employeeCountNum = parseInt(employeeCount, 10);
+        } catch (e) {
+          console.error("Error parsing employee count:", e);
+        }
+      }
+      
       // Create a record in public_form_submissions table
       const { data: submissionData, error: submissionError } = await supabase
         .from('public_form_submissions')
@@ -184,7 +216,27 @@ serve(async (req) => {
           industry,
           founder_linkedin_profiles: linkedInProfiles,
           question, // Store the question field
-          submitter_email: email // Store the submitter's email
+          submitter_email: email, // Store the submitter's email
+          // New company fields
+          company_registration_type: companyRegistrationType,
+          registration_number: registrationNumber,
+          dpiit_recognition_number: dpiitRecognitionNumber,
+          indian_citizen_shareholding: indianCitizenShareholding,
+          executive_summary: executiveSummary,
+          company_type: companyType,
+          products_services: productsServices,
+          employee_count: employeeCountNum,
+          funds_raised: fundsRaised,
+          valuation: valuation,
+          last_fy_revenue: lastFyRevenue,
+          last_quarter_revenue: lastQuarterRevenue,
+          // Founder information
+          founder_name: founderName,
+          founder_gender: founderGender,
+          founder_email: founderEmail,
+          founder_contact: founderContact,
+          founder_address: founderAddress,
+          founder_state: founderState
         })
         .select()
         .single();

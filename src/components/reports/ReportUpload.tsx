@@ -55,6 +55,29 @@ export function ReportUpload({
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const [emailForResults, setEmailForResults] = useState("");
   const [question, setQuestion] = useState("");
+  
+  // New state for additional company fields
+  const [companyRegistrationType, setCompanyRegistrationType] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [dpiitRecognitionNumber, setDpiitRecognitionNumber] = useState("");
+  const [indianCitizenShareholding, setIndianCitizenShareholding] = useState("");
+  const [executiveSummary, setExecutiveSummary] = useState("");
+  const [companyType, setCompanyType] = useState("");
+  const [productsServices, setProductsServices] = useState("");
+  const [employeeCount, setEmployeeCount] = useState("");
+  const [fundsRaised, setFundsRaised] = useState("");
+  const [valuation, setValuation] = useState("");
+  const [lastFyRevenue, setLastFyRevenue] = useState("");
+  const [lastQuarterRevenue, setLastQuarterRevenue] = useState("");
+  
+  // Founder information
+  const [founderName, setFounderName] = useState("");
+  const [founderGender, setFounderGender] = useState("");
+  const [founderEmail, setFounderEmail] = useState("");
+  const [founderContact, setFounderContact] = useState("");
+  const [founderAddress, setFounderAddress] = useState("");
+  const [founderState, setFounderState] = useState("");
+  
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +165,73 @@ export function ReportUpload({
       });
       return;
     }
+      
+    if (isPublic) {
+      // Validate required fields for public submission
+      if (!companyRegistrationType) {
+        toast.error("Company registration type required", {
+          description: "Please select how your company is registered"
+        });
+        return;
+      }
+      
+      if (!indianCitizenShareholding) {
+        toast.error("Indian citizen shareholding required", {
+          description: "Please specify the total shareholding of Indian citizens"
+        });
+        return;
+      }
+      
+      if (!executiveSummary) {
+        toast.error("Executive summary required", {
+          description: "Please provide an executive summary of your company"
+        });
+        return;
+      }
+      
+      if (!companyType) {
+        toast.error("Company type required", {
+          description: "Please select your company type"
+        });
+        return;
+      }
+      
+      // Validate founder information
+      if (!founderName) {
+        toast.error("Founder name required", {
+          description: "Please provide the name of the founder/co-founder"
+        });
+        return;
+      }
+      
+      if (!founderEmail) {
+        toast.error("Founder email required", {
+          description: "Please provide the founder's email address"
+        });
+        return;
+      }
+      
+      if (!founderContact) {
+        toast.error("Founder contact required", {
+          description: "Please provide the founder's contact number"
+        });
+        return;
+      }
+      
+      if (!founderAddress) {
+        toast.error("Founder address required", {
+          description: "Please provide the founder's address"
+        });
+        return;
+      }
+      
+      if (!founderState) {
+        toast.error("Founder state required", {
+          description: "Please select the founder's state"
+        });
+        return;
+      }
+    }
 
     try {
       setIsUploading(true);
@@ -193,7 +283,27 @@ export function ReportUpload({
           linkedInProfiles: founderLinkedIns.filter(ln => ln.trim()).length,
           hideEmailField,
           formSlug,
-          question
+          question,
+          // New fields
+          companyRegistrationType,
+          registrationNumber,
+          dpiitRecognitionNumber,
+          indianCitizenShareholding,
+          executiveSummary,
+          companyType,
+          productsServices,
+          employeeCount,
+          fundsRaised,
+          valuation,
+          lastFyRevenue,
+          lastQuarterRevenue,
+          // Founder information
+          founderName,
+          founderGender,
+          founderEmail,
+          founderContact,
+          founderAddress,
+          founderState
         });
         
         if (briefIntroduction) {
@@ -229,6 +339,80 @@ export function ReportUpload({
         if (question) {
           formData.append('question', question);
           console.log("Adding question to submission:", question);
+        }
+        
+        // Add new company fields
+        if (companyRegistrationType) {
+          formData.append('company_registration_type', companyRegistrationType);
+        }
+        
+        if (registrationNumber) {
+          formData.append('registration_number', registrationNumber);
+        }
+        
+        if (dpiitRecognitionNumber) {
+          formData.append('dpiit_recognition_number', dpiitRecognitionNumber);
+        }
+        
+        if (indianCitizenShareholding) {
+          formData.append('indian_citizen_shareholding', indianCitizenShareholding);
+        }
+        
+        if (executiveSummary) {
+          formData.append('executive_summary', executiveSummary);
+        }
+        
+        if (companyType) {
+          formData.append('company_type', companyType);
+        }
+        
+        if (productsServices) {
+          formData.append('products_services', productsServices);
+        }
+        
+        if (employeeCount) {
+          formData.append('employee_count', employeeCount);
+        }
+        
+        if (fundsRaised) {
+          formData.append('funds_raised', fundsRaised);
+        }
+        
+        if (valuation) {
+          formData.append('valuation', valuation);
+        }
+        
+        if (lastFyRevenue) {
+          formData.append('last_fy_revenue', lastFyRevenue);
+        }
+        
+        if (lastQuarterRevenue) {
+          formData.append('last_quarter_revenue', lastQuarterRevenue);
+        }
+        
+        // Add founder information
+        if (founderName) {
+          formData.append('founder_name', founderName);
+        }
+        
+        if (founderGender) {
+          formData.append('founder_gender', founderGender);
+        }
+        
+        if (founderEmail) {
+          formData.append('founder_email', founderEmail);
+        }
+        
+        if (founderContact) {
+          formData.append('founder_contact', founderContact);
+        }
+        
+        if (founderAddress) {
+          formData.append('founder_address', founderAddress);
+        }
+        
+        if (founderState) {
+          formData.append('founder_state', founderState);
         }
         
         // Log form data entries for debugging
@@ -453,6 +637,7 @@ export function ReportUpload({
           description: "Your pitch deck has been submitted successfully!"
         });
         
+        // Reset form fields
         setFile(null);
         setSupplementFiles([]);
         setTitle("");
@@ -462,6 +647,24 @@ export function ReportUpload({
         setIndustry("");
         setFounderLinkedIns([""]);
         setEmailForResults("");
+        setCompanyRegistrationType("");
+        setRegistrationNumber("");
+        setDpiitRecognitionNumber("");
+        setIndianCitizenShareholding("");
+        setExecutiveSummary("");
+        setCompanyType("");
+        setProductsServices("");
+        setEmployeeCount("");
+        setFundsRaised("");
+        setValuation("");
+        setLastFyRevenue("");
+        setLastQuarterRevenue("");
+        setFounderName("");
+        setFounderGender("");
+        setFounderEmail("");
+        setFounderContact("");
+        setFounderAddress("");
+        setFounderState("");
         
         if (onSuccess) {
           onSuccess();
@@ -523,12 +726,50 @@ export function ReportUpload({
             addLinkedInProfile={addLinkedInProfile}
             removeLinkedInProfile={removeLinkedInProfile}
             isDisabled={isProcessing}
+            // New company fields
+            companyRegistrationType={companyRegistrationType}
+            setCompanyRegistrationType={setCompanyRegistrationType}
+            registrationNumber={registrationNumber}
+            setRegistrationNumber={setRegistrationNumber}
+            dpiitRecognitionNumber={dpiitRecognitionNumber}
+            setDpiitRecognitionNumber={setDpiitRecognitionNumber}
+            indianCitizenShareholding={indianCitizenShareholding}
+            setIndianCitizenShareholding={setIndianCitizenShareholding}
+            executiveSummary={executiveSummary}
+            setExecutiveSummary={setExecutiveSummary}
+            companyType={companyType}
+            setCompanyType={setCompanyType}
+            productsServices={productsServices}
+            setProductsServices={setProductsServices}
+            employeeCount={employeeCount}
+            setEmployeeCount={setEmployeeCount}
+            fundsRaised={fundsRaised}
+            setFundsRaised={setFundsRaised}
+            valuation={valuation}
+            setValuation={setValuation}
+            lastFyRevenue={lastFyRevenue}
+            setLastFyRevenue={setLastFyRevenue}
+            lastQuarterRevenue={lastQuarterRevenue}
+            setLastQuarterRevenue={setLastQuarterRevenue}
+            // Founder information
+            founderName={founderName}
+            setFounderName={setFounderName}
+            founderGender={founderGender}
+            setFounderGender={setFounderGender}
+            founderEmail={founderEmail}
+            setFounderEmail={setFounderEmail}
+            founderContact={founderContact}
+            setFounderContact={setFounderContact}
+            founderAddress={founderAddress}
+            setFounderAddress={setFounderAddress}
+            founderState={founderState}
+            setFounderState={setFounderState}
           />
           
           {isPublic && !hideEmailField && (
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium">
-                Your Email 
+                Your Email <span className="text-red-500">*</span>
               </label>
               <input
                 id="email"
@@ -538,7 +779,7 @@ export function ReportUpload({
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="email@example.com"
                 disabled={isProcessing}
-                required={isPublic && !hideEmailField}
+                required={true}
               />
             </div>
           )}

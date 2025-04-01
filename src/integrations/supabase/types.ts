@@ -499,51 +499,105 @@ export type Database = {
       }
       public_form_submissions: {
         Row: {
+          company_registration_type: string | null
           company_stage: string | null
+          company_type: string | null
           created_at: string
           description: string | null
+          dpiit_recognition_number: string | null
+          employee_count: number | null
+          executive_summary: string | null
           form_slug: string | null
+          founder_address: string | null
+          founder_contact: string | null
+          founder_email: string | null
+          founder_gender: string | null
           founder_linkedin_profiles: string[] | null
+          founder_name: string | null
+          founder_state: string | null
+          funds_raised: string | null
           id: string
+          indian_citizen_shareholding: string | null
           industry: string | null
+          last_fy_revenue: string | null
+          last_quarter_revenue: string | null
           pdf_url: string | null
+          products_services: string | null
           question: string | null
+          registration_number: string | null
           report_id: string | null
           submitter_email: string | null
           supplementary_materials_urls: string[] | null
           title: string
+          valuation: string | null
           website_url: string | null
         }
         Insert: {
+          company_registration_type?: string | null
           company_stage?: string | null
+          company_type?: string | null
           created_at?: string
           description?: string | null
+          dpiit_recognition_number?: string | null
+          employee_count?: number | null
+          executive_summary?: string | null
           form_slug?: string | null
+          founder_address?: string | null
+          founder_contact?: string | null
+          founder_email?: string | null
+          founder_gender?: string | null
           founder_linkedin_profiles?: string[] | null
+          founder_name?: string | null
+          founder_state?: string | null
+          funds_raised?: string | null
           id?: string
+          indian_citizen_shareholding?: string | null
           industry?: string | null
+          last_fy_revenue?: string | null
+          last_quarter_revenue?: string | null
           pdf_url?: string | null
+          products_services?: string | null
           question?: string | null
+          registration_number?: string | null
           report_id?: string | null
           submitter_email?: string | null
           supplementary_materials_urls?: string[] | null
           title: string
+          valuation?: string | null
           website_url?: string | null
         }
         Update: {
+          company_registration_type?: string | null
           company_stage?: string | null
+          company_type?: string | null
           created_at?: string
           description?: string | null
+          dpiit_recognition_number?: string | null
+          employee_count?: number | null
+          executive_summary?: string | null
           form_slug?: string | null
+          founder_address?: string | null
+          founder_contact?: string | null
+          founder_email?: string | null
+          founder_gender?: string | null
           founder_linkedin_profiles?: string[] | null
+          founder_name?: string | null
+          founder_state?: string | null
+          funds_raised?: string | null
           id?: string
+          indian_citizen_shareholding?: string | null
           industry?: string | null
+          last_fy_revenue?: string | null
+          last_quarter_revenue?: string | null
           pdf_url?: string | null
+          products_services?: string | null
           question?: string | null
+          registration_number?: string | null
           report_id?: string | null
           submitter_email?: string | null
           supplementary_materials_urls?: string[] | null
           title?: string
+          valuation?: string | null
           website_url?: string | null
         }
         Relationships: [
