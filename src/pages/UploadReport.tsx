@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ const UploadReport = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   
+  // Form state
   const [title, setTitle] = useState("");
   const [briefIntroduction, setBriefIntroduction] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
@@ -35,6 +37,7 @@ const UploadReport = () => {
     }
   }, [user, isLoading, navigate]);
 
+  // Reset error when component unmounts or on route change
   useEffect(() => {
     return () => {
       setError(null);
@@ -43,11 +46,12 @@ const UploadReport = () => {
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
+    // Auto-dismiss error after 10 seconds
     setTimeout(() => setError(null), 10000);
   };
 
   const handleBackClick = () => {
-    navigate(-1);
+    navigate(-1); // Navigate to the previous page in history
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +65,7 @@ const UploadReport = () => {
         return;
       }
       
-      if (selectedFile.size > 10 * 1024 * 1024) {
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
         toast.error("File too large", {
           description: "Please upload a file smaller than 10MB"
         });
@@ -83,7 +87,7 @@ const UploadReport = () => {
         return;
       }
       
-      if (selectedFile.size > 10 * 1024 * 1024) {
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
         toast.error("File too large", {
           description: "Please upload a file smaller than 10MB"
         });
@@ -126,6 +130,7 @@ const UploadReport = () => {
       
       let description = briefIntroduction || '';
       
+      // Add company stage and industry to description if provided
       if (companyStage) {
         description += `\n\nCompany Stage: ${companyStage}`;
       }
@@ -134,11 +139,13 @@ const UploadReport = () => {
         description += `\n\nIndustry: ${industry}`;
       }
       
+      // Add founder LinkedIn profiles to description if provided
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
       if (validLinkedInProfiles.length > 0) {
         description += `\n\nFounder LinkedIn Profiles:\n${validLinkedInProfiles.join('\n')}`;
       }
       
+      // Upload the main pitch deck
       const report = await uploadReport(file, title, description, companyWebsite);
       
       console.log("Upload complete, report:", report);
@@ -147,38 +154,31 @@ const UploadReport = () => {
         description: "Your pitch deck has been uploaded successfully"
       });
       
+      // Handle supplementary files if any
       if (supplementFiles.length > 0) {
-        try {
-          const { supabase } = await import('@/lib/supabase/analysis');
-          
-          for (const supplementFile of supplementFiles) {
-            try {
-              const { error: uploadError } = await supabase.storage
-                .from('report_pdfs')
-                .upload(`${user.id}/supplementary/${report.id}/${supplementFile.name}`, supplementFile);
-                
-              if (uploadError) {
-                console.error("Error uploading supplementary file:", uploadError);
-                toast.error("Error uploading supplementary file", {
-                  description: uploadError.message
-                });
-              }
-            } catch (err) {
-              console.error("Error processing supplementary file:", err);
+        for (const supplementFile of supplementFiles) {
+          try {
+            const { error: uploadError } = await supabase.storage
+              .from('report_pdfs')
+              .upload(`${user.id}/supplementary/${report.id}/${supplementFile.name}`, supplementFile);
+              
+            if (uploadError) {
+              console.error("Error uploading supplementary file:", uploadError);
+              toast.error("Error uploading supplementary file", {
+                description: uploadError.message
+              });
             }
+          } catch (err) {
+            console.error("Error processing supplementary file:", err);
           }
-          
-          toast.success("Supplementary materials uploaded", {
-            description: `${supplementFiles.length} file(s) uploaded successfully`
-          });
-        } catch (importError) {
-          console.error("Error importing supabase client:", importError);
-          toast.error("Could not upload supplementary files", {
-            description: "There was an error with the storage client"
-          });
         }
+        
+        toast.success("Supplementary materials uploaded", {
+          description: `${supplementFiles.length} file(s) uploaded successfully`
+        });
       }
       
+      // Start analysis
       setIsAnalyzing(true);
       
       toast.info("Analysis started", {
@@ -240,7 +240,7 @@ const UploadReport = () => {
     );
   }
 
-  if (!user) return null;
+  if (!user) return null; // Will redirect in useEffect
 
   const isProcessing = isUploading || isAnalyzing;
 
