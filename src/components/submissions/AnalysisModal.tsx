@@ -188,7 +188,7 @@ export function AnalysisModal({
                 <div className="p-4 space-y-3 bg-white">
                   <div className="mb-4">
                     <span className="font-semibold text-primary">Synergy Score: </span>
-                    <span className="text-lg">{parsedAnalysis.score}/5</span>
+                    <span className="text-lg font-bold text-primary">{parsedAnalysis.score}/5</span>
                   </div>
                   {parsedAnalysis.summary.length > 0 ? (
                     parsedAnalysis.summary.map((point, i) => (
