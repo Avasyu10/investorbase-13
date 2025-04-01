@@ -87,7 +87,10 @@ export function AnalysisModal({
       /\*\*Synergy Score:\*\*\s*(\d+\.\d+)\/5/i,
       /Synergy Score:\s*(\d+\.\d+)\/5/i,
       /score of (\d+\.\d+)\/5/i,
-      /Synergy Score: (\d+\.\d+)/i
+      /Synergy Score: (\d+\.\d+)/i,
+      /alignment (?:rating|score).*?(\d+\.\d+)\/5/i,
+      /(\d+\.\d+)\/5 alignment/i,
+      /rated .*?(\d+\.\d+)\/5/i
     ];
     
     // Try each pattern until one matches
