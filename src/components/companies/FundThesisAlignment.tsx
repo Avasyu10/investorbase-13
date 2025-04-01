@@ -22,6 +22,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     try {
       setIsLoading(true);
       setError(null);
+      setIsAnalyzing(true);
       
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -29,6 +30,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         toast.error("You need to be logged in to analyze thesis alignment");
         setIsLoading(false);
         setError("Authentication required");
+        setIsAnalyzing(false);
         return;
       }
       
@@ -47,6 +49,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         toast.error("Failed to analyze fund thesis alignment");
         setError(`API error: ${invokeError.message}`);
         setIsLoading(false);
+        setIsAnalyzing(false);
         return;
       }
       
@@ -54,9 +57,17 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       
       if (data && data.error) {
         console.error("API error:", data.error);
+        
+        // More specific error message for common issues
+        if (data.error.includes("fund thesis not found") || data.error.includes("thesis document")) {
+          setError("Please make sure you have uploaded a fund thesis document in your profile.");
+        } else {
+          setError(`API error: ${data.error}`);
+        }
+        
         toast.error(data.error);
-        setError(`API error: ${data.error}`);
         setIsLoading(false);
+        setIsAnalyzing(false);
         return;
       }
       
@@ -74,6 +85,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
