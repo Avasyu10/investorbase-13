@@ -446,39 +446,18 @@ function extractSection(text: string, sectionName: string): string {
   
   if (!sectionMatch) return '<p>Section not found</p>';
   
-  // Process the content to properly handle all markdown elements, particularly fixing the asterisks issue
   let html = sectionMatch[0]
-    // Remove URLs explicitly
-    .replace(/\[(\d+)\]\(.*?\)/g, '')
-    .replace(/(URLs?:|Sources:).*?(?=\n\n|\n#|$)/gs, '')
-    
-    // Handle headers
     .replace(/^#+\s*([^\n]+)/gm, '<h3>$1</h3>')
-    
-    // Process bold and italic before other replacements
-    .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    
-    // Process Analysis: specifically for the Market Insights section
-    .replace(/\*\*Analysis:\*\*/g, '<strong>Analysis:</strong>')
-    .replace(/\*\*Source:\*\*/g, '<strong>Source:</strong>')
-    .replace(/\*\*Summary:\*\*/g, '<strong>Summary:</strong>')
-    
-    // Handle paragraphs and lists
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n- /g, '</p><ul><li>')
     .replace(/\n  - /g, '</p><ul><li>')
     .replace(/<\/li>\n- /g, '</li><li>')
     .replace(/<\/p><ul>/g, '<ul>')
-    
-    // Handle line breaks
     .replace(/\n/g, ' ')
-    
-    // Handle links
     .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>');
   
-  // Wrap content in paragraph tags if needed
   if (!html.startsWith('<')) {
     html = `<p>${html}</p>`;
   }
@@ -489,32 +468,14 @@ function extractSection(text: string, sectionName: string): string {
 function formatResearchHtml(text: string): string {
   if (!text) return '<p>No research summary available</p>';
   
-  // First clean up the text to remove URL references and sections
-  let cleanText = text
-    .replace(/\[\d+\]/g, '')
-    .replace(/(URLs?:|Sources:).*?(?=\n\n|\n#|$)/gs, '');
-  
-  return cleanText
-    // Handle headers
-    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>')
-    
-    // Process bold and italic elements carefully
-    .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    
-    // Process specific patterns found in the Market Insights section
-    .replace(/\*\*Analysis:\*\*/g, '<strong>Analysis:</strong>')
-    .replace(/\*\*Source:\*\*/g, '<strong>Source:</strong>')
-    .replace(/\*\*Summary:\*\*/g, '<strong>Summary:</strong>')
-    
-    // Format paragraphs and lists
-    .replace(/\n\n/g, '</p><p class="mb-4">')
-    .replace(/^- (.*$)/gim, '<li>$1</li>')
-    .replace(/\n- /g, '</p><ul><li>')
-    .replace(/<\/li>\n- /g, '</li><li>')
-    .replace(/<\/p><ul>/g, '<ul>')
-    
-    // Handle links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>');
+  return text
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // bold
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>') // italic
+    .replace(/\n\n/g, '</p><p class="mb-4">') // paragraphs
+    .replace(/^- (.*$)/gim, '<li>$1</li>') // list items
+    .replace(/\n- /g, '</p><ul><li>') // list start
+    .replace(/<\/li>\n- /g, '</li><li>') // consecutive list items
+    .replace(/<\/p><ul>/g, '<ul>') // fix paragraph to list transition
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
 }
