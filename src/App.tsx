@@ -1,30 +1,35 @@
 
-import { Suspense } from "react";
-import { routes } from "./lib/routes";
-import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BarcConfirmationEmail } from '@/components/BarConfirmationEmail';
+import React from 'react';
+import { Toaster } from '@/components/ui/toaster';
 import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useRoutes } from 'react-router-dom';
+import { AuthProvider } from '@/hooks/useAuth';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Navbar } from '@/components/layout/Navbar';
+import { routes } from '@/lib/routes';
 
+// Create a client
 const queryClient = new QueryClient();
 
-// Create router from routes
-const router = createBrowserRouter(routes);
+// Routes component that uses the routes configuration
+const AppRoutes = () => {
+  return useRoutes(routes);
+};
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <QueryClientProvider client={queryClient}>
-        <Suspense fallback={<div>Loading...</div>}>
-          <RouterProvider router={router} />
-        </Suspense>
-        <Toaster />
-        <RealtimeSubscriptions />
-        <BarcConfirmationEmail />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <RealtimeSubscriptions />
+          <Navbar />
+          <div className="pt-16"> {/* Add padding to accommodate fixed navbar */}
+            <AppRoutes />
+          </div>
+          <Toaster />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

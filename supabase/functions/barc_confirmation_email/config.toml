@@ -1,5 +1,0 @@
-
-project_id = "jhtnruktmtjqrfoiyrep"
-
-[functions.barc_confirmation_email]
-verify_jwt = false
