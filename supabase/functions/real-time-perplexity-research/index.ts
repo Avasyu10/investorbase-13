@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 
@@ -477,6 +476,9 @@ function extractMarketInsights(text: string): MarketInsight[] {
       // Clean up content - remove URL markers if they exist
       content = content.replace(/\*\*URL:\*\*.*$/, "").trim();
       
+      // Remove "**Analysis:**" prefix from content
+      content = content.replace(/^\*\*Analysis:\*\*\s*/i, "").trim();
+      
       if (headlineMatch) {
         marketInsights.push({
           headline: headlineMatch,
@@ -525,6 +527,9 @@ function extractMarketInsights(text: string): MarketInsight[] {
       if (url) {
         content = content.replace(url, "").trim();
       }
+      
+      // Remove "**Analysis:**" prefix from content
+      content = content.replace(/^\*\*Analysis:\*\*\s*/i, "").trim();
       
       if (headline) {
         marketInsights.push({
@@ -576,6 +581,9 @@ function extractMarketInsights(text: string): MarketInsight[] {
         content = content.replace(urlMatch[0], "").trim();
       }
       
+      // Remove "**Analysis:**" prefix from content
+      content = content.replace(/^\*\*Analysis:\*\*\s*/i, "").trim();
+      
       marketInsights.push({
         headline,
         content,
@@ -623,6 +631,9 @@ function extractMarketInsights(text: string): MarketInsight[] {
       if (urlMatch) {
         content = content.replace(urlMatch[0], "").trim();
       }
+      
+      // Remove "**Analysis:**" prefix from content
+      content = content.replace(/^\*\*Analysis:\*\*\s*/i, "").trim();
       
       marketInsights.push({
         headline,
