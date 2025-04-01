@@ -361,9 +361,26 @@ async function processDocumentsWithGemini(
 ): Promise<Response> {
   // Prepare the prompt for Gemini
   const promptText = `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
+              
+              First, you need to calculate a Synergy Score using the following framework:
+              
+              STARTUP EVALUATION FRAMEWORK:
+              
+              1. Identify key sections from both the pitch deck and fund thesis.
+              2. Rate each section on a 1-5 scale.
+              3. Calculate the synergy index using the formula:
+                 SynergyIndex = Sum(Sik × (Scorei × Scorek / 5))
+                 Where Sik is the synergy weight (importance) for each pair of sections.
+              4. Common synergy pairs to consider:
+                 - Problem-Market fit
+                 - Product-Competitive Landscape
+                 - Business Model-Financials
+                 - Traction-Go-to-Market
+              5. Calculate the final Synergy Score on a scale of 1-5.
+              
               Provide your analysis in exactly the following format with these three sections ONLY:
               
-              1. Overall Summary - A concise evaluation of the overall alignment
+              1. Overall Summary - Start with "Synergy Score: X.X/5" followed by a concise evaluation of the overall alignment
               2. Key Similarities - The main points where the pitch deck aligns with the fund thesis
               3. Key Differences - The main areas where the pitch deck diverges from the fund thesis
               
