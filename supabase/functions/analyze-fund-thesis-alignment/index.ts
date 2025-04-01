@@ -654,9 +654,9 @@ critical to overcoming certain market or product challenges.
 8
               5. Calculate the final Synergy Score on a scale of 1-5.
               
-              Provide your analysis in exactly the following format with these three sections ONLY:
+              Provide your analysis in EXACTLY the following format with these three sections ONLY. IT IS VERY IMPORTANT TO RETURN THE RESULT IN THIS FORMAT ONLY:
               
-              1. Overall Summary - Start with "Synergy Score: X.X/5" followed by a concise evaluation of the overall alignment
+              1. Overall Summary - Start this section with "Synergy Score: X.X/5" in the first line. Then followed by a concise evaluation of the overall alignment
               2. Key Similarities - The main points where the pitch deck aligns with the fund thesis
               3. Key Differences - The main areas where the pitch deck diverges from the fund thesis
               
@@ -687,7 +687,7 @@ critical to overcoming certain market or product challenges.
         }
       ],
       generationConfig: {
-        temperature: 0.4,
+        temperature: 0.3,
         maxOutputTokens: 2048
       }
     }),
