@@ -128,7 +128,9 @@ export function CompanyInfoForm({
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="title">Company Name</Label>
+        <Label htmlFor="title">
+          Company Name <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="title"
           value={title}

@@ -78,6 +78,26 @@ serve(async (req) => {
       const companyStage = formData.get('companyStage') as string || '';
       const industry = formData.get('industry') as string || '';
       
+      // Extract new fields
+      const companyRegistrationType = formData.get('companyRegistrationType') as string || '';
+      const registrationNumber = formData.get('registrationNumber') as string || '';
+      const dpiitNumber = formData.get('dpiitNumber') as string || '';
+      const indianShareholding = formData.get('indianShareholding') as string || '';
+      const executiveSummary = formData.get('executiveSummary') as string || '';
+      const companyType = formData.get('companyType') as string || '';
+      const productsServices = formData.get('productsServices') as string || '';
+      const employeeCount = formData.get('employeeCount') as string || '';
+      const fundsRaised = formData.get('fundsRaised') as string || '';
+      const valuation = formData.get('valuation') as string || '';
+      const lastFyRevenue = formData.get('lastFyRevenue') as string || '';
+      const lastQuarterRevenue = formData.get('lastQuarterRevenue') as string || '';
+      const founderName = formData.get('founderName') as string || '';
+      const founderGender = formData.get('founderGender') as string || '';
+      const founderEmail = formData.get('founderEmail') as string || '';
+      const founderContact = formData.get('founderContact') as string || '';
+      const founderAddress = formData.get('founderAddress') as string || '';
+      const founderState = formData.get('founderState') as string || '';
+      
       // Parse LinkedIn profiles if provided
       let linkedInProfiles: string[] = [];
       const linkedInProfilesRaw = formData.get('linkedInProfiles');
@@ -184,7 +204,26 @@ serve(async (req) => {
           industry,
           founder_linkedin_profiles: linkedInProfiles,
           question, // Store the question field
-          submitter_email: email // Store the submitter's email
+          submitter_email: email, // Store the submitter's email
+          // New fields
+          company_registration_type: companyRegistrationType,
+          registration_number: registrationNumber,
+          dpiit_recognition_number: dpiitNumber,
+          indian_citizen_shareholding: indianShareholding,
+          executive_summary: executiveSummary,
+          company_type: companyType,
+          products_services: productsServices,
+          employee_count: employeeCount ? parseInt(employeeCount) : null,
+          funds_raised: fundsRaised,
+          valuation: valuation,
+          last_fy_revenue: lastFyRevenue,
+          last_quarter_revenue: lastQuarterRevenue,
+          founder_name: founderName,
+          founder_gender: founderGender,
+          founder_email: founderEmail,
+          founder_contact: founderContact,
+          founder_address: founderAddress,
+          founder_state: founderState
         })
         .select()
         .single();
