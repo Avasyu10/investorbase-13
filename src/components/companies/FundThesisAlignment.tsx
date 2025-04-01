@@ -18,68 +18,72 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  useEffect(() => {
-    async function analyzeThesisAlignment() {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          toast.error("You need to be logged in to analyze thesis alignment");
-          setIsLoading(false);
-          setError("Authentication required");
-          return;
-        }
-        
-        console.log("Analyzing fund thesis alignment for company:", companyId);
-        console.log("User ID:", user.id);
-        
-        const { data, error: invokeError } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
-          body: { 
-            company_id: companyId,
-            user_id: user.id
-          }
-        });
-        
-        if (invokeError) {
-          console.error("Error invoking analyze-fund-thesis-alignment:", invokeError);
-          toast.error("Failed to analyze fund thesis alignment");
-          setError(`API error: ${invokeError.message}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log("Response from analyze-fund-thesis-alignment:", data);
-        
-        if (data && data.error) {
-          console.error("API error:", data.error);
-          toast.error(data.error);
-          setError(`API error: ${data.error}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Process the analysis text
-        if (data && data.analysis) {
-          setAnalysis(data.analysis);
-          // Automatically open the analysis modal once the data is loaded
-          setIsAnalysisModalOpen(true);
-        } else {
-          setError("No analysis data received from API");
-        }
-      } catch (error) {
-        console.error("Error in thesis alignment analysis:", error);
-        toast.error("Failed to analyze fund thesis alignment");
-        setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      } finally {
+  const fetchAnalysis = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You need to be logged in to analyze thesis alignment");
         setIsLoading(false);
+        setError("Authentication required");
+        return;
       }
+      
+      console.log("Analyzing fund thesis alignment for company:", companyId);
+      console.log("User ID:", user.id);
+      
+      const { data, error: invokeError } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
+        body: { 
+          company_id: companyId,
+          user_id: user.id
+        }
+      });
+      
+      if (invokeError) {
+        console.error("Error invoking analyze-fund-thesis-alignment:", invokeError);
+        toast.error("Failed to analyze fund thesis alignment");
+        setError(`API error: ${invokeError.message}`);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Response from analyze-fund-thesis-alignment:", data);
+      
+      if (data && data.error) {
+        console.error("API error:", data.error);
+        toast.error(data.error);
+        setError(`API error: ${data.error}`);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Process the analysis text
+      if (data && data.analysis) {
+        setAnalysis(data.analysis);
+        // Automatically open the analysis modal once the data is loaded
+        setIsAnalysisModalOpen(true);
+      } else {
+        setError("No analysis data received from API");
+      }
+    } catch (error) {
+      console.error("Error in thesis alignment analysis:", error);
+      toast.error("Failed to analyze fund thesis alignment");
+      setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
-    
-    analyzeThesisAlignment();
+  };
+
+  useEffect(() => {
+    fetchAnalysis();
   }, [companyId]);
+
+  const handleAnalyzeAgain = () => {
+    fetchAnalysis();
+  };
 
   const handleViewThesis = async () => {
     try {
@@ -133,7 +137,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
             <p className="text-sm text-red-600 mt-1">
               Please make sure you have uploaded a fund thesis document in your profile.
             </p>
-            <div className="mt-4">
+            <div className="mt-4 flex space-x-3">
               <Button 
                 variant="outline" 
                 className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50"
@@ -142,6 +146,15 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
                 <span>View Your Fund Thesis</span>
                 <ExternalLink className="h-4 w-4" />
               </Button>
+              <Button
+                variant="default"
+                className="flex items-center gap-2"
+                onClick={handleAnalyzeAgain}
+                disabled={isAnalyzing}
+              >
+                <span>Try Again</span>
+                {isAnalyzing && <Loader2 className="h-4 w-4 animate-spin" />}
+              </Button>
             </div>
           </div>
         </div>
@@ -149,18 +162,28 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     );
   }
 
-  // The component now renders nothing visible initially, 
-  // just the modal that will open automatically when analysis is loaded
   return (
     <>
-      <Button 
-        variant="outline" 
-        className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 mt-4"
-        onClick={handleViewThesis}
-      >
-        <span>View Your Fund Thesis</span>
-        <ExternalLink className="h-4 w-4" />
-      </Button>
+      <div className="flex justify-between items-center">
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 mt-4"
+          onClick={handleViewThesis}
+        >
+          <span>View Your Fund Thesis</span>
+          <ExternalLink className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="default"
+          className="flex items-center gap-2 mt-4"
+          onClick={handleAnalyzeAgain}
+          disabled={isAnalyzing}
+        >
+          <span>Reanalyze</span>
+          {isAnalyzing && <Loader2 className="h-4 w-4 animate-spin" />}
+        </Button>
+      </div>
 
       <AnalysisModal
         isOpen={isAnalysisModalOpen}
