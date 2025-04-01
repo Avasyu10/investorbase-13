@@ -56,7 +56,6 @@ export function ReportUpload({
   const [emailForResults, setEmailForResults] = useState("");
   const [question, setQuestion] = useState("");
   
-  // New state for additional company fields
   const [companyRegistrationType, setCompanyRegistrationType] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [dpiitRecognitionNumber, setDpiitRecognitionNumber] = useState("");
@@ -70,7 +69,6 @@ export function ReportUpload({
   const [lastFyRevenue, setLastFyRevenue] = useState("");
   const [lastQuarterRevenue, setLastQuarterRevenue] = useState("");
   
-  // Founder information
   const [founderName, setFounderName] = useState("");
   const [founderGender, setFounderGender] = useState("");
   const [founderEmail, setFounderEmail] = useState("");
@@ -167,17 +165,9 @@ export function ReportUpload({
     }
       
     if (isPublic) {
-      // Validate required fields for public submission
       if (!companyRegistrationType) {
         toast.error("Company registration type required", {
           description: "Please select how your company is registered"
-        });
-        return;
-      }
-      
-      if (!indianCitizenShareholding) {
-        toast.error("Indian citizen shareholding required", {
-          description: "Please specify the total shareholding of Indian citizens"
         });
         return;
       }
@@ -189,14 +179,6 @@ export function ReportUpload({
         return;
       }
       
-      if (!companyType) {
-        toast.error("Company type required", {
-          description: "Please select your company type"
-        });
-        return;
-      }
-      
-      // Validate founder information
       if (!founderName) {
         toast.error("Founder name required", {
           description: "Please provide the name of the founder/co-founder"
@@ -255,12 +237,9 @@ export function ReportUpload({
           return;
         }
         
-        // Ensure all required fields are included
         formData.append('title', title);
         
-        // Email handling - use a default value when hideEmailField is true
         if (hideEmailField) {
-          // Use a placeholder email when the field is hidden
           formData.append('email', 'no-email-required@pitchdeck.com');
           console.log("Using placeholder email since hideEmailField is true");
         } else {
@@ -284,7 +263,6 @@ export function ReportUpload({
           hideEmailField,
           formSlug,
           question,
-          // New fields
           companyRegistrationType,
           registrationNumber,
           dpiitRecognitionNumber,
@@ -297,7 +275,6 @@ export function ReportUpload({
           valuation,
           lastFyRevenue,
           lastQuarterRevenue,
-          // Founder information
           founderName,
           founderGender,
           founderEmail,
@@ -329,100 +306,14 @@ export function ReportUpload({
           formData.append('industry', industry);
         }
         
-        // Add LinkedIn profiles as JSON string
         const filteredProfiles = founderLinkedIns.filter(profile => profile.trim());
         if (filteredProfiles.length > 0) {
           formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
         }
         
-        // Add question field to form data
         if (question) {
           formData.append('question', question);
           console.log("Adding question to submission:", question);
-        }
-        
-        // Add new company fields
-        if (companyRegistrationType) {
-          formData.append('company_registration_type', companyRegistrationType);
-        }
-        
-        if (registrationNumber) {
-          formData.append('registration_number', registrationNumber);
-        }
-        
-        if (dpiitRecognitionNumber) {
-          formData.append('dpiit_recognition_number', dpiitRecognitionNumber);
-        }
-        
-        if (indianCitizenShareholding) {
-          formData.append('indian_citizen_shareholding', indianCitizenShareholding);
-        }
-        
-        if (executiveSummary) {
-          formData.append('executive_summary', executiveSummary);
-        }
-        
-        if (companyType) {
-          formData.append('company_type', companyType);
-        }
-        
-        if (productsServices) {
-          formData.append('products_services', productsServices);
-        }
-        
-        if (employeeCount) {
-          formData.append('employee_count', employeeCount);
-        }
-        
-        if (fundsRaised) {
-          formData.append('funds_raised', fundsRaised);
-        }
-        
-        if (valuation) {
-          formData.append('valuation', valuation);
-        }
-        
-        if (lastFyRevenue) {
-          formData.append('last_fy_revenue', lastFyRevenue);
-        }
-        
-        if (lastQuarterRevenue) {
-          formData.append('last_quarter_revenue', lastQuarterRevenue);
-        }
-        
-        // Add founder information
-        if (founderName) {
-          formData.append('founder_name', founderName);
-        }
-        
-        if (founderGender) {
-          formData.append('founder_gender', founderGender);
-        }
-        
-        if (founderEmail) {
-          formData.append('founder_email', founderEmail);
-        }
-        
-        if (founderContact) {
-          formData.append('founder_contact', founderContact);
-        }
-        
-        if (founderAddress) {
-          formData.append('founder_address', founderAddress);
-        }
-        
-        if (founderState) {
-          formData.append('founder_state', founderState);
-        }
-        
-        // Log form data entries for debugging
-        console.log("FormData entries:");
-        for (const [key, value] of formData.entries()) {
-          if (value instanceof File) {
-            console.log(`${key}: File: ${value.name} (${value.type}, ${value.size} bytes)`);
-          } else {
-            console.log(`${key}: ${value}`);
-          }
         }
         
         const apiUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload";
@@ -469,7 +360,6 @@ export function ReportUpload({
           throw fetchError;
         }
       } else {
-        // Non-public upload flow
         if (!file) {
           toast.error("Missing pitch deck", {
             description: "Please select a PDF file to upload"
@@ -531,7 +421,6 @@ export function ReportUpload({
         });
       }
       
-      // Only scrape website content if scraping features are enabled
       let scrapedContent = null;
       if (!disableScrapingFeatures && companyWebsite && companyWebsite.trim()) {
         setProgress(40);
@@ -550,7 +439,6 @@ export function ReportUpload({
         }
       }
       
-      // Only scrape LinkedIn profiles if scraping features are enabled
       let linkedInContent = null;
       if (!disableScrapingFeatures) {
         const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
@@ -637,7 +525,6 @@ export function ReportUpload({
           description: "Your pitch deck has been submitted successfully!"
         });
         
-        // Reset form fields
         setFile(null);
         setSupplementFiles([]);
         setTitle("");
@@ -726,15 +613,12 @@ export function ReportUpload({
             addLinkedInProfile={addLinkedInProfile}
             removeLinkedInProfile={removeLinkedInProfile}
             isDisabled={isProcessing}
-            // New company fields
             companyRegistrationType={companyRegistrationType}
             setCompanyRegistrationType={setCompanyRegistrationType}
             registrationNumber={registrationNumber}
             setRegistrationNumber={setRegistrationNumber}
             dpiitRecognitionNumber={dpiitRecognitionNumber}
             setDpiitRecognitionNumber={setDpiitRecognitionNumber}
-            indianCitizenShareholding={indianCitizenShareholding}
-            setIndianCitizenShareholding={setIndianCitizenShareholding}
             executiveSummary={executiveSummary}
             setExecutiveSummary={setExecutiveSummary}
             companyType={companyType}
@@ -751,7 +635,6 @@ export function ReportUpload({
             setLastFyRevenue={setLastFyRevenue}
             lastQuarterRevenue={lastQuarterRevenue}
             setLastQuarterRevenue={setLastQuarterRevenue}
-            // Founder information
             founderName={founderName}
             setFounderName={setFounderName}
             founderGender={founderGender}
@@ -769,7 +652,7 @@ export function ReportUpload({
           {isPublic && !hideEmailField && (
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium">
-                Your Email <span className="text-red-500">*</span>
+                Submitter Email <span className="text-red-500">*</span>
               </label>
               <input
                 id="email"
