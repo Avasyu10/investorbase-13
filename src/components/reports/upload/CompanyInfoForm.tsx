@@ -572,7 +572,7 @@ export function CompanyInfoForm({
             id="founderName"
             value={founderName}
             onChange={(e) => setFounderName(e.target.value)}
-            placeholder="Dr./Mr./Ms. Full Name"
+            placeholder="Full Name"
             disabled={isDisabled}
             required
           />
@@ -604,7 +604,7 @@ export function CompanyInfoForm({
             type="email"
             value={founderEmail}
             onChange={(e) => setFounderEmail(e.target.value)}
-            placeholder="founder@example.com"
+            placeholder="Email"
             disabled={isDisabled}
             required
           />
