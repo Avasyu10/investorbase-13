@@ -1,5 +1,6 @@
+
 import { Suspense } from "react";
-import { Routes } from "./routes";
+import { Routes } from "@/lib/routes";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

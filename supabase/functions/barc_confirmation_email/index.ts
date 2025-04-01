@@ -28,6 +28,9 @@ serve(async (req) => {
 
   try {
     console.log("Starting barc_confirmation_email function");
+    console.log("Resend API Key available:", !!resendApiKey);
+    console.log("Supabase URL:", supabaseUrl);
+    console.log("Supabase Service Key available:", !!supabaseServiceKey);
 
     // Set up realtime subscription to public_form_submissions table
     const channel = supabase
@@ -76,9 +79,14 @@ serve(async (req) => {
               `
             });
             
-            console.log('Email sent successfully:', emailResponse);
+            console.log('Email send response:', JSON.stringify(emailResponse));
           } catch (emailError) {
             console.error('Error sending confirmation email:', emailError);
+            if (emailError instanceof Error) {
+              console.error('Error message:', emailError.message);
+              console.error('Error stack:', emailError.stack);
+            }
+            console.error('Error details:', JSON.stringify(emailError, null, 2));
           }
         }
       )
@@ -103,6 +111,11 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in barc_confirmation_email function:", error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    console.error('Error details:', JSON.stringify(error, null, 2));
     
     return new Response(
       JSON.stringify({ 
