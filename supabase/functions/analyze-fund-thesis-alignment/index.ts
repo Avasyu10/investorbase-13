@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { corsHeaders } from "./cors.ts";
@@ -365,10 +364,10 @@ async function processDocumentsWithGemini(
    First, you need to calculate a Synergy Score using the following framework:
                
                STARTUP EVALUATION FRAMEWORK:
- 1. Score a startup’s fundamentals (Problem, Market, Product, etc.)
+ 1. Score a startup's fundamentals (Problem, Market, Product, etc.)
  2. Incorporate cross-sectional synergy (how various sections reinforce or
  undermine each other)
- 3. Adjust for risk factors relevant to the startup’s stage and the investor’s
+ 3. Adjust for risk factors relevant to the startup's stage and the investor's
  thesis
  The end result is a Composite Score that helps analysts quickly compare
  different deals and identify critical areas of further due diligence.
@@ -384,7 +383,7 @@ async function processDocumentsWithGemini(
  8) Team
  9) Financials
  10) The Ask
- (AN EXAMPLE )From an investor’sperspective, typical base weights(before any risk adjustment) might look like this -
+ (AN EXAMPLE )From an investor'sperspective, typical base weights(before any risk adjustment) might look like this -
  Section Baseline Weight (W_i)
  1) Problem 5–10%
  2) Market 15–20%
@@ -426,7 +425,7 @@ async function processDocumentsWithGemini(
  sum to 1).
  6. CROSS-SECTIONAL SYNERGY
  6.1 Why Synergy Matters
- A startup might score high on “Product” but low on “Go-to-Market.” In isolation,
+ A startup might score high on "Product" but low on "Go-to-Market." In isolation,
  those two sections might look acceptable, but if the startup cannot actually
  acquire customers to use its otherwise excellent product, the overall opportunity
  is weaker.
@@ -444,7 +443,7 @@ async function processDocumentsWithGemini(
  function f(·):
  f(Scorei,Scorek ) = Scorei ×Scorek
  (if using a 1–5 scale)
- This means synergy is highest when both sections are rated high, and it’s
+ This means synergy is highest when both sections are rated high, and it's
  lowest when either one is low (multiplicative effect).
  SynergyIndex=
  (Sik ×f(Scorei,Scorek ))
@@ -453,13 +452,13 @@ async function processDocumentsWithGemini(
  To incorporate synergy into the final score, we introduce a calibration factor
  λ that determines how heavily synergy affects the overall rating:
  Synergy Contribution= λ×SynergyIndex
- If synergy is extremely important to your fund’s thesis (e.g., you invest only in
+ If synergy is extremely important to your fund's thesis (e.g., you invest only in
  startups that demonstrate a tightly integrated plan), set λ higher (e.g., 0.3). If
  synergy is just a minor supplement, set it lower (e.g., 0.1).
  7. RISK-ADJUSTED WEIGHTING
  7.1 Rationale
- Not all sections carry the same level of risk. If a startup’s technology is
- unproven, the “Product” or “Traction” sections might be inherently riskier.
+ Not all sections carry the same level of risk. If a startup's technology is
+ unproven, the "Product" or "Traction" sections might be inherently riskier.
  Meanwhile, a strong, experienced team may reduce the risk associated with
  execution.
  7.2 Risk Factor (Ri)
@@ -495,7 +494,7 @@ async function processDocumentsWithGemini(
  and possibly negotiation of protective terms.
  4
  • 2.5 – 3.4: Moderate to high risk or synergy gaps. Needs major improve-
- ments or might not meet your fund’s return threshold.
+ ments or might not meet your fund's return threshold.
  • < 2.5: Weak opportunity. High risk and minimal synergy—probably pass.
  9. SCENARIO & SENSITIVITY ANALYSIS
  9.1 Identifying Key Assumptions
@@ -507,7 +506,7 @@ async function processDocumentsWithGemini(
  slows?)
  9.2 Best-, Base-, and Worst-Case Scenarios
  Re-score key sections under different assumptions:
- • Best-Case: The startup’s claims hold up, synergy is high, minimal risk is
+ • Best-Case: The startup's claims hold up, synergy is high, minimal risk is
  realized.
  • Base-Case: More conservative growth or market size.
  • Worst-Case: Competition intensifies, traction lags, synergy breaks down.
@@ -650,7 +649,7 @@ async function processDocumentsWithGemini(
  • (Solution, Competitive Landscape)
  • (Business Model, Financials)
  • (Traction, Go-to-Market)
- • (Team, All Other Sections) – sometimes scored if the team’s skillset is
+ • (Team, All Other Sections) – sometimes scored if the team's skillset is
  critical to overcoming certain market or product challenges.
 
 CALCULATE THE FINAL SYNERGY SCORE ON A SCALE OF 1-5.
@@ -659,7 +658,7 @@ NOW, create a detailed analysis with the following structure:
 
 **1. Overall Summary**
 
-Start with "**Synergy Score:** X.X/5" on its own line, where X.X is a score from 1.0 to 5.0 that represents how well the pitch deck aligns with the fund thesis.
+Start with "**Synergy Score:** X.X/5" on its own line, where X.X is a score from 1.0 to 5.0 that represents how well the pitch deck aligns with the fund thesis. Always present this score in this exact format for consistent parsing.
 
 Then provide 2-3 paragraphs summarizing the overall alignment between the pitch deck and the fund thesis. Be specific about strengths and weaknesses in the alignment.
 

@@ -81,10 +81,22 @@ export function AnalysisModal({
       score: "0.0"
     };
     
-    // First try to extract the score
-    const scoreMatch = text.match(/\*\*Synergy Score:\*\*\s*(\d+\.\d+)\/5/);
-    if (scoreMatch && scoreMatch[1]) {
-      sections.score = scoreMatch[1];
+    // First try to extract the score with improved regex patterns that capture more variations
+    // Look for both "Synergy Score: X.X/5" and "**Synergy Score:** X.X/5" formats
+    const scorePatterns = [
+      /\*\*Synergy Score:\*\*\s*(\d+\.\d+)\/5/i,
+      /Synergy Score:\s*(\d+\.\d+)\/5/i,
+      /score of (\d+\.\d+)\/5/i,
+      /Synergy Score: (\d+\.\d+)/i
+    ];
+    
+    // Try each pattern until one matches
+    for (const pattern of scorePatterns) {
+      const scoreMatch = text.match(pattern);
+      if (scoreMatch && scoreMatch[1]) {
+        sections.score = scoreMatch[1];
+        break;
+      }
     }
     
     let currentSection = '';
