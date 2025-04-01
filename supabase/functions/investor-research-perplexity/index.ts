@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -203,7 +202,7 @@ serve(async (req) => {
   }
 });
 
-// Helper function to generate the prompt for Perplexity
+// Updated helper function to generate a better structured prompt for Perplexity
 function generatePrompt(companyName: string, companyStage: string, assessmentPoints: string[]): string {
   const assessmentText = assessmentPoints.join("\n\n");
   
@@ -212,9 +211,44 @@ function generatePrompt(companyName: string, companyStage: string, assessmentPoi
 Assessment Points:
 ${assessmentText}
 
-Please only response with the text that will be shown on the UI screen to real-life investors.
+FORMAT YOUR RESPONSE IN A HIGHLY STRUCTURED WAY USING THE FOLLOWING SECTIONS:
 
-Be specific, precise, and factual. Focus on providing high-quality, actionable intelligence for investment decision-making.`;
+# MARKET OPPORTUNITY
+Provide a concise analysis of the total addressable market (TAM), serviceable addressable market (SAM), and serviceable obtainable market (SOM). Include specific market size figures in dollars and growth percentages.
+
+# PRODUCT & BUSINESS MODEL ANALYSIS
+## Value proposition:
+- Clearly bullet point the key value propositions
+- Include cost reduction percentages, efficiency improvements, or other quantifiable benefits
+- Compare against traditional solutions
+
+## Revenue model:
+- Detail the fee structure and pricing strategy
+- Analyze projected revenue with specific figures
+- Identify potential revenue risks
+
+# COMPETITIVE LANDSCAPE
+Create a structured analysis of key competitors with:
+- Clear company names
+- Their specific advantages
+- Market positioning
+- Gaps in the competitive landscape that ${companyName} could exploit
+
+# INVESTMENT THESIS
+Bullet point 3-5 compelling reasons to invest or areas of caution, with each point containing:
+- A specific strength/concern
+- Supporting evidence or metrics
+- Implications for future growth/valuation
+
+# KEY RISKS & MITIGATIONS
+Outline the most critical risks in a structured manner:
+- Market adoption risks
+- Competitive threats
+- Regulatory concerns
+- Execution challenges
+- For each risk, suggest a potential mitigation strategy
+
+Format using proper Markdown with headers, bullet points, and clear section breaks. Be specific, precise, and factual. Focus on providing high-quality, actionable intelligence for investment decision-making.`;
 }
 
 // Helper function to extract structured data from research text

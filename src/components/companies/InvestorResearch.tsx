@@ -323,19 +323,66 @@ function extractContentOutsideThinkTags(text: string): string {
 function formatResearchHtml(text: string): string {
   if (!text) return '<p>No research data available</p>';
   
+  // Improved formatting with better structure and visual hierarchy
   return text
-    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-3 mt-6">$1</h1>') // h1
-    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-2 mt-5">$1</h2>') // h2
-    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
-    .replace(/^#### (.*$)/gim, '<h4 class="text-base font-bold mb-1 mt-3">$1</h4>') // h4
-    .replace(/^##### (.*$)/gim, '<h5 class="font-bold mb-1 mt-2">$1</h5>') // h5
-    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>') // bold
-    .replace(/\*(.*?)\*/gim, '<em>$1</em>') // italic
-    .replace(/\n\n/gim, '</p><p class="mb-4">') // paragraphs
-    .replace(/^- (.*$)/gim, '<li>$1</li>') // list items
-    .replace(/\n- /g, '</p><ul class="my-2"><li>') // list start
-    .replace(/<\/li>\n- /g, '</li><li>') // consecutive list items
-    .replace(/<\/p><ul/g, '<ul') // fix paragraph to list transition
-    .replace(/<\/li>(?!\n<li>|\n<\/ul>)/g, '</li></ul>') // close lists
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
+    // Format major section headers with proper styling
+    .replace(/^# (.*$)/gim, '<div class="border-b pb-2 mb-6"><h1 class="text-2xl font-bold mt-6">$1</h1></div>')
+    .replace(/^## (.*$)/gim, '<div class="mt-8 mb-4"><h2 class="text-xl font-bold pb-2 border-b border-gray-200 dark:border-gray-800">$1</h2></div>')
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mt-5 mb-3">$1</h3>')
+    .replace(/^#### (.*$)/gim, '<h4 class="text-base font-semibold mt-4 mb-2">$1</h4>')
+    
+    // Format text styling
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+    
+    // Format paragraphs with proper spacing
+    .replace(/\n\n/gim, '</p><p class="mb-4">')
+    
+    // Format lists with better styling
+    .replace(/^- (.*$)/gim, '<li class="mb-2">$1</li>')
+    .replace(/\n- /g, '</p><ul class="mb-4 pl-6 space-y-2 list-disc">$&')
+    .replace(/<\/li>\n- /g, '</li><li class="mb-2">')
+    .replace(/<\/p><ul/g, '<ul')
+    .replace(/<\/li>(?!\n<li>|\n<\/ul>)/g, '</li></ul>')
+    
+    // Format special sections (e.g., tables, value proposition, competitive analysis)
+    .replace(/Value proposition:/g, '<div class="mt-4 mb-2 font-semibold text-primary">Value proposition:</div>')
+    .replace(/Revenue risks:/g, '<div class="mt-5 mb-2 font-semibold text-primary">Revenue risks:</div>')
+    .replace(/Competitive Landscape Gaps/g, '<div class="mt-6 mb-4 font-bold text-xl border-b pb-2">Competitive Landscape Gaps</div>')
+    .replace(/Unaddressed competitors:/g, '<div class="mt-4 mb-2 font-semibold text-primary">Unaddressed competitors:</div>')
+    
+    // Format numerical values and statistics to stand out
+    .replace(/(\$[0-9.,]+ (?:billion|million|trillion)|\d+% growth|\d+\.\d+%|~\d+%|\$\d+(?:\.\d+)?[BM])/gi, 
+             '<span class="font-semibold">$1</span>')
+    
+    // Format separator lines
+    .replace(/^---/gm, '<hr class="my-5 border-gray-200 dark:border-gray-800">')
+    
+    // Format table-like structures with proper alignment
+    .replace(/\| Company \| Key Advantage \| Market Position \|/g, 
+             '<div class="overflow-x-auto mt-4 mb-6"><table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">' +
+             '<thead><tr><th class="text-left px-3 py-2">Company</th><th class="text-left px-3 py-2">Key Advantage</th>' +
+             '<th class="text-left px-3 py-2">Market Position</th></tr></thead><tbody>')
+    
+    // Convert dashed competitor lines into table rows
+    .replace(/\|-+\|-+\|-+\|/g, '')
+    .replace(/\| ([^|]+) \| ([^|]+) \| ([^|]+) \|/g, 
+             '<tr class="border-b border-gray-100 dark:border-gray-900"><td class="px-3 py-2">$1</td>' +
+             '<td class="px-3 py-2">$2</td><td class="px-3 py-2">$3</td></tr>')
+    
+    // Close the table if it exists
+    .replace(/No evidence of differentiated/g, '</tbody></table></div>No evidence of differentiated')
+    
+    // Clean up links and sources
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>')
+    
+    // Ensure proper paragraph wrapping
+    .replace(/^([^<\n].*)/gm, '<p class="mb-4">$1</p>')
+    
+    // Fix duplicate paragraph tags
+    .replace(/<p><p/g, '<p')
+    .replace(/<\/p><\/p>/g, '</p>')
+    
+    // Clean up line breaks
+    .replace(/\n/g, ' ');
 }
