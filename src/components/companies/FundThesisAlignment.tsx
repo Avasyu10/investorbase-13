@@ -37,12 +37,15 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         console.log("User ID:", user.id);
         
         // Make sure we're using the full function URL with proper CORS handling
-        const { data, error: functionError } = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
+        const response = await supabase.functions.invoke('analyze-fund-thesis-alignment', {
           body: { 
             company_id: companyId,
             user_id: user.id
           }
         });
+        
+        // Destructure data and error from response
+        const { data, error: functionError } = response;
         
         if (functionError) {
           console.error("Error invoking analyze-fund-thesis-alignment:", functionError);
