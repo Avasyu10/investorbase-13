@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { corsHeaders } from "./cors.ts";
@@ -139,230 +138,7 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the company information to get title or company name
-    console.log('Fetching company information');
-    const companyResponse = await fetch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${company_id}&select=id,name,prompt_sent,response_received,report_id`, {
-      headers: {
-        'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY as string,
-      }
-    });
-
-    if (!companyResponse.ok) {
-      const errorText = await companyResponse.text();
-      console.error('Failed to fetch company information:', errorText);
-    }
-    
-    let companyData = null;
-    try {
-      const companyResults = await companyResponse.json();
-      if (companyResults && companyResults.length > 0) {
-        companyData = companyResults[0];
-        console.log('Found company data:', companyData);
-      }
-    } catch (error) {
-      console.error('Error parsing company response:', error);
-    }
-
-    // If we have a report_id from company data, use that directly
-    let pitchDeckBlob = null;
-    let report_id = companyData?.report_id;
-    
-    if (report_id) {
-      console.log(`Using report_id ${report_id} from company data`);
-      
-      // Fetch report details to get the PDF URL
-      const reportResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?id=eq.${report_id}&select=id,pdf_url,user_id`, {
-        headers: {
-          'Authorization': authHeader,
-          'apikey': SUPABASE_ANON_KEY as string,
-        }
-      });
-      
-      if (reportResponse.ok) {
-        const reportData = await reportResponse.json();
-        if (reportData && reportData.length > 0) {
-          const report = reportData[0];
-          console.log(`Found report with PDF: ${report.pdf_url}`);
-          
-          // Download the pitch deck using the report data
-          try {
-            const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${report.user_id}/${report.pdf_url}`, {
-              method: 'GET',
-              headers: {
-                'Authorization': authHeader,
-                'apikey': SUPABASE_ANON_KEY as string,
-              }
-            });
-            
-            if (pitchDeckResponse.ok) {
-              pitchDeckBlob = await pitchDeckResponse.blob();
-              console.log(`Downloaded pitch deck successfully, size: ${pitchDeckBlob.size} bytes`);
-            } else {
-              console.error('Failed to download pitch deck from report_pdfs:', await pitchDeckResponse.text());
-            }
-          } catch (downloadError) {
-            console.error('Error downloading pitch deck from report_pdfs:', downloadError);
-          }
-        }
-      } else {
-        console.error('Failed to fetch report details:', await reportResponse.text());
-      }
-    }
-    
-    // If we didn't get the pitch deck from the report_id approach, try the original methods
-    if (!pitchDeckBlob) {
-      // Try the original method first - fetch the pitch deck from reports table
-      console.log('Fetching company report data to locate pitch deck');
-      const reportsResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?company_id=eq.${company_id}&select=id,pdf_url,user_id`, {
-        headers: {
-          'Authorization': authHeader,
-          'apikey': SUPABASE_ANON_KEY as string,
-        }
-      });
-
-      if (!reportsResponse.ok) {
-        const errorText = await reportsResponse.text();
-        console.error('Failed to fetch company reports:', errorText);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Could not fetch company reports',
-            details: errorText
-          }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 404
-          }
-        );
-      }
-
-      const reports = await reportsResponse.json();
-      if (!reports || reports.length === 0) {
-        console.error('No reports found for company:', company_id);
-        return new Response(
-          JSON.stringify({ 
-            error: 'No reports found for this company',
-            details: 'Company does not have any associated reports'
-          }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 404
-          }
-        );
-      }
-
-      console.log('Found reports for company:', reports);
-      const report = reports[0]; // Use the first report
-      
-      // Now try to fetch the actual pitch deck PDF using the report data
-      console.log('Fetching pitch deck document using report data');
-      try {
-        const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${report.user_id}/${report.pdf_url}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': authHeader,
-            'apikey': SUPABASE_ANON_KEY as string,
-          }
-        });
-
-        if (pitchDeckResponse.ok) {
-          pitchDeckBlob = await pitchDeckResponse.blob();
-          console.log(`Pitch deck fetched successfully, size: ${pitchDeckBlob.size} bytes`);
-        } else {
-          const errorText = await pitchDeckResponse.text();
-          console.error('Failed to fetch pitch deck directly:', errorText);
-          
-          // Try the handle-vc-document-upload function as a fallback
-          console.log('Trying alternative method to fetch pitch deck');
-          const altPitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
-            method: 'POST',
-            headers: {
-              'Authorization': authHeader,
-              'Content-Type': 'application/json',
-              'apikey': SUPABASE_ANON_KEY as string,
-              'x-app-version': '1.0.0'
-            },
-            body: JSON.stringify({ 
-              action: 'download', 
-              companyId: company_id 
-            })
-          });
-          
-          if (altPitchDeckResponse.ok) {
-            pitchDeckBlob = await altPitchDeckResponse.blob();
-            console.log(`Alternative pitch deck fetched successfully, size: ${pitchDeckBlob.size} bytes`);
-          } else {
-            const altErrorText = await altPitchDeckResponse.text();
-            console.error('Failed to fetch pitch deck with alternative method:', altErrorText);
-            
-            // One last attempt - try fetching from reports table with the report_id from company
-            if (companyData?.report_id) {
-              console.log(`Trying to fetch pitch deck using report_id ${companyData.report_id} from company data`);
-              const finalReportResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?id=eq.${companyData.report_id}&select=id,pdf_url,user_id`, {
-                headers: {
-                  'Authorization': authHeader,
-                  'apikey': SUPABASE_ANON_KEY as string,
-                }
-              });
-              
-              if (finalReportResponse.ok) {
-                const finalReportData = await finalReportResponse.json();
-                if (finalReportData && finalReportData.length > 0) {
-                  const finalReport = finalReportData[0];
-                  console.log(`Found report with PDF: ${finalReport.pdf_url}`);
-                  
-                  const finalPitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${finalReport.user_id}/${finalReport.pdf_url}`, {
-                    method: 'GET',
-                    headers: {
-                      'Authorization': authHeader,
-                      'apikey': SUPABASE_ANON_KEY as string,
-                    }
-                  });
-                  
-                  if (finalPitchDeckResponse.ok) {
-                    pitchDeckBlob = await finalPitchDeckResponse.blob();
-                    console.log(`Final attempt pitch deck fetched successfully, size: ${pitchDeckBlob.size} bytes`);
-                  } else {
-                    console.error('Failed on final attempt to fetch pitch deck:', await finalPitchDeckResponse.text());
-                  }
-                }
-              }
-            }
-            
-            if (!pitchDeckBlob) {
-              return new Response(
-                JSON.stringify({ 
-                  error: 'Could not fetch company pitch deck',
-                  details: altErrorText
-                }), 
-                { 
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                  status: 404
-                }
-              );
-            }
-          }
-        }
-      } catch (fetchError) {
-        console.error('Error during pitch deck fetch:', fetchError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Error fetching pitch deck',
-            details: fetchError instanceof Error ? fetchError.message : String(fetchError)
-          }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500
-          }
-        );
-      }
-    }
-    
     const fundThesisBlob = await fundThesisResponse.blob();
-      
-    console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
-    console.log(`Pitch deck size: ${pitchDeckBlob ? pitchDeckBlob.size : 0} bytes`);
-    
     if (fundThesisBlob.size === 0) {
       return new Response(
         JSON.stringify({ 
@@ -375,16 +151,174 @@ serve(async (req) => {
         }
       );
     }
+
+    // Fetch company data from various tables to find the pitch deck
+    let pitchDeckBlob = null;
     
-    if (!pitchDeckBlob || pitchDeckBlob.size === 0) {
+    // Try getting data from email_pitch_submissions table first
+    console.log('Checking email_pitch_submissions table');
+    try {
+      const emailPitchResponse = await fetch(`${SUPABASE_URL}/rest/v1/email_pitch_submissions?select=pdf_path&report_id=eq.${company_id}`, {
+        headers: {
+          'Authorization': authHeader,
+          'apikey': SUPABASE_ANON_KEY as string,
+        }
+      });
+      
+      if (emailPitchResponse.ok) {
+        const emailPitchData = await emailPitchResponse.json();
+        if (emailPitchData && emailPitchData.length > 0 && emailPitchData[0].pdf_path) {
+          const storagePath = emailPitchData[0].pdf_path;
+          console.log(`Found PDF path in email_pitch_submissions: ${storagePath}`);
+          
+          const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/email_attachments/${storagePath}`, {
+            headers: {
+              'Authorization': authHeader,
+              'apikey': SUPABASE_ANON_KEY as string,
+            }
+          });
+          
+          if (pitchDeckResponse.ok) {
+            pitchDeckBlob = await pitchDeckResponse.blob();
+            console.log(`Successfully fetched pitch deck from email_attachments, size: ${pitchDeckBlob.size} bytes`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching from email_pitch_submissions:', error);
+    }
+    
+    // If we don't have the pitch deck yet, try the reports table
+    if (!pitchDeckBlob) {
+      console.log('Fetching from reports table');
+      try {
+        const reportsResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?id=eq.${company_id}&select=id,pdf_url,user_id`, {
+          headers: {
+            'Authorization': authHeader,
+            'apikey': SUPABASE_ANON_KEY as string,
+          }
+        });
+        
+        if (reportsResponse.ok) {
+          const reports = await reportsResponse.json();
+          if (reports && reports.length > 0 && reports[0].pdf_url) {
+            const reportUserId = reports[0].user_id;
+            const pdfUrl = reports[0].pdf_url;
+            
+            console.log(`Found report with PDF: ${pdfUrl} and user_id: ${reportUserId}`);
+            
+            try {
+              const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${reportUserId}/${pdfUrl}`, {
+                headers: {
+                  'Authorization': authHeader,
+                  'apikey': SUPABASE_ANON_KEY as string,
+                }
+              });
+              
+              if (pitchDeckResponse.ok) {
+                pitchDeckBlob = await pitchDeckResponse.blob();
+                console.log(`Successfully fetched pitch deck from report_pdfs, size: ${pitchDeckBlob.size} bytes`);
+              }
+            } catch (fetchError) {
+              console.error('Error fetching pitch deck from report_pdfs:', fetchError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching from reports table:', error);
+      }
+    }
+    
+    // If we still don't have the pitch deck, try companies table to get report_id
+    if (!pitchDeckBlob) {
+      console.log('Checking companies table for report_id');
+      try {
+        const companiesResponse = await fetch(`${SUPABASE_URL}/rest/v1/companies?id=eq.${company_id}&select=report_id`, {
+          headers: {
+            'Authorization': authHeader,
+            'apikey': SUPABASE_ANON_KEY as string,
+          }
+        });
+        
+        if (companiesResponse.ok) {
+          const companies = await companiesResponse.json();
+          if (companies && companies.length > 0 && companies[0].report_id) {
+            const reportId = companies[0].report_id;
+            console.log(`Found report_id in companies table: ${reportId}`);
+            
+            // Now get the report details
+            const reportResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?id=eq.${reportId}&select=id,pdf_url,user_id`, {
+              headers: {
+                'Authorization': authHeader,
+                'apikey': SUPABASE_ANON_KEY as string,
+              }
+            });
+            
+            if (reportResponse.ok) {
+              const reports = await reportResponse.json();
+              if (reports && reports.length > 0 && reports[0].pdf_url) {
+                const reportUserId = reports[0].user_id;
+                const pdfUrl = reports[0].pdf_url;
+                
+                console.log(`Found report with PDF: ${pdfUrl} and user_id: ${reportUserId}`);
+                
+                const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${reportUserId}/${pdfUrl}`, {
+                  headers: {
+                    'Authorization': authHeader,
+                    'apikey': SUPABASE_ANON_KEY as string,
+                  }
+                });
+                
+                if (pitchDeckResponse.ok) {
+                  pitchDeckBlob = await pitchDeckResponse.blob();
+                  console.log(`Successfully fetched pitch deck via companies->reports, size: ${pitchDeckBlob.size} bytes`);
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching from companies table:', error);
+      }
+    }
+    
+    // If we still don't have the pitch deck, try a direct download from storage
+    if (!pitchDeckBlob) {
+      console.log('Trying direct download from storage');
+      try {
+        const pitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY as string,
+            'x-app-version': '1.0.0'
+          },
+          body: JSON.stringify({ 
+            action: 'download', 
+            companyId: company_id 
+          })
+        });
+        
+        if (pitchDeckResponse.ok) {
+          pitchDeckBlob = await pitchDeckResponse.blob();
+          console.log(`Successfully fetched pitch deck via direct download, size: ${pitchDeckBlob.size} bytes`);
+        }
+      } catch (error) {
+        console.error('Error with direct download:', error);
+      }
+    }
+    
+    // Check if we have both documents
+    if (!pitchDeckBlob) {
       return new Response(
         JSON.stringify({ 
-          error: 'Pitch deck document is empty',
-          details: 'The company pitch deck appears to be empty or inaccessible'
+          error: 'Could not fetch company pitch deck',
+          details: 'Unable to locate the pitch deck in storage'
         }), 
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
+          status: 404
         }
       );
     }
@@ -703,6 +637,7 @@ Usage (50%)
 – (Business Model, Financials) = 0.10
 • For synergy function:
 f(Scorei,Scorek ) = Scorei ×Scorek
+5
 1. Calculate Risk-Adjusted Weights (∼
 Wi)
 • For example, if Go-to-Market has WGT M = 0.10 and RGT M = +0.3,
