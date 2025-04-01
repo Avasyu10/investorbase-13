@@ -78,7 +78,10 @@ const UploadReport = () => {
           </p>
         </div>
         
-        <ReportUpload onError={handleError} />
+        <ReportUpload 
+          onError={handleError} 
+          simplifiedForm={true}
+        />
       </div>
     </div>
   );
