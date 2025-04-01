@@ -1,146 +1,36 @@
-
-import Index from "@/pages/Index";
-import Signup from "@/pages/Signup";
-import Dashboard from "@/pages/Dashboard";
-import UploadReport from "@/pages/UploadReport";
-import Report from "@/pages/Report";
-import CompanyPage from "@/pages/CompanyPage";
-import SectionPage from "@/pages/SectionPage";
-import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
-import PublicUpload from "@/pages/PublicUpload";
-import AnalysisSummary from "@/pages/AnalysisSummary";
-import NotFound from "@/pages/NotFound";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Profile from "@/pages/Profile";
-import ProfileEdit from "@/pages/ProfileEdit";
-import ProfileSetup from "@/pages/ProfileSetup";
-import Feedback from "@/pages/Feedback";
-import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
-import NewsFeed from "@/pages/NewsFeed";
+import React from "react";
 
 export const routes = [
   {
-    path: "/",
-    element: <Index />,
+    path: '/',
+    element: <React.lazy(() => import('@/pages/Home')) />,
   },
   {
-    path: "/signup",
-    element: <Signup />,
+    path: '/login',
+    element: <React.lazy(() => import('@/pages/Login')) />,
   },
   {
-    path: "/dashboard",
-    element: (
-      <ProtectedRoute>
-        <Dashboard />
-      </ProtectedRoute>
-    ),
+    path: '/register',
+    element: <React.lazy(() => import('@/pages/Register')) />,
   },
   {
-    path: "/upload",
-    element: (
-      <ProtectedRoute>
-        <UploadReport />
-      </ProtectedRoute>
-    ),
+    path: '/dashboard',
+    element: <React.lazy(() => import('@/pages/Dashboard')) />,
   },
   {
-    path: "/report/:reportId",
-    element: (
-      <ProtectedRoute>
-        <Report />
-      </ProtectedRoute>
-    ),
+    path: '/upload',
+    element: <React.lazy(() => import('@/pages/UploadReport')) />,
   },
   {
-    path: "/reports/:id",
-    element: (
-      <ProtectedRoute>
-        <Report />
-      </ProtectedRoute>
-    ),
+    path: '/company/:id',
+    element: <React.lazy(() => import('@/pages/CompanyProfile')) />,
   },
   {
-    path: "/company/:id",
-    element: (
-      <ProtectedRoute>
-        <CompanyPage />
-      </ProtectedRoute>
-    ),
+    path: '/public-submission',
+    element: <React.lazy(() => import('@/pages/PublicSubmission')) />,
   },
   {
-    path: "/company/:companyId/section/:sectionId",
-    element: (
-      <ProtectedRoute>
-        <SectionPage />
-      </ProtectedRoute>
-    ),
+    path: '/test-email',
+    element: <React.lazy(() => import('@/pages/TestEmail')) />,
   },
-  {
-    path: "/company/:companyId/supplementary",
-    element: (
-      <ProtectedRoute>
-        <SupplementaryMaterials />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/public-upload",
-    element: <PublicUpload />,
-  },
-  {
-    path: "/company/:companyId/analysis",
-    element: (
-      <ProtectedRoute>
-        <AnalysisSummary />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/profile",
-    element: (
-      <ProtectedRoute>
-        <Profile />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/profile/edit",
-    element: (
-      <ProtectedRoute>
-        <ProfileEdit />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/profile/setup",
-    element: (
-      <ProtectedRoute>
-        <ProfileSetup />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/feedback",
-    element: (
-      <ProtectedRoute>
-        <Feedback />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/company/:companyId/overview",
-    element: (
-      <ProtectedRoute>
-        <CompanyOverviewPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/news-feed",
-    element: <NewsFeed />, // Removed ProtectedRoute wrapper to make it public
-  },
-  {
-    path: "*",
-    element: <NotFound />,
-  }
 ];
