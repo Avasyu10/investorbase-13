@@ -446,20 +446,33 @@ function extractSection(text: string, sectionName: string): string {
   
   if (!sectionMatch) return '<p>Section not found</p>';
   
-  let html = sectionMatch[0]
-    .replace(/^#+\s*([^\n]+)/gm, '<h3>$1</h3>')
+  // Process the section content
+  let content = sectionMatch[0];
+  
+  // Remove URL references and URL sections
+  content = content.replace(/\[\d+\]/g, '');
+  content = content.replace(/URLs?:[\s\S]*?((?=##)|\s*$)/gi, '');
+  
+  let html = content
+    .replace(/^#+\s*([^\n]+)/gm, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n- /g, '</p><ul><li>')
-    .replace(/\n  - /g, '</p><ul><li>')
-    .replace(/<\/li>\n- /g, '</li><li>')
+    .replace(/\n\n/g, '</p><p class="mb-4">')
+    .replace(/\n- /g, '</p><ul class="my-3 ml-5 list-disc"><li class="mb-2">')
+    .replace(/\n  - /g, '</p><ul class="my-3 ml-5 list-disc"><li class="mb-2">')
+    .replace(/<\/li>\n- /g, '</li><li class="mb-2">')
     .replace(/<\/p><ul>/g, '<ul>')
     .replace(/\n/g, ' ')
     .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>');
   
-  if (!html.startsWith('<')) {
-    html = `<p>${html}</p>`;
+  // Close any unclosed lists
+  if (html.includes('<li') && !html.includes('</ul>')) {
+    html += '</li></ul>';
+  }
+  
+  // Ensure proper paragraph wrapping
+  if (!html.startsWith('<h3') && !html.startsWith('<p>')) {
+    html = `<p class="mb-4">${html}</p>`;
   }
   
   return html;
@@ -468,14 +481,20 @@ function extractSection(text: string, sectionName: string): string {
 function formatResearchHtml(text: string): string {
   if (!text) return '<p>No research summary available</p>';
   
-  return text
+  // Remove URL references and URL sections
+  let processedText = text.replace(/\[\d+\]/g, '');
+  processedText = processedText.replace(/URLs?:[\s\S]*?((?=##)|\s*$)/gi, '');
+  processedText = processedText.replace(/\n\s*[-•*]\s*\[\d+\]\s*\n/g, '\n');
+  
+  return processedText
     .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // bold
     .replace(/\*([^*]+)\*/g, '<em>$1</em>') // italic
     .replace(/\n\n/g, '</p><p class="mb-4">') // paragraphs
-    .replace(/^- (.*$)/gim, '<li>$1</li>') // list items
-    .replace(/\n- /g, '</p><ul><li>') // list start
-    .replace(/<\/li>\n- /g, '</li><li>') // consecutive list items
-    .replace(/<\/p><ul>/g, '<ul>') // fix paragraph to list transition
+    .replace(/^- (.*$)/gim, '<li class="mb-1">$1</li>') // list items
+    .replace(/\n- /g, '</p><ul class="my-3 ml-5 list-disc"><li class="mb-1">') // list start
+    .replace(/<\/li>\n- /g, '</li><li class="mb-1">') // consecutive list items
+    .replace(/<\/p><ul>/g, '<ul class="my-3 ml-5 list-disc">') // fix paragraph to list transition
+    .replace(/<\/li>(?!\n<li>|\n<\/ul>)/g, '</li></ul>') // close lists
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
 }

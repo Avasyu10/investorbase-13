@@ -1,637 +1,384 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { corsHeaders } from "./cors.ts";
 
-type NewsHighlight = {
-  headline: string;
-  content: string;
-  source?: string;
-  url?: string;
-};
+// Configuration constants
+const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
+const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-type MarketInsight = {
-  headline: string;
-  content: string;
-  source?: string;
-  url?: string;
-};
-
-type Source = {
-  name: string;
-  url: string;
-};
+// Function timeout (5 minutes)
+const TIMEOUT_MS = 5 * 60 * 1000;
 
 serve(async (req) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders
-    });
-  }
-
-  try {
-    console.log("[DEBUG] Request received:", req.method, req.url);
-    console.log("[DEBUG] Request headers:", JSON.stringify(req.headers));
-
-    // CORS debugging
-    console.log("[CORS DEBUG] Request URL:", req.url);
-    console.log("[CORS DEBUG] Origin:", req.headers.get("origin"));
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
     console.log("[CORS DEBUG] Method:", req.method);
-
-    // Get request data
+    console.log("[CORS DEBUG] Origin:", req.headers.get("origin"));
+    console.log("[CORS DEBUG] Request URL:", req.url);
+    return new Response(null, { headers: corsHeaders });
+  }
+  
+  try {
+    // Parse request data
     const requestData = await req.json();
     console.log("[DEBUG] Request data:", JSON.stringify(requestData));
-
-    if (!requestData.companyId) {
-      throw new Error("Company ID is required");
-    }
-
-    const companyId = requestData.companyId;
-    const assessmentPoints = Array.isArray(requestData.assessmentPoints) 
-      ? requestData.assessmentPoints 
-      : [requestData.assessmentPoints];
-
-    console.log("[DEBUG] Processing research request for company", companyId);
-
-    // Get company name from the database
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Missing Supabase credentials");
+    const { companyId, assessmentPoints } = requestData;
+    
+    if (!companyId || !assessmentPoints || !Array.isArray(assessmentPoints)) {
+      throw new Error("Missing required parameters: companyId or assessmentPoints");
     }
     
-    // Create Supabase client with the service role key
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.27.0");
+    // Create Supabase client with service role key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Get company name
-    const { data: companyData, error: companyError } = await supabase
-      .from('companies')
-      .select('name')
-      .eq('id', companyId)
+    
+    // Get company details for the prompt
+    const { data: company, error: companyError } = await supabase
+      .from("companies")
+      .select("name")
+      .eq("id", companyId)
       .single();
-
+      
     if (companyError) {
-      console.error("Error fetching company:", companyError);
+      console.error("[DEBUG] Error fetching company:", companyError);
       throw new Error(`Failed to fetch company: ${companyError.message}`);
     }
-
-    const companyName = companyData?.name || "Unknown";
-
-    // Create a prompt for Perplexity
-    const prompt = `You are a top-tier venture capital (VC) analyst providing comprehensive research about ${companyName}. Based on the following assessment of the company, I need you to conduct deep market research and provide detailed analysis focusing on the LATEST and MOST RELEVANT market information.
-
-Company Assessment Points:
-${assessmentPoints.join('\n')}
-
-YOUR RESEARCH SHOULD BE IN THIS FORMAT ONLY, THIS IS THE MOST IMPORTANT PART IN FORMATTING YOUR RESPONSE. ALSO STRICTLY ADHERE TO THE FORMAT INSIDE EACH SECTION:
-
-# Market Research: ${companyName} 
-
-## 1. LATEST NEWS (2023-2024)
-Provide 6-8 recent news articles that focus ONLY on breaking industry news, recent events, and current developments directly relevant to this company's market. Each article MUST:
-- Have a compelling headline that highlights a RECENT EVENT (not general market facts)
-- Include publication name and specific date (month/year) from 2023-2024
-- Focus on NEWSWORTHY EVENTS that have happened recently (acquisitions, regulatory changes, new market entrants)
-- Include URLs to actual news sources
-- NEVER repeat information across different news items
-- DONT USE THE SAME NEWS ARTICLE ACROSS THE TWO SECTIONS
-- Focus on FACTS, not analysis
-
-Format each news item as:
-### [HEADLINE ABOUT A SPECIFIC NEWS EVENT OR DEVELOPMENT]
-**Source:** [PUBLICATION NAME], [SPECIFIC DATE]
-**Summary:** [2-3 SENTENCES WITH ACTUAL NEWS DETAILS AND IMPACT]
-**URL:** [ACTUAL NEWS SOURCE URL]
-
-## 2. MARKET INSIGHTS
-Provide 5-7 analytical market insights that are COMPLETELY DIFFERENT from the news section. Each insight MUST:
-- Focus on deeper ANALYSIS, TRENDS and MARKET DATA (not news events)
-- Include specific market statistics, growth projections, or competitive analysis
-- Present data-driven insights about market dynamics, NOT breaking news
-- Include different information than what's in the news section
-- Focus on ANALYSIS, not facts
-
-Format each market insight as:
-### [ANALYTICAL INSIGHT HEADLINE WITH SPECIFIC DATA POINT]
-**Source:** [RESEARCH FIRM/PUBLICATION], [DATE]
-**Analysis:** [2-3 SENTENCES OF MARKET ANALYSIS WITH NUMERICAL DATA]
-**URL:** [URL TO MARKET RESEARCH OR ANALYSIS]
-
-## 3. RESEARCH SUMMARY
-Synthesize your findings into a concise summary with:
-- Overview of market size, growth projections, and competitive landscape
-- Specific opportunities and risks for this company
-- Strategic recommendations based on latest market data
-
-EXTREMELY IMPORTANT:
-- For NEWS: Focus ONLY on RECENT EVENTS and DEVELOPMENTS that have actually happened
-- For INSIGHTS: Focus ONLY on ANALYSIS, TRENDS and MARKET DATA (completely different from news)
-- EVERY news item and insight must include SPECIFIC NUMERICAL DATA (dollar amounts, percentages, timeframes)
-- Focus EXCLUSIVELY on information directly relevant to this company's business model
-- Include ACTUAL URLs to all sources
-- Structure exactly as outlined above with clear sections and formatting
-- NEVER repeat the same information across different sections`;
-
-    // Call Perplexity API
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-    if (!PERPLEXITY_API_KEY) {
-      throw new Error("Perplexity API key is not configured");
-    }
-
-    console.log("[DEBUG] Sending request to Perplexity API");
-    console.log("[DEBUG] Prompt:", prompt.substring(0, 200) + "...");
-
-    const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-sonar-small-128k-online",
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a financial analyst specializing in market research. Provide factual, recent information with specific data points. Always include source URLs.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 4000,
-        top_p: 0.9,
-        frequency_penalty: 0.5,
-        search_recency_filter: "month"
-      })
-    });
-
-    console.log("[DEBUG] Perplexity API response status:", perplexityResponse.status);
     
-    if (!perplexityResponse.ok) {
-      const errorText = await perplexityResponse.text();
-      throw new Error(`Perplexity API error: ${perplexityResponse.status} - ${errorText}`);
-    }
-
-    const responseData = await perplexityResponse.json();
-    console.log("[DEBUG] Received response from Perplexity API");
-    console.log("[DEBUG] Response structure:", JSON.stringify(Object.keys(responseData)));
-
-    if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
-      throw new Error("Invalid response format from Perplexity API");
-    }
-
-    const researchText = responseData.choices[0].message.content;
-    console.log("[DEBUG] Research text length:", researchText.length);
-    console.log("[DEBUG] Research text preview:", researchText.substring(0, 200) + "...");
-
-    // Extract research summary from the response
-    console.log("[DEBUG] Extracting research summary");
-    const researchSummary = extractResearchSummary(researchText);
-    console.log("[DEBUG] Research summary length:", researchSummary.length);
-    console.log("[DEBUG] Research summary preview:", researchSummary.substring(0, 200) + "...");
-
-    // Extract sources, news highlights, and market insights
-    console.log("[DEBUG] Extracting sources");
-    const sources = extractSources(researchText);
-    console.log("[DEBUG] Extracted sources count:", sources.length);
-
-    console.log("[DEBUG] Extracting news highlights");
-    const newsHighlights = extractNewsHighlights(researchText);
-    console.log("[DEBUG] Extracted news highlights count:", newsHighlights.length);
-    console.log("[DEBUG] News highlights sample:", newsHighlights.length > 0 ? JSON.stringify(newsHighlights[0]) : "none");
-
-    console.log("[DEBUG] Extracting market insights");
-    const marketInsights = extractMarketInsights(researchText);
-    console.log("[DEBUG] Extracted market insights count:", marketInsights.length);
-    console.log("[DEBUG] Market insights sample:", marketInsights.length > 0 ? JSON.stringify(marketInsights[0]) : "none");
-
-    // Store research in the database
-    const timestamp = new Date().toISOString();
+    console.log("[DEBUG] Processing research request for company", companyId);
     
-    // First, store the research text in the companies table
-    const { error: updateCompanyError } = await supabase
-      .from('companies')
-      .update({
-        perplexity_response: researchText,
-        perplexity_requested_at: timestamp,
-        perplexity_prompt: prompt
-      })
-      .eq('id', companyId);
-
-    if (updateCompanyError) {
-      console.error("Error updating company with research text:", updateCompanyError);
-      throw new Error(`Failed to update company with research text: ${updateCompanyError.message}`);
-    }
-
-    // Then, store the structured data in the market_research table
-    const { data: researchData, error: insertResearchError } = await supabase
-      .from('market_research')
+    // Create a new market_research record
+    const { data: market_research, error: insertError } = await supabase
+      .from("market_research")
       .insert({
         company_id: companyId,
-        research_text: researchText,
-        research_summary: researchSummary, // Store the extracted research summary
-        sources: sources,
-        news_highlights: newsHighlights,
-        market_insights: marketInsights,
-        status: 'completed',
-        requested_at: timestamp,
-        completed_at: timestamp,
-        prompt: prompt
+        status: "processing",
+        requested_at: new Date().toISOString()
       })
       .select()
       .single();
-
-    if (insertResearchError) {
-      console.error("Error storing market research:", insertResearchError);
-      throw new Error(`Failed to store market research: ${insertResearchError.message}`);
+      
+    if (insertError) {
+      console.error("[DEBUG] Error inserting market_research record:", insertError);
+      throw new Error(`Failed to create market research record: ${insertError.message}`);
     }
-
-    console.log("[DEBUG] Successfully completed research for company", companyId);
-
-    // Return the research data
-    console.log("[DEBUG] Preparing response with CORS headers");
-    return new Response(
-      JSON.stringify({
-        success: true,
-        researchId: researchData.id,
-        companyName,
-        research: researchText,
-        researchSummary, // Include the research summary in the response
-        newsHighlights,
-        marketInsights,
-        sources,
-        timestamp
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-  } catch (error) {
-    console.error("Error in perplexity research function:", error);
     
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
-      }),
-      {
+    // Generate the prompt for Perplexity
+    const companyName = company?.name || "the company";
+    const prompt = generatePrompt(companyName, assessmentPoints);
+    
+    console.log("[DEBUG] Prompt:", prompt.substring(0, 100) + "...");
+    
+    // Set a timeout for the Perplexity API call
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    
+    try {
+      // Call Perplexity API
+      console.log("[DEBUG] Sending request to Perplexity API");
+      const perplexityResponse = await fetch(PERPLEXITY_API_URL, {
+        method: "POST",
         headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
+          "Authorization": `Bearer ${PERPLEXITY_API_KEY}`,
+          "Content-Type": "application/json"
         },
-        status: 500
+        body: JSON.stringify({
+          model: "sonar-medium-online",
+          messages: [
+            {
+              role: "system",
+              content: "You are a top-tier venture capital (VC) analyst providing comprehensive market research."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 4000
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log("[DEBUG] Perplexity API response status:", perplexityResponse.status);
+      
+      // Parse Perplexity API response
+      const data = await perplexityResponse.json();
+      console.log("[DEBUG] Response structure:", Object.keys(data));
+      
+      // Extract research text from Perplexity response
+      const researchText = data.choices?.[0]?.message?.content || "";
+      console.log("[DEBUG] Research text length:", researchText.length);
+      console.log("[DEBUG] Research text preview:", researchText.substring(0, 100) + "...");
+      
+      // Extract structured data from research
+      const { researchSummary, marketInsights, newsHighlights, sources } = extractStructuredData(researchText);
+      
+      // Update company record with research data
+      await supabase
+        .from("companies")
+        .update({
+          perplexity_response: researchText,
+          perplexity_requested_at: new Date().toISOString()
+        })
+        .eq("id", companyId);
+      
+      // Update market_research record
+      await supabase
+        .from("market_research")
+        .update({
+          research_text: researchText,
+          research_summary: researchSummary,
+          market_insights: marketInsights,
+          news_highlights: newsHighlights,
+          sources: sources,
+          status: "completed",
+          completed_at: new Date().toISOString()
+        })
+        .eq("id", market_research.id);
+      
+      console.log("[DEBUG] Successfully completed research for company", companyId);
+      
+      // Prepare response
+      const response = {
+        success: true,
+        research: formatResearchHtml(researchText),
+        researchId: market_research.id,
+        requestedAt: new Date().toISOString()
+      };
+      
+      console.log("[DEBUG] Preparing response with CORS headers");
+      
+      // Return response with CORS headers
+      return new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // Update market_research record with error
+      await supabase
+        .from("market_research")
+        .update({
+          status: "failed",
+          error_message: error.message || "Unknown error"
+        })
+        .eq("id", market_research.id);
+      
+      // Handle timeout specifically
+      if (error.name === "AbortError") {
+        throw new Error("Research timed out after " + (TIMEOUT_MS / 1000) + " seconds");
       }
-    );
+      
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in real-time-perplexity-research function:", error);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message || "Unknown error"
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
 });
 
-// New function to specifically extract the Research Summary section
-function extractResearchSummary(text: string): string {
+// Helper function to generate the prompt for Perplexity
+function generatePrompt(companyName: string, assessmentPoints: string[]): string {
+  const assessmentText = assessmentPoints.join("\n\n");
+  
+  return `You are a top-tier venture capital (VC) analyst providing comprehensive research about ${companyName}. Based on the following assessment of the company, I need you to conduct deep market research and provide detailed insights structured in the following sections:
+
+Assessment Points:
+${assessmentText}
+
+Your response should be structured as follows:
+
+# Market Research: ${companyName}
+
+## 1. LATEST NEWS (2023-2024)
+Provide 5-7 recent, specific news items directly relevant to ${companyName}'s market or industry. Each news item should have a clear headline, source, date, and brief analysis of implications. News should be VERY SPECIFIC (not generic market observations) and focus on CONCRETE RECENT EVENTS with actual dates and sources. Format each entry with a headline, source, date, and analysis paragraph.
+
+## 2. MARKET OVERVIEW
+Provide a detailed market overview with concrete statistics, market size, growth rates, and key trends. Include specific numbers, dates, and sources.
+
+## 3. COMPETITIVE LANDSCAPE
+Analyze 3-5 direct competitors, their strengths, weaknesses, market share, and recent moves.
+
+## 4. MARKET INSIGHTS
+Provide 5-7 in-depth market insights relevant to ${companyName}'s business model. Each insight should have a clear headline, source information, and detailed analysis that goes beyond superficial observations. Format each with a headline, source, and detailed analysis paragraph that includes specific data points, trends, or implications.
+
+## 5. STRATEGIC RECOMMENDATIONS
+Based on all the above research, provide 3-5 actionable strategic recommendations for ${companyName}.
+
+Important guidelines:
+1. Ensure CLEAR DISTINCTION between Latest News (specific recent events) and Market Insights (broader analysis and data-driven observations).
+2. Include specific statistics, dates, and quantitative data throughout.
+3. Cite credible sources for all information.
+4. Focus on actionable insights relevant to ${companyName}'s business model and assessment points.
+5. Be factual, specific, and avoid generic statements.`;
+}
+
+// Helper function to extract structured data from research text
+function extractStructuredData(text: string) {
+  let researchSummary = "";
+  const marketInsights: any[] = [];
+  const newsHighlights: any[] = [];
+  const sources: any[] = [];
+
   try {
-    // Look for the research summary section in the text
-    const researchSummaryRegex = /## 3\.\s*RESEARCH SUMMARY\s*([\s\S]*?)(?=(##|$))/i;
-    const match = text.match(researchSummaryRegex);
+    // Extract research summary (market overview + strategic recommendations)
+    const summaryMatch = text.match(/## 2\. MARKET OVERVIEW[\s\S]*?(?=## 3\.)/i);
+    const recommendationsMatch = text.match(/## 5\. STRATEGIC RECOMMENDATIONS[\s\S]*?(?=$)/i);
     
-    if (match && match[1]) {
-      console.log("[DEBUG] Successfully extracted research summary section");
-      return match[1].trim();
+    if (summaryMatch) {
+      researchSummary = summaryMatch[0];
+      
+      if (recommendationsMatch) {
+        researchSummary += "\n\n" + recommendationsMatch[0];
+      }
     }
     
-    // If the above regex doesn't match, try an alternative approach
-    const altResearchSummaryRegex = /(?:RESEARCH SUMMARY|Research Summary)[\s\S]*?((?:###[^#]+)+)/i;
-    const altMatch = text.match(altResearchSummaryRegex);
-    
-    if (altMatch && altMatch[1]) {
-      console.log("[DEBUG] Extracted research summary using alternative pattern");
-      return altMatch[1].trim();
+    // Extract news highlights
+    const newsSection = text.match(/## 1\. LATEST NEWS[\s\S]*?(?=## 2\.)/i);
+    if (newsSection) {
+      const newsText = newsSection[0];
+      const newsItems = newsText.split(/(?=### |(?:\d+\.) )/g).slice(1);
+      
+      newsItems.forEach(item => {
+        const headlineMatch = item.match(/(?:### |(?:\d+\.) )([^\n]+)/);
+        
+        if (headlineMatch) {
+          const headline = headlineMatch[1].replace(/\*\*/g, '').trim();
+          
+          // Extract source and date
+          const sourceMatch = item.match(/(?:\*\*Source:?\*\*|Source:?)[\s:]*(.*?)(?:\n|$)/i);
+          const source = sourceMatch ? sourceMatch[1].trim() : "";
+          
+          // Extract content/summary
+          const contentMatch = item.match(/(?:\*\*(?:Summary|Analysis):?\*\*|Analysis:?|Summary:?)[\s:]*([\s\S]*?)(?=\*\*Source|\*\*Analysis|$)/i);
+          let content = "";
+          
+          if (contentMatch) {
+            content = contentMatch[1].trim();
+          } else {
+            // Alternative extraction if specific labels aren't found
+            const altContentMatch = item.substring(headlineMatch[0].length).match(/(?:\*\*Source:?\*\*|Source:?)[\s:]*(.*?)(?:\n|$)/i);
+            if (altContentMatch) {
+              content = item.substring(headlineMatch[0].length, item.indexOf(altContentMatch[0])).trim();
+            } else {
+              content = item.substring(headlineMatch[0].length).trim();
+            }
+          }
+          
+          // Extract URL if available
+          const urlMatch = item.match(/(https?:\/\/[^\s]+)/);
+          const url = urlMatch ? urlMatch[1] : "";
+          
+          newsHighlights.push({
+            headline,
+            source,
+            content,
+            url
+          });
+        }
+      });
     }
     
-    console.log("[WARNING] Could not extract research summary section");
-    return "";
+    // Extract market insights
+    const insightsSection = text.match(/## 4\. MARKET INSIGHTS[\s\S]*?(?=## 5\.)/i);
+    if (insightsSection) {
+      const insightsText = insightsSection[0];
+      const insights = insightsText.split(/(?=### |(?:\d+\.) )/g).slice(1);
+      
+      insights.forEach(item => {
+        const headlineMatch = item.match(/(?:### |(?:\d+\.) )([^\n]+)/);
+        
+        if (headlineMatch) {
+          const headline = headlineMatch[1].replace(/\*\*/g, '').trim();
+          
+          // Extract source
+          const sourceMatch = item.match(/(?:\*\*Source:?\*\*|Source:?)[\s:]*(.*?)(?:\n|$)/i);
+          const source = sourceMatch ? sourceMatch[1].trim() : "";
+          
+          // Extract content/analysis
+          const contentMatch = item.match(/(?:\*\*(?:Analysis|Content):?\*\*|Analysis:?|Content:?)[\s:]*([\s\S]*?)(?=\*\*Source|\*\*Analysis|$)/i);
+          let content = "";
+          
+          if (contentMatch) {
+            content = contentMatch[1].trim();
+          } else {
+            // Alternative extraction if specific labels aren't found
+            const altContentMatch = item.substring(headlineMatch[0].length).match(/(?:\*\*Source:?\*\*|Source:?)[\s:]*(.*?)(?:\n|$)/i);
+            if (altContentMatch) {
+              content = item.substring(headlineMatch[0].length, item.indexOf(altContentMatch[0])).trim();
+            } else {
+              content = item.substring(headlineMatch[0].length).trim();
+            }
+          }
+          
+          // Extract URL if available
+          const urlMatch = item.match(/(https?:\/\/[^\s]+)/);
+          const url = urlMatch ? urlMatch[1] : "";
+          
+          marketInsights.push({
+            headline,
+            source,
+            content,
+            url
+          });
+        }
+      });
+    }
+    
+    // Extract sources
+    const sourcesSection = text.match(/## Sources:?[\s\S]*?$/i) || text.match(/Sources:?[\s\S]*?$/i);
+    if (sourcesSection) {
+      const sourcesText = sourcesSection[0];
+      const sourceLines = sourcesText.split('\n').filter(line => line.trim() && !line.startsWith('##'));
+      
+      sourceLines.forEach(line => {
+        if (line.trim()) {
+          // Extract URL if available
+          const urlMatch = line.match(/(https?:\/\/[^\s]+)/);
+          const url = urlMatch ? urlMatch[1] : "";
+          const name = line.replace(url, '').replace(/[\[\]0-9\.]+/g, '').trim();
+          
+          sources.push({ name, url });
+        }
+      });
+    }
   } catch (error) {
-    console.error("[ERROR] Error extracting research summary:", error);
-    return "";
+    console.error("Error extracting structured data:", error);
   }
+
+  return {
+    researchSummary,
+    marketInsights,
+    newsHighlights,
+    sources
+  };
 }
 
-function extractSources(text: string): Source[] {
-  const sources: Source[] = [];
-  const urlRegex = /\*\*URL:\*\* (https?:\/\/[^\s]+)/g;
-  const nameUrlRegex = /\*\*Source:\*\* ([^(]+?)(?: \(([^)]+)\))? \((https?:\/\/[^\s]+)\)/g;
+// Helper function to format text as HTML
+function formatResearchHtml(text: string): string {
+  if (!text) return '<p>No research text available</p>';
   
-  // Extract URLs from the "URL:" format
-  let match;
-  while ((match = urlRegex.exec(text)) !== null) {
-    const url = match[1].trim();
-    if (url && !sources.some(s => s.url === url)) {
-      sources.push({
-        name: "Source",
-        url: url
-      });
-    }
-  }
-  
-  // Extract name-URL pairs from the Source: format
-  const sourceLines = text.match(/\*\*Source:\*\*.*$/gm) || [];
-  for (const line of sourceLines) {
-    const sourceName = line.match(/\*\*Source:\*\* ([^(]+)/) || [];
-    const urlMatch = line.match(/(https?:\/\/[^\s)]+)(?:\))?$/);
-    
-    if (urlMatch && urlMatch[1]) {
-      const url = urlMatch[1].replace(/\)$/, ''); // Remove trailing parenthesis if present
-      if (url && !sources.some(s => s.url === url)) {
-        sources.push({
-          name: sourceName[1] ? sourceName[1].trim() : "Source",
-          url: url
-        });
-      }
-    }
-  }
-  
-  return sources;
-}
-
-function extractNewsHighlights(text: string): NewsHighlight[] {
-  const newsHighlights: NewsHighlight[] = [];
-  
-  // Find the LATEST NEWS section
-  const newsRegex = /## 1\. LATEST NEWS[\s\S]*?(?=## 2\.|$)/i;
-  const newsSection = text.match(newsRegex);
-  
-  if (!newsSection) {
-    console.log("[DEBUG] No LATEST NEWS section found");
-    return newsHighlights;
-  }
-  
-  // Extract each news item
-  const newsContent = newsSection[0];
-  const newsItemRegex = /### (.*?)(?=### |## 2\.|$)/gs;
-  const newsMatches = [...newsContent.matchAll(newsItemRegex)];
-  
-  for (const match of newsMatches) {
-    if (!match[1] || match[1].trim() === "") continue;
-    
-    const newsItem = match[1].trim();
-    
-    // Extract headline (first line)
-    const headlineMatch = newsItem.match(/^(.*?)(?=\n|$)/);
-    const headline = headlineMatch ? headlineMatch[1].trim() : "";
-    
-    // Extract source
-    const sourceMatch = newsItem.match(/\*\*Source:\*\* (.*?)(?=\n|$)/);
-    const source = sourceMatch ? sourceMatch[1].trim() : "";
-    
-    // Extract summary
-    const summaryMatch = newsItem.match(/\*\*Summary:\*\* (.*?)(?=\n\*\*URL|$)/s);
-    const content = summaryMatch ? summaryMatch[1].trim() : "";
-    
-    // Extract URL
-    const urlMatch = newsItem.match(/\*\*URL:\*\* (https?:\/\/[^\s]+)/);
-    const url = urlMatch ? urlMatch[1].trim() : "";
-    
-    if (headline) {
-      newsHighlights.push({
-        headline,
-        content,
-        source,
-        url
-      });
-    }
-  }
-  
-  return newsHighlights;
-}
-
-function extractMarketInsights(text: string): MarketInsight[] {
-  const marketInsights: MarketInsight[] = [];
-  
-  // Find the MARKET INSIGHTS section
-  const insightsRegex = /## 2\. MARKET INSIGHTS[\s\S]*?(?=## 3\.|$)/i;
-  const insightsSection = text.match(insightsRegex);
-  
-  if (!insightsSection) {
-    console.log("[DEBUG] No MARKET INSIGHTS section found");
-    return marketInsights;
-  }
-  
-  // Extract each insight item 
-  const insightsContent = insightsSection[0];
-  
-  // Try different patterns for market insights
-  // First try the numbered format (### 1. Title)
-  const numberedInsightRegex = /### \d+\.\s+\*\*([^*]+)\*\*[\s\S]*?(?=### \d+\.|## 3\.|$)/g;
-  let numberedMatches = [...insightsContent.matchAll(numberedInsightRegex)];
-  
-  if (numberedMatches.length > 0) {
-    for (const match of numberedMatches) {
-      if (!match[0]) continue;
-      
-      const insightText = match[0];
-      const headlineMatch = match[1]?.trim(); // Get the title from the capture group
-      
-      // Extract source
-      const sourceMatch = insightText.match(/\*\*Source:\*\*\s*(.*?)(?=\n|$)/);
-      const source = sourceMatch ? sourceMatch[1].trim() : "";
-      
-      // Extract content - try to get everything between the headline and URL or next section
-      let content = "";
-      const contentMatch = insightText.match(/\*\*Summary:\*\*\s*([\s\S]*?)(?=\*\*URL|$)/i);
-      if (contentMatch && contentMatch[1]) {
-        content = contentMatch[1].trim();
-      } else {
-        // Fallback: try to get all text after the headline
-        const fallbackContentMatch = insightText.match(/\*\*([^*]+)\*\*\s*([\s\S]*?)(?=\*\*URL|$)/i);
-        if (fallbackContentMatch && fallbackContentMatch[2]) {
-          content = fallbackContentMatch[2].trim();
-        }
-      }
-      
-      // Extract URL
-      const urlMatch = insightText.match(/\*\*URL:\*\*\s*(https?:\/\/[^\s\n\]]+)/i);
-      let url = urlMatch ? urlMatch[1].trim() : "";
-      
-      // Check for URL in parentheses format
-      if (!url) {
-        const parenthesesUrlMatch = insightText.match(/\((https?:\/\/[^\s\)]+)\)/);
-        url = parenthesesUrlMatch ? parenthesesUrlMatch[1].trim() : "";
-      }
-      
-      // Check for URL in the content
-      if (!url) {
-        const contentUrlMatch = content.match(/(https?:\/\/[^\s\n\]]+)/);
-        if (contentUrlMatch) {
-          url = contentUrlMatch[1].trim();
-          // Remove the URL from the content
-          content = content.replace(url, "").trim();
-        }
-      }
-      
-      // Clean up content - remove URL markers if they exist
-      content = content.replace(/\*\*URL:\*\*.*$/, "").trim();
-      
-      if (headlineMatch) {
-        marketInsights.push({
-          headline: headlineMatch,
-          content,
-          source,
-          url
-        });
-      }
-    }
-  } 
-  
-  // If no numbered insights found, try the regular ### Headline format
-  if (marketInsights.length === 0) {
-    const regularInsightRegex = /### ([^\n]+)[\s\S]*?(?=### |## 3\.|$)/g;
-    let regularMatches = [...insightsContent.matchAll(regularInsightRegex)];
-    
-    for (const match of regularMatches) {
-      if (!match[0]) continue;
-      
-      const insightText = match[0];
-      const headline = match[1]?.trim(); // The headline is the captured group
-      
-      // Extract source
-      const sourceMatch = insightText.match(/\*\*Source:\*\*\s*(.*?)(?=\n|$)/);
-      const source = sourceMatch ? sourceMatch[1].trim() : "";
-      
-      // Extract content - get everything between the headline and URL or next section
-      let content = "";
-      const contentMatch = insightText.match(/\*\*Summary:\*\*\s*([\s\S]*?)(?=\*\*URL|$)/i);
-      if (contentMatch && contentMatch[1]) {
-        content = contentMatch[1].trim();
-      } else {
-        // Fallback: get all text after the headline, excluding source and URL
-        const lines = insightText.split('\n').slice(1); // Skip the headline line
-        content = lines
-          .filter(line => !line.includes('**Source:**') && !line.includes('**URL:**'))
-          .join(' ')
-          .trim();
-      }
-      
-      // Extract URL
-      const urlMatch = insightText.match(/\*\*URL:\*\*\s*(https?:\/\/[^\s\n\]]+)/i);
-      let url = urlMatch ? urlMatch[1].trim() : "";
-      
-      // Clean up content - remove URL if it exists
-      if (url) {
-        content = content.replace(url, "").trim();
-      }
-      
-      if (headline) {
-        marketInsights.push({
-          headline,
-          content,
-          source,
-          url
-        });
-      }
-    }
-  }
-  
-  // If still no insights found, try parsing numbered list items (1. Title)
-  if (marketInsights.length === 0) {
-    const listItemRegex = /(?:^|\n)(\d+\.\s+\*\*[^*]+\*\*)[\s\S]*?(?=\n\d+\.\s+\*\*|\n## |$)/g;
-    let listMatches = [...insightsContent.matchAll(listItemRegex)];
-    
-    for (const match of listMatches) {
-      if (!match[0]) continue;
-      
-      const insightText = match[0];
-      
-      // Extract headline - format: "1. **Title**"
-      const headlineMatch = insightText.match(/\d+\.\s+\*\*([^*]+)\*\*/);
-      const headline = headlineMatch ? headlineMatch[1].trim() : "";
-      
-      // Extract source
-      const sourceMatch = insightText.match(/(?:Source:|source:)\s*([^\n]+)/i);
-      const source = sourceMatch ? sourceMatch[1].trim() : "";
-      
-      // Extract content - get everything after the headline excluding the source
-      let content = insightText;
-      if (headlineMatch) {
-        content = content.replace(headlineMatch[0], "").trim();
-      }
-      if (sourceMatch) {
-        content = content.replace(sourceMatch[0], "").trim();
-      }
-      
-      // Extract URL
-      const urlMatch = insightText.match(/(https?:\/\/[^\s\n\]]+)/);
-      let url = urlMatch ? urlMatch[1].trim() : "";
-      
-      // Clean up content
-      if (sourceMatch) {
-        content = content.replace(sourceMatch[0], "").trim();
-      }
-      if (urlMatch) {
-        content = content.replace(urlMatch[0], "").trim();
-      }
-      
-      marketInsights.push({
-        headline,
-        content,
-        source,
-        url
-      });
-    }
-  }
-  
-  // Final fallback - if still no insights found, try to extract paragraphs
-  if (marketInsights.length === 0) {
-    // Split content into paragraphs
-    const paragraphs = insightsContent.split("\n\n").filter(p => p.trim() !== "");
-    
-    // Skip the first paragraph if it's the section heading
-    const startIndex = paragraphs[0].trim().startsWith("## 2. MARKET INSIGHTS") ? 1 : 0;
-    
-    for (let i = startIndex; i < paragraphs.length; i++) {
-      const paragraph = paragraphs[i].trim();
-      
-      // Skip if it's too short
-      if (paragraph.length < 10) continue;
-      
-      // Generate a headline from the first sentence
-      const firstSentence = paragraph.split('. ')[0];
-      const headline = firstSentence.length > 60 
-        ? firstSentence.substring(0, 57) + '...' 
-        : firstSentence;
-      
-      // Extract source if available
-      const sourceMatch = paragraph.match(/(?:Source:|source:)\s*([^\n]+)/i);
-      const source = sourceMatch ? sourceMatch[1].trim() : "";
-      
-      // Extract URL if available
-      const urlMatch = paragraph.match(/(https?:\/\/[^\s\n\]]+)/);
-      const url = urlMatch ? urlMatch[1].trim() : "";
-      
-      // The content is the whole paragraph
-      let content = paragraph;
-      
-      // Clean up content
-      if (sourceMatch) {
-        content = content.replace(sourceMatch[0], "").trim();
-      }
-      if (urlMatch) {
-        content = content.replace(urlMatch[0], "").trim();
-      }
-      
-      marketInsights.push({
-        headline,
-        content,
-        source,
-        url
-      });
-    }
-  }
-  
-  return marketInsights;
+  return text
+    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-3 mt-6">$1</h1>') // h1
+    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-2 mt-5">$1</h2>') // h2
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mb-2 mt-4">$1</h3>') // h3
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>') // bold
+    .replace(/\*(.*?)\*/gim, '<em>$1</em>') // italic
+    .replace(/\n\n/gim, '</p><p class="mb-4">') // paragraphs
+    .replace(/^\s*(?:[-*+]|\d+\.)\s+(.*)/gim, '<li>$1</li>') // list items
+    .replace(/<\/li>\n<li>/gim, '</li><li>') // fix list items
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>'); // links
 }
