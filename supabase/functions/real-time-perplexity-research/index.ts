@@ -91,29 +91,33 @@ YOUR RESEARCH SHOULD BE IN THIS FORMAT ONLY, THIS IS THE MOST IMPORTANT PART IN 
 # Market Research: ${companyName} 
 
 ## 1. LATEST NEWS (2023-2024)
-Provide 6-8 recent news articles directly relevant to this company's market, each with:
-- Compelling headline specific to this company's sector
-- Publication source and date (in parentheses)
-- Brief 2-3 sentence summary with SPECIFIC NUMBERS relevant to this company
-- URL to the source
+Provide 6-8 recent news articles that focus ONLY on breaking industry news, recent events, and current developments directly relevant to this company's market. Each article MUST:
+- Have a compelling headline that highlights a RECENT EVENT (not general market facts)
+- Include publication name and specific date (month/year) from 2023-2024
+- Focus on NEWSWORTHY EVENTS that have happened recently (acquisitions, regulatory changes, new market entrants)
+- Include URLs to actual news sources
+- NEVER repeat information across different news items
+- Focus on FACTS, not analysis
 
-Format each as:
-### [HEADLINE]
-**Source:** [PUBLICATION], [DATE]
-**Summary:** [2-3 SENTENCES WITH CONCRETE DATA POINTS]
-**URL:** [ACTUAL URL]
+Format each news item as:
+### [HEADLINE ABOUT A SPECIFIC NEWS EVENT OR DEVELOPMENT]
+**Source:** [PUBLICATION NAME], [SPECIFIC DATE]
+**Summary:** [2-3 SENTENCES WITH ACTUAL NEWS DETAILS AND IMPACT]
+**URL:** [ACTUAL NEWS SOURCE URL]
 
 ## 2. MARKET INSIGHTS
-Provide 5-7 key market insights directly relevant to this company, each with:
-- Specific market data with EXACT dollar figures (market size, growth rates, etc.)
-- Concrete trends affecting this specific business
-- Reference to reputable sources with URLs
+Provide 5-7 analytical market insights that are COMPLETELY DIFFERENT from the news section. Each insight MUST:
+- Focus on deeper ANALYSIS, TRENDS and MARKET DATA (not news events)
+- Include specific market statistics, growth projections, or competitive analysis
+- Present data-driven insights about market dynamics, NOT breaking news
+- Include different information than what's in the news section
+- Focus on ANALYSIS, not facts
 
-Format each as:
-### [HEADLINE]
-**Source:** [PUBLICATION], [DATE]
-**Summary:** [2-3 SENTENCES WITH CONCRETE DATA POINTS]
-**URL:** [ACTUAL URL]
+Format each market insight as:
+### [ANALYTICAL INSIGHT HEADLINE WITH SPECIFIC DATA POINT]
+**Source:** [RESEARCH FIRM/PUBLICATION], [DATE]
+**Analysis:** [2-3 SENTENCES OF MARKET ANALYSIS WITH NUMERICAL DATA]
+**URL:** [URL TO MARKET RESEARCH OR ANALYSIS]
 
 ## 3. RESEARCH SUMMARY
 Synthesize your findings into a concise summary with:
@@ -122,11 +126,13 @@ Synthesize your findings into a concise summary with:
 - Strategic recommendations based on latest market data
 
 EXTREMELY IMPORTANT:
-- ONLY include FACTUAL, RECENT information from reputable sources
-- EVERY insight must include SPECIFIC NUMERICAL DATA (dollar amounts, percentages, timeframes)
+- For NEWS: Focus ONLY on RECENT EVENTS and DEVELOPMENTS that have actually happened
+- For INSIGHTS: Focus ONLY on ANALYSIS, TRENDS and MARKET DATA (completely different from news)
+- EVERY news item and insight must include SPECIFIC NUMERICAL DATA (dollar amounts, percentages, timeframes)
 - Focus EXCLUSIVELY on information directly relevant to this company's business model
 - Include ACTUAL URLs to all sources
-- Structure exactly as outlined above with clear sections and formatting`;
+- Structure exactly as outlined above with clear sections and formatting
+- NEVER repeat the same information across different sections`;
 
     // Call Perplexity API
     const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
