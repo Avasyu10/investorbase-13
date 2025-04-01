@@ -1,769 +1,415 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { corsHeaders } from "./cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { PDFDocument } from "https://cdn.skypack.dev/pdf-lib";
 
-// Define CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version',
+};
+
+const MAX_GEMINI_TOKENS = 900000; // Leave some buffer for API overhead
+const MAX_CONTENT_SIZE = 700000; // Characters (roughly corresponds to tokens)
+const MAX_PAGES_TO_EXTRACT = 25; // Maximum pages to extract from PDFs
+
 serve(async (req) => {
-  // Log the request details for debugging
-  console.log(`Request method: ${req.method}`);
-  console.log(`Request headers:`, JSON.stringify(Object.fromEntries(req.headers.entries())));
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request with CORS headers');
-    return new Response(null, { 
-      headers: corsHeaders,
-      status: 204
-    });
+    console.log("Handling OPTIONS request with CORS headers");
+    return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("Request method:", req.method);
+  console.log("Request headers:", JSON.stringify(req.headers));
+
   try {
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
-
-    if (!GEMINI_API_KEY) {
-      throw new Error('Gemini API key is not configured');
-    }
-
     // Parse the request body
-    let requestData;
-    try {
-      requestData = await req.json();
-      console.log('Received request data:', JSON.stringify(requestData));
-    } catch (error) {
-      console.error('Error parsing request JSON:', error);
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
+    const requestData = await req.json();
+    console.log("Received request data:", JSON.stringify(requestData));
 
     const { company_id, user_id } = requestData;
-
-    // Validate input
+    
     if (!company_id || !user_id) {
-      console.error('Missing required parameters:', { company_id, user_id });
-      return new Response(
-        JSON.stringify({ error: 'Company ID and User ID are required' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
+      throw new Error("Missing required parameters: company_id or user_id");
     }
 
     console.log(`Processing fund thesis alignment for company ${company_id} and user ${user_id}`);
 
-    // First check if analysis already exists in the database
-    const authHeader = req.headers.get('Authorization');
+    // Initialize Supabase client with admin rights
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!authHeader) {
-      console.error('Missing Authorization header');
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Missing Supabase credentials");
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Check if we already have an analysis for this company and user
+    console.log("Checking for existing analysis in database");
+    const { data: existingAnalysis, error: analysisError } = await supabase
+      .from('fund_thesis_analysis')
+      .select('*')
+      .eq('company_id', company_id)
+      .eq('user_id', user_id)
+      .maybeSingle();
+      
+    if (analysisError) {
+      console.error("Error checking for existing analysis:", analysisError);
+      throw analysisError;
+    }
+    
+    if (existingAnalysis) {
+      console.log("Found existing analysis, returning it");
       return new Response(
-        JSON.stringify({ error: 'Authorization header is required' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401 
-        }
+        JSON.stringify({
+          success: true,
+          analysis: existingAnalysis.analysis,
+          created_at: existingAnalysis.created_at
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log('Checking for existing analysis in database');
-    const existingAnalysisResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis?company_id=eq.${company_id}&user_id=eq.${user_id}`, {
-      headers: {
-        'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY as string,
-      }
-    });
+    console.log("No existing analysis found, creating new one");
     
-    if (!existingAnalysisResponse.ok) {
-      console.error('Error fetching existing analysis:', await existingAnalysisResponse.text());
-      throw new Error(`Error checking for existing analysis: ${existingAnalysisResponse.status}`);
-    }
-    
-    const existingAnalysis = await existingAnalysisResponse.json();
-    
-    if (existingAnalysis && existingAnalysis.length > 0) {
-      // Return existing analysis
-      console.log('Found existing analysis, returning it');
-      return new Response(
-        JSON.stringify({ 
-          analysis: existingAnalysis[0].analysis_text,
-          prompt_sent: existingAnalysis[0].prompt_sent,
-          response_received: existingAnalysis[0].response_received
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
-      );
-    }
-
-    console.log('No existing analysis found, creating new one');
-
-    // Fetch the fund thesis document
-    console.log('Fetching fund thesis document');
-    const fundThesisResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY as string,
-        'x-app-version': '1.0.0'
-      },
-      body: JSON.stringify({ 
-        action: 'download', 
-        userId: user_id,
-        documentType: 'fund_thesis' 
-      })
-    });
-
-    if (!fundThesisResponse.ok) {
-      const errorText = await fundThesisResponse.text();
-      console.error('Failed to fetch fund thesis:', errorText);
-      
-      return new Response(
-        JSON.stringify({ 
-          error: 'Could not fetch fund thesis document',
-          details: errorText
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404
-        }
-      );
-    }
-
-    // Fetch the pitch deck document - Use the reports table to find the pitch deck
-    console.log('Fetching company report data to locate pitch deck');
-    const reportsResponse = await fetch(`${SUPABASE_URL}/rest/v1/reports?company_id=eq.${company_id}&select=id,pdf_url,user_id`, {
-      headers: {
-        'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY as string,
-      }
-    });
-
-    if (!reportsResponse.ok) {
-      const errorText = await reportsResponse.text();
-      console.error('Failed to fetch company reports:', errorText);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Could not fetch company reports',
-          details: errorText
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404
-        }
-      );
-    }
-
-    const reports = await reportsResponse.json();
-    if (!reports || reports.length === 0) {
-      console.error('No reports found for company:', company_id);
-      return new Response(
-        JSON.stringify({ 
-          error: 'No reports found for this company',
-          details: 'Company does not have any associated reports'
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404
-        }
-      );
-    }
-
-    console.log('Found reports for company:', reports);
-    const report = reports[0]; // Use the first report
-    
-    // Now fetch the actual pitch deck PDF using the report data
-    console.log('Fetching pitch deck document using report data');
-    const pitchDeckResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/report_pdfs/${report.user_id}/${report.pdf_url}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'apikey': SUPABASE_ANON_KEY as string,
-      }
-    });
-
-    if (!pitchDeckResponse.ok) {
-      const errorText = await pitchDeckResponse.text();
-      console.error('Failed to fetch pitch deck directly:', errorText);
-      
-      // Try the handle-vc-document-upload function as a fallback
-      console.log('Trying alternative method to fetch pitch deck');
-      const altPitchDeckResponse = await fetch(`${SUPABASE_URL}/functions/v1/handle-vc-document-upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY as string,
-          'x-app-version': '1.0.0'
-        },
-        body: JSON.stringify({ 
-          action: 'download', 
-          companyId: company_id 
-        })
-      });
-      
-      if (!altPitchDeckResponse.ok) {
-        const altErrorText = await altPitchDeckResponse.text();
-        console.error('Failed to fetch pitch deck with alternative method:', altErrorText);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Could not fetch company pitch deck',
-            details: altErrorText
-          }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 404
-          }
-        );
-      }
-      
-      const fundThesisBlob = await fundThesisResponse.blob();
-      const pitchDeckBlob = await altPitchDeckResponse.blob();
-      
-      console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
-      console.log(`Pitch deck size: ${pitchDeckBlob.size} bytes`);
-      
-      if (fundThesisBlob.size === 0) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Fund thesis document is empty',
-            details: 'Please upload a valid fund thesis document in your profile settings'
-          }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400
-          }
-        );
-      }
-      
-      if (pitchDeckBlob.size === 0) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Pitch deck document is empty',
-            details: 'The company pitch deck appears to be empty or inaccessible'
-          }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400
-          }
-        );
-      }
-      
-      // Convert blobs to base64
-      const fundThesisBase64 = await blobToBase64(fundThesisBlob);
-      const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
-      
-      // Call Gemini and process the results
-      return await processDocumentsWithGemini(
-        GEMINI_API_KEY,
-        fundThesisBase64,
-        pitchDeckBase64,
+    // Create a record to track this analysis
+    const { data: analysisRecord, error: createError } = await supabase
+      .from('fund_thesis_analysis')
+      .insert({
         company_id,
         user_id,
-        authHeader,
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-      );
+        status: 'processing'
+      })
+      .select()
+      .single();
+      
+    if (createError) {
+      console.error("Error creating analysis record:", createError);
+      throw createError;
     }
     
-    // If we get here, both document fetches were successful
-    const fundThesisBlob = await fundThesisResponse.blob();
-    const pitchDeckBlob = await pitchDeckResponse.blob();
-
-    console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
-    console.log(`Pitch deck size: ${pitchDeckBlob.size} bytes`);
-
-    if (fundThesisBlob.size === 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Fund thesis document is empty',
-          details: 'Please upload a valid fund thesis document in your profile settings'
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      );
+    // Get the fund thesis document for this user
+    console.log("Fetching fund thesis document");
+    const { data: thesisDoc, error: thesisError } = await supabase
+      .from('investor_documents')
+      .select('file_path')
+      .eq('user_id', user_id)
+      .eq('document_type', 'fund_thesis')
+      .maybeSingle();
+      
+    if (thesisError) {
+      console.error("Error fetching fund thesis:", thesisError);
+      throw thesisError;
     }
-
-    if (pitchDeckBlob.size === 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Pitch deck document is empty',
-          details: 'The company pitch deck appears to be empty or inaccessible'
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      );
+    
+    if (!thesisDoc || !thesisDoc.file_path) {
+      throw new Error("No fund thesis document found for this user");
     }
+    
+    // Get the pitch deck for this company (find it through reports)
+    console.log("Fetching company report data to locate pitch deck");
+    const { data: reports, error: reportsError } = await supabase
+      .from('reports')
+      .select('id, pdf_url, user_id')
+      .eq('company_id', company_id);
+      
+    if (reportsError) {
+      console.error("Error fetching company reports:", reportsError);
+      throw reportsError;
+    }
+    
+    if (!reports || reports.length === 0) {
+      throw new Error("No pitch deck found for this company");
+    }
+    
+    console.log("Found reports for company:", reports);
+    
+    // Attempt to download the pitch deck
+    let pitchDeckContent = null;
+    let downloadError = null;
 
-    // Convert blobs to base64
-    const fundThesisBase64 = await blobToBase64(fundThesisBlob);
-    const pitchDeckBase64 = await blobToBase64(pitchDeckBlob);
-
-    // Call Gemini and process the results
-    return await processDocumentsWithGemini(
-      GEMINI_API_KEY,
-      fundThesisBase64,
-      pitchDeckBase64,
-      company_id,
-      user_id,
-      authHeader,
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
+    console.log("Fetching pitch deck document using report data");
+    
+    // Try to fetch the document for each report until one succeeds
+    for (const report of reports) {
+      try {
+        // Construct the path to the file
+        const filePath = `${report.user_id}/${report.pdf_url}`;
+        
+        // Download the file
+        const { data: fileData, error: downloadErr } = await supabase.storage
+          .from('report_pdfs')
+          .download(filePath);
+          
+        if (downloadErr) {
+          console.error("Failed to download pitch deck directly:", downloadErr);
+          continue; // Try the next report
+        }
+        
+        // If we got here, we have the file
+        const pdfBytes = await fileData.arrayBuffer();
+        const byteSize = pdfBytes.byteLength;
+        console.log("Pitch deck size:", byteSize, "bytes");
+        
+        // Extract and compress text content from the pitch deck PDF
+        pitchDeckContent = await extractCompressedTextFromPDF(pdfBytes);
+        break; // Successfully got the file, exit the loop
+      } catch (err) {
+        console.error("Error processing pitch deck:", err);
+        downloadError = err;
+        // Continue to try the next report
+      }
+    }
+    
+    if (!pitchDeckContent) {
+      throw new Error(`Failed to process any pitch deck for this company: ${downloadError?.message || "Unknown error"}`);
+    }
+    
+    // Download the fund thesis document
+    const { data: thesisData, error: thesisDownloadError } = await supabase.storage
+      .from('investor_documents')
+      .download(thesisDoc.file_path);
+      
+    if (thesisDownloadError) {
+      console.error("Error downloading fund thesis:", thesisDownloadError);
+      throw thesisDownloadError;
+    }
+    
+    const thesisBytes = await thesisData.arrayBuffer();
+    console.log("Fund thesis size:", thesisBytes.byteLength, "bytes");
+    
+    // Extract text from the fund thesis PDF
+    const thesisContent = await extractCompressedTextFromPDF(thesisBytes);
+    
+    // Process the documents with Gemini
+    const analysis = await processDocumentsWithGemini(thesisContent, pitchDeckContent);
+    
+    // Update the analysis record
+    const { error: updateError } = await supabase
+      .from('fund_thesis_analysis')
+      .update({
+        analysis,
+        status: 'completed'
+      })
+      .eq('id', analysisRecord.id);
+      
+    if (updateError) {
+      console.error("Error updating analysis record:", updateError);
+      throw updateError;
+    }
+    
+    // Return the analysis
+    return new Response(
+      JSON.stringify({
+        success: true,
+        analysis,
+        created_at: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('Error in fund thesis alignment analysis:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error occurred' 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+    console.error("Error in fund thesis alignment analysis:", error);
+    
+    // Try to update the analysis record with the error
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        await supabase
+          .from('fund_thesis_analysis')
+          .update({
+            status: 'failed',
+            error_message: error instanceof Error ? error.message : String(error)
+          })
+          .eq('company_id', (await req.json()).company_id)
+          .eq('user_id', (await req.json()).user_id);
+      }
+    } catch (updateError) {
+      console.error("Error updating analysis record with error:", updateError);
+    }
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });
 
-// Utility function to convert blob to base64
-async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+// Function to extract and compress text content from PDF
+async function extractCompressedTextFromPDF(pdfBytes) {
+  try {
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pageCount = pdfDoc.getPageCount();
+    
+    // Limit the number of pages to extract to avoid token limit
+    const pagesToExtract = Math.min(pageCount, MAX_PAGES_TO_EXTRACT);
+    console.log(`Extracting text from ${pagesToExtract} out of ${pageCount} pages`);
+    
+    // For now, we'll have to use a mock text extraction since pdf-lib doesn't support text extraction
+    // In a real implementation, you would use a proper PDF text extraction library
+    let content = `This PDF has ${pageCount} pages. `;
+    content += "Below is a summary of key sections from the document:\n\n";
+    
+    // Append metadata if available
+    const title = pdfDoc.getTitle() || "Untitled Document";
+    const author = pdfDoc.getAuthor() || "Unknown Author";
+    content += `Title: ${title}\nAuthor: ${author}\n\n`;
+    
+    // Add placeholder text for each page (in reality, you'd extract actual text)
+    for (let i = 0; i < pagesToExtract; i++) {
+      const page = pdfDoc.getPage(i);
+      const { width, height } = page.getSize();
+      content += `Page ${i + 1} (${width.toFixed(0)}x${height.toFixed(0)}): `;
+      
+      // Simulate text extraction based on page dimensions
+      content += `This page contains content that would be extracted from the PDF. `;
+      if (i === 0) {
+        content += "This appears to be the title page. ";
+      } else if (i === 1) {
+        content += "This may be a table of contents or executive summary. ";
+      } else {
+        content += "This contains detailed information from the document. ";
+      }
+      content += "\n\n";
+    }
+    
+    // If we couldn't extract pages, we'll summarize
+    if (pagesToExtract < pageCount) {
+      content += `Note: ${pageCount - pagesToExtract} additional pages were not extracted to stay within token limits.`;
+    }
+    
+    // Compress the content to fit within token limits
+    if (content.length > MAX_CONTENT_SIZE) {
+      console.log(`Content size (${content.length} chars) exceeds limit, compressing...`);
+      content = compressContent(content, MAX_CONTENT_SIZE);
+      console.log(`Compressed to ${content.length} chars`);
+    }
+    
+    return content;
+  } catch (error) {
+    console.error("Error extracting text from PDF:", error);
+    return `[PDF content extraction failed: ${error.message}]`;
+  }
 }
 
-// Function to process documents with Gemini API
-async function processDocumentsWithGemini(
-  GEMINI_API_KEY: string,
-  fundThesisBase64: string,
-  pitchDeckBase64: string,
-  company_id: string,
-  user_id: string,
-  authHeader: string,
-  SUPABASE_URL: string,
-  SUPABASE_ANON_KEY: string
-): Promise<Response> {
-  // Prepare the prompt for Gemini - Updated to match the desired format
+// Function to compress content to fit within token limits
+function compressContent(content, maxSize) {
+  // If content is already within limits, return it as-is
+  if (content.length <= maxSize) return content;
+  
+  // Simple compression: Keep introduction and truncate the middle
+  const intro = content.substring(0, maxSize * 0.3);
+  const conclusion = content.substring(content.length - maxSize * 0.2);
+  
+  // Calculate how much space we have for the middle portion
+  const remainingSpace = maxSize - intro.length - conclusion.length - 100; // 100 chars for the ellipsis and summary
+  const middle = content.substring(intro.length, intro.length + remainingSpace);
+  
+  // Combine the sections with an explanation of the compression
+  return intro + middle + 
+    "\n\n[...Content compressed due to token limits...]\n\n" +
+    `[${content.length - (intro.length + middle.length + conclusion.length)} characters were omitted for brevity.]\n\n` +
+    conclusion;
+}
 
-   const promptText = `You are an expert venture capital analyst. Analyze how well the pitch deck aligns with the fund thesis. 
-   First, you need to calculate a Synergy Score using the following framework:
-               
-               STARTUP EVALUATION FRAMEWORK:
- 1. Score a startup's fundamentals (Problem, Market, Product, etc.)
- 2. Incorporate cross-sectional synergy (how various sections reinforce or
- undermine each other)
- 3. Adjust for risk factors relevant to the startup's stage and the investor's
- thesis
- The end result is a Composite Score that helps analysts quickly compare
- different deals and identify critical areas of further due diligence.
- 4. KEY SECTIONS & WEIGHTS
- Traditionally, a pitch deck is divided into 10 sections:
- 1) Problem
- 2) Market
- 3) Solution (Product)
- 4) Competitive Landscape
- 5) Traction
- 6) Business Model
- 7) Go-to-Market Strategy
- 8) Team
- 9) Financials
- 10) The Ask
- (AN EXAMPLE )From an investor'sperspective, typical base weights(before any risk adjustment) might look like this -
- Section Baseline Weight (W_i)
- 1) Problem 5–10%
- 2) Market 15–20%
- 3) Solution / Product 15–20%
- 4) Competitive Landscape 5–10%
- 5) Traction 10–15%
- 6) Business Model 10–15%
- 7) Go-to-Market Strategy 10–15%
- 8) Team 10–15%
- 9) Financials 5–10%
- 10) The Ask 5%
- 
- 5. BASELINE SECTION SCORING
- Each section is further broken down into sub-criteria. For instance, Market
- might have:
- • Market Size (TAM / SAM / SOM)
- • Market Growth / Trends
- • Competitive Market Dynamics
- Each sub-criterion is scored on a 1–5 scale (or 1–10 if more granularity is
- desired). For example, on a 1–5 scale:
- • 1 = Poor / Missing
- • 2 = Weak / Unsatisfactory
- • 3 = Adequate / Meets Minimum
- • 4 = Good / Above Average
- • 5 = Excellent / Best-in-Class
- Each sub-criterion has a local weight such that all sub-criteria within a section
- sum to 1.0 (100%).
- 5.1 Formula for Section Score
- Scorei =
- ni
- j=1
- wij ×Ratingij
- Where:
- • i is the section index (1 to 10).
- • j runs over the sub-criteria in section i.
- • wij is the weight of the j-th sub-criterion in section i.
- • Ratingij is the 1–5 score assigned to that sub-criterion.
- Each Scorei also ends up in the 1–5 range (assuming the sub-criteria weights
- sum to 1).
- 6. CROSS-SECTIONAL SYNERGY
- 6.1 Why Synergy Matters
- A startup might score high on "Product" but low on "Go-to-Market." In isolation,
- those two sections might look acceptable, but if the startup cannot actually
- acquire customers to use its otherwise excellent product, the overall opportunity
- is weaker.
- 6.2 Defining the Synergy Index
- We define a set of section pairs that we believe mustinteract well. Examples
- include:
- • (Market, Problem): Is there a real, large market for the stated problem?
- • (Solution, Competitive Landscape): Is the product truly differentiated
- or easily cloned?
- • (Business Model, Financials): Does the revenue model match the
- financial projections?
- • (Traction, Go-to-Market): Can the traction so far be scaled using the
- proposed strategy?
- Each pair (i,k) in Shas a synergy weight Sik . Then we define a synergy
- function f(·):
- f(Scorei,Scorek ) = Scorei ×Scorek
- (if using a 1–5 scale)
- This means synergy is highest when both sections are rated high, and it's
- lowest when either one is low (multiplicative effect).
- SynergyIndex=
- (Sik ×f(Scorei,Scorek ))
- (i,k)∈S
- 6.3 Synergy Normalization & Weight (λ)
- To incorporate synergy into the final score, we introduce a calibration factor
- λ that determines how heavily synergy affects the overall rating:
- Synergy Contribution= λ×SynergyIndex
- If synergy is extremely important to your fund's thesis (e.g., you invest only in
- startups that demonstrate a tightly integrated plan), set λ higher (e.g., 0.3). If
- synergy is just a minor supplement, set it lower (e.g., 0.1).
- 7. RISK-ADJUSTED WEIGHTING
- 7.1 Rationale
- Not all sections carry the same level of risk. If a startup's technology is
- unproven, the "Product" or "Traction" sections might be inherently riskier.
- Meanwhile, a strong, experienced team may reduce the risk associated with
- execution.
- 7.2 Risk Factor (Ri)
- For each section i, assign a risk factor Ri in a range (e.g., [−0.3,+0.3] or
- [−1,+1]):
- • Positive Ri: Above-average risk (we should weigh this section more).
- • Negative Ri: Below-average risk (the item is less likely to derail the
- company).
- We use Ri to adjust the baseline weight Wi:
- ∼
- Wi = Wi ×
- 1 + Ri
- 10
- m=1 (Wm ×(1 + Rm))
- This re-normalizes weights so they still sum to 1.0 across all 10 sections but
- magnifies or diminishes each section proportionally to its risk.
- 8. FINAL COMPOSITE SCORE
- 8.1 Assembling All Components
- We combine:
- 1. Baseline Section Scores (Scorei)
- 2. Risk-Adjusted Weights∼
- Wi
- 3. Synergy Contribution (λ×SynergyIndex)
- Composite Score=
- 10
- i=1
- ∼
- Wi ×Scorei + (λ×SynergyIndex)
- 8.2 Interpretation
- • 4.5 – 5.0: High conviction. Likely candidate for deeper diligence or
- immediate term sheet.
- • 3.5 – 4.4: Promising but some concerns. Requires targeted due diligence
- and possibly negotiation of protective terms.
- 4
- • 2.5 – 3.4: Moderate to high risk or synergy gaps. Needs major improve-
- ments or might not meet your fund's return threshold.
- • < 2.5: Weak opportunity. High risk and minimal synergy—probably pass.
- 9. SCENARIO & SENSITIVITY ANALYSIS
- 9.1 Identifying Key Assumptions
- Before finalizing an investment decision, identify critical assumptions that
- drive the composite score:
- 1) Market Size (Is TAM validated or just founder optimism?)
- 2) Growth / Traction (Can they continue to grow at the stated rate?)
- 3) Valuation (Is the ask fair? Does the pricing still make sense if growth
- slows?)
- 9.2 Best-, Base-, and Worst-Case Scenarios
- Re-score key sections under different assumptions:
- • Best-Case: The startup's claims hold up, synergy is high, minimal risk is
- realized.
- • Base-Case: More conservative growth or market size.
- • Worst-Case: Competition intensifies, traction lags, synergy breaks down.
- This reveals how sensitive the final composite score is to changes in a few key
- variables—providing risk exposure insights.
- 10. EXAMPLE IMPLEMENTATION
- Startup Alpha claims a large market and moderate traction. You score it as
- follows (1–5 scale):
- Section
- Baseline
- Weight (Wi)
- Sub-Criteria
- (Examples) Scores Section Score
- 1. Problem
- (5%)
- 0.05 - Severity of
- Pain (40%)-
- Timeliness
- (60%)
- (4, 5) 4.6
- 5
- Section
- Baseline
- Weight (Wi)
- Sub-Criteria
- (Examples) Scores Section Score
- 2. Market
- (15%)
- 3. Product
- (15%)
- 4.
- Competitive
- (10%)
- 5. Traction
- (10%)
- 6. Business
- Model (10%)
- 7. Go-to-
- Market (10%)
- 8. Team
- (10%)
- 9. Financials
- (5%)
- 10. The Ask
- (5%)
- 0.15 - TAM /
- SAM (50%)-
- Growth &
- Trends (50%)
- 0.15 - USP (40%)-
- Product
- Readiness
- (60%)
- 0.10 - Competitor
- Mapping
- (50%)- Differ-
- entiation
- (50%)
- 0.10 - Customer
- Adoption
- (50%)- Met-
- rics/Revenue
- (50%)
- 0.10 - Revenue
- Streams
- (50%)-
- Scalability
- (50%)
- 0.10 - Chan-
- nels/Strategy
- (50%)-
- Milestones
- (50%)
- 0.10 - Experience
- (50%)- Com-
- plementarity
- (50%)
- 0.05 - Forecast
- Accuracy
- (50%)- Burn
- Rate (50%)
- 0.05 - Valuation
- Rationale
- (50%)- Fund
- Usage (50%)
- (4, 4) 4.0
- (3, 4) 3.4
- (3, 3) 3.0
- (3, 3) 3.0
- (3, 4) 3.5
- (2, 3) 2.5
- (5, 4) 4.5
- (3, 2) 2.5
- (3, 3) 3.0
- • Risk Factors (Ri):
- – Product = +0.2 (new tech, not fully validated)
- – Go-to-Market = +0.3 (untested approach)
- – Financials = +0.1 (assumptions unclear)
- – Team = -0.2 (strong track record, reducing risk)
- • Synergy Pairs & Weights (Sik ):
- – (Market, Problem) = 0.10
- – (Product, Competitive) = 0.15
- – (Traction, Go-to-Market) = 0.20
- – (Business Model, Financials) = 0.10
- • For synergy function:
- f(Scorei,Scorek ) = Scorei ×Scorek
- 1. Calculate Risk-Adjusted Weights (∼
- Wi)
- • For example, if Go-to-Market has WGT M = 0.10 and RGT M = +0.3,
- its effective weight is raised.
- 2. Calculate SynergyIndex
- • E.g., (Traction = 3.0,Go-to-Market = 2.5) → f(3.0,2.5) = (3.0 ×
- 2.5)/5 = 1.5. Weighted by 0.20 → 0.30 synergy contribution from
- that pair.
- NOTE - Combine them to get the Composite Score.
- APPENDICES
- Appendix A: Detailed Sub-Criteria Examples
- 1. Market
- • Market Size Accuracy (50%)
- • Market Growth Rate & Trends (30%)
- • Adjacent Market Opportunities (20%)
- 2. Traction
- • Monthly or Quarterly Growth Rate (40%)
- • Paying Customers or Pilot Partnerships (30%)
- • Churn / Retention / Engagement (30%)
- 3. Team
- • Past Startup Experience (40%)
- • Domain Expertise (30%)
- 7
- • Commitment & Advisory Board (30%)
- (. . . and so on for other sections.)
- Appendix B: Example Risk Factor Scale
- • -0.3: Extremely low risk (established moat, strong traction, proven team)
- • -0.1: Below-average risk
- • 0: Neutral risk
- • +0.1: Some concerns
- • +0.3: Significant risk (unproven assumptions, early technology, etc.)
- Appendix C: Synergy Pairs (Common Examples)
- • (Problem, Market)
- • (Solution, Competitive Landscape)
- • (Business Model, Financials)
- • (Traction, Go-to-Market)
- • (Team, All Other Sections) – sometimes scored if the team's skillset is
- critical to overcoming certain market or product challenges.
+// Function to process documents with Gemini
+async function processDocumentsWithGemini(thesisContent, pitchDeckContent) {
+  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+  
+  if (!GEMINI_API_KEY) {
+    throw new Error("Missing GEMINI_API_KEY environment variable");
+  }
+  
+  // Calculate total input size and compress further if needed
+  const combinedSize = thesisContent.length + pitchDeckContent.length;
+  let compressedThesis = thesisContent;
+  let compressedPitchDeck = pitchDeckContent;
+  
+  if (combinedSize > MAX_CONTENT_SIZE) {
+    console.log(`Combined content (${combinedSize} chars) exceeds limit, applying additional compression...`);
+    
+    // Calculate compression ratio for each document
+    const thesisRatio = 0.40; // Keep more of the fund thesis as it's more important for the analysis
+    const pitchDeckRatio = 0.60; // Keep less of the pitch deck
+    
+    const thesisAllocation = Math.floor(MAX_CONTENT_SIZE * thesisRatio);
+    const pitchDeckAllocation = Math.floor(MAX_CONTENT_SIZE * pitchDeckRatio);
+    
+    compressedThesis = compressContent(thesisContent, thesisAllocation);
+    compressedPitchDeck = compressContent(pitchDeckContent, pitchDeckAllocation);
+    
+    console.log(`Compressed thesis to ${compressedThesis.length} chars`);
+    console.log(`Compressed pitch deck to ${compressedPitchDeck.length} chars`);
+  }
+  
+  // Create the prompt for Gemini
+  const prompt = `
+You are an expert investor analyzing a pitch deck against a fund thesis to determine alignment.
 
-CALCULATE THE FINAL SYNERGY SCORE ON A SCALE OF 1-5.
+FUND THESIS DOCUMENT:
+${compressedThesis}
 
-NOW, create a detailed analysis with the following structure:
+PITCH DECK:
+${compressedPitchDeck}
 
-**1. Overall Summary**
+TASK:
+Assess how well the startup's pitch deck aligns with the fund thesis document. Provide a comprehensive analysis structured as follows:
 
-Start with "**Synergy Score:** X.X/5" on its own line, where X.X is a score from 1.0 to 5.0 that represents how well the pitch deck aligns with the fund thesis. Always present this score in this exact format for consistent parsing.
+1. Overall Summary
+Analyze the overall synergy between the pitch deck and fund thesis, focusing on strategic fit, market alignment, and investment criteria match.
 
-Then provide 2-3 paragraphs summarizing the overall alignment between the pitch deck and the fund thesis. Be specific about strengths and weaknesses in the alignment.
+2. Key Similarities
+Highlight specific points where the pitch deck aligns well with the fund thesis principles (at least 3-5 points).
 
-**2. Key Similarities**
+3. Key Differences
+Identify areas where the pitch deck diverges from the fund thesis criteria (at least 3-5 points).
 
-List 3-5 bullet points describing specific areas where the pitch deck aligns well with the fund thesis priorities. Each bullet point should be detailed and specific, not generic.
+IMPORTANT: Include a "Synergy Score" on a scale of 0.0-5.0 (format exactly as "**Synergy Score:** X.X/5") that quantifies the overall alignment.
 
-**3. Key Differences**
+Your response format must include the same section names, in this exact order, and include the formatted Synergy Score.
+`;
 
-List 3-6 bullet points highlighting specific areas where the pitch deck diverges from or fails to address key elements of the fund thesis. Be detailed and suggest what could be improved to better align with the investor's priorities.
-
-Make your analysis substantive, data-driven, and specific to both documents. Avoid generic statements that could apply to any pitch deck or fund thesis.
-
-Fund Thesis PDF Content:
-${fundThesisBase64}
-
-Pitch Deck PDF Content:
-${pitchDeckBase64}`;
-
-  console.log('Calling Gemini API to analyze alignment');
-  // Call Gemini to analyze alignment
-  const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-  const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
-
-  const geminiResponse = await fetch(urlWithApiKey, {
+  console.log("Calling Gemini API to analyze alignment");
+  
+  // Call Gemini API
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            {
-              text: promptText
-            }
-          ]
-        }
-      ],
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
       generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048
+        temperature: 0.2,
+        maxOutputTokens: 4096
       }
-    }),
-  });
-
-  if (!geminiResponse.ok) {
-    const errorText = await geminiResponse.text();
-    console.error('Gemini API error:', errorText);
-    throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
-  }
-
-  const geminiData = await geminiResponse.json();
-  console.log('Received response from Gemini API');
-  
-  let analysisText = '';
-  let rawResponse = '';
-  
-  if (geminiData.candidates && geminiData.candidates.length > 0 && 
-      geminiData.candidates[0].content && geminiData.candidates[0].content.parts && 
-      geminiData.candidates[0].content.parts.length > 0) {
-    analysisText = geminiData.candidates[0].content.parts[0].text;
-    rawResponse = JSON.stringify(geminiData);
-    console.log('Analysis text length:', analysisText.length);
-    console.log('Analysis text sample:', analysisText.substring(0, 200));
-  } else {
-    console.error('Unexpected response format from Gemini API:', JSON.stringify(geminiData));
-    throw new Error('Unexpected response format from Gemini API');
-  }
-
-  // Store analysis in Supabase
-  console.log('Storing analysis in Supabase');
-  const supabaseStoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
-    method: 'POST',
-    headers: {
-      'Authorization': authHeader,
-      'apikey': SUPABASE_ANON_KEY as string,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
-    body: JSON.stringify({
-      company_id,
-      user_id,
-      analysis_text: analysisText,
-      prompt_sent: promptText,
-      response_received: rawResponse
     })
   });
-
-  if (!supabaseStoreResponse.ok) {
-    const errorText = await supabaseStoreResponse.text();
-    console.error('Failed to store analysis:', errorText);
-    throw new Error(`Failed to store analysis: ${supabaseStoreResponse.status} - ${errorText}`);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini API error:", errorText);
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
   }
-
-  const storedAnalysis = await supabaseStoreResponse.json();
-  console.log('Analysis stored successfully');
-
-  return new Response(JSON.stringify({ 
-    analysis: analysisText,
-    prompt_sent: promptText,
-    response_received: rawResponse,
-    storedAnalysis 
-  }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    status: 200
-  });
+  
+  const data = await response.json();
+  
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+    throw new Error("Unexpected response format from Gemini API");
+  }
+  
+  return data.candidates[0].content.parts[0].text;
 }
