@@ -364,19 +364,302 @@ async function processDocumentsWithGemini(
               
               First, you need to calculate a Synergy Score using the following framework:
               
-              STARTUP EVALUATION FRAMEWORK:
-              
-              1. Identify key sections from both the pitch deck and fund thesis.
-              2. Rate each section on a 1-5 scale.
-              3. Calculate the synergy index using the formula:
-                 SynergyIndex = Sum(Sik × (Scorei × Scorek / 5))
-                 Where Sik is the synergy weight (importance) for each pair of sections.
-              4. Common synergy pairs to consider:
-                 - Problem-Market fit
-                 - Product-Competitive Landscape
-                 - Business Model-Financials
-                 - Traction-Go-to-Market
-              5. Calculate the final Synergy Score on a scale of 1-5.
+STARTUP EVALUATION FRAMEWORK
+A Step-by-Step Guide for Venture Capital Analysts
+1. OVERVIEW
+This document presents a multi-dimensional model designed to:
+1. Score a startup’s fundamentals (Problem, Market, Product, etc.)
+2. Incorporate cross-sectional synergy (how various sections reinforce or
+undermine each other)
+3. Adjust for risk factors relevant to the startup’s stage and the investor’s
+thesis
+thesis
+The end result is a Composite Score that helps analysts quickly compare
+different deals and identify critical areas of further due diligence.
+Section Baseline Weight (W_i)
+1. Problem 5–10%
+2. Market 15–20%
+3. Solution / Product 15–20%
+4. Competitive Landscape 5–10%
+5. Traction 10–15%
+6. Business Model 10–15%
+7. Go-to-Market Strategy 10–15%
+8. Team 10–15%
+2. KEY SECTIONS & WEIGHTS
+Traditionally, a pitch deck is divided into 10 sections:
+1. Problem
+2. Market
+3. Solution (Product)
+4. Competitive Landscape
+5. Traction
+6. Business Model
+7. Go-to-Market Strategy
+8. Team
+9. Financials
+10. The Ask
+10. The Ask
+Fromaninvestor’sperspective, typicalbaseweights(beforeanyriskadjustment)
+might look like this:
+8. Team 10–15%
+Section Baseline Weight (W_i)
+9. Financials 5–10%
+10. The Ask 5%
+Note: Thesepercentagesareguidelines. DifferentVCsmightallocate
+more or less weight depending on their investment stage, sector focus,
+or strategic priorities.
+3. BASELINE SECTION SCORING
+Each section is further broken down into sub-criteria. For instance, Market
+might have:
+• Market Size (TAM / SAM / SOM)
+• Market Growth / Trends
+• Competitive Market Dynamics
+Each sub-criterion is scored on a 1–5 scale (or 1–10 if more granularity is
+desired). For example, on a 1–5 scale:
+• 1 = Poor / Missing
+• 2 = Weak / Unsatisfactory
+• 3 = Adequate / Meets Minimum
+• 4 = Good / Above Average
+• 5 = Excellent / Best-in-Class
+Each sub-criterion has a local weight such that all sub-criteria within a section
+sum to 1.0 (100%).
+3.1 Formula for Section Score
+Scorei =
+ni
+j=1
+wij ×Ratingij
+Where:
+• i is the section index (1 to 10).
+• j runs over the sub-criteria in section i.
+• wij is the weight of the j-th sub-criterion in section i.
+• Ratingij is the 1–5 score assigned to that sub-criterion.
+Each Scorei also ends up in the 1–5 range (assuming the sub-criteria weights
+sum to 1).
+4. CROSS-SECTIONAL SYNERGY
+4.1 Why Synergy Matters
+Astartupmightscorehighon“Product”butlowon“Go-to-Market.”Inisolation,
+those two sections might look acceptable, but if the startup cannot actually
+acquire customers to use its otherwise excellent product, the overall opportunity
+is weaker.
+4.2 Defining the Synergy Index
+We define a set of section pairsSthat we believe mustinteract well. Examples
+include:
+• (Market, Problem): Is there a real, large market for the stated problem?
+• (Solution, Competitive Landscape): Is the product truly differentiated
+or easily cloned?
+• (Business Model, Financials): Does the revenue model match the
+financial projections?
+• (Traction, Go-to-Market): Can the traction so far be scaled using the
+proposed strategy?
+Each pair (i,k) in Shas a synergy weight Sik . Then we define a synergy
+function f(·):
+f(Scorei,Scorek ) = Scorei ×Scorek
+5 (if using a 1–5 scale)
+This means synergy is highest when both sections are rated high, and it’s
+lowest when either one is low (multiplicative effect).
+SynergyIndex=
+(Sik ×f(Scorei,Scorek ))
+(i,k)∈S
+4.3 Synergy Normalization & Weight (λ)
+To incorporate synergy into the final score, we introduce a calibration factor
+λ that determines how heavily synergy affects the overall rating:
+Synergy Contribution= λ×SynergyIndex
+If synergy is extremely important to your fund’s thesis (e.g., you invest only in
+startups that demonstrate a tightly integrated plan), set λ higher (e.g., 0.3). If
+synergy is just a minor supplement, set it lower (e.g., 0.1).
+5. RISK-ADJUSTED WEIGHTING
+5.1 Rationale
+Not all sections carry the same level of risk. If a startup’s technology is
+unproven, the “Product” or “Traction” sections might be inherently riskier.
+Meanwhile, a strong, experienced team may reduce the risk associated with
+execution.
+5.2 Risk Factor (Ri)
+For each section i, assign a risk factor Ri in a range (e.g., [−0.3,+0.3] or
+[−1,+1]):
+• Positive Ri: Above-average risk (we should weigh this section more).
+• Negative Ri: Below-average risk (the item is less likely to derail the
+company).
+We use Ri to adjust the baseline weight Wi:
+∼
+Wi = Wi ×
+1 + Ri
+10
+m=1 (Wm ×(1 + Rm))
+This re-normalizes weights so they still sum to 1.0 across all 10 sections but
+magnifies or diminishes each section proportionally to its risk.
+6. FINAL COMPOSITE SCORE
+6.1 Assembling All Components
+We combine:
+1. Baseline Section Scores (Scorei)
+2. Risk-Adjusted Weights∼
+Wi
+3. Synergy Contribution (λ×SynergyIndex)
+Composite Score=
+10
+i=1
+∼
+Wi ×Scorei + (λ×SynergyIndex)
+6.2 Interpretation
+• 4.5 – 5.0: High conviction. Likely candidate for deeper diligence or
+immediate term sheet.
+• 3.5 – 4.4: Promising but some concerns. Requires targeted due diligence
+and possibly negotiation of protective terms.
+• 2.5 – 3.4: Moderate to high risk or synergy gaps. Needs major improve-
+ments or might not meet your fund’s return threshold.
+• < 2.5: Weak opportunity. High risk and minimal synergy—probably pass.
+7. SCENARIO & SENSITIVITY ANALYSIS
+7.1 Identifying Key Assumptions
+Before finalizing an investment decision, identify critical assumptions that
+drive the composite score:
+1. Market Size (Is TAM validated or just founder optimism?)
+2. Growth / Traction (Can they continue to grow at the stated rate?)
+3. Valuation (Is the ask fair? Does the pricing still make sense if growth
+slows?)
+7.2 Best-, Base-, and Worst-Case Scenarios
+Re-score key sections under different assumptions:
+• Best-Case: The startup’s claims hold up, synergy is high, minimal risk is
+realized.
+• Base-Case: More conservative growth or market size.
+• Worst-Case: Competition intensifies, traction lags, synergy breaks down.
+This reveals how sensitive the final composite score is to changes in a few key
+variables—providing risk exposure insights.
+8. EXAMPLE IMPLEMENTATION
+Startup Alpha claims a large market and moderate traction. You score it as
+follows (1–5 scale):
+Section
+Baseline
+Weight (Wi)
+Sub-Criteria
+(Examples) Scores Section Score
+1. Problem
+(5%)
+0.05 - Severity of
+Pain (40%)-
+Timeliness
+(60%)
+(4, 5) 4.6
+Section
+Baseline
+Weight (Wi)
+Sub-Criteria
+(Examples) Scores Section Score
+2. Market
+(15%)
+3. Product
+(15%)
+4.
+Competitive
+(10%)
+5. Traction
+(10%)
+6. Business
+Model (10%)
+7. Go-to-
+Market (10%)
+8. Team
+(10%)
+9. Financials
+(5%)
+10. The Ask
+(5%)
+0.15 - TAM /
+SAM (50%)-
+Growth &
+Trends (50%)
+0.15 - USP (40%)-
+Product
+Readiness
+(60%)
+0.10 - Competitor
+Mapping
+(50%)- Differ-
+entiation
+(50%)
+0.10 - Customer
+Adoption
+(50%)- Met-
+rics/Revenue
+(50%)
+0.10 - Revenue
+Streams
+(50%)-
+Scalability
+(50%)
+0.10 - Chan-
+nels/Strategy
+(50%)-
+Milestones
+(50%)
+0.10 - Experience
+(50%)- Com-
+plementarity
+(50%)
+0.05 - Forecast
+Accuracy
+(50%)- Burn
+Rate (50%)
+0.05 - Valuation
+Rationale
+(50%)- Fund
+Usage (50%)
+(4, 4) 4.0
+(3, 4) 3.4
+(3, 3) 3.0
+(3, 3) 3.0
+(3, 4) 3.5
+(2, 3) 2.5
+(5, 4) 4.5
+(3, 2) 2.5
+(3, 3) 3.0
+• Risk Factors (Ri):
+– Product = +0.2 (new tech, not fully validated)
+– Go-to-Market = +0.3 (untested approach)
+– Financials = +0.1 (assumptions unclear)
+– Team = -0.2 (strong track record, reducing risk)
+• Synergy Pairs & Weights (Sik ):
+– (Market, Problem) = 0.10
+– (Product, Competitive) = 0.15
+– (Traction, Go-to-Market) = 0.20
+– (Business Model, Financials) = 0.10
+• For synergy function:
+f(Scorei,Scorek ) = Scorei ×Scorek
+1. Calculate Risk-Adjusted Weights (∼
+Wi)
+• For example, if Go-to-Market has WGT M = 0.10 and RGT M = +0.3,
+its effective weight is raised.
+2. Calculate SynergyIndex
+• E.g., (Traction = 3.0,Go-to-Market = 2.5) → f(3.0,2.5) = (3.0 ×
+2.5)/5 = 1.5. Weighted by 0.20 → 0.30 synergy contribution from
+that pair.
+3. Combine them to get the Composite Score.
+APPENDICES
+Appendix A: Detailed Sub-Criteria Examples
+1. Market
+• Market Size Accuracy (50%)
+• Market Growth Rate & Trends (30%)
+• Adjacent Market Opportunities (20%)
+2. Traction
+• Monthly or Quarterly Growth Rate (40%)
+• Paying Customers or Pilot Partnerships (30%)
+• Churn / Retention / Engagement (30%)
+3. Team
+• Past Startup Experience (40%)
+• Domain Expertise (30%)
+• Commitment & Advisory Board (30%)
+(. . . and so on for other sections.)
+Appendix B: Example Risk Factor Scale
+• -0.3: Extremely low risk (established moat, strong traction, proven team)
+• -0.1: Below-average risk
+• 0: Neutral risk
+• +0.1: Some concerns
+• +0.3: Significant risk (unproven assumptions, early technology, etc.)
+Appendix C: Synergy Pairs (Common Examples)
+• (Problem, Market)
+• (Solution, Competitive Landscape)
+• (Business Model, Financials)
+• (Traction, Go-to-Market)
+• (Team, All Other Sections) – sometimes scored if the team’s skillset is
+critical to overcoming certain market or product challenges.
+              5. Calculate the final Synergy Score on a scale of 1-5(MOST IMPORTANT).
               
               Provide your analysis in exactly the following format with these three sections ONLY:
               
