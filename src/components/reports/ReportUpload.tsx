@@ -769,7 +769,7 @@ export function ReportUpload({
           {isPublic && !hideEmailField && (
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium">
-                Your Email <span className="text-red-500">*</span>
+                Form Submitter's Email <span className="text-red-500">*</span>
               </label>
               <input
                 id="email"
