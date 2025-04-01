@@ -1,47 +1,146 @@
 
-import React from "react";
-import { RouteObject } from "react-router-dom";
+import Index from "@/pages/Index";
+import Signup from "@/pages/Signup";
+import Dashboard from "@/pages/Dashboard";
+import UploadReport from "@/pages/UploadReport";
+import Report from "@/pages/Report";
+import CompanyPage from "@/pages/CompanyPage";
+import SectionPage from "@/pages/SectionPage";
+import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
+import PublicUpload from "@/pages/PublicUpload";
+import AnalysisSummary from "@/pages/AnalysisSummary";
+import NotFound from "@/pages/NotFound";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Profile from "@/pages/Profile";
+import ProfileEdit from "@/pages/ProfileEdit";
+import ProfileSetup from "@/pages/ProfileSetup";
+import Feedback from "@/pages/Feedback";
+import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
+import NewsFeed from "@/pages/NewsFeed";
 
-const Home = React.lazy(() => import('@/pages/Home'));
-const Login = React.lazy(() => import('@/pages/Login'));
-const Register = React.lazy(() => import('@/pages/Register'));
-const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
-const UploadReport = React.lazy(() => import('@/pages/UploadReport'));
-const CompanyProfile = React.lazy(() => import('@/pages/CompanyProfile'));
-const PublicSubmission = React.lazy(() => import('@/pages/PublicSubmission'));
-const TestEmail = React.lazy(() => import('@/pages/TestEmail'));
-
-export const routes: RouteObject[] = [
+export const routes = [
   {
-    path: '/',
-    element: <Home />
+    path: "/",
+    element: <Index />,
   },
   {
-    path: '/login',
-    element: <Login />
+    path: "/signup",
+    element: <Signup />,
   },
   {
-    path: '/register',
-    element: <Register />
+    path: "/dashboard",
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
   },
   {
-    path: '/dashboard',
-    element: <Dashboard />
+    path: "/upload",
+    element: (
+      <ProtectedRoute>
+        <UploadReport />
+      </ProtectedRoute>
+    ),
   },
   {
-    path: '/upload',
-    element: <UploadReport />
+    path: "/report/:reportId",
+    element: (
+      <ProtectedRoute>
+        <Report />
+      </ProtectedRoute>
+    ),
   },
   {
-    path: '/company/:id',
-    element: <CompanyProfile />
+    path: "/reports/:id",
+    element: (
+      <ProtectedRoute>
+        <Report />
+      </ProtectedRoute>
+    ),
   },
   {
-    path: '/public-submission',
-    element: <PublicSubmission />
+    path: "/company/:id",
+    element: (
+      <ProtectedRoute>
+        <CompanyPage />
+      </ProtectedRoute>
+    ),
   },
   {
-    path: '/test-email',
-    element: <TestEmail />
+    path: "/company/:companyId/section/:sectionId",
+    element: (
+      <ProtectedRoute>
+        <SectionPage />
+      </ProtectedRoute>
+    ),
   },
+  {
+    path: "/company/:companyId/supplementary",
+    element: (
+      <ProtectedRoute>
+        <SupplementaryMaterials />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/public-upload",
+    element: <PublicUpload />,
+  },
+  {
+    path: "/company/:companyId/analysis",
+    element: (
+      <ProtectedRoute>
+        <AnalysisSummary />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile/edit",
+    element: (
+      <ProtectedRoute>
+        <ProfileEdit />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile/setup",
+    element: (
+      <ProtectedRoute>
+        <ProfileSetup />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/feedback",
+    element: (
+      <ProtectedRoute>
+        <Feedback />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/company/:companyId/overview",
+    element: (
+      <ProtectedRoute>
+        <CompanyOverviewPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/news-feed",
+    element: <NewsFeed />, // Removed ProtectedRoute wrapper to make it public
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  }
 ];
