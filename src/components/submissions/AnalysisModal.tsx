@@ -67,17 +67,25 @@ export function AnalysisModal({
 
   // Parse the analysis text into sections
   const parseAnalysis = (text: string) => {
-    if (!text) return { summary: [], similarities: [], differences: [] };
+    if (!text) return { summary: [], similarities: [], differences: [], score: "0.0" };
     
     const sections: { 
-      summary: string[]; 
-      similarities: string[]; 
+      summary: string[];
+      similarities: string[];
       differences: string[];
+      score: string;
     } = {
       summary: [],
       similarities: [],
       differences: [],
+      score: "0.0"
     };
+    
+    // First try to extract the score
+    const scoreMatch = text.match(/\*\*Synergy Score:\*\*\s*(\d+\.\d+)\/5/);
+    if (scoreMatch && scoreMatch[1]) {
+      sections.score = scoreMatch[1];
+    }
     
     let currentSection = '';
     const lines = text.split('\n').filter(line => line.trim());
@@ -97,19 +105,37 @@ export function AnalysisModal({
         continue;
       }
       
-      // Skip section headers or empty lines
-      if (line.match(/^\*\*.*\*\*$/) || !line.trim() || line.match(/^\d+\.$/) || line === '---') {
+      // Skip section headers, score line, or empty lines
+      if (line.match(/^\*\*.*\*\*$/) || 
+          line.match(/\*\*Synergy Score:\*\*/) || 
+          !line.trim() || 
+          line.match(/^\d+\.$/) || 
+          line === '---') {
+        continue;
+      }
+      
+      // Process bullet points for similarities and differences
+      if ((currentSection === 'similarities' || currentSection === 'differences') && 
+          (line.startsWith('*') || line.startsWith('-'))) {
+        // Clean bullet points and formatting
+        let cleanedLine = line.replace(/^[\*\-]\s*/, '').trim();
+        cleanedLine = cleanedLine.replace(/^\*\*|\*\*$/g, '').trim();
+        
+        if (cleanedLine) {
+          sections[currentSection as 'similarities' | 'differences'].push(cleanedLine);
+        }
         continue;
       }
       
       // Add content to current section
       if (currentSection && sections[currentSection as keyof typeof sections]) {
-        // Clean bullet points and formatting
-        let cleanedLine = line.replace(/^\*\s*/, '').trim();
-        cleanedLine = cleanedLine.replace(/^\*\*|\*\*$/g, '').trim();
-        
-        if (cleanedLine) {
-          sections[currentSection as keyof typeof sections].push(cleanedLine);
+        if (currentSection === 'summary') {
+          // Clean formatting
+          let cleanedLine = line.replace(/^\*\*|\*\*$/g, '').trim();
+          
+          if (cleanedLine && !cleanedLine.match(/^Synergy Score:/i)) {
+            sections.summary.push(cleanedLine);
+          }
         }
       }
     }
@@ -160,6 +186,10 @@ export function AnalysisModal({
               
               {expandedSections.summary && (
                 <div className="p-4 space-y-3 bg-white">
+                  <div className="mb-4">
+                    <span className="font-semibold text-primary">Synergy Score: </span>
+                    <span className="text-lg">{parsedAnalysis.score}/5</span>
+                  </div>
                   {parsedAnalysis.summary.length > 0 ? (
                     parsedAnalysis.summary.map((point, i) => (
                       <p key={i} className="text-sm text-muted-foreground leading-relaxed">
