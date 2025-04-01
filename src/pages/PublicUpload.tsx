@@ -156,7 +156,6 @@ const PublicUpload = () => {
               formSlug={activeFormSlug}
               hideEmailField={false}
               disableScrapingFeatures={true}
-              showNewFormFields={true}
             />
           </div>
         )}
