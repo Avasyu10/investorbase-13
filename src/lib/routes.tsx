@@ -1,36 +1,47 @@
-import React from "react";
 
-export const routes = [
+import React from "react";
+import { RouteObject } from "react-router-dom";
+
+const Home = React.lazy(() => import('@/pages/Home'));
+const Login = React.lazy(() => import('@/pages/Login'));
+const Register = React.lazy(() => import('@/pages/Register'));
+const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
+const UploadReport = React.lazy(() => import('@/pages/UploadReport'));
+const CompanyProfile = React.lazy(() => import('@/pages/CompanyProfile'));
+const PublicSubmission = React.lazy(() => import('@/pages/PublicSubmission'));
+const TestEmail = React.lazy(() => import('@/pages/TestEmail'));
+
+export const routes: RouteObject[] = [
   {
     path: '/',
-    element: <React.lazy(() => import('@/pages/Home')) />,
+    element: <Home />
   },
   {
     path: '/login',
-    element: <React.lazy(() => import('@/pages/Login')) />,
+    element: <Login />
   },
   {
     path: '/register',
-    element: <React.lazy(() => import('@/pages/Register')) />,
+    element: <Register />
   },
   {
     path: '/dashboard',
-    element: <React.lazy(() => import('@/pages/Dashboard')) />,
+    element: <Dashboard />
   },
   {
     path: '/upload',
-    element: <React.lazy(() => import('@/pages/UploadReport')) />,
+    element: <UploadReport />
   },
   {
     path: '/company/:id',
-    element: <React.lazy(() => import('@/pages/CompanyProfile')) />,
+    element: <CompanyProfile />
   },
   {
     path: '/public-submission',
-    element: <React.lazy(() => import('@/pages/PublicSubmission')) />,
+    element: <PublicSubmission />
   },
   {
     path: '/test-email',
-    element: <React.lazy(() => import('@/pages/TestEmail')) />,
+    element: <TestEmail />
   },
 ];
