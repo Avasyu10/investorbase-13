@@ -3,10 +3,10 @@ import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { CompanyInfoCard } from "./CompanyInfoCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, ChevronLeft, Briefcase, BotMessageSquare, Send, X } from "lucide-react";
+import { FileText, BarChart2, Files, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -432,6 +432,17 @@ const CompanyDetails = () => {
                 </div>
               </div>
             </CardContent>
+            <CardFooter className="justify-end">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/company-detail-page')}
+                className="flex items-center gap-2 text-primary"
+              >
+                <ExternalLink className="h-4 w-4" />
+                More Company Details
+              </Button>
+            </CardFooter>
           </Card>
         </div>
       </div>
