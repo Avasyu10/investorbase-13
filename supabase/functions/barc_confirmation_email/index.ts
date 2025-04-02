@@ -52,7 +52,7 @@ serve(async (req) => {
 
     // Send confirmation email
     const data = await resend.emails.send({
-      from: "PanScience Innovations <onboarding@resend.dev>",
+      from: "PanScience Innovations <team@confirmation.investorbase.io>",
       to: submitterEmail,
       subject: "Submission Received - Thank You!",
       html: `
