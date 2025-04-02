@@ -24,17 +24,12 @@ serve(async (req) => {
     const requestData = await req.json();
     console.log("Received request:", JSON.stringify(requestData));
 
-    const { submissionId } = requestData;
-    
-    if (!submissionId) {
-      throw new Error("No submission ID provided");
-    }
-
     // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
+    // Check for required environment variables
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Missing Supabase environment variables");
     }
@@ -43,9 +38,75 @@ serve(async (req) => {
       throw new Error("Missing Resend API key");
     }
 
+    console.log("Resend API key exists:", !!resendApiKey);
+
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
+    // Check if this is a direct test email request
+    if (requestData.testEmail) {
+      console.log("Sending direct test email");
+      
+      const submitterEmail = requestData.submitter_email;
+      const title = requestData.title || "Test Company";
+      
+      if (!submitterEmail) {
+        throw new Error("No submitter email provided for test");
+      }
+
+      // Initialize Resend
+      const resend = new Resend(resendApiKey);
+
+      // Format the email content
+      const companyName = title || "your company";
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
+          <h1 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 10px;">Test Email - Thank You for Your Submission</h1>
+          <p>Hello,</p>
+          <p>This is a <strong>TEST EMAIL</strong> from the BARC confirmation email system.</p>
+          <p>In a real scenario, we would have received your pitch deck for <strong>${companyName}</strong> and our team would review it shortly.</p>
+          <p>This email confirms that your email configuration is working correctly.</p>
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eaeaea; color: #666; font-size: 14px;">
+            Best regards,<br>
+            The InvestorBase Team
+          </p>
+        </div>
+      `;
+
+      // Send the email
+      const { data: emailData, error: emailError } = await resend.emails.send({
+        from: "InvestorBase <onboarding@resend.dev>",
+        to: [submitterEmail],
+        subject: `[TEST] We've Received Your Pitch Deck - ${companyName}`,
+        html: emailHtml,
+      });
+
+      if (emailError) {
+        throw new Error(`Error sending test email: ${emailError.message}`);
+      }
+
+      console.log("Test email sent successfully:", emailData);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Test email sent successfully",
+          emailId: emailData?.id
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
+      );
+    }
+
+    // Process a submission ID
+    const { submissionId } = requestData;
+    
+    if (!submissionId) {
+      throw new Error("No submission ID provided");
+    }
+
     // Fetch the submission data
     const { data: submission, error: fetchError } = await supabase
       .from("public_form_submissions")

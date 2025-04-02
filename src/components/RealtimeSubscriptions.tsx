@@ -87,9 +87,39 @@ export function RealtimeSubscriptions() {
           const submissionId = payload.new.id;
           const submitterEmail = payload.new.submitter_email;
           
-          toast({
-            title: 'New form submission',
-            description: `Received submission from ${submitterEmail || 'unknown'}`,
+          // Call the BARC confirmation email function
+          console.log(`Invoking barc_confirmation_email for submission ID: ${submissionId}`);
+          
+          supabase.functions.invoke('barc_confirmation_email', {
+            body: { submissionId }
+          })
+          .then(response => {
+            console.log('BARC confirmation email function response:', response);
+            
+            if (response.error) {
+              console.error('Error from BARC confirmation email function:', response.error);
+              
+              toast({
+                title: 'Error sending confirmation email',
+                description: `Failed to send email: ${response.error.message || 'Unknown error'}`,
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            toast({
+              title: 'New form submission',
+              description: `Received submission from ${submitterEmail || 'unknown'} and sent confirmation email`,
+            });
+          })
+          .catch(error => {
+            console.error('Error calling BARC confirmation email function:', error);
+            
+            toast({
+              title: 'Error sending confirmation email',
+              description: `Failed to send email: ${error.message || 'Unknown error'}`,
+              variant: "destructive"
+            });
           });
         }
       )
