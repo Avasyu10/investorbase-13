@@ -17,6 +17,7 @@ import ProfileSetup from "@/pages/ProfileSetup";
 import Feedback from "@/pages/Feedback";
 import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
 import NewsFeed from "@/pages/NewsFeed";
+import EmailTest from "@/pages/EmailTest";
 
 export const routes = [
   {
@@ -138,6 +139,14 @@ export const routes = [
   {
     path: "/news-feed",
     element: <NewsFeed />, // Removed ProtectedRoute wrapper to make it public
+  },
+  {
+    path: "/email-test",
+    element: (
+      <ProtectedRoute>
+        <EmailTest />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "*",

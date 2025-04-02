@@ -2,6 +2,7 @@
 import React from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
+import { RealtimeEmailListener } from '@/components/RealtimeEmailListener';
 import { BrowserRouter, Routes, Route, useRoutes } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -22,6 +23,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <RealtimeSubscriptions />
+          <RealtimeEmailListener />
           <Navbar />
           <div className="pt-16"> {/* Add padding to accommodate fixed navbar */}
             <AppRoutes />
