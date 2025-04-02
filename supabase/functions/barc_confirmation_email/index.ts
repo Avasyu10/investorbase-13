@@ -61,7 +61,7 @@ serve(async (req) => {
           <p>Dear Applicant,</p>
           <p>We have received your submission for Bhabha Atomic Research Centre's Lab to Launch Programme. Our team will review your application and get back to you shortly.</p>
           <p>If you have any questions, please don't hesitate to contact us.</p>
-          <p>Best regards,<br/>Team PSI</p>
+          <p>Best regards,<br/>Team InvestorBase</p>
         </div>
       `,
     });
