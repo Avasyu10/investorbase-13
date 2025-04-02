@@ -1,3 +1,4 @@
+
 import Index from "@/pages/Index";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -17,6 +18,7 @@ import Feedback from "@/pages/Feedback";
 import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
 import NewsFeed from "@/pages/NewsFeed";
 import EmailTest from "@/pages/EmailTest";
+import TestScraping from "@/pages/TestScraping";
 
 const routes = [
   {
@@ -144,6 +146,14 @@ const routes = [
     element: (
       <ProtectedRoute>
         <EmailTest />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/test-scraping",
+    element: (
+      <ProtectedRoute>
+        <TestScraping />
       </ProtectedRoute>
     ),
   },
