@@ -92,17 +92,6 @@ export function CompanyInfoCard({
             </div>
           </div>
         </CardContent>
-        <CardFooter className="justify-end">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate('/company-detail-page')}
-            className="flex items-center gap-2 text-primary"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Company Details
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

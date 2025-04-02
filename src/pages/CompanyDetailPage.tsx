@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,7 +40,7 @@ type CompanyData = {
   company_employee_reviews_aggregate_score?: number;
 };
 
-const CompanyDetailPage = () => {
+const TestScraping = () => {
   const [linkedInUrl, setLinkedInUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<CompanyData | null>(null);
@@ -203,74 +204,71 @@ const CompanyDetailPage = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="max-w-3xl mx-auto mb-12">
-        <h1 className="text-3xl font-bold mb-6 text-center">Company Information Lookup</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">Company Information Lookup</h1>
+      
+      <Card className="mb-8 shadow-md max-w-3xl mx-auto">
+        <CardHeader>
+          <CardTitle>Lookup Company Details</CardTitle>
+          <CardDescription>
+            Enter a LinkedIn company URL to retrieve detailed information
+          </CardDescription>
+        </CardHeader>
         
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Lookup Company Details</CardTitle>
-            <CardDescription>
-              Enter a LinkedIn company URL to retrieve detailed information
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="linkedInUrl" className="font-medium">LinkedIn Company URL</label>
-                <Input
-                  id="linkedInUrl"
-                  type="text"
-                  value={linkedInUrl}
-                  onChange={(e) => setLinkedInUrl(e.target.value)}
-                  placeholder="https://www.linkedin.com/company/example-company"
-                  className="w-full"
-                />
-                <p className="text-sm text-gray-500">
-                  Example: https://www.linkedin.com/company/apple
-                </p>
-              </div>
-            </form>
-          </CardContent>
-          
-          <CardFooter>
-            <Button 
-              type="submit" 
-              onClick={handleSubmit} 
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? "Processing..." : "Lookup Company Details"}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="linkedInUrl" className="font-medium">LinkedIn Company URL</label>
+              <Input
+                id="linkedInUrl"
+                type="text"
+                value={linkedInUrl}
+                onChange={(e) => setLinkedInUrl(e.target.value)}
+                placeholder="https://www.linkedin.com/company/example-company"
+                className="w-full"
+              />
+              <p className="text-sm text-gray-500">
+                Example: https://www.linkedin.com/company/apple
+              </p>
+            </div>
+          </form>
+        </CardContent>
+        
+        <CardFooter>
+          <Button 
+            type="submit" 
+            onClick={handleSubmit} 
+            disabled={isLoading}
+            className="w-full"
+          >
+            {isLoading ? "Processing..." : "Lookup Company Details"}
+          </Button>
+        </CardFooter>
+      </Card>
 
       {isSubmitted && (
         <>
           {isLoading && (
-            <div className="text-center py-12 max-w-3xl mx-auto">
+            <div className="text-center py-12">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
               <p className="mt-4 text-lg">Loading company information...</p>
-              <p className="text-sm text-muted-foreground mt-2">This may take a few moments</p>
             </div>
           )}
           
           {error && !isLoading && (
             <Card className="mb-8 border-red-300 max-w-3xl mx-auto">
-              <CardHeader className="bg-red-50 dark:bg-red-900/20">
-                <CardTitle className="text-red-600 dark:text-red-400">Error</CardTitle>
+              <CardHeader className="bg-red-50">
+                <CardTitle className="text-red-600">Error</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-red-600 dark:text-red-400">{error}</p>
+                <p className="text-red-600">{error}</p>
               </CardContent>
             </Card>
           )}
           
           {response && !isLoading && (
-            <div className="space-y-8 max-w-4xl mx-auto animate-fade-in">
-              <Card className="shadow-md overflow-hidden">
-                <CardHeader className="flex flex-col sm:flex-row items-start gap-4 pb-2 bg-muted/30">
+            <div className="space-y-8 max-w-4xl mx-auto">
+              <Card className="shadow-md">
+                <CardHeader className="flex flex-col sm:flex-row items-start gap-4 pb-2">
                   {response.company_logo && (
                     <div className="w-24 h-24 flex-shrink-0 bg-white p-2 rounded-md shadow-sm">
                       <img 
@@ -307,36 +305,36 @@ const CompanyDetailPage = () => {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="space-y-4 pt-6">
+                <CardContent className="space-y-4 pt-4">
                   {response.description && (
                     <div className="py-2">
                       <h3 className="text-lg font-medium mb-2">Description</h3>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{response.description}</p>
+                      <p className="text-gray-700 whitespace-pre-line">{response.description}</p>
                     </div>
                   )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 border-t pt-6">
                     {response.founded_year && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">Founded</h4>
+                        <h4 className="font-medium text-sm text-gray-500">Founded</h4>
                         <p>{response.founded_year}</p>
                       </div>
                     )}
                     {response.size_range && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">Company Size</h4>
+                        <h4 className="font-medium text-sm text-gray-500">Company Size</h4>
                         <p>{response.size_range}</p>
                       </div>
                     )}
                     {response.hq_location && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">Headquarters</h4>
+                        <h4 className="font-medium text-sm text-gray-500">Headquarters</h4>
                         <p>{response.hq_location}</p>
                       </div>
                     )}
                     {response.company_employee_reviews_aggregate_score !== undefined && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">Employee Rating</h4>
+                        <h4 className="font-medium text-sm text-gray-500">Employee Rating</h4>
                         <p>{response.company_employee_reviews_aggregate_score.toFixed(1)} / 5</p>
                       </div>
                     )}
@@ -373,14 +371,14 @@ const CompanyDetailPage = () => {
                       {response.description_enriched && (
                         <div>
                           <h3 className="text-lg font-medium mb-2">Enriched Description</h3>
-                          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{response.description_enriched}</p>
+                          <p className="text-gray-700 whitespace-pre-line">{response.description_enriched}</p>
                         </div>
                       )}
                       
                       {response.status?.comment && (
                         <div>
                           <h3 className="text-lg font-medium mb-2">Status Comment</h3>
-                          <p className="text-gray-700 dark:text-gray-300">{response.status.comment}</p>
+                          <p className="text-gray-700">{response.status.comment}</p>
                         </div>
                       )}
                     </CardContent>
@@ -434,6 +432,22 @@ const CompanyDetailPage = () => {
                   </Card>
                 </TabsContent>
               </Tabs>
+              
+              {fullResponse && (
+                <Card className="opacity-50 hover:opacity-100 transition-opacity mt-8">
+                  <CardHeader>
+                    <CardTitle>Full API Response</CardTitle>
+                    <CardDescription>
+                      Complete data returned by the API (for debugging)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 overflow-auto max-h-96">
+                      <pre className="text-xs"><code>{JSON.stringify(fullResponse, null, 2)}</code></pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </>
@@ -442,4 +456,4 @@ const CompanyDetailPage = () => {
   );
 };
 
-export default CompanyDetailPage;
+export default TestScraping;
