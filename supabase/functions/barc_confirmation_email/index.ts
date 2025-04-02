@@ -52,8 +52,8 @@ serve(async (req) => {
 
     // Send confirmation email
     const data = await resend.emails.send({
-      from: "PanScience Innovations <team@confirmation.investorbase.io>",
-      to: submitterEmail,
+      from: "Team InvestorBase <team@investorbase.io>",
+      to: [submitterEmail, "tanisha@panscience.xyz"],
       subject: "Submission Received - Thank You!",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
