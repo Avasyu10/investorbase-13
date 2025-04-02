@@ -46,6 +46,7 @@ const TestScraping = () => {
   const [response, setResponse] = useState<CompanyData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fullResponse, setFullResponse] = useState<any>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +65,7 @@ const TestScraping = () => {
       setError(null);
       setResponse(null);
       setFullResponse(null);
+      setIsSubmitted(true);
       
       console.log("Sending request to scraped_company_details function with URL:", linkedInUrl);
       
@@ -146,7 +148,7 @@ const TestScraping = () => {
     if (!response) return null;
     
     return (
-      <div className="flex space-x-2 mt-4 flex-wrap">
+      <div className="flex flex-wrap gap-2 mt-4">
         {response.website && (
           <a href={response.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center">
             <Button variant="outline" size="sm">
@@ -201,14 +203,14 @@ const TestScraping = () => {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Test Company Scraping</h1>
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-6 text-center">Company Information Lookup</h1>
       
-      <Card className="mb-8">
+      <Card className="mb-8 shadow-md max-w-3xl mx-auto">
         <CardHeader>
-          <CardTitle>Scrape Company Details</CardTitle>
+          <CardTitle>Lookup Company Details</CardTitle>
           <CardDescription>
-            Enter a LinkedIn company URL to scrape details using the Coresignal API
+            Enter a LinkedIn company URL to retrieve detailed information
           </CardDescription>
         </CardHeader>
         
@@ -238,208 +240,217 @@ const TestScraping = () => {
             disabled={isLoading}
             className="w-full"
           >
-            {isLoading ? "Processing..." : "Scrape Company Details"}
+            {isLoading ? "Processing..." : "Lookup Company Details"}
           </Button>
         </CardFooter>
       </Card>
 
-      {error && (
-        <Card className="mb-8 border-red-300">
-          <CardHeader className="bg-red-50">
-            <CardTitle className="text-red-600">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-600">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-      
-      {response && (
-        <Tabs defaultValue="overview" className="mb-8">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="competitors">Competitors</TabsTrigger>
-            <TabsTrigger value="raw">Raw Data</TabsTrigger>
-          </TabsList>
+      {isSubmitted && (
+        <>
+          {isLoading && (
+            <div className="text-center py-12">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+              <p className="mt-4 text-lg">Loading company information...</p>
+            </div>
+          )}
           
-          <TabsContent value="overview">
-            <Card>
-              <CardHeader className="flex flex-row items-start gap-4">
-                {response.company_logo && (
-                  <div className="w-24 h-24 flex-shrink-0">
-                    <img 
-                      src={response.company_logo} 
-                      alt={`${response.company_legal_name || 'Company'} logo`}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-                <div>
-                  <CardTitle>{response.company_legal_name || 'Company Information'}</CardTitle>
-                  <div className="mt-2 space-y-1">
-                    {response.industry && (
-                      <Badge variant="secondary" className="mr-2">
-                        {response.industry}
-                      </Badge>
-                    )}
-                    {response.type && (
-                      <Badge variant="outline" className="mr-2">
-                        {response.type}
-                      </Badge>
-                    )}
-                    {response.status?.value && (
-                      <Badge 
-                        variant={response.status.value.toLowerCase() === 'active' ? 'green' : 'blue'} 
-                        className="mr-2"
-                      >
-                        {response.status.value}
-                      </Badge>
-                    )}
-                  </div>
-                  {renderSocialLinks()}
-                </div>
+          {error && !isLoading && (
+            <Card className="mb-8 border-red-300 max-w-3xl mx-auto">
+              <CardHeader className="bg-red-50">
+                <CardTitle className="text-red-600">Error</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Description</h3>
-                  <p className="text-gray-700">{response.description || 'No description available'}</p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  {response.founded_year && (
-                    <div>
-                      <h4 className="font-medium">Founded</h4>
-                      <p>{response.founded_year}</p>
+              <CardContent>
+                <p className="text-red-600">{error}</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {response && !isLoading && (
+            <div className="space-y-8 max-w-4xl mx-auto">
+              <Card className="shadow-md">
+                <CardHeader className="flex flex-col sm:flex-row items-start gap-4 pb-2">
+                  {response.company_logo && (
+                    <div className="w-24 h-24 flex-shrink-0 bg-white p-2 rounded-md shadow-sm">
+                      <img 
+                        src={response.company_logo} 
+                        alt={`${response.company_legal_name || 'Company'} logo`}
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                   )}
-                  {response.size_range && (
-                    <div>
-                      <h4 className="font-medium">Company Size</h4>
-                      <p>{response.size_range}</p>
-                    </div>
-                  )}
-                  {response.hq_location && (
-                    <div>
-                      <h4 className="font-medium">Headquarters</h4>
-                      <p>{response.hq_location}</p>
-                    </div>
-                  )}
-                  {response.company_employee_reviews_aggregate_score && (
-                    <div>
-                      <h4 className="font-medium">Employee Rating</h4>
-                      <p>{response.company_employee_reviews_aggregate_score.toFixed(1)} / 5</p>
-                    </div>
-                  )}
-                </div>
-                
-                {response.categories_and_keywords && response.categories_and_keywords.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-lg font-medium mb-2">Categories & Keywords</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {response.categories_and_keywords.map((keyword, index) => (
-                        <Badge key={index} variant="secondary">
-                          {keyword}
+                  <div className="flex-1">
+                    <CardTitle className="text-2xl">{response.company_legal_name || 'Company Information'}</CardTitle>
+                    
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {response.industry && (
+                        <Badge variant="secondary">
+                          {response.industry}
                         </Badge>
-                      ))}
+                      )}
+                      {response.type && (
+                        <Badge variant="outline">
+                          {response.type}
+                        </Badge>
+                      )}
+                      {response.status?.value && (
+                        <Badge 
+                          variant={response.status.value.toLowerCase() === 'active' ? 'default' : 'secondary'} 
+                        >
+                          {response.status.value}
+                        </Badge>
+                      )}
                     </div>
+                    
+                    {renderSocialLinks()}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="details">
-            <Card>
-              <CardHeader>
-                <CardTitle>Detailed Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {response.description_enriched && (
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Enriched Description</h3>
-                    <p className="text-gray-700">{response.description_enriched}</p>
-                  </div>
-                )}
+                </CardHeader>
                 
-                {response.status?.comment && (
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Status Comment</h3>
-                    <p className="text-gray-700">{response.status.comment}</p>
+                <CardContent className="space-y-4 pt-4">
+                  {response.description && (
+                    <div className="py-2">
+                      <h3 className="text-lg font-medium mb-2">Description</h3>
+                      <p className="text-gray-700 whitespace-pre-line">{response.description}</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 border-t pt-6">
+                    {response.founded_year && (
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-500">Founded</h4>
+                        <p>{response.founded_year}</p>
+                      </div>
+                    )}
+                    {response.size_range && (
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-500">Company Size</h4>
+                        <p>{response.size_range}</p>
+                      </div>
+                    )}
+                    {response.hq_location && (
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-500">Headquarters</h4>
+                        <p>{response.hq_location}</p>
+                      </div>
+                    )}
+                    {response.company_employee_reviews_aggregate_score !== undefined && (
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-500">Employee Rating</h4>
+                        <p>{response.company_employee_reviews_aggregate_score.toFixed(1)} / 5</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="competitors">
-            <Card>
-              <CardHeader>
-                <CardTitle>Competitors</CardTitle>
-                <CardDescription>
-                  Companies in the same industry or market space
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {response.competitors && response.competitors.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {response.competitors.map((competitor, index) => (
-                      <Card key={index} className="border p-4">
-                        <p className="font-medium capitalize">
-                          {competitor.company_name}
-                        </p>
-                        {competitor.similarity_score !== null && (
-                          <Badge variant="outline" className="mt-2">
-                            Similarity: {(competitor.similarity_score / 1000).toFixed(2)}%
+                  
+                  {response.categories_and_keywords && response.categories_and_keywords.length > 0 && (
+                    <div className="mt-6 border-t pt-6">
+                      <h3 className="text-lg font-medium mb-3">Categories & Keywords</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {response.categories_and_keywords.map((keyword, index) => (
+                          <Badge key={index} variant="outline">
+                            {keyword}
                           </Badge>
-                        )}
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No competitor information available</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="raw">
-            <Card>
-              <CardHeader>
-                <CardTitle>Raw Response Data</CardTitle>
-                <CardDescription>
-                  Extracted fields from the API response
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={JSON.stringify(response, null, 2)}
-                  readOnly
-                  className="min-h-[300px] font-mono text-sm"
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
-      
-      {/* Full response data for debugging */}
-      {fullResponse && (
-        <Card className="mb-8 opacity-50 hover:opacity-100 transition-opacity">
-          <CardHeader>
-            <CardTitle>Full API Response</CardTitle>
-            <CardDescription>
-              Complete data returned by the API (for debugging)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={JSON.stringify(fullResponse, null, 2)}
-              readOnly
-              className="min-h-[200px] font-mono text-sm"
-            />
-          </CardContent>
-        </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Tabs defaultValue="details" className="mt-8">
+                <TabsList className="mb-4 w-full flex max-w-md mx-auto">
+                  <TabsTrigger value="details" className="flex-1">Detailed Info</TabsTrigger>
+                  <TabsTrigger value="competitors" className="flex-1">Competitors</TabsTrigger>
+                  <TabsTrigger value="raw" className="flex-1">Raw Data</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="details">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Additional Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {response.description_enriched && (
+                        <div>
+                          <h3 className="text-lg font-medium mb-2">Enriched Description</h3>
+                          <p className="text-gray-700 whitespace-pre-line">{response.description_enriched}</p>
+                        </div>
+                      )}
+                      
+                      {response.status?.comment && (
+                        <div>
+                          <h3 className="text-lg font-medium mb-2">Status Comment</h3>
+                          <p className="text-gray-700">{response.status.comment}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="competitors">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Competitors</CardTitle>
+                      <CardDescription>
+                        Companies in the same industry or market space
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {response.competitors && response.competitors.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {response.competitors.map((competitor, index) => (
+                            <Card key={index} className="border p-4 h-full">
+                              <p className="font-medium capitalize">
+                                {competitor.company_name}
+                              </p>
+                              {competitor.similarity_score !== null && (
+                                <Badge variant="outline" className="mt-2">
+                                  Similarity: {((competitor.similarity_score || 0) / 1000).toFixed(2)}%
+                                </Badge>
+                              )}
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 py-4">No competitor information available</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="raw">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Response Data</CardTitle>
+                      <CardDescription>
+                        JSON data returned by the API
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 overflow-auto max-h-96">
+                        <pre className="text-xs"><code>{JSON.stringify(response, null, 2)}</code></pre>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+              
+              {fullResponse && (
+                <Card className="opacity-50 hover:opacity-100 transition-opacity mt-8">
+                  <CardHeader>
+                    <CardTitle>Full API Response</CardTitle>
+                    <CardDescription>
+                      Complete data returned by the API (for debugging)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 overflow-auto max-h-96">
+                      <pre className="text-xs"><code>{JSON.stringify(fullResponse, null, 2)}</code></pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
