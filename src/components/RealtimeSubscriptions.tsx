@@ -7,8 +7,8 @@ export function RealtimeSubscriptions() {
   useEffect(() => {
     console.log('Setting up realtime subscription for email_pitch_submissions');
     
-    // Subscribe to email pitch submissions with detailed logging
-    const channel = supabase
+    // Subscribe to email pitch submissions
+    const emailPitchChannel = supabase
       .channel('email_pitch_submissions_channel')
       .on(
         'postgres_changes',
@@ -24,52 +24,29 @@ export function RealtimeSubscriptions() {
           const submissionId = payload.new.id;
           console.log(`Submission ID: ${submissionId}`);
           
-          // Call the auto-analyze edge function - WITH FULL LOGGING OF EACH STEP
+          // Call the auto-analyze edge function
           console.log(`About to invoke auto-analyze-email-pitch-pdf for submission ID: ${submissionId}`);
           
-          // Use supabase.functions.invoke instead of direct fetch to ensure proper URL construction
           supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
             body: { 
               id: submissionId,
-              debug: true // Add a debug flag to enable verbose logging
+              debug: true
             }
           })
           .then(response => {
             console.log('Auto-analyze function response received');
             
-            // Fix: Check response.error first since status may not exist on error responses
             if (response.error) {
               console.error('Error from auto-analyze function:', response.error);
               
-              // Get more detailed error information
-              let errorMsg = response.error.message || 'Unknown error';
-              let errorDetails = '';
-              
-              try {
-                // Check if the error might contain more detailed JSON info
-                if (typeof response.error === 'object' && response.error.context) {
-                  errorDetails = ` - ${JSON.stringify(response.error.context)}`;
-                }
-                if (typeof response.error.message === 'string' && response.error.message.includes('{')) {
-                  const jsonPart = response.error.message.substring(response.error.message.indexOf('{'));
-                  const parsedError = JSON.parse(jsonPart);
-                  if (parsedError.error) {
-                    errorMsg = parsedError.error;
-                  }
-                }
-              } catch (e) {
-                console.log('Could not parse additional error info:', e);
-              }
-              
               toast({
                 title: 'Error processing submission',
-                description: `Failed to analyze submission: ${errorMsg}${errorDetails}`,
+                description: `Failed to analyze submission: ${response.error.message || 'Unknown error'}`,
                 variant: "destructive"
               });
               return;
             }
             
-            // Now it's safe to check status and data (on success response only)
             if (response.data) {
               console.log('Response data:', response.data);
               
@@ -82,33 +59,49 @@ export function RealtimeSubscriptions() {
           .catch(error => {
             console.error('Error calling auto-analyze function:', error);
             
-            // Try to get more detailed error information
-            let errorMessage = error.message || 'Unknown error';
-            
-            if (typeof error === 'object' && error.context) {
-              console.error('Error context:', error.context);
-            }
-            
-            if (errorMessage.includes('blocked by CORS policy')) {
-              errorMessage = 'Access blocked by CORS policy. Please check your server configuration.';
-            }
-            
             toast({
               title: 'Error processing submission',
-              description: `Failed to analyze submission: ${errorMessage}`,
+              description: `Failed to analyze submission: ${error.message || 'Unknown error'}`,
               variant: "destructive"
             });
           });
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
+        console.log('Email pitch submissions subscription status:', status);
+      });
+    
+    // Subscribe to public form submissions
+    const publicFormChannel = supabase
+      .channel('public_form_submissions_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'public_form_submissions'
+        },
+        (payload) => {
+          console.log('New public form submission detected:', payload);
+          
+          const submissionId = payload.new.id;
+          const submitterEmail = payload.new.submitter_email;
+          
+          toast({
+            title: 'New form submission',
+            description: `Received submission from ${submitterEmail || 'unknown'}`,
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Public form submissions subscription status:', status);
       });
     
     // Return cleanup function
     return () => {
-      console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
+      console.log('Cleaning up realtime subscriptions');
+      supabase.removeChannel(emailPitchChannel);
+      supabase.removeChannel(publicFormChannel);
     };
   }, []);
 
