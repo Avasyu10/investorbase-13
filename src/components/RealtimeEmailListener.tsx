@@ -1,11 +1,21 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export function RealtimeEmailListener() {
+  // Use a ref to track if we've already subscribed
+  const hasSubscribed = useRef(false);
+  
   useEffect(() => {
+    // Only set up subscription if we haven't already
+    if (hasSubscribed.current) {
+      console.log('Subscription already exists, skipping');
+      return;
+    }
+    
     console.log('Setting up realtime subscription for public_form_submissions');
+    hasSubscribed.current = true;
     
     // Subscribe to public form submissions
     const channel = supabase
@@ -60,6 +70,7 @@ export function RealtimeEmailListener() {
     return () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
+      hasSubscribed.current = false;
     };
   }, []);
 
