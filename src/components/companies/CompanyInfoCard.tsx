@@ -46,10 +46,6 @@ export function CompanyInfoCard({
     }
   };
 
-  const handleViewCompanyDetails = () => {
-    navigate('/company-detail-page');
-  };
-
   return (
     <div className="mb-7">
       <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
@@ -96,17 +92,6 @@ export function CompanyInfoCard({
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end p-3 pt-0">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleViewCompanyDetails} 
-            className="flex items-center gap-2 text-primary"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Company Details
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );
