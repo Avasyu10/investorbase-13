@@ -109,6 +109,42 @@ export type Database = {
           },
         ]
       }
+      company_scrapes: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          linkedin_url: string
+          scraped_data: Json | null
+          search_query: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          linkedin_url: string
+          scraped_data?: Json | null
+          search_query?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          linkedin_url?: string
+          scraped_data?: Json | null
+          search_query?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_pitch_submissions: {
         Row: {
           analysis_error: string | null
