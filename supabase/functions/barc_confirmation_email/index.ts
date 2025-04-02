@@ -52,22 +52,16 @@ serve(async (req) => {
 
     // Send confirmation email
     const data = await resend.emails.send({
-      from: "BARC <onboarding@resend.dev>",
+      from: "PanScience Innovations <onboarding@resend.dev>",
       to: submitterEmail,
       subject: "Submission Received - Thank You!",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
           <h1 style="color: #333;">Thank You for Your Submission!</h1>
           <p>Dear Applicant,</p>
-          <p>We have received your submission and it is currently being processed. Our team will review your application and get back to you shortly.</p>
-          <p>Here's what happens next:</p>
-          <ol>
-            <li>Our team will review your submission</li>
-            <li>We'll perform an initial analysis of your pitch deck</li>
-            <li>You'll receive feedback and next steps via email</li>
-          </ol>
+          <p>We have received your submission for Bhabha Atomic Research Centre's Lab to Launch Programme. Our team will review your application and get back to you shortly.</p>
           <p>If you have any questions, please don't hesitate to contact us.</p>
-          <p>Best regards,<br/>The BARC Team</p>
+          <p>Best regards,<br/>Team PSI</p>
         </div>
       `,
     });
