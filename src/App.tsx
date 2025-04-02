@@ -23,6 +23,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <RealtimeSubscriptions />
+          {/* Only include RealtimeEmailListener once in the app */}
           <RealtimeEmailListener />
           <Navbar />
           <div className="pt-16"> {/* Add padding to accommodate fixed navbar */}

@@ -1,4 +1,3 @@
-
 import Index from "@/pages/Index";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -19,7 +18,7 @@ import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
 import NewsFeed from "@/pages/NewsFeed";
 import EmailTest from "@/pages/EmailTest";
 
-export const routes = [
+const routes = [
   {
     path: "/",
     element: <Index />,
@@ -138,7 +137,7 @@ export const routes = [
   },
   {
     path: "/news-feed",
-    element: <NewsFeed />, // Removed ProtectedRoute wrapper to make it public
+    element: <NewsFeed />,
   },
   {
     path: "/email-test",
@@ -153,3 +152,5 @@ export const routes = [
     element: <NotFound />,
   }
 ];
+
+export { routes };
