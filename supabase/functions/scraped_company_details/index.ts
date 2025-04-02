@@ -136,6 +136,14 @@ serve(async (req) => {
 
     const searchData = await searchResponse.json();
     console.log("Search API response received:", JSON.stringify(searchData).substring(0, 1000) + "...");
+    
+    // DEBUG: Log the full structure to understand what we're dealing with
+    console.log("Search data type:", typeof searchData);
+    console.log("Search data has hits property:", searchData.hasOwnProperty('hits'));
+    if (searchData.hits) {
+      console.log("Number of hits:", searchData.hits.hits?.length || 0);
+      console.log("First hit:", JSON.stringify(searchData.hits.hits?.[0] || {}).substring(0, 500) + "...");
+    }
 
     if (!searchData.hits || !searchData.hits.hits || searchData.hits.hits.length === 0) {
       // Update the database record with the no results found
@@ -218,6 +226,9 @@ serve(async (req) => {
 
     const detailsData = await detailsResponse.json();
     console.log("Details API response received:", typeof detailsData, Object.keys(detailsData).length);
+    
+    // DEBUG: Log a sample of the response to verify the structure
+    console.log("Details data sample:", JSON.stringify(detailsData).substring(0, 500) + "...");
 
     // Store the result in the database
     const { error: updateError } = await supabase
@@ -230,6 +241,23 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("Error updating database with scraped data:", updateError);
+      
+      // Attempt to log more details about the error and data
+      console.log("Details data type:", typeof detailsData);
+      console.log("Update error details:", JSON.stringify(updateError));
+      
+      // Try to update with just the status in case it's a data size/format issue
+      const { error: fallbackError } = await supabase
+        .from('company_scrapes')
+        .update({
+          status: 'success_but_storage_error',
+          error_message: `Failed to store full data: ${updateError.message}`
+        })
+        .eq('id', dbEntry.id);
+        
+      if (fallbackError) {
+        console.error("Even fallback update failed:", fallbackError);
+      }
     } else {
       console.log("Scrape data saved to database");
     }
