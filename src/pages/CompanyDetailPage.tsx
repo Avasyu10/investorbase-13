@@ -204,31 +204,24 @@ const TestScraping = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6 text-center">Company Information Lookup</h1>
       
       <Card className="mb-8 shadow-md max-w-3xl mx-auto">
         <CardHeader>
-          <CardTitle>Lookup Company Details</CardTitle>
-          <CardDescription>
-            Enter a LinkedIn company URL to retrieve detailed information
-          </CardDescription>
+          <CardTitle>Company Details</CardTitle>
         </CardHeader>
         
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="linkedInUrl" className="font-medium">LinkedIn Company URL</label>
+              <label htmlFor="linkedInUrl" className="font-medium">Company LinkedIn</label>
               <Input
                 id="linkedInUrl"
                 type="text"
                 value={linkedInUrl}
                 onChange={(e) => setLinkedInUrl(e.target.value)}
-                placeholder="https://www.linkedin.com/company/example-company"
+                placeholder="https://www.linkedin.com/company/company-name"
                 className="w-full"
               />
-              <p className="text-sm text-gray-500">
-                Example: https://www.linkedin.com/company/apple
-              </p>
             </div>
           </form>
         </CardContent>
@@ -240,7 +233,7 @@ const TestScraping = () => {
             disabled={isLoading}
             className="w-full"
           >
-            {isLoading ? "Processing..." : "Lookup Company Details"}
+            {isLoading ? "Processing..." : "Fetch Company Details"}
           </Button>
         </CardFooter>
       </Card>
