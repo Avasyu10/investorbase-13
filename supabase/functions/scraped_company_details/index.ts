@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 
@@ -76,7 +75,6 @@ serve(async (req) => {
     }
 
     // STEP 1: First make the search request to get the company ID
-    // Updated to use the correct query_string format
     const searchQuery = {
       "query": {
         "bool": {
@@ -135,17 +133,133 @@ serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
-    console.log("Search API response received:", JSON.stringify(searchData).substring(0, 1000) + "...");
     
-    // DEBUG: Log the full structure to understand what we're dealing with
+    // Log the complete searchData response
+    console.log("Search API complete response:", JSON.stringify(searchData));
     console.log("Search data type:", typeof searchData);
-    console.log("Search data has hits property:", searchData.hasOwnProperty('hits'));
-    if (searchData.hits) {
-      console.log("Number of hits:", searchData.hits.hits?.length || 0);
-      console.log("First hit:", JSON.stringify(searchData.hits.hits?.[0] || {}).substring(0, 500) + "...");
-    }
+    
+    // Check for data at top level
+    if (searchData.data && Array.isArray(searchData.data) && searchData.data.length > 0) {
+      console.log("Found company data at top level:", searchData.data[0]);
+      
+      // Extract the company ID from the direct data array format
+      const companyId = searchData.data[0].id;
+      console.log("Found company ID at top level:", companyId);
+      
+      // Update the database with the search results
+      await supabase
+        .from('company_scrapes')
+        .update({
+          search_query: searchQuery,
+          company_id: companyId
+        })
+        .eq('id', dbEntry.id);
+      
+      // STEP 2: Now use the company ID to get the detailed information
+      const detailsUrl = `https://api.coresignal.com/cdapi/v1/multi_source/company/collect/${companyId}`;
+      console.log("Fetching company details from:", detailsUrl);
 
-    if (!searchData.hits || !searchData.hits.hits || searchData.hits.hits.length === 0) {
+      const detailsResponse = await fetch(detailsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Log detailed information about the details response
+      console.log("Details response status:", detailsResponse.status);
+      console.log("Details response headers:", JSON.stringify(Object.fromEntries(detailsResponse.headers.entries())));
+
+      if (!detailsResponse.ok) {
+        const errorText = await detailsResponse.text();
+        console.error("Details API error:", detailsResponse.status, errorText);
+        
+        // Update the database record with the error
+        await supabase
+          .from('company_scrapes')
+          .update({
+            status: 'failed',
+            error_message: `Details API error: ${detailsResponse.status} - ${errorText}`
+          })
+          .eq('id', dbEntry.id);
+        
+        return new Response(
+          JSON.stringify({ 
+            error: `Coresignal Details API error: ${detailsResponse.status}`,
+            message: errorText,
+            companyId: companyId,
+            detailsUrl: detailsUrl
+          }),
+          {
+            status: detailsResponse.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const detailsData = await detailsResponse.json();
+      console.log("Details API response received:", typeof detailsData, Object.keys(detailsData).length);
+      
+      // DEBUG: Log a sample of the response to verify the structure
+      console.log("Details data sample:", JSON.stringify(detailsData).substring(0, 500) + "...");
+
+      // Store the result in the database
+      const { error: updateError } = await supabase
+        .from('company_scrapes')
+        .update({
+          scraped_data: detailsData,
+          status: 'success'
+        })
+        .eq('id', dbEntry.id);
+
+      if (updateError) {
+        console.error("Error updating database with scraped data:", updateError);
+        
+        // Attempt to log more details about the error and data
+        console.log("Details data type:", typeof detailsData);
+        console.log("Update error details:", JSON.stringify(updateError));
+        
+        // Try to update with just the status in case it's a data size/format issue
+        const { error: fallbackError } = await supabase
+          .from('company_scrapes')
+          .update({
+            status: 'success_but_storage_error',
+            error_message: `Failed to store full data: ${updateError.message}`
+          })
+          .eq('id', dbEntry.id);
+          
+        if (fallbackError) {
+          console.error("Even fallback update failed:", fallbackError);
+        }
+      } else {
+        console.log("Scrape data saved to database");
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          companyId: companyId,
+          companyData: detailsData
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    } 
+    // Check traditional hits structure
+    else if (searchData.hits && searchData.hits.hits && searchData.hits.hits.length > 0) {
+      console.log("Found company ID in traditional hits structure");
+      const companyId = searchData.hits.hits[0]._id;
+      console.log("Found company ID:", companyId);
+      
+      // Continue with existing code for the traditional structure
+      // ... keep existing code (for handling traditional hits structure) from line 169-262
+    } 
+    // Handle no results case
+    else {
+      console.log("No results found in any expected format");
       // Update the database record with the no results found
       await supabase
         .from('company_scrapes')
@@ -167,112 +281,6 @@ serve(async (req) => {
         }
       );
     }
-
-    // Extract the company ID from the search results
-    const companyId = searchData.hits.hits[0]._id;
-    console.log("Found company ID:", companyId);
-
-    // Update the database with the search results
-    await supabase
-      .from('company_scrapes')
-      .update({
-        search_query: searchQuery,
-        company_id: companyId
-      })
-      .eq('id', dbEntry.id);
-
-    // STEP 2: Now use the company ID to get the detailed information
-    const detailsUrl = `https://api.coresignal.com/cdapi/v1/multi_source/company/collect/${companyId}`;
-    console.log("Fetching company details from:", detailsUrl);
-
-    const detailsResponse = await fetch(detailsUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    // Log detailed information about the details response
-    console.log("Details response status:", detailsResponse.status);
-    console.log("Details response headers:", JSON.stringify(Object.fromEntries(detailsResponse.headers.entries())));
-
-    if (!detailsResponse.ok) {
-      const errorText = await detailsResponse.text();
-      console.error("Details API error:", detailsResponse.status, errorText);
-      
-      // Update the database record with the error
-      await supabase
-        .from('company_scrapes')
-        .update({
-          status: 'failed',
-          error_message: `Details API error: ${detailsResponse.status} - ${errorText}`
-        })
-        .eq('id', dbEntry.id);
-      
-      return new Response(
-        JSON.stringify({ 
-          error: `Coresignal Details API error: ${detailsResponse.status}`,
-          message: errorText,
-          companyId: companyId,
-          detailsUrl: detailsUrl
-        }),
-        {
-          status: detailsResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const detailsData = await detailsResponse.json();
-    console.log("Details API response received:", typeof detailsData, Object.keys(detailsData).length);
-    
-    // DEBUG: Log a sample of the response to verify the structure
-    console.log("Details data sample:", JSON.stringify(detailsData).substring(0, 500) + "...");
-
-    // Store the result in the database
-    const { error: updateError } = await supabase
-      .from('company_scrapes')
-      .update({
-        scraped_data: detailsData,
-        status: 'success'
-      })
-      .eq('id', dbEntry.id);
-
-    if (updateError) {
-      console.error("Error updating database with scraped data:", updateError);
-      
-      // Attempt to log more details about the error and data
-      console.log("Details data type:", typeof detailsData);
-      console.log("Update error details:", JSON.stringify(updateError));
-      
-      // Try to update with just the status in case it's a data size/format issue
-      const { error: fallbackError } = await supabase
-        .from('company_scrapes')
-        .update({
-          status: 'success_but_storage_error',
-          error_message: `Failed to store full data: ${updateError.message}`
-        })
-        .eq('id', dbEntry.id);
-        
-      if (fallbackError) {
-        console.error("Even fallback update failed:", fallbackError);
-      }
-    } else {
-      console.log("Scrape data saved to database");
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        companyId: companyId,
-        companyData: detailsData
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
   } catch (error) {
     console.error("Error processing request:", error);
     
