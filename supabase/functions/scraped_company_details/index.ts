@@ -76,13 +76,15 @@ serve(async (req) => {
     }
 
     // STEP 1: First make the search request to get the company ID
+    // Updated to use the correct query_string format
     const searchQuery = {
       "query": {
         "bool": {
           "must": [
             {
-              "match": {
-                "linkedin_url": linkedInUrl
+              "query_string": {
+                "default_field": "linkedin_url",
+                "query": `"${linkedInUrl}"`
               }
             }
           ]
