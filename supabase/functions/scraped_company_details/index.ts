@@ -103,6 +103,10 @@ serve(async (req) => {
       body: JSON.stringify(searchQuery)
     });
 
+    // Log detailed information about the search response
+    console.log("Search response status:", searchResponse.status);
+    console.log("Search response headers:", JSON.stringify(Object.fromEntries(searchResponse.headers.entries())));
+    
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
       console.error("Search API error:", searchResponse.status, errorText);
@@ -120,7 +124,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: `Coresignal Search API error: ${searchResponse.status}`,
-          message: errorText
+          message: errorText,
+          query: searchQuery
         }),
         {
           status: searchResponse.status,
@@ -130,7 +135,7 @@ serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
-    console.log("Search API response received successfully");
+    console.log("Search API response received:", JSON.stringify(searchData).substring(0, 1000) + "...");
 
     if (!searchData.hits || !searchData.hits.hits || searchData.hits.hits.length === 0) {
       // Update the database record with the no results found
@@ -145,7 +150,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "No company found with the provided LinkedIn URL",
-          searchResults: searchData
+          searchResults: searchData,
+          query: searchQuery
         }),
         {
           status: 404,
@@ -179,6 +185,10 @@ serve(async (req) => {
       }
     });
 
+    // Log detailed information about the details response
+    console.log("Details response status:", detailsResponse.status);
+    console.log("Details response headers:", JSON.stringify(Object.fromEntries(detailsResponse.headers.entries())));
+
     if (!detailsResponse.ok) {
       const errorText = await detailsResponse.text();
       console.error("Details API error:", detailsResponse.status, errorText);
@@ -195,7 +205,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: `Coresignal Details API error: ${detailsResponse.status}`,
-          message: errorText
+          message: errorText,
+          companyId: companyId,
+          detailsUrl: detailsUrl
         }),
         {
           status: detailsResponse.status,
@@ -205,7 +217,7 @@ serve(async (req) => {
     }
 
     const detailsData = await detailsResponse.json();
-    console.log("Details API response received successfully");
+    console.log("Details API response received:", typeof detailsData, Object.keys(detailsData).length);
 
     // Store the result in the database
     const { error: updateError } = await supabase
