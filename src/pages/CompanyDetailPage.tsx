@@ -220,12 +220,12 @@ const CompanyDetailPage = () => {
       </Button>
       
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6 tracking-tight">Company Research Tool</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 tracking-tight">Company Intelligence</h1>
         
-        <Card className="mb-8 shadow-md">
+        <Card className="mb-8 shadow-md border-0">
           <CardHeader>
-            <CardTitle>Company Details</CardTitle>
-            <CardDescription>Enter a LinkedIn company URL to retrieve detailed company information</CardDescription>
+            <CardTitle>Research Company</CardTitle>
+            <CardDescription>Enter a LinkedIn company URL to retrieve detailed information</CardDescription>
           </CardHeader>
           
           <CardContent>
@@ -279,7 +279,7 @@ const CompanyDetailPage = () => {
           
           {response && !isLoading && (
             <div className="space-y-8 max-w-4xl mx-auto">
-              <Card className="shadow-md">
+              <Card className="shadow-md border-0">
                 <CardHeader className="flex flex-col sm:flex-row items-start gap-4 pb-2">
                   {response.company_logo && (
                     <div className="w-24 h-24 flex-shrink-0 bg-white p-2 rounded-md shadow-sm">
@@ -371,11 +371,10 @@ const CompanyDetailPage = () => {
                 <TabsList className="mb-4 w-full flex max-w-md mx-auto">
                   <TabsTrigger value="details" className="flex-1">Detailed Info</TabsTrigger>
                   <TabsTrigger value="competitors" className="flex-1">Competitors</TabsTrigger>
-                  <TabsTrigger value="raw" className="flex-1">Raw Data</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="details">
-                  <Card>
+                  <Card className="border-0 shadow-md">
                     <CardHeader>
                       <CardTitle>Additional Information</CardTitle>
                     </CardHeader>
@@ -398,7 +397,7 @@ const CompanyDetailPage = () => {
                 </TabsContent>
                 
                 <TabsContent value="competitors">
-                  <Card>
+                  <Card className="border-0 shadow-md">
                     <CardHeader>
                       <CardTitle>Competitors</CardTitle>
                       <CardDescription>
@@ -427,39 +426,7 @@ const CompanyDetailPage = () => {
                     </CardContent>
                   </Card>
                 </TabsContent>
-                
-                <TabsContent value="raw">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Response Data</CardTitle>
-                      <CardDescription>
-                        JSON data returned by the API
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 overflow-auto max-h-96">
-                        <pre className="text-xs"><code>{JSON.stringify(response, null, 2)}</code></pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
               </Tabs>
-              
-              {fullResponse && (
-                <Card className="opacity-50 hover:opacity-100 transition-opacity mt-8">
-                  <CardHeader>
-                    <CardTitle>Full API Response</CardTitle>
-                    <CardDescription>
-                      Complete data returned by the API (for debugging)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 overflow-auto max-h-96">
-                      <pre className="text-xs"><code>{JSON.stringify(fullResponse, null, 2)}</code></pre>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           )}
         </>
