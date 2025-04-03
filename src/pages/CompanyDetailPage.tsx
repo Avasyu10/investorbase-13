@@ -220,12 +220,12 @@ const CompanyDetailPage = () => {
       </Button>
       
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6 tracking-tight text-[#FEF7CD]">Company Intelligence</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 tracking-tight text-gold">Company Intelligence</h1>
         
         {!response && (
           <Card className="mb-8 shadow-md border-0">
             <CardHeader>
-              <CardTitle className="text-[#FEF7CD]">Research Company</CardTitle>
+              <CardTitle className="text-gold">Research Company</CardTitle>
               <CardDescription>Enter a LinkedIn company URL to retrieve detailed information</CardDescription>
             </CardHeader>
             
@@ -293,7 +293,7 @@ const CompanyDetailPage = () => {
                     </div>
                   )}
                   <div className="flex-1">
-                    <CardTitle className="text-2xl text-[#FEF7CD]">{response.company_legal_name || 'Company Information'}</CardTitle>
+                    <CardTitle className="text-2xl text-gold">{response.company_legal_name || 'Company Information'}</CardTitle>
                     
                     <div className="mt-2 flex flex-wrap gap-2">
                       {response.industry && (
@@ -322,7 +322,7 @@ const CompanyDetailPage = () => {
                 <CardContent className="space-y-4 pt-4">
                   {response.description && (
                     <div className="py-2">
-                      <h3 className="text-lg font-medium mb-2 text-[#FEF7CD]">Description</h3>
+                      <h3 className="text-lg font-medium mb-2 text-gold">Description</h3>
                       <p className="text-foreground whitespace-pre-line">{response.description}</p>
                     </div>
                   )}
@@ -330,25 +330,25 @@ const CompanyDetailPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 border-t pt-6">
                     {response.founded_year && (
                       <div>
-                        <h4 className="font-medium text-sm text-[#FEF7CD]">Founded</h4>
+                        <h4 className="font-medium text-sm text-gold">Founded</h4>
                         <p className="text-foreground">{response.founded_year}</p>
                       </div>
                     )}
                     {response.size_range && (
                       <div>
-                        <h4 className="font-medium text-sm text-[#FEF7CD]">Company Size</h4>
+                        <h4 className="font-medium text-sm text-gold">Company Size</h4>
                         <p className="text-foreground">{response.size_range}</p>
                       </div>
                     )}
                     {response.hq_location && (
                       <div>
-                        <h4 className="font-medium text-sm text-[#FEF7CD]">Headquarters</h4>
+                        <h4 className="font-medium text-sm text-gold">Headquarters</h4>
                         <p className="text-foreground">{response.hq_location}</p>
                       </div>
                     )}
                     {response.company_employee_reviews_aggregate_score !== undefined && (
                       <div>
-                        <h4 className="font-medium text-sm text-[#FEF7CD]">Employee Rating</h4>
+                        <h4 className="font-medium text-sm text-gold">Employee Rating</h4>
                         <p className="text-foreground">{response.company_employee_reviews_aggregate_score.toFixed(1)} / 5</p>
                       </div>
                     )}
@@ -356,7 +356,7 @@ const CompanyDetailPage = () => {
                   
                   {response.categories_and_keywords && response.categories_and_keywords.length > 0 && (
                     <div className="mt-6 border-t pt-6">
-                      <h3 className="text-lg font-medium mb-3 text-[#FEF7CD]">Categories & Keywords</h3>
+                      <h3 className="text-lg font-medium mb-3 text-gold">Categories & Keywords</h3>
                       <div className="flex flex-wrap gap-2">
                         {response.categories_and_keywords.map((keyword, index) => (
                           <Badge key={index} variant="outline">
@@ -378,19 +378,19 @@ const CompanyDetailPage = () => {
                 <TabsContent value="details">
                   <Card className="border-0 shadow-md">
                     <CardHeader>
-                      <CardTitle className="text-[#FEF7CD]">Additional Information</CardTitle>
+                      <CardTitle className="text-gold">Additional Information</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {response.description_enriched && (
                         <div>
-                          <h3 className="text-lg font-medium mb-2 text-[#FEF7CD]">Enriched Description</h3>
+                          <h3 className="text-lg font-medium mb-2 text-gold">Enriched Description</h3>
                           <p className="text-foreground whitespace-pre-line">{response.description_enriched}</p>
                         </div>
                       )}
                       
                       {response.status?.comment && (
                         <div>
-                          <h3 className="text-lg font-medium mb-2 text-[#FEF7CD]">Status Comment</h3>
+                          <h3 className="text-lg font-medium mb-2 text-gold">Status Comment</h3>
                           <p className="text-foreground">{response.status.comment}</p>
                         </div>
                       )}
@@ -401,7 +401,7 @@ const CompanyDetailPage = () => {
                 <TabsContent value="competitors">
                   <Card className="border-0 shadow-md">
                     <CardHeader>
-                      <CardTitle className="text-[#FEF7CD]">Competitors</CardTitle>
+                      <CardTitle className="text-gold">Competitors</CardTitle>
                       <CardDescription>
                         Companies in the same industry or market space
                       </CardDescription>
