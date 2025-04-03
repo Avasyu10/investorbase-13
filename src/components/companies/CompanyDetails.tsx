@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -388,7 +387,6 @@ const CompanyDetails = () => {
             ))}
           </div>
           
-          {/* Market Research component moved here, below the Section Metrics */}
           {company?.assessmentPoints && (
             <MarketResearch 
               companyId={id || ""} 
