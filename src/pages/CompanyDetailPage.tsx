@@ -222,39 +222,41 @@ const CompanyDetailPage = () => {
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold mb-6 tracking-tight">Company Intelligence</h1>
         
-        <Card className="mb-8 shadow-md border-0">
-          <CardHeader>
-            <CardTitle>Research Company</CardTitle>
-            <CardDescription>Enter a LinkedIn company URL to retrieve detailed information</CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="linkedInUrl" className="font-medium">Company LinkedIn URL</label>
-                <Input
-                  id="linkedInUrl"
-                  type="text"
-                  value={linkedInUrl}
-                  onChange={(e) => setLinkedInUrl(e.target.value)}
-                  placeholder="https://www.linkedin.com/company/company-name"
-                  className="w-full"
-                />
-              </div>
-            </form>
-          </CardContent>
-          
-          <CardFooter>
-            <Button 
-              type="submit" 
-              onClick={handleSubmit} 
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? "Processing..." : "Fetch Company Details"}
-            </Button>
-          </CardFooter>
-        </Card>
+        {!response && (
+          <Card className="mb-8 shadow-md border-0">
+            <CardHeader>
+              <CardTitle>Research Company</CardTitle>
+              <CardDescription>Enter a LinkedIn company URL to retrieve detailed information</CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="linkedInUrl" className="font-medium">Company LinkedIn URL</label>
+                  <Input
+                    id="linkedInUrl"
+                    type="text"
+                    value={linkedInUrl}
+                    onChange={(e) => setLinkedInUrl(e.target.value)}
+                    placeholder="https://www.linkedin.com/company/company-name"
+                    className="w-full"
+                  />
+                </div>
+              </form>
+            </CardContent>
+            
+            <CardFooter>
+              <Button 
+                type="submit" 
+                onClick={handleSubmit} 
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? "Processing..." : "Fetch Company Details"}
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
       </div>
 
       {isSubmitted && (
@@ -321,33 +323,33 @@ const CompanyDetailPage = () => {
                   {response.description && (
                     <div className="py-2">
                       <h3 className="text-lg font-medium mb-2">Description</h3>
-                      <p className="text-gray-700 whitespace-pre-line">{response.description}</p>
+                      <p className="text-foreground whitespace-pre-line">{response.description}</p>
                     </div>
                   )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 border-t pt-6">
                     {response.founded_year && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500">Founded</h4>
-                        <p>{response.founded_year}</p>
+                        <h4 className="font-medium text-sm text-muted-foreground">Founded</h4>
+                        <p className="text-foreground">{response.founded_year}</p>
                       </div>
                     )}
                     {response.size_range && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500">Company Size</h4>
-                        <p>{response.size_range}</p>
+                        <h4 className="font-medium text-sm text-muted-foreground">Company Size</h4>
+                        <p className="text-foreground">{response.size_range}</p>
                       </div>
                     )}
                     {response.hq_location && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500">Headquarters</h4>
-                        <p>{response.hq_location}</p>
+                        <h4 className="font-medium text-sm text-muted-foreground">Headquarters</h4>
+                        <p className="text-foreground">{response.hq_location}</p>
                       </div>
                     )}
                     {response.company_employee_reviews_aggregate_score !== undefined && (
                       <div>
-                        <h4 className="font-medium text-sm text-gray-500">Employee Rating</h4>
-                        <p>{response.company_employee_reviews_aggregate_score.toFixed(1)} / 5</p>
+                        <h4 className="font-medium text-sm text-muted-foreground">Employee Rating</h4>
+                        <p className="text-foreground">{response.company_employee_reviews_aggregate_score.toFixed(1)} / 5</p>
                       </div>
                     )}
                   </div>
@@ -382,14 +384,14 @@ const CompanyDetailPage = () => {
                       {response.description_enriched && (
                         <div>
                           <h3 className="text-lg font-medium mb-2">Enriched Description</h3>
-                          <p className="text-gray-700 whitespace-pre-line">{response.description_enriched}</p>
+                          <p className="text-foreground whitespace-pre-line">{response.description_enriched}</p>
                         </div>
                       )}
                       
                       {response.status?.comment && (
                         <div>
                           <h3 className="text-lg font-medium mb-2">Status Comment</h3>
-                          <p className="text-gray-700">{response.status.comment}</p>
+                          <p className="text-foreground">{response.status.comment}</p>
                         </div>
                       )}
                     </CardContent>
@@ -409,7 +411,7 @@ const CompanyDetailPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {response.competitors.map((competitor, index) => (
                             <Card key={index} className="border p-4 h-full">
-                              <p className="font-medium capitalize">
+                              <p className="font-medium capitalize text-foreground">
                                 {competitor.company_name}
                               </p>
                               {competitor.similarity_score !== null && (
@@ -421,7 +423,7 @@ const CompanyDetailPage = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-500 py-4">No competitor information available</p>
+                        <p className="text-muted-foreground py-4">No competitor information available</p>
                       )}
                     </CardContent>
                   </Card>
