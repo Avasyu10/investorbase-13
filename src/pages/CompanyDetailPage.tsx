@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
+import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 
 // Define a type for the company data with only the fields we want
 type CompanyData = {
@@ -40,7 +40,8 @@ type CompanyData = {
   company_employee_reviews_aggregate_score?: number;
 };
 
-const TestScraping = () => {
+const CompanyDetailPage = () => {
+  const navigate = useNavigate();
   const [linkedInUrl, setLinkedInUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<CompanyData | null>(null);
@@ -144,6 +145,10 @@ const TestScraping = () => {
     }
   };
 
+  const handleBackClick = () => {
+    navigate(-1); // Navigate back to the previous page
+  };
+
   const renderSocialLinks = () => {
     if (!response) return null;
     
@@ -203,40 +208,54 @@ const TestScraping = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 animate-fade-in">
+      {/* Back Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleBackClick}
+        className="mb-6 flex items-center"
+      >
+        <ChevronLeft className="mr-1" /> Back to Company
+      </Button>
       
-      <Card className="mb-8 shadow-md max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle>Company Details</CardTitle>
-        </CardHeader>
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 tracking-tight">Company Research Tool</h1>
         
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="linkedInUrl" className="font-medium">Company LinkedIn</label>
-              <Input
-                id="linkedInUrl"
-                type="text"
-                value={linkedInUrl}
-                onChange={(e) => setLinkedInUrl(e.target.value)}
-                placeholder="https://www.linkedin.com/company/company-name"
-                className="w-full"
-              />
-            </div>
-          </form>
-        </CardContent>
-        
-        <CardFooter>
-          <Button 
-            type="submit" 
-            onClick={handleSubmit} 
-            disabled={isLoading}
-            className="w-full"
-          >
-            {isLoading ? "Processing..." : "Fetch Company Details"}
-          </Button>
-        </CardFooter>
-      </Card>
+        <Card className="mb-8 shadow-md">
+          <CardHeader>
+            <CardTitle>Company Details</CardTitle>
+            <CardDescription>Enter a LinkedIn company URL to retrieve detailed company information</CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="linkedInUrl" className="font-medium">Company LinkedIn URL</label>
+                <Input
+                  id="linkedInUrl"
+                  type="text"
+                  value={linkedInUrl}
+                  onChange={(e) => setLinkedInUrl(e.target.value)}
+                  placeholder="https://www.linkedin.com/company/company-name"
+                  className="w-full"
+                />
+              </div>
+            </form>
+          </CardContent>
+          
+          <CardFooter>
+            <Button 
+              type="submit" 
+              onClick={handleSubmit} 
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? "Processing..." : "Fetch Company Details"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
 
       {isSubmitted && (
         <>
@@ -449,4 +468,4 @@ const TestScraping = () => {
   );
 };
 
-export default TestScraping;
+export default CompanyDetailPage;
