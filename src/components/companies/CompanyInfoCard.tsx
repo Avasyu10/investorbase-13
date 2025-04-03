@@ -100,7 +100,7 @@ export function CompanyInfoCard({
                 className="flex items-center gap-2 text-primary"
               >
                 <ExternalLink className="h-4 w-4" />
-                More Company Details
+                More Information
               </Button>
             </CardFooter>
       </Card>
