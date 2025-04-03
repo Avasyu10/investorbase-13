@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import ReactMarkdown from 'react-markdown';
+import { MarketResearch } from "./MarketResearch";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -385,6 +386,10 @@ const CompanyDetails = () => {
               />
             ))}
           </div>
+          
+          {company && (
+            <MarketResearch companyId={company.id} assessmentPoints={company.assessmentPoints || []} />
+          )}
 
           <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary" />
