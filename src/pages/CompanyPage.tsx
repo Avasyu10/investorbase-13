@@ -10,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [isResearchModalOpen, setIsResearchModalOpen] = useState(false);
   const [isInvestorResearchModalOpen, setIsInvestorResearchModalOpen] = useState(false);
   const { company, isLoading } = useCompanyDetails(id);
   const [userId, setUserId] = useState<string | null>(null);
@@ -39,30 +38,6 @@ const CompanyPage = () => {
   return (
     <div className="animate-fade-in pt-0">      
       <CompanyDetails />
-      
-      {/* Market Research Modal */}
-      <Dialog open={isResearchModalOpen} onOpenChange={setIsResearchModalOpen}>
-        <DialogContent className="max-w-4xl w-[95vw]">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <span className="h-5 w-5 text-amber-500"></span>
-              Real-Time Market Research
-            </DialogTitle>
-            <DialogDescription>
-              Analyze market trends and competitive landscape for this company
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            {company && (
-              <MarketResearch 
-                companyId={company.id.toString()} 
-                assessmentPoints={company.assessmentPoints || []} 
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
       
       {/* Investor Research Modal */}
       <Dialog open={isInvestorResearchModalOpen} onOpenChange={setIsInvestorResearchModalOpen}>
