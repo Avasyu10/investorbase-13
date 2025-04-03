@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -387,6 +388,7 @@ const CompanyDetails = () => {
             ))}
           </div>
           
+          {/* Market Research Section - ONLY placed here */}
           {company?.assessmentPoints && (
             <MarketResearch 
               companyId={id || ""} 
@@ -444,6 +446,7 @@ const CompanyDetails = () => {
         </div>
       </div>
       
+      {/* Chat section - kept as is */}
       {showChat && (
         <div className="w-1/2 h-screen flex flex-col border-l border-border bg-background shadow-card">
           <div className="p-4 border-b border-border flex justify-between items-center">
