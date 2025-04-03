@@ -220,13 +220,12 @@ const CompanyDetailPage = () => {
       </Button>
       
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6 tracking-tight text-gold">Company Intelligence</h1>
         
         {!response && (
           <Card className="mb-8 shadow-md border-0">
             <CardHeader>
-              <CardTitle className="text-gold">Research Company</CardTitle>
-              <CardDescription>Enter a LinkedIn company URL to retrieve detailed information</CardDescription>
+              <CardTitle className="text-gold"> Company Information </CardTitle>
+              <CardDescription>Please confirm the Company LinkedIn Profile to retrieve detailed information</CardDescription>
             </CardHeader>
             
             <CardContent>
@@ -252,7 +251,7 @@ const CompanyDetailPage = () => {
                 disabled={isLoading}
                 className="w-full"
               >
-                {isLoading ? "Processing..." : "Fetch Company Details"}
+                {isLoading ? "Processing..." : "Get Company Details"}
               </Button>
             </CardFooter>
           </Card>
