@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,33 +50,12 @@ const CompanyDetailPage = () => {
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Key used for localStorage to make it unique per company ID
-  const getStorageKey = (key: string) => id ? `${key}_${id}` : key;
-
-  // Load company data from local storage on initial render
+  // Reset state when ID changes
   useEffect(() => {
-    // Reset the state when the company ID changes
     setResponse(null);
     setIsSubmitted(false);
     setLinkedInUrl('');
-    
-    const savedData = localStorage.getItem(getStorageKey('companyData'));
-    const savedLinkedInUrl = localStorage.getItem(getStorageKey('linkedInUrl'));
-    
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setResponse(parsedData);
-        setIsSubmitted(true);
-        
-        if (savedLinkedInUrl) {
-          setLinkedInUrl(savedLinkedInUrl);
-        }
-      } catch (err) {
-        console.error('Error parsing saved company data:', err);
-      }
-    }
-  }, [id]); // Re-run when ID changes
+  }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,10 +134,6 @@ const CompanyDetailPage = () => {
         };
         
         setResponse(extractedData);
-        
-        // Save the data to localStorage for persistence with company-specific key
-        localStorage.setItem(getStorageKey('companyData'), JSON.stringify(extractedData));
-        localStorage.setItem(getStorageKey('linkedInUrl'), linkedInUrl);
       }
       
       toast({
