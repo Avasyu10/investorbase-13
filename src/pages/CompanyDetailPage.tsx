@@ -100,7 +100,7 @@ const CompanyDetailPage = () => {
         setError(error.message || "An error occurred while calling the function");
         toast({
           title: "Error",
-          description: error.message || "Failed to scrape company details",
+          description: error.message || "Failed to fetch company details",
           variant: "destructive"
         });
         return;
@@ -155,7 +155,7 @@ const CompanyDetailPage = () => {
       
       toast({
         title: "Success",
-        description: "Company details scraped successfully",
+        description: "Company details fetched successfully",
       });
     } catch (err: any) {
       console.error("Unexpected error:", err);
