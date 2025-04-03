@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 
 // Define a type for the company data with only the fields we want
@@ -48,6 +49,26 @@ const CompanyDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Load company data from local storage on initial render
+  useEffect(() => {
+    const savedData = localStorage.getItem('companyData');
+    const savedLinkedInUrl = localStorage.getItem('linkedInUrl');
+    
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setResponse(parsedData);
+        setIsSubmitted(true);
+        
+        if (savedLinkedInUrl) {
+          setLinkedInUrl(savedLinkedInUrl);
+        }
+      } catch (err) {
+        console.error('Error parsing saved company data:', err);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +147,10 @@ const CompanyDetailPage = () => {
         };
         
         setResponse(extractedData);
+        
+        // Save the data to localStorage for persistence
+        localStorage.setItem('companyData', JSON.stringify(extractedData));
+        localStorage.setItem('linkedInUrl', linkedInUrl);
       }
       
       toast({
@@ -282,13 +307,22 @@ const CompanyDetailPage = () => {
             <div className="space-y-8 max-w-4xl mx-auto">
               <Card className="shadow-md border-0">
                 <CardHeader className="flex flex-col sm:flex-row items-start gap-4 pb-2">
-                  {response.company_logo && (
+                  {response.company_logo ? (
                     <div className="w-24 h-24 flex-shrink-0 bg-white p-2 rounded-md shadow-sm">
-                      <img 
-                        src={response.company_logo} 
-                        alt={`${response.company_legal_name || 'Company'} logo`}
-                        className="w-full h-full object-contain"
-                      />
+                      <Avatar className="w-full h-full">
+                        <AvatarImage 
+                          src={response.company_logo} 
+                          alt={`${response.company_legal_name || 'Company'} logo`}
+                          className="object-contain"
+                        />
+                        <AvatarFallback>{response.company_legal_name?.charAt(0) || 'C'}</AvatarFallback>
+                      </Avatar>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 flex-shrink-0 bg-white p-2 rounded-md shadow-sm flex items-center justify-center">
+                      <Avatar className="w-16 h-16">
+                        <AvatarFallback>{response.company_legal_name?.charAt(0) || 'C'}</AvatarFallback>
+                      </Avatar>
                     </div>
                   )}
                   <div className="flex-1">
