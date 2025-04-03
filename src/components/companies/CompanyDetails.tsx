@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -13,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import ReactMarkdown from 'react-markdown';
+import { MarketResearch } from "./MarketResearch";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -385,6 +387,14 @@ const CompanyDetails = () => {
               />
             ))}
           </div>
+          
+          {/* Market Research component moved here, below the Section Metrics */}
+          {company?.assessmentPoints && (
+            <MarketResearch 
+              companyId={id || ""} 
+              assessmentPoints={company.assessmentPoints}
+            />
+          )}
 
           <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary" />
