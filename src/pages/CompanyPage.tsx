@@ -4,7 +4,6 @@ import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
-import { MarketResearch } from "@/components/companies/MarketResearch";
 import { InvestorResearch } from "@/components/companies/InvestorResearch";
 import { supabase } from "@/integrations/supabase/client";
 
