@@ -1,3 +1,4 @@
+
 import Index from "@/pages/Index";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -150,6 +151,14 @@ const routes = [
   },
   {
     path: "/company-detail-page",
+    element: (
+      <ProtectedRoute>
+        <CompanyDetailPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/company-detail-page/:id",
     element: (
       <ProtectedRoute>
         <CompanyDetailPage />

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,7 @@ type CompanyData = {
 
 const CompanyDetailPage = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [linkedInUrl, setLinkedInUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<CompanyData | null>(null);
@@ -50,10 +51,18 @@ const CompanyDetailPage = () => {
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // Key used for localStorage to make it unique per company ID
+  const getStorageKey = (key: string) => id ? `${key}_${id}` : key;
+
   // Load company data from local storage on initial render
   useEffect(() => {
-    const savedData = localStorage.getItem('companyData');
-    const savedLinkedInUrl = localStorage.getItem('linkedInUrl');
+    // Reset the state when the company ID changes
+    setResponse(null);
+    setIsSubmitted(false);
+    setLinkedInUrl('');
+    
+    const savedData = localStorage.getItem(getStorageKey('companyData'));
+    const savedLinkedInUrl = localStorage.getItem(getStorageKey('linkedInUrl'));
     
     if (savedData) {
       try {
@@ -68,7 +77,7 @@ const CompanyDetailPage = () => {
         console.error('Error parsing saved company data:', err);
       }
     }
-  }, []);
+  }, [id]); // Re-run when ID changes
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,9 +157,9 @@ const CompanyDetailPage = () => {
         
         setResponse(extractedData);
         
-        // Save the data to localStorage for persistence
-        localStorage.setItem('companyData', JSON.stringify(extractedData));
-        localStorage.setItem('linkedInUrl', linkedInUrl);
+        // Save the data to localStorage for persistence with company-specific key
+        localStorage.setItem(getStorageKey('companyData'), JSON.stringify(extractedData));
+        localStorage.setItem(getStorageKey('linkedInUrl'), linkedInUrl);
       }
       
       toast({
