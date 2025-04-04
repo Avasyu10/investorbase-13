@@ -163,11 +163,11 @@ export function AnalysisModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <FileText className="h-5 w-5 text-primary" />
-            Fund Thesis Alignment Analysis
+            Initialising Application Analysis
           </DialogTitle>
           <DialogDescription>
             {submission?.title 
-              ? `Analysis of "${submission.title}" against your fund thesis`
+              ? `Analysis of "${submission.title}" has started`
               : "Fund Thesis Analysis"}
           </DialogDescription>
         </DialogHeader>
