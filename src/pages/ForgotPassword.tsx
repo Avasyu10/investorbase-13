@@ -8,18 +8,45 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { resetPassword, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await resetPassword(email);
-    if (success) {
-      setIsSubmitted(true);
+    
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const success = await resetPassword(email);
+      
+      if (success) {
+        setIsSubmitted(true);
+        toast({
+          title: "Reset link sent",
+          description: "Check your email for the password reset link.",
+        });
+      }
+    } catch (error) {
+      console.error("Password reset error:", error);
+      toast({
+        title: "Reset failed",
+        description: "There was a problem sending the reset link. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -53,6 +80,7 @@ const ForgotPassword = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      autoComplete="email"
                     />
                   </div>
                 </CardContent>
@@ -64,10 +92,12 @@ const ForgotPassword = () => {
               </>
             ) : (
               <CardContent className="space-y-4">
-                <p className="text-center text-sm text-muted-foreground mt-2">
-                  We've sent a password reset link to <strong>{email}</strong>. 
-                  Please check your inbox and follow the instructions.
-                </p>
+                <Alert>
+                  <AlertDescription>
+                    We've sent a password reset link to <strong>{email}</strong>. 
+                    Please check your inbox and follow the instructions.
+                  </AlertDescription>
+                </Alert>
                 <Button
                   className="w-full mt-4"
                   onClick={() => navigate("/")}

@@ -1,25 +1,54 @@
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
+  const { updatePassword, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Check if we have a session from the reset link
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        // The auth session check is now handled in the useAuth hook
+        // We just need to check if there's an error in the URL
+        const queryParams = new URLSearchParams(window.location.search);
+        const errorParam = queryParams.get('error');
+        const errorDescription = queryParams.get('error_description');
+        
+        if (errorParam) {
+          setError(errorDescription || "Invalid or expired password reset link. Please request a new one.");
+          toast({
+            title: "Reset link error",
+            description: errorDescription || "Invalid or expired reset link",
+            variant: "destructive",
+          });
+        }
+      } catch (err) {
+        console.error("Error checking session:", err);
+        setError("Could not validate reset session. Please request a new password reset link.");
+      }
+    };
+
+    checkSession();
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setMessage("");
     
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -32,51 +61,30 @@ const ResetPassword = () => {
     }
 
     try {
-      setLoading(true);
+      const updated = await updatePassword(password);
       
-      // Update the password using the direct Supabase client
-      // The auth token is automatically handled by Supabase in the URL
-      const { error } = await supabase.auth.updateUser({ 
-        password 
-      });
-      
-      if (error) {
-        throw error;
+      if (updated) {
+        setSuccess(true);
+        toast({
+          title: "Password updated",
+          description: "Your password has been updated successfully.",
+        });
+        
+        // Navigate to home page after a short delay
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
       }
-      
-      setMessage("Password updated successfully!");
-      
-      // Navigate to home page after a short delay
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
     } catch (err: any) {
-      console.error("Password reset error:", err);
+      console.error("Password update error:", err);
       setError(err.message || "Failed to update password. Please try resetting your password again.");
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Password update failed",
+        description: err.message || "Failed to update password",
+        variant: "destructive",
+      });
     }
   };
-
-  // When component mounts, check if we have a valid session from the reset link
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error || !data.session) {
-          console.log("No active session found for password reset");
-          setError("Invalid or expired password reset link. Please request a new one.");
-        } else {
-          console.log("Valid session found for password reset");
-        }
-      } catch (err) {
-        console.error("Error checking session:", err);
-      }
-    };
-
-    checkSession();
-  }, []);
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
@@ -95,38 +103,52 @@ const ResetPassword = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input 
-                  id="confirmPassword" 
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
               {error && (
-                <p className="text-sm font-medium text-destructive">{error}</p>
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-              {message && (
-                <p className="text-sm font-medium text-green-600">{message}</p>
+              
+              {success ? (
+                <Alert>
+                  <AlertDescription>
+                    Password updated successfully! You'll be redirected to the login page.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">New Password</Label>
+                    <Input 
+                      id="password" 
+                      type="password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input 
+                      id="confirmPassword" 
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </>
               )}
             </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Updating..." : "Update Password"}
-              </Button>
-            </CardFooter>
+            {!success && (
+              <CardFooter>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Updating..." : "Update Password"}
+                </Button>
+              </CardFooter>
+            )}
           </form>
         </Card>
       </div>
