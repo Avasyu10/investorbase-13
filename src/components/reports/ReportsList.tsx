@@ -3,12 +3,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getReports, Report } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, FileText, Archive } from "lucide-react";
+import { Plus, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { ReportBucket } from "./ReportBucket";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
-import { supabase } from "@/integrations/supabase/client";
 
 export function ReportsList() {
   const [reports, setReports] = useState<Report[]>([]);

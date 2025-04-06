@@ -2,6 +2,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { Report } from "@/lib/supabase/reports";
 import { DraggableReportCard } from "./DraggableReportCard";
+import { ReportCard } from "./ReportCard";
 
 interface ReportBucketProps {
   id: string;
