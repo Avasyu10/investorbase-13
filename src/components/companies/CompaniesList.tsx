@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { ListFilter, Grid, Table as TableIcon, AlertTriangle } from "lucide-react";
+import { ListFilter, Grid, Table as TableIcon, AlertTriangle, Search } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimeSubscriptions } from "@/components/RealtimeSubscriptions";
+import { Input } from "@/components/ui/input";
 
 type SortOption = "name" | "score" | "date" | "source";
 type ViewMode = "grid" | "table";
@@ -68,14 +69,26 @@ export function CompaniesList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>("date");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const pageSize = 20;
   const { toast } = useToast();
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   
   const { companies, totalCount, isLoading, error } = useCompanies(
     currentPage, 
     pageSize, 
     getSortField(sortBy),
-    getSortOrder(sortBy)
+    getSortOrder(sortBy),
+    debouncedSearchTerm
   );
 
   useEffect(() => {
@@ -215,6 +228,29 @@ export function CompaniesList() {
             </div>
           </div>
           
+          <div className="mb-6">
+            <div className="relative w-full md:max-w-sm">
+              <Input
+                type="text"
+                placeholder="Search prospects by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {searchTerm && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchTerm("")}
+                >
+                  ✕
+                </Button>
+              )}
+            </div>
+          </div>
+          
           {companies.length > 0 ? (
             <>
               {viewMode === "grid" ? (
@@ -296,9 +332,13 @@ export function CompaniesList() {
             </>
           ) : (
             <div className="text-center py-16 border rounded-lg bg-muted/20">
-              <h3 className="text-lg font-medium mb-2">No prospects found</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {searchTerm ? "No matching prospects found" : "No prospects found"}
+              </h3>
               <p className="text-muted-foreground mb-6">
-                You don't have any prospects yet or your search returned no results.
+                {searchTerm 
+                  ? "Try adjusting your search term or upload a new prospect." 
+                  : "You don't have any prospects yet or your search returned no results."}
               </p>
               <Button onClick={() => navigate("/upload")}>
                 Upload New Pitch Deck

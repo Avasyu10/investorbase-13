@@ -59,13 +59,19 @@ function mapDbSectionDetailedToApi(section: any, strengths: string[], weaknesses
   };
 }
 
-export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: string = 'created_at', sortOrder: 'asc' | 'desc' = 'desc') {
+export function useCompanies(
+  page: number = 1, 
+  pageSize: number = 20, 
+  sortBy: string = 'created_at', 
+  sortOrder: 'asc' | 'desc' = 'desc',
+  search: string = '' // Add search parameter
+) {
   const {
     data: companiesData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['companies', page, pageSize, sortBy, sortOrder],
+    queryKey: ['companies', page, pageSize, sortBy, sortOrder, search], // Add search to queryKey
     queryFn: async () => {
       try {
         // Calculate offset based on page number and page size
@@ -92,9 +98,8 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
         
         console.log('Fetching companies for user:', user.id);
         
-        // Query with RLS - this will only return companies the user has access to
-        // Also join with reports table to get pdf_url information
-        const { data, error, count } = await supabase
+        // Build query
+        let query = supabase
           .from('companies')
           .select(`
             id, name, overall_score, created_at, updated_at, 
@@ -102,7 +107,15 @@ export function useCompanies(page: number = 1, pageSize: number = 20, sortBy: st
             perplexity_response, perplexity_prompt, user_id, source,
             report:report_id (pdf_url, is_public_submission)
           `, { count: 'exact' })
-          .eq('user_id', user.id) // Explicitly filter by user_id to ensure only user's data is returned
+          .eq('user_id', user.id); // Filter by user_id
+
+        // Add search filter if provided
+        if (search && search.trim() !== '') {
+          query = query.ilike('name', `%${search.trim()}%`);
+        }
+
+        // Add sorting and pagination
+        const { data, error, count } = await query
           .order(dbSortField, { ascending: sortOrder === 'asc' })
           .range(from, to);
 
