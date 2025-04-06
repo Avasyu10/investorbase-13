@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Report } from "@/lib/supabase/reports";
-import { FileText, Calendar, Maximize } from "lucide-react";
+import { FileText, Calendar, Maximize, Check } from "lucide-react";
 import { useState } from "react";
 import { 
   Dialog,
@@ -15,9 +15,12 @@ import { Badge } from "@/components/ui/badge";
 
 interface ReportCardProps {
   report: Report;
+  isSelectable?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
-export function ReportCard({ report }: ReportCardProps) {
+export function ReportCard({ report, isSelectable = false, isSelected = false, onSelect }: ReportCardProps) {
   const [showReportModal, setShowReportModal] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -31,7 +34,21 @@ export function ReportCard({ report }: ReportCardProps) {
 
   return (
     <>
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col">
+      <Card className={`
+        overflow-hidden transition-all duration-300 hover:shadow-lg animate-slide-up h-[300px] flex flex-col
+        ${isSelectable ? 'cursor-pointer' : ''}
+        ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''}
+      `} onClick={isSelectable ? onSelect : undefined}>
+        {isSelectable && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className={`
+              w-5 h-5 rounded-full border flex items-center justify-center
+              ${isSelected ? 'bg-primary border-primary' : 'bg-transparent border-gray-300'}
+            `}>
+              {isSelected && <Check className="h-3 w-3 text-white" />}
+            </div>
+          </div>
+        )}
         <CardHeader className="pb-2 flex-none">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-2">
@@ -58,7 +75,10 @@ export function ReportCard({ report }: ReportCardProps) {
         </CardContent>
         <CardFooter className="flex-none pb-6">
           <Button 
-            onClick={() => setShowReportModal(true)} 
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering the card's onClick
+              setShowReportModal(true);
+            }} 
             className="w-full transition-all duration-200 hover:shadow-md"
           >
             <Maximize className="mr-2 h-4 w-4" />
