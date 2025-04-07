@@ -274,7 +274,7 @@ export function ReportsList() {
             <ReportCard 
               key={report.id} 
               report={report} 
-              isSelectable={true} {/* Always allow selection */}
+              isSelectable={activeFolder !== "archive"}
               isSelected={selectedReports.includes(report.id)}
               onSelect={() => handleSelectReport(report.id)}
             />
