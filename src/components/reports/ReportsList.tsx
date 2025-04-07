@@ -4,7 +4,7 @@ import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";
 import { getReports, Report } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, FileText, Archive } from "lucide-react";
+import { Plus, Loader2, FileText, Archive, ArchiveRestore } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -119,6 +119,30 @@ export function ReportsList() {
     });
   };
 
+  // Handler for unarchiving selected reports
+  const handleUnarchiveSelected = () => {
+    // Find the reports to unarchive
+    const reportsToUnarchive = archivedReports.filter(report => selectedReports.includes(report.id));
+    
+    if (reportsToUnarchive.length === 0) return;
+    
+    // Update the reports state
+    setArchivedReports(prev => prev.filter(report => !selectedReports.includes(report.id)));
+    setReports(prev => [...prev, ...reportsToUnarchive]);
+    
+    // Update localStorage
+    const currentArchivedIds = archivedReports.map(report => report.id);
+    const newArchivedIds = currentArchivedIds.filter(id => !selectedReports.includes(id));
+    localStorage.setItem('archivedReports', JSON.stringify(newArchivedIds));
+    
+    // Clear selection and show toast
+    setSelectedReports([]);
+    toast({
+      title: `${reportsToUnarchive.length} report(s) unarchived`,
+      description: "Items have been moved back to their original folders"
+    });
+  };
+
   // Handler for folder selection
   const handleFolderChange = (folderName: string) => {
     setActiveFolder(folderName);
@@ -142,6 +166,7 @@ export function ReportsList() {
   const displayReports = getDisplayReports();
   const hasSelection = selectedReports.length > 0;
   const canArchive = activeFolder !== "archive" && hasSelection;
+  const canUnarchive = activeFolder === "archive" && hasSelection;
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -212,6 +237,29 @@ export function ReportsList() {
           >
             <Archive className="h-4 w-4 mr-2" />
             Archive Selected
+          </Button>
+        </div>
+      )}
+
+      {/* Unarchive Action Bar */}
+      {(activeFolder === "archive") && (
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-sm text-muted-foreground">
+            {selectedReports.length > 0 ? (
+              <span>{selectedReports.length} item(s) selected</span>
+            ) : (
+              <span>Select items to unarchive</span>
+            )}
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleUnarchiveSelected}
+            disabled={!canUnarchive}
+            className={`${!canUnarchive ? 'opacity-50' : ''}`}
+          >
+            <ArchiveRestore className="h-4 w-4 mr-2" />
+            Unarchive Selected
           </Button>
         </div>
       )}
