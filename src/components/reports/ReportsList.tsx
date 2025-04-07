@@ -194,7 +194,7 @@ export function ReportsList() {
       </div>
 
       {/* Action Bar */}
-      {(activeFolder === "public" || activeFolder === "dashboard") && (
+      {(activeFolder === "public" || activeFolder === "dashboard" || activeFolder === "all") && (
         <div className="flex justify-between items-center mb-4">
           <div className="text-sm text-muted-foreground">
             {selectedReports.length > 0 ? (
