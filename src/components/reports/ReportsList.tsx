@@ -274,7 +274,7 @@ export function ReportsList() {
             <ReportCard 
               key={report.id} 
               report={report} 
-              isSelectable={true}  {/* Changed this line to always allow selection */}
+              isSelectable={true} {/* Always allow selection */}
               isSelected={selectedReports.includes(report.id)}
               onSelect={() => handleSelectReport(report.id)}
             />
