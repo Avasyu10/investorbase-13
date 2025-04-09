@@ -485,7 +485,7 @@ const UploadReport = () => {
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isUploading ? "Uploading..." : "Analyzing..."}
+                    {isUploading ? "Analyzing.." : "Analyzing..."}
                   </>
                 ) : (
                   "Upload & Analyze"
