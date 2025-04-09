@@ -1,3 +1,4 @@
+
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -133,6 +134,6 @@ const SectionPage = () => {
       </div>
     </div>
   );
-}
+};
 
 export default SectionPage;
