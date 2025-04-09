@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -134,10 +133,18 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     }
   };
 
-  // Helper function to remove double stars from text
   const removeDoubleStars = (text: string): string => {
     if (!text) return '';
     return text.replace(/\*\*/g, '');
+  };
+
+  const getSortedItems = (items: any[] | undefined): any[] => {
+    if (!items || items.length === 0) return [];
+    return [...items].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
   };
 
   const renderDetailView = () => {
@@ -170,7 +177,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             <div>
               {researchData.news_highlights && researchData.news_highlights.length > 0 ? (
                 <div className="space-y-6">
-                  {researchData.news_highlights.map((news: any, index: number) => (
+                  {getSortedItems(researchData.news_highlights).map((news: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
                       <h3 className="text-lg font-semibold mb-1">{removeDoubleStars(news.headline)}</h3>
                       {news.source && (
@@ -212,7 +219,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             <div>
               {researchData.market_insights && researchData.market_insights.length > 0 ? (
                 <div className="space-y-6">
-                  {researchData.market_insights.map((insight: any, index: number) => (
+                  {getSortedItems(researchData.market_insights).map((insight: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
                       <h3 className="text-lg font-semibold mb-1">
                         {removeDoubleStars(insight.headline || insight.title)}

@@ -101,6 +101,16 @@ const NewsFeed = () => {
     return text.replace(/\*\*/g, '');
   };
 
+  // Sort news items by date
+  const getSortedNewsItems = (items: NewsItem[] | undefined): NewsItem[] => {
+    if (!items || items.length === 0) return [];
+    return [...items].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA; // Sort in descending order (newest first)
+    });
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
@@ -129,7 +139,7 @@ const NewsFeed = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {researches.flatMap(research => 
                 (research.news_highlights && research.news_highlights.length > 0) ? 
-                  research.news_highlights.map((news, index) => (
+                  getSortedNewsItems(research.news_highlights).map((news, index) => (
                     <Card key={`${research.id}-news-${index}`} className="h-full">
                       <CardHeader>
                         <CardTitle className="line-clamp-2">{removeDoubleStars(news.headline)}</CardTitle>
@@ -172,7 +182,7 @@ const NewsFeed = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {researches.flatMap(research => 
                 (research.market_insights && research.market_insights.length > 0) ?
-                  research.market_insights.map((insight, index) => (
+                  getSortedNewsItems(research.market_insights).map((insight, index) => (
                     <Card key={`${research.id}-insight-${index}`} className="h-full">
                       <CardHeader>
                         <CardTitle className="line-clamp-2">{removeDoubleStars(insight.headline)}</CardTitle>
