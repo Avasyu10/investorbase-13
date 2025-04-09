@@ -298,7 +298,7 @@ const Profile = () => {
               </div>
               
               <div className="bg-secondary/10 p-4 rounded-lg">
-                <p className="text-sm font-medium text-primary mb-2">Fund Thesis</p>
+                <p className="text-sm font-medium text-primary mb-2">Investment Thesis</p>
                 {profile.fund_thesis_url ? (
                   <div className="flex items-center mt-1 space-x-2">
                     <FileText className="h-5 w-5 text-primary" />
