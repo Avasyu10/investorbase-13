@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,8 +33,6 @@ const NewsFeed = () => {
     try {
       setIsLoading(true);
       
-      // Query the market_research table - without any user filtering
-      // to show all research data to all users
       const { data, error } = await supabase
         .from('market_research')
         .select(`
@@ -52,20 +49,16 @@ const NewsFeed = () => {
         throw error;
       }
       
-      // Format the data
       const formattedData = data?.map(item => {
         const companyName = item.companies ? item.companies.name : 'Unknown Company';
         
-        // Parse JSON strings if they come as strings
         let marketInsights: MarketInsight[] = [];
         let newsHighlights: NewsItem[] = [];
         
-        // Handle market_insights with proper type casting
         if (item.market_insights) {
           marketInsights = item.market_insights as unknown as MarketInsight[];
         }
         
-        // Handle news_highlights with proper type casting
         if (item.news_highlights) {
           newsHighlights = item.news_highlights as unknown as NewsItem[];
         }
@@ -138,7 +131,7 @@ const NewsFeed = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <p className="line-clamp-4 text-sm">{news.content}</p>
+                        <p className="line-clamp-4 text-sm">{news.content ? news.content.replace(/\*\*Analysis:\*\*/gi, '').replace(/Analysis:/g, '').replace(/\*\*Analysis\*\*/gi, '') : ''}</p>
                         {news.url && (
                           <a 
                             href={news.url} 
@@ -179,7 +172,7 @@ const NewsFeed = () => {
                         <CardDescription>{research.companyName}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm">{insight.content}</p>
+                        <p className="text-sm">{insight.content ? insight.content.replace(/\*\*Analysis:\*\*/gi, '').replace(/Analysis:/g, '').replace(/\*\*Analysis\*\*/gi, '') : ''}</p>
                         {insight.url && (
                           <a 
                             href={insight.url} 
