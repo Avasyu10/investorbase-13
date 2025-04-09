@@ -169,7 +169,15 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                       {news.source && (
                         <p className="text-sm text-primary mb-2">{news.source}</p>
                       )}
-                      <p className="text-sm text-muted-foreground mb-3">{news.content}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{
+                        news.content 
+                          ? news.content
+                              .replace(/\*\*Analysis:\*\*/gi, '')
+                              .replace(/Analysis:/gi, '')
+                              .replace(/\*\*Analysis\*\*/gi, '')
+                              .replace(/analysis:/gi, '')
+                          : ''
+                      }</p>
                       {news.url && (
                         <a 
                           href={news.url} 
@@ -205,7 +213,15 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                       {insight.source && (
                         <p className="text-sm text-primary mb-2">{insight.source}</p>
                       )}
-                      <p className="text-sm text-muted-foreground mb-3">{insight.content}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{
+                        insight.content 
+                          ? insight.content
+                              .replace(/\*\*Analysis:\*\*/gi, '')
+                              .replace(/Analysis:/gi, '')
+                              .replace(/\*\*Analysis\*\*/gi, '')
+                              .replace(/analysis:/gi, '')
+                          : ''
+                      }</p>
                       {insight.url && (
                         <a 
                           href={insight.url} 
@@ -466,11 +482,10 @@ function extractSection(text: string, sectionName: string): string {
     .replace(/<\/p><ul>/g, '<ul>')
     .replace(/<\/li>(?!<li|<\/ul>)/g, '</li></ul>')
     .replace(/\n(\d+\. )(.*)/g, '</p><div class="pl-4 py-2 my-3 border-l-4 border-primary/20"><span class="font-semibold">$1</span>$2</div><p>')
-    .replace(/\*\*Analysis:\*\*/g, '')
     .replace(/\*\*Analysis:\*\*/gi, '')
-    .replace(/Analysis:/g, '')
-    .replace(/\*\*Analysis\*\*/g, '')
+    .replace(/Analysis:/gi, '')
     .replace(/\*\*Analysis\*\*/gi, '')
+    .replace(/analysis:/gi, '')
     .replace(/Source:.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
@@ -491,9 +506,11 @@ function formatResearchHtml(text: string): string {
     .replace(/^# (.*$)/gim, '<div class="mb-6"><h2 class="text-2xl font-bold mb-2">$1</h2>')
     .replace(/^## (.*$)/gim, '<h3 class="text-xl font-bold mb-3 mt-6 pt-4 border-t">$1</h3></div><div class="mb-6">')
     .replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold mb-2 mt-4 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>$1</h4>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p class="mb-4">')
+    .replace(/^#### (.*$)/gim, '<h4 class="text-base font-bold mb-1 mt-3">$1</h4>') 
+    .replace(/^##### (.*$)/gim, '<h5 class="font-bold mb-1 mt-2">$1</h5>')
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+    .replace(/\n\n/gim, '</p><p class="mb-4">')
     .replace(/^- (.*$)/gim, '<li class="flex items-start mb-2"><span class="inline-block h-1.5 w-1.5 rounded-full bg-primary/70 mt-1.5 mr-2 flex-shrink-0"></span><span>$1</span></li>')
     .replace(/\n- /g, '</p><ul class="my-4 space-y-1 pl-2">$&')
     .replace(/<\/li>\n- /g, '</li><li class="flex items-start mb-2"><span class="inline-block h-1.5 w-1.5 rounded-full bg-primary/70 mt-1.5 mr-2 flex-shrink-0"></span><span>')
@@ -502,11 +519,10 @@ function formatResearchHtml(text: string): string {
     .replace(/(\$[0-9.,]+ (?:billion|million|trillion)|\d+% growth|market (?:value|size|cap) of \$[0-9.,]+ (?:billion|million|trillion))/gi, 
              '<span class="font-medium">$1</span>')
     .replace(/^(\d+)\. (.*$)/gim, '<div class="mb-4 pl-4 border-l-2 border-primary/20"><span class="font-bold">$1.</span> $2</div>')
-    .replace(/\*\*Analysis:\*\*/g, '')
     .replace(/\*\*Analysis:\*\*/gi, '')
-    .replace(/Analysis:/g, '')
-    .replace(/\*\*Analysis\*\*/g, '')
+    .replace(/Analysis:/gi, '')
     .replace(/\*\*Analysis\*\*/gi, '')
+    .replace(/analysis:/gi, '')
     .replace(/Source:.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
