@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -133,6 +134,12 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     }
   };
 
+  // Helper function to remove double stars from text
+  const removeDoubleStars = (text: string): string => {
+    if (!text) return '';
+    return text.replace(/\*\*/g, '');
+  };
+
   const renderDetailView = () => {
     if (!researchData || researchData.status !== 'completed') {
       return <ResearchSkeleton />;
@@ -165,13 +172,13 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                 <div className="space-y-6">
                   {researchData.news_highlights.map((news: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
-                      <h3 className="text-lg font-semibold mb-1">{news.headline}</h3>
+                      <h3 className="text-lg font-semibold mb-1">{removeDoubleStars(news.headline)}</h3>
                       {news.source && (
                         <p className="text-sm text-primary mb-2">{news.source}</p>
                       )}
                       <p className="text-sm text-muted-foreground mb-3">{
                         news.content 
-                          ? news.content
+                          ? removeDoubleStars(news.content)
                               .replace(/\*\*Analysis:\*\*/gi, '')
                               .replace(/Analysis:/gi, '')
                               .replace(/\*\*Analysis\*\*/gi, '')
@@ -208,14 +215,14 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                   {researchData.market_insights.map((insight: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
                       <h3 className="text-lg font-semibold mb-1">
-                        {insight.headline || insight.title}
+                        {removeDoubleStars(insight.headline || insight.title)}
                       </h3>
                       {insight.source && (
                         <p className="text-sm text-primary mb-2">{insight.source}</p>
                       )}
                       <p className="text-sm text-muted-foreground mb-3">{
                         insight.content 
-                          ? insight.content
+                          ? removeDoubleStars(insight.content)
                               .replace(/\*\*Analysis:\*\*/gi, '')
                               .replace(/Analysis:/gi, '')
                               .replace(/\*\*Analysis\*\*/gi, '')
@@ -473,8 +480,8 @@ function extractSection(text: string, sectionName: string): string {
     .replace(/^# (.*$)/gim, '<h2 class="text-2xl font-bold mb-4 pb-2 border-b">$1</h2>')
     .replace(/^## (.*$)/gim, '<h3 class="text-xl font-bold mb-3 mt-6">$1</h3>')
     .replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold mb-2 mt-4 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>$1</h4>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/\n\n/g, '</p><p class="mb-4">')
     .replace(/\n- /g, '</p><ul class="list-disc pl-6 my-4 space-y-2"><li class="mb-1">')
     .replace(/\n  - /g, '</li><ul class="list-circle pl-6 my-2 space-y-1"><li>')
@@ -490,6 +497,7 @@ function extractSection(text: string, sectionName: string): string {
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/\*\*/g, '') // Remove any remaining double stars
     .replace(/\n/g, ' ');
 
   if (!html.startsWith('<')) {
@@ -527,6 +535,7 @@ function formatResearchHtml(text: string): string {
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/\*\*/g, '') // Remove any remaining double stars
     .replace(/\n/g, ' ')
     + '</div>';
   

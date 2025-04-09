@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,12 @@ const NewsFeed = () => {
     );
   }
 
+  // Helper function to remove double stars from text
+  const removeDoubleStars = (text: string): string => {
+    if (!text) return '';
+    return text.replace(/\*\*/g, '');
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
@@ -125,13 +132,13 @@ const NewsFeed = () => {
                   research.news_highlights.map((news, index) => (
                     <Card key={`${research.id}-news-${index}`} className="h-full">
                       <CardHeader>
-                        <CardTitle className="line-clamp-2">{news.headline}</CardTitle>
+                        <CardTitle className="line-clamp-2">{removeDoubleStars(news.headline)}</CardTitle>
                         <CardDescription className="flex justify-between items-center">
                           <span>{research.companyName}</span>
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <p className="line-clamp-4 text-sm">{news.content ? news.content.replace(/\*\*Analysis:\*\*/gi, '').replace(/Analysis:/g, '').replace(/\*\*Analysis\*\*/gi, '') : ''}</p>
+                        <p className="line-clamp-4 text-sm">{news.content ? removeDoubleStars(news.content).replace(/\*\*Analysis:\*\*/gi, '').replace(/Analysis:/g, '').replace(/\*\*Analysis\*\*/gi, '') : ''}</p>
                         {news.url && (
                           <a 
                             href={news.url} 
@@ -168,11 +175,11 @@ const NewsFeed = () => {
                   research.market_insights.map((insight, index) => (
                     <Card key={`${research.id}-insight-${index}`} className="h-full">
                       <CardHeader>
-                        <CardTitle className="line-clamp-2">{insight.headline}</CardTitle>
+                        <CardTitle className="line-clamp-2">{removeDoubleStars(insight.headline)}</CardTitle>
                         <CardDescription>{research.companyName}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm">{insight.content ? insight.content.replace(/\*\*Analysis:\*\*/gi, '').replace(/Analysis:/g, '').replace(/\*\*Analysis\*\*/gi, '') : ''}</p>
+                        <p className="text-sm">{insight.content ? removeDoubleStars(insight.content).replace(/\*\*Analysis:\*\*/gi, '').replace(/Analysis:/g, '').replace(/\*\*Analysis\*\*/gi, '') : ''}</p>
                         {insight.url && (
                           <a 
                             href={insight.url} 
