@@ -131,7 +131,8 @@ export function AnalysisModal({
           (line.startsWith('*') || line.startsWith('-'))) {
         // Clean bullet points and formatting
         let cleanedLine = line.replace(/^[\*\-]\s*/, '').trim();
-        cleanedLine = cleanedLine.replace(/^\*\*|\*\*$/g, '').trim();
+        // Fix double stars issue - replace all ** with empty string before further processing
+        cleanedLine = cleanedLine.replace(/\*\*/g, '').trim();
         
         if (cleanedLine) {
           sections[currentSection as 'similarities' | 'differences'].push(cleanedLine);
@@ -159,16 +160,16 @@ export function AnalysisModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl bg-background text-foreground">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <FileText className="h-5 w-5 text-primary" />
-            Initialising Application Analysis
+            Fund Thesis Alignment Analysis
           </DialogTitle>
           <DialogDescription>
             {submission?.title 
-              ? `Analysis of "${submission.title}" has started`
-              : "Fund Thesis Analysis"}
+              ? `Analysis of "${submission.title}" and your investment thesis`
+              : "Fund Thesis Alignment"}
           </DialogDescription>
         </DialogHeader>
 
@@ -197,7 +198,7 @@ export function AnalysisModal({
               </button>
               
               {expandedSections.summary && (
-                <div className="p-4 space-y-3 bg-white">
+                <div className="p-4 space-y-3">
                   <div className="mb-4">
                     <span className="font-semibold text-primary">Synergy Score: </span>
                     <span className="text-lg font-bold text-primary">{parsedAnalysis.score}/5</span>
@@ -231,7 +232,7 @@ export function AnalysisModal({
               </button>
               
               {expandedSections.similarities && (
-                <div className="p-4 space-y-2 bg-white">
+                <div className="p-4 space-y-2">
                   {parsedAnalysis.similarities.length > 0 ? (
                     parsedAnalysis.similarities.map((point, i) => (
                       <div key={i} className="flex items-start gap-2 mb-3">
@@ -262,7 +263,7 @@ export function AnalysisModal({
               </button>
               
               {expandedSections.differences && (
-                <div className="p-4 space-y-2 bg-white">
+                <div className="p-4 space-y-2">
                   {parsedAnalysis.differences.length > 0 ? (
                     parsedAnalysis.differences.map((point, i) => (
                       <div key={i} className="flex items-start gap-2 mb-3">
