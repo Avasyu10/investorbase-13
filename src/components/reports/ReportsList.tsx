@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ReportCard } from "./ReportCard";
 import { useNavigate } from "react-router-dom";

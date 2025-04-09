@@ -165,20 +165,31 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
                   </div>
                 </div>
               ) : (
-                contentBullets.map((bullet, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-start gap-3 p-4 rounded-lg transition-colors border border-transparent
-                      ${isMetric(bullet) ? 'bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/20' : 
-                        isCompetitive(bullet) ? 'bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/20' : 
-                        isGrowth(bullet) ? 'bg-violet-500/5 hover:bg-violet-500/10 hover:border-violet-500/20' :
-                        isProduct(bullet) ? 'bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/20' :
-                        'bg-primary/5 hover:bg-primary/10 hover:border-primary/20'}`}
-                  >
-                    {getInsightIcon(bullet)}
-                    <span className="text-sm leading-relaxed">{bullet}</span>
-                  </div>
-                ))
+                contentBullets.map((bullet, index) => {
+                  // Determine the color class based on bullet content
+                  let colorClass = '';
+                  if (isMetric(bullet)) {
+                    colorClass = 'bg-gradient-to-r from-emerald-500/20 to-amber-500/10 hover:from-emerald-500/30 hover:to-amber-500/15 hover:border-emerald-500/20';
+                  } else if (isCompetitive(bullet)) {
+                    colorClass = 'bg-gradient-to-r from-blue-500/20 to-amber-500/10 hover:from-blue-500/30 hover:to-amber-500/15 hover:border-blue-500/20';
+                  } else if (isGrowth(bullet)) {
+                    colorClass = 'bg-gradient-to-r from-violet-500/20 to-amber-500/10 hover:from-violet-500/30 hover:to-amber-500/15 hover:border-violet-500/20';
+                  } else if (isProduct(bullet)) {
+                    colorClass = 'bg-gradient-to-r from-amber-500/20 to-amber-500/10 hover:from-amber-500/30 hover:to-amber-500/15 hover:border-amber-500/20';
+                  } else {
+                    colorClass = 'bg-gradient-to-r from-primary/20 to-amber-500/10 hover:from-primary/30 hover:to-amber-500/15 hover:border-primary/20';
+                  }
+
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-start gap-3 p-4 rounded-lg transition-colors border border-transparent ${colorClass}`}
+                    >
+                      {getInsightIcon(bullet)}
+                      <span className="text-sm leading-relaxed">{bullet}</span>
+                    </div>
+                  );
+                })
               )}
             </div>
           </CardContent>
