@@ -52,15 +52,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           console.error('Error checking existing research:', error);
         } else if (data) {
           setResearchData(data);
-          
-          // Sort news and insights if they exist
-          if (data.news_highlights && Array.isArray(data.news_highlights)) {
-            data.news_highlights = sortNewsByDate(data.news_highlights);
-          }
-          
-          if (data.market_insights && Array.isArray(data.market_insights)) {
-            data.market_insights = sortInsightsByDate(data.market_insights);
-          }
         }
       } catch (error) {
         console.error('Error in checkExistingResearch:', error);
@@ -70,68 +61,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     };
     
     checkExistingResearch();
-    
-    // Auto-request market research when the component mounts with a 1-second delay
-    const timer = setTimeout(() => {
-      if (!isCheckingExisting && !researchData) {
-        handleRequestResearch();
-      }
-    }, 1000); // 1 second delay
-    
-    return () => clearTimeout(timer);
-  }, [companyId, isCheckingExisting]);
-
-  // Helper function to sort news by date in descending order
-  const sortNewsByDate = (news: any[]) => {
-    return [...news].sort((a, b) => {
-      // Extract dates from either source or content
-      const dateA = extractDateFromNews(a);
-      const dateB = extractDateFromNews(b);
-      
-      if (!dateA && !dateB) return 0;
-      if (!dateA) return 1;
-      if (!dateB) return -1;
-      
-      // Compare dates in descending order (newest first)
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-  };
-  
-  // Helper function to sort insights by date in descending order
-  const sortInsightsByDate = (insights: any[]) => {
-    return [...insights].sort((a, b) => {
-      // Extract dates from either source or content
-      const dateA = extractDateFromNews(a);
-      const dateB = extractDateFromNews(b);
-      
-      if (!dateA && !dateB) return 0;
-      if (!dateA) return 1;
-      if (!dateB) return -1;
-      
-      // Compare dates in descending order (newest first)
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-  };
-  
-  // Helper function to extract date from news or insight item
-  const extractDateFromNews = (item: any) => {
-    // Look for date in various formats and properties
-    if (item.date) return item.date;
-    
-    if (item.source && typeof item.source === 'string') {
-      // Try to extract date from source string like "CNN (May 5, 2023)"
-      const dateMatch = item.source.match(/\(([A-Za-z]+\s+\d+,?\s+\d{4})\)/);
-      if (dateMatch && dateMatch[1]) return dateMatch[1];
-    }
-    
-    if (item.content && typeof item.content === 'string') {
-      // Try to extract date from content if it contains a date pattern
-      const dateMatch = item.content.match(/([A-Za-z]+\s+\d+,?\s+\d{4})/);
-      if (dateMatch && dateMatch[1]) return dateMatch[1];
-    }
-    
-    return null;
-  };
+  }, [companyId]);
 
   const handleRequestResearch = async () => {
     if (!companyId || !assessmentPoints || assessmentPoints.length === 0) {
@@ -167,15 +97,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           .single();
           
         if (!refreshError && refreshedData) {
-          // Sort news and insights before setting research data
-          if (refreshedData.news_highlights && Array.isArray(refreshedData.news_highlights)) {
-            refreshedData.news_highlights = sortNewsByDate(refreshedData.news_highlights);
-          }
-          
-          if (refreshedData.market_insights && Array.isArray(refreshedData.market_insights)) {
-            refreshedData.market_insights = sortInsightsByDate(refreshedData.market_insights);
-          }
-          
           setResearchData(refreshedData);
           setShowDetailView(true);
           toast.success("Research complete", {
@@ -183,15 +104,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           });
         } else {
           console.error('Error refreshing research data:', refreshError);
-          // Sort news and insights before setting research data
-          if (data.research.news_highlights && Array.isArray(data.research.news_highlights)) {
-            data.research.news_highlights = sortNewsByDate(data.research.news_highlights);
-          }
-          
-          if (data.research.market_insights && Array.isArray(data.research.market_insights)) {
-            data.research.market_insights = sortInsightsByDate(data.research.market_insights);
-          }
-          
           setResearchData(data.research);
           setShowDetailView(true);
         }
@@ -637,4 +549,3 @@ function formatResearchHtml(text: string): string {
             ${formatted}
           </div>`;
 }
-

@@ -68,8 +68,8 @@ const NewsFeed = () => {
           id: item.id,
           company_id: item.company_id,
           companyName: companyName,
-          market_insights: sortInsightsByDate(marketInsights),
-          news_highlights: sortNewsByDate(newsHighlights),
+          market_insights: marketInsights,
+          news_highlights: newsHighlights,
           created_at: item.requested_at
         };
       }) || [];
@@ -81,60 +81,6 @@ const NewsFeed = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Helper function to sort news items by date in descending order (newest first)
-  const sortNewsByDate = (news: NewsItem[]): NewsItem[] => {
-    if (!news || news.length === 0) return [];
-    
-    return [...news].sort((a, b) => {
-      // Extract dates from source or content
-      const dateA = extractDateFromItem(a);
-      const dateB = extractDateFromItem(b);
-      
-      if (!dateA && !dateB) return 0;
-      if (!dateA) return 1;
-      if (!dateB) return -1;
-      
-      // Compare dates in descending order (newest first)
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-  };
-  
-  // Helper function to sort insights by date in descending order (newest first)
-  const sortInsightsByDate = (insights: MarketInsight[]): MarketInsight[] => {
-    if (!insights || insights.length === 0) return [];
-    
-    return [...insights].sort((a, b) => {
-      // Extract dates from source or content
-      const dateA = extractDateFromItem(a);
-      const dateB = extractDateFromItem(b);
-      
-      if (!dateA && !dateB) return 0;
-      if (!dateA) return 1;
-      if (!dateB) return -1;
-      
-      // Compare dates in descending order (newest first)
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-  };
-  
-  // Helper function to extract date from news or insight item
-  const extractDateFromItem = (item: any): string | null => {
-    // Look for date in various formats and properties
-    if (item.source && typeof item.source === 'string') {
-      // Try to extract date from source string like "CNN (May 5, 2023)"
-      const dateMatch = item.source.match(/\(([A-Za-z]+\s+\d+,?\s+\d{4})\)/);
-      if (dateMatch && dateMatch[1]) return dateMatch[1];
-    }
-    
-    if (item.content && typeof item.content === 'string') {
-      // Try to extract date from content if it contains a date pattern
-      const dateMatch = item.content.match(/([A-Za-z]+\s+\d+,?\s+\d{4})/);
-      if (dateMatch && dateMatch[1]) return dateMatch[1];
-    }
-    
-    return null;
   };
 
   const handleBackClick = () => {
