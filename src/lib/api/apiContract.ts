@@ -18,6 +18,9 @@ export interface CompanyDetailed {
   perplexityResponse?: string;
   perplexityRequestedAt?: string;
   introduction?: string;
+  website?: string;
+  industry?: string;
+  stage?: string;
   createdAt?: string;
   updatedAt?: string;
 }
