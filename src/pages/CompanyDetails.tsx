@@ -50,6 +50,12 @@ function CompanyDetails() {
     );
   }
 
+  // Ensure we have values to display, using empty strings if properties are undefined
+  const websiteToShow = company.website || "";
+  const stageToShow = company.stage || "";
+  const industryToShow = company.industry || "";
+  const introductionToShow = company.introduction || "";
+
   return (
     <div className="container mx-auto px-4 pt-0 pb-6 animate-fade-in">
       {/* Back Button */}
@@ -66,10 +72,10 @@ function CompanyDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2">
           <CompanyInfoCard
-            website={company.website || ""}
-            stage={company.stage || ""}
-            industry={company.industry || ""}
-            introduction={company.introduction || ""}
+            website={websiteToShow}
+            stage={stageToShow}
+            industry={industryToShow}
+            introduction={introductionToShow}
           />
         </div>
         <div>
@@ -122,32 +128,32 @@ function CompanyDetails() {
             <div>
               <h3 className="font-medium mb-2">Description</h3>
               <p className="text-muted-foreground whitespace-pre-line">
-                {company.introduction || "No detailed description available."}
+                {introductionToShow || "No detailed description available."}
               </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <h3 className="font-medium mb-1">Industry</h3>
-                <p className="text-muted-foreground">{company.industry || "Not specified"}</p>
+                <p className="text-muted-foreground">{industryToShow || "Not specified"}</p>
               </div>
               
               <div>
                 <h3 className="font-medium mb-1">Stage</h3>
-                <p className="text-muted-foreground">{company.stage || "Not specified"}</p>
+                <p className="text-muted-foreground">{stageToShow || "Not specified"}</p>
               </div>
               
               <div>
                 <h3 className="font-medium mb-1">Website</h3>
                 <p className="text-muted-foreground">
-                  {company.website ? (
+                  {websiteToShow ? (
                     <a 
-                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
+                      href={websiteToShow.startsWith('http') ? websiteToShow : `https://${websiteToShow}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-primary hover:underline"
                     >
-                      {company.website}
+                      {websiteToShow}
                     </a>
                   ) : (
                     "Not available"

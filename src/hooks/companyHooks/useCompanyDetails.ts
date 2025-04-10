@@ -50,29 +50,35 @@ export function useCompanyDetails(companyId: string | undefined) {
           if (companyData) {
             console.log('Found company by direct UUID lookup:', companyData);
             const transformedCompany = transformCompanyData(companyData);
+            setCompany(transformedCompany);
             
-            // Check if we need to wait for company details to be available
-            if (!transformedCompany.introduction || !transformedCompany.website || !transformedCompany.stage || !transformedCompany.industry) {
-              // If details are missing, retry once after a short delay
-              setTimeout(async () => {
-                const { data: refreshData, error: refreshError } = await supabase
-                  .from('companies')
-                  .select(`
-                    *, 
-                    sections(*),
-                    company_details(*)
-                  `)
-                  .eq('id', companyId)
-                  .maybeSingle();
-                  
-                if (!refreshError && refreshData) {
-                  console.log('Refreshed company data after delay:', refreshData);
-                  setCompany(transformCompanyData(refreshData));
-                }
-              }, 1000);
+            // Fetch company details if they're not fully loaded in the first query
+            if (!transformedCompany.website || !transformedCompany.stage || !transformedCompany.industry) {
+              console.log('Company details are missing or incomplete, checking company_details table directly');
+              
+              const { data: detailsData, error: detailsError } = await supabase
+                .from('company_details')
+                .select('*')
+                .eq('company_id', companyId)
+                .maybeSingle();
+                
+              if (!detailsError && detailsData) {
+                console.log('Found additional company details:', detailsData);
+                
+                // Update the company with the additional details
+                setCompany(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    website: detailsData.website || prev.website || "",
+                    industry: detailsData.industry || prev.industry || "",
+                    stage: detailsData.stage || prev.stage || "",
+                    introduction: detailsData.introduction || prev.introduction || ""
+                  };
+                });
+              }
             }
             
-            setCompany(transformedCompany);
             setIsLoading(false);
             return;
           }
@@ -115,25 +121,31 @@ export function useCompanyDetails(companyId: string | undefined) {
             console.log('Successfully fetched company details:', companyData);
             const transformedCompany = transformCompanyData(companyData);
             
-            // Check if we need to wait for company details to be available
-            if (!transformedCompany.introduction || !transformedCompany.website || !transformedCompany.stage || !transformedCompany.industry) {
-              // If details are missing, retry once after a short delay
-              setTimeout(async () => {
-                const { data: refreshData, error: refreshError } = await supabase
-                  .from('companies')
-                  .select(`
-                    *, 
-                    sections(*),
-                    company_details(*)
-                  `)
-                  .eq('id', companyUuid)
-                  .maybeSingle();
-                  
-                if (!refreshError && refreshData) {
-                  console.log('Refreshed company data after delay:', refreshData);
-                  setCompany(transformCompanyData(refreshData));
-                }
-              }, 1000);
+            // Fetch company details if they're not fully loaded in the first query
+            if (!transformedCompany.website || !transformedCompany.stage || !transformedCompany.industry) {
+              console.log('Company details are missing or incomplete, checking company_details table directly');
+              
+              const { data: detailsData, error: detailsError } = await supabase
+                .from('company_details')
+                .select('*')
+                .eq('company_id', companyUuid)
+                .maybeSingle();
+                
+              if (!detailsError && detailsData) {
+                console.log('Found additional company details:', detailsData);
+                
+                // Update the company with the additional details
+                setCompany(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    website: detailsData.website || prev.website || "",
+                    industry: detailsData.industry || prev.industry || "",
+                    stage: detailsData.stage || prev.stage || "",
+                    introduction: detailsData.introduction || prev.introduction || ""
+                  };
+                });
+              }
             }
             
             setCompany(transformedCompany);
@@ -166,6 +178,10 @@ export function useCompanyDetails(companyId: string | undefined) {
     // Extract company_details if they exist
     const companyDetails = rawData.company_details?.[0] || {};
     
+    // Console log for debugging
+    console.log('Raw company data:', rawData);
+    console.log('Company details:', companyDetails);
+    
     return {
       id: rawData.id,
       name: rawData.name,
@@ -183,11 +199,11 @@ export function useCompanyDetails(companyId: string | undefined) {
         createdAt: section.created_at,
         updatedAt: section.updated_at,
       })) || [],
-      // Incorporate company details information
-      introduction: companyDetails.introduction || rawData.introduction || "",
+      // Explicitly incorporate company details information 
       website: companyDetails.website || "",
       industry: companyDetails.industry || "",
       stage: companyDetails.stage || "",
+      introduction: companyDetails.introduction || rawData.introduction || "",
       createdAt: rawData.created_at,
       updatedAt: rawData.updated_at,
     };
