@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -100,146 +101,6 @@ const NewsFeed = () => {
     return text.replace(/\*\*/g, '');
   };
 
-  // Improved function to extract date from news or insight item
-  const extractDateFromItem = (item: any): Date | null => {
-    if (!item) return null;
-    
-    // Look for date patterns in content and source
-    // Check for common date formats
-    const datePatterns = [
-      // Full month name with year and optional day: January 2024, 15 January 2024
-      /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b/i,
-      // Day with month name: 15th January, January 15th
-      /\b\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b/i,
-      // Month name with year: January 2024
-      /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4}\b/i,
-      // ISO date format: 2024-01-15
-      /\d{4}-\d{2}-\d{2}/,
-      // MM/DD/YYYY or DD/MM/YYYY format
-      /\d{1,2}\/\d{1,2}\/\d{4}/,
-      // Month abbreviation with day and year: 15 Jan 2024, Jan 15 2024
-      /\b(?:\d{1,2}\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(?:\d{1,2},?\s+)?\d{4}\b/i,
-      // Just year (last resort, less reliable)
-      /\b(20\d{2})\b/
-    ];
-    
-    let dateStr = '';
-    let sourceStr = '';
-    
-    // First check content
-    if (item.content) {
-      for (const pattern of datePatterns) {
-        const match = item.content.match(pattern);
-        if (match) {
-          dateStr = match[0];
-          break;
-        }
-      }
-    }
-    
-    // If no date in content, check source
-    if (!dateStr && item.source) {
-      sourceStr = item.source;
-      
-      // Extract date portion from source format like "Source Name (Location, Date)"
-      const sourceMatch = sourceStr.match(/\(([^,]+),\s*([^)]+)\)/);
-      if (sourceMatch && sourceMatch[2]) {
-        dateStr = sourceMatch[2].trim();
-      } else {
-        // Try to find any date pattern in the source
-        for (const pattern of datePatterns) {
-          const match = sourceStr.match(pattern);
-          if (match) {
-            dateStr = match[0];
-            break;
-          }
-        }
-      }
-    }
-    
-    // If no date in source, check headline as last resort
-    if (!dateStr && item.headline) {
-      for (const pattern of datePatterns) {
-        const match = item.headline.match(pattern);
-        if (match) {
-          dateStr = match[0];
-          break;
-        }
-      }
-    }
-    
-    // Try to parse the date
-    if (dateStr) {
-      try {
-        // Try direct parsing first
-        let parsedDate = new Date(dateStr);
-        
-        // If date is invalid, try more specific parsing based on format
-        if (isNaN(parsedDate.getTime())) {
-          // Handle "Month Day, Year" format
-          const monthDayYearMatch = dateStr.match(/(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/);
-          if (monthDayYearMatch) {
-            const month = monthDayYearMatch[1];
-            const day = parseInt(monthDayYearMatch[2]);
-            const year = parseInt(monthDayYearMatch[3]);
-            
-            const monthIndex = [
-              'january', 'february', 'march', 'april', 'may', 'june', 
-              'july', 'august', 'september', 'october', 'november', 'december'
-            ].findIndex(m => month.toLowerCase().startsWith(m.substring(0, 3)));
-            
-            if (monthIndex !== -1) {
-              parsedDate = new Date(year, monthIndex, day);
-            }
-          }
-          
-          // Handle DD/MM/YYYY format
-          const ddmmyyyyMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-          if (ddmmyyyyMatch) {
-            const day = parseInt(ddmmyyyyMatch[1]);
-            const month = parseInt(ddmmyyyyMatch[2]) - 1; // JS months are 0-based
-            const year = parseInt(ddmmyyyyMatch[3]);
-            parsedDate = new Date(year, month, day);
-          }
-        }
-        
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate;
-        }
-      } catch (e) {
-        console.log("Error parsing date:", e);
-      }
-    }
-    
-    // If we couldn't extract a date or the date is invalid,
-    // use a fallback approach: set a default date based on the index
-    // This ensures consistent but arbitrary ordering when no date is found
-    return null;
-  };
-
-  // Sort news by date (newest first)
-  const sortByDate = (items: any[]): any[] => {
-    if (!items || !Array.isArray(items)) return [];
-    
-    return [...items].sort((a, b) => {
-      // Extract dates from content or publication info
-      const aDate = extractDateFromItem(a);
-      const bDate = extractDateFromItem(b);
-      
-      // If both dates are valid, compare them
-      if (aDate && bDate) {
-        return bDate.getTime() - aDate.getTime();
-      }
-      
-      // If only one has a valid date, prioritize the one with a date
-      if (aDate) return -1;
-      if (bDate) return 1;
-      
-      // If neither has a valid date, keep original order
-      return 0;
-    });
-  };
-
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
@@ -268,7 +129,7 @@ const NewsFeed = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {researches.flatMap(research => 
                 (research.news_highlights && research.news_highlights.length > 0) ? 
-                  sortByDate(research.news_highlights).map((news, index) => (
+                  research.news_highlights.map((news, index) => (
                     <Card key={`${research.id}-news-${index}`} className="h-full">
                       <CardHeader>
                         <CardTitle className="line-clamp-2">{removeDoubleStars(news.headline)}</CardTitle>
@@ -311,7 +172,7 @@ const NewsFeed = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {researches.flatMap(research => 
                 (research.market_insights && research.market_insights.length > 0) ?
-                  sortByDate(research.market_insights).map((insight, index) => (
+                  research.market_insights.map((insight, index) => (
                     <Card key={`${research.id}-insight-${index}`} className="h-full">
                       <CardHeader>
                         <CardTitle className="line-clamp-2">{removeDoubleStars(insight.headline)}</CardTitle>
