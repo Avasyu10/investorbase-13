@@ -71,12 +71,12 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     
     checkExistingResearch();
     
-    // Auto-request market research when the component mounts
+    // Auto-request market research when the component mounts with a 1-second delay
     const timer = setTimeout(() => {
-      if (!isCheckingExisting) {
+      if (!isCheckingExisting && !researchData) {
         handleRequestResearch();
       }
-    }, 500); // Short delay to ensure checking is complete
+    }, 1000); // 1 second delay
     
     return () => clearTimeout(timer);
   }, [companyId, isCheckingExisting]);
