@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,7 +38,7 @@ type CompanyData = {
     company_name: string;
     similarity_score: number | null;
   }>;
-  company_employee_reviews_aggregate_score?: number;
+  company_employee_reviews_aggregate_score?: number | null;
 };
 
 const CompanyDetailPage = () => {
@@ -362,7 +363,7 @@ const CompanyDetailPage = () => {
                         <p className="text-foreground">{response.hq_location}</p>
                       </div>
                     )}
-                    {response.company_employee_reviews_aggregate_score !== undefined && (
+                    {response.company_employee_reviews_aggregate_score !== undefined && response.company_employee_reviews_aggregate_score !== null && (
                       <div>
                         <h4 className="font-medium text-sm text-gold">Employee Rating</h4>
                         <p className="text-foreground">{response.company_employee_reviews_aggregate_score.toFixed(1)} / 5</p>
