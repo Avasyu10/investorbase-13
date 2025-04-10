@@ -88,23 +88,32 @@ serve(async (req) => {
     
     const existingAnalysis = await existingAnalysisResponse.json();
     
+    // Only return existing analysis if it's less than 1 hour old
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    
     if (existingAnalysis && existingAnalysis.length > 0) {
-      // Return existing analysis
-      console.log('Found existing analysis, returning it');
-      return new Response(
-        JSON.stringify({ 
-          analysis: existingAnalysis[0].analysis_text,
-          prompt_sent: existingAnalysis[0].prompt_sent,
-          response_received: existingAnalysis[0].response_received
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
-      );
+      const analysisDate = new Date(existingAnalysis[0].created_at);
+      // If analysis exists but is older than 1 hour, we'll generate a new one
+      if (analysisDate > oneHourAgo) {
+        // Return existing recent analysis
+        console.log('Found recent existing analysis, returning it');
+        return new Response(
+          JSON.stringify({ 
+            analysis: existingAnalysis[0].analysis_text,
+            prompt_sent: existingAnalysis[0].prompt_sent,
+            response_received: existingAnalysis[0].response_received
+          }), 
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        );
+      }
+      console.log('Existing analysis is older than 1 hour, generating new one');
+    } else {
+      console.log('No existing analysis found, creating new one');
     }
-
-    console.log('No existing analysis found, creating new one');
 
     // Fetch the fund thesis document
     console.log('Fetching fund thesis document');
@@ -239,6 +248,20 @@ serve(async (req) => {
     
     const companyData = await companyResponse.json();
     const company = companyData[0] || {};
+
+    // Get company details for more specific context
+    const companyDetailsResponse = await fetch(`${SUPABASE_URL}/rest/v1/company_details?company_id=eq.${company_id}&select=*`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY as string,
+      }
+    });
+    
+    let companyDetails = {};
+    if (companyDetailsResponse.ok) {
+      const detailsData = await companyDetailsResponse.json();
+      companyDetails = detailsData[0] || {};
+    }
     
     // Get the fund thesis as blob and convert to base64
     const fundThesisBlob = await fundThesisResponse.blob();
@@ -266,6 +289,7 @@ serve(async (req) => {
       GEMINI_API_KEY,
       fundThesisBase64,
       company,
+      companyDetails,
       enrichedSections,
       company_id,
       user_id,
@@ -303,6 +327,7 @@ async function processWithGemini(
   GEMINI_API_KEY: string,
   fundThesisBase64: string,
   company: any,
+  companyDetails: any,
   sections: any[],
   company_id: string,
   user_id: string,
@@ -326,419 +351,189 @@ ${section.weaknesses.map(w => `- ${w}`).join('\n') || '- None listed.'}
   // Add company overall info
   const companyInfo = `
 COMPANY NAME: ${company.name || 'Unnamed'}
+COMPANY INDUSTRY: ${companyDetails.industry || 'Unspecified'}
+COMPANY STAGE: ${companyDetails.stage || 'Early Stage'}
+COMPANY INTRODUCTION: ${companyDetails.introduction || ''}
+WEBSITE: ${companyDetails.website || ''}
 OVERALL SCORE: ${company.overall_score || 'Not rated'}/5
 ASSESSMENT POINTS:
 ${company.assessment_points?.map((point: string) => `- ${point}`).join('\n') || '- None listed.'}
 `;
 
-  // Prepare the prompt for Gemini - Using the same framework but with sections data
-  const promptText = `You are an expert venture capital analyst. Analyze how well the company aligns with the fund thesis. 
-Use the following framework to calculate a Synergy Score:
+  // Prepare the prompt for Gemini - Using more specific and detailed instructions
+  const promptText = `You are an expert venture capital analyst specialized in thesis alignment. Analyze the provided Fund Thesis PDF document and compare it with the detailed company information to determine how well the company aligns with the investor's thesis.
 
-               STARTUP EVALUATION FRAMEWORK:
- 1. Score a startup's fundamentals (Problem, Market, Product, etc.)
- 2. Incorporate cross-sectional synergy (how various sections reinforce or
- undermine each other)
- 3. Adjust for risk factors relevant to the startup's stage and the investor's
- thesis
- The end result is a Composite Score that helps analysts quickly compare
- different deals and identify critical areas of further due diligence.
- 4. KEY SECTIONS & WEIGHTS
- Traditionally, a pitch deck is divided into 10 sections:
- 1) Problem
- 2) Market
- 3) Solution (Product)
- 4) Competitive Landscape
- 5) Traction
- 6) Business Model
- 7) Go-to-Market Strategy
- 8) Team
- 9) Financials
- 10) The Ask
- (AN EXAMPLE )From an investor'sperspective, typical base weights(before any risk adjustment) might look like this -
- Section Baseline Weight (W_i)
- 1) Problem 5–10%
- 2) Market 15–20%
- 3) Solution / Product 15–20%
- 4) Competitive Landscape 5–10%
- 5) Traction 10–15%
- 6) Business Model 10–15%
- 7) Go-to-Market Strategy 10–15%
- 8) Team 10–15%
- 9) Financials 5–10%
- 10) The Ask 5%
- 
- 5. BASELINE SECTION SCORING
- Each section is further broken down into sub-criteria. For instance, Market
- might have:
- • Market Size (TAM / SAM / SOM)
- • Market Growth / Trends
- • Competitive Market Dynamics
- Each sub-criterion is scored on a 1–5 scale (or 1–10 if more granularity is
- desired). For example, on a 1–5 scale:
- • 1 = Poor / Missing
- • 2 = Weak / Unsatisfactory
- • 3 = Adequate / Meets Minimum
- • 4 = Good / Above Average
- • 5 = Excellent / Best-in-Class
- Each sub-criterion has a local weight such that all sub-criteria within a section
- sum to 1.0 (100%).
- 5.1 Formula for Section Score
- Scorei =
- ni
- j=1
- wij ×Ratingij
- Where:
- • i is the section index (1 to 10).
- • j runs over the sub-criteria in section i.
- • wij is the weight of the j-th sub-criterion in section i.
- • Ratingij is the 1–5 score assigned to that sub-criterion.
- Each Scorei also ends up in the 1–5 range (assuming the sub-criteria weights
- sum to 1).
- 6. CROSS-SECTIONAL SYNERGY
- 6.1 Why Synergy Matters
- A startup might score high on "Product" but low on "Go-to-Market." In isolation,
- those two sections might look acceptable, but if the startup cannot actually
- acquire customers to use its otherwise excellent product, the overall opportunity
- is weaker.
- 6.2 Defining the Synergy Index
- We define a set of section pairs that we believe mustinteract well. Examples
- include:
- • (Market, Problem): Is there a real, large market for the stated problem?
- • (Solution, Competitive Landscape): Is the product truly differentiated
- or easily cloned?
- • (Business Model, Financials): Does the revenue model match the
- financial projections?
- • (Traction, Go-to-Market): Can the traction so far be scaled using the
- proposed strategy?
- Each pair (i,k) in Shas a synergy weight Sik . Then we define a synergy
- function f(·):
- f(Scorei,Scorek ) = Scorei ×Scorek
- (if using a 1–5 scale)
- This means synergy is highest when both sections are rated high, and it's
- lowest when either one is low (multiplicative effect).
- SynergyIndex=
- (Sik ×f(Scorei,Scorek ))
- (i,k)∈S
- 6.3 Synergy Normalization & Weight (λ)
- To incorporate synergy into the final score, we introduce a calibration factor
- λ that determines how heavily synergy affects the overall rating:
- Synergy Contribution= λ×SynergyIndex
- If synergy is extremely important to your fund's thesis (e.g., you invest only in
- startups that demonstrate a tightly integrated plan), set λ higher (e.g., 0.3). If
- synergy is just a minor supplement, set it lower (e.g., 0.1).
- 7. RISK-ADJUSTED WEIGHTING
- 7.1 Rationale
- Not all sections carry the same level of risk. If a startup's technology is
- unproven, the "Product" or "Traction" sections might be inherently riskier.
- Meanwhile, a strong, experienced team may reduce the risk associated with
- execution.
- 7.2 Risk Factor (Ri)
- For each section i, assign a risk factor Ri in a range (e.g., [−0.3,+0.3] or
- [−1,+1]):
- • Positive Ri: Above-average risk (we should weigh this section more).
- • Negative Ri: Below-average risk (the item is less likely to derail the
- company).
- We use Ri to adjust the baseline weight Wi:
- ∼
- Wi = Wi ×
- 1 + Ri
- 10
- m=1 (Wm ×(1 + Rm))
- This re-normalizes weights so they still sum to 1.0 across all 10 sections but
- magnifies or diminishes each section proportionally to its risk.
- 8. FINAL COMPOSITE SCORE
- 8.1 Assembling All Components
- We combine:
- 1. Baseline Section Scores (Scorei)
- 2. Risk-Adjusted Weights∼
- Wi
- 3. Synergy Contribution (λ×SynergyIndex)
- Composite Score=
- 10
- i=1
- ∼
- Wi ×Scorei + (λ×SynergyIndex)
- 8.2 Interpretation
- • 4.5 – 5.0: High conviction. Likely candidate for deeper diligence or
- immediate term sheet.
- • 3.5 – 4.4: Promising but some concerns. Requires targeted due diligence
- and possibly negotiation of protective terms.
- 4
- • 2.5 – 3.4: Moderate to high risk or synergy gaps. Needs major improve-
- ments or might not meet your fund's return threshold.
- • < 2.5: Weak opportunity. High risk and minimal synergy—probably pass.
- 9. SCENARIO & SENSITIVITY ANALYSIS
- 9.1 Identifying Key Assumptions
- Before finalizing an investment decision, identify critical assumptions that
- drive the composite score:
- 1) Market Size (Is TAM validated or just founder optimism?)
- 2) Growth / Traction (Can they continue to grow at the stated rate?)
- 3) Valuation (Is the ask fair? Does the pricing still make sense if growth
- slows?)
- 9.2 Best-, Base-, and Worst-Case Scenarios
- Re-score key sections under different assumptions:
- • Best-Case: The startup's claims hold up, synergy is high, minimal risk is
- realized.
- • Base-Case: More conservative growth or market size.
- • Worst-Case: Competition intensifies, traction lags, synergy breaks down.
- This reveals how sensitive the final composite score is to changes in a few key
- variables—providing risk exposure insights.
- 10. EXAMPLE IMPLEMENTATION
- Startup Alpha claims a large market and moderate traction. You score it as
- follows (1–5 scale):
- Section
- Baseline
- Weight (Wi)
- Sub-Criteria
- (Examples) Scores Section Score
- 1. Problem
- (5%)
- 0.05 - Severity of
- Pain (40%)-
- Timeliness
- (60%)
- (4, 5) 4.6
- 5
- Section
- Baseline
- Weight (Wi)
- Sub-Criteria
- (Examples) Scores Section Score
- 2. Market
- (15%)
- 3. Product
- (15%)
- 4.
- Competitive
- (10%)
- 5. Traction
- (10%)
- 6. Business
- Model (10%)
- 7. Go-to-
- Market (10%)
- 8. Team
- (10%)
- 9. Financials
- (5%)
- 10. The Ask
- (5%)
- 0.15 - TAM /
- SAM (50%)-
- Growth &
- Trends (50%)
- 0.15 - USP (40%)-
- Product
- Readiness
- (60%)
- 0.10 - Competitor
- Mapping
- (50%)- Differ-
- entiation
- (50%)
- 0.10 - Customer
- Adoption
- (50%)- Met-
- rics/Revenue
- (50%)
- 0.10 - Revenue
- Streams
- (50%)-
- Scalability
- (50%)
- 0.10 - Chan-
- nels/Strategy
- (50%)-
- Milestones
- (50%)
- 0.10 - Experience
- (50%)- Com-
- plementarity
- (50%)
- 0.05 - Forecast
- Accuracy
- (50%)- Burn
- Rate (50%)
- 0.05 - Valuation
- Rationale
- (50%)- Fund
- Usage (50%)
- (4, 4) 4.0
- (3, 4) 3.4
- (3, 3) 3.0
- (3, 3) 3.0
- (3, 4) 3.5
- (2, 3) 2.5
- (5, 4) 4.5
- (3, 2) 2.5
- (3, 3) 3.0
- • Risk Factors (Ri):
- – Product = +0.2 (new tech, not fully validated)
- – Go-to-Market = +0.3 (untested approach)
- – Financials = +0.1 (assumptions unclear)
- – Team = -0.2 (strong track record, reducing risk)
- • Synergy Pairs & Weights (Sik ):
- – (Market, Problem) = 0.10
- – (Product, Competitive) = 0.15
- – (Traction, Go-to-Market) = 0.20
- – (Business Model, Financials) = 0.10
- • For synergy function:
- f(Scorei,Scorek ) = Scorei ×Scorek
- 1. Calculate Risk-Adjusted Weights (∼
- Wi)
- • For example, if Go-to-Market has WGT M = 0.10 and RGT M = +0.3,
- its effective weight is raised.
- 2. Calculate SynergyIndex
- • E.g., (Traction = 3.0,Go-to-Market = 2.5) → f(3.0,2.5) = (3.0 ×
- 2.5)/5 = 1.5. Weighted by 0.20 → 0.30 synergy contribution from
- that pair.
- NOTE - Combine them to get the Composite Score.
- APPENDICES
- Appendix A: Detailed Sub-Criteria Examples
- 1. Market
- • Market Size Accuracy (50%)
- • Market Growth Rate & Trends (30%)
- • Adjacent Market Opportunities (20%)
- 2. Traction
- • Monthly or Quarterly Growth Rate (40%)
- • Paying Customers or Pilot Partnerships (30%)
- • Churn / Retention / Engagement (30%)
- 3. Team
- • Past Startup Experience (40%)
- • Domain Expertise (30%)
- 7
- • Commitment & Advisory Board (30%)
- (. . . and so on for other sections.)
- Appendix B: Example Risk Factor Scale
- • -0.3: Extremely low risk (established moat, strong traction, proven team)
- • -0.1: Below-average risk
- • 0: Neutral risk
- • +0.1: Some concerns
- • +0.3: Significant risk (unproven assumptions, early technology, etc.)
- Appendix C: Synergy Pairs (Common Examples)
- • (Problem, Market)
- • (Solution, Competitive Landscape)
- • (Business Model, Financials)
- • (Traction, Go-to-Market)
- • (Team, All Other Sections) – sometimes scored if the team's skillset is
- critical to overcoming certain market or product challenges.
+FUND THESIS DOCUMENT: [PDF document uploaded and provided as base64]
 
-CALCULATE THE FINAL SYNERGY SCORE ON A SCALE OF 1-5.
-
-NOW, create a detailed analysis with the following structure:
-
-**1. Overall Summary**
-
-Start with "**Synergy Score:** X.X/5" on its own line, where X.X is a score from 1.0 to 5.0 that represents how well the company aligns with the fund thesis.
-
-Then provide 2-3 paragraphs summarizing the overall alignment between the company and the fund thesis. Be specific about strengths and weaknesses in the alignment.
-
-**2. Key Similarities**
-
-List 3-5 bullet points describing specific areas where the company aligns well with the fund thesis priorities. Each bullet point should be detailed and specific, not generic.
-
-**3. Key Differences**
-
-List 3-6 bullet points highlighting specific areas where the company diverges from or fails to address key elements of the fund thesis. Be detailed and suggest what could be improved to better align with the investor's priorities.
-
-Make your analysis substantive, data-driven, and specific to both documents. Avoid generic statements that could apply to any company or fund thesis.
-
-Fund Thesis PDF Content:
-${fundThesisBase64}
-
-Company Information:
+COMPANY INFORMATION:
 ${companyInfo}
 
-Company Sections Analysis:
-${sectionsInfo}`;
+DETAILED COMPANY ASSESSMENT:
+${sectionsInfo}
 
-  console.log('Calling Gemini API to analyze alignment');
-  // Call Gemini to analyze alignment
-  const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-  const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
+ANALYSIS TASK:
+1. Thoroughly analyze both the fund thesis document and company information
+2. Identify SPECIFIC and CONCRETE points of alignment and divergence
+3. Focus on industry preferences, stage focus, market size requirements, geographic preferences, founder criteria, and business model preferences
+4. Evaluate the overall synergy between the fund thesis and the company
 
-  const geminiResponse = await fetch(urlWithApiKey, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
+YOUR RESPONSE MUST INCLUDE:
+
+1. Overall Summary
+- Provide a detailed analysis of how well the company fits with the fund's investment thesis
+- Evaluate the strength of the alignment using specific examples from both the thesis and company data
+- Assign a Synergy Score from 0.0 to 5.0 (with one decimal place) that reflects the degree of alignment
+
+2. Key Similarities
+- List SPECIFIC ways this company aligns with investment preferences stated in the fund thesis
+- Include explicit examples from both the thesis document and company information
+- Focus on concrete matching criteria like industry, stage, business model, target market, etc.
+- DO NOT provide generic similarities that could apply to any company
+- Each similarity should reference SPECIFIC language or requirements from the fund thesis document
+
+3. Key Differences
+- Identify SPECIFIC divergences between what the fund thesis seeks and what this company offers
+- Include explicit examples from both the thesis document and company information
+- Focus on concrete mismatches in criteria like industry, stage, business model, target market, etc.
+- DO NOT provide generic differences that could apply to any mismatched company
+- Each difference should reference SPECIFIC language or requirements from the fund thesis document
+
+IMPORTANT FORMATTING REQUIREMENTS:
+- Format the response with clear section headers (1. Overall Summary, 2. Key Similarities, 3. Key Differences)
+- Include a "Synergy Score: X.X/5" in the Overall Summary section
+- Format Key Similarities and Key Differences as bullet points
+- Make your analysis specific to THIS company and THIS fund thesis - avoid generic statements
+- Include at least 3-5 specific similarities and 3-5 specific differences that directly reference content from the fund thesis
+
+EXAMPLE OF SPECIFIC SIMILARITY (Good):
+"The fund thesis specifically targets B2B SaaS companies with >$1M ARR, and CompanyX has achieved $1.5M ARR with their B2B SaaS platform for logistics management."
+
+EXAMPLE OF GENERIC SIMILARITY (Bad):
+"The fund invests in good companies, and this seems like a good company."
+
+EXAMPLE OF SPECIFIC DIFFERENCE (Good):
+"The fund thesis explicitly states a requirement for companies operating in North American markets, while CompanyX is primarily focused on Southeast Asian markets with no current US presence."
+
+EXAMPLE OF GENERIC DIFFERENCE (Bad):
+"The fund might be looking for different types of companies than this one."
+
+Ensure your analysis is data-driven, specific, and directly references both the fund thesis document content and the company details provided.`;
+
+  try {
+    console.log("Calling Gemini API for thesis alignment analysis");
+    
+    // Track the start time for calculating processing duration
+    const startTime = new Date();
+    
+    // Save the prompt to the database before making the API call
+    const promptSent = promptText;
+    
+    // Prepare the Gemini API request
+    const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
+    const urlWithApiKey = `${geminiEndpoint}?key=${GEMINI_API_KEY}`;
+    
+    try {
+      // Call Gemini API
+      const geminiResponse = await fetch(urlWithApiKey, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
             {
-              text: promptText
+              role: "user",
+              parts: [
+                { text: promptText },
+                {
+                  inline_data: {
+                    mime_type: "application/pdf",
+                    data: fundThesisBase64
+                  }
+                }
+              ]
             }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            topP: 0.8,
+            topK: 40,
+            maxOutputTokens: 4096
+          }
+        })
+      });
+      
+      // Process the response
+      if (!geminiResponse.ok) {
+        const errorData = await geminiResponse.json();
+        console.error("Gemini API error:", errorData);
+        throw new Error(errorData.error?.message || "Error calling Gemini API");
       }
-    }),
-  });
-
-  if (!geminiResponse.ok) {
-    const errorText = await geminiResponse.text();
-    console.error('Gemini API error:', errorText);
-    throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
+      
+      const geminiData = await geminiResponse.json();
+      console.log("Gemini API response received");
+      
+      // Extract the analysis text
+      let analysisText = "";
+      if (geminiData.candidates && geminiData.candidates.length > 0 && 
+          geminiData.candidates[0].content && geminiData.candidates[0].content.parts) {
+        analysisText = geminiData.candidates[0].content.parts[0].text;
+      }
+      
+      if (!analysisText) {
+        throw new Error("Empty response from Gemini API");
+      }
+      
+      console.log("Analysis length:", analysisText.length);
+      console.log("Analysis preview:", analysisText.substring(0, 200) + "...");
+      
+      // Calculate processing time
+      const endTime = new Date();
+      const processingTimeMs = endTime.getTime() - startTime.getTime();
+      console.log(`Analysis completed in ${processingTimeMs}ms`);
+      
+      // Store the response in the database
+      console.log("Storing analysis in database");
+      const { data: insertData, error: insertError } = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          company_id,
+          user_id,
+          analysis_text: analysisText,
+          prompt_sent: promptSent,
+          response_received: JSON.stringify(geminiData)
+        })
+      }).then(res => res.json());
+      
+      if (insertError) {
+        console.error("Error storing analysis:", insertError);
+      } else {
+        console.log("Analysis stored successfully");
+      }
+      
+      // Return the analysis to the client
+      return new Response(JSON.stringify({ 
+        analysis: analysisText,
+        prompt_sent: promptSent,
+        response_received: JSON.stringify(geminiData),
+        processing_time_ms: processingTimeMs
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+      
+    } catch (error) {
+      console.error("Error during Gemini API call:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in processWithGemini:", error);
+    throw error;
   }
-
-  const geminiData = await geminiResponse.json();
-  console.log('Received response from Gemini API');
-  
-  let analysisText = '';
-  let rawResponse = '';
-  
-  if (geminiData.candidates && geminiData.candidates.length > 0 && 
-      geminiData.candidates[0].content && geminiData.candidates[0].content.parts && 
-      geminiData.candidates[0].content.parts.length > 0) {
-    analysisText = geminiData.candidates[0].content.parts[0].text;
-    rawResponse = JSON.stringify(geminiData);
-    console.log('Analysis text length:', analysisText.length);
-    console.log('Analysis text sample:', analysisText.substring(0, 200));
-  } else {
-    console.error('Unexpected response format from Gemini API:', JSON.stringify(geminiData));
-    throw new Error('Unexpected response format from Gemini API');
-  }
-
-  // Store analysis in Supabase
-  console.log('Storing analysis in Supabase');
-  const supabaseStoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
-    method: 'POST',
-    headers: {
-      'Authorization': authHeader,
-      'apikey': SUPABASE_ANON_KEY as string,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
-    body: JSON.stringify({
-      company_id,
-      user_id,
-      analysis_text: analysisText,
-      prompt_sent: promptText,
-      response_received: rawResponse
-    })
-  });
-
-  if (!supabaseStoreResponse.ok) {
-    const errorText = await supabaseStoreResponse.text();
-    console.error('Failed to store analysis:', errorText);
-    throw new Error(`Failed to store analysis: ${supabaseStoreResponse.status} - ${errorText}`);
-  }
-
-  const storedAnalysis = await supabaseStoreResponse.json();
-  console.log('Analysis stored successfully');
-
-  return new Response(JSON.stringify({ 
-    analysis: analysisText,
-    prompt_sent: promptText,
-    response_received: rawResponse,
-    storedAnalysis 
-  }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    status: 200
-  });
 }
