@@ -63,6 +63,23 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     checkExistingResearch();
   }, [companyId]);
 
+  // Add this new useEffect to automatically trigger the research request
+  useEffect(() => {
+    // Only auto-trigger if we're done checking and no research exists,
+    // or if research exists but isn't completed
+    if (!isCheckingExisting) {
+      const shouldAutoTrigger = !researchData || researchData.status !== 'completed';
+      if (shouldAutoTrigger) {
+        // Add a small delay to avoid UI glitches
+        const timer = setTimeout(() => {
+          handleRequestResearch();
+        }, 500);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isCheckingExisting, researchData]);
+
   const handleRequestResearch = async () => {
     if (!companyId || !assessmentPoints || assessmentPoints.length === 0) {
       toast.error("Missing company information", {
