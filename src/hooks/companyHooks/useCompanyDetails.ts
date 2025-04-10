@@ -17,7 +17,6 @@ export function useCompanyDetails(companyId: string | undefined) {
     
     fetchCompanyDetails();
     
-    // Include companyId in the dependency array to refetch when it changes
   }, [companyId]);
   
   async function fetchCompanyDetails() {
@@ -32,10 +31,14 @@ export function useCompanyDetails(companyId: string | undefined) {
         
         // First, check if the companyId is a full UUID (contains dashes)
         if (companyId && companyId.includes('-')) {
-          // Direct UUID lookup
+          // Direct UUID lookup - also fetch company_details table
           const { data: companyData, error: companyError } = await supabase
             .from('companies')
-            .select('*, sections(*)')
+            .select(`
+              *, 
+              sections(*),
+              company_details(*)
+            `)
             .eq('id', companyId)
             .maybeSingle();
             
@@ -46,7 +49,30 @@ export function useCompanyDetails(companyId: string | undefined) {
           
           if (companyData) {
             console.log('Found company by direct UUID lookup:', companyData);
-            setCompany(transformCompanyData(companyData));
+            const transformedCompany = transformCompanyData(companyData);
+            
+            // Check if we need to wait for company details to be available
+            if (!transformedCompany.introduction || !transformedCompany.website || !transformedCompany.stage || !transformedCompany.industry) {
+              // If details are missing, retry once after a short delay
+              setTimeout(async () => {
+                const { data: refreshData, error: refreshError } = await supabase
+                  .from('companies')
+                  .select(`
+                    *, 
+                    sections(*),
+                    company_details(*)
+                  `)
+                  .eq('id', companyId)
+                  .maybeSingle();
+                  
+                if (!refreshError && refreshData) {
+                  console.log('Refreshed company data after delay:', refreshData);
+                  setCompany(transformCompanyData(refreshData));
+                }
+              }, 1000);
+            }
+            
+            setCompany(transformedCompany);
             setIsLoading(false);
             return;
           }
@@ -72,7 +98,11 @@ export function useCompanyDetails(companyId: string | undefined) {
           
           const { data: companyData, error: companyError } = await supabase
             .from('companies')
-            .select('*, sections(*)')
+            .select(`
+              *, 
+              sections(*),
+              company_details(*)
+            `)
             .eq('id', companyUuid)
             .maybeSingle();
           
@@ -83,7 +113,30 @@ export function useCompanyDetails(companyId: string | undefined) {
           
           if (companyData) {
             console.log('Successfully fetched company details:', companyData);
-            setCompany(transformCompanyData(companyData));
+            const transformedCompany = transformCompanyData(companyData);
+            
+            // Check if we need to wait for company details to be available
+            if (!transformedCompany.introduction || !transformedCompany.website || !transformedCompany.stage || !transformedCompany.industry) {
+              // If details are missing, retry once after a short delay
+              setTimeout(async () => {
+                const { data: refreshData, error: refreshError } = await supabase
+                  .from('companies')
+                  .select(`
+                    *, 
+                    sections(*),
+                    company_details(*)
+                  `)
+                  .eq('id', companyUuid)
+                  .maybeSingle();
+                  
+                if (!refreshError && refreshData) {
+                  console.log('Refreshed company data after delay:', refreshData);
+                  setCompany(transformCompanyData(refreshData));
+                }
+              }, 1000);
+            }
+            
+            setCompany(transformedCompany);
             setIsLoading(false);
             return;
           }
@@ -110,6 +163,9 @@ export function useCompanyDetails(companyId: string | undefined) {
   }
   
   function transformCompanyData(rawData: any): CompanyDetailed {
+    // Extract company_details if they exist
+    const companyDetails = rawData.company_details?.[0] || {};
+    
     return {
       id: rawData.id,
       name: rawData.name,
@@ -127,6 +183,11 @@ export function useCompanyDetails(companyId: string | undefined) {
         createdAt: section.created_at,
         updatedAt: section.updated_at,
       })) || [],
+      // Incorporate company details information
+      introduction: companyDetails.introduction || rawData.introduction || "",
+      website: companyDetails.website || "",
+      industry: companyDetails.industry || "",
+      stage: companyDetails.stage || "",
       createdAt: rawData.created_at,
       updatedAt: rawData.updated_at,
     };

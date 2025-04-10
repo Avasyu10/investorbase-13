@@ -66,10 +66,10 @@ function CompanyDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2">
           <CompanyInfoCard
-            website=""
-            stage=""
-            industry=""
-            introduction={company?.introduction || ""}
+            website={company.website || ""}
+            stage={company.stage || ""}
+            industry={company.industry || ""}
+            introduction={company.introduction || ""}
           />
         </div>
         <div>
@@ -129,17 +129,30 @@ function CompanyDetails() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <h3 className="font-medium mb-1">Industry</h3>
-                <p className="text-muted-foreground">Not specified</p>
+                <p className="text-muted-foreground">{company.industry || "Not specified"}</p>
               </div>
               
               <div>
                 <h3 className="font-medium mb-1">Stage</h3>
-                <p className="text-muted-foreground">Not specified</p>
+                <p className="text-muted-foreground">{company.stage || "Not specified"}</p>
               </div>
               
               <div>
                 <h3 className="font-medium mb-1">Website</h3>
-                <p className="text-muted-foreground">Not available</p>
+                <p className="text-muted-foreground">
+                  {company.website ? (
+                    <a 
+                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {company.website}
+                    </a>
+                  ) : (
+                    "Not available"
+                  )}
+                </p>
               </div>
             </div>
           </div>
