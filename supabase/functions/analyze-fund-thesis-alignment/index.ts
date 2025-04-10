@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    const { company_id, user_id } = requestData;
+    const { company_id, user_id, force_refresh = false } = requestData;
 
     // Validate input
     if (!company_id || !user_id) {
@@ -88,11 +88,11 @@ serve(async (req) => {
     
     const existingAnalysis = await existingAnalysisResponse.json();
     
-    // Only return existing analysis if it's less than 1 hour old
+    // Only return existing analysis if not forcing refresh and it's less than 1 hour old
     const oneHourAgo = new Date();
     oneHourAgo.setHours(oneHourAgo.getHours() - 1);
     
-    if (existingAnalysis && existingAnalysis.length > 0) {
+    if (!force_refresh && existingAnalysis && existingAnalysis.length > 0) {
       const analysisDate = new Date(existingAnalysis[0].created_at);
       // If analysis exists but is older than 1 hour, we'll generate a new one
       if (analysisDate > oneHourAgo) {
@@ -110,9 +110,9 @@ serve(async (req) => {
           }
         );
       }
-      console.log('Existing analysis is older than 1 hour, generating new one');
+      console.log('Existing analysis is older than 1 hour or force_refresh requested, generating new one');
     } else {
-      console.log('No existing analysis found, creating new one');
+      console.log('No existing analysis found or force_refresh requested, creating new one');
     }
 
     // Fetch the fund thesis document
@@ -148,7 +148,24 @@ serve(async (req) => {
       );
     }
 
-    // Instead of fetching the pitch deck PDF, fetch the company sections data
+    // Check fund thesis document size
+    const fundThesisBlob = await fundThesisResponse.blob();
+    console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
+    
+    if (fundThesisBlob.size === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Fund thesis document is empty',
+          details: 'Please upload a valid fund thesis document in your profile settings'
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
+
+    // Fetch the company sections data
     console.log('Fetching company sections data');
     const sectionsResponse = await fetch(`${SUPABASE_URL}/rest/v1/sections?company_id=eq.${company_id}&select=*`, {
       headers: {
@@ -263,26 +280,24 @@ serve(async (req) => {
       companyDetails = detailsData[0] || {};
     }
     
-    // Get the fund thesis as blob and convert to base64
-    const fundThesisBlob = await fundThesisResponse.blob();
-    
-    console.log(`Fund thesis size: ${fundThesisBlob.size} bytes`);
-    
-    if (fundThesisBlob.size === 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Fund thesis document is empty',
-          details: 'Please upload a valid fund thesis document in your profile settings'
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      );
-    }
-    
     // Convert fund thesis blob to base64
     const fundThesisBase64 = await blobToBase64(fundThesisBlob);
+    
+    // Also get VC profile information
+    const vcProfileResponse = await fetch(`${SUPABASE_URL}/rest/v1/vc_profiles?id=eq.${user_id}&select=*`, {
+      headers: {
+        'Authorization': authHeader,
+        'apikey': SUPABASE_ANON_KEY as string,
+      }
+    });
+    
+    let vcProfile = {};
+    if (vcProfileResponse.ok) {
+      const profileData = await vcProfileResponse.json();
+      if (profileData && profileData.length > 0) {
+        vcProfile = profileData[0] || {};
+      }
+    }
     
     // Call Gemini and process the results
     return await processWithGemini(
@@ -291,6 +306,7 @@ serve(async (req) => {
       company,
       companyDetails,
       enrichedSections,
+      vcProfile,
       company_id,
       user_id,
       authHeader,
@@ -329,6 +345,7 @@ async function processWithGemini(
   company: any,
   companyDetails: any,
   sections: any[],
+  vcProfile: any,
   company_id: string,
   user_id: string,
   authHeader: string,
@@ -360,10 +377,20 @@ ASSESSMENT POINTS:
 ${company.assessment_points?.map((point: string) => `- ${point}`).join('\n') || '- None listed.'}
 `;
 
+  // Add VC profile info if available
+  const vcProfileInfo = vcProfile ? `
+VC FUND NAME: ${vcProfile.fund_name || 'Unnamed Fund'}
+INVESTMENT STAGES: ${vcProfile.investment_stage?.join(', ') || 'Not specified'}
+AREAS OF INTEREST: ${vcProfile.areas_of_interest?.join(', ') || 'Not specified'}
+FUND SIZE: ${vcProfile.fund_size || 'Not specified'}
+COMPANIES INVESTED: ${vcProfile.companies_invested?.join(', ') || 'Not specified'}
+` : '';
+
   // Prepare the prompt for Gemini - Using more specific and detailed instructions
-  const promptText = `You are an expert venture capital analyst specialized in thesis alignment. Analyze the provided Fund Thesis PDF document and compare it with the detailed company information to determine how well the company aligns with the investor's thesis.
+  const promptText = `You are an expert venture capital analyst specialized in thesis alignment. Your task is to analyze the provided Fund Thesis document (uploaded as PDF) and determine how well the company aligns with this investor's specific investment thesis.
 
 FUND THESIS DOCUMENT: [PDF document uploaded and provided as base64]
+${vcProfileInfo}
 
 COMPANY INFORMATION:
 ${companyInfo}
@@ -372,55 +399,50 @@ DETAILED COMPANY ASSESSMENT:
 ${sectionsInfo}
 
 ANALYSIS TASK:
-1. Thoroughly analyze both the fund thesis document and company information
-2. Identify SPECIFIC and CONCRETE points of alignment and divergence
-3. Focus on industry preferences, stage focus, market size requirements, geographic preferences, founder criteria, and business model preferences
-4. Evaluate the overall synergy between the fund thesis and the company
+1. DEEPLY analyze the fund thesis document - READ IT THOROUGHLY
+2. Compare specific elements from the fund thesis to the company details
+3. Identify CONCRETE and SPECIFIC points of alignment and divergence
+4. Focus on actual criteria mentioned in the thesis: industry preferences, stage focus, market size requirements, geographic preferences, founder criteria, business model preferences
 
 YOUR RESPONSE MUST INCLUDE:
 
 1. Overall Summary
-- Provide a detailed analysis of how well the company fits with the fund's investment thesis
-- Evaluate the strength of the alignment using specific examples from both the thesis and company data
-- Assign a Synergy Score from 0.0 to 5.0 (with one decimal place) that reflects the degree of alignment
+- Provide a concise analysis of how well the company fits with THIS SPECIFIC fund's investment thesis
+- Directly reference at least 3 specific criteria from the fund thesis document
+- Assign a Synergy Score from 0.0 to 5.0 (with one decimal place) that accurately reflects the degree of alignment with THIS SPECIFIC fund thesis
 
 2. Key Similarities
-- List SPECIFIC ways this company aligns with investment preferences stated in the fund thesis
-- Include explicit examples from both the thesis document and company information
-- Focus on concrete matching criteria like industry, stage, business model, target market, etc.
-- DO NOT provide generic similarities that could apply to any company
-- Each similarity should reference SPECIFIC language or requirements from the fund thesis document
+- List SPECIFIC ways this company meets criteria stated in THIS SPECIFIC fund thesis
+- Each similarity MUST reference an EXPLICIT requirement or preference from the fund thesis document with page numbers or direct quotes
+- DO NOT list generic similarities - only include points that directly match criteria from THIS PARTICULAR fund thesis
 
 3. Key Differences
-- Identify SPECIFIC divergences between what the fund thesis seeks and what this company offers
-- Include explicit examples from both the thesis document and company information
-- Focus on concrete mismatches in criteria like industry, stage, business model, target market, etc.
-- DO NOT provide generic differences that could apply to any mismatched company
-- Each difference should reference SPECIFIC language or requirements from the fund thesis document
+- List SPECIFIC ways this company DOES NOT meet criteria stated in THIS SPECIFIC fund thesis
+- Each difference MUST reference an EXPLICIT requirement or preference from the fund thesis document with page numbers or direct quotes
+- DO NOT list generic differences - only include points that directly contradict criteria from THIS PARTICULAR fund thesis
 
 IMPORTANT FORMATTING REQUIREMENTS:
-- Format the response with clear section headers (1. Overall Summary, 2. Key Similarities, 3. Key Differences)
+- Format the response with clear section headers: "1. Overall Summary", "2. Key Similarities", "3. Key Differences"
 - Include a "Synergy Score: X.X/5" in the Overall Summary section
 - Format Key Similarities and Key Differences as bullet points
-- Make your analysis specific to THIS company and THIS fund thesis - avoid generic statements
-- Include at least 3-5 specific similarities and 3-5 specific differences that directly reference content from the fund thesis
+- Include at least 3-5 specific similarities and 3-5 specific differences that directly quote or reference content from THIS SPECIFIC fund thesis
 
-EXAMPLE OF SPECIFIC SIMILARITY (Good):
-"The fund thesis specifically targets B2B SaaS companies with >$1M ARR, and CompanyX has achieved $1.5M ARR with their B2B SaaS platform for logistics management."
+EXAMPLE OF SPECIFIC SIMILARITY (GOOD):
+"The fund thesis explicitly states on page 2 that they 'seek B2B SaaS companies with >$1M ARR,' and CompanyX has achieved $1.5M ARR with their B2B SaaS platform."
 
-EXAMPLE OF GENERIC SIMILARITY (Bad):
+EXAMPLE OF GENERIC SIMILARITY (BAD):
 "The fund invests in good companies, and this seems like a good company."
 
-EXAMPLE OF SPECIFIC DIFFERENCE (Good):
-"The fund thesis explicitly states a requirement for companies operating in North American markets, while CompanyX is primarily focused on Southeast Asian markets with no current US presence."
+EXAMPLE OF SPECIFIC DIFFERENCE (GOOD):
+"The fund thesis states on page 4 that 'we only invest in North American companies,' while CompanyX operates primarily in Southeast Asia without North American presence."
 
-EXAMPLE OF GENERIC DIFFERENCE (Bad):
-"The fund might be looking for different types of companies than this one."
+EXAMPLE OF GENERIC DIFFERENCE (BAD):
+"The fund might be looking for different types of companies."
 
-Ensure your analysis is data-driven, specific, and directly references both the fund thesis document content and the company details provided.`;
+IMPORTANT: If you can't find specific criteria in the fund thesis, say explicitly "The fund thesis does not specify criteria for X" - do NOT make up criteria that aren't in the document.`;
 
   try {
-    console.log("Calling Gemini API for thesis alignment analysis");
+    console.log("Calling Gemini API for thesis alignment analysis with detailed instruction");
     
     // Track the start time for calculating processing duration
     const startTime = new Date();
@@ -455,8 +477,8 @@ Ensure your analysis is data-driven, specific, and directly references both the 
             }
           ],
           generationConfig: {
-            temperature: 0.2,
-            topP: 0.8,
+            temperature: 0.1, // Lower temperature for more precise responses
+            topP: 0.95,
             topK: 40,
             maxOutputTokens: 4096
           }
@@ -494,7 +516,7 @@ Ensure your analysis is data-driven, specific, and directly references both the 
       
       // Store the response in the database
       console.log("Storing analysis in database");
-      const { data: insertData, error: insertError } = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
+      const { error: insertError } = await fetch(`${SUPABASE_URL}/rest/v1/fund_thesis_analysis`, {
         method: 'POST',
         headers: {
           'Authorization': authHeader,
