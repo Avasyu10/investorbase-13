@@ -101,6 +101,59 @@ const NewsFeed = () => {
     return text.replace(/\*\*/g, '');
   };
 
+  // Sort news by date (newest first)
+  const sortByDate = (items: any[]): any[] => {
+    return [...items].sort((a, b) => {
+      // Extract dates from content or publication info
+      const aDate = extractDateFromItem(a);
+      const bDate = extractDateFromItem(b);
+      
+      // If both dates are valid, compare them
+      if (aDate && bDate) {
+        return bDate.getTime() - aDate.getTime();
+      }
+      
+      // If only one date is valid or no dates, maintain original order
+      return 0;
+    });
+  };
+
+  // Helper function to extract date from news or insight item
+  const extractDateFromItem = (item: any): Date | null => {
+    if (!item) return null;
+    
+    // Check for date in content or source
+    const dateRegex = /(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?)|(\d{4}-\d{2}-\d{2})|([A-Z][a-z]{2,8}\s+\d{4})|(\d{1,2}\/\d{1,2}\/\d{4})/i;
+    
+    let dateStr = '';
+    
+    // Look for date in content
+    if (item.content) {
+      const contentMatch = item.content.match(dateRegex);
+      if (contentMatch) dateStr = contentMatch[0];
+    }
+    
+    // If no date in content, check source or other fields
+    if (!dateStr && item.source) {
+      const match = item.source.match(/\(([^,]+),\s*([^)]+)\)/);
+      if (match) dateStr = match[2]; // Date is typically the second part in parentheses
+    }
+    
+    // Try to parse the date
+    if (dateStr) {
+      try {
+        const parsedDate = new Date(dateStr);
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+        }
+      } catch (e) {
+        console.log("Error parsing date:", e);
+      }
+    }
+    
+    return null;
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
@@ -129,7 +182,7 @@ const NewsFeed = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {researches.flatMap(research => 
                 (research.news_highlights && research.news_highlights.length > 0) ? 
-                  research.news_highlights.map((news, index) => (
+                  sortByDate(research.news_highlights).map((news, index) => (
                     <Card key={`${research.id}-news-${index}`} className="h-full">
                       <CardHeader>
                         <CardTitle className="line-clamp-2">{removeDoubleStars(news.headline)}</CardTitle>
@@ -172,7 +225,7 @@ const NewsFeed = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {researches.flatMap(research => 
                 (research.market_insights && research.market_insights.length > 0) ?
-                  research.market_insights.map((insight, index) => (
+                  sortByDate(research.market_insights).map((insight, index) => (
                     <Card key={`${research.id}-insight-${index}`} className="h-full">
                       <CardHeader>
                         <CardTitle className="line-clamp-2">{removeDoubleStars(insight.headline)}</CardTitle>

@@ -140,6 +140,61 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     return text.replace(/\*\*/g, '');
   };
 
+  // Sort news or insights by date (newest first)
+  const sortByDate = (items: any[]): any[] => {
+    if (!items || !Array.isArray(items)) return [];
+    
+    return [...items].sort((a, b) => {
+      // Extract dates from content or publication info
+      const aDate = extractDateFromItem(a);
+      const bDate = extractDateFromItem(b);
+      
+      // If both dates are valid, compare them
+      if (aDate && bDate) {
+        return bDate.getTime() - aDate.getTime();
+      }
+      
+      // If only one date is valid or no dates, maintain original order
+      return 0;
+    });
+  };
+
+  // Helper function to extract date from news or insight item
+  const extractDateFromItem = (item: any): Date | null => {
+    if (!item) return null;
+    
+    // Check for date in content or source
+    const dateRegex = /(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:\s+\d{4})?)|(\d{4}-\d{2}-\d{2})|([A-Z][a-z]{2,8}\s+\d{4})|(\d{1,2}\/\d{1,2}\/\d{4})/i;
+    
+    let dateStr = '';
+    
+    // Look for date in content
+    if (item.content) {
+      const contentMatch = item.content.match(dateRegex);
+      if (contentMatch) dateStr = contentMatch[0];
+    }
+    
+    // If no date in content, check source or other fields
+    if (!dateStr && item.source) {
+      const match = item.source.match(/\(([^,]+),\s*([^)]+)\)/);
+      if (match) dateStr = match[2]; // Date is typically the second part in parentheses
+    }
+    
+    // Try to parse the date
+    if (dateStr) {
+      try {
+        const parsedDate = new Date(dateStr);
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+        }
+      } catch (e) {
+        console.log("Error parsing date:", e);
+      }
+    }
+    
+    return null;
+  };
+
   const renderDetailView = () => {
     if (!researchData || researchData.status !== 'completed') {
       return <ResearchSkeleton />;
@@ -170,7 +225,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             <div>
               {researchData.news_highlights && researchData.news_highlights.length > 0 ? (
                 <div className="space-y-6">
-                  {researchData.news_highlights.map((news: any, index: number) => (
+                  {sortByDate(researchData.news_highlights).map((news: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
                       <h3 className="text-lg font-semibold mb-1">{removeDoubleStars(news.headline)}</h3>
                       {news.source && (
@@ -212,7 +267,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             <div>
               {researchData.market_insights && researchData.market_insights.length > 0 ? (
                 <div className="space-y-6">
-                  {researchData.market_insights.map((insight: any, index: number) => (
+                  {sortByDate(researchData.market_insights).map((insight: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
                       <h3 className="text-lg font-semibold mb-1">
                         {removeDoubleStars(insight.headline || insight.title)}
