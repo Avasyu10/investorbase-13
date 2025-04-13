@@ -2,7 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Building, User, MessageCircle, Shield } from "lucide-react";
+import { LogOut, Building, User, MessageCircle, Shield, LayoutDashboard } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -25,15 +25,21 @@ export function Navbar() {
       // Check if user is admin
       const checkAdminStatus = async () => {
         try {
+          console.log('Checking admin status for user:', user.id);
+          
           const { data, error } = await supabase
             .from('profiles')
             .select('is_admin')
             .eq('id', user.id)
             .single();
             
-          if (error) throw error;
+          if (error) {
+            console.error('Error checking admin status:', error);
+            throw error;
+          }
           
-          setIsAdmin(data?.is_admin || false);
+          console.log('Admin status data:', data);
+          setIsAdmin(data?.is_admin === true);
         } catch (err) {
           console.error('Error checking admin status:', err);
           setIsAdmin(false);
@@ -65,7 +71,7 @@ export function Navbar() {
                   className="transition-colors hidden sm:flex"
                 >
                   <Link to="/admin-dashboard">
-                    <Shield className="h-4 w-4 mr-2" />
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
                     Admin
                   </Link>
                 </Button>
@@ -120,7 +126,7 @@ export function Navbar() {
                   {isAdmin && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin-dashboard" className="flex items-center">
-                        <Shield className="h-4 w-4 mr-2" />
+                        <LayoutDashboard className="h-4 w-4 mr-2" />
                         Admin Dashboard
                       </Link>
                     </DropdownMenuItem>
