@@ -148,19 +148,13 @@ const AdminPage = () => {
         
         console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
       } else {
-        // Fetch companies with pagination and include profile data for emails
+        // Fetch companies with pagination
         console.log("Fetching companies with user emails...");
         
+        // Get companies first
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
           .from('companies')
-          .select(`
-            id, 
-            name, 
-            overall_score, 
-            created_at, 
-            user_id,
-            profiles:user_id (email)
-          `, { count: 'exact' })
+          .select('*', { count: 'exact' })
           .range(from, to)
           .order('created_at', { ascending: false });
 
@@ -172,32 +166,55 @@ const AdminPage = () => {
         // Debug log the raw companies data
         console.log("Raw companies data:", companiesData);
         
-        // Process companies to extract email from the profiles join
-        const processedCompanies = companiesData.map(company => {
-          // Log each company's structure to debug
-          console.log("Processing company:", company);
+        // Process companies to add user emails
+        let companiesWithEmails = [...companiesData];
+        
+        // Get unique user IDs that are not null
+        const userIds = companiesData
+          .map(company => company.user_id)
+          .filter((id): id is string => id !== null && id !== undefined);
           
-          let userEmail = null;
+        console.log("Found company user IDs:", userIds);
+        
+        // Only fetch profiles if we have valid user IDs
+        if (userIds.length > 0) {
+          // Get user emails from profiles table
+          const { data: userProfiles } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .in('id', userIds);
+            
+          console.log("Retrieved user profiles:", userProfiles);
           
-          // Check if profiles data exists and extract email
-          if (company.profiles) {
-            console.log("Company profiles data:", company.profiles);
-            userEmail = company.profiles.email;
-          } else {
-            console.log("No profile data for company:", company.id);
+          // Create a map of user IDs to emails
+          const userEmailMap: Record<string, string> = {};
+          if (userProfiles && userProfiles.length > 0) {
+            userProfiles.forEach(profile => {
+              if (profile.id && profile.email) {
+                userEmailMap[profile.id] = profile.email;
+              }
+            });
           }
           
-          return {
+          console.log("User email mapping:", userEmailMap);
+          
+          // Map companies with their user emails
+          companiesWithEmails = companiesData.map(company => ({
             ...company,
-            user_email: userEmail || "N/A",
-            // Remove the nested profiles object to avoid issues
-            profiles: undefined
-          };
-        });
+            user_email: company.user_id && userEmailMap[company.user_id] 
+              ? userEmailMap[company.user_id] 
+              : "N/A"
+          }));
+        } else {
+          companiesWithEmails = companiesData.map(company => ({
+            ...company,
+            user_email: "N/A"
+          }));
+        }
         
-        console.log("Processed companies with emails:", processedCompanies);
+        console.log("Processed companies with emails:", companiesWithEmails);
         
-        setCompanies(processedCompanies);
+        setCompanies(companiesWithEmails);
         setTotalCount(companiesCount || 0);
         setTotalPages(Math.ceil((companiesCount || 0) / limit));
         
