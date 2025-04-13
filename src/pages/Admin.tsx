@@ -111,12 +111,150 @@ const AdminPage = () => {
     checkAdminStatus();
   }, [user, navigate, toast]);
 
-  // Add effect to refresh data when page changes
+  // Add effect to refresh data when page changes, except during search
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && !searchQuery) {
       fetchData(currentPage, pageSize);
     }
   }, [currentPage, activeTab, isAdmin]);
+
+  // Listen for search query changes and search across all data
+  useEffect(() => {
+    if (isAdmin && searchQuery) {
+      performSearch();
+    }
+  }, [searchQuery, activeTab]);
+
+  const performSearch = async () => {
+    if (!searchQuery.trim()) {
+      fetchData(currentPage, pageSize);
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      if (activeTab === "users") {
+        // For users, search without pagination to get all matching results
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .or(`email.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`);
+          
+        if (profilesError) throw profilesError;
+        
+        setUsers(profilesData as UserProfile[] || []);
+        
+        // Hide pagination during search
+        setTotalCount(profilesData?.length || 0);
+        setTotalPages(1); // No pagination during search
+      } else {
+        // For companies, search across all companies without pagination
+        const { data: companiesData, error: companiesError } = await supabase
+          .from('companies')
+          .select(`
+            id, name, overall_score, created_at, user_id
+          `)
+          .or(`name.ilike.%${searchQuery}%`)
+          .order('created_at', { ascending: false });
+
+        if (companiesError) throw companiesError;
+        
+        // Extract unique user IDs from companies (filtering out null values)
+        const userIds = companiesData
+          .map(company => company.user_id)
+          .filter((id): id is string => id !== null);
+          
+        // Remove duplicates
+        const uniqueUserIds = [...new Set(userIds)];
+        
+        // Create an empty map to store user emails
+        let userEmailMap: Record<string, string | null> = {};
+        
+        // Only try to fetch emails if we have user IDs
+        if (uniqueUserIds.length > 0) {
+          try {
+            // Get the access token from the session
+            const session = await supabase.auth.getSession();
+            const accessToken = session.data.session?.access_token || '';
+            
+            // Call the edge function to get all user emails
+            const response = await fetch(
+              'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${accessToken}`,
+                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+                },
+                body: JSON.stringify({ userIds: uniqueUserIds })
+              }
+            );
+            
+            if (response.ok) {
+              const profilesData = await response.json();
+              
+              userEmailMap = profilesData.reduce((map: Record<string, string | null>, profile: {id: string, email: string | null}) => {
+                map[profile.id] = profile.email;
+                return map;
+              }, {});
+            } else {
+              const errorText = await response.text();
+              throw new Error(`Edge function error: ${errorText}`);
+            }
+          } catch (err) {
+            console.error("Error in email lookup:", err);
+            toast({
+              title: "Error fetching emails",
+              description: "Could not retrieve all user emails",
+              variant: "destructive",
+            });
+          }
+        }
+        
+        // Map companies with their user emails
+        const companiesWithEmails = companiesData.map(company => {
+          let displayEmail = "N/A";
+          
+          if (company.user_id) {
+            if (company.user_id in userEmailMap) {
+              displayEmail = userEmailMap[company.user_id] || "N/A";
+            }
+          }
+          
+          return {
+            ...company,
+            userEmail: displayEmail
+          };
+        });
+        
+        // Filter companies again by user email if needed
+        const filteredCompanies = searchQuery 
+          ? companiesWithEmails.filter(company => 
+              company.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+              (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
+            )
+          : companiesWithEmails;
+        
+        setCompanies(filteredCompanies);
+        
+        // Hide pagination during search
+        setTotalCount(filteredCompanies.length);
+        setTotalPages(1); // No pagination during search
+      }
+    } catch (err: any) {
+      console.error("Error performing search:", err);
+      setError(err.message);
+      toast({
+        title: "Search failed",
+        description: err.message || "Failed to search data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchData = async (page: number, limit: number) => {
     try {
@@ -262,23 +400,8 @@ const AdminPage = () => {
   // Handle search functionality
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
+    setCurrentPage(1); // Reset to page 1 for new search
   };
-
-  // Filter users or companies based on search query
-  const filteredUsers = searchQuery
-    ? users.filter(user => 
-        (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (user.full_name && user.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (user.username && user.username.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : users;
-
-  const filteredCompanies = searchQuery
-    ? companies.filter(company => 
-        (company.name && company.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : companies;
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -290,6 +413,13 @@ const AdminPage = () => {
     setActiveTab(newTab);
     setCurrentPage(1); // Reset to first page when changing tabs
     setSearchQuery(""); // Clear search when changing tabs
+  };
+
+  // Reset search
+  const clearSearch = () => {
+    setSearchQuery("");
+    fetchData(1, pageSize);
+    setCurrentPage(1);
   };
 
   if (!isAdmin) {
@@ -332,12 +462,22 @@ const AdminPage = () => {
           onChange={handleSearch}
           className="pl-10"
         />
+        {searchQuery && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearSearch}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 px-2"
+          >
+            Clear
+          </Button>
+        )}
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="users">Users ({filteredUsers.length})</TabsTrigger>
-          <TabsTrigger value="companies">Companies ({filteredCompanies.length})</TabsTrigger>
+          <TabsTrigger value="users">Users ({searchQuery ? users.length : totalCount})</TabsTrigger>
+          <TabsTrigger value="companies">Companies ({searchQuery ? companies.length : totalCount})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
@@ -345,7 +485,7 @@ const AdminPage = () => {
             <Table>
               <TableCaption>
                 {searchQuery ? (
-                  `Found ${filteredUsers.length} users matching "${searchQuery}"`
+                  `Found ${users.length} users matching "${searchQuery}"`
                 ) : (
                   `Page ${currentPage} of ${totalPages || 1}`
                 )}
@@ -360,7 +500,7 @@ const AdminPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.full_name || "N/A"}</TableCell>
                     <TableCell>{user.email || "N/A"}</TableCell>
@@ -369,7 +509,7 @@ const AdminPage = () => {
                     <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                {filteredUsers.length === 0 && (
+                {users.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4">No users found</TableCell>
                   </TableRow>
@@ -384,7 +524,7 @@ const AdminPage = () => {
             <Table>
               <TableCaption>
                 {searchQuery ? (
-                  `Found ${filteredCompanies.length} companies matching "${searchQuery}"`
+                  `Found ${companies.length} companies matching "${searchQuery}"`
                 ) : (
                   `Page ${currentPage} of ${totalPages || 1}`
                 )}
@@ -398,7 +538,7 @@ const AdminPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCompanies.map((company) => (
+                {companies.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell>{company.userEmail}</TableCell>
                     <TableCell>{company.name || "N/A"}</TableCell>
@@ -406,7 +546,7 @@ const AdminPage = () => {
                     <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                {filteredCompanies.length === 0 && (
+                {companies.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
                   </TableRow>
