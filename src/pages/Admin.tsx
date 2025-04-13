@@ -129,12 +129,22 @@ const AdminPage = () => {
 
       if (companiesError) throw companiesError;
 
-      // Create a map of user IDs to emails instead of individual queries
+      // Collect all unique user IDs from companies to fetch their emails
+      const userIds = companiesData
+        .map(company => company.user_id)
+        .filter((id): id is string => id !== null && id !== undefined);
+
+      // Make a single query to get all the user emails we need
+      const { data: emailsData } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .in('id', userIds.length > 0 ? userIds : ['00000000-0000-0000-0000-000000000000']); // Prevent empty 'in' clause
+
+      // Create a map of user IDs to emails
       const userEmails: Record<string, string> = {};
       
-      if (usersData && usersData.length > 0) {
-        // Populate the userEmails map from the users we already fetched
-        usersData.forEach((userData: any) => {
+      if (emailsData && emailsData.length > 0) {
+        emailsData.forEach((userData: any) => {
           if (userData.id && userData.email) {
             userEmails[userData.id] = userData.email;
           }
@@ -149,10 +159,9 @@ const AdminPage = () => {
             user_email: userEmails[company.user_id]
           };
         } else {
-          // If we don't have the email in our map, set it to null
           return {
             ...company,
-            user_email: null
+            user_email: 'N/A' // Default to 'N/A' instead of null for better UI display
           };
         }
       });
