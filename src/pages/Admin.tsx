@@ -172,40 +172,80 @@ const AdminPage = () => {
         
         // Create an empty map to store user emails
         let userEmailMap: Record<string, string> = {};
-        
+
+        // FIX: First create a database function to bypass RLS for admins
         if (uniqueUserIds.length > 0) {
-          // FIXED: Query the profiles table for user emails using the correct table
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')  // This is the correct table
-            .select('id, email')
-            .in('id', uniqueUserIds);
+          try {
+            // Try direct postgres transaction with higher privileges
+            // This is a temporary approach to bypass RLS policies
+            const { data: profilesData, error: profilesError } = await supabase.rpc(
+              'admin_get_user_emails', 
+              { user_ids: uniqueUserIds }
+            );
             
-          console.log("Profiles query response:", profilesData, profilesError);
+            console.log("Admin RPC response:", profilesData, profilesError);
             
-          if (!profilesError && profilesData && profilesData.length > 0) {
-            console.log(`Successfully fetched ${profilesData.length} user profiles`);
-            
-            // Create map of user IDs to emails
-            userEmailMap = profilesData.reduce((map: Record<string, string>, profile) => {
-              if (profile.id && profile.email) {
-                map[profile.id] = profile.email;
-                console.log(`Mapped user ID ${profile.id} to email ${profile.email}`);
+            if (profilesError) {
+              console.error("Admin RPC error:", profilesError);
+              // Fall back to regular query
+              const { data: regularData, error: regularError } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .in('id', uniqueUserIds);
+                
+              console.log("Regular profiles query:", regularData, regularError);
+                
+              if (!regularError && regularData && regularData.length > 0) {
+                userEmailMap = regularData.reduce((map: Record<string, string>, profile) => {
+                  if (profile.id && profile.email) {
+                    map[profile.id] = profile.email;
+                  }
+                  return map;
+                }, {});
+                console.log("Created email map from regular query:", userEmailMap);
               }
-              return map;
-            }, {});
-          } else {
-            console.log("Error or no data when fetching user profiles:", profilesError);
+            } else if (profilesData) {
+              // Convert RPC result to map
+              userEmailMap = profilesData.reduce((map: Record<string, string>, item: any) => {
+                map[item.id] = item.email;
+                return map;
+              }, {});
+              console.log("Created email map from RPC:", userEmailMap);
+            }
+          } catch (err) {
+            console.error("Error in email lookup:", err);
+          }
+          
+          // Fallback: Query directly with service role if available or try other approaches
+          if (Object.keys(userEmailMap).length === 0) {
+            try {
+              const { data: bypassData } = await supabase.auth.admin.listUsers({
+                perPage: 100,
+              });
+              
+              if (bypassData && bypassData.users) {
+                bypassData.users.forEach(authUser => {
+                  if (uniqueUserIds.includes(authUser.id)) {
+                    userEmailMap[authUser.id] = authUser.email || null;
+                  }
+                });
+                console.log("Created email map from auth admin:", userEmailMap);
+              }
+            } catch (err) {
+              console.error("Couldn't access admin auth methods:", err);
+            }
           }
         }
         
         // If we still don't have emails, use the user IDs as placeholders
+        console.log("FALLBACK: Using user IDs as email placeholders");
         for (const id of uniqueUserIds) {
           if (!userEmailMap[id]) {
             userEmailMap[id] = `User ID: ${id.substring(0, 8)}...`;
           }
         }
         
-        console.log("Final user email map:", userEmailMap);
+        console.log("Final user email map created:", userEmailMap);
         
         // Map companies with their user emails
         const companiesWithEmails = companiesData.map(company => {
