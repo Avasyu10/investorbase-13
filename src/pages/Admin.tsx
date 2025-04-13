@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -148,10 +148,9 @@ const AdminPage = () => {
         
         console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
       } else {
-        // Fetch companies with pagination
+        // FIXED APPROACH: Fetch companies directly with no join
         console.log("Fetching companies with user emails...");
         
-        // Get companies first
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
           .from('companies')
           .select('*', { count: 'exact' })
@@ -166,50 +165,68 @@ const AdminPage = () => {
         // Debug log the raw companies data
         console.log("Raw companies data:", companiesData);
         
-        // Process companies to add user emails
-        let companiesWithEmails = [...companiesData];
+        // Create a new array to avoid mutating the original
+        const companiesWithEmails = [...companiesData];
         
-        // Get unique user IDs that are not null
+        // Extract user IDs from companies (filtering out nulls and duplicates)
         const userIds = companiesData
           .map(company => company.user_id)
-          .filter((id): id is string => id !== null && id !== undefined);
+          .filter((id): id is string => id !== null && id !== undefined)
+          // Remove duplicates for efficiency
+          .filter((id, index, self) => self.indexOf(id) === index);
           
         console.log("Found company user IDs:", userIds);
         
-        // Only fetch profiles if we have valid user IDs
+        // Only try to fetch profiles if we have valid user IDs
         if (userIds.length > 0) {
-          // Get user emails from profiles table
-          const { data: userProfiles } = await supabase
+          // Get all relevant user emails at once from profiles table
+          const { data: userProfiles, error: profilesError } = await supabase
             .from('profiles')
             .select('id, email')
             .in('id', userIds);
             
-          console.log("Retrieved user profiles:", userProfiles);
-          
-          // Create a map of user IDs to emails
-          const userEmailMap: Record<string, string> = {};
-          if (userProfiles && userProfiles.length > 0) {
-            userProfiles.forEach(profile => {
-              if (profile.id && profile.email) {
-                userEmailMap[profile.id] = profile.email;
+          if (profilesError) {
+            console.error("Error fetching user profiles:", profilesError);
+            // Continue anyway - we'll just show N/A for emails
+          } else {
+            console.log("Retrieved user profiles:", userProfiles);
+            
+            // Create a lookup map for user emails by ID
+            const userEmailMap: Record<string, string> = {};
+            if (userProfiles && userProfiles.length > 0) {
+              userProfiles.forEach(profile => {
+                if (profile.id && profile.email) {
+                  userEmailMap[profile.id] = profile.email;
+                }
+              });
+            }
+            
+            console.log("User email mapping:", userEmailMap);
+            
+            // Add user email to each company using the lookup map
+            for (let i = 0; i < companiesWithEmails.length; i++) {
+              const company = companiesWithEmails[i];
+              if (company.user_id && userEmailMap[company.user_id]) {
+                companiesWithEmails[i] = {
+                  ...company,
+                  user_email: userEmailMap[company.user_id]
+                };
+              } else {
+                companiesWithEmails[i] = {
+                  ...company,
+                  user_email: "N/A"
+                };
               }
-            });
+            }
           }
-          
-          console.log("User email mapping:", userEmailMap);
-          
-          // Map companies with their user emails
-          companiesWithEmails = companiesData.map(company => ({
-            ...company,
-            user_email: company.user_id && userEmailMap[company.user_id] 
-              ? userEmailMap[company.user_id] 
-              : "N/A"
-          }));
         } else {
-          companiesWithEmails = companiesData.map(company => ({
-            ...company,
-            user_email: "N/A"
-          }));
+          // If no user IDs, set all emails to N/A
+          for (let i = 0; i < companiesWithEmails.length; i++) {
+            companiesWithEmails[i] = {
+              ...companiesWithEmails[i],
+              user_email: "N/A"
+            };
+          }
         }
         
         console.log("Processed companies with emails:", companiesWithEmails);
