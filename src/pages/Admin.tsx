@@ -129,49 +129,60 @@ const AdminPage = () => {
 
       if (companiesError) throw companiesError;
 
-      // Collect all unique user IDs from companies to fetch their emails
-      const userIds = companiesData
+      // Create a separate query to get all user emails
+      // First collect all unique user IDs from companies
+      const uniqueUserIds = companiesData
         .map(company => company.user_id)
         .filter((id): id is string => id !== null && id !== undefined);
-
-      // Make a single query to get all the user emails we need
-      const { data: emailsData } = await supabase
+      
+      // To avoid empty IN clause, add a dummy ID if there are no user IDs
+      const userIdsForQuery = uniqueUserIds.length > 0 
+        ? uniqueUserIds 
+        : ['00000000-0000-0000-0000-000000000000'];
+        
+      // Fetch all user emails in one query
+      const { data: userEmailsData } = await supabase
         .from('profiles')
         .select('id, email')
-        .in('id', userIds.length > 0 ? userIds : ['00000000-0000-0000-0000-000000000000']); // Prevent empty 'in' clause
-
-      // Create a map of user IDs to emails
-      const userEmails: Record<string, string> = {};
+        .in('id', userIdsForQuery);
       
-      if (emailsData && emailsData.length > 0) {
-        emailsData.forEach((userData: any) => {
-          if (userData.id && userData.email) {
-            userEmails[userData.id] = userData.email;
+      // Create a map for quick user email lookups
+      const userEmailMap: Record<string, string> = {};
+      if (userEmailsData) {
+        userEmailsData.forEach(user => {
+          if (user.id && user.email) {
+            userEmailMap[user.id] = user.email;
           }
         });
       }
-
-      // Add user emails to companies
-      const companiesWithUserEmails = (companiesData as Company[]).map(company => {
-        if (company.user_id && userEmails[company.user_id]) {
+      
+      // Add user emails to the company data
+      const companiesWithEmails = companiesData.map(company => {
+        if (company.user_id && userEmailMap[company.user_id]) {
           return {
             ...company,
-            user_email: userEmails[company.user_id]
-          };
-        } else {
-          return {
-            ...company,
-            user_email: 'N/A' // Default to 'N/A' instead of null for better UI display
+            user_email: userEmailMap[company.user_id]
           };
         }
+        return {
+          ...company,
+          user_email: 'N/A'
+        };
       });
 
       setUsers(usersData as UserProfile[]);
-      setCompanies(companiesWithUserEmails);
+      setCompanies(companiesWithEmails);
       
-      // Set pagination data
-      setTotalCount(Math.max(usersCount || 0, companiesCount || 0));
-      setTotalPages(Math.ceil((Math.max(usersCount || 0, companiesCount || 0)) / limit));
+      // Fix: Set totalCount for pagination based on the respective count values
+      const activeTab = document.querySelector('[data-state="active"][data-radix-collection-item]');
+      const isCompaniesTab = activeTab?.textContent?.includes('Companies');
+      
+      // Set the appropriate count based on which tab is active
+      setTotalCount(isCompaniesTab ? (companiesCount || 0) : (usersCount || 0));
+      setTotalPages(Math.ceil((isCompaniesTab ? (companiesCount || 0) : (usersCount || 0)) / limit));
+      
+      console.log("Loaded page", page, "of", Math.ceil((isCompaniesTab ? (companiesCount || 0) : (usersCount || 0)) / limit), "pages");
+      console.log("Total count:", isCompaniesTab ? (companiesCount || 0) : (usersCount || 0));
     } catch (err: any) {
       console.error("Error fetching admin data:", err);
       setError(err.message);
@@ -215,7 +226,7 @@ const AdminPage = () => {
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
       
-      <Tabs defaultValue="users" className="w-full">
+      <Tabs defaultValue="users" className="w-full" onValueChange={() => setCurrentPage(1)}>
         <TabsList className="mb-4">
           <TabsTrigger value="users">Users ({totalCount})</TabsTrigger>
           <TabsTrigger value="companies">Companies ({totalCount})</TabsTrigger>
