@@ -8,10 +8,9 @@ import {
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Loader2, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 
 type UserProfile = {
   id: string;
@@ -28,7 +27,6 @@ type Company = {
   overall_score: number;
   created_at: string;
   user_id: string | null;
-  user_email: string | null; // Added user_email
 };
 
 const AdminPage = () => {
@@ -40,7 +38,6 @@ const AdminPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,7 +57,7 @@ const AdminPage = () => {
         if (user.email === "f20180623@goa.bits-pilani.ac.in") {
           console.log("Detected super admin email, granting admin access");
           setIsAdmin(true);
-          fetchData(currentPage, pageSize, searchTerm);
+          fetchData(currentPage, pageSize);
           return;
         }
 
@@ -95,7 +92,7 @@ const AdminPage = () => {
         }
 
         setIsAdmin(true);
-        fetchData(currentPage, pageSize, searchTerm);
+        fetchData(currentPage, pageSize);
       } catch (err) {
         console.error("Error checking admin status:", err);
         setError("Failed to verify admin privileges");
@@ -104,81 +101,35 @@ const AdminPage = () => {
     };
 
     checkAdminStatus();
-  }, [user, navigate, toast, currentPage, searchTerm]);
+  }, [user, navigate, toast, currentPage]);
 
-  const fetchData = async (page: number, limit: number, search: string) => {
+  const fetchData = async (page: number, limit: number) => {
     try {
       setLoading(true);
       
       // Calculate offset based on page number
       const from = (page - 1) * limit;
       
-      // Fetch users with pagination and search
-      let userQuery = supabase
+      // Fetch users with pagination
+      const { data: usersData, error: usersError, count: usersCount } = await supabase
         .from('profiles')
-        .select('*', { count: 'exact' });
-        
-      // Add search if provided
-      if (search) {
-        userQuery = userQuery.or(`email.ilike.%${search}%,full_name.ilike.%${search}%,username.ilike.%${search}%`);
-      }
-      
-      // Complete the query with pagination
-      const { data: usersData, error: usersError, count: usersCount } = await userQuery
+        .select('*', { count: 'exact' })
         .range(from, from + limit - 1)
         .order('created_at', { ascending: false });
 
       if (usersError) throw usersError;
       
-      // Fetch companies with pagination and search
-      let companyQuery = supabase
+      // Fetch companies with pagination
+      const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
         .from('companies')
-        .select('id, name, overall_score, created_at, user_id', { count: 'exact' });
-        
-      // Add search if provided
-      if (search) {
-        companyQuery = companyQuery.or(`name.ilike.%${search}%`);
-      }
-      
-      // Complete the query with pagination
-      const { data: companiesData, error: companiesError, count: companiesCount } = await companyQuery
+        .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
         .range(from, from + limit - 1)
         .order('created_at', { ascending: false });
 
       if (companiesError) throw companiesError;
 
-      // Process companies data to include user_email
-      // We need to fetch user emails separately since there's no direct join
-      const processedCompanies: Company[] = [];
-      
-      for (const company of companiesData) {
-        let userEmail = null;
-        
-        // If company has a user_id, fetch the corresponding email
-        if (company.user_id) {
-          const { data: userData } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('id', company.user_id)
-            .maybeSingle();
-            
-          if (userData) {
-            userEmail = userData.email;
-          }
-        }
-        
-        processedCompanies.push({
-          id: company.id,
-          name: company.name,
-          overall_score: company.overall_score,
-          created_at: company.created_at,
-          user_id: company.user_id,
-          user_email: userEmail
-        });
-      }
-
       setUsers(usersData as UserProfile[]);
-      setCompanies(processedCompanies);
+      setCompanies(companiesData as Company[]);
       
       // Set pagination data
       setTotalCount(Math.max(usersCount || 0, companiesCount || 0));
@@ -195,11 +146,6 @@ const AdminPage = () => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
-  };
-  
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page when searching
   };
 
   if (!isAdmin) {
@@ -229,18 +175,6 @@ const AdminPage = () => {
       <div className="flex items-center gap-2 mb-6">
         <ShieldCheck className="h-6 w-6 text-primary" />
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-      </div>
-      
-      <div className="mb-6">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search users or companies..." 
-            value={searchTerm}
-            onChange={handleSearch}
-            className="pl-10"
-          />
-        </div>
       </div>
       
       <Tabs defaultValue="users" className="w-full">
@@ -293,7 +227,6 @@ const AdminPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Company Name</TableHead>
-                  <TableHead>User Email</TableHead>
                   <TableHead>Overall Rating</TableHead>
                   <TableHead>Created At</TableHead>
                 </TableRow>
@@ -302,14 +235,13 @@ const AdminPage = () => {
                 {companies.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell>{company.name || "N/A"}</TableCell>
-                    <TableCell>{company.user_email || "N/A"}</TableCell>
                     <TableCell>{company.overall_score}</TableCell>
                     <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
                 {companies.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
+                    <TableCell colSpan={3} className="text-center py-4">No companies found</TableCell>
                   </TableRow>
                 )}
               </TableBody>
