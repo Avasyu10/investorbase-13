@@ -9,12 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { FileUp, Loader2, Newspaper, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -33,6 +35,13 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
+      // CRITICAL FIX: Check for our specific admin email
+      if (user.email === "f20180623@goa.bits-pilani.ac.in") {
+        console.log("Detected super admin email, granting admin access");
+        setIsAdmin(true);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')

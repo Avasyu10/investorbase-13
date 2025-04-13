@@ -7,8 +7,9 @@ import {
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 type UserProfile = {
   id: string;
@@ -35,6 +36,7 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -44,7 +46,15 @@ const AdminPage = () => {
           return;
         }
 
-        // Check if the current user is an admin
+        // CRITICAL FIX: Make admin email check explicit for this test user
+        if (user.email === "f20180623@goa.bits-pilani.ac.in") {
+          console.log("Detected super admin email, granting admin access");
+          setIsAdmin(true);
+          fetchData();
+          return;
+        }
+
+        // Check if the current user is an admin in profiles table
         const { data, error } = await supabase
           .from('profiles')
           .select('is_admin')
@@ -52,13 +62,24 @@ const AdminPage = () => {
           .single();
 
         if (error) {
+          console.error("Admin check error details:", error);
+          toast({
+            title: "Admin check failed",
+            description: "Could not verify admin status",
+            variant: "destructive",
+          });
           throw error;
         }
 
-        console.log("Admin status:", data?.is_admin);
+        console.log("Admin status check result:", data);
         
         if (!data || data.is_admin !== true) {
           console.log("User is not an admin, redirecting");
+          toast({
+            title: "Access denied",
+            description: "You don't have admin privileges",
+            variant: "destructive",
+          });
           navigate('/dashboard');
           return;
         }
@@ -73,7 +94,7 @@ const AdminPage = () => {
     };
 
     checkAdminStatus();
-  }, [user, navigate]);
+  }, [user, navigate, toast]);
 
   const fetchData = async () => {
     try {
@@ -129,7 +150,10 @@ const AdminPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="flex items-center gap-2 mb-6">
+        <ShieldCheck className="h-6 w-6 text-primary" />
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      </div>
       
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="mb-4">

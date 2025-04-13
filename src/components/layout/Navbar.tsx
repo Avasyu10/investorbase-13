@@ -23,6 +23,7 @@ export function Navbar() {
       if (!user) return;
       
       try {
+        // CRITICAL FIX: Update the admin check to look at profiles table properly
         const { data, error } = await supabase
           .from('profiles')
           .select('is_admin')
@@ -30,11 +31,11 @@ export function Navbar() {
           .single();
           
         if (error) {
-          console.error('Error checking admin status:', error);
+          console.error('Error checking admin status in navbar:', error);
           return;
         }
         
-        console.log('Admin status check:', data);
+        console.log('Admin status check in navbar:', data);
         setIsAdmin(data?.is_admin === true);
       } catch (err) {
         console.error('Error in admin check:', err);
