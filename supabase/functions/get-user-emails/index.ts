@@ -38,26 +38,79 @@ serve(async (req) => {
         }
       );
     }
-    
-    // Fetch profiles directly using service role key (bypasses RLS)
-    const { data, error } = await supabaseClient
+
+    // First, try to fetch from profiles table using service role key
+    const { data: profilesData, error: profilesError } = await supabaseClient
       .from('profiles')
       .select('id, email')
       .in('id', userIds);
     
-    if (error) {
-      console.error('Error fetching profiles:', error);
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: profilesError.message }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500
         }
       );
     }
+
+    console.log('Profiles data retrieved:', profilesData);
+    
+    // Now try to get missing emails from auth.users table for any missing IDs
+    const foundIds = profilesData.map(profile => profile.id);
+    const missingIds = userIds.filter(id => !foundIds.includes(id));
+    
+    console.log('Missing user IDs that need emails:', missingIds);
+    
+    let authUsersData: any[] = [];
+    
+    if (missingIds.length > 0) {
+      // Try to fetch these from auth.users directly (requires service role key)
+      for (const userId of missingIds) {
+        try {
+          const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
+          
+          if (!userError && userData && userData.user) {
+            console.log(`Found user in auth.users: ${userId} -> ${userData.user.email}`);
+            authUsersData.push({
+              id: userId,
+              email: userData.user.email
+            });
+          } else {
+            console.log(`User not found in auth.users: ${userId}`, userError);
+            // Add placeholder for users not found in auth.users
+            authUsersData.push({
+              id: userId,
+              email: null
+            });
+          }
+        } catch (err) {
+          console.error(`Error fetching user ${userId} from auth.users:`, err);
+          // Add placeholder for users with errors
+          authUsersData.push({
+            id: userId,
+            email: null
+          });
+        }
+      }
+    }
+    
+    // Combine results from both queries
+    const combinedData = [...profilesData, ...authUsersData];
+    console.log('Combined user data:', combinedData);
+    
+    // Ensure we have an entry for every requested ID, even if null
+    const finalData = userIds.map(id => {
+      const foundUser = combinedData.find(u => u.id === id);
+      return foundUser || { id, email: null };
+    });
+    
+    console.log('Final response data:', finalData);
     
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(finalData),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200

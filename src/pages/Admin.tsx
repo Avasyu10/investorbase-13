@@ -145,7 +145,7 @@ const AdminPage = () => {
         
         console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
       } else {
-        // FIXED APPROACH: Fetch companies with pagination
+        // Fetch companies with pagination
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
           .from('companies')
           .select(`
@@ -172,90 +172,69 @@ const AdminPage = () => {
         console.log(`Found ${uniqueUserIds.length} unique user IDs:`, uniqueUserIds);
         
         // Create an empty map to store user emails
-        let userEmailMap: Record<string, string> = {};
+        let userEmailMap: Record<string, string | null> = {};
         
         // Only try to fetch emails if we have user IDs
         if (uniqueUserIds.length > 0) {
           try {
-            // First try regular query (will work if user has access)
-            const { data: regularData, error: regularError } = await supabase
-              .from('profiles')
-              .select('id, email')
-              .in('id', uniqueUserIds);
+            // Get the access token from the session
+            const session = await supabase.auth.getSession();
+            const accessToken = session.data.session?.access_token || '';
+            
+            // Call the edge function to get all user emails
+            const response = await fetch(
+              'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${accessToken}`,
+                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+                },
+                body: JSON.stringify({ userIds: uniqueUserIds })
+              }
+            );
+            
+            if (response.ok) {
+              const profilesData = await response.json();
+              console.log("Edge function fetch response:", profilesData);
               
-            console.log("Regular profiles query:", regularData, regularError);
-              
-            if (!regularError && regularData && regularData.length > 0) {
-              userEmailMap = regularData.reduce((map: Record<string, string>, profile) => {
-                if (profile.id && profile.email) {
-                  map[profile.id] = profile.email;
-                }
+              userEmailMap = profilesData.reduce((map: Record<string, string | null>, profile: {id: string, email: string | null}) => {
+                map[profile.id] = profile.email;
                 return map;
               }, {});
-              console.log("Created email map from regular query:", userEmailMap);
+              
+              console.log("Created email map from edge function:", userEmailMap);
             } else {
-              // If regular query fails, try the edge function
-              console.log("Regular query didn't return data, trying edge function");
-              
-              // Get the access token from the session
-              const session = await supabase.auth.getSession();
-              const accessToken = session.data.session?.access_token || '';
-              
-              const response = await fetch(
-                'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`,
-                    // Don't use the protected supabaseKey - use the public anon key instead
-                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-                  },
-                  body: JSON.stringify({ userIds: uniqueUserIds })
-                }
-              );
-              
-              if (response.ok) {
-                const profilesData = await response.json();
-                console.log("Edge function fetch response:", profilesData);
-                
-                userEmailMap = profilesData.reduce((map: Record<string, string>, profile: {id: string, email: string}) => {
-                  if (profile.id && profile.email) {
-                    map[profile.id] = profile.email;
-                  }
-                  return map;
-                }, {});
-                
-                console.log("Created email map from edge function:", userEmailMap);
-              } else {
-                console.error("Error from edge function fetch:", await response.text());
-              }
+              const errorText = await response.text();
+              console.error("Error from edge function fetch:", errorText);
+              throw new Error(`Edge function error: ${errorText}`);
             }
           } catch (err) {
             console.error("Error in email lookup:", err);
+            toast({
+              title: "Error fetching emails",
+              description: "Could not retrieve all user emails",
+              variant: "destructive",
+            });
           }
         }
-        
-        // If we still don't have emails, use the user IDs as placeholders
-        if (Object.keys(userEmailMap).length === 0) {
-          console.log("FALLBACK: Using user IDs as email placeholders");
-          for (const id of uniqueUserIds) {
-            if (!userEmailMap[id]) {
-              userEmailMap[id] = `User ID: ${id.substring(0, 8)}...`;
-            }
-          }
-        }
-        
-        console.log("Final user email map created:", userEmailMap);
         
         // Map companies with their user emails
         const companiesWithEmails = companiesData.map(company => {
-          const email = company.user_id ? userEmailMap[company.user_id] || null : null;
-          console.log(`Company ${company.name} (${company.id}) with user_id ${company.user_id} mapped to email:`, email);
+          let displayEmail = "N/A";
+          
+          if (company.user_id) {
+            if (company.user_id in userEmailMap) {
+              displayEmail = userEmailMap[company.user_id] || "N/A";
+            }
+          }
+          
+          console.log(`Company ${company.name} (${company.id}) with user_id ${company.user_id} mapped to email:`, displayEmail);
           
           return {
             ...company,
-            userEmail: email
+            userEmail: displayEmail
           };
         });
         
@@ -377,7 +356,7 @@ const AdminPage = () => {
               <TableBody>
                 {companies.map((company) => (
                   <TableRow key={company.id}>
-                    <TableCell>{company.userEmail || "N/A"}</TableCell>
+                    <TableCell>{company.userEmail}</TableCell>
                     <TableCell>{company.name || "N/A"}</TableCell>
                     <TableCell>{company.overall_score}</TableCell>
                     <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
