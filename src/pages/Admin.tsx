@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -135,25 +135,16 @@ const AdminPage = () => {
           throw usersError;
         }
         
-        // Add detailed logging for debugging users data
-        console.log("Fetched users data:", usersData);
-        if (usersData && usersData.length > 0) {
-          console.log("First user email:", usersData[0].email);
-          console.log("First user full structure:", JSON.stringify(usersData[0], null, 2));
-        }
-        
         setUsers(usersData as UserProfile[] || []);
         setTotalCount(usersCount || 0);
         setTotalPages(Math.ceil((usersCount || 0) / limit));
         
         console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
       } else {
-        // FIXED APPROACH: Fetch companies directly with no join
-        console.log("Fetching companies with user emails...");
-        
+        // Fetch companies with pagination
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
           .from('companies')
-          .select('*', { count: 'exact' })
+          .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
           .range(from, to)
           .order('created_at', { ascending: false });
 
@@ -161,75 +152,46 @@ const AdminPage = () => {
           console.error("Error fetching companies:", companiesError);
           throw companiesError;
         }
+
+        // Process companies to add user emails
+        let companiesWithEmails = [...companiesData];
         
-        // Debug log the raw companies data
-        console.log("Raw companies data:", companiesData);
-        
-        // Create a new array to avoid mutating the original
-        const companiesWithEmails = [...companiesData];
-        
-        // Extract user IDs from companies (filtering out nulls and duplicates)
+        // Only try to fetch emails if we have companies with user_ids
         const userIds = companiesData
           .map(company => company.user_id)
-          .filter((id): id is string => id !== null && id !== undefined)
-          // Remove duplicates for efficiency
-          .filter((id, index, self) => self.indexOf(id) === index);
+          .filter((id): id is string => id !== null && id !== undefined);
           
-        console.log("Found company user IDs:", userIds);
-        
-        // Only try to fetch profiles if we have valid user IDs
         if (userIds.length > 0) {
-          // Get all relevant user emails at once from profiles table
-          const { data: userProfiles, error: profilesError } = await supabase
+          // Use a safe query with a non-empty list
+          const { data: userEmailsData } = await supabase
             .from('profiles')
             .select('id, email')
             .in('id', userIds);
             
-          if (profilesError) {
-            console.error("Error fetching user profiles:", profilesError);
-            // Continue anyway - we'll just show N/A for emails
-          } else {
-            console.log("Retrieved user profiles:", userProfiles);
-            
-            // Create a lookup map for user emails by ID
-            const userEmailMap: Record<string, string> = {};
-            if (userProfiles && userProfiles.length > 0) {
-              userProfiles.forEach(profile => {
-                if (profile.id && profile.email) {
-                  userEmailMap[profile.id] = profile.email;
-                }
-              });
-            }
-            
-            console.log("User email mapping:", userEmailMap);
-            
-            // Add user email to each company using the lookup map
-            for (let i = 0; i < companiesWithEmails.length; i++) {
-              const company = companiesWithEmails[i];
-              if (company.user_id && userEmailMap[company.user_id]) {
-                companiesWithEmails[i] = {
-                  ...company,
-                  user_email: userEmailMap[company.user_id]
-                };
-              } else {
-                companiesWithEmails[i] = {
-                  ...company,
-                  user_email: "N/A"
-                };
+          // Create email lookup map
+          const userEmailMap: Record<string, string> = {};
+          if (userEmailsData && userEmailsData.length > 0) {
+            userEmailsData.forEach(user => {
+              if (user.id && user.email) {
+                userEmailMap[user.id] = user.email;
               }
-            }
+            });
           }
+          
+          // Add emails to companies
+          companiesWithEmails = companiesData.map(company => ({
+            ...company,
+            user_email: company.user_id && userEmailMap[company.user_id] 
+              ? userEmailMap[company.user_id] 
+              : "N/A"
+          }));
         } else {
-          // If no user IDs, set all emails to N/A
-          for (let i = 0; i < companiesWithEmails.length; i++) {
-            companiesWithEmails[i] = {
-              ...companiesWithEmails[i],
-              user_email: "N/A"
-            };
-          }
+          // No user IDs, just mark all emails as N/A
+          companiesWithEmails = companiesData.map(company => ({
+            ...company,
+            user_email: "N/A"
+          }));
         }
-        
-        console.log("Processed companies with emails:", companiesWithEmails);
         
         setCompanies(companiesWithEmails);
         setTotalCount(companiesCount || 0);
