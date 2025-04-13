@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -12,12 +11,13 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Edit, Globe, FileText, Plus, ExternalLink, Building, Tag, Layers, Mail } from "lucide-react";
+import { Loader2, Download, Edit, Globe, FileText, Plus, ExternalLink, Building, Tag, Layers, Mail, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { AreaOfInterestOptions } from "@/lib/constants";
 import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
+import { AlertsSection } from "@/components/profile/AlertsSection";
 
 interface VCProfile {
   id: string;
@@ -71,10 +71,8 @@ const Profile = () => {
           
         if (error) {
           console.error("Error fetching profile:", error);
-          // Don't navigate if profile not found, just mark as checked
           setProfileChecked(true);
           
-          // Only navigate to setup from direct profile access
           if (window.location.pathname === '/profile' && error.code === 'PGRST116') {
             navigate('/profile/setup');
           }
@@ -232,7 +230,6 @@ const Profile = () => {
     );
   }
 
-  // Show a "create profile" card if profile is not found but we've checked for it
   if (!profile && profileChecked) {
     return (
       <div className="container max-w-4xl mx-auto px-4 py-12">
@@ -510,6 +507,8 @@ const Profile = () => {
               )}
             </div>
           </div>
+          
+          <AlertsSection />
           
           <div>
             <div className="flex items-center mb-3">
