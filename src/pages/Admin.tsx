@@ -158,19 +158,21 @@ const AdminPage = () => {
         }
         
         console.log(`Fetched ${companiesData?.length || 0} companies`);
+        console.log("Raw company data:", JSON.stringify(companiesData, null, 2));
         
         // Extract user IDs from companies (filtering out null values)
         const userIds = companiesData
           .map(company => company.user_id)
           .filter((id): id is string => id !== null);
         
-        console.log(`Found ${userIds.length} unique user IDs to fetch emails for`);
+        console.log(`Found ${userIds.length} unique user IDs:`, userIds);
         
         // Only fetch profiles if we have user IDs
         let userEmailMap: Record<string, string> = {};
         
         if (userIds.length > 0) {
           // Fetch all relevant user profiles in one query
+          console.log("About to fetch profiles with these user IDs:", userIds);
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('id, email')
@@ -182,27 +184,39 @@ const AdminPage = () => {
           }
           
           console.log(`Fetched ${profilesData?.length || 0} user profiles`);
+          console.log("Raw profiles data:", JSON.stringify(profilesData, null, 2));
           
           // Create map of user IDs to emails
           userEmailMap = (profilesData || []).reduce((map: Record<string, string>, profile) => {
             if (profile.id && profile.email) {
               map[profile.id] = profile.email;
+              console.log(`Mapped user ID ${profile.id} to email ${profile.email}`);
+            } else {
+              console.log(`Profile has missing data:`, profile);
             }
             return map;
           }, {});
           
           console.log("User email map created:", userEmailMap);
+        } else {
+          console.warn("No valid user IDs found in companies data");
         }
         
         // Map companies with their user emails
-        const companiesWithEmails = companiesData.map(company => ({
-          ...company,
-          userEmail: company.user_id && userEmailMap[company.user_id] 
+        const companiesWithEmails = companiesData.map(company => {
+          const email = company.user_id && userEmailMap[company.user_id] 
             ? userEmailMap[company.user_id] 
-            : null
-        }));
+            : null;
+            
+          console.log(`Company ${company.name} (${company.id}) with user_id ${company.user_id || 'NULL'} mapped to email: ${email || 'NULL'}`);
+          
+          return {
+            ...company,
+            userEmail: email
+          };
+        });
         
-        console.log("Companies with emails:", companiesWithEmails);
+        console.log("Final companies with emails:", JSON.stringify(companiesWithEmails, null, 2));
         
         setCompanies(companiesWithEmails);
         setTotalCount(companiesCount || 0);
