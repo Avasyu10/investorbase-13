@@ -1,9 +1,8 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Maximize, HelpCircle } from 'lucide-react';
+import { ChevronLeft, Maximize, HelpCircle, Printer } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +12,129 @@ import { ReportViewer } from '@/components/reports/ReportViewer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InvestorResearch } from '@/components/companies/InvestorResearch';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useReactToPrint } from 'react-to-print';
+
+const PrintStyles = () => (
+  <style type="text/css">{`
+    @media print {
+      body {
+        background-color: white !important;
+        color: black !important;
+        font-size: 12pt !important;
+      }
+      
+      .print-container {
+        padding: 20px !important;
+        width: 100% !important;
+        max-width: none !important;
+      }
+      
+      .no-print {
+        display: none !important;
+      }
+      
+      .print-break-inside-avoid {
+        break-inside: avoid !important;
+      }
+      
+      .print-full-width {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      .print-shadow-none {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+      }
+      
+      .print-card {
+        border: 1px solid #ddd !important;
+        margin-bottom: 16px !important;
+        break-inside: avoid !important;
+      }
+      
+      .print-text-black {
+        color: black !important;
+      }
+      
+      .print-text-dark {
+        color: #333 !important;
+      }
+      
+      .print-text-gray {
+        color: #555 !important;
+      }
+      
+      [class*="bg-"] {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .recharts-wrapper {
+        break-inside: avoid !important;
+      }
+      
+      .print-title {
+        font-size: 18pt !important;
+        font-weight: bold !important;
+        margin-bottom: 8px !important;
+        color: black !important;
+      }
+      
+      .print-footer {
+        display: block !important;
+        text-align: center !important;
+        border-top: 1px solid #ddd !important;
+        padding-top: 10px !important;
+        margin-top: 30px !important;
+        font-size: 9pt !important;
+        color: #666 !important;
+      }
+      
+      .print-page-break {
+        page-break-after: always !important;
+      }
+      
+      .print-section-title {
+        font-size: 14pt !important;
+        font-weight: bold !important;
+        margin-top: 15px !important;
+        margin-bottom: 10px !important;
+        color: black !important;
+      }
+      
+      .print-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        border-bottom: 2px solid #ddd !important;
+        padding-bottom: 10px !important;
+        margin-bottom: 20px !important;
+      }
+      
+      .print-date {
+        font-size: 9pt !important;
+        color: #666 !important;
+      }
+      
+      .print-score-badge {
+        border: 1px solid #ddd !important;
+        padding: 2px 8px !important;
+        border-radius: 4px !important;
+        font-weight: bold !important;
+      }
+      
+      .print-chart-container {
+        height: 300px !important;
+        margin: 20px 0 !important;
+        break-inside: avoid !important;
+      }
+    }
+  `}</style>
+);
 
 export default function AnalysisSummary() {
   const { companyId } = useParams<{ companyId: string }>();
@@ -20,8 +142,16 @@ export default function AnalysisSummary() {
   const { company, isLoading } = useCompanyDetails(companyId);
   const [showReportModal, setShowReportModal] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
-  // Get user ID
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
   useEffect(() => {
     const getUser = async () => {
       try {
@@ -36,6 +166,27 @@ export default function AnalysisSummary() {
     
     getUser();
   }, []);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `${company?.name || 'Company'} - Investment Analysis`,
+    onBeforeGetContent: () => {
+      setIsPrinting(true);
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          resolve();
+        }, 300);
+      });
+    },
+    onAfterPrint: () => {
+      setIsPrinting(false);
+      toast({
+        title: "Print prepared",
+        description: "Your analysis document has been prepared for printing",
+      });
+    },
+    pageStyle: '@page { size: auto; margin: 15mm; }',
+  });
 
   if (isLoading) {
     return (
@@ -65,7 +216,6 @@ export default function AnalysisSummary() {
     );
   }
 
-  // Ensure score is properly formatted to one decimal place
   const formattedScore = parseFloat(company.overallScore.toFixed(1));
   console.log(`Company score: original=${company.overallScore}, formatted=${formattedScore}`);
 
@@ -76,157 +226,189 @@ export default function AnalysisSummary() {
   }));
 
   return (
-    <div className="container max-w-5xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate(`/company/${companyId}`)}
-        >
-          <ChevronLeft className="mr-1" /> Back to Company Details
-        </Button>
-        
-        {company.reportId && (
+    <>
+      <PrintStyles />
+      <div className="container max-w-5xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-4 no-print">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowReportModal(true)}
+            onClick={() => navigate(`/company/${companyId}`)}
+            className="no-print"
           >
-            <Maximize className="mr-2 h-4 w-4" />
-            View Deck
+            <ChevronLeft className="mr-1" /> Back to Company Details
           </Button>
+          
+          <div className="flex gap-2">
+            {company?.reportId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowReportModal(true)}
+                className="no-print"
+              >
+                <Maximize className="mr-2 h-4 w-4" />
+                View Deck
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrint}
+              disabled={isPrinting}
+              className="no-print"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              {isPrinting ? "Preparing..." : "Print Analysis"}
+            </Button>
+          </div>
+        </div>
+
+        <div ref={printRef} className="print-container">
+          <div className="hidden print-header">
+            <div>
+              <h1 className="print-title">{company?.name} - Investment Analysis</h1>
+              <div className="print-date">{currentDate}</div>
+            </div>
+            <div className="print-score-badge">
+              Score: {formattedScore}/5
+            </div>
+          </div>
+        
+          <Card className="mb-8 print-shadow-none print-card">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-2xl print-text-black">{company?.name}</CardTitle>
+                <div className="flex items-center">
+                  <Badge variant={getScoreVariant(company.overallScore)}>
+                    Score: {formattedScore}/5
+                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground no-print">
+                          <HelpCircle className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                        <p>{getScoreDescription(company.overallScore)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+              <CardDescription className="print-text-dark">Complete analysis summary and market research</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-6 print-break-inside-avoid">
+                <h3 className="text-lg font-medium mb-2 print-text-black">Overall Performance</h3>
+                <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
+                <p className="text-sm text-muted-foreground print-text-gray">
+                  {getScoreDescription(company.overallScore)}
+                </p>
+              </div>
+
+              <div className="mb-8 print-break-inside-avoid">
+                {userId && company && (
+                  <InvestorResearch 
+                    companyId={company.id.toString()}
+                    assessmentPoints={company.assessmentPoints || []}
+                    userId={userId}
+                  />
+                )}
+              </div>
+
+              <div className="mb-8 print-break-inside-avoid">
+                <h3 className="text-lg font-medium mb-4 print-text-black print-section-title">Section Performance Analysis</h3>
+                <div className="h-80 print-chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={chartData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={70} 
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis domain={[0, 5]} tickCount={6} />
+                      <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
+                      <Bar dataKey="score" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium mb-4 print-text-black print-section-title">Detailed Section Breakdown</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {company.sections.map((section) => (
+                    <Card key={section.id} className="overflow-hidden print-card print-break-inside-avoid">
+                      <CardHeader className="bg-muted/50 pb-2">
+                        <CardTitle className="text-base print-text-black">{section.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="flex items-center mb-2">
+                          <span className="font-medium mr-2 print-text-black">Score: {section.score}/5</span>
+                          <Progress 
+                            value={section.score * 20} 
+                            className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
+                          />
+                          <TooltipProvider>
+                            <Tooltip delayDuration={300}>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground no-print">
+                                  <HelpCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                                <p>{getSectionScoreDescription(section.score, section.title)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2 print-text-dark">
+                          {section.description || 'No description available'}
+                        </p>
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          className="p-0 h-auto mt-2 no-print"
+                          onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
+                        >
+                          View Research Details →
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="hidden print-footer">
+                <p>Generated by InvestorBase on {currentDate}</p>
+                <p>Confidential - For investment purposes only</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {company.reportId && (
+          <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{company.name} - Analysis Report</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-auto p-1">
+                <ReportViewer reportId={company.reportId} />
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
-
-      <Card className="mb-8">
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl">{company.name}</CardTitle>
-            <div className="flex items-center">
-              <Badge variant={getScoreVariant(company.overallScore)}>
-                Score: {formattedScore}/5
-              </Badge>
-              <TooltipProvider>
-                <Tooltip delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                    <p>{getScoreDescription(company.overallScore)}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-          <CardDescription>Complete analysis summary and market research</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Overall Performance</h3>
-            <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {getScoreDescription(company.overallScore)}
-            </p>
-          </div>
-
-          {/* Investor Research Component (replacing Key Assessment Points) */}
-          <div className="mb-8">
-            {userId && company && (
-              <InvestorResearch 
-                companyId={company.id.toString()}
-                assessmentPoints={company.assessmentPoints || []}
-                userId={userId}
-              />
-            )}
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Section Performance Analysis</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={70} 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis domain={[0, 5]} tickCount={6} />
-                  <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
-                  <Bar dataKey="score" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium mb-4">Detailed Section Breakdown</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {company.sections.map((section) => (
-                <Card key={section.id} className="overflow-hidden">
-                  <CardHeader className="bg-muted/50 pb-2">
-                    <CardTitle className="text-base">{section.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="flex items-center mb-2">
-                      <span className="font-medium mr-2">Score: {section.score}/5</span>
-                      <Progress 
-                        value={section.score * 20} 
-                        className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
-                      />
-                      <TooltipProvider>
-                        <Tooltip delayDuration={300}>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground">
-                              <HelpCircle className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                            <p>{getSectionScoreDescription(section.score, section.title)}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {section.description || 'No description available'}
-                    </p>
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="p-0 h-auto mt-2"
-                      onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
-                    >
-                      View Research Details →
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Report Modal */}
-      {company.reportId && (
-        <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
-          <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle>{company.name} - Analysis Report</DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-auto p-1">
-              <ReportViewer reportId={company.reportId} />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -254,7 +436,6 @@ function getScoreDescription(score: number): string {
 }
 
 function getSectionScoreDescription(score: number, sectionTitle: string): string {
-  // Get section-specific descriptions
   const sectionSpecific = getSectionSpecificFeedback(score, sectionTitle);
   
   if (score >= 4.5) return `Outstanding (${score}/5): ${sectionSpecific}`;
@@ -265,7 +446,6 @@ function getSectionScoreDescription(score: number, sectionTitle: string): string
 }
 
 function getSectionSpecificFeedback(score: number, sectionTitle: string): string {
-  // Tailor feedback based on section type
   const sectionLower = sectionTitle.toLowerCase();
   
   if (sectionLower.includes("market") || sectionLower.includes("opportunity")) {
@@ -316,7 +496,6 @@ function getSectionSpecificFeedback(score: number, sectionTitle: string): string
     return "Unclear path to sustainable revenue, problematic unit economics, or unproven business model requiring significant validation.";
   }
   
-  // Default feedback for any other section type
   if (score >= 3.5) return "This aspect is well-handled with strong execution and clear strategic alignment.";
   if (score >= 2.5) return "This aspect meets basic requirements but has room for improvement in execution and strategic alignment.";
   return "This aspect shows significant weaknesses that require substantial revision to meet investor expectations.";
