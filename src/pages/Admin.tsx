@@ -135,16 +135,32 @@ const AdminPage = () => {
           throw usersError;
         }
         
+        // Add detailed logging for debugging users data
+        console.log("Fetched users data:", usersData);
+        if (usersData && usersData.length > 0) {
+          console.log("First user email:", usersData[0].email);
+          console.log("First user full structure:", JSON.stringify(usersData[0], null, 2));
+        }
+        
         setUsers(usersData as UserProfile[] || []);
         setTotalCount(usersCount || 0);
         setTotalPages(Math.ceil((usersCount || 0) / limit));
         
         console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
       } else {
-        // Fetch companies with pagination
+        // Fetch companies with pagination and include profile data for emails
+        console.log("Fetching companies with user emails...");
+        
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
           .from('companies')
-          .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
+          .select(`
+            id, 
+            name, 
+            overall_score, 
+            created_at, 
+            user_id,
+            profiles:user_id (email)
+          `, { count: 'exact' })
           .range(from, to)
           .order('created_at', { ascending: false });
 
@@ -152,48 +168,36 @@ const AdminPage = () => {
           console.error("Error fetching companies:", companiesError);
           throw companiesError;
         }
-
-        // Process companies to add user emails
-        let companiesWithEmails = [...companiesData];
         
-        // Only try to fetch emails if we have companies with user_ids
-        const userIds = companiesData
-          .map(company => company.user_id)
-          .filter((id): id is string => id !== null && id !== undefined);
+        // Debug log the raw companies data
+        console.log("Raw companies data:", companiesData);
+        
+        // Process companies to extract email from the profiles join
+        const processedCompanies = companiesData.map(company => {
+          // Log each company's structure to debug
+          console.log("Processing company:", company);
           
-        if (userIds.length > 0) {
-          // Use a safe query with a non-empty list
-          const { data: userEmailsData } = await supabase
-            .from('profiles')
-            .select('id, email')
-            .in('id', userIds);
-            
-          // Create email lookup map
-          const userEmailMap: Record<string, string> = {};
-          if (userEmailsData && userEmailsData.length > 0) {
-            userEmailsData.forEach(user => {
-              if (user.id && user.email) {
-                userEmailMap[user.id] = user.email;
-              }
-            });
+          let userEmail = null;
+          
+          // Check if profiles data exists and extract email
+          if (company.profiles) {
+            console.log("Company profiles data:", company.profiles);
+            userEmail = company.profiles.email;
+          } else {
+            console.log("No profile data for company:", company.id);
           }
           
-          // Add emails to companies
-          companiesWithEmails = companiesData.map(company => ({
+          return {
             ...company,
-            user_email: company.user_id && userEmailMap[company.user_id] 
-              ? userEmailMap[company.user_id] 
-              : "N/A"
-          }));
-        } else {
-          // No user IDs, just mark all emails as N/A
-          companiesWithEmails = companiesData.map(company => ({
-            ...company,
-            user_email: "N/A"
-          }));
-        }
+            user_email: userEmail || "N/A",
+            // Remove the nested profiles object to avoid issues
+            profiles: undefined
+          };
+        });
         
-        setCompanies(companiesWithEmails);
+        console.log("Processed companies with emails:", processedCompanies);
+        
+        setCompanies(processedCompanies);
         setTotalCount(companiesCount || 0);
         setTotalPages(Math.ceil((companiesCount || 0) / limit));
         
