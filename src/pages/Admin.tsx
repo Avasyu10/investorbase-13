@@ -8,9 +8,10 @@ import {
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, AlertCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 type UserProfile = {
   id: string;
@@ -50,6 +51,11 @@ const AdminPage = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [activeTab, setActiveTab] = useState("users");
   const pageSize = 10;
+
+  // Search functionality
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+  const [filteredCompanies, setFilteredCompanies] = useState<CompanyWithEmail[]>([]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -115,6 +121,33 @@ const AdminPage = () => {
       fetchData(currentPage, pageSize);
     }
   }, [currentPage, activeTab, isAdmin]);
+  
+  // Add effect for search filtering
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      // If search is empty, show all data
+      setFilteredUsers(users);
+      setFilteredCompanies(companies);
+      return;
+    }
+    
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    
+    if (activeTab === "users") {
+      const filtered = users.filter(user => 
+        (user.email && user.email.toLowerCase().includes(lowerSearchTerm)) ||
+        (user.full_name && user.full_name.toLowerCase().includes(lowerSearchTerm)) ||
+        (user.username && user.username.toLowerCase().includes(lowerSearchTerm))
+      );
+      setFilteredUsers(filtered);
+    } else {
+      const filtered = companies.filter(company => 
+        (company.name && company.name.toLowerCase().includes(lowerSearchTerm)) ||
+        (company.userEmail && company.userEmail.toLowerCase().includes(lowerSearchTerm))
+      );
+      setFilteredCompanies(filtered);
+    }
+  }, [searchTerm, users, companies, activeTab]);
 
   const fetchData = async (page: number, limit: number) => {
     try {
@@ -266,6 +299,7 @@ const AdminPage = () => {
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
     setCurrentPage(1); // Reset to first page when changing tabs
+    setSearchTerm(""); // Clear search when changing tabs
   };
 
   if (!isAdmin) {
@@ -291,6 +325,10 @@ const AdminPage = () => {
     );
   }
 
+  // Determine whether to show filtered or all data
+  const displayUsers = searchTerm.trim() === "" ? users : filteredUsers;
+  const displayCompanies = searchTerm.trim() === "" ? companies : filteredCompanies;
+
   return (
     <div className="container mx-auto px-4 py-10">
       <div className="flex items-center gap-2 mb-6">
@@ -299,16 +337,29 @@ const AdminPage = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="users">Users ({activeTab === "users" ? totalCount : "?"})</TabsTrigger>
-          <TabsTrigger value="companies">Companies ({activeTab === "companies" ? totalCount : "?"})</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+          <TabsList className="mb-4 sm:mb-0">
+            <TabsTrigger value="users">Users ({displayUsers.length})</TabsTrigger>
+            <TabsTrigger value="companies">Companies ({displayCompanies.length})</TabsTrigger>
+          </TabsList>
+          
+          {/* Search Bar */}
+          <div className="relative w-full sm:w-auto">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={activeTab === "users" ? "Search users by email..." : "Search by email or company name..."}
+              className="pl-8 w-full sm:w-64 md:w-80"
+            />
+          </div>
+        </div>
         
         <TabsContent value="users">
           <div className="rounded-md border">
             <Table>
               <TableCaption>
-                Page {currentPage} of {totalPages || 1}
+                {searchTerm ? `${displayUsers.length} results` : `Page ${currentPage} of ${totalPages || 1}`}
               </TableCaption>
               <TableHeader>
                 <TableRow>
@@ -320,7 +371,7 @@ const AdminPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {displayUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.full_name || "N/A"}</TableCell>
                     <TableCell>{user.email || "N/A"}</TableCell>
@@ -329,7 +380,7 @@ const AdminPage = () => {
                     <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                {users.length === 0 && (
+                {displayUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4">No users found</TableCell>
                   </TableRow>
@@ -343,7 +394,7 @@ const AdminPage = () => {
           <div className="rounded-md border">
             <Table>
               <TableCaption>
-                Page {currentPage} of {totalPages || 1}
+                {searchTerm ? `${displayCompanies.length} results` : `Page ${currentPage} of ${totalPages || 1}`}
               </TableCaption>
               <TableHeader>
                 <TableRow>
@@ -354,7 +405,7 @@ const AdminPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {companies.map((company) => (
+                {displayCompanies.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell>{company.userEmail}</TableCell>
                     <TableCell>{company.name || "N/A"}</TableCell>
@@ -362,7 +413,7 @@ const AdminPage = () => {
                     <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                {companies.length === 0 && (
+                {displayCompanies.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
                   </TableRow>
@@ -373,30 +424,32 @@ const AdminPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center gap-2 mt-6">
-        <Button
-          variant="outline"
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          size="sm"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
-        <span className="text-sm text-muted-foreground px-2">
-          Page {currentPage} of {totalPages || 1}
-        </span>
-        <Button
-          variant="outline"
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-          size="sm"
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Only show pagination when not searching */}
+      {!searchTerm && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            size="sm"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground px-2">
+            Page {currentPage} of {totalPages || 1}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            size="sm"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
