@@ -7,12 +7,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -20,11 +22,34 @@ const Dashboard = () => {
       navigate('/', { state: { from: '/dashboard' } });
     } else if (user) {
       console.log("Dashboard loaded for user:", user.id);
+      checkAdminStatus();
     }
     
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
   }, [user, isLoading, navigate]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return;
+      }
+      
+      console.log('Admin status check in Dashboard:', data);
+      setIsAdmin(data?.is_admin === true);
+    } catch (err) {
+      console.error('Error in admin check:', err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -42,6 +67,16 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+            {isAdmin && (
+              <Button 
+                onClick={() => navigate("/admin")} 
+                variant="outline"
+                className="flex items-center"
+              >
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Admin Panel
+              </Button>
+            )}
             <Button 
               onClick={() => navigate("/news-feed")} 
               variant="outline"
