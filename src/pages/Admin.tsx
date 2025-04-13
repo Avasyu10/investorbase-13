@@ -173,67 +173,54 @@ const AdminPage = () => {
         // Create an empty map to store user emails
         let userEmailMap: Record<string, string> = {};
 
-        // FIX: First create a database function to bypass RLS for admins
-        if (uniqueUserIds.length > 0) {
-          try {
-            // Try direct postgres transaction with higher privileges
-            // This is a temporary approach to bypass RLS policies
-            const { data: profilesData, error: profilesError } = await supabase.rpc(
-              'admin_get_user_emails', 
-              { user_ids: uniqueUserIds }
-            );
+        // Try using the edge function to get emails
+        try {
+          const response = await supabase.functions.invoke('get-user-emails', {
+            body: { userIds: uniqueUserIds }
+          });
+          
+          console.log("Edge function response:", response);
+          
+          if (!response.error && response.data) {
+            // Fix type error - explicitly cast the response data
+            const profilesData = response.data as Array<{id: string, email: string}>;
             
-            console.log("Admin RPC response:", profilesData, profilesError);
-            
-            if (profilesError) {
-              console.error("Admin RPC error:", profilesError);
-              // Fall back to regular query
-              const { data: regularData, error: regularError } = await supabase
-                .from('profiles')
-                .select('id, email')
-                .in('id', uniqueUserIds);
-                
-              console.log("Regular profiles query:", regularData, regularError);
-                
-              if (!regularError && regularData && regularData.length > 0) {
-                userEmailMap = regularData.reduce((map: Record<string, string>, profile) => {
-                  if (profile.id && profile.email) {
-                    map[profile.id] = profile.email;
-                  }
-                  return map;
-                }, {});
-                console.log("Created email map from regular query:", userEmailMap);
+            userEmailMap = profilesData.reduce((map: Record<string, string>, profile) => {
+              if (profile.id && profile.email) {
+                map[profile.id] = profile.email;
               }
-            } else if (profilesData) {
-              // Convert RPC result to map
-              userEmailMap = profilesData.reduce((map: Record<string, string>, item: any) => {
-                map[item.id] = item.email;
+              return map;
+            }, {});
+            
+            console.log("Created email map from edge function:", userEmailMap);
+          } else {
+            console.error("Error from edge function:", response.error);
+          }
+        } catch (err) {
+          console.error("Error calling edge function:", err);
+        }
+        
+        // Fallback if the edge function didn't work
+        if (Object.keys(userEmailMap).length === 0) {
+          try {
+            const { data: regularData, error: regularError } = await supabase
+              .from('profiles')
+              .select('id, email')
+              .in('id', uniqueUserIds);
+              
+            console.log("Regular profiles query:", regularData, regularError);
+              
+            if (!regularError && regularData && regularData.length > 0) {
+              userEmailMap = regularData.reduce((map: Record<string, string>, profile) => {
+                if (profile.id && profile.email) {
+                  map[profile.id] = profile.email;
+                }
                 return map;
               }, {});
-              console.log("Created email map from RPC:", userEmailMap);
+              console.log("Created email map from regular query:", userEmailMap);
             }
           } catch (err) {
             console.error("Error in email lookup:", err);
-          }
-          
-          // Fallback: Query directly with service role if available or try other approaches
-          if (Object.keys(userEmailMap).length === 0) {
-            try {
-              const { data: bypassData } = await supabase.auth.admin.listUsers({
-                perPage: 100,
-              });
-              
-              if (bypassData && bypassData.users) {
-                bypassData.users.forEach(authUser => {
-                  if (uniqueUserIds.includes(authUser.id)) {
-                    userEmailMap[authUser.id] = authUser.email || null;
-                  }
-                });
-                console.log("Created email map from auth admin:", userEmailMap);
-              }
-            } catch (err) {
-              console.error("Couldn't access admin auth methods:", err);
-            }
           }
         }
         
