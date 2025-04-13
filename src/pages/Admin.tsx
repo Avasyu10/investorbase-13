@@ -135,7 +135,7 @@ const AdminPage = () => {
         .from('companies')
         .select(`
           id, name, overall_score, created_at, user_id,
-          profiles:user_id (email)
+          profiles(email)
         `, { count: 'exact' });
         
       // Add search if provided
@@ -157,7 +157,8 @@ const AdminPage = () => {
         overall_score: company.overall_score,
         created_at: company.created_at,
         user_id: company.user_id,
-        user_email: company.profiles ? company.profiles.email : null
+        // Fix the type error by correctly accessing the email property
+        user_email: company.profiles?.email || null
       }));
 
       setUsers(usersData as UserProfile[]);
