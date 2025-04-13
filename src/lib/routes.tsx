@@ -20,6 +20,7 @@ import EmailTest from "@/pages/EmailTest";
 import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 const routes = [
   {
@@ -43,6 +44,14 @@ const routes = [
     element: (
       <ProtectedRoute>
         <Dashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin-dashboard",
+    element: (
+      <ProtectedRoute>
+        <AdminDashboard />
       </ProtectedRoute>
     ),
   },

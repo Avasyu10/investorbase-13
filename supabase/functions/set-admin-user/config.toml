@@ -1,8 +1,5 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
 
-[functions.details-in-analyze-pdf]
-verify_jwt = false
-
 [functions.set-admin-user]
 verify_jwt = false
