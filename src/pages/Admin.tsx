@@ -27,6 +27,7 @@ type Company = {
   overall_score: number;
   created_at: string;
   user_id: string | null;
+  user_email?: string | null; // Added user_email field
 };
 
 const AdminPage = () => {
@@ -128,8 +129,33 @@ const AdminPage = () => {
 
       if (companiesError) throw companiesError;
 
+      // Fetch user emails for companies
+      const companiesWithUserEmails = await Promise.all(
+        (companiesData as Company[]).map(async (company) => {
+          if (company.user_id) {
+            // Get user email from profiles table
+            const { data: userData, error: userError } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('id', company.user_id)
+              .single();
+            
+            if (!userError && userData) {
+              return {
+                ...company,
+                user_email: userData.email
+              };
+            }
+          }
+          return {
+            ...company,
+            user_email: null
+          };
+        })
+      );
+
       setUsers(usersData as UserProfile[]);
-      setCompanies(companiesData as Company[]);
+      setCompanies(companiesWithUserEmails);
       
       // Set pagination data
       setTotalCount(Math.max(usersCount || 0, companiesCount || 0));
@@ -226,6 +252,7 @@ const AdminPage = () => {
               </TableCaption>
               <TableHeader>
                 <TableRow>
+                  <TableHead>User Email</TableHead>
                   <TableHead>Company Name</TableHead>
                   <TableHead>Overall Rating</TableHead>
                   <TableHead>Created At</TableHead>
@@ -234,6 +261,7 @@ const AdminPage = () => {
               <TableBody>
                 {companies.map((company) => (
                   <TableRow key={company.id}>
+                    <TableCell>{company.user_email || "N/A"}</TableCell>
                     <TableCell>{company.name || "N/A"}</TableCell>
                     <TableCell>{company.overall_score}</TableCell>
                     <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
@@ -241,7 +269,7 @@ const AdminPage = () => {
                 ))}
                 {companies.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4">No companies found</TableCell>
+                    <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
                   </TableRow>
                 )}
               </TableBody>
