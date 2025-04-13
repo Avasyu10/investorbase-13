@@ -34,12 +34,24 @@ const AdminPage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
+
+  // Use an effect to debounce the search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms debounce time
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -101,20 +113,20 @@ const AdminPage = () => {
 
   // Add effect to refresh data when page changes, except during search
   useEffect(() => {
-    if (isAdmin && !searchQuery) {
+    if (isAdmin && !debouncedSearchQuery) {
       fetchData(currentPage, pageSize);
     }
-  }, [currentPage, isAdmin]);
+  }, [currentPage, isAdmin, debouncedSearchQuery]);
 
-  // Listen for search query changes and search across all data
+  // Listen for debounced search query changes and search across all data
   useEffect(() => {
-    if (isAdmin && searchQuery) {
+    if (isAdmin && debouncedSearchQuery) {
       performSearch();
     }
-  }, [searchQuery]);
+  }, [debouncedSearchQuery, isAdmin]);
 
   const performSearch = async () => {
-    if (!searchQuery.trim()) {
+    if (!debouncedSearchQuery.trim()) {
       fetchData(currentPage, pageSize);
       return;
     }
@@ -128,7 +140,7 @@ const AdminPage = () => {
         .select(`
           id, name, overall_score, created_at, user_id
         `)
-        .or(`name.ilike.%${searchQuery}%`)
+        .or(`name.ilike.%${debouncedSearchQuery}%`)
         .order('created_at', { ascending: false });
 
       if (companiesError) throw companiesError;
@@ -203,10 +215,10 @@ const AdminPage = () => {
       });
       
       // Filter companies again by user email if needed
-      const filteredCompanies = searchQuery 
+      const filteredCompanies = debouncedSearchQuery 
         ? companiesWithEmails.filter(company => 
-            company.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
+            company.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+            (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
           )
         : companiesWithEmails;
       
@@ -352,7 +364,7 @@ const AdminPage = () => {
   // Handle search functionality
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
-    setCurrentPage(1); // Reset to page 1 for new search
+    // The debounced search query will be updated after the timeout
   };
 
   const handlePageChange = (newPage: number) => {
@@ -364,6 +376,7 @@ const AdminPage = () => {
   // Reset search
   const clearSearch = () => {
     setSearchQuery("");
+    setDebouncedSearchQuery("");
     fetchData(1, pageSize);
     setCurrentPage(1);
   };
@@ -423,8 +436,8 @@ const AdminPage = () => {
       <div className="rounded-md border">
         <Table>
           <TableCaption>
-            {searchQuery ? (
-              `Found ${companies.length} companies matching "${searchQuery}"`
+            {debouncedSearchQuery ? (
+              `Found ${companies.length} companies matching "${debouncedSearchQuery}"`
             ) : (
               `Page ${currentPage} of ${totalPages || 1}`
             )}
@@ -456,7 +469,7 @@ const AdminPage = () => {
       </div>
 
       {/* Pagination Controls - Only show when not searching */}
-      {!searchQuery && (
+      {!debouncedSearchQuery && (
         <div className="flex justify-center items-center gap-2 mt-6">
           <Button
             variant="outline"
