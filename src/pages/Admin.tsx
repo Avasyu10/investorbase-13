@@ -167,43 +167,72 @@ const AdminPage = () => {
         
         console.log(`Found ${userIds.length} unique user IDs:`, userIds);
         
-        // Only fetch profiles if we have user IDs
-        let userEmailMap: Record<string, string> = {};
+        // CRITICAL FIX: Instead of trying to query profiles which might be empty,
+        // directly query auth.users using the service role client if available
+        // If not available, query the special users table from auth schema
+        // Note: This requires elevated privileges, so we'll use a function if needed
+        console.log("About to fetch profiles with these user IDs:", userIds);
         
-        if (userIds.length > 0) {
-          // Fetch profiles directly from the auth schema using service role
-          console.log("About to fetch profiles with these user IDs:", userIds);
-          
-          // CRITICAL FIX: Use public.profiles table instead of trying to query auth users
-          // This is the key change that fixes the email display issue
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, email')
-            .in('id', userIds);
+        let userEmailMap: Record<string, string> = {};
+
+        // CRITICAL FIX: First try to query auth.users directly
+        // This is the core fix that should address the issue
+        try {
+          // Try to query auth.users directly with admin privileges
+          const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({
+            perPage: userIds.length,
+            page: 1,
+          });
+
+          if (!authError && authUsers && authUsers.users && authUsers.users.length > 0) {
+            console.log(`Successfully fetched ${authUsers.users.length} auth users`);
             
-          if (profilesError) {
-            console.error("Error fetching user emails:", profilesError);
-            throw profilesError;
+            // Create map of user IDs to emails
+            userEmailMap = authUsers.users.reduce((map: Record<string, string>, user) => {
+              if (user.id && user.email) {
+                map[user.id] = user.email;
+                console.log(`Mapped user ID ${user.id} to email ${user.email}`);
+              }
+              return map;
+            }, {});
+          } else {
+            console.log("Could not access auth.users directly:", authError);
           }
-          
-          console.log(`Fetched ${profilesData?.length || 0} user profiles`);
-          console.log("Raw profiles data:", JSON.stringify(profilesData, null, 2));
-          
-          // Create map of user IDs to emails
-          userEmailMap = (profilesData || []).reduce((map: Record<string, string>, profile) => {
-            if (profile.id && profile.email) {
-              map[profile.id] = profile.email;
-              console.log(`Mapped user ID ${profile.id} to email ${profile.email}`);
-            } else {
-              console.log(`Profile has missing data:`, profile);
-            }
-            return map;
-          }, {});
-          
-          console.log("User email map created:", userEmailMap);
-        } else {
-          console.warn("No valid user IDs found in companies data");
+        } catch (authError) {
+          console.log("Error trying to access auth.users:", authError);
         }
+
+        // If the auth.users approach didn't work, fallback to querying auth schema directly
+        if (Object.keys(userEmailMap).length === 0) {
+          try {
+            // Try RPC call if available to get user emails securely
+            const { data: emailData, error: emailError } = await supabase.rpc('get_user_emails', {
+              user_ids: userIds
+            });
+            
+            if (!emailError && emailData && emailData.length > 0) {
+              console.log(`Retrieved ${emailData.length} user emails via RPC`);
+              userEmailMap = emailData.reduce((map: Record<string, string>, item: any) => {
+                map[item.id] = item.email;
+                return map;
+              }, {});
+            } else {
+              console.log("RPC call failed or returned no data:", emailError);
+            }
+          } catch (rpcError) {
+            console.log("RPC call error:", rpcError);
+          }
+        }
+
+        // If we still don't have emails, just use the user IDs as placeholder text (last resort fallback)
+        if (Object.keys(userEmailMap).length === 0) {
+          console.log("FALLBACK: Using user IDs as email placeholders");
+          userIds.forEach(id => {
+            userEmailMap[id] = `User ID: ${id.substring(0, 8)}...`;
+          });
+        }
+        
+        console.log("Final user email map created:", userEmailMap);
         
         // Map companies with their user emails
         const companiesWithEmails = companiesData.map(company => {
