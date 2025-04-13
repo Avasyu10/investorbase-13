@@ -197,14 +197,19 @@ const AdminPage = () => {
               // If regular query fails, try the edge function
               console.log("Regular query didn't return data, trying edge function");
               
+              // Get the access token from the session
+              const session = await supabase.auth.getSession();
+              const accessToken = session.data.session?.access_token || '';
+              
               const response = await fetch(
                 'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
                 {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`,
-                    'apikey': supabase.supabaseKey
+                    'Authorization': `Bearer ${accessToken}`,
+                    // Don't use the protected supabaseKey - use the public anon key instead
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
                   },
                   body: JSON.stringify({ userIds: uniqueUserIds })
                 }
