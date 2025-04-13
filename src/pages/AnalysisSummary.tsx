@@ -57,15 +57,15 @@ const PrintStyles = () => (
       }
       
       .print-text-black {
-        color: black !important;
+        color: white !important;
       }
       
       .print-text-dark {
-        color: #333 !important;
+        color: white !important;
       }
       
       .print-text-gray {
-        color: #555 !important;
+        color: white !important;
       }
       
       [class*="bg-"] {
@@ -103,7 +103,7 @@ const PrintStyles = () => (
         font-weight: bold !important;
         margin-top: 15px !important;
         margin-bottom: 10px !important;
-        color: black !important;
+        color: white !important;
       }
       
       .print-header {
