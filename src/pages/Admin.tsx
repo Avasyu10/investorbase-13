@@ -7,7 +7,8 @@ import {
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +38,12 @@ const AdminPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10; // Reduced page size to prevent timeouts
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -50,7 +57,7 @@ const AdminPage = () => {
         if (user.email === "f20180623@goa.bits-pilani.ac.in") {
           console.log("Detected super admin email, granting admin access");
           setIsAdmin(true);
-          fetchData();
+          fetchData(currentPage, pageSize);
           return;
         }
 
@@ -85,7 +92,7 @@ const AdminPage = () => {
         }
 
         setIsAdmin(true);
-        fetchData();
+        fetchData(currentPage, pageSize);
       } catch (err) {
         console.error("Error checking admin status:", err);
         setError("Failed to verify admin privileges");
@@ -94,35 +101,50 @@ const AdminPage = () => {
     };
 
     checkAdminStatus();
-  }, [user, navigate, toast]);
+  }, [user, navigate, toast, currentPage]);
 
-  const fetchData = async () => {
+  const fetchData = async (page: number, limit: number) => {
     try {
       setLoading(true);
       
-      // Fetch all users
-      const { data: usersData, error: usersError } = await supabase
+      // Calculate offset based on page number
+      const from = (page - 1) * limit;
+      
+      // Fetch users with pagination
+      const { data: usersData, error: usersError, count: usersCount } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*', { count: 'exact' })
+        .range(from, from + limit - 1)
         .order('created_at', { ascending: false });
 
       if (usersError) throw usersError;
       
-      // Fetch all companies
-      const { data: companiesData, error: companiesError } = await supabase
+      // Fetch companies with pagination
+      const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
         .from('companies')
-        .select('*')
+        .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
+        .range(from, from + limit - 1)
         .order('created_at', { ascending: false });
 
       if (companiesError) throw companiesError;
 
       setUsers(usersData as UserProfile[]);
       setCompanies(companiesData as Company[]);
+      
+      // Set pagination data
+      setTotalCount(Math.max(usersCount || 0, companiesCount || 0));
+      setTotalPages(Math.ceil((Math.max(usersCount || 0, companiesCount || 0)) / limit));
     } catch (err: any) {
       console.error("Error fetching admin data:", err);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
     }
   };
 
@@ -157,14 +179,16 @@ const AdminPage = () => {
       
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="users">Users ({users.length})</TabsTrigger>
-          <TabsTrigger value="companies">Companies ({companies.length})</TabsTrigger>
+          <TabsTrigger value="users">Users ({totalCount})</TabsTrigger>
+          <TabsTrigger value="companies">Companies ({totalCount})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
           <div className="rounded-md border">
             <Table>
-              <TableCaption>List of all registered users</TableCaption>
+              <TableCaption>
+                Page {currentPage} of {totalPages || 1}
+              </TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -197,7 +221,9 @@ const AdminPage = () => {
         <TabsContent value="companies">
           <div className="rounded-md border">
             <Table>
-              <TableCaption>List of all companies</TableCaption>
+              <TableCaption>
+                Page {currentPage} of {totalPages || 1}
+              </TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Company Name</TableHead>
@@ -223,6 +249,31 @@ const AdminPage = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-center items-center gap-2 mt-6">
+        <Button
+          variant="outline"
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          size="sm"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Previous
+        </Button>
+        <span className="text-sm text-muted-foreground px-2">
+          Page {currentPage} of {totalPages || 1}
+        </span>
+        <Button
+          variant="outline"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages}
+          size="sm"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };
