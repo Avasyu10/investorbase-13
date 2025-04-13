@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -33,24 +34,12 @@ const AdminPage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
-
-  // Use an effect to debounce the search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500); // 500ms debounce time
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [searchQuery]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -112,20 +101,20 @@ const AdminPage = () => {
 
   // Add effect to refresh data when page changes, except during search
   useEffect(() => {
-    if (isAdmin && !debouncedSearchQuery) {
+    if (isAdmin && !searchQuery) {
       fetchData(currentPage, pageSize);
     }
-  }, [currentPage, isAdmin, debouncedSearchQuery]);
+  }, [currentPage, isAdmin]);
 
-  // Listen for debounced search query changes and search across all data
+  // Listen for search query changes and search across all data
   useEffect(() => {
-    if (isAdmin && debouncedSearchQuery) {
+    if (isAdmin && searchQuery) {
       performSearch();
     }
-  }, [debouncedSearchQuery, isAdmin]);
+  }, [searchQuery]);
 
   const performSearch = async () => {
-    if (!debouncedSearchQuery.trim()) {
+    if (!searchQuery.trim()) {
       fetchData(currentPage, pageSize);
       return;
     }
@@ -139,7 +128,7 @@ const AdminPage = () => {
         .select(`
           id, name, overall_score, created_at, user_id
         `)
-        .or(`name.ilike.%${debouncedSearchQuery}%`)
+        .or(`name.ilike.%${searchQuery}%`)
         .order('created_at', { ascending: false });
 
       if (companiesError) throw companiesError;
@@ -213,76 +202,11 @@ const AdminPage = () => {
         };
       });
       
-      // FIXED: Fetch additional companies by user email that might not match by name
-      // This requires a separate query against our edge function to search emails
-      try {
-        const session = await supabase.auth.getSession();
-        const accessToken = session.data.session?.access_token || '';
-        
-        const emailSearchResponse = await fetch(
-          'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-            },
-            body: JSON.stringify({ 
-              searchQuery: debouncedSearchQuery
-            })
-          }
-        );
-        
-        if (emailSearchResponse.ok) {
-          const matchingProfiles = await emailSearchResponse.json();
-          
-          if (matchingProfiles && matchingProfiles.length > 0) {
-            // Get user IDs from matching email profiles
-            const matchingUserIds = matchingProfiles.map((profile: {id: string}) => profile.id);
-            
-            // Get companies for these users that weren't already included
-            const { data: additionalCompanies, error: additionalError } = await supabase
-              .from('companies')
-              .select(`
-                id, name, overall_score, created_at, user_id
-              `)
-              .in('user_id', matchingUserIds)
-              .order('created_at', { ascending: false });
-              
-            if (!additionalError && additionalCompanies) {
-              // Add these companies with their emails
-              const additionalCompaniesWithEmails = additionalCompanies.map(company => {
-                // Find matching profile
-                const matchingProfile = matchingProfiles.find(
-                  (p: {id: string}) => p.id === company.user_id
-                );
-                
-                return {
-                  ...company,
-                  userEmail: matchingProfile?.email || "N/A"
-                };
-              });
-              
-              // Combine and de-duplicate by ID
-              const existingIds = new Set(companiesWithEmails.map(c => c.id));
-              const uniqueAdditionalCompanies = additionalCompaniesWithEmails.filter(
-                c => !existingIds.has(c.id)
-              );
-              
-              companiesWithEmails.push(...uniqueAdditionalCompanies);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error in email search:", err);
-      }
-      
       // Filter companies again by user email if needed
-      const filteredCompanies = debouncedSearchQuery 
+      const filteredCompanies = searchQuery 
         ? companiesWithEmails.filter(company => 
-            company.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-            (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+            company.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
           )
         : companiesWithEmails;
       
@@ -428,7 +352,7 @@ const AdminPage = () => {
   // Handle search functionality
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
-    // The debounced search query will be updated after the timeout
+    setCurrentPage(1); // Reset to page 1 for new search
   };
 
   const handlePageChange = (newPage: number) => {
@@ -440,7 +364,6 @@ const AdminPage = () => {
   // Reset search
   const clearSearch = () => {
     setSearchQuery("");
-    setDebouncedSearchQuery("");
     fetchData(1, pageSize);
     setCurrentPage(1);
   };
@@ -500,8 +423,8 @@ const AdminPage = () => {
       <div className="rounded-md border">
         <Table>
           <TableCaption>
-            {debouncedSearchQuery ? (
-              `Found ${companies.length} companies matching "${debouncedSearchQuery}"`
+            {searchQuery ? (
+              `Found ${companies.length} companies matching "${searchQuery}"`
             ) : (
               `Page ${currentPage} of ${totalPages || 1}`
             )}
@@ -533,7 +456,7 @@ const AdminPage = () => {
       </div>
 
       {/* Pagination Controls - Only show when not searching */}
-      {!debouncedSearchQuery && (
+      {!searchQuery && (
         <div className="flex justify-center items-center gap-2 mt-6">
           <Button
             variant="outline"
