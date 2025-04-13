@@ -129,30 +129,33 @@ const AdminPage = () => {
 
       if (companiesError) throw companiesError;
 
-      // Fetch user emails for companies
-      const companiesWithUserEmails = await Promise.all(
-        (companiesData as Company[]).map(async (company) => {
-          if (company.user_id) {
-            // Get user email from profiles table
-            const { data: userData, error: userError } = await supabase
-              .from('profiles')
-              .select('email')
-              .eq('id', company.user_id)
-              .single();
-            
-            if (!userError && userData) {
-              return {
-                ...company,
-                user_email: userData.email
-              };
-            }
+      // Create a map of user IDs to emails instead of individual queries
+      const userEmails: Record<string, string> = {};
+      
+      if (usersData && usersData.length > 0) {
+        // Populate the userEmails map from the users we already fetched
+        usersData.forEach((userData: any) => {
+          if (userData.id && userData.email) {
+            userEmails[userData.id] = userData.email;
           }
+        });
+      }
+
+      // Add user emails to companies
+      const companiesWithUserEmails = (companiesData as Company[]).map(company => {
+        if (company.user_id && userEmails[company.user_id]) {
+          return {
+            ...company,
+            user_email: userEmails[company.user_id]
+          };
+        } else {
+          // If we don't have the email in our map, set it to null
           return {
             ...company,
             user_email: null
           };
-        })
-      );
+        }
+      });
 
       setUsers(usersData as UserProfile[]);
       setCompanies(companiesWithUserEmails);
