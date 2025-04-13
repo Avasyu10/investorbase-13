@@ -145,7 +145,7 @@ const AdminPage = () => {
         
         console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
       } else {
-        // Fetch companies with pagination
+        // FIXED APPROACH: Fetch companies with pagination
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
           .from('companies')
           .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
@@ -165,20 +165,22 @@ const AdminPage = () => {
           .map(company => company.user_id)
           .filter((id): id is string => id !== null);
           
-        const uniqueUserIds = [...new Set(userIds)]; // Remove duplicates
+        // Remove duplicates
+        const uniqueUserIds = [...new Set(userIds)];
         
         console.log(`Found ${uniqueUserIds.length} unique user IDs:`, uniqueUserIds);
         
-        // CRITICAL FIX: Query the profiles table using uniqueUserIds to get emails
-        // This is the key change to fix the issue
+        // Create an empty map to store user emails
         let userEmailMap: Record<string, string> = {};
         
         if (uniqueUserIds.length > 0) {
-          console.log("Querying profiles table for user emails");
+          // FIXED: Query the profiles table for user emails using the correct table
           const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
+            .from('profiles')  // This is the correct table
             .select('id, email')
             .in('id', uniqueUserIds);
+            
+          console.log("Profiles query response:", profilesData, profilesError);
             
           if (!profilesError && profilesData && profilesData.length > 0) {
             console.log(`Successfully fetched ${profilesData.length} user profiles`);
@@ -208,6 +210,7 @@ const AdminPage = () => {
         // Map companies with their user emails
         const companiesWithEmails = companiesData.map(company => {
           const email = company.user_id ? userEmailMap[company.user_id] || null : null;
+          console.log(`Company ${company.name} (${company.id}) with user_id ${company.user_id} mapped to email:`, email);
           
           return {
             ...company,
