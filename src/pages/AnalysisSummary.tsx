@@ -329,16 +329,6 @@ export default function AnalysisSummary() {
               </div>
 
               <div className="mb-8 print-break-inside-avoid">
-                {userId && company && (
-                  <InvestorResearch 
-                    companyId={company.id.toString()}
-                    assessmentPoints={company.assessmentPoints || []}
-                    userId={userId}
-                  />
-                )}
-              </div>
-
-              <div className="mb-8 print-break-inside-avoid">
                 <h3 className="text-lg font-medium mb-4 print-text-black print-section-title">Section Performance Analysis</h3>
                 <div className="h-80 print-chart-container">
                   <ResponsiveContainer width="100%" height="100%">
