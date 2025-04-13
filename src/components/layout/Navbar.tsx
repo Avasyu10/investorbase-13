@@ -2,20 +2,47 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Building, User, MessageCircle } from "lucide-react";
+import { LogOut, Building, User, MessageCircle, Shield } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Determine if we're on a company or section page
   const isCompanyOrSectionPage = location.pathname.includes('/company/');
+
+  useEffect(() => {
+    if (user) {
+      // Check if user is admin
+      const checkAdminStatus = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+            
+          if (error) throw error;
+          
+          setIsAdmin(data?.is_admin || false);
+        } catch (err) {
+          console.error('Error checking admin status:', err);
+          setIsAdmin(false);
+        }
+      };
+      
+      checkAdminStatus();
+    }
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-lg transition-all">
@@ -30,6 +57,20 @@ export function Navbar() {
         <nav className="flex items-center">
           {user && (
             <div className="flex items-center space-x-2 sm:space-x-4">
+              {isAdmin && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  asChild
+                  className="transition-colors hidden sm:flex"
+                >
+                  <Link to="/admin-dashboard">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Admin
+                  </Link>
+                </Button>
+              )}
+              
               {isCompanyOrSectionPage && (
                 <Button 
                   variant="ghost" 
@@ -76,6 +117,14 @@ export function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin-dashboard" className="flex items-center">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {isCompanyOrSectionPage && (
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" className="flex items-center">
