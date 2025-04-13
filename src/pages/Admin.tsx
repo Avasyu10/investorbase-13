@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
@@ -12,15 +11,6 @@ import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, AlertCircle, Search } 
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-
-type UserProfile = {
-  id: string;
-  email: string | null;
-  full_name: string | null;
-  username: string | null;
-  is_admin: boolean;
-  created_at: string;
-};
 
 type Company = {
   id: string;
@@ -38,7 +28,6 @@ type CompanyWithEmail = Company & {
 const AdminPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [users, setUsers] = useState<UserProfile[]>([]);
   const [companies, setCompanies] = useState<CompanyWithEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +39,6 @@ const AdminPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("users");
   const pageSize = 10;
 
   useEffect(() => {
@@ -116,14 +104,14 @@ const AdminPage = () => {
     if (isAdmin && !searchQuery) {
       fetchData(currentPage, pageSize);
     }
-  }, [currentPage, activeTab, isAdmin]);
+  }, [currentPage, isAdmin]);
 
   // Listen for search query changes and search across all data
   useEffect(() => {
     if (isAdmin && searchQuery) {
       performSearch();
     }
-  }, [searchQuery, activeTab]);
+  }, [searchQuery]);
 
   const performSearch = async () => {
     if (!searchQuery.trim()) {
@@ -134,115 +122,99 @@ const AdminPage = () => {
     setLoading(true);
     
     try {
-      if (activeTab === "users") {
-        // For users, search without pagination to get all matching results
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*')
-          .or(`email.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`);
-          
-        if (profilesError) throw profilesError;
-        
-        setUsers(profilesData as UserProfile[] || []);
-        
-        // Hide pagination during search
-        setTotalCount(profilesData?.length || 0);
-        setTotalPages(1); // No pagination during search
-      } else {
-        // For companies, search across all companies without pagination
-        const { data: companiesData, error: companiesError } = await supabase
-          .from('companies')
-          .select(`
-            id, name, overall_score, created_at, user_id
-          `)
-          .or(`name.ilike.%${searchQuery}%`)
-          .order('created_at', { ascending: false });
+      // For companies, search across all companies without pagination
+      const { data: companiesData, error: companiesError } = await supabase
+        .from('companies')
+        .select(`
+          id, name, overall_score, created_at, user_id
+        `)
+        .or(`name.ilike.%${searchQuery}%`)
+        .order('created_at', { ascending: false });
 
-        if (companiesError) throw companiesError;
+      if (companiesError) throw companiesError;
+      
+      // Extract unique user IDs from companies (filtering out null values)
+      const userIds = companiesData
+        .map(company => company.user_id)
+        .filter((id): id is string => id !== null);
         
-        // Extract unique user IDs from companies (filtering out null values)
-        const userIds = companiesData
-          .map(company => company.user_id)
-          .filter((id): id is string => id !== null);
+      // Remove duplicates
+      const uniqueUserIds = [...new Set(userIds)];
+      
+      // Create an empty map to store user emails
+      let userEmailMap: Record<string, string | null> = {};
+      
+      // Only try to fetch emails if we have user IDs
+      if (uniqueUserIds.length > 0) {
+        try {
+          // Get the access token from the session
+          const session = await supabase.auth.getSession();
+          const accessToken = session.data.session?.access_token || '';
           
-        // Remove duplicates
-        const uniqueUserIds = [...new Set(userIds)];
-        
-        // Create an empty map to store user emails
-        let userEmailMap: Record<string, string | null> = {};
-        
-        // Only try to fetch emails if we have user IDs
-        if (uniqueUserIds.length > 0) {
-          try {
-            // Get the access token from the session
-            const session = await supabase.auth.getSession();
-            const accessToken = session.data.session?.access_token || '';
-            
-            // Call the edge function to get all user emails
-            const response = await fetch(
-              'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${accessToken}`,
-                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-                },
-                body: JSON.stringify({ userIds: uniqueUserIds })
-              }
-            );
-            
-            if (response.ok) {
-              const profilesData = await response.json();
-              
-              userEmailMap = profilesData.reduce((map: Record<string, string | null>, profile: {id: string, email: string | null}) => {
-                map[profile.id] = profile.email;
-                return map;
-              }, {});
-            } else {
-              const errorText = await response.text();
-              throw new Error(`Edge function error: ${errorText}`);
+          // Call the edge function to get all user emails
+          const response = await fetch(
+            'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+              },
+              body: JSON.stringify({ userIds: uniqueUserIds })
             }
-          } catch (err) {
-            console.error("Error in email lookup:", err);
-            toast({
-              title: "Error fetching emails",
-              description: "Could not retrieve all user emails",
-              variant: "destructive",
-            });
+          );
+          
+          if (response.ok) {
+            const profilesData = await response.json();
+            
+            userEmailMap = profilesData.reduce((map: Record<string, string | null>, profile: {id: string, email: string | null}) => {
+              map[profile.id] = profile.email;
+              return map;
+            }, {});
+          } else {
+            const errorText = await response.text();
+            throw new Error(`Edge function error: ${errorText}`);
+          }
+        } catch (err) {
+          console.error("Error in email lookup:", err);
+          toast({
+            title: "Error fetching emails",
+            description: "Could not retrieve all user emails",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Map companies with their user emails
+      const companiesWithEmails = companiesData.map(company => {
+        let displayEmail = "N/A";
+        
+        if (company.user_id) {
+          if (company.user_id in userEmailMap) {
+            displayEmail = userEmailMap[company.user_id] || "N/A";
           }
         }
         
-        // Map companies with their user emails
-        const companiesWithEmails = companiesData.map(company => {
-          let displayEmail = "N/A";
-          
-          if (company.user_id) {
-            if (company.user_id in userEmailMap) {
-              displayEmail = userEmailMap[company.user_id] || "N/A";
-            }
-          }
-          
-          return {
-            ...company,
-            userEmail: displayEmail
-          };
-        });
-        
-        // Filter companies again by user email if needed
-        const filteredCompanies = searchQuery 
-          ? companiesWithEmails.filter(company => 
-              company.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-              (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
-            )
-          : companiesWithEmails;
-        
-        setCompanies(filteredCompanies);
-        
-        // Hide pagination during search
-        setTotalCount(filteredCompanies.length);
-        setTotalPages(1); // No pagination during search
-      }
+        return {
+          ...company,
+          userEmail: displayEmail
+        };
+      });
+      
+      // Filter companies again by user email if needed
+      const filteredCompanies = searchQuery 
+        ? companiesWithEmails.filter(company => 
+            company.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
+          )
+        : companiesWithEmails;
+      
+      setCompanies(filteredCompanies);
+      
+      // Hide pagination during search
+      setTotalCount(filteredCompanies.length);
+      setTotalPages(1); // No pagination during search
     } catch (err: any) {
       console.error("Error performing search:", err);
       setError(err.message);
@@ -264,126 +236,106 @@ const AdminPage = () => {
       const from = (page - 1) * limit;
       const to = from + limit - 1;
 
-      console.log(`Fetching data for page ${page}, tab: ${activeTab}, from: ${from}, to: ${to}`);
+      console.log(`Fetching data for page ${page}, from: ${from}, to: ${to}`);
       
-      if (activeTab === "users" || activeTab === "") {
-        // Fetch users from profiles table
-        const { data: profilesData, error: profilesError, count: profilesCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact' })
-          .range(from, to)
-          .order('created_at', { ascending: false });
+      // Fetch companies with pagination
+      const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
+        .from('companies')
+        .select(`
+          id, name, overall_score, created_at, user_id
+        `, { count: 'exact' })
+        .range(from, to)
+        .order('created_at', { ascending: false });
 
-        if (profilesError) {
-          console.error("Error fetching profiles:", profilesError);
-          throw profilesError;
-        }
-        
-        setUsers(profilesData as UserProfile[] || []);
-        setTotalCount(profilesCount || 0);
-        setTotalPages(Math.ceil((profilesCount || 0) / limit));
-        
-        console.log(`Loaded ${profilesData?.length || 0} profiles of ${profilesCount || 0} total`);
-      } else {
-        // Fetch companies with pagination
-        const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
-          .from('companies')
-          .select(`
-            id, name, overall_score, created_at, user_id
-          `, { count: 'exact' })
-          .range(from, to)
-          .order('created_at', { ascending: false });
-
-        if (companiesError) {
-          console.error("Error fetching companies:", companiesError);
-          throw companiesError;
-        }
-        
-        console.log(`Fetched ${companiesData?.length || 0} companies`);
-        
-        // Extract unique user IDs from companies (filtering out null values)
-        const userIds = companiesData
-          .map(company => company.user_id)
-          .filter((id): id is string => id !== null);
-          
-        // Remove duplicates
-        const uniqueUserIds = [...new Set(userIds)];
-        
-        console.log(`Found ${uniqueUserIds.length} unique user IDs:`, uniqueUserIds);
-        
-        // Create an empty map to store user emails
-        let userEmailMap: Record<string, string | null> = {};
-        
-        // Only try to fetch emails if we have user IDs
-        if (uniqueUserIds.length > 0) {
-          try {
-            // Get the access token from the session
-            const session = await supabase.auth.getSession();
-            const accessToken = session.data.session?.access_token || '';
-            
-            // Call the edge function to get all user emails
-            const response = await fetch(
-              'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${accessToken}`,
-                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-                },
-                body: JSON.stringify({ userIds: uniqueUserIds })
-              }
-            );
-            
-            if (response.ok) {
-              const profilesData = await response.json();
-              console.log("Edge function fetch response:", profilesData);
-              
-              userEmailMap = profilesData.reduce((map: Record<string, string | null>, profile: {id: string, email: string | null}) => {
-                map[profile.id] = profile.email;
-                return map;
-              }, {});
-              
-              console.log("Created email map from edge function:", userEmailMap);
-            } else {
-              const errorText = await response.text();
-              console.error("Error from edge function fetch:", errorText);
-              throw new Error(`Edge function error: ${errorText}`);
-            }
-          } catch (err) {
-            console.error("Error in email lookup:", err);
-            toast({
-              title: "Error fetching emails",
-              description: "Could not retrieve all user emails",
-              variant: "destructive",
-            });
-          }
-        }
-        
-        // Map companies with their user emails
-        const companiesWithEmails = companiesData.map(company => {
-          let displayEmail = "N/A";
-          
-          if (company.user_id) {
-            if (company.user_id in userEmailMap) {
-              displayEmail = userEmailMap[company.user_id] || "N/A";
-            }
-          }
-          
-          console.log(`Company ${company.name} (${company.id}) with user_id ${company.user_id} mapped to email:`, displayEmail);
-          
-          return {
-            ...company,
-            userEmail: displayEmail
-          };
-        });
-        
-        console.log("Final companies with emails:", companiesWithEmails);
-        
-        setCompanies(companiesWithEmails);
-        setTotalCount(companiesCount || 0);
-        setTotalPages(Math.ceil((companiesCount || 0) / limit));
+      if (companiesError) {
+        console.error("Error fetching companies:", companiesError);
+        throw companiesError;
       }
+      
+      console.log(`Fetched ${companiesData?.length || 0} companies`);
+      
+      // Extract unique user IDs from companies (filtering out null values)
+      const userIds = companiesData
+        .map(company => company.user_id)
+        .filter((id): id is string => id !== null);
+        
+      // Remove duplicates
+      const uniqueUserIds = [...new Set(userIds)];
+      
+      console.log(`Found ${uniqueUserIds.length} unique user IDs:`, uniqueUserIds);
+      
+      // Create an empty map to store user emails
+      let userEmailMap: Record<string, string | null> = {};
+      
+      // Only try to fetch emails if we have user IDs
+      if (uniqueUserIds.length > 0) {
+        try {
+          // Get the access token from the session
+          const session = await supabase.auth.getSession();
+          const accessToken = session.data.session?.access_token || '';
+          
+          // Call the edge function to get all user emails
+          const response = await fetch(
+            'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+              },
+              body: JSON.stringify({ userIds: uniqueUserIds })
+            }
+          );
+          
+          if (response.ok) {
+            const profilesData = await response.json();
+            console.log("Edge function fetch response:", profilesData);
+            
+            userEmailMap = profilesData.reduce((map: Record<string, string | null>, profile: {id: string, email: string | null}) => {
+              map[profile.id] = profile.email;
+              return map;
+            }, {});
+            
+            console.log("Created email map from edge function:", userEmailMap);
+          } else {
+            const errorText = await response.text();
+            console.error("Error from edge function fetch:", errorText);
+            throw new Error(`Edge function error: ${errorText}`);
+          }
+        } catch (err) {
+          console.error("Error in email lookup:", err);
+          toast({
+            title: "Error fetching emails",
+            description: "Could not retrieve all user emails",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Map companies with their user emails
+      const companiesWithEmails = companiesData.map(company => {
+        let displayEmail = "N/A";
+        
+        if (company.user_id) {
+          if (company.user_id in userEmailMap) {
+            displayEmail = userEmailMap[company.user_id] || "N/A";
+          }
+        }
+        
+        console.log(`Company ${company.name} (${company.id}) with user_id ${company.user_id} mapped to email:`, displayEmail);
+        
+        return {
+          ...company,
+          userEmail: displayEmail
+        };
+      });
+      
+      console.log("Final companies with emails:", companiesWithEmails);
+      
+      setCompanies(companiesWithEmails);
+      setTotalCount(companiesCount || 0);
+      setTotalPages(Math.ceil((companiesCount || 0) / limit));
     } catch (err: any) {
       console.error("Error fetching admin data:", err);
       setError(err.message);
@@ -407,12 +359,6 @@ const AdminPage = () => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
-  };
-  
-  const handleTabChange = (newTab: string) => {
-    setActiveTab(newTab);
-    setCurrentPage(1); // Reset to first page when changing tabs
-    setSearchQuery(""); // Clear search when changing tabs
   };
 
   // Reset search
@@ -457,7 +403,7 @@ const AdminPage = () => {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
-          placeholder={`Search ${activeTab === "users" ? "users by name or email" : "companies by name or user email"}`}
+          placeholder="Search companies by name or user email"
           value={searchQuery}
           onChange={handleSearch}
           className="pl-10"
@@ -474,88 +420,40 @@ const AdminPage = () => {
         )}
       </div>
       
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="users">Users ({searchQuery ? users.length : totalCount})</TabsTrigger>
-          <TabsTrigger value="companies">Companies ({searchQuery ? companies.length : totalCount})</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="users">
-          <div className="rounded-md border">
-            <Table>
-              <TableCaption>
-                {searchQuery ? (
-                  `Found ${users.length} users matching "${searchQuery}"`
-                ) : (
-                  `Page ${currentPage} of ${totalPages || 1}`
-                )}
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Admin Status</TableHead>
-                  <TableHead>Created At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.full_name || "N/A"}</TableCell>
-                    <TableCell>{user.email || "N/A"}</TableCell>
-                    <TableCell>{user.username || "N/A"}</TableCell>
-                    <TableCell>{user.is_admin ? "Admin" : "User"}</TableCell>
-                    <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-                {users.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">No users found</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="companies">
-          <div className="rounded-md border">
-            <Table>
-              <TableCaption>
-                {searchQuery ? (
-                  `Found ${companies.length} companies matching "${searchQuery}"`
-                ) : (
-                  `Page ${currentPage} of ${totalPages || 1}`
-                )}
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User Email</TableHead>
-                  <TableHead>Company Name</TableHead>
-                  <TableHead>Overall Rating</TableHead>
-                  <TableHead>Created At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {companies.map((company) => (
-                  <TableRow key={company.id}>
-                    <TableCell>{company.userEmail}</TableCell>
-                    <TableCell>{company.name || "N/A"}</TableCell>
-                    <TableCell>{company.overall_score}</TableCell>
-                    <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-                {companies.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-      </Tabs>
+      <div className="rounded-md border">
+        <Table>
+          <TableCaption>
+            {searchQuery ? (
+              `Found ${companies.length} companies matching "${searchQuery}"`
+            ) : (
+              `Page ${currentPage} of ${totalPages || 1}`
+            )}
+          </TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User Email</TableHead>
+              <TableHead>Company Name</TableHead>
+              <TableHead>Overall Rating</TableHead>
+              <TableHead>Created At</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {companies.map((company) => (
+              <TableRow key={company.id}>
+                <TableCell>{company.userEmail}</TableCell>
+                <TableCell>{company.name || "N/A"}</TableCell>
+                <TableCell>{company.overall_score}</TableCell>
+                <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
+              </TableRow>
+            ))}
+            {companies.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Pagination Controls - Only show when not searching */}
       {!searchQuery && (
