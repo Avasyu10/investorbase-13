@@ -140,7 +140,7 @@ export const AlertsSection = () => {
         .eq("user_id", user?.id);
         
       if (alertsError) throw alertsError;
-      setCustomAlerts(alerts || []);
+      setCustomAlerts(alerts as CustomAlert[] || []);
     } catch (error: any) {
       console.error("Error fetching alert settings:", error);
       toast({
@@ -219,7 +219,7 @@ export const AlertsSection = () => {
         
       if (error) throw error;
       
-      setCustomAlerts([...customAlerts, data[0]]);
+      setCustomAlerts([...customAlerts, data[0] as CustomAlert]);
       
       toast({
         title: "Alert created",

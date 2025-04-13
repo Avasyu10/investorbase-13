@@ -312,9 +312,9 @@ serve(async (req) => {
         {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
+          }
+        );
+      }
 
     return new Response(
       JSON.stringify({ error: "Invalid alert type specified" }),

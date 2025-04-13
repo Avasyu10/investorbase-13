@@ -145,6 +145,36 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          industry: string | null
+          min_score: number | null
+          stage: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          min_score?: number | null
+          stage?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          min_score?: number | null
+          stage?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_pitch_submissions: {
         Row: {
           analysis_error: string | null
@@ -259,6 +289,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      end_of_day_alerts: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       fund_thesis_analysis: {
         Row: {
