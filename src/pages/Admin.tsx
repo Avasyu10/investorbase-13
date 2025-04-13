@@ -8,9 +8,10 @@ import {
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 type UserProfile = {
   id: string;
@@ -27,6 +28,7 @@ type Company = {
   overall_score: number;
   created_at: string;
   user_id: string | null;
+  user_email: string | null; // Added user_email
 };
 
 const AdminPage = () => {
@@ -38,6 +40,7 @@ const AdminPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,7 +60,7 @@ const AdminPage = () => {
         if (user.email === "f20180623@goa.bits-pilani.ac.in") {
           console.log("Detected super admin email, granting admin access");
           setIsAdmin(true);
-          fetchData(currentPage, pageSize);
+          fetchData(currentPage, pageSize, searchTerm);
           return;
         }
 
@@ -92,7 +95,7 @@ const AdminPage = () => {
         }
 
         setIsAdmin(true);
-        fetchData(currentPage, pageSize);
+        fetchData(currentPage, pageSize, searchTerm);
       } catch (err) {
         console.error("Error checking admin status:", err);
         setError("Failed to verify admin privileges");
@@ -101,35 +104,64 @@ const AdminPage = () => {
     };
 
     checkAdminStatus();
-  }, [user, navigate, toast, currentPage]);
+  }, [user, navigate, toast, currentPage, searchTerm]);
 
-  const fetchData = async (page: number, limit: number) => {
+  const fetchData = async (page: number, limit: number, search: string) => {
     try {
       setLoading(true);
       
       // Calculate offset based on page number
       const from = (page - 1) * limit;
       
-      // Fetch users with pagination
-      const { data: usersData, error: usersError, count: usersCount } = await supabase
+      // Fetch users with pagination and search
+      let userQuery = supabase
         .from('profiles')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact' });
+        
+      // Add search if provided
+      if (search) {
+        userQuery = userQuery.or(`email.ilike.%${search}%,full_name.ilike.%${search}%,username.ilike.%${search}%`);
+      }
+      
+      // Complete the query with pagination
+      const { data: usersData, error: usersError, count: usersCount } = await userQuery
         .range(from, from + limit - 1)
         .order('created_at', { ascending: false });
 
       if (usersError) throw usersError;
       
-      // Fetch companies with pagination
-      const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
+      // Fetch companies with pagination and search, include user_email
+      let companyQuery = supabase
         .from('companies')
-        .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
+        .select(`
+          id, name, overall_score, created_at, user_id,
+          profiles:user_id (email)
+        `, { count: 'exact' });
+        
+      // Add search if provided
+      if (search) {
+        companyQuery = companyQuery.or(`name.ilike.%${search}%`);
+      }
+      
+      // Complete the query with pagination
+      const { data: companiesData, error: companiesError, count: companiesCount } = await companyQuery
         .range(from, from + limit - 1)
         .order('created_at', { ascending: false });
 
       if (companiesError) throw companiesError;
 
+      // Process companies data to include user_email
+      const processedCompanies = companiesData.map((company) => ({
+        id: company.id,
+        name: company.name,
+        overall_score: company.overall_score,
+        created_at: company.created_at,
+        user_id: company.user_id,
+        user_email: company.profiles ? company.profiles.email : null
+      }));
+
       setUsers(usersData as UserProfile[]);
-      setCompanies(companiesData as Company[]);
+      setCompanies(processedCompanies as Company[]);
       
       // Set pagination data
       setTotalCount(Math.max(usersCount || 0, companiesCount || 0));
@@ -146,6 +178,11 @@ const AdminPage = () => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
+  };
+  
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   if (!isAdmin) {
@@ -175,6 +212,18 @@ const AdminPage = () => {
       <div className="flex items-center gap-2 mb-6">
         <ShieldCheck className="h-6 w-6 text-primary" />
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      </div>
+      
+      <div className="mb-6">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search users or companies..." 
+            value={searchTerm}
+            onChange={handleSearch}
+            className="pl-10"
+          />
+        </div>
       </div>
       
       <Tabs defaultValue="users" className="w-full">
@@ -227,6 +276,7 @@ const AdminPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Company Name</TableHead>
+                  <TableHead>User Email</TableHead>
                   <TableHead>Overall Rating</TableHead>
                   <TableHead>Created At</TableHead>
                 </TableRow>
@@ -235,13 +285,14 @@ const AdminPage = () => {
                 {companies.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell>{company.name || "N/A"}</TableCell>
+                    <TableCell>{company.user_email || "N/A"}</TableCell>
                     <TableCell>{company.overall_score}</TableCell>
                     <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
                 {companies.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4">No companies found</TableCell>
+                    <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
                   </TableRow>
                 )}
               </TableBody>
