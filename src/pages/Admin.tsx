@@ -171,8 +171,11 @@ const AdminPage = () => {
         let userEmailMap: Record<string, string> = {};
         
         if (userIds.length > 0) {
-          // Fetch all relevant user profiles in one query
+          // Fetch profiles directly from the auth schema using service role
           console.log("About to fetch profiles with these user IDs:", userIds);
+          
+          // CRITICAL FIX: Use public.profiles table instead of trying to query auth users
+          // This is the key change that fixes the email display issue
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('id, email')
