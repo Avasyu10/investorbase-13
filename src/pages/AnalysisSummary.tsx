@@ -225,6 +225,26 @@ export default function AnalysisSummary() {
     fill: getColorForScore(section.score)
   }));
 
+  const CustomXAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text 
+          x={0} 
+          y={0} 
+          dy={16} 
+          textAnchor="end" 
+          fill="#666" 
+          transform="rotate(-45)"
+          className="text-xs font-medium print:text-black print:font-semibold"
+          style={{ fontWeight: isPrinting ? 'bold' : 'normal' }}
+        >
+          {payload.value}
+        </text>
+      </g>
+    );
+  };
+
   return (
     <>
       <PrintStyles />
@@ -332,9 +352,16 @@ export default function AnalysisSummary() {
                         angle={-45} 
                         textAnchor="end" 
                         height={70} 
-                        tick={{ fontSize: 12 }}
+                        tick={<CustomXAxisTick />}
+                        stroke="#666"
+                        className="print-text-black"
                       />
-                      <YAxis domain={[0, 5]} tickCount={6} />
+                      <YAxis 
+                        domain={[0, 5]} 
+                        tickCount={6} 
+                        stroke="#666"
+                        className="print-text-black"
+                      />
                       <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
                       <Bar dataKey="score" fill="#8884d8" />
                     </BarChart>
