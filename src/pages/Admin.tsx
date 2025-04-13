@@ -27,7 +27,7 @@ type Company = {
   overall_score: number;
   created_at: string;
   user_id: string | null;
-  user_email?: string | null; // Added user_email field
+  user_email?: string | null;
 };
 
 const AdminPage = () => {
@@ -44,7 +44,8 @@ const AdminPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 10; // Reduced page size to prevent timeouts
+  const [activeTab, setActiveTab] = useState("users");
+  const pageSize = 10;
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -58,7 +59,7 @@ const AdminPage = () => {
         if (user.email === "f20180623@goa.bits-pilani.ac.in") {
           console.log("Detected super admin email, granting admin access");
           setIsAdmin(true);
-          fetchData(currentPage, pageSize);
+          fetchData(1, pageSize); // Always start with page 1 when checking admin status
           return;
         }
 
@@ -93,7 +94,7 @@ const AdminPage = () => {
         }
 
         setIsAdmin(true);
-        fetchData(currentPage, pageSize);
+        fetchData(1, pageSize); // Always start with page 1 when checking admin status
       } catch (err) {
         console.error("Error checking admin status:", err);
         setError("Failed to verify admin privileges");
@@ -102,7 +103,14 @@ const AdminPage = () => {
     };
 
     checkAdminStatus();
-  }, [user, navigate, toast, currentPage]);
+  }, [user, navigate, toast]);
+
+  // Add effect to refresh data when page changes
+  useEffect(() => {
+    if (isAdmin) {
+      fetchData(currentPage, pageSize);
+    }
+  }, [currentPage, activeTab, isAdmin]);
 
   const fetchData = async (page: number, limit: number) => {
     try {
@@ -110,79 +118,87 @@ const AdminPage = () => {
       
       // Calculate offset based on page number
       const from = (page - 1) * limit;
-      
-      // Fetch users with pagination
-      const { data: usersData, error: usersError, count: usersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .range(from, from + limit - 1)
-        .order('created_at', { ascending: false });
+      const to = from + limit - 1;
 
-      if (usersError) throw usersError;
+      console.log(`Fetching data for page ${page}, tab: ${activeTab}, from: ${from}, to: ${to}`);
       
-      // Fetch companies with pagination
-      const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
-        .from('companies')
-        .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
-        .range(from, from + limit - 1)
-        .order('created_at', { ascending: false });
+      if (activeTab === "users" || activeTab === "") {
+        // Fetch users with pagination
+        const { data: usersData, error: usersError, count: usersCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact' })
+          .range(from, to)
+          .order('created_at', { ascending: false });
 
-      if (companiesError) throw companiesError;
-
-      // Create a separate query to get all user emails
-      // First collect all unique user IDs from companies
-      const uniqueUserIds = companiesData
-        .map(company => company.user_id)
-        .filter((id): id is string => id !== null && id !== undefined);
-      
-      // To avoid empty IN clause, add a dummy ID if there are no user IDs
-      const userIdsForQuery = uniqueUserIds.length > 0 
-        ? uniqueUserIds 
-        : ['00000000-0000-0000-0000-000000000000'];
-        
-      // Fetch all user emails in one query
-      const { data: userEmailsData } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('id', userIdsForQuery);
-      
-      // Create a map for quick user email lookups
-      const userEmailMap: Record<string, string> = {};
-      if (userEmailsData) {
-        userEmailsData.forEach(user => {
-          if (user.id && user.email) {
-            userEmailMap[user.id] = user.email;
-          }
-        });
-      }
-      
-      // Add user emails to the company data
-      const companiesWithEmails = companiesData.map(company => {
-        if (company.user_id && userEmailMap[company.user_id]) {
-          return {
-            ...company,
-            user_email: userEmailMap[company.user_id]
-          };
+        if (usersError) {
+          console.error("Error fetching users:", usersError);
+          throw usersError;
         }
-        return {
-          ...company,
-          user_email: 'N/A'
-        };
-      });
+        
+        setUsers(usersData as UserProfile[] || []);
+        setTotalCount(usersCount || 0);
+        setTotalPages(Math.ceil((usersCount || 0) / limit));
+        
+        console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
+      } else {
+        // Fetch companies with pagination
+        const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
+          .from('companies')
+          .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
+          .range(from, to)
+          .order('created_at', { ascending: false });
 
-      setUsers(usersData as UserProfile[]);
-      setCompanies(companiesWithEmails);
-      
-      // Fix: Set totalCount for pagination based on the respective count values
-      const activeTab = document.querySelector('[data-state="active"][data-radix-collection-item]');
-      const isCompaniesTab = activeTab?.textContent?.includes('Companies');
-      
-      // Set the appropriate count based on which tab is active
-      setTotalCount(isCompaniesTab ? (companiesCount || 0) : (usersCount || 0));
-      setTotalPages(Math.ceil((isCompaniesTab ? (companiesCount || 0) : (usersCount || 0)) / limit));
-      
-      console.log("Loaded page", page, "of", Math.ceil((isCompaniesTab ? (companiesCount || 0) : (usersCount || 0)) / limit), "pages");
-      console.log("Total count:", isCompaniesTab ? (companiesCount || 0) : (usersCount || 0));
+        if (companiesError) {
+          console.error("Error fetching companies:", companiesError);
+          throw companiesError;
+        }
+
+        // Process companies to add user emails
+        let companiesWithEmails = [...companiesData];
+        
+        // Only try to fetch emails if we have companies with user_ids
+        const userIds = companiesData
+          .map(company => company.user_id)
+          .filter((id): id is string => id !== null && id !== undefined);
+          
+        if (userIds.length > 0) {
+          // Use a safe query with a non-empty list
+          const { data: userEmailsData } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .in('id', userIds);
+            
+          // Create email lookup map
+          const userEmailMap: Record<string, string> = {};
+          if (userEmailsData && userEmailsData.length > 0) {
+            userEmailsData.forEach(user => {
+              if (user.id && user.email) {
+                userEmailMap[user.id] = user.email;
+              }
+            });
+          }
+          
+          // Add emails to companies
+          companiesWithEmails = companiesData.map(company => ({
+            ...company,
+            user_email: company.user_id && userEmailMap[company.user_id] 
+              ? userEmailMap[company.user_id] 
+              : "N/A"
+          }));
+        } else {
+          // No user IDs, just mark all emails as N/A
+          companiesWithEmails = companiesData.map(company => ({
+            ...company,
+            user_email: "N/A"
+          }));
+        }
+        
+        setCompanies(companiesWithEmails);
+        setTotalCount(companiesCount || 0);
+        setTotalPages(Math.ceil((companiesCount || 0) / limit));
+        
+        console.log(`Loaded ${companiesData?.length || 0} companies of ${companiesCount || 0} total`);
+      }
     } catch (err: any) {
       console.error("Error fetching admin data:", err);
       setError(err.message);
@@ -195,6 +211,11 @@ const AdminPage = () => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
+  };
+  
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    setCurrentPage(1); // Reset to first page when changing tabs
   };
 
   if (!isAdmin) {
@@ -226,10 +247,10 @@ const AdminPage = () => {
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
       
-      <Tabs defaultValue="users" className="w-full" onValueChange={() => setCurrentPage(1)}>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="users">Users ({totalCount})</TabsTrigger>
-          <TabsTrigger value="companies">Companies ({totalCount})</TabsTrigger>
+          <TabsTrigger value="users">Users ({activeTab === "users" ? totalCount : "?"})</TabsTrigger>
+          <TabsTrigger value="companies">Companies ({activeTab === "companies" ? totalCount : "?"})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
