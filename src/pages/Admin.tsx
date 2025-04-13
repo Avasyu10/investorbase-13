@@ -8,7 +8,7 @@ import {
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -148,7 +148,9 @@ const AdminPage = () => {
         // FIXED APPROACH: Fetch companies with pagination
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
           .from('companies')
-          .select('id, name, overall_score, created_at, user_id', { count: 'exact' })
+          .select(`
+            id, name, overall_score, created_at, user_id
+          `, { count: 'exact' })
           .range(from, to)
           .order('created_at', { ascending: false });
 
@@ -158,7 +160,6 @@ const AdminPage = () => {
         }
         
         console.log(`Fetched ${companiesData?.length || 0} companies`);
-        console.log("Raw company data:", JSON.stringify(companiesData, null, 2));
         
         // Extract unique user IDs from companies (filtering out null values)
         const userIds = companiesData
@@ -172,37 +173,11 @@ const AdminPage = () => {
         
         // Create an empty map to store user emails
         let userEmailMap: Record<string, string> = {};
-
-        // Try using the edge function to get emails
-        try {
-          const response = await supabase.functions.invoke('get-user-emails', {
-            body: { userIds: uniqueUserIds }
-          });
-          
-          console.log("Edge function response:", response);
-          
-          if (!response.error && response.data) {
-            // Fix type error - explicitly cast the response data
-            const profilesData = response.data as Array<{id: string, email: string}>;
-            
-            userEmailMap = profilesData.reduce((map: Record<string, string>, profile) => {
-              if (profile.id && profile.email) {
-                map[profile.id] = profile.email;
-              }
-              return map;
-            }, {});
-            
-            console.log("Created email map from edge function:", userEmailMap);
-          } else {
-            console.error("Error from edge function:", response.error);
-          }
-        } catch (err) {
-          console.error("Error calling edge function:", err);
-        }
         
-        // Fallback if the edge function didn't work
-        if (Object.keys(userEmailMap).length === 0) {
+        // Only try to fetch emails if we have user IDs
+        if (uniqueUserIds.length > 0) {
           try {
+            // First try regular query (will work if user has access)
             const { data: regularData, error: regularError } = await supabase
               .from('profiles')
               .select('id, email')
@@ -218,6 +193,38 @@ const AdminPage = () => {
                 return map;
               }, {});
               console.log("Created email map from regular query:", userEmailMap);
+            } else {
+              // If regular query fails, try the edge function
+              console.log("Regular query didn't return data, trying edge function");
+              
+              const response = await fetch(
+                'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`,
+                    'apikey': supabase.supabaseKey
+                  },
+                  body: JSON.stringify({ userIds: uniqueUserIds })
+                }
+              );
+              
+              if (response.ok) {
+                const profilesData = await response.json();
+                console.log("Edge function fetch response:", profilesData);
+                
+                userEmailMap = profilesData.reduce((map: Record<string, string>, profile: {id: string, email: string}) => {
+                  if (profile.id && profile.email) {
+                    map[profile.id] = profile.email;
+                  }
+                  return map;
+                }, {});
+                
+                console.log("Created email map from edge function:", userEmailMap);
+              } else {
+                console.error("Error from edge function fetch:", await response.text());
+              }
             }
           } catch (err) {
             console.error("Error in email lookup:", err);
@@ -225,10 +232,12 @@ const AdminPage = () => {
         }
         
         // If we still don't have emails, use the user IDs as placeholders
-        console.log("FALLBACK: Using user IDs as email placeholders");
-        for (const id of uniqueUserIds) {
-          if (!userEmailMap[id]) {
-            userEmailMap[id] = `User ID: ${id.substring(0, 8)}...`;
+        if (Object.keys(userEmailMap).length === 0) {
+          console.log("FALLBACK: Using user IDs as email placeholders");
+          for (const id of uniqueUserIds) {
+            if (!userEmailMap[id]) {
+              userEmailMap[id] = `User ID: ${id.substring(0, 8)}...`;
+            }
           }
         }
         
@@ -245,7 +254,7 @@ const AdminPage = () => {
           };
         });
         
-        console.log("Final companies with emails:", JSON.stringify(companiesWithEmails, null, 2));
+        console.log("Final companies with emails:", companiesWithEmails);
         
         setCompanies(companiesWithEmails);
         setTotalCount(companiesCount || 0);
@@ -254,6 +263,11 @@ const AdminPage = () => {
     } catch (err: any) {
       console.error("Error fetching admin data:", err);
       setError(err.message);
+      toast({
+        title: "Error loading data",
+        description: err.message || "Failed to load admin data",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -285,7 +299,8 @@ const AdminPage = () => {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center">
+          <AlertCircle className="h-5 w-5 mr-2" />
           Error: {error}
         </div>
       </div>

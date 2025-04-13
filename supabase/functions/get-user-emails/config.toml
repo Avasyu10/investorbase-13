@@ -1,0 +1,4 @@
+
+# Configuration for the get-user-emails function
+project_id = "jhtnruktmtjqrfoiyrep"
+verify_jwt = true
