@@ -8,9 +8,10 @@ import {
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { Loader2, ShieldCheck, ChevronLeft, ChevronRight, AlertCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 type UserProfile = {
   id: string;
@@ -43,6 +44,7 @@ const AdminPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -127,23 +129,23 @@ const AdminPage = () => {
       console.log(`Fetching data for page ${page}, tab: ${activeTab}, from: ${from}, to: ${to}`);
       
       if (activeTab === "users" || activeTab === "") {
-        // Fetch users with pagination
-        const { data: usersData, error: usersError, count: usersCount } = await supabase
+        // Fetch users from profiles table
+        const { data: profilesData, error: profilesError, count: profilesCount } = await supabase
           .from('profiles')
           .select('*', { count: 'exact' })
           .range(from, to)
           .order('created_at', { ascending: false });
 
-        if (usersError) {
-          console.error("Error fetching users:", usersError);
-          throw usersError;
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+          throw profilesError;
         }
         
-        setUsers(usersData as UserProfile[] || []);
-        setTotalCount(usersCount || 0);
-        setTotalPages(Math.ceil((usersCount || 0) / limit));
+        setUsers(profilesData as UserProfile[] || []);
+        setTotalCount(profilesCount || 0);
+        setTotalPages(Math.ceil((profilesCount || 0) / limit));
         
-        console.log(`Loaded ${usersData?.length || 0} users of ${usersCount || 0} total`);
+        console.log(`Loaded ${profilesData?.length || 0} profiles of ${profilesCount || 0} total`);
       } else {
         // Fetch companies with pagination
         const { data: companiesData, error: companiesError, count: companiesCount } = await supabase
@@ -257,6 +259,27 @@ const AdminPage = () => {
     }
   };
 
+  // Handle search functionality
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  // Filter users or companies based on search query
+  const filteredUsers = searchQuery
+    ? users.filter(user => 
+        (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (user.full_name && user.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (user.username && user.username.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : users;
+
+  const filteredCompanies = searchQuery
+    ? companies.filter(company => 
+        (company.name && company.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : companies;
+
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
@@ -266,6 +289,7 @@ const AdminPage = () => {
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
     setCurrentPage(1); // Reset to first page when changing tabs
+    setSearchQuery(""); // Clear search when changing tabs
   };
 
   if (!isAdmin) {
@@ -298,17 +322,33 @@ const AdminPage = () => {
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
       
+      {/* Search bar */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder={`Search ${activeTab === "users" ? "users by name or email" : "companies by name or user email"}`}
+          value={searchQuery}
+          onChange={handleSearch}
+          className="pl-10"
+        />
+      </div>
+      
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="users">Users ({activeTab === "users" ? totalCount : "?"})</TabsTrigger>
-          <TabsTrigger value="companies">Companies ({activeTab === "companies" ? totalCount : "?"})</TabsTrigger>
+          <TabsTrigger value="users">Users ({filteredUsers.length})</TabsTrigger>
+          <TabsTrigger value="companies">Companies ({filteredCompanies.length})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
           <div className="rounded-md border">
             <Table>
               <TableCaption>
-                Page {currentPage} of {totalPages || 1}
+                {searchQuery ? (
+                  `Found ${filteredUsers.length} users matching "${searchQuery}"`
+                ) : (
+                  `Page ${currentPage} of ${totalPages || 1}`
+                )}
               </TableCaption>
               <TableHeader>
                 <TableRow>
@@ -320,7 +360,7 @@ const AdminPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.full_name || "N/A"}</TableCell>
                     <TableCell>{user.email || "N/A"}</TableCell>
@@ -329,7 +369,7 @@ const AdminPage = () => {
                     <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                {users.length === 0 && (
+                {filteredUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4">No users found</TableCell>
                   </TableRow>
@@ -343,7 +383,11 @@ const AdminPage = () => {
           <div className="rounded-md border">
             <Table>
               <TableCaption>
-                Page {currentPage} of {totalPages || 1}
+                {searchQuery ? (
+                  `Found ${filteredCompanies.length} companies matching "${searchQuery}"`
+                ) : (
+                  `Page ${currentPage} of ${totalPages || 1}`
+                )}
               </TableCaption>
               <TableHeader>
                 <TableRow>
@@ -354,7 +398,7 @@ const AdminPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {companies.map((company) => (
+                {filteredCompanies.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell>{company.userEmail}</TableCell>
                     <TableCell>{company.name || "N/A"}</TableCell>
@@ -362,7 +406,7 @@ const AdminPage = () => {
                     <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                {companies.length === 0 && (
+                {filteredCompanies.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-4">No companies found</TableCell>
                   </TableRow>
@@ -373,30 +417,32 @@ const AdminPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center gap-2 mt-6">
-        <Button
-          variant="outline"
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          size="sm"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
-        <span className="text-sm text-muted-foreground px-2">
-          Page {currentPage} of {totalPages || 1}
-        </span>
-        <Button
-          variant="outline"
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-          size="sm"
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Pagination Controls - Only show when not searching */}
+      {!searchQuery && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            size="sm"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground px-2">
+            Page {currentPage} of {totalPages || 1}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            size="sm"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
