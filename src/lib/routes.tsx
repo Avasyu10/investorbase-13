@@ -1,3 +1,4 @@
+
 import Index from "@/pages/Index";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -20,6 +21,7 @@ import EmailTest from "@/pages/EmailTest";
 import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import Admin from "@/pages/Admin";
 
 const routes = [
   {
@@ -171,6 +173,14 @@ const routes = [
     element: (
       <ProtectedRoute>
         <CompanyDetailPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin",
+    element: (
+      <ProtectedRoute>
+        <Admin />
       </ProtectedRoute>
     ),
   },

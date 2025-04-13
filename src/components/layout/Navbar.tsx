@@ -2,17 +2,47 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Building, User, MessageCircle } from "lucide-react";
+import { LogOut, Building, User, MessageCircle, ShieldCheck } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Check if the user is an admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error checking admin status:', error);
+          return;
+        }
+        
+        console.log('Admin status check:', data);
+        setIsAdmin(data?.is_admin === true);
+      } catch (err) {
+        console.error('Error in admin check:', err);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [user]);
 
   // Determine if we're on a company or section page
   const isCompanyOrSectionPage = location.pathname.includes('/company/');
@@ -40,6 +70,20 @@ export function Navbar() {
                   <Link to="/dashboard">
                     <Building className="h-4 w-4 mr-2" />
                     Companies
+                  </Link>
+                </Button>
+              )}
+              
+              {isAdmin && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  asChild
+                  className="transition-colors hidden sm:flex"
+                >
+                  <Link to="/admin">
+                    <ShieldCheck className="h-4 w-4 mr-2" />
+                    Admin
                   </Link>
                 </Button>
               )}
@@ -81,6 +125,14 @@ export function Navbar() {
                       <Link to="/dashboard" className="flex items-center">
                         <Building className="h-4 w-4 mr-2" />
                         Companies
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="flex items-center">
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Admin
                       </Link>
                     </DropdownMenuItem>
                   )}
