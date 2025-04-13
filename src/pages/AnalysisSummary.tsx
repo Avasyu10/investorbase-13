@@ -18,16 +18,26 @@ import { useReactToPrint } from 'react-to-print';
 const PrintStyles = () => (
   <style type="text/css">{`
     @media print {
-      body {
-        background-color: black !important;
-        color: black !important;
+      @page {
+        margin: 0;
+        size: auto;
+      }
+      
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #1a1a1a !important;
+        color: white !important;
         font-size: 12pt !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       
       .print-container {
-        padding: 20px !important;
+        padding: 0 !important;
         width: 100% !important;
         max-width: none !important;
+        background-color: #1a1a1a !important;
       }
       
       .no-print {
@@ -47,13 +57,15 @@ const PrintStyles = () => (
       
       .print-shadow-none {
         box-shadow: none !important;
-        border: 1px solid #ddd !important;
+        border: 1px solid #333 !important;
       }
       
       .print-card {
-        border: 1px solid #ddd !important;
+        border: 1px solid #333 !important;
         margin-bottom: 16px !important;
         break-inside: avoid !important;
+        background-color: #1a1a1a !important;
+        color: white !important;
       }
       
       .print-text-black {
@@ -61,11 +73,11 @@ const PrintStyles = () => (
       }
       
       .print-text-dark {
-        color: white !important;
+        color: #ccc !important;
       }
       
       .print-text-gray {
-        color: white !important;
+        color: #bbb !important;
       }
       
       [class*="bg-"] {
@@ -81,17 +93,11 @@ const PrintStyles = () => (
         font-size: 18pt !important;
         font-weight: bold !important;
         margin-bottom: 8px !important;
-        color: black !important;
+        color: white !important;
       }
       
-      .print-footer {
-        display: block !important;
-        text-align: center !important;
-        border-top: 1px solid #ddd !important;
-        padding-top: 10px !important;
-        margin-top: 30px !important;
-        font-size: 9pt !important;
-        color: #666 !important;
+      .print-header, .print-footer {
+        display: none !important;
       }
       
       .print-page-break {
@@ -106,31 +112,38 @@ const PrintStyles = () => (
         color: white !important;
       }
       
-      .print-header {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        border-bottom: 2px solid #ddd !important;
-        padding-bottom: 10px !important;
-        margin-bottom: 20px !important;
+      .recharts-text.recharts-label {
+        fill: white !important;
       }
       
-      .print-date {
-        font-size: 9pt !important;
-        color: #666 !important;
-      }
-      
-      .print-score-badge {
-        border: 1px solid #ddd !important;
-        padding: 2px 8px !important;
-        border-radius: 4px !important;
+      .recharts-text.recharts-cartesian-axis-tick-value {
+        fill: white !important;
         font-weight: bold !important;
+        font-size: 9pt !important;
+      }
+      
+      .recharts-cartesian-grid line {
+        stroke: #444 !important;
+      }
+      
+      .recharts-tooltip-wrapper {
+        background-color: #1a1a1a !important;
+        color: white !important;
       }
       
       .print-chart-container {
         height: 300px !important;
         margin: 20px 0 !important;
         break-inside: avoid !important;
+        background-color: #1a1a1a !important;
+      }
+      
+      text {
+        fill: white !important;
+      }
+      
+      .progress-content div {
+        background-color: inherit !important;
       }
     }
   `}</style>
@@ -185,7 +198,7 @@ export default function AnalysisSummary() {
         description: "Your analysis document has been prepared for printing",
       });
     },
-    pageStyle: '@page { size: auto; margin: 15mm; }',
+    pageStyle: '@page { size: auto; margin: 0; }',
   });
 
   if (isLoading) {
@@ -234,9 +247,9 @@ export default function AnalysisSummary() {
           y={0} 
           dy={16} 
           textAnchor="end" 
-          fill="#666" 
+          fill={isPrinting ? "#ffffff" : "#666"} 
           transform="rotate(-45)"
-          className="text-xs font-medium print:text-black print:font-semibold"
+          className="text-xs font-medium print:text-white print:font-semibold"
           style={{ fontWeight: isPrinting ? 'bold' : 'normal' }}
         >
           {payload.value}
@@ -285,16 +298,6 @@ export default function AnalysisSummary() {
         </div>
 
         <div ref={printRef} className="print-container">
-          <div className="hidden print-header">
-            <div>
-              <h1 className="print-title">{company?.name} - Investment Analysis</h1>
-              <div className="print-date">{currentDate}</div>
-            </div>
-            <div className="print-score-badge">
-              Score: {formattedScore}/5
-            </div>
-          </div>
-        
           <Card className="mb-8 print-shadow-none print-card">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
@@ -322,7 +325,7 @@ export default function AnalysisSummary() {
             <CardContent>
               <div className="mb-6 print-break-inside-avoid">
                 <h3 className="text-lg font-medium mb-2 print-text-black">Overall Performance</h3>
-                <Progress value={company.overallScore * 20} className="h-2.5 mb-2" />
+                <Progress value={company.overallScore * 20} className="h-2.5 mb-2 progress-content" />
                 <p className="text-sm text-muted-foreground print-text-gray">
                   {getScoreDescription(company.overallScore)}
                 </p>
@@ -343,13 +346,13 @@ export default function AnalysisSummary() {
                         textAnchor="end" 
                         height={70} 
                         tick={<CustomXAxisTick />}
-                        stroke="#666"
+                        stroke={isPrinting ? "#ffffff" : "#666"}
                         className="print-text-black"
                       />
                       <YAxis 
                         domain={[0, 5]} 
                         tickCount={6} 
-                        stroke="#666"
+                        stroke={isPrinting ? "#ffffff" : "#666"}
                         className="print-text-black"
                       />
                       <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
@@ -402,11 +405,6 @@ export default function AnalysisSummary() {
                     </Card>
                   ))}
                 </div>
-              </div>
-              
-              <div className="hidden print-footer">
-                <p>Generated by InvestorBase on {currentDate}</p>
-                <p>Confidential - For investment purposes only</p>
               </div>
             </CardContent>
           </Card>
