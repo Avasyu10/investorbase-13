@@ -19,7 +19,7 @@ const PrintStyles = () => (
   <style type="text/css">{`
     @media print {
       body {
-        background-color: white !important;
+        background-color: black !important;
         color: black !important;
         font-size: 12pt !important;
       }
