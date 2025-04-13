@@ -26,9 +26,68 @@ serve(async (req) => {
       }
     );
 
-    const { userIds } = await req.json();
-    console.log('Received user IDs:', userIds);
+    // Parse request body
+    const requestData = await req.json();
+    const { userIds, searchEmail } = requestData;
     
+    // Handle user email search if searchEmail is provided
+    if (searchEmail) {
+      console.log('Searching for users with email containing:', searchEmail);
+      
+      // First, try to find profile matches (this will be limited by RLS)
+      const { data: profileMatches } = await supabaseClient
+        .from('profiles')
+        .select('id, email')
+        .ilike('email', `%${searchEmail}%`);
+      
+      // Also search auth.users directly with service role (this is more comprehensive)
+      // Note: We have to list users and filter manually since there's no direct search API 
+      // This will only return first 1000 users - in production you would need pagination
+      let { data: authUsers, error: authError } = await supabaseClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000
+      });
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        return new Response(
+          JSON.stringify({ error: 'Error searching users by email' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500
+          }
+        );
+      }
+      
+      // Filter users whose email contains the search term (case insensitive)
+      const filteredUsers = authUsers.users.filter(user => 
+        user.email && user.email.toLowerCase().includes(searchEmail.toLowerCase())
+      );
+      
+      // Transform to our standard response format
+      const matches = filteredUsers.map(user => ({
+        id: user.id,
+        email: user.email
+      }));
+      
+      // Combine results and deduplicate
+      const combinedResults = [...(profileMatches || []), ...matches];
+      const uniqueUsers = Array.from(
+        new Map(combinedResults.map(item => [item.id, item])).values()
+      );
+      
+      console.log(`Found ${uniqueUsers.length} users matching email search: ${searchEmail}`);
+      
+      return new Response(
+        JSON.stringify(uniqueUsers),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+    
+    // Proceed with the regular user ID lookup if no search email
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Valid user IDs array is required' }),
@@ -39,6 +98,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('Received user IDs:', userIds);
+    
     // First, try to fetch from profiles table using service role key
     const { data: profilesData, error: profilesError } = await supabaseClient
       .from('profiles')

@@ -227,10 +227,13 @@ const AdminPage = () => {
         
         if (response.ok) {
           const userMatches = await response.json();
+          console.log("User email search results:", userMatches);
           
           // If we found any email matches, get their companies
           if (userMatches && userMatches.length > 0) {
+            // Extract user IDs from matches
             const userIds = userMatches.map((user: any) => user.id);
+            console.log("Found matching user IDs by email:", userIds);
             
             // Get companies for these users
             const { data: userCompanies, error: userCompaniesError } = await supabase
@@ -242,6 +245,7 @@ const AdminPage = () => {
               .order('created_at', { ascending: false });
               
             if (!userCompaniesError && userCompanies) {
+              console.log("Found companies for email-matched users:", userCompanies);
               // Add these companies to our results
               emailMatchCompanies = userCompanies;
               
@@ -251,6 +255,9 @@ const AdminPage = () => {
               });
             }
           }
+        } else {
+          const errorText = await response.text();
+          console.error("Error searching by email:", errorText);
         }
       } catch (err) {
         console.error("Error searching users by email:", err);
@@ -258,6 +265,7 @@ const AdminPage = () => {
       
       // Combine company search results and email search results
       const combinedCompanies = [...companiesData, ...emailMatchCompanies];
+      console.log("Combined companies before deduplication:", combinedCompanies.length);
       
       // Remove duplicates by ID
       const uniqueCompanies = combinedCompanies.reduce((acc: Company[], company) => {
@@ -266,6 +274,8 @@ const AdminPage = () => {
         }
         return acc;
       }, []);
+      
+      console.log("Unique companies after deduplication:", uniqueCompanies.length);
       
       // Map companies with their user emails
       const companiesWithEmails = uniqueCompanies.map(company => {
@@ -283,17 +293,12 @@ const AdminPage = () => {
         };
       });
       
-      // Filter companies again by user email if needed to ensure we get all matching items
-      const filteredCompanies = companiesWithEmails.filter(company => 
-        company.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-        (company.userEmail && typeof company.userEmail === 'string' && 
-         company.userEmail.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
-      );
+      console.log("Final search results:", companiesWithEmails.length);
       
-      setCompanies(filteredCompanies);
+      setCompanies(companiesWithEmails);
       
       // Hide pagination during search
-      setTotalCount(filteredCompanies.length);
+      setTotalCount(companiesWithEmails.length);
       setTotalPages(1); // No pagination during search
     } catch (err: any) {
       console.error("Error performing search:", err);
