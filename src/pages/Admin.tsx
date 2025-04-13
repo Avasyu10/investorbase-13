@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -213,6 +212,71 @@ const AdminPage = () => {
           userEmail: displayEmail
         };
       });
+      
+      // FIXED: Fetch additional companies by user email that might not match by name
+      // This requires a separate query against our edge function to search emails
+      try {
+        const session = await supabase.auth.getSession();
+        const accessToken = session.data.session?.access_token || '';
+        
+        const emailSearchResponse = await fetch(
+          'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+            },
+            body: JSON.stringify({ 
+              searchQuery: debouncedSearchQuery
+            })
+          }
+        );
+        
+        if (emailSearchResponse.ok) {
+          const matchingProfiles = await emailSearchResponse.json();
+          
+          if (matchingProfiles && matchingProfiles.length > 0) {
+            // Get user IDs from matching email profiles
+            const matchingUserIds = matchingProfiles.map((profile: {id: string}) => profile.id);
+            
+            // Get companies for these users that weren't already included
+            const { data: additionalCompanies, error: additionalError } = await supabase
+              .from('companies')
+              .select(`
+                id, name, overall_score, created_at, user_id
+              `)
+              .in('user_id', matchingUserIds)
+              .order('created_at', { ascending: false });
+              
+            if (!additionalError && additionalCompanies) {
+              // Add these companies with their emails
+              const additionalCompaniesWithEmails = additionalCompanies.map(company => {
+                // Find matching profile
+                const matchingProfile = matchingProfiles.find(
+                  (p: {id: string}) => p.id === company.user_id
+                );
+                
+                return {
+                  ...company,
+                  userEmail: matchingProfile?.email || "N/A"
+                };
+              });
+              
+              // Combine and de-duplicate by ID
+              const existingIds = new Set(companiesWithEmails.map(c => c.id));
+              const uniqueAdditionalCompanies = additionalCompaniesWithEmails.filter(
+                c => !existingIds.has(c.id)
+              );
+              
+              companiesWithEmails.push(...uniqueAdditionalCompanies);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error in email search:", err);
+      }
       
       // Filter companies again by user email if needed
       const filteredCompanies = debouncedSearchQuery 
