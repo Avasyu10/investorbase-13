@@ -34,12 +34,24 @@ const AdminPage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -101,20 +113,26 @@ const AdminPage = () => {
 
   // Add effect to refresh data when page changes, except during search
   useEffect(() => {
-    if (isAdmin && !searchQuery) {
+    if (isAdmin && !debouncedSearchQuery) {
       fetchData(currentPage, pageSize);
     }
-  }, [currentPage, isAdmin]);
+  }, [currentPage, isAdmin, debouncedSearchQuery]);
 
-  // Listen for search query changes and search across all data
+  // Listen for debounced search query changes and search across all data
   useEffect(() => {
-    if (isAdmin && searchQuery) {
-      performSearch();
+    if (isAdmin) {
+      if (debouncedSearchQuery) {
+        performSearch();
+      } else {
+        // Reset to page 1 and show all results when search is cleared
+        setCurrentPage(1);
+        fetchData(1, pageSize);
+      }
     }
-  }, [searchQuery]);
+  }, [debouncedSearchQuery, isAdmin]);
 
   const performSearch = async () => {
-    if (!searchQuery.trim()) {
+    if (!debouncedSearchQuery.trim()) {
       fetchData(currentPage, pageSize);
       return;
     }
@@ -128,7 +146,7 @@ const AdminPage = () => {
         .select(`
           id, name, overall_score, created_at, user_id
         `)
-        .or(`name.ilike.%${searchQuery}%`)
+        .or(`name.ilike.%${debouncedSearchQuery}%`)
         .order('created_at', { ascending: false });
 
       if (companiesError) throw companiesError;
@@ -185,9 +203,72 @@ const AdminPage = () => {
           });
         }
       }
+
+      // Search for users by email
+      let emailMatchCompanies: Company[] = [];
+      try {
+        // Get the access token from the session
+        const session = await supabase.auth.getSession();
+        const accessToken = session.data.session?.access_token || '';
+        
+        // Call the edge function to search users by email
+        const response = await fetch(
+          'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/get-user-emails',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+            },
+            body: JSON.stringify({ searchEmail: debouncedSearchQuery })
+          }
+        );
+        
+        if (response.ok) {
+          const userMatches = await response.json();
+          
+          // If we found any email matches, get their companies
+          if (userMatches && userMatches.length > 0) {
+            const userIds = userMatches.map((user: any) => user.id);
+            
+            // Get companies for these users
+            const { data: userCompanies, error: userCompaniesError } = await supabase
+              .from('companies')
+              .select(`
+                id, name, overall_score, created_at, user_id
+              `)
+              .in('user_id', userIds)
+              .order('created_at', { ascending: false });
+              
+            if (!userCompaniesError && userCompanies) {
+              // Add these companies to our results
+              emailMatchCompanies = userCompanies;
+              
+              // Also update user email map with these matches
+              userMatches.forEach((user: any) => {
+                userEmailMap[user.id] = user.email;
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error searching users by email:", err);
+      }
+      
+      // Combine company search results and email search results
+      const combinedCompanies = [...companiesData, ...emailMatchCompanies];
+      
+      // Remove duplicates by ID
+      const uniqueCompanies = combinedCompanies.reduce((acc: Company[], company) => {
+        if (!acc.find(c => c.id === company.id)) {
+          acc.push(company);
+        }
+        return acc;
+      }, []);
       
       // Map companies with their user emails
-      const companiesWithEmails = companiesData.map(company => {
+      const companiesWithEmails = uniqueCompanies.map(company => {
         let displayEmail = "N/A";
         
         if (company.user_id) {
@@ -202,13 +283,12 @@ const AdminPage = () => {
         };
       });
       
-      // Filter companies again by user email if needed
-      const filteredCompanies = searchQuery 
-        ? companiesWithEmails.filter(company => 
-            company.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            (company.userEmail && typeof company.userEmail === 'string' && company.userEmail.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-        : companiesWithEmails;
+      // Filter companies again by user email if needed to ensure we get all matching items
+      const filteredCompanies = companiesWithEmails.filter(company => 
+        company.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+        (company.userEmail && typeof company.userEmail === 'string' && 
+         company.userEmail.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+      );
       
       setCompanies(filteredCompanies);
       
@@ -352,7 +432,6 @@ const AdminPage = () => {
   // Handle search functionality
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
-    setCurrentPage(1); // Reset to page 1 for new search
   };
 
   const handlePageChange = (newPage: number) => {
@@ -364,6 +443,7 @@ const AdminPage = () => {
   // Reset search
   const clearSearch = () => {
     setSearchQuery("");
+    setDebouncedSearchQuery("");
     fetchData(1, pageSize);
     setCurrentPage(1);
   };
@@ -423,8 +503,8 @@ const AdminPage = () => {
       <div className="rounded-md border">
         <Table>
           <TableCaption>
-            {searchQuery ? (
-              `Found ${companies.length} companies matching "${searchQuery}"`
+            {debouncedSearchQuery ? (
+              `Found ${companies.length} companies matching "${debouncedSearchQuery}"`
             ) : (
               `Page ${currentPage} of ${totalPages || 1}`
             )}
@@ -456,7 +536,7 @@ const AdminPage = () => {
       </div>
 
       {/* Pagination Controls - Only show when not searching */}
-      {!searchQuery && (
+      {!debouncedSearchQuery && (
         <div className="flex justify-center items-center gap-2 mt-6">
           <Button
             variant="outline"
