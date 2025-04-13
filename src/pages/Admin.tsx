@@ -130,13 +130,10 @@ const AdminPage = () => {
 
       if (usersError) throw usersError;
       
-      // Fetch companies with pagination and search, include user_email
+      // Fetch companies with pagination and search
       let companyQuery = supabase
         .from('companies')
-        .select(`
-          id, name, overall_score, created_at, user_id,
-          profiles(email)
-        `, { count: 'exact' });
+        .select('id, name, overall_score, created_at, user_id', { count: 'exact' });
         
       // Add search if provided
       if (search) {
@@ -151,18 +148,37 @@ const AdminPage = () => {
       if (companiesError) throw companiesError;
 
       // Process companies data to include user_email
-      const processedCompanies = companiesData.map((company) => ({
-        id: company.id,
-        name: company.name,
-        overall_score: company.overall_score,
-        created_at: company.created_at,
-        user_id: company.user_id,
-        // Fix the type error by correctly accessing the email property
-        user_email: company.profiles?.email || null
-      }));
+      // We need to fetch user emails separately since there's no direct join
+      const processedCompanies: Company[] = [];
+      
+      for (const company of companiesData) {
+        let userEmail = null;
+        
+        // If company has a user_id, fetch the corresponding email
+        if (company.user_id) {
+          const { data: userData } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', company.user_id)
+            .maybeSingle();
+            
+          if (userData) {
+            userEmail = userData.email;
+          }
+        }
+        
+        processedCompanies.push({
+          id: company.id,
+          name: company.name,
+          overall_score: company.overall_score,
+          created_at: company.created_at,
+          user_id: company.user_id,
+          user_email: userEmail
+        });
+      }
 
       setUsers(usersData as UserProfile[]);
-      setCompanies(processedCompanies as Company[]);
+      setCompanies(processedCompanies);
       
       // Set pagination data
       setTotalCount(Math.max(usersCount || 0, companiesCount || 0));
