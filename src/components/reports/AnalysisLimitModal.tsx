@@ -21,7 +21,7 @@ export const AnalysisLimitModal = ({ isOpen, onClose }: AnalysisLimitModalProps)
         <AlertDialogHeader>
           <AlertDialogTitle>Analysis Limit Reached</AlertDialogTitle>
           <AlertDialogDescription className="py-4">
-            You have reached your maximum number of allowed analyses. Please contact support for more information.
+            You have reached your maximum number of allowed analyses. Please upgrade your plan or contact support for more information.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
