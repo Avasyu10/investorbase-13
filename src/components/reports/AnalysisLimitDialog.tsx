@@ -8,6 +8,7 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 interface AnalysisLimitDialogProps {
   isOpen: boolean;
@@ -26,7 +27,9 @@ export function AnalysisLimitDialog({ isOpen, message, onClose }: AnalysisLimitD
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={onClose}>Close</AlertDialogAction>
+          <AlertDialogAction asChild>
+            <Button onClick={onClose}>Close</Button>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

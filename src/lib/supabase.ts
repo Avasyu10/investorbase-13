@@ -350,8 +350,12 @@ export async function analyzeReport(reportId: string) {
   console.log(`Analyzing report with ID: ${reportId}`);
   
   try {
+    // Add CORS headers to allow the request
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-      body: { reportId }
+      body: { reportId },
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     
     if (error) {
@@ -369,6 +373,9 @@ export async function analyzeReport(reportId: string) {
     return data;
   } catch (error) {
     console.error('Error in analyzeReport:', error);
+    toast.error("Analysis failed", {
+      description: error instanceof Error ? error.message : "An error occurred during analysis"
+    });
     throw error;
   }
 }

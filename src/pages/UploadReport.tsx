@@ -42,7 +42,6 @@ const UploadReport = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Reset error when component unmounts or on route change
   useEffect(() => {
     return () => {
       setError(null);
@@ -51,12 +50,11 @@ const UploadReport = () => {
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
-    // Auto-dismiss error after 10 seconds
     setTimeout(() => setError(null), 10000);
   };
 
   const handleBackClick = () => {
-    navigate(-1); // Navigate to the previous page in history
+    navigate(-1);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,6 +130,7 @@ const UploadReport = () => {
 
     try {
       setIsUploading(true);
+      setError(null);
       
       let description = briefIntroduction || '';
       
@@ -152,6 +151,7 @@ const UploadReport = () => {
       
       // Upload the main pitch deck
       try {
+        console.log("Starting report upload...");
         const report = await uploadReport(file, title, description);
         console.log("Upload complete, report:", report);
         
@@ -167,17 +167,26 @@ const UploadReport = () => {
           description: "This may take a few minutes depending on the size of your deck"
         });
         
-        const result = await analyzeReport(report.id);
-        console.log("Analysis complete, result:", result);
-        
-        toast.success("Analysis complete", {
-          description: "Your pitch deck has been analyzed successfully!"
-        });
-        
-        if (result && result.companyId) {
-          navigate(`/company/${result.companyId}`);
-        } else {
-          console.error("No company ID returned from analysis");
+        try {
+          console.log("Starting analysis with report ID:", report.id);
+          const result = await analyzeReport(report.id);
+          console.log("Analysis complete, result:", result);
+          
+          toast.success("Analysis complete", {
+            description: "Your pitch deck has been analyzed successfully!"
+          });
+          
+          if (result && result.companyId) {
+            navigate(`/company/${result.companyId}`);
+          } else {
+            console.error("No company ID returned from analysis");
+            navigate('/dashboard');
+          }
+        } catch (analysisError: any) {
+          console.error("Error during analysis:", analysisError);
+          toast.error("Analysis failed", {
+            description: analysisError instanceof Error ? analysisError.message : "An unexpected error occurred during analysis"
+          });
           navigate('/dashboard');
         }
       } catch (error: any) {
@@ -194,9 +203,7 @@ const UploadReport = () => {
       }
     } catch (error: any) {
       console.error("Error processing report:", error);
-      toast.error("Upload failed", {
-        description: error instanceof Error ? error.message : "Failed to process pitch deck"
-      });
+      setError(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
@@ -210,7 +217,7 @@ const UploadReport = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleBackClick}
+          onClick={() => navigate(-1)}
           className="mb-6"
         >
           <ChevronLeft className="mr-1" /> Back
