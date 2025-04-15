@@ -33,6 +33,9 @@ const UploadReport = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showLimitDialog, setShowLimitDialog] = useState(false);
   const [limitErrorMessage, setLimitErrorMessage] = useState("");
+  
+  // Define isProcessing based on isUploading or isAnalyzing
+  const isProcessing = isUploading || isAnalyzing;
 
   useEffect(() => {
     if (!isLoading && !user) {

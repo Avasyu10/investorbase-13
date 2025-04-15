@@ -21,10 +21,8 @@ export async function getReports() {
   
   if (!user) {
     console.error('User not authenticated');
-    toast({
-      title: "Authentication required",
-      description: "Please sign in to view reports",
-      variant: "destructive"
+    toast.error("Authentication required", {
+      description: "Please sign in to view reports"
     });
     return [];
   }
@@ -59,10 +57,8 @@ export async function getReportById(id: string) {
   
   if (!user) {
     console.error('User not authenticated');
-    toast({
-      title: "Authentication required",
-      description: "Please sign in to view reports",
-      variant: "destructive"
+    toast.error("Authentication required", {
+      description: "Please sign in to view reports"
     });
     throw new Error('Authentication required');
   }
@@ -261,10 +257,8 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     throw new Error('All download attempts failed');
   } catch (error) {
     console.error('Failed to download report:', error);
-    toast({
-      title: "Error loading PDF",
-      description: "Could not download the PDF file. Please try again later.",
-      variant: "destructive"
+    toast.error("Error loading PDF", {
+      description: "Could not download the PDF file. Please try again later."
     });
     throw error;
   }
@@ -374,11 +368,8 @@ export async function analyzeReportDirect(file: File, title: string, description
     if (error) {
       console.error('Error invoking analyze-pdf-direct function:', error);
       
-      toast({
-        id: "analysis-error-direct-1",
-        title: "Analysis failed",
-        description: "There was a problem analyzing the report. Please try again later.",
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: "There was a problem analyzing the report. Please try again later."
       });
       
       throw error;
@@ -388,11 +379,8 @@ export async function analyzeReportDirect(file: File, title: string, description
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
-      toast({
-        id: "analysis-error-direct-2",
-        title: "Analysis failed",
-        description: errorMessage,
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: errorMessage
       });
       
       throw new Error(errorMessage);
@@ -400,10 +388,8 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('Analysis result:', data);
     
-    toast({
-      id: "analysis-success-direct",
-      title: "Analysis complete",
-      description: "Your pitch deck has been successfully analyzed",
+    toast.success("Analysis complete", {
+      description: "Your pitch deck has been successfully analyzed"
     });
     
     return data;
@@ -412,11 +398,8 @@ export async function analyzeReportDirect(file: File, title: string, description
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
     if (!errorMessage.includes("analysis failed")) {
-      toast({
-        id: "analysis-error-direct-3",
-        title: "Analysis failed",
-        description: "Could not analyze the report. Please try again later.",
-        variant: "destructive"
+      toast.error("Analysis failed", {
+        description: "Could not analyze the report. Please try again later."
       });
     }
     
