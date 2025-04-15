@@ -330,7 +330,6 @@ export async function analyzeReportDirect(file: File, title: string, description
   try {
     console.log('Converting file to base64...');
     
-    // Convert file to base64
     const base64String = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -371,12 +370,22 @@ export async function analyzeReportDirect(file: File, title: string, description
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
-      toast({
-        id: "analysis-error-direct-2",
-        title: "Analysis failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      // Special handling for limit reached error
+      if (data && data.limitReached) {
+        toast({
+          id: "analysis-limit-reached",
+          title: "Analysis limit reached",
+          description: "You have reached your maximum number of allowed analyses.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          id: "analysis-error-direct-2",
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
       
       throw new Error(errorMessage);
     }
@@ -394,7 +403,14 @@ export async function analyzeReportDirect(file: File, title: string, description
     console.error('Error analyzing report directly:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
-    if (!errorMessage.includes("analysis failed")) {
+    if (errorMessage.includes('maximum number of allowed analyses')) {
+      toast({
+        id: "analysis-limit-reached",
+        title: "Analysis limit reached",
+        description: "You have reached your maximum number of allowed analyses.",
+        variant: "destructive"
+      });
+    } else if (!errorMessage.includes("analysis failed")) {
       toast({
         id: "analysis-error-direct-3",
         title: "Analysis failed",

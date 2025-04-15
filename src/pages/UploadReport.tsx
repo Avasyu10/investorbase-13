@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
@@ -30,6 +32,7 @@ const UploadReport = () => {
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -203,9 +206,13 @@ const UploadReport = () => {
       } catch (analysisError: any) {
         console.error("Error analyzing report:", analysisError);
         
-        toast.error("Analysis failed", {
-          description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
-        });
+        if (analysisError.message && analysisError.message.includes('maximum number of allowed analyses')) {
+          setShowLimitModal(true);
+        } else {
+          toast.error("Analysis failed", {
+            description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
+          });
+        }
         
         if (handleError) {
           handleError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
@@ -217,9 +224,13 @@ const UploadReport = () => {
     } catch (error: any) {
       console.error("Error processing report:", error);
       
-      toast.error("Upload failed", {
-        description: error instanceof Error ? error.message : "Failed to process pitch deck"
-      });
+      if (error.message && error.message.includes('maximum number of allowed analyses')) {
+        setShowLimitModal(true);
+      } else {
+        toast.error("Upload failed", {
+          description: error instanceof Error ? error.message : "Failed to process pitch deck"
+        });
+      }
       
       if (handleError) {
         handleError(error instanceof Error ? error.message : "Failed to process pitch deck");
@@ -485,7 +496,7 @@ const UploadReport = () => {
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isUploading ? "Analyzing.." : "Analyzing..."}
+                    {isUploading ? "Uploading..." : "Analyzing..."}
                   </>
                 ) : (
                   "Upload & Analyze"
@@ -495,6 +506,23 @@ const UploadReport = () => {
           </form>
         </div>
       </div>
+
+      {/* Limit Reached Modal */}
+      <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Analysis Limit Reached</DialogTitle>
+            <DialogDescription>
+              You have reached your maximum number of allowed analyses. Please contact support to increase your limit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowLimitModal(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
