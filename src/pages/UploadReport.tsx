@@ -31,6 +31,7 @@ const UploadReport = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+  const [isCheckingLimits, setIsCheckingLimits] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -107,6 +108,46 @@ const UploadReport = () => {
     );
   };
 
+  const checkAnalysisLimits = async () => {
+    if (!user) return false;
+    
+    try {
+      setIsCheckingLimits(true);
+      const { data, error } = await supabase
+        .from('analysis_limits')
+        .select('analysis_count, max_analysis_allowed')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        console.error("Error checking analysis limits:", error);
+        toast.error("Could not check analysis limits", {
+          description: "Please try again later"
+        });
+        return false;
+      }
+      
+      if (!data) {
+        console.error("No analysis limits found for user");
+        return false;
+      }
+      
+      console.log("Analysis limits:", data);
+      
+      if (data.analysis_count >= data.max_analysis_allowed) {
+        setIsLimitModalOpen(true);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("Error in checkAnalysisLimits:", err);
+      return false;
+    } finally {
+      setIsCheckingLimits(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -121,6 +162,11 @@ const UploadReport = () => {
       toast.error("Pitch deck required", {
         description: "Please upload a PDF pitch deck"
       });
+      return;
+    }
+
+    const canProceed = await checkAnalysisLimits();
+    if (!canProceed) {
       return;
     }
 
@@ -240,7 +286,7 @@ const UploadReport = () => {
 
   if (!user) return null;
 
-  const isProcessing = isUploading || isAnalyzing;
+  const isProcessing = isUploading || isAnalyzing || isCheckingLimits;
 
   return (
     <div className="animate-fade-in">
