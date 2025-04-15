@@ -49,31 +49,6 @@ serve(async (req) => {
       throw new Error("Authentication failed: " + (userError?.message || "User not found"));
     }
 
-    // Check if the user has reached their analysis limit
-    const { data: userData, error: userDataError } = await supabase
-      .from('profiles')
-      .select('max_analysis_allowed, analysis_count')
-      .eq('id', user.id)
-      .single();
-      
-    if (userDataError) {
-      throw new Error("Error fetching user data: " + userDataError.message);
-    }
-    
-    if (userData.analysis_count >= userData.max_analysis_allowed) {
-      return new Response(
-        JSON.stringify({ 
-          error: "You have reached your maximum number of allowed analyses",
-          success: false,
-          limitReached: true
-        }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403 
-        }
-      );
-    }
-
     // Analyze the PDF with OpenAI
     console.log("Analyzing PDF with OpenAI...");
     const analysisResult = await analyzeWithOpenAI(pdfBase64);
@@ -105,17 +80,6 @@ serve(async (req) => {
     
     if (saveError) {
       throw new Error("Failed to save analysis results: " + saveError.message);
-    }
-
-    // Increment the user's analysis count
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ analysis_count: userData.analysis_count + 1 })
-      .eq('id', user.id);
-      
-    if (updateError) {
-      console.error("Error updating analysis count:", updateError);
-      // Non-blocking error, continue
     }
 
     // Return success response

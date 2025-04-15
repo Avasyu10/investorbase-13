@@ -102,45 +102,6 @@ serve(async (req) => {
       // Get report data without authentication
       const { supabase, report, pdfBase64 } = await getReportData(reportId);
       
-      // Check if the report has a user_id (to increment their analysis count)
-      if (report.user_id) {
-        // Check if the user has reached their analysis limit
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('max_analysis_allowed, analysis_count')
-          .eq('id', report.user_id)
-          .single();
-          
-        if (userError) {
-          console.error("Error fetching user profile:", userError);
-          return new Response(
-            JSON.stringify({ 
-              error: "Error fetching user profile: " + userError.message,
-              success: false
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500 
-            }
-          );
-        }
-        
-        if (userData.analysis_count >= userData.max_analysis_allowed) {
-          console.error("User has reached their maximum number of allowed analyses");
-          return new Response(
-            JSON.stringify({ 
-              error: "You have reached your maximum number of allowed analyses",
-              success: false,
-              limitReached: true
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 403 
-            }
-          );
-        }
-      }
-      
       console.log("Successfully retrieved report data, analyzing with Gemini");
       
       try {
@@ -153,21 +114,6 @@ serve(async (req) => {
         const companyId = await saveAnalysisResults(supabase, analysis, report);
 
         console.log(`Analysis complete, created company with ID: ${companyId}`);
-        
-        // Update the user's analysis count if there's a user_id
-        if (report.user_id) {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              analysis_count: supabase.rpc('increment', { row_id: report.user_id, increment_by: 1 }) 
-            })
-            .eq('id', report.user_id);
-            
-          if (updateError) {
-            console.error("Error updating analysis count:", updateError);
-            // Non-blocking error, continue with the rest of the function
-          }
-        }
         
         // Try to trigger the Perplexity research and details extraction concurrently
         // But don't fail the main job if either fails
