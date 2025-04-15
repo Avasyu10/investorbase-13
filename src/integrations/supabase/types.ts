@@ -9,30 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      analysis_limits: {
-        Row: {
-          analysis_count: number
-          created_at: string | null
-          max_analysis_allowed: number
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          analysis_count?: number
-          created_at?: string | null
-          max_analysis_allowed?: number
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          analysis_count?: number
-          created_at?: string | null
-          max_analysis_allowed?: number
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       companies: {
         Row: {
           assessment_points: string[] | null

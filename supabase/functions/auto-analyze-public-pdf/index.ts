@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,11 +8,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('[auto-analyze-public-pdf] Request received:', req.method, req.url);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('[auto-analyze-public-pdf] Handling OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -22,7 +20,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY) {
-      console.error("[auto-analyze-public-pdf] Supabase credentials are not configured");
+      console.error("Supabase credentials are not configured");
       return new Response(
         JSON.stringify({ 
           error: 'Supabase credentials are not configured',
@@ -32,59 +30,21 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data - FIXED: Added better handling for empty body
-    if (req.body === null) {
-      console.error("[auto-analyze-public-pdf] Request body is null");
-      return new Response(
-        JSON.stringify({ 
-          error: "Request body is empty. Expected JSON with reportId property.",
-          success: false
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
+    // Parse request data
     let reqData;
     try {
-      const reqText = await req.text();
-      console.log(`[auto-analyze-public-pdf] Raw request body length: ${reqText.length}`);
-      
-      if (!reqText || reqText.trim() === '') {
-        console.error("[auto-analyze-public-pdf] Empty request body");
-        return new Response(
-          JSON.stringify({ 
-            error: "Request body is empty. Expected JSON with reportId property.",
-            success: false
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-      
-      try {
-        reqData = JSON.parse(reqText);
-        console.log("[auto-analyze-public-pdf] Request data parsed:", JSON.stringify(reqData));
-      } catch (parseError) {
-        console.error("[auto-analyze-public-pdf] Error parsing request JSON:", parseError);
-        return new Response(
-          JSON.stringify({ 
-            error: "Invalid JSON format in request body.",
-            success: false,
-            rawBody: reqText.substring(0, 100) // Include a preview of the raw body for debugging
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
+      reqData = await req.json();
     } catch (e) {
-      console.error("[auto-analyze-public-pdf] Error reading request body:", e);
+      console.error("Error parsing request JSON:", e);
       return new Response(
         JSON.stringify({ 
-          error: "Error reading request body. Expected JSON with reportId property.",
-          success: false
+          error: "Invalid request format. Expected JSON with reportId property.",
+          success: false 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
-    
+
     const { reportId } = reqData;
     
     // Validate reportId

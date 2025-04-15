@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
-import { AnalysisLimitDialog } from "@/components/reports/AnalysisLimitDialog";
+import { supabase } from '@/integrations/supabase/client';
 
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
@@ -30,11 +30,6 @@ const UploadReport = () => {
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showLimitDialog, setShowLimitDialog] = useState(false);
-  const [limitErrorMessage, setLimitErrorMessage] = useState("");
-  
-  // Define isProcessing based on isUploading or isAnalyzing
-  const isProcessing = isUploading || isAnalyzing;
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -42,6 +37,7 @@ const UploadReport = () => {
     }
   }, [user, isLoading, navigate]);
 
+  // Reset error when component unmounts or on route change
   useEffect(() => {
     return () => {
       setError(null);
@@ -50,11 +46,12 @@ const UploadReport = () => {
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
+    // Auto-dismiss error after 10 seconds
     setTimeout(() => setError(null), 10000);
   };
 
   const handleBackClick = () => {
-    navigate(-1);
+    navigate(-1); // Navigate to the previous page in history
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,7 +127,6 @@ const UploadReport = () => {
 
     try {
       setIsUploading(true);
-      setError(null);
       
       let description = briefIntroduction || '';
       
@@ -150,70 +146,103 @@ const UploadReport = () => {
       }
       
       // Upload the main pitch deck
-      try {
-        console.log("Starting report upload...");
-        const report = await uploadReport(file, title, description);
-        console.log("Upload complete, report:", report);
-        
-        toast.success("Upload complete", {
-          description: "Your pitch deck has been uploaded successfully"
-        });
-        
-        // Start analysis
-        setIsAnalyzing(true);
-        setIsUploading(false);
-        
-        toast.info("Analysis started", {
-          description: "This may take a few minutes depending on the size of your deck"
-        });
-        
-        try {
-          console.log("Starting analysis with report ID:", report.id);
-          const result = await analyzeReport(report.id);
-          console.log("Analysis complete, result:", result);
-          
-          toast.success("Analysis complete", {
-            description: "Your pitch deck has been analyzed successfully!"
-          });
-          
-          if (result && result.companyId) {
-            navigate(`/company/${result.companyId}`);
-          } else {
-            console.error("No company ID returned from analysis");
-            toast.error("Analysis completed but no company ID was returned", {
-              description: "You will be redirected to the dashboard"
-            });
-            navigate('/dashboard');
+      const report = await uploadReport(file, title, description, companyWebsite);
+      
+      console.log("Upload complete, report:", report);
+      
+      toast.success("Upload complete", {
+        description: "Your pitch deck has been uploaded successfully"
+      });
+      
+      // Handle supplementary files if any
+      if (supplementFiles.length > 0) {
+        for (const supplementFile of supplementFiles) {
+          try {
+            const { error: uploadError } = await supabase.storage
+              .from('report_pdfs')
+              .upload(`${user.id}/supplementary/${report.id}/${supplementFile.name}`, supplementFile);
+              
+            if (uploadError) {
+              console.error("Error uploading supplementary file:", uploadError);
+              toast.error("Error uploading supplementary file", {
+                description: uploadError.message
+              });
+            }
+          } catch (err) {
+            console.error("Error processing supplementary file:", err);
           }
-        } catch (analysisError: any) {
-          console.error("Error during analysis:", analysisError);
-          toast.error("Analysis failed", {
-            description: analysisError instanceof Error ? analysisError.message : "An unexpected error occurred during analysis"
-          });
-          
-          // Even if analysis failed, redirect to dashboard to see the uploaded report
+        }
+        
+        toast.success("Supplementary materials uploaded", {
+          description: `${supplementFiles.length} file(s) uploaded successfully`
+        });
+      }
+      
+      // Start analysis
+      setIsAnalyzing(true);
+      
+      toast.info("Analysis started", {
+        description: "This may take a few minutes depending on the size of your deck"
+      });
+      
+      try {
+        console.log("Starting analysis with report ID:", report.id);
+        const result = await analyzeReport(report.id);
+        console.log("Analysis complete, result:", result);
+        
+        toast.success("Analysis complete", {
+          description: "Your pitch deck has been analyzed successfully!"
+        });
+        
+        if (result && result.companyId) {
+          navigate(`/company/${result.companyId}`);
+        } else {
+          console.error("No company ID returned from analysis");
           navigate('/dashboard');
         }
-      } catch (error: any) {
-        console.error("Error processing report:", error);
+      } catch (analysisError: any) {
+        console.error("Error analyzing report:", analysisError);
         
-        if (error.message && error.message.includes("Analysis limit reached")) {
-          setLimitErrorMessage(error.message);
-          setShowLimitDialog(true);
-        } else {
-          toast.error("Upload failed", {
-            description: error instanceof Error ? error.message : "Failed to process pitch deck"
-          });
+        toast.error("Analysis failed", {
+          description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
+        });
+        
+        if (handleError) {
+          handleError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
         }
+        
+        navigate('/dashboard');
+        return;
       }
     } catch (error: any) {
       console.error("Error processing report:", error);
-      setError(error instanceof Error ? error.message : "An unexpected error occurred");
+      
+      toast.error("Upload failed", {
+        description: error instanceof Error ? error.message : "Failed to process pitch deck"
+      });
+      
+      if (handleError) {
+        handleError(error instanceof Error ? error.message : "Failed to process pitch deck");
+      }
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null; // Will redirect in useEffect
+
+  const isProcessing = isUploading || isAnalyzing;
 
   return (
     <div className="animate-fade-in">
@@ -222,7 +251,7 @@ const UploadReport = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(-1)}
+          onClick={handleBackClick}
           className="mb-6"
         >
           <ChevronLeft className="mr-1" /> Back
@@ -456,7 +485,7 @@ const UploadReport = () => {
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isUploading ? "Uploading..." : "Analyzing..."}
+                    {isUploading ? "Analyzing.." : "Analyzing..."}
                   </>
                 ) : (
                   "Upload & Analyze"
@@ -466,11 +495,6 @@ const UploadReport = () => {
           </form>
         </div>
       </div>
-      <AnalysisLimitDialog
-        isOpen={showLimitDialog}
-        message={limitErrorMessage}
-        onClose={() => setShowLimitDialog(false)}
-      />
     </div>
   );
 };

@@ -2,9 +2,6 @@
 project_id = "jhtnruktmtjqrfoiyrep"
 
 [functions]
-[functions.analyze-pdf]
-verify_jwt = false
-
 [functions.send-alert-emails]
 verify_jwt = true
 

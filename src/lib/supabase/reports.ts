@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
+// Types for our database
 export type Report = {
   id: string;
   title: string;
@@ -15,14 +16,17 @@ export type Report = {
   submission_form_id?: string;
 };
 
+// Functions to interact with Supabase
 export async function getReports() {
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     console.error('User not authenticated');
-    toast.error("Authentication required", {
-      description: "Please sign in to view reports"
+    toast({
+      title: "Authentication required",
+      description: "Please sign in to view reports",
+      variant: "destructive"
     });
     return [];
   }
@@ -57,8 +61,10 @@ export async function getReportById(id: string) {
   
   if (!user) {
     console.error('User not authenticated');
-    toast.error("Authentication required", {
-      description: "Please sign in to view reports"
+    toast({
+      title: "Authentication required",
+      description: "Please sign in to view reports",
+      variant: "destructive"
     });
     throw new Error('Authentication required');
   }
@@ -257,8 +263,10 @@ export async function downloadReport(fileUrl: string, userId?: string) {
     throw new Error('All download attempts failed');
   } catch (error) {
     console.error('Failed to download report:', error);
-    toast.error("Error loading PDF", {
-      description: "Could not download the PDF file. Please try again later."
+    toast({
+      title: "Error loading PDF",
+      description: "Could not download the PDF file. Please try again later.",
+      variant: "destructive"
     });
     throw error;
   }
@@ -268,32 +276,24 @@ export async function uploadReport(file: File, title: string, description: strin
   try {
     console.log('Uploading report');
     
+    // Get the authenticated user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
       console.error('User not authenticated');
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upload reports",
+        variant: "destructive"
+      });
       throw new Error('Authentication required');
     }
     
-    // Check user's analysis limits before uploading
-    const { data: limits, error: limitsError } = await supabase
-      .from('analysis_limits')
-      .select('max_analysis_allowed, analysis_count')
-      .eq('user_id', user.id)
-      .single();
-    
-    if (limitsError) {
-      console.error('Error checking analysis limits:', limitsError);
-      throw limitsError;
-    }
-    
-    if (limits.analysis_count >= limits.max_analysis_allowed) {
-      throw new Error(`Analysis limit reached (${limits.max_analysis_allowed}). Please contact support to analyze more pitch decks.`);
-    }
-
+    // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     
+    // Upload the file to storage without user path
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
       .upload(fileName, file);
@@ -303,6 +303,9 @@ export async function uploadReport(file: File, title: string, description: strin
       throw uploadError;
     }
     
+    console.log('File uploaded to storage successfully, saving record to database');
+    
+    // Insert a record in the reports table with user_id set to the current user's ID
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
@@ -310,7 +313,7 @@ export async function uploadReport(file: File, title: string, description: strin
         description,
         pdf_url: fileName,
         analysis_status: 'pending',
-        user_id: user.id
+        user_id: user.id  // Set the user_id
       }])
       .select()
       .single();
@@ -320,22 +323,8 @@ export async function uploadReport(file: File, title: string, description: strin
       throw insertError;
     }
 
-    // Increment analysis count - FIXED: Using proper error handling and logging
-    const newCount = limits.analysis_count + 1;
-    console.log(`Updating analysis limit count from ${limits.analysis_count} to ${newCount}`);
+    console.log('Report record created successfully:', report);
     
-    const { error: updateLimitsError } = await supabase
-      .from('analysis_limits')
-      .update({ analysis_count: newCount })
-      .eq('user_id', user.id);
-    
-    if (updateLimitsError) {
-      console.error('Error updating analysis count:', updateLimitsError);
-      // We'll continue even if this fails since the report was created
-    } else {
-      console.log('Successfully updated analysis count to:', newCount);
-    }
-
     return report as Report;
   } catch (error) {
     console.error('Error uploading report:', error);
@@ -374,8 +363,11 @@ export async function analyzeReportDirect(file: File, title: string, description
     if (error) {
       console.error('Error invoking analyze-pdf-direct function:', error);
       
-      toast.error("Analysis failed", {
-        description: "There was a problem analyzing the report. Please try again later."
+      toast({
+        id: "analysis-error-direct-1",
+        title: "Analysis failed",
+        description: "There was a problem analyzing the report. Please try again later.",
+        variant: "destructive"
       });
       
       throw error;
@@ -385,8 +377,11 @@ export async function analyzeReportDirect(file: File, title: string, description
       const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
-      toast.error("Analysis failed", {
-        description: errorMessage
+      toast({
+        id: "analysis-error-direct-2",
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
       });
       
       throw new Error(errorMessage);
@@ -394,8 +389,10 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('Analysis result:', data);
     
-    toast.success("Analysis complete", {
-      description: "Your pitch deck has been successfully analyzed"
+    toast({
+      id: "analysis-success-direct",
+      title: "Analysis complete",
+      description: "Your pitch deck has been successfully analyzed",
     });
     
     return data;
@@ -404,8 +401,11 @@ export async function analyzeReportDirect(file: File, title: string, description
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
     if (!errorMessage.includes("analysis failed")) {
-      toast.error("Analysis failed", {
-        description: "Could not analyze the report. Please try again later."
+      toast({
+        id: "analysis-error-direct-3",
+        title: "Analysis failed",
+        description: "Could not analyze the report. Please try again later.",
+        variant: "destructive"
       });
     }
     

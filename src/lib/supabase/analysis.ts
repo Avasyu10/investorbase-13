@@ -224,31 +224,38 @@ export async function uploadReport(file: File, title: string, description: strin
 
 export async function analyzeReport(reportId: string) {
   try {
-    console.log(`Analyzing report with ID: ${reportId}`);
-    
-    const requestBody = JSON.stringify({ reportId });
-    console.log("Request body being sent:", requestBody);
+    console.log('Starting analysis for report:', reportId);
     
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-      body: { reportId },
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      body: { reportId }
     });
     
-    console.log("Edge function response:", { data, error });
-    
     if (error) {
-      console.error('Error analyzing report:', error);
-      console.error('Error object keys:', Object.keys(error));
-      console.error('Error stringify:', JSON.stringify(error));
+      console.error('Error invoking analyze-pdf function:', error);
+      
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error.message
+        })
+        .eq('id', reportId);
+        
       throw error;
     }
     
     if (!data || data.error) {
-      const errorMessage = data?.error || 'Unknown error during analysis';
-      console.error('Analysis failed:', errorMessage);
-      console.error('Complete response data:', data);
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
+      
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: errorMessage
+        })
+        .eq('id', reportId);
+        
       throw new Error(errorMessage);
     }
     
@@ -264,17 +271,7 @@ export async function analyzeReport(reportId: string) {
     
     return data;
   } catch (error) {
-    console.error('Error in analyzeReport:', error);
-    console.error('Error object keys:', Object.keys(error || {}));
-    console.error('Error stringify:', JSON.stringify(error));
-    
-    toast({
-      id: "analysis-error",
-      title: "Analysis failed",
-      description: error instanceof Error ? error.message : "An error occurred during analysis",
-      variant: "destructive"
-    });
-    
+    console.error('Error analyzing report:', error);
     throw error;
   }
 }

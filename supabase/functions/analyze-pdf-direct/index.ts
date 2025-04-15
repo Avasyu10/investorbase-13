@@ -37,8 +37,6 @@ serve(async (req) => {
       throw new Error("Title and PDF data are required");
     }
 
-    console.log("Request received with title:", title);
-
     // Create authenticated Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
@@ -50,8 +48,6 @@ serve(async (req) => {
     if (userError || !user) {
       throw new Error("Authentication failed: " + (userError?.message || "User not found"));
     }
-
-    console.log("Authenticated user:", user.id);
 
     // Analyze the PDF with OpenAI
     console.log("Analyzing PDF with OpenAI...");
