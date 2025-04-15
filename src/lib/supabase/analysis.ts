@@ -227,8 +227,7 @@ export async function analyzeReport(reportId: string) {
     console.log(`Analyzing report with ID: ${reportId}`);
     
     const requestBody = JSON.stringify({ reportId });
-    
-    console.log("Request body prepared:", requestBody);
+    console.log("Request body being sent:", requestBody);
     
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
       body: { reportId },
@@ -237,17 +236,19 @@ export async function analyzeReport(reportId: string) {
       }
     });
     
-    console.log("Edge function response received:", { data, error });
+    console.log("Edge function response:", { data, error });
     
     if (error) {
       console.error('Error analyzing report:', error);
-      console.error('Error details:', JSON.stringify(error));
+      console.error('Error object keys:', Object.keys(error));
+      console.error('Error stringify:', JSON.stringify(error));
       throw error;
     }
     
     if (!data || data.error) {
       const errorMessage = data?.error || 'Unknown error during analysis';
       console.error('Analysis failed:', errorMessage);
+      console.error('Complete response data:', data);
       throw new Error(errorMessage);
     }
     
@@ -264,18 +265,15 @@ export async function analyzeReport(reportId: string) {
     return data;
   } catch (error) {
     console.error('Error in analyzeReport:', error);
+    console.error('Error object keys:', Object.keys(error || {}));
+    console.error('Error stringify:', JSON.stringify(error));
     
-    try {
-      await supabase
-        .from('reports')
-        .update({ 
-          analysis_status: 'failed',
-          analysis_error: error instanceof Error ? error.message : "Unknown error occurred"
-        })
-        .eq('id', reportId);
-    } catch (statusUpdateError) {
-      console.error('Error updating report status to failed:', statusUpdateError);
-    }
+    toast({
+      id: "analysis-error",
+      title: "Analysis failed",
+      description: error instanceof Error ? error.message : "An error occurred during analysis",
+      variant: "destructive"
+    });
     
     throw error;
   }

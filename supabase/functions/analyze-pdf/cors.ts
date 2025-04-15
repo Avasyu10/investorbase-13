@@ -32,5 +32,6 @@ export function handleCors(req: Request) {
     });
   }
   
+  // For non-OPTIONS requests, just return null to continue processing
   return null;
 }

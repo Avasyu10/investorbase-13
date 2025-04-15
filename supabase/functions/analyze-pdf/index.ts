@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, handleCors } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -7,7 +6,6 @@ import { saveAnalysisResults } from "./databaseService.ts";
 
 serve(async (req) => {
   console.log(`[analyze-pdf] Request received: ${req.method} ${req.url}`);
-  console.log(`[analyze-pdf] Headers: ${JSON.stringify(Object.fromEntries([...req.headers]))}`);
   
   // Handle CORS preflight requests
   const corsResponse = handleCors(req);
@@ -31,10 +29,7 @@ serve(async (req) => {
           error: 'GEMINI_API_KEY is not configured',
           success: false
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
@@ -45,63 +40,39 @@ serve(async (req) => {
           error: 'Supabase credentials are not configured',
           success: false
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // Parse request data - CRITICAL FIX: Properly handle empty request body
-    let reqData;
+    // FIXED: Improved request body parsing with better error handling
+    if (req.body === null) {
+      console.error("[analyze-pdf] Request body is null");
+      return new Response(
+        JSON.stringify({ 
+          error: "Request body is empty. Expected JSON with reportId property.",
+          success: false
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    console.log("[analyze-pdf] Reading request body...");
+    
+    let reqText;
     try {
-      if (req.body === null) {
-        console.error("[analyze-pdf] Request body is null");
-        return new Response(
-          JSON.stringify({ 
-            error: "Request body is empty. Expected JSON with reportId property.",
-            success: false
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400 
-          }
-        );
-      }
-      
-      const reqText = await req.text();
+      reqText = await req.text();
       console.log(`[analyze-pdf] Raw request body length: ${reqText.length}`);
-      console.log(`[analyze-pdf] Raw request body preview: ${reqText.substring(0, 200)}`);
       
-      if (!reqText || reqText.trim() === '') {
-        console.error("[analyze-pdf] Empty request body");
+      if (reqText.length > 0) {
+        console.log(`[analyze-pdf] Raw request body preview: ${reqText.substring(0, 200)}`);
+      } else {
+        console.error("[analyze-pdf] Empty request body received");
         return new Response(
           JSON.stringify({ 
             error: "Request body is empty. Expected JSON with reportId property.",
             success: false
           }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400 
-          }
-        );
-      }
-      
-      try {
-        reqData = JSON.parse(reqText);
-        console.log("[analyze-pdf] Request data parsed:", JSON.stringify(reqData));
-      } catch (parseError) {
-        console.error("[analyze-pdf] Error parsing request JSON:", parseError);
-        return new Response(
-          JSON.stringify({ 
-            error: "Invalid JSON format in request body.",
-            success: false,
-            rawBody: reqText.substring(0, 100) // Include a preview of the raw body for debugging
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
     } catch (e) {
@@ -111,14 +82,53 @@ serve(async (req) => {
           error: "Error reading request body. Expected JSON with reportId property.",
           success: false
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+    
+    // FIXED: Added fallback parsing and better error handling
+    let reqData;
+    try {
+      reqData = JSON.parse(reqText);
+      console.log("[analyze-pdf] Request data parsed:", JSON.stringify(reqData));
+    } catch (parseError) {
+      console.error("[analyze-pdf] Error parsing request JSON:", parseError);
+      
+      // Try to extract JSON from the body if it might be malformed
+      const jsonMatch = reqText.match(/\{.*\}/s);
+      if (jsonMatch) {
+        try {
+          reqData = JSON.parse(jsonMatch[0]);
+          console.log("[analyze-pdf] Extracted JSON from malformed request:", JSON.stringify(reqData));
+        } catch (extractError) {
+          console.error("[analyze-pdf] Failed to extract JSON from request body");
+          return new Response(
+            JSON.stringify({ 
+              error: "Invalid JSON format in request body.",
+              success: false,
+              rawBody: reqText.substring(0, 100) // Include a preview of the raw body for debugging
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            error: "Invalid JSON format in request body.",
+            success: false,
+            rawBody: reqText.substring(0, 100) // Include a preview of the raw body for debugging
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    }
 
-    const { reportId } = reqData || {};
+    // Get the reportId - first check in the parsed object, then try body.reportId (in case of nested structure)
+    let reportId = reqData?.reportId;
+    if (!reportId && reqData?.body?.reportId) {
+      reportId = reqData.body.reportId;
+      console.log("[analyze-pdf] Found reportId in nested body property:", reportId);
+    }
     
     // Enhanced reportId validation
     if (!reportId) {
@@ -129,10 +139,7 @@ serve(async (req) => {
           success: false,
           receivedData: reqData
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
@@ -145,10 +152,7 @@ serve(async (req) => {
           error: `Invalid report ID format. Expected a UUID, got: ${reportId}`,
           success: false
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
@@ -282,10 +286,7 @@ serve(async (req) => {
             companyId,
             message: "Report analyzed successfully" 
           }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       } catch (analysisError) {
         console.error("[analyze-pdf] Analysis error:", analysisError);
@@ -312,10 +313,7 @@ serve(async (req) => {
             error: analysisError instanceof Error ? analysisError.message : 'Analysis failed',
             success: false
           }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
     } catch (error) {
@@ -341,10 +339,7 @@ serve(async (req) => {
           error: errorMessage,
           success: false
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: status 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: status }
       );
     }
   } catch (error) {
@@ -360,10 +355,7 @@ serve(async (req) => {
         error: error instanceof Error ? error.message : "An unexpected error occurred",
         success: false
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
