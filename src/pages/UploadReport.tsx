@@ -180,6 +180,9 @@ const UploadReport = () => {
             navigate(`/company/${result.companyId}`);
           } else {
             console.error("No company ID returned from analysis");
+            toast.error("Analysis completed but no company ID was returned", {
+              description: "You will be redirected to the dashboard"
+            });
             navigate('/dashboard');
           }
         } catch (analysisError: any) {
@@ -187,6 +190,8 @@ const UploadReport = () => {
           toast.error("Analysis failed", {
             description: analysisError instanceof Error ? analysisError.message : "An unexpected error occurred during analysis"
           });
+          
+          // Even if analysis failed, redirect to dashboard to see the uploaded report
           navigate('/dashboard');
         }
       } catch (error: any) {

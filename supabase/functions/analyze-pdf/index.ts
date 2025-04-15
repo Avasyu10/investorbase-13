@@ -12,6 +12,7 @@ serve(async (req) => {
   // Handle CORS preflight requests
   const corsResponse = handleCors(req);
   if (corsResponse) {
+    console.log('[analyze-pdf] Returning CORS preflight response');
     return corsResponse;
   }
 
@@ -51,11 +52,26 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data
+    // Parse request data - CRITICAL FIX: Properly handle empty request body
     let reqData;
     try {
+      if (req.body === null) {
+        console.error("[analyze-pdf] Request body is null");
+        return new Response(
+          JSON.stringify({ 
+            error: "Request body is empty. Expected JSON with reportId property.",
+            success: false
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400 
+          }
+        );
+      }
+      
       const reqText = await req.text();
-      console.log(`[analyze-pdf] Raw request body: ${reqText}`);
+      console.log(`[analyze-pdf] Raw request body length: ${reqText.length}`);
+      console.log(`[analyze-pdf] Raw request body preview: ${reqText.substring(0, 200)}`);
       
       if (!reqText || reqText.trim() === '') {
         console.error("[analyze-pdf] Empty request body");
@@ -80,7 +96,7 @@ serve(async (req) => {
           JSON.stringify({ 
             error: "Invalid JSON format in request body.",
             success: false,
-            rawBody: reqText
+            rawBody: reqText.substring(0, 100) // Include a preview of the raw body for debugging
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
