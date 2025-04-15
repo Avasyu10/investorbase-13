@@ -1,5 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export type Report = {
   id: string;
@@ -294,9 +294,9 @@ export async function uploadReport(file: File, title: string, description: strin
     }
     
     if (limits.analysis_count >= limits.max_analysis_allowed) {
-      throw new Error('Analysis limit reached. Upgrade your plan to analyze more pitch decks.');
+      throw new Error(`Analysis limit reached (${limits.max_analysis_allowed}). Please contact support to analyze more pitch decks.`);
     }
-    
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     
