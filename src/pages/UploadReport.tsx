@@ -13,13 +13,13 @@ import { toast } from "sonner";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { supabase } from '@/integrations/supabase/client';
+import { AnalysisLimitModal } from "@/components/reports/AnalysisLimitModal";
 
 const UploadReport = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   
-  // Form state
   const [title, setTitle] = useState("");
   const [briefIntroduction, setBriefIntroduction] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
@@ -30,6 +30,7 @@ const UploadReport = () => {
   const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -37,7 +38,6 @@ const UploadReport = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Reset error when component unmounts or on route change
   useEffect(() => {
     return () => {
       setError(null);
@@ -46,12 +46,11 @@ const UploadReport = () => {
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
-    // Auto-dismiss error after 10 seconds
     setTimeout(() => setError(null), 10000);
   };
 
   const handleBackClick = () => {
-    navigate(-1); // Navigate to the previous page in history
+    navigate(-1);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +64,7 @@ const UploadReport = () => {
         return;
       }
       
-      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+      if (selectedFile.size > 10 * 1024 * 1024) {
         toast.error("File too large", {
           description: "Please upload a file smaller than 10MB"
         });
@@ -87,7 +86,7 @@ const UploadReport = () => {
         return;
       }
       
-      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+      if (selectedFile.size > 10 * 1024 * 1024) {
         toast.error("File too large", {
           description: "Please upload a file smaller than 10MB"
         });
@@ -130,7 +129,6 @@ const UploadReport = () => {
       
       let description = briefIntroduction || '';
       
-      // Add company stage and industry to description if provided
       if (companyStage) {
         description += `\n\nCompany Stage: ${companyStage}`;
       }
@@ -139,13 +137,11 @@ const UploadReport = () => {
         description += `\n\nIndustry: ${industry}`;
       }
       
-      // Add founder LinkedIn profiles to description if provided
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
       if (validLinkedInProfiles.length > 0) {
         description += `\n\nFounder LinkedIn Profiles:\n${validLinkedInProfiles.join('\n')}`;
       }
       
-      // Upload the main pitch deck
       const report = await uploadReport(file, title, description, companyWebsite);
       
       console.log("Upload complete, report:", report);
@@ -154,7 +150,6 @@ const UploadReport = () => {
         description: "Your pitch deck has been uploaded successfully"
       });
       
-      // Handle supplementary files if any
       if (supplementFiles.length > 0) {
         for (const supplementFile of supplementFiles) {
           try {
@@ -178,7 +173,6 @@ const UploadReport = () => {
         });
       }
       
-      // Start analysis
       setIsAnalyzing(true);
       
       toast.info("Analysis started", {
@@ -203,9 +197,13 @@ const UploadReport = () => {
       } catch (analysisError: any) {
         console.error("Error analyzing report:", analysisError);
         
-        toast.error("Analysis failed", {
-          description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
-        });
+        if (analysisError.message?.includes("Analysis limit reached")) {
+          setIsLimitModalOpen(true);
+        } else {
+          toast.error("Analysis failed", {
+            description: analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck"
+          });
+        }
         
         if (handleError) {
           handleError(analysisError instanceof Error ? analysisError.message : "Failed to analyze pitch deck");
@@ -240,7 +238,7 @@ const UploadReport = () => {
     );
   }
 
-  if (!user) return null; // Will redirect in useEffect
+  if (!user) return null;
 
   const isProcessing = isUploading || isAnalyzing;
 
@@ -495,6 +493,11 @@ const UploadReport = () => {
           </form>
         </div>
       </div>
+      
+      <AnalysisLimitModal 
+        isOpen={isLimitModalOpen}
+        onClose={() => setIsLimitModalOpen(false)}
+      />
     </div>
   );
 };
