@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function saveAnalysisResults(
@@ -9,6 +8,37 @@ export async function saveAnalysisResults(
   console.log("Saving analysis results to database");
   
   try {
+    // First, check and update analysis limits
+    const { data: limitsData, error: limitsError } = await supabase
+      .from('analysis_limits')
+      .select('analysis_count, max_analysis_allowed')
+      .eq('user_id', report.user_id)
+      .single();
+    
+    if (limitsError) {
+      console.error("Error checking analysis limits:", limitsError);
+      throw limitsError;
+    }
+    
+    if (!limitsData) {
+      throw new Error("No analysis limits found for user");
+    }
+    
+    if (limitsData.analysis_count >= limitsData.max_analysis_allowed) {
+      throw new Error("Analysis limit reached");
+    }
+    
+    // Increment the analysis count
+    const { error: updateError } = await supabase
+      .from('analysis_limits')
+      .update({ analysis_count: limitsData.analysis_count + 1 })
+      .eq('user_id', report.user_id);
+      
+    if (updateError) {
+      console.error("Error updating analysis count:", updateError);
+      throw updateError;
+    }
+    
     // First, create the company record
     const companyData = {
       name: analysis.companyName || report.title,
