@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -255,22 +254,11 @@ export async function analyzeReport(reportId: string) {
       .single();
 
     if (userError) {
-      console.error('Error fetching user data:', userError);
       throw new Error('Error fetching user data');
     }
 
-    if (!userData) {
-      console.error('User profile not found');
-      throw new Error('User profile not found');
-    }
-
     if (userData.analysis_count >= userData.max_analysis_allowed) {
-      toast({
-        title: "Analysis limit reached",
-        description: `You have reached your maximum number of ${userData.max_analysis_allowed} allowed analyses.`,
-        variant: "destructive"
-      });
-      throw new Error(`You have reached your maximum number of allowed analyses (${userData.max_analysis_allowed})`);
+      throw new Error('You have reached your maximum number of allowed analyses');
     }
 
     console.log('Starting analysis for report:', reportId);

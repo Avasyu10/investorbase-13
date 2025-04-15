@@ -334,40 +334,6 @@ export async function uploadReport(file: File, title: string, description: strin
 
 export async function analyzeReportDirect(file: File, title: string, description: string = '') {
   try {
-    // First, check if the user has reached their analysis limit
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Get user's current analysis count and max allowed
-    const { data: userData, error: userError } = await supabase
-      .from('profiles')
-      .select('max_analysis_allowed, analysis_count')
-      .eq('id', user.id)
-      .single();
-
-    if (userError) {
-      console.error('Error fetching user data:', userError);
-      throw new Error('Error fetching user data');
-    }
-
-    if (!userData) {
-      console.error('User profile not found');
-      throw new Error('User profile not found');
-    }
-
-    if (userData.analysis_count >= userData.max_analysis_allowed) {
-      toast({
-        id: "analysis-limit-reached",
-        title: "Analysis limit reached",
-        description: `You have reached your maximum number of ${userData.max_analysis_allowed} allowed analyses.`,
-        variant: "destructive"
-      });
-      throw new Error(`You have reached your maximum number of allowed analyses (${userData.max_analysis_allowed})`);
-    }
-
     console.log('Converting file to base64...');
     
     // Convert file to base64
@@ -423,19 +389,6 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log('Analysis result:', data);
     
-    // Update analysis count for the user after successful analysis
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ 
-        analysis_count: userData.analysis_count + 1 
-      })
-      .eq('id', user.id);
-    
-    if (updateError) {
-      console.error('Error updating analysis count:', updateError);
-      // Non-blocking error, continue with the rest of the function
-    }
-    
     toast({
       id: "analysis-success-direct",
       title: "Analysis complete",
@@ -447,8 +400,7 @@ export async function analyzeReportDirect(file: File, title: string, description
     console.error('Error analyzing report directly:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
-    // Don't show duplicate toast if it's already showing analysis failed
-    if (!errorMessage.includes("analysis failed") && !errorMessage.includes("maximum number of allowed analyses")) {
+    if (!errorMessage.includes("analysis failed")) {
       toast({
         id: "analysis-error-direct-3",
         title: "Analysis failed",
