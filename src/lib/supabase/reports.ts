@@ -320,14 +320,20 @@ export async function uploadReport(file: File, title: string, description: strin
       throw insertError;
     }
 
-    // Increment analysis count
+    // Increment analysis count - FIXED: Using proper error handling and logging
+    const newCount = limits.analysis_count + 1;
+    console.log(`Updating analysis limit count from ${limits.analysis_count} to ${newCount}`);
+    
     const { error: updateLimitsError } = await supabase
       .from('analysis_limits')
-      .update({ analysis_count: limits.analysis_count + 1 })
+      .update({ analysis_count: newCount })
       .eq('user_id', user.id);
     
     if (updateLimitsError) {
       console.error('Error updating analysis count:', updateLimitsError);
+      // We'll continue even if this fails since the report was created
+    } else {
+      console.log('Successfully updated analysis count to:', newCount);
     }
 
     return report as Report;
