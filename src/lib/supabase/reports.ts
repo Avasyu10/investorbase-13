@@ -1,7 +1,6 @@
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 
-// Types for our database
+import { supabase } from "@/integrations/supabase/client";
+
 export type Report = {
   id: string;
   title: string;
@@ -16,7 +15,6 @@ export type Report = {
   submission_form_id?: string;
 };
 
-// Functions to interact with Supabase
 export async function getReports() {
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -276,24 +274,32 @@ export async function uploadReport(file: File, title: string, description: strin
   try {
     console.log('Uploading report');
     
-    // Get the authenticated user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
       console.error('User not authenticated');
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to upload reports",
-        variant: "destructive"
-      });
       throw new Error('Authentication required');
     }
     
-    // Create a unique filename
+    // Check user's analysis limits before uploading
+    const { data: limits, error: limitsError } = await supabase
+      .from('analysis_limits')
+      .select('max_analysis_allowed, analysis_count')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (limitsError) {
+      console.error('Error checking analysis limits:', limitsError);
+      throw limitsError;
+    }
+    
+    if (limits.analysis_count >= limits.max_analysis_allowed) {
+      throw new Error('Analysis limit reached. Upgrade your plan to analyze more pitch decks.');
+    }
+    
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     
-    // Upload the file to storage without user path
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
       .upload(fileName, file);
@@ -303,9 +309,6 @@ export async function uploadReport(file: File, title: string, description: strin
       throw uploadError;
     }
     
-    console.log('File uploaded to storage successfully, saving record to database');
-    
-    // Insert a record in the reports table with user_id set to the current user's ID
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
@@ -313,7 +316,7 @@ export async function uploadReport(file: File, title: string, description: strin
         description,
         pdf_url: fileName,
         analysis_status: 'pending',
-        user_id: user.id  // Set the user_id
+        user_id: user.id
       }])
       .select()
       .single();
@@ -323,8 +326,16 @@ export async function uploadReport(file: File, title: string, description: strin
       throw insertError;
     }
 
-    console.log('Report record created successfully:', report);
+    // Increment analysis count
+    const { error: updateLimitsError } = await supabase
+      .from('analysis_limits')
+      .update({ analysis_count: limits.analysis_count + 1 })
+      .eq('user_id', user.id);
     
+    if (updateLimitsError) {
+      console.error('Error updating analysis count:', updateLimitsError);
+    }
+
     return report as Report;
   } catch (error) {
     console.error('Error uploading report:', error);
