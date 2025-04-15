@@ -239,56 +239,37 @@ export async function uploadReport(file: File, title: string, description: strin
 
 export async function analyzeReport(reportId: string) {
   try {
+    // First, check if the user has reached their analysis limit
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Get user's current analysis count and max allowed
+    const { data: userData, error: userError } = await supabase
+      .from('profiles')
+      .select('max_analysis_allowed, analysis_count')
+      .eq('id', user.id)
+      .single();
+
+    if (userError) {
+      throw new Error('Error fetching user data');
+    }
+
+    if (userData.analysis_count >= userData.max_analysis_allowed) {
+      throw new Error('You have reached your maximum number of allowed analyses');
+    }
+
     console.log('Starting analysis for report:', reportId);
     
-    // First, check if this is from an email or email pitch submission
-    const { data: emailSubmission } = await supabase
-      .from('email_submissions')
-      .select('*')
-      .eq('report_id', reportId)
-      .maybeSingle();
-      
-    const { data: emailPitchSubmission } = await supabase
-      .from('email_pitch_submissions')
-      .select('*')
-      .eq('report_id', reportId)
-      .maybeSingle();
-      
-    const { data: publicFormSubmission } = await supabase
-      .from('public_form_submissions')
-      .select('*')
-      .eq('report_id', reportId)
-      .maybeSingle();
-    
-    // Update report status to pending
-    await supabase
-      .from('reports')
-      .update({
-        analysis_status: 'pending',
-        analysis_error: null
-      })
-      .eq('id', reportId);
-    
-    // Determine which edge function to call based on submission type
-    let endpoint = 'analyze-pdf';
-    
-    if (emailSubmission || emailPitchSubmission) {
-      endpoint = 'analyze-email-pitch-pdf';
-    } else if (publicFormSubmission) {
-      endpoint = 'analyze-public-pdf';
-    }
-    
-    console.log(`Using endpoint: ${endpoint} for analysis`);
-    
-    // Call the appropriate edge function
-    const { data, error } = await supabase.functions.invoke(endpoint, {
+    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
       body: { reportId }
     });
     
     if (error) {
-      console.error(`Error invoking ${endpoint} function:`, error);
+      console.error('Error invoking analyze-pdf function:', error);
       
-      // Update report status to failed
       await supabase
         .from('reports')
         .update({
@@ -301,10 +282,9 @@ export async function analyzeReport(reportId: string) {
     }
     
     if (!data || data.error) {
-      const errorMessage = data?.error || `Unknown error occurred during analysis with ${endpoint}`;
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
       console.error('API returned error:', errorMessage);
       
-      // Update report status to failed
       await supabase
         .from('reports')
         .update({
@@ -318,7 +298,19 @@ export async function analyzeReport(reportId: string) {
     
     console.log('Analysis result:', data);
     
-    // Update report status to completed
+    // Update analysis count for the user
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ 
+        analysis_count: userData.analysis_count + 1 
+      })
+      .eq('id', user.id);
+    
+    if (updateError) {
+      console.error('Error updating analysis count:', updateError);
+      // Non-blocking error, continue with the rest of the function
+    }
+    
     await supabase
       .from('reports')
       .update({

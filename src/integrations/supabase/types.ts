@@ -556,32 +556,38 @@ export type Database = {
       }
       profiles: {
         Row: {
+          analysis_count: number
           avatar_url: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
           is_admin: boolean
+          max_analysis_allowed: number
           updated_at: string
           username: string | null
         }
         Insert: {
+          analysis_count?: number
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
           is_admin?: boolean
+          max_analysis_allowed?: number
           updated_at?: string
           username?: string | null
         }
         Update: {
+          analysis_count?: number
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
           is_admin?: boolean
+          max_analysis_allowed?: number
           updated_at?: string
           username?: string | null
         }
