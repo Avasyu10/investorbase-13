@@ -287,6 +287,8 @@ export async function uploadReport(file: File, title: string, description: strin
       throw limitsError;
     }
     
+    console.log('Current analysis limits:', limits);
+    
     if (limits.analysis_count >= limits.max_analysis_allowed) {
       throw new Error(`Analysis limit reached (${limits.max_analysis_allowed}). Please contact support to analyze more pitch decks.`);
     }
@@ -296,7 +298,7 @@ export async function uploadReport(file: File, title: string, description: strin
     
     const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
-      .upload(fileName, file);
+      .upload(`${user.id}/${fileName}`, file);
       
     if (uploadError) {
       console.error('Error uploading file to storage:', uploadError);
@@ -320,7 +322,7 @@ export async function uploadReport(file: File, title: string, description: strin
       throw insertError;
     }
 
-    // Increment analysis count - FIXED: Using proper error handling and logging
+    // Increment analysis count - CRITICAL FIX: Must happen BEFORE returning
     const newCount = limits.analysis_count + 1;
     console.log(`Updating analysis limit count from ${limits.analysis_count} to ${newCount}`);
     
@@ -331,10 +333,11 @@ export async function uploadReport(file: File, title: string, description: strin
     
     if (updateLimitsError) {
       console.error('Error updating analysis count:', updateLimitsError);
-      // We'll continue even if this fails since the report was created
-    } else {
-      console.log('Successfully updated analysis count to:', newCount);
+      // Throw error to ensure user is aware the count update failed
+      throw updateLimitsError;
     }
+    
+    console.log('Successfully updated analysis count to:', newCount);
 
     return report as Report;
   } catch (error) {
@@ -439,3 +442,5 @@ export async function analyzeReportDirect(file: File, title: string, description
     throw error;
   }
 }
+
+export { supabase };

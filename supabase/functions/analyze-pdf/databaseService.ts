@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function saveAnalysisResults(
@@ -70,99 +69,6 @@ export async function saveAnalysisResults(
     // Create a new client with the service role key to bypass RLS
     const adminSupabase = createClient(apiUrl, adminApiKey);
     
-    const sectionPromises = analysis.sections.map(
-      async (sectionData) => {
-        if (!sectionData) return null;
-        
-        // Ensure we have a proper section type and description
-        const normalizedSectionType = sectionData.type.toUpperCase();
-        
-        // Make sure we have a description - prioritize detailedContent then description
-        let detailedDescription = "";
-        if (sectionData.detailedContent && sectionData.detailedContent.trim().length > 0) {
-          detailedDescription = sectionData.detailedContent;
-        } else if (sectionData.description && sectionData.description.trim().length > 0) {
-          detailedDescription = sectionData.description;
-        } else {
-          // Fallback to summary if available or a default message
-          detailedDescription = sectionData.summary || "No detailed content available.";
-        }
-        
-        // Also prepare the description specifically (shorter version)
-        const description = sectionData.description || detailedDescription;
-        
-        console.log(`Creating section for ${sectionData.type} with score ${sectionData.score} and description length ${description.length}`);
-        
-        const { data: section, error: sectionError } = await adminSupabase
-          .from('sections')
-          .insert([{
-            company_id: company.id,
-            title: sectionData.title || sectionData.type.charAt(0).toUpperCase() + sectionData.type.slice(1).toLowerCase().replace(/_/g, ' '),
-            type: sectionData.type,
-            score: sectionData.score || 0,
-            description: detailedDescription, // Use the detailed description here
-            section_type: normalizedSectionType // Add the section_type explicitly
-          }])
-          .select()
-          .single();
-        
-        if (sectionError) {
-          console.error(`Error creating section ${sectionData.type}:`, sectionError);
-          return null;
-        }
-        
-        if (!section) {
-          console.warn(`Failed to create section ${sectionData.type}`);
-          return null;
-        }
-        
-        console.log(`Created section: ${section.id}, type: ${section.type}, section_type: ${section.section_type}`);
-        
-        // Create section details (strengths and weaknesses)
-        const detailPromises = [];
-        
-        if (sectionData.strengths && sectionData.strengths.length > 0) {
-          for (const strength of sectionData.strengths) {
-            detailPromises.push(
-              adminSupabase
-                .from('section_details')
-                .insert([{
-                  section_id: section.id,
-                  detail_type: 'strength',
-                  content: strength,
-                }])
-            );
-          }
-        }
-        
-        if (sectionData.weaknesses && sectionData.weaknesses.length > 0) {
-          for (const weakness of sectionData.weaknesses) {
-            detailPromises.push(
-              adminSupabase
-                .from('section_details')
-                .insert([{
-                  section_id: section.id,
-                  detail_type: 'weakness',
-                  content: weakness,
-                }])
-            );
-          }
-        }
-        
-        if (detailPromises.length > 0) {
-          try {
-            await Promise.all(detailPromises);
-            console.log(`Added ${detailPromises.length} details for section ${sectionData.type}`);
-          } catch (detailError) {
-            console.error(`Error adding details for section ${sectionData.type}:`, detailError);
-          }
-        }
-        
-        return section;
-      }
-    );
-    
-    await Promise.all(sectionPromises);
     console.log("Completed saving all analysis results");
     
     return company.id;

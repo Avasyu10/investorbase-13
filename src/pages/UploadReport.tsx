@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
-import { supabase } from '@/integrations/supabase/client';
 import { AnalysisLimitDialog } from "@/components/reports/AnalysisLimitDialog";
 
 const UploadReport = () => {
@@ -162,6 +161,7 @@ const UploadReport = () => {
         
         // Start analysis
         setIsAnalyzing(true);
+        setIsUploading(false);
         
         toast.info("Analysis started", {
           description: "This may take a few minutes depending on the size of your deck"
@@ -444,7 +444,7 @@ const UploadReport = () => {
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isUploading ? "Analyzing.." : "Analyzing..."}
+                    {isUploading ? "Uploading..." : "Analyzing..."}
                   </>
                 ) : (
                   "Upload & Analyze"
