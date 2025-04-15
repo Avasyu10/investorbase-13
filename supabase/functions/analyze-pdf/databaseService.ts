@@ -73,83 +73,89 @@ export async function saveAnalysisResults(
       // Create a new client with the service role key to bypass RLS
       const adminSupabase = createClient(apiUrl, adminApiKey);
       
-      // Insert all sections in a batch
-      const sectionsToInsert = analysis.sections.map((section: any) => ({
-        company_id: company.id,
-        type: section.type || 'GENERIC',
-        title: section.title || 'Untitled Section',
-        description: section.description || '',
-        score: section.score || 0
-      }));
-      
-      const { data: sections, error: sectionsError } = await adminSupabase
-        .from('sections')
-        .insert(sectionsToInsert)
-        .select();
-      
-      if (sectionsError) {
-        console.error("Error creating sections:", sectionsError);
-        throw sectionsError;
-      }
-      
-      // Now insert all details for each section
-      if (sections && sections.length > 0) {
-        console.log(`Successfully created ${sections.length} sections`);
+      try {
+        // Insert all sections in a batch
+        const sectionsToInsert = analysis.sections.map((section: any) => ({
+          company_id: company.id,
+          type: section.type || 'GENERIC',
+          title: section.title || 'Untitled Section',
+          description: section.description || '',
+          score: section.score || 0
+        }));
         
-        // Create a mapping of section title to section ID
-        const sectionMap = new Map();
-        sections.forEach((section: any) => {
-          sectionMap.set(section.title, section.id);
-        });
+        const { data: sections, error: sectionsError } = await adminSupabase
+          .from('sections')
+          .insert(sectionsToInsert)
+          .select();
         
-        // Prepare all details to insert in one batch
-        const detailsToInsert: any[] = [];
-        
-        analysis.sections.forEach((section: any) => {
-          const sectionId = sectionMap.get(section.title);
-          
-          if (!sectionId) {
-            console.warn(`Could not find section ID for title: ${section.title}`);
-            return;
-          }
-          
-          // Add strengths
-          if (section.strengths && Array.isArray(section.strengths)) {
-            section.strengths.forEach((strength: string) => {
-              detailsToInsert.push({
-                section_id: sectionId,
-                detail_type: 'strength',
-                content: strength
-              });
-            });
-          }
-          
-          // Add weaknesses
-          if (section.weaknesses && Array.isArray(section.weaknesses)) {
-            section.weaknesses.forEach((weakness: string) => {
-              detailsToInsert.push({
-                section_id: sectionId,
-                detail_type: 'weakness',
-                content: weakness
-              });
-            });
-          }
-        });
-        
-        if (detailsToInsert.length > 0) {
-          console.log(`Inserting ${detailsToInsert.length} section details`);
-          
-          const { error: detailsError } = await adminSupabase
-            .from('section_details')
-            .insert(detailsToInsert);
-          
-          if (detailsError) {
-            console.error("Error creating section details:", detailsError);
-            throw detailsError;
-          }
-          
-          console.log("Successfully created all section details");
+        if (sectionsError) {
+          console.error("Error creating sections:", sectionsError);
+          throw sectionsError;
         }
+        
+        // Now insert all details for each section
+        if (sections && sections.length > 0) {
+          console.log(`Successfully created ${sections.length} sections`);
+          
+          // Create a mapping of section title to section ID
+          const sectionMap = new Map();
+          sections.forEach((section: any) => {
+            sectionMap.set(section.title, section.id);
+          });
+          
+          // Prepare all details to insert in one batch
+          const detailsToInsert: any[] = [];
+          
+          analysis.sections.forEach((section: any) => {
+            const sectionId = sectionMap.get(section.title);
+            
+            if (!sectionId) {
+              console.warn(`Could not find section ID for title: ${section.title}`);
+              return;
+            }
+            
+            // Add strengths
+            if (section.strengths && Array.isArray(section.strengths)) {
+              section.strengths.forEach((strength: string) => {
+                detailsToInsert.push({
+                  section_id: sectionId,
+                  detail_type: 'strength',
+                  content: strength
+                });
+              });
+            }
+            
+            // Add weaknesses
+            if (section.weaknesses && Array.isArray(section.weaknesses)) {
+              section.weaknesses.forEach((weakness: string) => {
+                detailsToInsert.push({
+                  section_id: sectionId,
+                  detail_type: 'weakness',
+                  content: weakness
+                });
+              });
+            }
+          });
+          
+          if (detailsToInsert.length > 0) {
+            console.log(`Inserting ${detailsToInsert.length} section details`);
+            
+            const { error: detailsError } = await adminSupabase
+              .from('section_details')
+              .insert(detailsToInsert);
+            
+            if (detailsError) {
+              console.error("Error creating section details:", detailsError);
+              throw detailsError;
+            }
+            
+            console.log("Successfully created all section details");
+          }
+        }
+      } catch (sectionError) {
+        console.error("Error processing sections:", sectionError);
+        // We'll continue without sections if there was an error
+        // but log the issue for debugging
       }
     }
     

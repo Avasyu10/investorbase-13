@@ -1,14 +1,17 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "./cors.ts";
+import { corsHeaders, handleCors } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
 import { analyzeWithOpenAI } from "./openaiService.ts";
 import { saveAnalysisResults } from "./databaseService.ts";
 
 serve(async (req) => {
+  console.log(`[analyze-pdf] Request received: ${req.method} ${req.url}`);
+  
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  const corsResponse = handleCors(req);
+  if (corsResponse) {
+    return corsResponse;
   }
 
   try {
@@ -49,6 +52,7 @@ serve(async (req) => {
     let reqData;
     try {
       reqData = await req.json();
+      console.log("[analyze-pdf] Request data received:", JSON.stringify(reqData));
     } catch (e) {
       console.error("Error parsing request JSON:", e);
       return new Response(

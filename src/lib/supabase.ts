@@ -351,12 +351,17 @@ export async function analyzeReport(reportId: string) {
   
   try {
     // Add CORS headers to allow the request
+    console.log("Invoking analyze-pdf edge function...");
+    
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
       body: { reportId },
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        // Don't set x-app-version or other custom headers for the function call 
       }
     });
+    
+    console.log("Edge function response:", { data, error });
     
     if (error) {
       console.error('Error analyzing report:', error);
