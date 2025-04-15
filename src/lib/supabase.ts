@@ -350,14 +350,17 @@ export async function analyzeReport(reportId: string) {
   console.log(`Analyzing report with ID: ${reportId}`);
   
   try {
-    // Add CORS headers to allow the request
-    console.log("Invoking analyze-pdf edge function...");
+    // Log all the request details
+    console.log("Invoking analyze-pdf edge function with the following params:");
+    console.log("- reportId:", reportId);
+    console.log("- Headers:", {
+      'Content-Type': 'application/json',
+    });
     
     const { data, error } = await supabase.functions.invoke('analyze-pdf', {
       body: { reportId },
       headers: {
         'Content-Type': 'application/json',
-        // Don't set x-app-version or other custom headers for the function call 
       }
     });
     
@@ -365,12 +368,15 @@ export async function analyzeReport(reportId: string) {
     
     if (error) {
       console.error('Error analyzing report:', error);
+      console.error('Error object keys:', Object.keys(error));
+      console.error('Error stringify:', JSON.stringify(error));
       throw error;
     }
     
     if (!data || data.error) {
       const errorMessage = data?.error || 'Unknown error during analysis';
       console.error('Analysis failed:', errorMessage);
+      console.error('Complete response data:', data);
       throw new Error(errorMessage);
     }
     
@@ -378,9 +384,13 @@ export async function analyzeReport(reportId: string) {
     return data;
   } catch (error) {
     console.error('Error in analyzeReport:', error);
+    console.error('Error object keys:', Object.keys(error || {}));
+    console.error('Error stringify:', JSON.stringify(error));
+    
     toast.error("Analysis failed", {
       description: error instanceof Error ? error.message : "An error occurred during analysis"
     });
+    
     throw error;
   }
 }

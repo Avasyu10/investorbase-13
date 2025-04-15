@@ -16,9 +16,16 @@ export function handleCors(req: Request) {
   const origin = req.headers.get('origin');
   console.log(`[CORS DEBUG] Origin: ${origin}`);
   console.log(`[CORS DEBUG] Method: ${req.method}`);
+  
+  // Log all headers for debugging
+  console.log('[CORS DEBUG] All request headers:');
+  req.headers.forEach((value, key) => {
+    console.log(`[CORS DEBUG] ${key}: ${value}`);
+  });
 
   // Return a 204 No Content response with CORS headers for OPTIONS requests
   if (req.method === 'OPTIONS') {
+    console.log('[CORS DEBUG] Responding to OPTIONS request with CORS headers');
     return new Response(null, {
       status: 204,
       headers: corsHeaders
