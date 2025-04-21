@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -116,16 +117,44 @@ serve(async (req) => {
           try {
             console.log("Starting Perplexity cross-check");
             
+            // Create a shortened version of the analysis for Perplexity
+            // Include only critical components to reduce token size
+            const createCompactAnalysis = (fullAnalysis) => {
+              // Extract just the necessary data for validation
+              const compactAnalysis = {
+                overallScore: fullAnalysis.overallScore,
+                overallSummary: fullAnalysis.overallSummary?.substring(0, 500) || "",
+                sections: fullAnalysis.sections?.map(section => ({
+                  type: section.type,
+                  title: section.title,
+                  score: section.score,
+                  // Truncate long text fields
+                  description: section.description?.substring(0, 200) || ""
+                })) || [],
+                assessmentPoints: fullAnalysis.assessmentPoints?.slice(0, 3) || []
+              };
+              
+              return compactAnalysis;
+            };
+            
+            const compactAnalysis = createCompactAnalysis(analysis);
+            
             // Create a prompt for Perplexity to cross-check the analysis
             const crossCheckPrompt = `
-Cross-check and validate this startup analysis. Provide any corrections or additional insights 
-without changing the original JSON format structure. Keep all section types the same.
+Cross-check and validate this startup analysis. Focus on the scores and assessment accuracy.
+Provide any corrections to scores or insights without changing the original JSON format structure.
 
-Here is the analysis to cross-check:
-${JSON.stringify(analysis)}
+Here is the analysis to cross-check (compact version for token limits):
+${JSON.stringify(compactAnalysis)}
 
-Please return the updated analysis in the exact same JSON format.
+Please return the updated analysis in the exact same JSON format with your corrections to scores and insights.
+If scores are off, please correct them using this scoring guideline:
+- Individual section scores should be between 1.0-5.0
+- Overall score should be the normalized average of section scores (section_avg * 1.25, max 5.0)
             `;
+            
+            console.log("Perplexity cross-check prompt length:", crossCheckPrompt.length);
+            console.log("Perplexity cross-check prompt preview:", crossCheckPrompt.substring(0, 200) + "...");
             
             const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
               method: "POST",
@@ -145,17 +174,33 @@ Please return the updated analysis in the exact same JSON format.
               })
             });
             
+            // Store detailed request info for debugging
+            console.log("Perplexity request details:", {
+              endpoint: "https://api.perplexity.ai/chat/completions",
+              model: "sonar",
+              promptLength: crossCheckPrompt.length,
+              temperatureSetting: 0.1
+            });
+            
             if (!perplexityResponse.ok) {
               const errorText = await perplexityResponse.text();
               console.error("Perplexity cross-check failed:", errorText);
+              
+              // Save the error information to the analysis for debugging
+              analysis.perplexityError = errorText;
+              analysis.perplexityCrossCheckPromptLength = crossCheckPrompt.length;
+              
               console.log("Proceeding with original analysis without cross-check");
             } else {
               const perplexityData = await perplexityResponse.json();
-              console.log("Perplexity cross-check completed");
+              console.log("Perplexity cross-check completed successfully");
               
               // Store detailed logs for debugging
               analysis.perplexityCrossCheckPrompt = crossCheckPrompt;
-              analysis.perplexityCrossCheckResponse = JSON.stringify(perplexityData);
+              analysis.perplexityCrossCheckPromptLength = crossCheckPrompt.length;
+              analysis.perplexityCrossCheckResponse = JSON.stringify(perplexityData).substring(0, 1000) + "..."; // Save truncated response
+              
+              console.log("Perplexity response preview:", JSON.stringify(perplexityData).substring(0, 200) + "...");
               
               // Try to parse the Perplexity response and update the analysis if possible
               try {
