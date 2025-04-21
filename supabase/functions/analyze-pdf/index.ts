@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -106,7 +105,7 @@ serve(async (req) => {
       
       try {
         // Analyze the PDF with Gemini
-        const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY);
+        const analysis = await analyzeWithOpenAI(pdfBase64, Deno.env.get('GEMINI_API_KEY')!);
         
         console.log("Gemini analysis complete, now cross-checking with Perplexity");
         
@@ -119,12 +118,12 @@ serve(async (req) => {
             
             // Create a shortened version of the analysis for Perplexity
             // Include only critical components to reduce token size
-            const createCompactAnalysis = (fullAnalysis) => {
+            const createCompactAnalysis = (fullAnalysis: any) => {
               // Extract just the necessary data for validation
               const compactAnalysis = {
                 overallScore: fullAnalysis.overallScore,
                 overallSummary: fullAnalysis.overallSummary?.substring(0, 500) || "",
-                sections: fullAnalysis.sections?.map(section => ({
+                sections: fullAnalysis.sections?.map((section: any) => ({
                   type: section.type,
                   title: section.title,
                   score: section.score,
@@ -226,9 +225,32 @@ If scores are off, please correct them using this scoring guideline:
                     jsonContent = jsonContent.substring(jsonStart);
                   }
                   
-                  // Try to parse the JSON response
+                  // Enhanced JSON parsing with error handling and sanitization
                   try {
-                    const crossCheckedAnalysis = JSON.parse(jsonContent);
+                    // Log full content for debugging
+                    console.log("Attempting to parse JSON content length:", jsonContent.length);
+                    
+                    // Try to clean potentially malformed JSON
+                    let cleanedJson = jsonContent;
+                    
+                    // Find the last closing brace (in case there's text after the JSON)
+                    const lastBrace = cleanedJson.lastIndexOf('}');
+                    if (lastBrace > 0 && lastBrace < cleanedJson.length - 1) {
+                      cleanedJson = cleanedJson.substring(0, lastBrace + 1);
+                      console.log("Truncated JSON to last closing brace at position:", lastBrace);
+                    }
+                    
+                    // Fix any trailing commas before closing brackets
+                    cleanedJson = cleanedJson.replace(/,(\s*[\}\]])/g, "$1");
+                    
+                    // Remove any non-printable or control characters
+                    cleanedJson = cleanedJson.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+                    
+                    console.log("Cleaned JSON (first 100 chars):", cleanedJson.substring(0, 100));
+                    console.log("Cleaned JSON (last 100 chars):", cleanedJson.substring(cleanedJson.length - 100));
+                    
+                    // Attempt to parse the sanitized JSON
+                    const crossCheckedAnalysis = JSON.parse(cleanedJson);
                     console.log("Successfully parsed Perplexity cross-check response");
                     
                     // Update the analysis with the cross-checked data
@@ -252,7 +274,45 @@ If scores are off, please correct them using this scoring guideline:
                     console.log("Analysis updated with Perplexity cross-check data");
                   } catch (jsonParseError) {
                     console.error("Failed to parse Perplexity JSON response:", jsonParseError);
-                    console.log("Using original analysis without modifications");
+                    
+                    // Log specific error information
+                    if (jsonParseError instanceof SyntaxError) {
+                      console.error(`JSON syntax error: ${jsonParseError.message}`);
+                      
+                      // If error mentions a position, log the context around that position
+                      const match = jsonParseError.message.match(/position (\d+)/);
+                      if (match && match[1]) {
+                        const position = parseInt(match[1]);
+                        const start = Math.max(0, position - 20);
+                        const end = Math.min(jsonContent.length, position + 20);
+                        console.error(`JSON error context: "${jsonContent.substring(start, position)}[ERROR HERE]${jsonContent.substring(position, end)}"`);
+                      }
+                    }
+                    
+                    // Fall back to manual JSON extraction as a last resort
+                    try {
+                      console.log("Trying alternative JSON parsing approach");
+                      
+                      // Look for well-formed JSON object pattern
+                      const objectMatch = jsonContent.match(/(\{[\s\S]*\})/);
+                      if (objectMatch && objectMatch[1]) {
+                        const potentialJson = objectMatch[1];
+                        console.log("Found potential JSON object:", potentialJson.substring(0, 100) + "...");
+                        
+                        // Try to parse this extracted object
+                        const fallbackAnalysis = JSON.parse(potentialJson);
+                        console.log("Successfully parsed JSON using fallback extraction");
+                        
+                        // Update analysis with this extracted data
+                        if (fallbackAnalysis.overallScore) {
+                          analysis.overallScore = fallbackAnalysis.overallScore;
+                          console.log("Updated overallScore using fallback approach");
+                        }
+                      }
+                    } catch (fallbackError) {
+                      console.error("Fallback JSON parsing also failed:", fallbackError);
+                      console.log("Using original analysis without modifications");
+                    }
                   }
                 } else {
                   console.log("Perplexity response didn't contain expected data structure");
