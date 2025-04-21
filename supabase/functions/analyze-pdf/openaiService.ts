@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
@@ -183,8 +182,8 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
 
   try {
     if (!apiKey) {
-      console.error("Gemini API key is missing");
-      throw new Error("Gemini API key is not configured");
+      console.error("Perplexity API key is missing");
+      throw new Error("Perplexity API key is not configured");
     }
 
     if (!pdfBase64 || pdfBase64.length === 0) {
@@ -192,279 +191,239 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
       throw new Error("Invalid PDF data for analysis");
     }
 
-    // Call Gemini API for analysis
-    console.log("Calling Gemini API for analysis");
+    // Call Perplexity API for analysis
+    console.log("Calling Perplexity API for analysis");
     console.log(`PDF base64 length: ${pdfBase64.length}`);
-    
-    try {
-      // Construct the Gemini API request
-      const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-      const urlWithApiKey = `${geminiEndpoint}?key=${apiKey}`;
-      
-      const requestBody = {
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              { 
-                inlineData: {
-                  mimeType: "application/pdf",
-                  data: pdfBase64
-                }
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.0, // Setting temperature to 0 for maximum consistency
-          topP: 1.0,
-          topK: 40,
-          maxOutputTokens: 8192 // Increasing token limit to allow for more detailed market research
-        }
-      };
 
-      // Store the prompt that was sent to the model
-      const promptSent = JSON.stringify(requestBody);
-      console.log("Prompt sent to model:", promptSent);
-
-      const geminiResponse = await fetch(urlWithApiKey, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      // Check for HTTP errors in the Gemini response
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text();
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch (e) {
-          errorData = { error: { message: errorText } };
-        }
-        
-        console.error("Gemini API error:", errorData);
-        
-        // Provide more specific error messages based on status codes
-        if (geminiResponse.status === 401) {
-          throw new Error("Gemini API key is invalid");
-        } else if (geminiResponse.status === 429) {
-          throw new Error("Gemini API rate limit exceeded");
-        } else if (geminiResponse.status === 413) {
-          throw new Error("PDF is too large for Gemini to process");
-        } else {
-          throw new Error(`Gemini API error: ${errorData.error?.message || 'Unknown error'}`);
+    // Construct the Perplexity API request
+    const perplexityEndpoint = "https://api.perplexity.ai/chat/completions";
+    const model = "llama-3.1-sonar-large-128k-online";
+    const messages = [
+      {
+        role: "system",
+        content: "You are a helpful assistant that ONLY returns a valid JSON analysis. Directly and ONLY return the analysis JSON object as described. Do not output anything else."
+      },
+      {
+        role: "user",
+        content: prompt
+      },
+      {
+        role: "user",
+        content: {
+          type: "pdf",
+          data: pdfBase64
         }
       }
+    ];
 
-      const geminiData = await geminiResponse.json();
-      console.log("Received Gemini response");
+    // Prepare the request body according to Perplexity API requirements
+    const requestBody = {
+      model,
+      messages,
+      temperature: 0.0,
+      top_p: 1.0,
+      max_tokens: 8192,
+      return_related_questions: false,
+      return_images: false,
+    };
 
-      // Store the raw response received from the model
-      const responseReceived = JSON.stringify(geminiData);
-      console.log("Response received from model:", responseReceived);
+    const promptSent = JSON.stringify(requestBody);
+    console.log("Prompt sent to Perplexity model:", promptSent);
 
-      // Parse the analysis result
+    // Send the request to Perplexity
+    const perplexityResponse = await fetch(perplexityEndpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!perplexityResponse.ok) {
+      const errorText = await perplexityResponse.text();
+      let errorData;
       try {
-        // Extract the content from Gemini response structure
-        if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
-          throw new Error("Empty response from Gemini");
-        }
-        
-        const content = geminiData.candidates[0].content.parts[0].text;
-        
-        if (!content) {
-          throw new Error("Empty response from Gemini");
-        }
-        
-        console.log("Raw content from Gemini:", content.substring(0, 200) + "...");
-        
-        // Extract JSON from the response
-        let jsonContent = content;
-        
-        // If the response contains text before the JSON, try to find the start of the JSON object
-        const jsonStart = content.indexOf('{');
-        if (jsonStart > 0) {
-          console.log(`Found JSON start at position ${jsonStart}`);
-          jsonContent = content.substring(jsonStart);
-        }
-        
-        // If the response contains a JSON code block, extract it
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (jsonMatch && jsonMatch[1]) {
-          console.log("Found JSON in code block");
-          jsonContent = jsonMatch[1];
-          
-          // Check if the extracted content starts with '{'
-          if (!jsonContent.trim().startsWith('{')) {
-            const innerJsonStart = jsonContent.indexOf('{');
-            if (innerJsonStart >= 0) {
-              jsonContent = jsonContent.substring(innerJsonStart);
-            }
-          }
-        }
-        
-        console.log("Attempting to parse JSON:", jsonContent.substring(0, 100) + "...");
-        
-        // Try to parse the JSON response
-        let parsedContent;
-        try {
-          parsedContent = JSON.parse(jsonContent);
-        } catch (jsonError) {
-          console.error("JSON parsing error:", jsonError);
-          
-          // Try to fix common JSON issues
-          let fixedJson = jsonContent;
-          
-          // Fix trailing commas
-          fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
-          
-          // Try to find the end of the JSON object if there's text after it
-          const lastBrace = fixedJson.lastIndexOf('}');
-          if (lastBrace > 0 && lastBrace < fixedJson.length - 1) {
-            fixedJson = fixedJson.substring(0, lastBrace + 1);
-          }
-          
-          console.log("Attempting to parse fixed JSON");
-          try {
-            parsedContent = JSON.parse(fixedJson);
-          } catch (fixedJsonError) {
-            console.error("Failed to parse fixed JSON:", fixedJsonError);
-            
-            // If all else fails, create a simplified but valid result
-            throw new Error("Failed to parse Gemini response as JSON. Raw content: " + content.substring(0, 200) + "...");
-          }
-        }
-        
-        // Validate the response structure
-        if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
-          console.error("Invalid analysis structure: missing or empty sections array");
-          throw new Error("Invalid analysis structure: missing or empty sections array");
-        }
-        
-        // Define the expected section types
-        const expectedSectionTypes = [
-          "PROBLEM", "MARKET", "SOLUTION", "COMPETITIVE_LANDSCAPE", 
-          "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", 
-          "TEAM", "FINANCIALS", "ASK"
-        ];
-        
-        // Deduplicate sections (keep only the first occurrence of each section type)
-        const processedSections = [];
-        const seenTypes = new Set();
-        
-        for (const section of parsedContent.sections) {
-          // Ensure sections have the correct type
-          if (!expectedSectionTypes.includes(section.type)) {
-            console.warn(`Section with invalid type "${section.type}" found, skipping it`);
-            continue;
-          }
-          
-          // Skip duplicates
-          if (seenTypes.has(section.type)) {
-            console.warn(`Duplicate section of type "${section.type}" found, skipping it`);
-            continue;
-          }
-          
-          seenTypes.add(section.type);
-          processedSections.push(section);
-        }
-        
-        // Add any missing sections from the expected list
-        for (const expectedType of expectedSectionTypes) {
-          if (!seenTypes.has(expectedType)) {
-            console.warn(`Missing section of type "${expectedType}", adding a placeholder`);
-            
-            // Convert type to title
-            let title;
-            switch (expectedType) {
-              case "PROBLEM": title = "Problem Statement"; break;
-              case "MARKET": title = "Market Opportunity"; break;
-              case "SOLUTION": title = "Solution (Product)"; break;
-              case "COMPETITIVE_LANDSCAPE": title = "Competitive Landscape"; break;
-              case "TRACTION": title = "Traction & Milestones"; break;
-              case "BUSINESS_MODEL": title = "Business Model"; break;
-              case "GTM_STRATEGY": title = "Go-to-Market Strategy"; break;
-              case "TEAM": title = "Founder & Team Background"; break;
-              case "FINANCIALS": title = "Financial Overview & Projections"; break;
-              case "ASK": title = "The Ask & Next Steps"; break;
-              default: title = expectedType.charAt(0) + expectedType.slice(1).toLowerCase().replace(/_/g, ' ');
-            }
-            
-            processedSections.push({
-              type: expectedType,
-              title: title,
-              score: 1.0,
-              description: `⚠️ MISSING SECTION: ${title} is not present in this pitch deck`,
-              strengths: [],
-              weaknesses: [
-                `Critical oversight: ${title} is missing`,
-                "Incomplete pitch deck structure"
-              ]
-            });
-          }
-        }
-        
-        // Replace the sections array with our processed one
-        parsedContent.sections = processedSections;
-        
-        // Ensure we properly calculate and normalize the score
-        if (typeof parsedContent.overallScore !== 'number') {
-          console.warn("Warning: overallScore is not a number in API response, calculating it manually");
-          
-          // Calculate the average score from all sections
-          const sectionScores = parsedContent.sections.map(section => section.score || 0);
-          const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
-          const averageScore = totalScore / expectedSectionTypes.length; // Always use 10 as the divisor
-          
-          // Apply normalization formula: MIN(averageScore * 1.25, 5.0)
-          const normalizedScore = Math.min(averageScore * 1.25, 5.0);
-          
-          // Set the normalized score with one decimal precision
-          parsedContent.overallScore = parseFloat(normalizedScore.toFixed(1));
-          
-          console.log(`Manually calculated score: Average=${averageScore.toFixed(2)}, Normalized=${parsedContent.overallScore}`);
-        } else {
-          // Check if we need to normalize the existing score
-          const currentScore = parsedContent.overallScore;
-          console.log(`Original score from API: ${currentScore}`);
-          
-          // Get average of section scores to verify
-          const sectionScores = parsedContent.sections.map(section => section.score || 0);
-          const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
-          const averageScore = totalScore / expectedSectionTypes.length; // Always use 10 as the divisor
-          
-          // Apply normalization formula: MIN(averageScore * 1.25, 5.0)
-          const expectedNormalizedScore = Math.min(averageScore * 1.25, 5.0);
-          const formattedExpectedScore = parseFloat(expectedNormalizedScore.toFixed(1));
-          
-          console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${formattedExpectedScore}, API Score=${currentScore}`);
-          
-          // If there's a difference, use our calculated score
-          if (Math.abs(currentScore - formattedExpectedScore) > 0.05) {
-            console.log(`Score difference detected: API=${currentScore}, Expected=${formattedExpectedScore}, using calculated score`);
-            parsedContent.overallScore = formattedExpectedScore;
-          }
-        }
-        
-        // Add prompt and response to the parsed content
-        parsedContent.promptSent = promptSent;
-        parsedContent.responseReceived = responseReceived;
-        
-        return parsedContent;
+        errorData = JSON.parse(errorText);
       } catch (e) {
-        console.error("Error parsing Gemini response:", e);
-        throw new Error("Failed to parse analysis result: " + (e instanceof Error ? e.message : "Invalid JSON"));
+        errorData = { error: { message: errorText } };
       }
-    } catch (fetchError) {
-      console.error("Error fetching from Gemini:", fetchError);
-      throw new Error(`Gemini API request failed: ${fetchError.message}`);
+
+      console.error("Perplexity API error:", errorData);
+
+      if (perplexityResponse.status === 401) {
+        throw new Error("Perplexity API key is invalid");
+      } else if (perplexityResponse.status === 429) {
+        throw new Error("Perplexity API rate limit exceeded");
+      } else if (perplexityResponse.status === 413) {
+        throw new Error("PDF is too large for Perplexity to process");
+      } else {
+        throw new Error(`Perplexity API error: ${errorData.error?.message || 'Unknown error'}`);
+      }
+    }
+
+    const perplexityData = await perplexityResponse.json();
+    console.log("Received Perplexity response");
+
+    const responseReceived = JSON.stringify(perplexityData);
+    console.log("Response received from Perplexity model:", responseReceived);
+
+    // Extract and parse JSON content from Perplexity response
+    try {
+      if (!perplexityData.choices || !perplexityData.choices[0] || !perplexityData.choices[0].message) {
+        throw new Error("Empty response from Perplexity");
+      }
+
+      let content = perplexityData.choices[0].message.content;
+
+      if (!content) {
+        throw new Error("Empty response from Perplexity");
+      }
+
+      console.log("Raw content from Perplexity:", content.substring(0, 200) + "...");
+
+      // If the response contains text before the JSON, try to find the start of the JSON object
+      const jsonStart = content.indexOf('{');
+      let jsonContent = content;
+      if (jsonStart > 0) {
+        console.log(`Found JSON start at position ${jsonStart}`);
+        jsonContent = content.substring(jsonStart);
+      }
+
+      // If the response contains a JSON code block, extract it
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (jsonMatch && jsonMatch[1]) {
+        console.log("Found JSON in code block");
+        jsonContent = jsonMatch[1];
+        if (!jsonContent.trim().startsWith('{')) {
+          const innerJsonStart = jsonContent.indexOf('{');
+          if (innerJsonStart >= 0) {
+            jsonContent = jsonContent.substring(innerJsonStart);
+          }
+        }
+      }
+
+      console.log("Attempting to parse JSON:", jsonContent.substring(0, 100) + "...");
+
+      let parsedContent;
+      try {
+        parsedContent = JSON.parse(jsonContent);
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        let fixedJson = jsonContent;
+        fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
+        const lastBrace = fixedJson.lastIndexOf('}');
+        if (lastBrace > 0 && lastBrace < fixedJson.length - 1) {
+          fixedJson = fixedJson.substring(0, lastBrace + 1);
+        }
+        console.log("Attempting to parse fixed JSON");
+        try {
+          parsedContent = JSON.parse(fixedJson);
+        } catch (fixedJsonError) {
+          console.error("Failed to parse fixed JSON:", fixedJsonError);
+          throw new Error("Failed to parse Perplexity response as JSON. Raw content: " + content.substring(0, 200) + "...");
+        }
+      }
+
+      // Validate the response structure
+      if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
+        console.error("Invalid analysis structure: missing or empty sections array");
+        throw new Error("Invalid analysis structure: missing or empty sections array");
+      }
+
+      // Define the expected section types
+      const expectedSectionTypes = [
+        "PROBLEM", "MARKET", "SOLUTION", "COMPETITIVE_LANDSCAPE", 
+        "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", 
+        "TEAM", "FINANCIALS", "ASK"
+      ];
+
+      // Deduplicate sections (keep only the first occurrence of each section type)
+      const processedSections = [];
+      const seenTypes = new Set();
+
+      for (const section of parsedContent.sections) {
+        if (!expectedSectionTypes.includes(section.type)) {
+          console.warn(`Section with invalid type "${section.type}" found, skipping it`);
+          continue;
+        }
+        if (seenTypes.has(section.type)) {
+          console.warn(`Duplicate section of type "${section.type}" found, skipping it`);
+          continue;
+        }
+        seenTypes.add(section.type);
+        processedSections.push(section);
+      }
+
+      // Add any missing sections from the expected list
+      for (const expectedType of expectedSectionTypes) {
+        if (!seenTypes.has(expectedType)) {
+          console.warn(`Missing section of type "${expectedType}", adding a placeholder`);
+          let title;
+          switch (expectedType) {
+            case "PROBLEM": title = "Problem Statement"; break;
+            case "MARKET": title = "Market Opportunity"; break;
+            case "SOLUTION": title = "Solution (Product)"; break;
+            case "COMPETITIVE_LANDSCAPE": title = "Competitive Landscape"; break;
+            case "TRACTION": title = "Traction & Milestones"; break;
+            case "BUSINESS_MODEL": title = "Business Model"; break;
+            case "GTM_STRATEGY": title = "Go-to-Market Strategy"; break;
+            case "TEAM": title = "Founder & Team Background"; break;
+            case "FINANCIALS": title = "Financial Overview & Projections"; break;
+            case "ASK": title = "The Ask & Next Steps"; break;
+            default: title = expectedType.charAt(0) + expectedType.slice(1).toLowerCase().replace(/_/g, ' ');
+          }
+          processedSections.push({
+            type: expectedType,
+            title: title,
+            score: 1.0,
+            description: `⚠️ MISSING SECTION: ${title} is not present in this pitch deck`,
+            strengths: [],
+            weaknesses: [
+              `Critical oversight: ${title} is missing`,
+              "Incomplete pitch deck structure"
+            ]
+          });
+        }
+      }
+
+      parsedContent.sections = processedSections;
+
+      // Ensure we properly calculate and normalize the score
+      if (typeof parsedContent.overallScore !== 'number') {
+        console.warn("Warning: overallScore is not a number in API response, calculating it manually");
+        const sectionScores = parsedContent.sections.map(section => section.score || 0);
+        const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
+        const averageScore = totalScore / expectedSectionTypes.length;
+        const normalizedScore = Math.min(averageScore * 1.25, 5.0);
+        parsedContent.overallScore = parseFloat(normalizedScore.toFixed(1));
+        console.log(`Manually calculated score: Average=${averageScore.toFixed(2)}, Normalized=${parsedContent.overallScore}`);
+      } else {
+        const currentScore = parsedContent.overallScore;
+        console.log(`Original score from API: ${currentScore}`);
+        const sectionScores = parsedContent.sections.map(section => section.score || 0);
+        const totalScore = sectionScores.reduce((sum, score) => sum + score, 0);
+        const averageScore = totalScore / expectedSectionTypes.length;
+        const expectedNormalizedScore = Math.min(averageScore * 1.25, 5.0);
+        const formattedExpectedScore = parseFloat(expectedNormalizedScore.toFixed(1));
+        console.log(`Calculated scores for verification: Average=${averageScore.toFixed(2)}, Normalized=${formattedExpectedScore}, API Score=${currentScore}`);
+        if (Math.abs(currentScore - formattedExpectedScore) > 0.05) {
+          console.log(`Score difference detected: API=${currentScore}, Expected=${formattedExpectedScore}, using calculated score`);
+          parsedContent.overallScore = formattedExpectedScore;
+        }
+      }
+
+      // Add prompt and response to the parsed content
+      parsedContent.promptSent = promptSent;
+      parsedContent.responseReceived = responseReceived;
+
+      return parsedContent;
+    } catch (e) {
+      console.error("Error parsing Perplexity response:", e);
+      throw new Error("Failed to parse analysis result: " + (e instanceof Error ? e.message : "Invalid JSON"));
     }
   } catch (error) {
-    console.error("Error in analyzeWithGemini:", error);
+    console.error("Error in analyzeWithOpenAI (Perplexity):", error);
     throw error;
   }
 }
