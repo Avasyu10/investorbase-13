@@ -144,18 +144,16 @@ Cross-check and validate this startup analysis. Focus on the scores, assessment 
 Provide any corrections to scores or insights without changing the original JSON format structure.
 
 IMPORTANT:
-- For each section, review and ensure "strengths" and "weaknesses" are present, concise, and relevant. If missing, add them.
+- For each section, review and ensure THAT THERE ARE 3-4 "strengths" and "weaknesses" are present, concise, and relevant. If missing, add them.
 - Strengths and weaknesses should be arrays of concise bullet points.
 - Each section output in the final JSON must include both "strengths" and "weaknesses" keys, even if you must generate new content for them.
-- If strengths or weaknesses are not in the original, generate them yourself based on the section summary and title.
+- If strengths or weaknesses are not in the original, generate them yourself BASED ON THE REAL WORLD DATA/ MARKET INSIGHTS AROUND THE INDUSTRY.
 
 Here is the analysis to cross-check (compact version for token limits):
 ${JSON.stringify(compactAnalysis)}
 
-Please return the updated analysis in the exact same JSON format with your corrections to scores, strengths, weaknesses, and insights.
-If scores are off, please correct them using this scoring guideline:
-- Individual section scores should be between 1.0-5.0
-- Overall score should be the normalized average of section scores (section_avg * 1.25, max 5.0)
+Please return the updated analysis in the exact same JSON format with your corrections to strengths, weaknesses, and insights.
+- Return the same scores that was provided to you in the prompt, without making any changes to them
             `;
 
             console.log("=== Perplexity cross-check prompt (FULL) ===");
