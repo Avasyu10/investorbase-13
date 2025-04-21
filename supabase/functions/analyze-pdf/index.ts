@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -108,7 +107,125 @@ serve(async (req) => {
         // Analyze the PDF with Gemini
         const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY);
         
-        console.log("Gemini analysis complete, saving results to database");
+        console.log("Gemini analysis complete, now cross-checking with Perplexity");
+        
+        // Cross-check with Perplexity API
+        const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY') || "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";
+        
+        if (PERPLEXITY_API_KEY) {
+          try {
+            console.log("Starting Perplexity cross-check");
+            
+            // Create a prompt for Perplexity to cross-check the analysis
+            const crossCheckPrompt = `
+Cross-check and validate this startup analysis. Provide any corrections or additional insights 
+without changing the original JSON format structure. Keep all section types the same.
+
+Here is the analysis to cross-check:
+${JSON.stringify(analysis)}
+
+Please return the updated analysis in the exact same JSON format.
+            `;
+            
+            const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${PERPLEXITY_API_KEY}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                model: "llama-3.1-sonar-small-128k-online",
+                messages: [
+                  {
+                    role: "user",
+                    content: crossCheckPrompt
+                  }
+                ],
+                temperature: 0.1
+              })
+            });
+            
+            if (!perplexityResponse.ok) {
+              const errorText = await perplexityResponse.text();
+              console.error("Perplexity cross-check failed:", errorText);
+              console.log("Proceeding with original analysis without cross-check");
+            } else {
+              const perplexityData = await perplexityResponse.json();
+              console.log("Perplexity cross-check completed");
+              
+              // Store detailed logs for debugging
+              analysis.perplexityCrossCheckPrompt = crossCheckPrompt;
+              analysis.perplexityCrossCheckResponse = JSON.stringify(perplexityData);
+              
+              // Try to parse the Perplexity response and update the analysis if possible
+              try {
+                if (perplexityData.choices && 
+                    perplexityData.choices[0] && 
+                    perplexityData.choices[0].message &&
+                    perplexityData.choices[0].message.content) {
+                  
+                  const content = perplexityData.choices[0].message.content;
+                  console.log("Raw Perplexity content:", content.substring(0, 200) + "...");
+                  
+                  // Extract JSON if it's wrapped in markdown code blocks
+                  let jsonContent = content;
+                  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                  
+                  if (jsonMatch && jsonMatch[1]) {
+                    jsonContent = jsonMatch[1];
+                  }
+                  
+                  // Try to find JSON object start if there's text before it
+                  const jsonStart = jsonContent.indexOf('{');
+                  if (jsonStart > 0) {
+                    jsonContent = jsonContent.substring(jsonStart);
+                  }
+                  
+                  // Try to parse the JSON response
+                  try {
+                    const crossCheckedAnalysis = JSON.parse(jsonContent);
+                    console.log("Successfully parsed Perplexity cross-check response");
+                    
+                    // Update the analysis with the cross-checked data
+                    // Keep original data structure but update content
+                    if (crossCheckedAnalysis.sections && Array.isArray(crossCheckedAnalysis.sections)) {
+                      analysis.sections = crossCheckedAnalysis.sections;
+                    }
+                    
+                    if (crossCheckedAnalysis.overallScore) {
+                      analysis.overallScore = crossCheckedAnalysis.overallScore;
+                    }
+                    
+                    if (crossCheckedAnalysis.assessmentPoints && Array.isArray(crossCheckedAnalysis.assessmentPoints)) {
+                      analysis.assessmentPoints = crossCheckedAnalysis.assessmentPoints;
+                    }
+                    
+                    if (crossCheckedAnalysis.overallSummary) {
+                      analysis.overallSummary = crossCheckedAnalysis.overallSummary;
+                    }
+                    
+                    console.log("Analysis updated with Perplexity cross-check data");
+                  } catch (jsonParseError) {
+                    console.error("Failed to parse Perplexity JSON response:", jsonParseError);
+                    console.log("Using original analysis without modifications");
+                  }
+                } else {
+                  console.log("Perplexity response didn't contain expected data structure");
+                }
+              } catch (perplexityProcessingError) {
+                console.error("Error processing Perplexity response:", perplexityProcessingError);
+                console.log("Using original analysis without modifications");
+              }
+            }
+          } catch (perplexityError) {
+            console.error("Error during Perplexity cross-check:", perplexityError);
+            console.log("Proceeding with original analysis due to Perplexity error");
+          }
+        } else {
+          console.log("No Perplexity API key found, skipping cross-check");
+        }
+        
+        console.log("Saving results to database");
         
         // Save analysis results to database
         const companyId = await saveAnalysisResults(supabase, analysis, report);

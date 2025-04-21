@@ -52,14 +52,19 @@ export async function saveAnalysisResults(
       user_id: report.user_id,
       // Add the prompt and response data
       prompt_sent: analysis.promptSent || null,
-      response_received: analysis.responseReceived || null
+      response_received: analysis.responseReceived || null,
+      // Store Perplexity cross-check data if available
+      perplexity_prompt: analysis.perplexityCrossCheckPrompt || null,
+      perplexity_response: analysis.perplexityCrossCheckResponse || null
     };
     
     console.log("Creating company record with data:", {
       ...companyData,
       assessment_points: `${companyData.assessment_points.length} items`,
       prompt_sent: companyData.prompt_sent ? "Set" : "Not set",
-      response_received: companyData.response_received ? "Set" : "Not set"
+      response_received: companyData.response_received ? "Set" : "Not set",
+      perplexity_prompt: companyData.perplexity_prompt ? "Set" : "Not set", 
+      perplexity_response: companyData.perplexity_response ? "Set" : "Not set"
     });
     
     const { data: company, error: companyError } = await supabase
