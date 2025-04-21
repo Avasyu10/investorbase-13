@@ -1,3 +1,4 @@
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function saveAnalysisResults(
@@ -48,12 +49,17 @@ export async function saveAnalysisResults(
       // Determine the source based on if it's a public submission
       source: report.is_public_submission ? 'public_url' : 'dashboard',
       // Important: Use the report's user_id which should be the form owner's ID
-      user_id: report.user_id
+      user_id: report.user_id,
+      // Add the prompt and response data
+      prompt_sent: analysis.promptSent || null,
+      response_received: analysis.responseReceived || null
     };
     
     console.log("Creating company record with data:", {
       ...companyData,
       assessment_points: `${companyData.assessment_points.length} items`,
+      prompt_sent: companyData.prompt_sent ? "Set" : "Not set",
+      response_received: companyData.response_received ? "Set" : "Not set"
     });
     
     const { data: company, error: companyError } = await supabase

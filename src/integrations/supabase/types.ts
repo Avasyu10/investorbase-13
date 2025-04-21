@@ -1128,7 +1128,7 @@ export type Database = {
         Returns: boolean
       }
       urlencode: {
-        Args: { string: string } | { string: string } | { data: Json }
+        Args: { data: Json } | { string: string } | { string: string }
         Returns: string
       }
     }
