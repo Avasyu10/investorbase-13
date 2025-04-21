@@ -140,20 +140,28 @@ serve(async (req) => {
             
             // Create a prompt for Perplexity to cross-check the analysis
             const crossCheckPrompt = `
-Cross-check and validate this startup analysis. Focus on the scores and assessment accuracy.
+Cross-check and validate this startup analysis. Focus on the scores, assessment accuracy, and be sure to properly (and concisely) identify strengths and weaknesses in every section (return them as strengths and weaknesses fields in each section in the JSON output).
 Provide any corrections to scores or insights without changing the original JSON format structure.
+
+IMPORTANT:
+- For each section, review and ensure "strengths" and "weaknesses" are present, concise, and relevant. If missing, add them.
+- Strengths and weaknesses should be arrays of concise bullet points.
+- Each section output in the final JSON must include both "strengths" and "weaknesses" keys, even if you must generate new content for them.
+- If strengths or weaknesses are not in the original, generate them yourself based on the section summary and title.
 
 Here is the analysis to cross-check (compact version for token limits):
 ${JSON.stringify(compactAnalysis)}
 
-Please return the updated analysis in the exact same JSON format with your corrections to scores and insights.
+Please return the updated analysis in the exact same JSON format with your corrections to scores, strengths, weaknesses, and insights.
 If scores are off, please correct them using this scoring guideline:
 - Individual section scores should be between 1.0-5.0
 - Overall score should be the normalized average of section scores (section_avg * 1.25, max 5.0)
             `;
-            
+
+            console.log("=== Perplexity cross-check prompt (FULL) ===");
+            console.log(crossCheckPrompt);
+            console.log("=== End Perplexity cross-check prompt ===");
             console.log("Perplexity cross-check prompt length:", crossCheckPrompt.length);
-            console.log("Perplexity cross-check prompt preview:", crossCheckPrompt.substring(0, 200) + "...");
             
             const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
               method: "POST",
@@ -256,10 +264,20 @@ If scores are off, please correct them using this scoring guideline:
                     // Update the analysis with the cross-checked data
                     // Keep original data structure but update content
                     if (crossCheckedAnalysis.sections && Array.isArray(crossCheckedAnalysis.sections)) {
+                      crossCheckedAnalysis.sections.forEach((section: any, idx: number) => {
+                        console.log(
+                          `Section [${idx}] [${section.title || section.type || "untitled"}]:\n` +
+                          `Score: ${section.score}\n` +
+                          `Strengths: ${JSON.stringify(section.strengths)}\n` +
+                          `Weaknesses: ${JSON.stringify(section.weaknesses)}`
+                        );
+                      });
+                      console.log("Merging Perplexity section-level data into Gemini analysis...");
                       analysis.sections = crossCheckedAnalysis.sections;
                     }
                     
                     if (crossCheckedAnalysis.overallScore) {
+                      console.log(`Updating overallScore from ${analysis.overallScore} to ${crossCheckedAnalysis.overallScore}`);
                       analysis.overallScore = crossCheckedAnalysis.overallScore;
                     }
                     
@@ -271,7 +289,8 @@ If scores are off, please correct them using this scoring guideline:
                       analysis.overallSummary = crossCheckedAnalysis.overallSummary;
                     }
                     
-                    console.log("Analysis updated with Perplexity cross-check data");
+                    console.log("=== Analysis after merging with Perplexity data: ===");
+                    console.log(JSON.stringify(analysis, null, 2));
                   } catch (jsonParseError) {
                     console.error("Failed to parse Perplexity JSON response:", jsonParseError);
                     
