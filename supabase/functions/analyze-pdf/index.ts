@@ -140,12 +140,12 @@ serve(async (req) => {
             
             // Create a prompt for Perplexity to cross-check the analysis
             const crossCheckPrompt = `
-Cross-check and validate this startup analysis. Focus on the scores, assessment accuracy, and be sure to properly (and concisely) identify strengths and weaknesses in every section (return them as strengths and weaknesses fields in each section in the JSON output).
+Cross-check and validate this startup analysis. Focus on the scores, assessment accuracy, and be sure to properly identify strengths and weaknesses in every section (return them as strengths and weaknesses fields in each section in the JSON output). FOCUS ON THE DATA OUTSIDE THE PITCH DECK FOR THE ANALYSIS AND COMPARISION(DO NOT RE-ITERATE WHATS WRITTEN INSIDE THE PITCH DECK)
 Provide any corrections to scores or insights without changing the original JSON format structure.
 
 IMPORTANT:
-- For each section, review and ensure THAT THERE ARE 3-4 "strengths" and "weaknesses" are present, concise, and relevant. If missing, add them.
-- Strengths and weaknesses should be arrays of concise bullet points.
+- For each section, review and ensure THAT THERE ARE 3-4 "strengths" and "weaknesses" are present, and relevant. If missing, add them.
+- Strengths and weaknesses should be arrays of bullet points.
 - Each section output in the final JSON must include both "strengths" and "weaknesses" keys, even if you must generate new content for them.
 - If strengths or weaknesses are not in the original, generate them yourself BASED ON THE REAL WORLD DATA/ MARKET INSIGHTS AROUND THE INDUSTRY.
 
