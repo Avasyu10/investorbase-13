@@ -1,2 +1,7 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.research-with-perplexity]
+verify_jwt = false
+timeout_seconds = 120
+
