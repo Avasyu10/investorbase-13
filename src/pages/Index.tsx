@@ -11,9 +11,9 @@ import { Link } from "react-router-dom";
 
 // Investors/Angels callouts for left side
 const POINTS = [
-  "✓ Source & connect with curated, high-growth startups.",
-  "✓ Access deep-dive research on team & business model.",
-  "✓ Make data-backed decisions, reduce due diligence overhead.",
+  "✓ Streamline your sourcing.",
+  "✓ Accelerate your diligence.",
+  "✓ Eliminate the noise.",
 ];
 
 const Index = () => {
@@ -72,7 +72,7 @@ const Index = () => {
             Smart Investing
           </div>
           <h1 className="text-3xl md:text-5xl font-bold md:leading-tight mb-4 text-left">
-            The Edge Every Investor Needs—<br className="hidden md:block"/><span className="text-primary">Streamline your sourcing. Accelerate your diligence. Eliminate the noise.</span>
+            The Edge Every Investor Needs—<br className="hidden md:block"/><span className="text-primary"> s</span>
           </h1>
           <ul className="space-y-3 mb-4 text-base md:text-lg text-left">
             {POINTS.map((point, i) => (
