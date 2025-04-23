@@ -69,7 +69,7 @@ const Index = () => {
         {/* Headline Block */}
         <div className="my-auto">
           <div className="uppercase tracking-widest text-sm md:text-base font-bold mb-2 text-muted-foreground">
-            Smart Investing
+            Invest Smarter
           </div>
           <h1 className="text-3xl md:text-5xl font-bold md:leading-tight mb-4 text-left">
             Unlock exclusive startup deal flow—<br className="hidden md:block"/><span className="text-primary">curated for investors.</span>
