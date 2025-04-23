@@ -11,9 +11,9 @@ import { Link } from "react-router-dom";
 
 // Investors/Angels callouts for left side
 const POINTS = [
-  "✓ Streamline your sourcing.",
-  "✓ Accelerate your diligence.",
-  "✓ Eliminate the noise.",
+  "✓ Source & connect with curated, high-growth startups.",
+  "✓ Access deep-dive research on team & business model.",
+  "✓ Make data-backed decisions, reduce due diligence overhead.",
 ];
 
 const Index = () => {
@@ -72,8 +72,11 @@ const Index = () => {
             Smart Investing
           </div>
           <h1 className="text-3xl md:text-5xl font-bold md:leading-tight mb-4 text-left">
-            The Edge Every Investor Needs—<br className="hidden md:block"/><span className="text-primary"> s</span>
+            Unlock exclusive startup deal flow—<br className="hidden md:block"/><span className="text-primary">curated for investors.</span>
           </h1>
+          <p className="text-base md:text-lg mb-7 text-muted-foreground text-left">
+            From early-stage scouting to due diligence, InvestorBase gives angels and VCs the tools to discover, vet, and track the best opportunities.
+          </p>
           <ul className="space-y-3 mb-4 text-base md:text-lg text-left">
             {POINTS.map((point, i) => (
               <li key={i} className="flex items-center gap-2">
