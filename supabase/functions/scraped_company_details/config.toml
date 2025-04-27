@@ -2,4 +2,3 @@
 # Configuration for the scraped_company_details function
 project_id = "jhtnruktmtjqrfoiyrep"
 verify_jwt = false
-timeout_seconds = 60

@@ -9,9 +9,9 @@ import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube, RefreshCcw, AlertTriangle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 
+// Define a type for the company data with only the fields we want
 type CompanyData = {
   company_legal_name?: string;
   website?: string;
@@ -41,91 +41,22 @@ type CompanyData = {
   company_employee_reviews_aggregate_score?: number | null;
 };
 
-type TokenValidationResponse = {
-  isValid: boolean;
-  message: string;
-  keyLength?: number;
-  keyStartsWith?: string;
-  keyEndsWith?: string;
-};
-
 const CompanyDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [linkedInUrl, setLinkedInUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingToken, setIsCheckingToken] = useState(false);
   const [response, setResponse] = useState<CompanyData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tokenError, setTokenError] = useState<TokenValidationResponse | null>(null);
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // Reset state when ID changes
   useEffect(() => {
     setResponse(null);
     setIsSubmitted(false);
     setLinkedInUrl('');
-    setError(null);
-    setTokenError(null);
   }, [id]);
-
-  useEffect(() => {
-    checkTokenStatus();
-  }, []);
-
-  const checkTokenStatus = async () => {
-    try {
-      setIsCheckingToken(true);
-      
-      console.log("Checking Coresignal API key status...");
-      
-      // Use Promise.race instead of AbortController
-      const fetchPromise = supabase.functions.invoke('scraped_company_details/token-check', {
-        body: {} // Send empty object to avoid null body issues
-      });
-      
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out after 10 seconds")), 10000);
-      });
-      
-      // Race between the fetch and the timeout
-      const { data, error } = await Promise.race([
-        fetchPromise, 
-        timeoutPromise.then(() => {
-          throw new Error("Token check request timed out after 10 seconds");
-        })
-      ]);
-      
-      console.log("Token check response:", data);
-      
-      if (error) {
-        console.error("Function error during token check:", error);
-        setTokenError({
-          isValid: false,
-          message: `Error calling token validation: ${error.message}`
-        });
-        return;
-      }
-      
-      if (!data || !data.isValid) {
-        setTokenError(data || {
-          isValid: false,
-          message: "No response data from token check" 
-        });
-      } else {
-        setTokenError(null);
-      }
-    } catch (err: any) {
-      console.error("Unexpected error checking token:", err);
-      setTokenError({
-        isValid: false,
-        message: `Unexpected error: ${err.message}`
-      });
-    } finally {
-      setIsCheckingToken(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,17 +65,6 @@ const CompanyDetailPage = () => {
       toast({
         title: "Error",
         description: "Please enter a LinkedIn company URL",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    await checkTokenStatus();
-    
-    if (tokenError) {
-      toast({
-        title: "API Key Error",
-        description: "The Coresignal API key is invalid. Please fix the key before proceeding.",
         variant: "destructive"
       });
       return;
@@ -159,23 +79,9 @@ const CompanyDetailPage = () => {
       
       console.log("Sending request to scraped_company_details function with URL:", linkedInUrl);
       
-      // Use Promise.race instead of AbortController
-      const fetchPromise = supabase.functions.invoke('scraped_company_details', {
+      const { data, error } = await supabase.functions.invoke('scraped_company_details', {
         body: { linkedInUrl }
       });
-      
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out after 30 seconds")), 30000);
-      });
-      
-      // Race between the fetch and the timeout
-      const { data, error } = await Promise.race([
-        fetchPromise, 
-        timeoutPromise.then(() => {
-          throw new Error("Request timed out after 30 seconds");
-        })
-      ]);
       
       if (error) {
         console.error("Function error:", error);
@@ -190,18 +96,8 @@ const CompanyDetailPage = () => {
       
       console.log("Function response:", data);
       
-      if (data && data.error) {
+      if (data.error) {
         setError(data.error);
-        
-        if (data.error.includes("authentication failed") || data.error.includes("API key")) {
-          setTokenError({
-            isValid: false,
-            message: data.message || data.error
-          });
-          
-          await checkTokenStatus();
-        }
-        
         toast({
           title: "API Error",
           description: data.error,
@@ -210,9 +106,11 @@ const CompanyDetailPage = () => {
         return;
       }
       
+      // Store the full response for debugging
       setFullResponse(data);
       
-      if (data && data.companyData) {
+      // Extract only the fields we need
+      if (data.companyData) {
         const extractedData: CompanyData = {
           company_legal_name: data.companyData.company_legal_name,
           website: data.companyData.website,
@@ -257,7 +155,7 @@ const CompanyDetailPage = () => {
   };
 
   const handleBackClick = () => {
-    navigate(-1);
+    navigate(-1); // Navigate back to the previous page
   };
 
   const renderSocialLinks = () => {
@@ -320,6 +218,7 @@ const CompanyDetailPage = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 animate-fade-in">
+      {/* Back Button */}
       <Button
         variant="outline"
         size="sm"
@@ -330,43 +229,7 @@ const CompanyDetailPage = () => {
       </Button>
       
       <div className="max-w-3xl mx-auto">
-        {tokenError && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>API Key Issue</AlertTitle>
-            <AlertDescription>
-              <div className="space-y-2">
-                <p>The Coresignal API key is invalid or misconfigured: {tokenError.message}</p>
-                {tokenError.keyLength && (
-                  <p>API key details: {tokenError.keyLength} characters, starts with {tokenError.keyStartsWith}, ends with {tokenError.keyEndsWith}</p>
-                )}
-                <p>Please update the CORESIGNAL_API_KEY in your Supabase Edge Function secrets.</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={checkTokenStatus}
-                    disabled={isCheckingToken}
-                    className="flex items-center gap-2"
-                  >
-                    {isCheckingToken ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Checking...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCcw className="h-4 w-4" />
-                        Recheck API Key Status
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-      
+        
         {!response && (
           <Card className="mb-8 shadow-md border-0">
             <CardHeader>
@@ -394,17 +257,10 @@ const CompanyDetailPage = () => {
               <Button 
                 type="submit" 
                 onClick={handleSubmit} 
-                disabled={isLoading || !!tokenError || !linkedInUrl.trim()}
-                className="w-full flex items-center justify-center gap-2"
+                disabled={isLoading}
+                className="w-full"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Get Company Details"
-                )}
+                {isLoading ? "Processing..." : "Get Company Details"}
               </Button>
             </CardFooter>
           </Card>
@@ -427,27 +283,6 @@ const CompanyDetailPage = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-red-600">{error}</p>
-                {error.includes("token") && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={checkTokenStatus} 
-                    className="mt-4 flex items-center gap-2"
-                    disabled={isCheckingToken}
-                  >
-                    {isCheckingToken ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Checking...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCcw className="h-4 w-4" />
-                        Recheck Token Status
-                      </>
-                    )}
-                  </Button>
-                )}
               </CardContent>
             </Card>
           )}

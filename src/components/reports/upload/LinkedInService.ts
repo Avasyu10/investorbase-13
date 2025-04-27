@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 
 export interface LinkedInScrapingResult {
   success: boolean;
@@ -25,58 +24,9 @@ export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): 
   try {
     console.log(`Scraping LinkedIn profiles: ${validUrls.join(', ')}`);
     
-    // Check if token is valid first
-    try {
-      // Add a body to prevent empty body issues
-      const { data: tokenStatus, error: tokenError } = await supabase.functions.invoke('scraped_company_details/token-check', {
-        body: {}
-      });
-      
-      if (tokenError) {
-        console.error("Error checking Coresignal API key:", tokenError);
-        toast({
-          title: "API Key Issue",
-          description: `Error checking key: ${tokenError.message}`,
-          variant: "destructive"
-        });
-      } else if (!tokenStatus || !tokenStatus.isValid) {
-        const message = tokenStatus ? tokenStatus.message : "No response from key check";
-        console.error("Coresignal API key is invalid:", message);
-        toast({
-          title: "API Key Issue",
-          description: `Coresignal API key is invalid: ${message}`,
-          variant: "destructive"
-        });
-        
-        return {
-          success: false,
-          profiles: null,
-          error: `LinkedIn scraping failed: Invalid API key - ${message}`
-        };
-      } else {
-        console.log("Coresignal API key is valid, proceeding with LinkedIn scraping");
-      }
-    } catch (tokenCheckError) {
-      console.error("Error during key check:", tokenCheckError);
-    }
-    
-    // Add timeout using Promise.race instead of AbortController
-    const fetchPromise = supabase.functions.invoke('scrape-linkedin', {
+    const { data, error } = await supabase.functions.invoke('scrape-linkedin', {
       body: { linkedInUrls: validUrls, reportId }
     });
-    
-    // Create a timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Request timed out after 60 seconds")), 60000);
-    });
-    
-    // Race between the fetch and the timeout
-    const { data, error } = await Promise.race([
-      fetchPromise, 
-      timeoutPromise.then(() => {
-        throw new Error("Request timed out after 60 seconds");
-      })
-    ]);
     
     if (error) {
       console.error("Error scraping LinkedIn profiles:", error);
@@ -87,13 +37,12 @@ export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): 
       };
     }
     
-    if (!data || !data.success) {
-      const errorMessage = data?.error || "Unknown error during LinkedIn profile scraping";
-      console.error("LinkedIn profile scraping failed:", errorMessage);
+    if (!data.success) {
+      console.error("LinkedIn profile scraping failed:", data.error);
       return {
         success: false,
         profiles: null,
-        error: errorMessage
+        error: data.error
       };
     }
     
