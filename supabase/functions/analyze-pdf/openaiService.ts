@@ -209,7 +209,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
     
     try {
       // Construct the Gemini API request
-      const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+      const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent";
       const urlWithApiKey = `${geminiEndpoint}?key=${apiKey}`;
       
       const requestBody = {
