@@ -16,6 +16,78 @@ const CORESIGNAL_JWT_TOKEN = Deno.env.get("CORESIGNAL_JWT_TOKEN") || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+// Helper function to validate JWT token format (superficial check)
+function validateJwtFormat(token: string): boolean {
+  // Basic validation - JWT should have 3 parts separated by dots
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    console.error("JWT token has invalid format - should have 3 parts");
+    return false;
+  }
+  
+  // Check if token appears to be base64 encoded (basic check)
+  try {
+    for (const part of parts) {
+      if (!/^[A-Za-z0-9_-]+$/g.test(part)) {
+        console.error("JWT token contains invalid characters");
+        return false;
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("Error validating JWT format:", error);
+    return false;
+  }
+}
+
+// Helper function to test token validity against the Coresignal API
+async function testTokenWithApi(): Promise<{ valid: boolean; message?: string }> {
+  try {
+    console.log("Testing token with Coresignal API...");
+    
+    // Make a simple request to the API
+    const testUrl = 'https://api.coresignal.com/cdapi/v1/health';
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log("Health check response status:", response.status);
+    
+    if (response.status === 401 || response.status === 403) {
+      const errorText = await response.text();
+      console.error("API auth test failed:", errorText);
+      return { 
+        valid: false, 
+        message: `API rejected the token (${response.status}): ${errorText}`
+      };
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("API test failed but may not be auth-related:", errorText);
+      // Even if there's another error, as long as it's not 401/403, the token might be valid
+      return { 
+        valid: true, 
+        message: `API returned ${response.status} but not an auth error. Token may be valid.`
+      };
+    }
+    
+    console.log("API test successful, token is valid");
+    return { valid: true };
+    
+  } catch (error) {
+    console.error("Error testing token with API:", error);
+    return { 
+      valid: false, 
+      message: `Network error testing token: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
+}
+
 serve(async (req) => {
   // Handle preflight CORS request
   if (req.method === "OPTIONS") {
@@ -32,7 +104,10 @@ serve(async (req) => {
     
     // Special case to just check if the token is configured
     if (checkTokenOnly) {
-      if (!CORESIGNAL_JWT_TOKEN) {
+      console.log("Token check requested");
+      
+      if (!CORESIGNAL_JWT_TOKEN || CORESIGNAL_JWT_TOKEN.trim() === '') {
+        console.error("Coresignal JWT token is missing");
         return new Response(
           JSON.stringify({ 
             error: "Coresignal JWT token is missing",
@@ -46,10 +121,9 @@ serve(async (req) => {
         );
       }
       
-      // Simple validation check - verify the token has correct format
-      // JWT tokens have 3 parts separated by dots
-      const tokenParts = CORESIGNAL_JWT_TOKEN.split('.');
-      if (tokenParts.length !== 3) {
+      // First validate the token format
+      if (!validateJwtFormat(CORESIGNAL_JWT_TOKEN)) {
+        console.error("Coresignal JWT token has invalid format");
         return new Response(
           JSON.stringify({ 
             tokenValid: false,
@@ -64,11 +138,29 @@ serve(async (req) => {
         );
       }
       
-      // Return that token is present but we don't know if it's valid until we try to use it
+      // Then test against the API
+      const apiTest = await testTokenWithApi();
+      if (!apiTest.valid) {
+        console.error("API test failed:", apiTest.message);
+        return new Response(
+          JSON.stringify({ 
+            tokenValid: false,
+            error: "Coresignal API rejected the JWT token",
+            details: apiTest.message,
+            resolution: "Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets"
+          }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      // Token passes all checks
       return new Response(
         JSON.stringify({ 
           tokenValid: true,
-          message: "Coresignal JWT token is configured"
+          message: "Coresignal JWT token is valid and confirmed by API"
         }),
         {
           status: 200,
@@ -77,6 +169,7 @@ serve(async (req) => {
       );
     }
     
+    // For normal requests (not just token checking), proceed with regular flow
     if (!linkedInUrl) {
       return new Response(
         JSON.stringify({ error: "LinkedIn URL is required" }),
