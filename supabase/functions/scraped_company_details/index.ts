@@ -12,44 +12,37 @@ const corsHeaders = {
 // Supabase client initialization with service role key
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const CORESIGNAL_JWT_TOKEN = Deno.env.get("CORESIGNAL_JWT_TOKEN") || "";
+const CORESIGNAL_API_KEY = Deno.env.get("CORESIGNAL_API_KEY") || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Function to validate the JWT token
-async function validateToken(token: string): Promise<{ isValid: boolean; message: string }> {
-  console.log("Validating JWT token...");
+// Function to validate the API key
+async function validateApiKey(apiKey: string): Promise<{ isValid: boolean; message: string }> {
+  console.log("Validating API key...");
   
-  if (!token || token.trim() === "") {
-    console.error("JWT token is empty or not provided");
-    return { isValid: false, message: "JWT token is empty or not provided" };
+  if (!apiKey || apiKey.trim() === "") {
+    console.error("API key is empty or not provided");
+    return { isValid: false, message: "API key is empty or not provided" };
   }
   
-  // Basic format check
-  const parts = token.split('.');
-  if (parts.length !== 3) {
-    console.error("JWT token has invalid format - should have 3 parts");
-    return { isValid: false, message: "JWT token has invalid format - should have 3 parts" };
-  }
-  
-  // Test the token with a simple API call
+  // Test the API key with a simple API call
   try {
-    console.log("Testing token with API call...");
+    console.log("Testing API key with API call...");
     const testResponse = await fetch('https://api.coresignal.com/cdapi/v1/token/check', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${apiKey}`,
       }
     });
     
-    console.log(`Token test response status: ${testResponse.status}`);
-    console.log(`Token test response headers: ${JSON.stringify(Object.fromEntries(testResponse.headers.entries()))}`);
+    console.log(`API key test response status: ${testResponse.status}`);
+    console.log(`API key test response headers: ${JSON.stringify(Object.fromEntries(testResponse.headers.entries()))}`);
     
     // Try to get the response body
     let responseText;
     try {
       responseText = await testResponse.text();
-      console.log(`Token test response body: ${responseText}`);
+      console.log(`API key test response body: ${responseText}`);
     } catch (error) {
       console.log(`Error getting response text: ${error.message}`);
     }
@@ -57,7 +50,7 @@ async function validateToken(token: string): Promise<{ isValid: boolean; message
     if (testResponse.status === 401) {
       return { 
         isValid: false, 
-        message: `Token rejected by Coresignal API (401 Unauthorized). Response: ${responseText || "No response body"}` 
+        message: `API key rejected by Coresignal API (401 Unauthorized). Response: ${responseText || "No response body"}` 
       };
     }
     
@@ -68,10 +61,10 @@ async function validateToken(token: string): Promise<{ isValid: boolean; message
       };
     }
     
-    return { isValid: true, message: "Token valid" };
+    return { isValid: true, message: "API key valid" };
   } catch (error) {
-    console.error(`Error testing token: ${error.message}`);
-    return { isValid: false, message: `Error testing token: ${error.message}` };
+    console.error(`Error testing API key: ${error.message}`);
+    return { isValid: false, message: `Error testing API key: ${error.message}` };
   }
 }
 
@@ -88,20 +81,20 @@ serve(async (req) => {
     });
   }
   
-  // Special endpoint for token check
+  // Special endpoint for API key check
   const url = new URL(req.url);
   console.log(`Processing URL: ${url.pathname}`);
   
   if (url.pathname.endsWith('/token-check')) {
-    console.log("Token check requested");
+    console.log("API key check requested");
     
     try {
-      if (!CORESIGNAL_JWT_TOKEN) {
-        console.error("Coresignal JWT token is missing");
+      if (!CORESIGNAL_API_KEY) {
+        console.error("Coresignal API key is missing");
         return new Response(
           JSON.stringify({ 
             isValid: false, 
-            message: "CORESIGNAL_JWT_TOKEN environment variable is not set" 
+            message: "CORESIGNAL_API_KEY environment variable is not set" 
           }),
           {
             status: 200, // Return 200 even for token issues so client can display the message
@@ -110,23 +103,23 @@ serve(async (req) => {
         );
       }
       
-      // Log token details for debugging (safely)
-      const tokenLength = CORESIGNAL_JWT_TOKEN.length;
-      const tokenStart = CORESIGNAL_JWT_TOKEN.substring(0, 10);
-      const tokenEnd = CORESIGNAL_JWT_TOKEN.substring(CORESIGNAL_JWT_TOKEN.length - 10);
-      console.log(`Token starts with: ${tokenStart}... ends with: ...${tokenEnd}`);
-      console.log(`Token length: ${tokenLength}`);
+      // Log API key details for debugging (safely)
+      const keyLength = CORESIGNAL_API_KEY.length;
+      const keyStart = CORESIGNAL_API_KEY.substring(0, 10);
+      const keyEnd = CORESIGNAL_API_KEY.substring(CORESIGNAL_API_KEY.length - 10);
+      console.log(`API key starts with: ${keyStart}... ends with: ...${keyEnd}`);
+      console.log(`API key length: ${keyLength}`);
       
-      const tokenValidation = await validateToken(CORESIGNAL_JWT_TOKEN);
-      console.log(`Token validation result: ${JSON.stringify(tokenValidation)}`);
+      const keyValidation = await validateApiKey(CORESIGNAL_API_KEY);
+      console.log(`API key validation result: ${JSON.stringify(keyValidation)}`);
       
       return new Response(
         JSON.stringify({ 
-          isValid: tokenValidation.isValid, 
-          message: tokenValidation.message,
-          tokenLength: tokenLength,
-          tokenStartsWith: tokenStart + "...",
-          tokenEndsWith: "..." + tokenEnd
+          isValid: keyValidation.isValid, 
+          message: keyValidation.message,
+          keyLength: keyLength,
+          keyStartsWith: keyStart + "...",
+          keyEndsWith: "..." + keyEnd
         }),
         {
           status: 200,
@@ -134,7 +127,7 @@ serve(async (req) => {
         }
       );
     } catch (error) {
-      console.error(`Unexpected error in token check: ${error.message}`);
+      console.error(`Unexpected error in API key check: ${error.message}`);
       console.error(error.stack || "No stack trace available");
       
       return new Response(
@@ -193,33 +186,33 @@ serve(async (req) => {
 
     console.log("Processing LinkedIn URL:", linkedInUrl);
 
-    // First validate the token before making any API calls
-    if (!CORESIGNAL_JWT_TOKEN) {
-      console.error("Coresignal JWT token is missing");
+    // First validate the API key before making any API calls
+    if (!CORESIGNAL_API_KEY) {
+      console.error("Coresignal API key is missing");
       return new Response(
         JSON.stringify({ 
-          error: "Coresignal JWT token is missing",
-          details: "The CORESIGNAL_JWT_TOKEN environment variable is not set or is empty",
-          resolution: "Please set the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets"
+          error: "Coresignal API key is missing",
+          details: "The CORESIGNAL_API_KEY environment variable is not set or is empty",
+          resolution: "Please set the CORESIGNAL_API_KEY in your Supabase Edge Function secrets"
         }),
         {
-          status: 200, // Return 200 even for token issues so client can display the message
+          status: 200, // Return 200 even for key issues so client can display the message
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
     
-    const tokenValidation = await validateToken(CORESIGNAL_JWT_TOKEN);
-    if (!tokenValidation.isValid) {
-      console.error(`Coresignal JWT token is invalid: ${tokenValidation.message}`);
+    const keyValidation = await validateApiKey(CORESIGNAL_API_KEY);
+    if (!keyValidation.isValid) {
+      console.error(`Coresignal API key is invalid: ${keyValidation.message}`);
       return new Response(
         JSON.stringify({ 
-          error: "Coresignal JWT token is invalid",
-          details: tokenValidation.message,
-          resolution: "Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets with a valid token"
+          error: "Coresignal API key is invalid",
+          details: keyValidation.message,
+          resolution: "Please update the CORESIGNAL_API_KEY in your Supabase Edge Function secrets with a valid key"
         }),
         {
-          status: 200, // Return 200 even for token issues so client can display the message
+          status: 200, // Return 200 even for key issues so client can display the message
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -267,10 +260,10 @@ serve(async (req) => {
 
     console.log("Sending search query to Coresignal API:", JSON.stringify(searchQuery));
     
-    // Log the token being used (safely)
-    const tokenStart = CORESIGNAL_JWT_TOKEN.substring(0, 10);
-    const tokenEnd = CORESIGNAL_JWT_TOKEN.substring(CORESIGNAL_JWT_TOKEN.length - 10);
-    console.log(`Using token starting with: ${tokenStart}... ending with: ...${tokenEnd}`);
+    // Log the key being used (safely)
+    const keyStart = CORESIGNAL_API_KEY.substring(0, 10);
+    const keyEnd = CORESIGNAL_API_KEY.substring(CORESIGNAL_API_KEY.length - 10);
+    console.log(`Using API key starting with: ${keyStart}... ending with: ...${keyEnd}`);
     
     // Add retries for the search request
     let searchResponse = null;
@@ -282,7 +275,7 @@ serve(async (req) => {
         searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+            'Authorization': `Bearer ${CORESIGNAL_API_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(searchQuery)
@@ -335,7 +328,7 @@ serve(async (req) => {
         .from('company_scrapes')
         .update({
           status: 'failed',
-          error_message: `Coresignal API authentication failed (401): JWT token may be invalid or expired. Response: ${errorText}`,
+          error_message: `Coresignal API authentication failed (401): API key may be invalid or expired. Response: ${errorText}`,
           search_query: searchQuery
         })
         .eq('id', dbEntry.id);
@@ -343,7 +336,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: `Coresignal API authentication failed (401)`,
-          message: `The JWT token used for authentication appears to be invalid or expired. Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets.`,
+          message: `The API key used for authentication appears to be invalid or expired. Please update the CORESIGNAL_API_KEY in your Supabase Edge Function secrets.`,
           details: errorText || "No additional error details provided by the API"
         }),
         {
@@ -460,7 +453,7 @@ serve(async (req) => {
         detailsResponse = await fetch(detailsUrl, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+            'Authorization': `Bearer ${CORESIGNAL_API_KEY}`,
             'Content-Type': 'application/json'
           }
         });
@@ -512,14 +505,14 @@ serve(async (req) => {
         .from('company_scrapes')
         .update({
           status: 'failed',
-          error_message: `Coresignal Details API authentication failed (401): JWT token may be invalid or expired`
+          error_message: `Coresignal Details API authentication failed (401): API key may be invalid or expired`
         })
         .eq('id', dbEntry.id);
       
       return new Response(
         JSON.stringify({ 
           error: `Coresignal Details API authentication failed (401)`,
-          message: `The JWT token used for authentication appears to be invalid or expired. Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets.`,
+          message: `The API key used for authentication appears to be invalid or expired. Please update the CORESIGNAL_API_KEY in your Supabase Edge Function secrets.`,
           details: errorText || "No additional error details provided by the API"
         }),
         {

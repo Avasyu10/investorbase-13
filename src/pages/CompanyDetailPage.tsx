@@ -44,9 +44,9 @@ type CompanyData = {
 type TokenValidationResponse = {
   isValid: boolean;
   message: string;
-  tokenLength?: number;
-  tokenStartsWith?: string;
-  tokenEndsWith?: string;
+  keyLength?: number;
+  keyStartsWith?: string;
+  keyEndsWith?: string;
 };
 
 const CompanyDetailPage = () => {
@@ -77,18 +77,25 @@ const CompanyDetailPage = () => {
     try {
       setIsCheckingToken(true);
       
-      console.log("Checking Coresignal token status...");
+      console.log("Checking Coresignal API key status...");
       
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const { data, error } = await supabase.functions.invoke('scraped_company_details/token-check', {
-        body: {}, // Send empty object to avoid null body issues
-        signal: controller.signal
+      // Use Promise.race instead of AbortController
+      const fetchPromise = supabase.functions.invoke('scraped_company_details/token-check', {
+        body: {} // Send empty object to avoid null body issues
       });
       
-      clearTimeout(timeoutId);
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Request timed out after 10 seconds")), 10000);
+      });
+      
+      // Race between the fetch and the timeout
+      const { data, error } = await Promise.race([
+        fetchPromise, 
+        timeoutPromise.then(() => {
+          throw new Error("Token check request timed out after 10 seconds");
+        })
+      ]);
       
       console.log("Token check response:", data);
       
@@ -136,8 +143,8 @@ const CompanyDetailPage = () => {
     
     if (tokenError) {
       toast({
-        title: "Token Error",
-        description: "The Coresignal API token is invalid. Please fix the token before proceeding.",
+        title: "API Key Error",
+        description: "The Coresignal API key is invalid. Please fix the key before proceeding.",
         variant: "destructive"
       });
       return;
@@ -152,16 +159,23 @@ const CompanyDetailPage = () => {
       
       console.log("Sending request to scraped_company_details function with URL:", linkedInUrl);
       
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
-      const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-        body: { linkedInUrl },
-        signal: controller.signal
+      // Use Promise.race instead of AbortController
+      const fetchPromise = supabase.functions.invoke('scraped_company_details', {
+        body: { linkedInUrl }
       });
       
-      clearTimeout(timeoutId);
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Request timed out after 30 seconds")), 30000);
+      });
+      
+      // Race between the fetch and the timeout
+      const { data, error } = await Promise.race([
+        fetchPromise, 
+        timeoutPromise.then(() => {
+          throw new Error("Request timed out after 30 seconds");
+        })
+      ]);
       
       if (error) {
         console.error("Function error:", error);
@@ -179,7 +193,7 @@ const CompanyDetailPage = () => {
       if (data && data.error) {
         setError(data.error);
         
-        if (data.error.includes("authentication failed") || data.error.includes("JWT token")) {
+        if (data.error.includes("authentication failed") || data.error.includes("API key")) {
           setTokenError({
             isValid: false,
             message: data.message || data.error
@@ -319,14 +333,14 @@ const CompanyDetailPage = () => {
         {tokenError && (
           <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>API Token Issue</AlertTitle>
+            <AlertTitle>API Key Issue</AlertTitle>
             <AlertDescription>
               <div className="space-y-2">
-                <p>The Coresignal API token is invalid or misconfigured: {tokenError.message}</p>
-                {tokenError.tokenLength && (
-                  <p>Token details: {tokenError.tokenLength} characters, starts with {tokenError.tokenStartsWith}, ends with {tokenError.tokenEndsWith}</p>
+                <p>The Coresignal API key is invalid or misconfigured: {tokenError.message}</p>
+                {tokenError.keyLength && (
+                  <p>API key details: {tokenError.keyLength} characters, starts with {tokenError.keyStartsWith}, ends with {tokenError.keyEndsWith}</p>
                 )}
-                <p>Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets.</p>
+                <p>Please update the CORESIGNAL_API_KEY in your Supabase Edge Function secrets.</p>
                 <div className="flex items-center gap-2 mt-2">
                   <Button 
                     variant="outline" 
@@ -343,7 +357,7 @@ const CompanyDetailPage = () => {
                     ) : (
                       <>
                         <RefreshCcw className="h-4 w-4" />
-                        Recheck Token Status
+                        Recheck API Key Status
                       </>
                     )}
                   </Button>
