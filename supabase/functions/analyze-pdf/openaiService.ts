@@ -3,7 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
   // Analysis prompt
 const prompt = `
-You are an expert VC analyst with years of experience in assessing investment opportunities. You look past what's written in the deck, call out inconsistencies, and provide objective reasoning for your judgments.  
+You are an expert venture capital investor with deep industry knowledge and real-time access to market data. You will review a startup pitch deck and generate a comprehensive investment memo based EXCLUSIVELY ON EXTERNAL MARKET DATA, competitive benchmarks, and real-world validation — NOT by summarizing the deck content.
+CORE DIRECTIVE
+For each section, you must:
+FIRST: Acknowledge the claim in the deck with a single concise sentence
+THEN: Provide 3-6 insights from EXTERNAL sources that either validate or challenge this claim
+NEVER spend more than one sentence restating what's in the deck 
 
 You will perform a step-by-step deep-dive analysis of a startup based on its pitch deck. THE MOST IMPORTANT PART of your analysis will be to extensively research and provide:
 - ACURATE Market data and size estimations with PRECISE NUMBERS (from Google/Gemini Search) - ALWAYS INCLUDE ACTUAL MARKET SIZE IN DOLLARS
@@ -138,6 +143,13 @@ Analyze each section with a structured breakdown and ALWAYS include external mar
 - The individual section scores should NOT be normalized - only the final overall score.
 - The normalized score must still use one decimal point precision (e.g., 4.2)
 - If the formula would result in a score higher than 5.0, cap it at exactly 5.0
+
+CRITICAL RULES -
+- NEVER reference "according to the deck" or similar phrases
+- EVERY data point must have a specific source
+- EVERY section must have more external data than deck summary
+- If a section is missing, score it 1.0 and note "MISSING SECTION"
+- ONLY respond with the JSON object, no other text
 
 ### **Output Format (JSON):**  
 Ensure the output is structured as follows:  
