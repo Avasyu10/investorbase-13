@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 
 // Define a type for the company data with only the fields we want
 type CompanyData = {
@@ -48,49 +48,14 @@ const CompanyDetailPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<CompanyData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid' | 'unknown'>('checking');
-
-  // Check token status on initial load
-  useEffect(() => {
-    const checkToken = async () => {
-      try {
-        setTokenStatus('checking');
-        const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-          body: { checkTokenOnly: true }
-        });
-        
-        if (error || (data && data.error)) {
-          console.error("Token check error:", error || data.error);
-          setTokenStatus('invalid');
-          toast({
-            title: "API Configuration Issue",
-            description: "The Coresignal API token appears to be missing or invalid. Company data lookup may not work.",
-            variant: "destructive"
-          });
-        } else if (data && data.tokenValid) {
-          setTokenStatus('valid');
-        } else {
-          setTokenStatus('unknown');
-        }
-      } catch (err) {
-        console.error("Error checking token:", err);
-        setTokenStatus('unknown');
-      }
-    };
-    
-    checkToken();
-  }, []);
 
   // Reset state when ID changes
   useEffect(() => {
     setResponse(null);
     setIsSubmitted(false);
     setLinkedInUrl('');
-    setError(null);
-    setErrorDetails(null);
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,7 +73,6 @@ const CompanyDetailPage = () => {
     try {
       setIsLoading(true);
       setError(null);
-      setErrorDetails(null);
       setResponse(null);
       setFullResponse(null);
       setIsSubmitted(true);
@@ -134,10 +98,6 @@ const CompanyDetailPage = () => {
       
       if (data.error) {
         setError(data.error);
-        if (data.message) {
-          setErrorDetails(data.message);
-        }
-        
         toast({
           title: "API Error",
           description: data.error,
@@ -270,25 +230,6 @@ const CompanyDetailPage = () => {
       
       <div className="max-w-3xl mx-auto">
         
-        {tokenStatus === 'invalid' && (
-          <Card className="mb-8 shadow-md border-0 bg-yellow-50 text-yellow-800 border-yellow-200">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-yellow-600" />
-                <CardTitle className="text-yellow-800">API Configuration Required</CardTitle>
-              </div>
-              <CardDescription className="text-yellow-700">
-                The Coresignal API token is either missing or invalid. Company data lookup may not work correctly.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                Please make sure the <code>CORESIGNAL_JWT_TOKEN</code> is properly configured in your Supabase Edge Function secrets.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        
         {!response && (
           <Card className="mb-8 shadow-md border-0">
             <CardHeader>
@@ -316,7 +257,7 @@ const CompanyDetailPage = () => {
               <Button 
                 type="submit" 
                 onClick={handleSubmit} 
-                disabled={isLoading || tokenStatus === 'invalid'}
+                disabled={isLoading}
                 className="w-full"
               >
                 {isLoading ? "Processing..." : "Get Company Details"}
@@ -340,14 +281,8 @@ const CompanyDetailPage = () => {
               <CardHeader className="bg-red-50">
                 <CardTitle className="text-red-600">Error</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent>
                 <p className="text-red-600">{error}</p>
-                {errorDetails && (
-                  <div className="mt-2 p-3 bg-red-50 rounded-md">
-                    <p className="text-sm font-medium text-red-800">Additional Details:</p>
-                    <p className="text-sm text-red-700">{errorDetails}</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
