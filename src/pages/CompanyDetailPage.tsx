@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube, RefreshCcw, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube, RefreshCcw, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type CompanyData = {
@@ -78,7 +79,16 @@ const CompanyDetailPage = () => {
       
       console.log("Checking Coresignal token status...");
       
-      const { data, error } = await supabase.functions.invoke('scraped_company_details/token-check', {});
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const { data, error } = await supabase.functions.invoke('scraped_company_details/token-check', {
+        body: {}, // Send empty object to avoid null body issues
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       console.log("Token check response:", data);
       
@@ -91,8 +101,11 @@ const CompanyDetailPage = () => {
         return;
       }
       
-      if (!data.isValid) {
-        setTokenError(data);
+      if (!data || !data.isValid) {
+        setTokenError(data || {
+          isValid: false,
+          message: "No response data from token check" 
+        });
       } else {
         setTokenError(null);
       }
@@ -139,9 +152,16 @@ const CompanyDetailPage = () => {
       
       console.log("Sending request to scraped_company_details function with URL:", linkedInUrl);
       
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-        body: { linkedInUrl }
+        body: { linkedInUrl },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (error) {
         console.error("Function error:", error);
@@ -156,7 +176,7 @@ const CompanyDetailPage = () => {
       
       console.log("Function response:", data);
       
-      if (data.error) {
+      if (data && data.error) {
         setError(data.error);
         
         if (data.error.includes("authentication failed") || data.error.includes("JWT token")) {
@@ -178,7 +198,7 @@ const CompanyDetailPage = () => {
       
       setFullResponse(data);
       
-      if (data.companyData) {
+      if (data && data.companyData) {
         const extractedData: CompanyData = {
           company_legal_name: data.companyData.company_legal_name,
           website: data.companyData.website,
@@ -313,9 +333,19 @@ const CompanyDetailPage = () => {
                     size="sm"
                     onClick={checkTokenStatus}
                     disabled={isCheckingToken}
+                    className="flex items-center gap-2"
                   >
-                    <RefreshCcw className="mr-1 h-4 w-4" /> 
-                    {isCheckingToken ? "Checking..." : "Recheck Token Status"}
+                    {isCheckingToken ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCcw className="h-4 w-4" />
+                        Recheck Token Status
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -350,10 +380,17 @@ const CompanyDetailPage = () => {
               <Button 
                 type="submit" 
                 onClick={handleSubmit} 
-                disabled={isLoading || !!tokenError}
-                className="w-full"
+                disabled={isLoading || !!tokenError || !linkedInUrl.trim()}
+                className="w-full flex items-center justify-center gap-2"
               >
-                {isLoading ? "Processing..." : "Get Company Details"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Get Company Details"
+                )}
               </Button>
             </CardFooter>
           </Card>
@@ -381,11 +418,20 @@ const CompanyDetailPage = () => {
                     variant="outline" 
                     size="sm"
                     onClick={checkTokenStatus} 
-                    className="mt-4"
+                    className="mt-4 flex items-center gap-2"
                     disabled={isCheckingToken}
                   >
-                    <RefreshCcw className="mr-1 h-4 w-4" /> 
-                    {isCheckingToken ? "Checking..." : "Recheck Token Status"}
+                    {isCheckingToken ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCcw className="h-4 w-4" />
+                        Recheck Token Status
+                      </>
+                    )}
                   </Button>
                 )}
               </CardContent>

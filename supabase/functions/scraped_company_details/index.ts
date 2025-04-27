@@ -20,6 +20,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 async function validateToken(token: string): Promise<{ isValid: boolean; message: string }> {
   console.log("Validating JWT token...");
   
+  if (!token || token.trim() === "") {
+    console.error("JWT token is empty or not provided");
+    return { isValid: false, message: "JWT token is empty or not provided" };
+  }
+  
   // Basic format check
   const parts = token.split('.');
   if (parts.length !== 3) {
@@ -71,8 +76,12 @@ async function validateToken(token: string): Promise<{ isValid: boolean; message
 }
 
 serve(async (req) => {
+  // Add debugging for incoming requests
+  console.log(`Received ${req.method} request to ${new URL(req.url).pathname}`);
+  
   // Handle preflight CORS request
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS preflight request");
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
@@ -81,65 +90,98 @@ serve(async (req) => {
   
   // Special endpoint for token check
   const url = new URL(req.url);
+  console.log(`Processing URL: ${url.pathname}`);
+  
   if (url.pathname.endsWith('/token-check')) {
     console.log("Token check requested");
     
-    if (!CORESIGNAL_JWT_TOKEN) {
-      console.error("Coresignal JWT token is missing");
+    try {
+      if (!CORESIGNAL_JWT_TOKEN) {
+        console.error("Coresignal JWT token is missing");
+        return new Response(
+          JSON.stringify({ 
+            isValid: false, 
+            message: "CORESIGNAL_JWT_TOKEN environment variable is not set" 
+          }),
+          {
+            status: 200, // Return 200 even for token issues so client can display the message
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      // Log token details for debugging (safely)
+      const tokenLength = CORESIGNAL_JWT_TOKEN.length;
+      const tokenStart = CORESIGNAL_JWT_TOKEN.substring(0, 10);
+      const tokenEnd = CORESIGNAL_JWT_TOKEN.substring(CORESIGNAL_JWT_TOKEN.length - 10);
+      console.log(`Token starts with: ${tokenStart}... ends with: ...${tokenEnd}`);
+      console.log(`Token length: ${tokenLength}`);
+      
+      const tokenValidation = await validateToken(CORESIGNAL_JWT_TOKEN);
+      console.log(`Token validation result: ${JSON.stringify(tokenValidation)}`);
+      
       return new Response(
         JSON.stringify({ 
-          isValid: false, 
-          message: "CORESIGNAL_JWT_TOKEN environment variable is not set" 
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-    
-    // Log first and last few characters of the token for debugging
-    const tokenStart = CORESIGNAL_JWT_TOKEN.substring(0, 10);
-    const tokenEnd = CORESIGNAL_JWT_TOKEN.substring(CORESIGNAL_JWT_TOKEN.length - 10);
-    console.log(`Token starts with: ${tokenStart}... ends with: ...${tokenEnd}`);
-    console.log(`Token length: ${CORESIGNAL_JWT_TOKEN.length}`);
-    
-    const tokenValidation = await validateToken(CORESIGNAL_JWT_TOKEN);
-    
-    if (!tokenValidation.isValid) {
-      console.error(`Coresignal JWT token has invalid format: ${tokenValidation.message}`);
-      return new Response(
-        JSON.stringify({ 
-          isValid: false, 
+          isValid: tokenValidation.isValid, 
           message: tokenValidation.message,
-          tokenLength: CORESIGNAL_JWT_TOKEN.length,
+          tokenLength: tokenLength,
           tokenStartsWith: tokenStart + "...",
           tokenEndsWith: "..." + tokenEnd
         }),
         {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      console.error(`Unexpected error in token check: ${error.message}`);
+      console.error(error.stack || "No stack trace available");
+      
+      return new Response(
+        JSON.stringify({ 
+          isValid: false, 
+          message: `Unexpected error: ${error.message}`,
+          errorStack: error.stack || "No stack trace available"
+        }),
+        {
+          status: 200, // Return 200 even for errors so client can display the message
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
+
+  try {
+    // Handle the case where request body might be empty
+    let jsonBody;
+    try {
+      const bodyText = await req.text();
+      console.log(`Request body text length: ${bodyText.length}`);
+      if (bodyText.trim() === "") {
+        console.log("Request body is empty, using empty object");
+        jsonBody = {};
+      } else {
+        console.log(`First 100 chars of request body: ${bodyText.substring(0, 100)}`);
+        jsonBody = JSON.parse(bodyText);
+      }
+    } catch (parseError) {
+      console.error(`Error parsing request body: ${parseError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid JSON in request body",
+          details: parseError.message
+        }),
+        {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
     
-    return new Response(
-      JSON.stringify({ 
-        isValid: true, 
-        message: "Token is valid" 
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  }
-
-  try {
-    // Parse the request to get the LinkedIn URL
-    const { linkedInUrl } = await req.json();
+    const linkedInUrl = jsonBody.linkedInUrl;
     
     if (!linkedInUrl) {
+      console.error("LinkedIn URL is missing from request");
       return new Response(
         JSON.stringify({ error: "LinkedIn URL is required" }),
         {
@@ -161,7 +203,7 @@ serve(async (req) => {
           resolution: "Please set the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets"
         }),
         {
-          status: 500,
+          status: 200, // Return 200 even for token issues so client can display the message
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -177,7 +219,7 @@ serve(async (req) => {
           resolution: "Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets with a valid token"
         }),
         {
-          status: 401,
+          status: 200, // Return 200 even for token issues so client can display the message
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -236,6 +278,7 @@ serve(async (req) => {
     
     while (retries > 0) {
       try {
+        console.log(`Search attempt ${4-retries}, sending request to Coresignal API`);
         searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
           method: 'POST',
           headers: {
@@ -413,6 +456,7 @@ serve(async (req) => {
     
     while (retries > 0) {
       try {
+        console.log(`Details attempt ${4-retries}, sending request to Coresignal API`);
         detailsResponse = await fetch(detailsUrl, {
           method: 'GET',
           headers: {
@@ -561,11 +605,13 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error processing request:", error);
+    console.error(error.stack || "No stack trace available");
     
     return new Response(
       JSON.stringify({ 
         error: "Failed to process request",
-        details: error.message || String(error)
+        details: error.message || String(error),
+        stack: error.stack || "No stack trace available"
       }),
       {
         status: 500,
