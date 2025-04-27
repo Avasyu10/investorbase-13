@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export interface LinkedInScrapingResult {
   success: boolean;
@@ -8,6 +9,8 @@ export interface LinkedInScrapingResult {
     content: string;
   }> | null;
   error?: string;
+  errorCode?: number;
+  errorDetails?: any;
 }
 
 export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): Promise<LinkedInScrapingResult | null> => {
@@ -71,4 +74,32 @@ export const formatLinkedInContent = (scrapingResult: LinkedInScrapingResult): s
   return scrapingResult.profiles.map(profile => 
     `LinkedIn Profile: ${profile.url}\n${profile.content}\n\n`
   ).join('---\n\n');
+};
+
+// New helper function to check if the Coresignal JWT token is configured
+export const checkCoresignalToken = async (): Promise<boolean> => {
+  try {
+    // We'll make a simple call to check token status
+    const { data, error } = await supabase.functions.invoke('scraped_company_details', {
+      body: { checkTokenOnly: true }
+    });
+    
+    if (error || (data && data.error === "Coresignal JWT token is missing")) {
+      toast({
+        title: "API Configuration Required",
+        description: "The Coresignal JWT token is either missing or invalid. Please contact support to configure it.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    if (data && data.tokenValid === true) {
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Error checking Coresignal token:", error);
+    return false;
+  }
 };

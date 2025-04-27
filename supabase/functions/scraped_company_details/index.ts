@@ -26,8 +26,56 @@ serve(async (req) => {
   }
 
   try {
-    // Parse the request to get the LinkedIn URL
-    const { linkedInUrl } = await req.json();
+    // Parse the request to get the LinkedIn URL or check flag
+    const requestData = await req.json();
+    const { linkedInUrl, checkTokenOnly } = requestData;
+    
+    // Special case to just check if the token is configured
+    if (checkTokenOnly) {
+      if (!CORESIGNAL_JWT_TOKEN) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Coresignal JWT token is missing",
+            details: "The CORESIGNAL_JWT_TOKEN environment variable is not set or is empty",
+            resolution: "Please set the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets"
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      // Simple validation check - verify the token has correct format
+      // JWT tokens have 3 parts separated by dots
+      const tokenParts = CORESIGNAL_JWT_TOKEN.split('.');
+      if (tokenParts.length !== 3) {
+        return new Response(
+          JSON.stringify({ 
+            tokenValid: false,
+            error: "Coresignal JWT token is malformed",
+            details: "The token does not have the expected JWT format (three parts separated by dots)",
+            resolution: "Please check the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets"
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      // Return that token is present but we don't know if it's valid until we try to use it
+      return new Response(
+        JSON.stringify({ 
+          tokenValid: true,
+          message: "Coresignal JWT token is configured"
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     
     if (!linkedInUrl) {
       return new Response(
