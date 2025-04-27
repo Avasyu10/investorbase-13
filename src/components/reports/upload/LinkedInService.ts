@@ -76,75 +76,27 @@ export const formatLinkedInContent = (scrapingResult: LinkedInScrapingResult): s
   ).join('---\n\n');
 };
 
-// Helper function to check if the Coresignal JWT token is configured
+// New helper function to check if the Coresignal JWT token is configured
 export const checkCoresignalToken = async (): Promise<boolean> => {
   try {
-    console.log("Checking Coresignal JWT token status...");
+    // We'll make a simple call to check token status
+    const { data, error } = await supabase.functions.invoke('scraped_company_details', {
+      body: { checkTokenOnly: true }
+    });
     
-    // We'll make a simple call to check token status, with retry mechanism
-    const maxRetries = 2;
-    let retryCount = 0;
-    
-    while (retryCount <= maxRetries) {
-      try {
-        const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-          body: { checkTokenOnly: true }
-        });
-        
-        if (error) {
-          console.error(`Attempt ${retryCount + 1}: Error checking token:`, error);
-          
-          // If we've reached max retries, show error toast and return false
-          if (retryCount === maxRetries) {
-            toast({
-              title: "API Configuration Required",
-              description: "Cannot verify Coresignal JWT token. Please check Edge Function logs.",
-              variant: "destructive"
-            });
-            return false;
-          }
-          
-          // Wait for a short time before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          retryCount++;
-          continue;
-        }
-        
-        if (data && data.error === "Coresignal JWT token is missing") {
-          toast({
-            title: "API Configuration Required",
-            description: "The Coresignal JWT token is missing. Please configure it in your Supabase Edge Function secrets.",
-            variant: "destructive"
-          });
-          return false;
-        }
-        
-        if (data && data.tokenValid === true) {
-          console.log("Coresignal JWT token is valid");
-          return true;
-        }
-        
-        console.log("Token check response:", data);
-        return false;
-      } catch (attemptError) {
-        console.error(`Attempt ${retryCount + 1}: Unexpected error checking token:`, attemptError);
-        
-        // If we've reached max retries, give up
-        if (retryCount === maxRetries) {
-          break;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        retryCount++;
-      }
+    if (error || (data && data.error === "Coresignal JWT token is missing")) {
+      toast({
+        title: "API Configuration Required",
+        description: "The Coresignal JWT token is either missing or invalid. Please contact support to configure it.",
+        variant: "destructive"
+      });
+      return false;
     }
     
-    // If we've exhausted all retries
-    toast({
-      title: "API Configuration Issue",
-      description: "Unable to verify Coresignal JWT token after multiple attempts.",
-      variant: "destructive"
-    });
+    if (data && data.tokenValid === true) {
+      return true;
+    }
+    
     return false;
   } catch (error) {
     console.error("Error checking Coresignal token:", error);

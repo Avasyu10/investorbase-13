@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube, AlertCircle, Loader2 } from 'lucide-react';
+import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube, AlertCircle } from 'lucide-react';
 
 // Define a type for the company data with only the fields we want
 type CompanyData = {
@@ -52,66 +52,37 @@ const CompanyDetailPage = () => {
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid' | 'unknown'>('checking');
-  const [checkingToken, setCheckingToken] = useState(false);
 
   // Check token status on initial load
-  const checkToken = useCallback(async () => {
-    try {
-      setTokenStatus('checking');
-      setCheckingToken(true);
-      
-      console.log("Checking Coresignal token status...");
-      const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-        body: { checkTokenOnly: true }
-      });
-      
-      console.log("Token check response:", data, error);
-      
-      if (error) {
-        console.error("Token check error:", error);
-        setTokenStatus('invalid');
-        toast({
-          title: "API Configuration Issue",
-          description: "The Coresignal API token verification failed. Please check Edge Function logs.",
-          variant: "destructive"
-        });
-        return;
-      } 
-      
-      if (data && data.error) {
-        console.error("Token invalid:", data.error, data.details);
-        setTokenStatus('invalid');
-        toast({
-          title: "API Configuration Required",
-          description: data.details || data.error || "Coresignal JWT token is invalid",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (data && data.tokenValid) {
-        console.log("Token is valid");
-        setTokenStatus('valid');
-        return;
-      }
-      
-      setTokenStatus('unknown');
-      toast({
-        title: "API Token Status Unknown",
-        description: "Could not determine if the Coresignal token is valid. Company data lookup may not work.",
-        variant: "destructive"
-      });
-    } catch (err) {
-      console.error("Error checking token:", err);
-      setTokenStatus('unknown');
-    } finally {
-      setCheckingToken(false);
-    }
-  }, []);
-  
   useEffect(() => {
+    const checkToken = async () => {
+      try {
+        setTokenStatus('checking');
+        const { data, error } = await supabase.functions.invoke('scraped_company_details', {
+          body: { checkTokenOnly: true }
+        });
+        
+        if (error || (data && data.error)) {
+          console.error("Token check error:", error || data.error);
+          setTokenStatus('invalid');
+          toast({
+            title: "API Configuration Issue",
+            description: "The Coresignal API token appears to be missing or invalid. Company data lookup may not work.",
+            variant: "destructive"
+          });
+        } else if (data && data.tokenValid) {
+          setTokenStatus('valid');
+        } else {
+          setTokenStatus('unknown');
+        }
+      } catch (err) {
+        console.error("Error checking token:", err);
+        setTokenStatus('unknown');
+      }
+    };
+    
     checkToken();
-  }, [checkToken]);
+  }, []);
 
   // Reset state when ID changes
   useEffect(() => {
@@ -226,10 +197,6 @@ const CompanyDetailPage = () => {
   const handleBackClick = () => {
     navigate(-1); // Navigate back to the previous page
   };
-  
-  const handleRefreshToken = () => {
-    checkToken();
-  };
 
   const renderSocialLinks = () => {
     if (!response) return null;
@@ -315,24 +282,9 @@ const CompanyDetailPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="mb-4">
+              <p>
                 Please make sure the <code>CORESIGNAL_JWT_TOKEN</code> is properly configured in your Supabase Edge Function secrets.
               </p>
-              <Button 
-                variant="outline" 
-                onClick={handleRefreshToken} 
-                disabled={checkingToken}
-                className="text-yellow-800 border-yellow-400 bg-yellow-100 hover:bg-yellow-200"
-              >
-                {checkingToken ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Checking token...
-                  </>
-                ) : (
-                  <>Recheck Token Status</>
-                )}
-              </Button>
             </CardContent>
           </Card>
         )}
