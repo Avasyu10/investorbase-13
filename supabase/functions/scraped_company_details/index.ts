@@ -41,9 +41,14 @@ serve(async (req) => {
 
     console.log("Processing LinkedIn URL:", linkedInUrl);
 
+    // Validate CORESIGNAL_JWT_TOKEN before proceeding
     if (!CORESIGNAL_JWT_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "CORESIGNAL_JWT_TOKEN is not configured" }),
+        JSON.stringify({ 
+          error: "Coresignal JWT token is missing",
+          details: "The CORESIGNAL_JWT_TOKEN environment variable is not set or is empty",
+          resolution: "Please set the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets"
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -106,7 +111,32 @@ serve(async (req) => {
     console.log("Search response status:", searchResponse.status);
     console.log("Search response headers:", JSON.stringify(Object.fromEntries(searchResponse.headers.entries())));
     
-    if (!searchResponse.ok) {
+    if (searchResponse.status === 401) {
+      const errorText = await searchResponse.text();
+      console.error("Search API authentication error:", searchResponse.status, errorText);
+      
+      // Update the database record with the auth error
+      await supabase
+        .from('company_scrapes')
+        .update({
+          status: 'failed',
+          error_message: `Coresignal API authentication failed (401): JWT token may be invalid or expired`,
+          search_query: searchQuery
+        })
+        .eq('id', dbEntry.id);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: `Coresignal API authentication failed (401)`,
+          message: `The JWT token used for authentication appears to be invalid or expired. Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets.`,
+          details: errorText || "No additional error details provided by the API"
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    } else if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
       console.error("Search API error:", searchResponse.status, errorText);
       
