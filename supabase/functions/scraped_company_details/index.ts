@@ -16,6 +16,60 @@ const CORESIGNAL_JWT_TOKEN = Deno.env.get("CORESIGNAL_JWT_TOKEN") || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+// Function to validate the JWT token
+async function validateToken(token: string): Promise<{ isValid: boolean; message: string }> {
+  console.log("Validating JWT token...");
+  
+  // Basic format check
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    console.error("JWT token has invalid format - should have 3 parts");
+    return { isValid: false, message: "JWT token has invalid format - should have 3 parts" };
+  }
+  
+  // Test the token with a simple API call
+  try {
+    console.log("Testing token with API call...");
+    const testResponse = await fetch('https://api.coresignal.com/cdapi/v1/token/check', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+    
+    console.log(`Token test response status: ${testResponse.status}`);
+    console.log(`Token test response headers: ${JSON.stringify(Object.fromEntries(testResponse.headers.entries()))}`);
+    
+    // Try to get the response body
+    let responseText;
+    try {
+      responseText = await testResponse.text();
+      console.log(`Token test response body: ${responseText}`);
+    } catch (error) {
+      console.log(`Error getting response text: ${error.message}`);
+    }
+    
+    if (testResponse.status === 401) {
+      return { 
+        isValid: false, 
+        message: `Token rejected by Coresignal API (401 Unauthorized). Response: ${responseText || "No response body"}` 
+      };
+    }
+    
+    if (!testResponse.ok) {
+      return { 
+        isValid: false, 
+        message: `API test failed with status ${testResponse.status}. Response: ${responseText || "No response body"}` 
+      };
+    }
+    
+    return { isValid: true, message: "Token valid" };
+  } catch (error) {
+    console.error(`Error testing token: ${error.message}`);
+    return { isValid: false, message: `Error testing token: ${error.message}` };
+  }
+}
+
 serve(async (req) => {
   // Handle preflight CORS request
   if (req.method === "OPTIONS") {
@@ -23,6 +77,62 @@ serve(async (req) => {
       status: 204,
       headers: corsHeaders,
     });
+  }
+  
+  // Special endpoint for token check
+  const url = new URL(req.url);
+  if (url.pathname.endsWith('/token-check')) {
+    console.log("Token check requested");
+    
+    if (!CORESIGNAL_JWT_TOKEN) {
+      console.error("Coresignal JWT token is missing");
+      return new Response(
+        JSON.stringify({ 
+          isValid: false, 
+          message: "CORESIGNAL_JWT_TOKEN environment variable is not set" 
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    // Log first and last few characters of the token for debugging
+    const tokenStart = CORESIGNAL_JWT_TOKEN.substring(0, 10);
+    const tokenEnd = CORESIGNAL_JWT_TOKEN.substring(CORESIGNAL_JWT_TOKEN.length - 10);
+    console.log(`Token starts with: ${tokenStart}... ends with: ...${tokenEnd}`);
+    console.log(`Token length: ${CORESIGNAL_JWT_TOKEN.length}`);
+    
+    const tokenValidation = await validateToken(CORESIGNAL_JWT_TOKEN);
+    
+    if (!tokenValidation.isValid) {
+      console.error(`Coresignal JWT token has invalid format: ${tokenValidation.message}`);
+      return new Response(
+        JSON.stringify({ 
+          isValid: false, 
+          message: tokenValidation.message,
+          tokenLength: CORESIGNAL_JWT_TOKEN.length,
+          tokenStartsWith: tokenStart + "...",
+          tokenEndsWith: "..." + tokenEnd
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        isValid: true, 
+        message: "Token is valid" 
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {
@@ -41,8 +151,9 @@ serve(async (req) => {
 
     console.log("Processing LinkedIn URL:", linkedInUrl);
 
-    // Validate CORESIGNAL_JWT_TOKEN before proceeding
+    // First validate the token before making any API calls
     if (!CORESIGNAL_JWT_TOKEN) {
+      console.error("Coresignal JWT token is missing");
       return new Response(
         JSON.stringify({ 
           error: "Coresignal JWT token is missing",
@@ -51,6 +162,22 @@ serve(async (req) => {
         }),
         {
           status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    const tokenValidation = await validateToken(CORESIGNAL_JWT_TOKEN);
+    if (!tokenValidation.isValid) {
+      console.error(`Coresignal JWT token is invalid: ${tokenValidation.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Coresignal JWT token is invalid",
+          details: tokenValidation.message,
+          resolution: "Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets with a valid token"
+        }),
+        {
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -97,20 +224,65 @@ serve(async (req) => {
     };
 
     console.log("Sending search query to Coresignal API:", JSON.stringify(searchQuery));
-
-    const searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(searchQuery)
-    });
-
-    // Log detailed information about the search response
-    console.log("Search response status:", searchResponse.status);
-    console.log("Search response headers:", JSON.stringify(Object.fromEntries(searchResponse.headers.entries())));
     
+    // Log the token being used (safely)
+    const tokenStart = CORESIGNAL_JWT_TOKEN.substring(0, 10);
+    const tokenEnd = CORESIGNAL_JWT_TOKEN.substring(CORESIGNAL_JWT_TOKEN.length - 10);
+    console.log(`Using token starting with: ${tokenStart}... ending with: ...${tokenEnd}`);
+    
+    // Add retries for the search request
+    let searchResponse = null;
+    let retries = 3;
+    
+    while (retries > 0) {
+      try {
+        searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(searchQuery)
+        });
+        
+        // Log detailed information about the search response
+        console.log("Search response status:", searchResponse.status);
+        console.log("Search response headers:", JSON.stringify(Object.fromEntries(searchResponse.headers.entries())));
+        
+        break; // If no exception, break the retry loop
+      } catch (fetchError) {
+        console.error(`Search fetch attempt ${4-retries} failed:`, fetchError);
+        retries--;
+        
+        if (retries === 0) {
+          // Update DB with network error
+          await supabase
+            .from('company_scrapes')
+            .update({
+              status: 'failed',
+              error_message: `Network error: ${fetchError.message}`,
+              search_query: searchQuery
+            })
+            .eq('id', dbEntry.id);
+          
+          return new Response(
+            JSON.stringify({ 
+              error: "Network error connecting to Coresignal API",
+              message: fetchError.message
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        
+        // Wait a bit before retrying
+        await new Promise(r => setTimeout(r, 1000));
+        console.log(`Retrying search request, ${retries} attempts remaining`);
+      }
+    }
+
     if (searchResponse.status === 401) {
       const errorText = await searchResponse.text();
       console.error("Search API authentication error:", searchResponse.status, errorText);
@@ -120,7 +292,7 @@ serve(async (req) => {
         .from('company_scrapes')
         .update({
           status: 'failed',
-          error_message: `Coresignal API authentication failed (401): JWT token may be invalid or expired`,
+          error_message: `Coresignal API authentication failed (401): JWT token may be invalid or expired. Response: ${errorText}`,
           search_query: searchQuery
         })
         .eq('id', dbEntry.id);
@@ -235,19 +407,83 @@ serve(async (req) => {
     const detailsUrl = `https://api.coresignal.com/cdapi/v1/multi_source/company/collect/${companyId}`;
     console.log("Fetching company details from:", detailsUrl);
 
-    const detailsResponse = await fetch(detailsUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
-        'Content-Type': 'application/json'
+    // Add retries for the details request too
+    let detailsResponse = null;
+    retries = 3;
+    
+    while (retries > 0) {
+      try {
+        detailsResponse = await fetch(detailsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // Log detailed information about the details response
+        console.log("Details response status:", detailsResponse.status);
+        console.log("Details response headers:", JSON.stringify(Object.fromEntries(detailsResponse.headers.entries())));
+        
+        break; // If no exception, break the retry loop
+      } catch (fetchError) {
+        console.error(`Details fetch attempt ${4-retries} failed:`, fetchError);
+        retries--;
+        
+        if (retries === 0) {
+          // Update DB with network error
+          await supabase
+            .from('company_scrapes')
+            .update({
+              status: 'failed',
+              error_message: `Network error fetching details: ${fetchError.message}`
+            })
+            .eq('id', dbEntry.id);
+          
+          return new Response(
+            JSON.stringify({ 
+              error: "Network error connecting to Coresignal Details API",
+              message: fetchError.message,
+              companyId: companyId
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        
+        // Wait a bit before retrying
+        await new Promise(r => setTimeout(r, 1000));
+        console.log(`Retrying details request, ${retries} attempts remaining`);
       }
-    });
+    }
 
-    // Log detailed information about the details response
-    console.log("Details response status:", detailsResponse.status);
-    console.log("Details response headers:", JSON.stringify(Object.fromEntries(detailsResponse.headers.entries())));
-
-    if (!detailsResponse.ok) {
+    if (detailsResponse.status === 401) {
+      const errorText = await detailsResponse.text();
+      console.error("Details API authentication error:", detailsResponse.status, errorText);
+      
+      // Update the database record with the error
+      await supabase
+        .from('company_scrapes')
+        .update({
+          status: 'failed',
+          error_message: `Coresignal Details API authentication failed (401): JWT token may be invalid or expired`
+        })
+        .eq('id', dbEntry.id);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: `Coresignal Details API authentication failed (401)`,
+          message: `The JWT token used for authentication appears to be invalid or expired. Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets.`,
+          details: errorText || "No additional error details provided by the API"
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    } else if (!detailsResponse.ok) {
       const errorText = await detailsResponse.text();
       console.error("Details API error:", detailsResponse.status, errorText);
       

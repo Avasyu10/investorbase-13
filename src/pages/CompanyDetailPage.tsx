@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,9 +8,9 @@ import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
+import { ChevronLeft, Facebook, Globe, Info, Instagram, Linkedin, Twitter, Youtube, RefreshCcw, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Define a type for the company data with only the fields we want
 type CompanyData = {
   company_legal_name?: string;
   website?: string;
@@ -41,22 +40,72 @@ type CompanyData = {
   company_employee_reviews_aggregate_score?: number | null;
 };
 
+type TokenValidationResponse = {
+  isValid: boolean;
+  message: string;
+  tokenLength?: number;
+  tokenStartsWith?: string;
+  tokenEndsWith?: string;
+};
+
 const CompanyDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [linkedInUrl, setLinkedInUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingToken, setIsCheckingToken] = useState(false);
   const [response, setResponse] = useState<CompanyData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<TokenValidationResponse | null>(null);
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Reset state when ID changes
   useEffect(() => {
     setResponse(null);
     setIsSubmitted(false);
     setLinkedInUrl('');
+    setError(null);
+    setTokenError(null);
   }, [id]);
+
+  useEffect(() => {
+    checkTokenStatus();
+  }, []);
+
+  const checkTokenStatus = async () => {
+    try {
+      setIsCheckingToken(true);
+      
+      console.log("Checking Coresignal token status...");
+      
+      const { data, error } = await supabase.functions.invoke('scraped_company_details/token-check', {});
+      
+      console.log("Token check response:", data);
+      
+      if (error) {
+        console.error("Function error during token check:", error);
+        setTokenError({
+          isValid: false,
+          message: `Error calling token validation: ${error.message}`
+        });
+        return;
+      }
+      
+      if (!data.isValid) {
+        setTokenError(data);
+      } else {
+        setTokenError(null);
+      }
+    } catch (err: any) {
+      console.error("Unexpected error checking token:", err);
+      setTokenError({
+        isValid: false,
+        message: `Unexpected error: ${err.message}`
+      });
+    } finally {
+      setIsCheckingToken(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +114,17 @@ const CompanyDetailPage = () => {
       toast({
         title: "Error",
         description: "Please enter a LinkedIn company URL",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await checkTokenStatus();
+    
+    if (tokenError) {
+      toast({
+        title: "Token Error",
+        description: "The Coresignal API token is invalid. Please fix the token before proceeding.",
         variant: "destructive"
       });
       return;
@@ -98,6 +158,16 @@ const CompanyDetailPage = () => {
       
       if (data.error) {
         setError(data.error);
+        
+        if (data.error.includes("authentication failed") || data.error.includes("JWT token")) {
+          setTokenError({
+            isValid: false,
+            message: data.message || data.error
+          });
+          
+          await checkTokenStatus();
+        }
+        
         toast({
           title: "API Error",
           description: data.error,
@@ -106,10 +176,8 @@ const CompanyDetailPage = () => {
         return;
       }
       
-      // Store the full response for debugging
       setFullResponse(data);
       
-      // Extract only the fields we need
       if (data.companyData) {
         const extractedData: CompanyData = {
           company_legal_name: data.companyData.company_legal_name,
@@ -155,7 +223,7 @@ const CompanyDetailPage = () => {
   };
 
   const handleBackClick = () => {
-    navigate(-1); // Navigate back to the previous page
+    navigate(-1);
   };
 
   const renderSocialLinks = () => {
@@ -218,7 +286,6 @@ const CompanyDetailPage = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 animate-fade-in">
-      {/* Back Button */}
       <Button
         variant="outline"
         size="sm"
@@ -229,7 +296,33 @@ const CompanyDetailPage = () => {
       </Button>
       
       <div className="max-w-3xl mx-auto">
-        
+        {tokenError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>API Token Issue</AlertTitle>
+            <AlertDescription>
+              <div className="space-y-2">
+                <p>The Coresignal API token is invalid or misconfigured: {tokenError.message}</p>
+                {tokenError.tokenLength && (
+                  <p>Token details: {tokenError.tokenLength} characters, starts with {tokenError.tokenStartsWith}, ends with {tokenError.tokenEndsWith}</p>
+                )}
+                <p>Please update the CORESIGNAL_JWT_TOKEN in your Supabase Edge Function secrets.</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={checkTokenStatus}
+                    disabled={isCheckingToken}
+                  >
+                    <RefreshCcw className="mr-1 h-4 w-4" /> 
+                    {isCheckingToken ? "Checking..." : "Recheck Token Status"}
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+      
         {!response && (
           <Card className="mb-8 shadow-md border-0">
             <CardHeader>
@@ -257,7 +350,7 @@ const CompanyDetailPage = () => {
               <Button 
                 type="submit" 
                 onClick={handleSubmit} 
-                disabled={isLoading}
+                disabled={isLoading || !!tokenError}
                 className="w-full"
               >
                 {isLoading ? "Processing..." : "Get Company Details"}
@@ -283,6 +376,18 @@ const CompanyDetailPage = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-red-600">{error}</p>
+                {error.includes("token") && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={checkTokenStatus} 
+                    className="mt-4"
+                    disabled={isCheckingToken}
+                  >
+                    <RefreshCcw className="mr-1 h-4 w-4" /> 
+                    {isCheckingToken ? "Checking..." : "Recheck Token Status"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}

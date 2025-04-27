@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export interface LinkedInScrapingResult {
   success: boolean;
@@ -23,6 +24,26 @@ export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): 
   
   try {
     console.log(`Scraping LinkedIn profiles: ${validUrls.join(', ')}`);
+    
+    // Check if token is valid first
+    try {
+      const { data: tokenStatus, error: tokenError } = await supabase.functions.invoke('scraped_company_details/token-check', {});
+      
+      if (tokenError) {
+        console.error("Error checking Coresignal JWT token:", tokenError);
+      } else if (tokenStatus && !tokenStatus.isValid) {
+        console.error("Coresignal JWT token is invalid:", tokenStatus.message);
+        toast({
+          title: "API Token Issue",
+          description: `Coresignal JWT token is invalid: ${tokenStatus.message}`,
+          variant: "destructive"
+        });
+      } else {
+        console.log("Coresignal JWT token is valid, proceeding with LinkedIn scraping");
+      }
+    } catch (tokenCheckError) {
+      console.error("Error during token check:", tokenCheckError);
+    }
     
     const { data, error } = await supabase.functions.invoke('scrape-linkedin', {
       body: { linkedInUrls: validUrls, reportId }
