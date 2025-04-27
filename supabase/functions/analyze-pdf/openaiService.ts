@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
@@ -309,41 +308,118 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
         
         console.log("Attempting to parse JSON:", jsonContent.substring(0, 100) + "...");
         
-        // Try to parse the JSON response
-        let parsedContent;
-        try {
-          parsedContent = JSON.parse(jsonContent);
-        } catch (jsonError) {
-          console.error("JSON parsing error:", jsonError);
-          
-          // Try to fix common JSON issues
-          let fixedJson = jsonContent;
-          
-          // Fix trailing commas
-          fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
-          
-          // Try to find the end of the JSON object if there's text after it
-          const lastBrace = fixedJson.lastIndexOf('}');
-          if (lastBrace > 0 && lastBrace < fixedJson.length - 1) {
-            fixedJson = fixedJson.substring(0, lastBrace + 1);
-          }
-          
-          console.log("Attempting to parse fixed JSON");
+        // Enhanced JSON parsing with better error handling
+        const parseJSON = (jsonStr) => {
           try {
-            parsedContent = JSON.parse(fixedJson);
-          } catch (fixedJsonError) {
-            console.error("Failed to parse fixed JSON:", fixedJsonError);
+            // First try regular parsing
+            return JSON.parse(jsonStr);
+          } catch (initialError) {
+            console.error("Initial JSON parsing error:", initialError);
             
-            // If all else fails, create a simplified but valid result
-            throw new Error("Failed to parse Gemini response as JSON. Raw content: " + content.substring(0, 200) + "...");
+            try {
+              // Fix common JSON syntax issues
+              let fixedJson = jsonStr;
+              
+              // Fix trailing commas
+              fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
+              
+              // Fix missing commas between array elements
+              fixedJson = fixedJson.replace(/\]([^,\s}])/g, '],$1');
+              fixedJson = fixedJson.replace(/\}([^,\s\]])/g, '},$1');
+              
+              // Fix unterminated strings by adding missing quotes
+              // This is a basic approach and might not work for all cases
+              const lines = fixedJson.split('\n');
+              for (let i = 0; i < lines.length; i++) {
+                const quoteCount = (lines[i].match(/"/g) || []).length;
+                if (quoteCount % 2 === 1) {
+                  lines[i] = lines[i] + '"';
+                }
+              }
+              fixedJson = lines.join('\n');
+              
+              console.log("Attempting to parse fixed JSON");
+              return JSON.parse(fixedJson);
+            } catch (fixedError) {
+              console.error("Failed to parse fixed JSON:", fixedError);
+              
+              // If all else fails, create a simplified but valid result
+              return createFallbackAnalysis(jsonStr);
+            }
           }
-        }
+        };
         
-        // Validate the response structure
-        if (!parsedContent.sections || !Array.isArray(parsedContent.sections) || parsedContent.sections.length === 0) {
-          console.error("Invalid analysis structure: missing or empty sections array");
-          throw new Error("Invalid analysis structure: missing or empty sections array");
-        }
+        // Function to create a fallback analysis when JSON parsing fails
+        const createFallbackAnalysis = (rawContent) => {
+          console.log("Creating fallback analysis due to JSON parsing errors");
+          
+          // Extract any information we can from the raw content
+          const overallSummary = extractTextBetween(rawContent, '"overallSummary":', '",') || 
+                                "Analysis could not be fully parsed due to format issues.";
+          
+          // Define the expected section types
+          const sectionTypes = [
+            "PROBLEM", "MARKET", "SOLUTION", "COMPETITIVE_LANDSCAPE", 
+            "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", 
+            "TEAM", "FINANCIALS", "ASK"
+          ];
+          
+          // Create a basic structure with all required sections
+          const sections = sectionTypes.map(type => {
+            const title = sectionTypeToTitle(type);
+            return {
+              type: type,
+              title: title,
+              score: type === "PROBLEM" || type === "MARKET" ? 3.5 : 3.0, // Reasonable defaults
+              description: `Analysis for ${title} section could not be fully parsed.`,
+              strengths: ["Analysis data could not be fully parsed."],
+              weaknesses: ["Analysis data could not be fully parsed."]
+            };
+          });
+          
+          return {
+            overallSummary: overallSummary,
+            sections: sections,
+            overallScore: 3.8, // Reasonable default
+            assessmentPoints: [
+              "Analysis could not be fully parsed due to format issues.",
+              "Please review the raw analysis data for more information."
+            ],
+            parsingError: true
+          };
+        };
+        
+        // Helper function to extract text between markers
+        const extractTextBetween = (text, startMarker, endMarker) => {
+          const startIndex = text.indexOf(startMarker);
+          if (startIndex === -1) return null;
+          
+          const contentStart = startIndex + startMarker.length;
+          const contentEnd = text.indexOf(endMarker, contentStart);
+          if (contentEnd === -1) return null;
+          
+          return text.substring(contentStart, contentEnd).trim();
+        };
+        
+        // Helper function to convert section type to title
+        const sectionTypeToTitle = (type) => {
+          switch (type) {
+            case "PROBLEM": return "Problem Statement";
+            case "MARKET": return "Market Opportunity";
+            case "SOLUTION": return "Solution (Product)";
+            case "COMPETITIVE_LANDSCAPE": return "Competitive Landscape";
+            case "TRACTION": return "Traction & Milestones";
+            case "BUSINESS_MODEL": return "Business Model";
+            case "GTM_STRATEGY": return "Go-to-Market Strategy";
+            case "TEAM": return "Founder & Team Background";
+            case "FINANCIALS": return "Financial Overview & Projections";
+            case "ASK": return "The Ask & Next Steps";
+            default: return type.charAt(0) + type.slice(1).toLowerCase().replace(/_/g, ' ');
+          }
+        };
+        
+        // Try to parse the JSON with our enhanced parser
+        let parsedContent = parseJSON(jsonContent);
         
         // Define the expected section types
         const expectedSectionTypes = [
@@ -351,6 +427,12 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", 
           "TEAM", "FINANCIALS", "ASK"
         ];
+        
+        // Ensure we have all required sections and fields
+        if (!parsedContent.sections || !Array.isArray(parsedContent.sections)) {
+          console.warn("Missing or invalid sections array, creating a default one");
+          parsedContent.sections = [];
+        }
         
         // Deduplicate sections (keep only the first occurrence of each section type)
         const processedSections = [];
@@ -370,6 +452,16 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           }
           
           seenTypes.add(section.type);
+          
+          // Ensure each section has the required fields
+          if (!section.strengths || !Array.isArray(section.strengths)) {
+            section.strengths = ["Analysis data could not be fully parsed for strengths."];
+          }
+          
+          if (!section.weaknesses || !Array.isArray(section.weaknesses)) {
+            section.weaknesses = ["Analysis data could not be fully parsed for weaknesses."];
+          }
+          
           processedSections.push(section);
         }
         
@@ -378,21 +470,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           if (!seenTypes.has(expectedType)) {
             console.warn(`Missing section of type "${expectedType}", adding a placeholder`);
             
-            // Convert type to title
-            let title;
-            switch (expectedType) {
-              case "PROBLEM": title = "Problem Statement"; break;
-              case "MARKET": title = "Market Opportunity"; break;
-              case "SOLUTION": title = "Solution (Product)"; break;
-              case "COMPETITIVE_LANDSCAPE": title = "Competitive Landscape"; break;
-              case "TRACTION": title = "Traction & Milestones"; break;
-              case "BUSINESS_MODEL": title = "Business Model"; break;
-              case "GTM_STRATEGY": title = "Go-to-Market Strategy"; break;
-              case "TEAM": title = "Founder & Team Background"; break;
-              case "FINANCIALS": title = "Financial Overview & Projections"; break;
-              case "ASK": title = "The Ask & Next Steps"; break;
-              default: title = expectedType.charAt(0) + expectedType.slice(1).toLowerCase().replace(/_/g, ' ');
-            }
+            const title = sectionTypeToTitle(expectedType);
             
             processedSections.push({
               type: expectedType,
@@ -448,6 +526,14 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
             console.log(`Score difference detected: API=${currentScore}, Expected=${formattedExpectedScore}, using calculated score`);
             parsedContent.overallScore = formattedExpectedScore;
           }
+        }
+        
+        // Ensure we have assessment points
+        if (!parsedContent.assessmentPoints || !Array.isArray(parsedContent.assessmentPoints) || parsedContent.assessmentPoints.length === 0) {
+          parsedContent.assessmentPoints = [
+            "Analysis could not fully extract assessment points.",
+            "Please review the individual section scores for more details."
+          ];
         }
         
         // Add prompt and response to the parsed content
