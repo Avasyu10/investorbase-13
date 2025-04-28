@@ -12,7 +12,7 @@ const corsHeaders = {
 // Supabase client initialization with service role key
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const CORESIGNAL_API_KEY = Deno.env.get("CORESIGNAL_API_KEY") || Deno.env.get("CORESIGNAL_JWT_TOKEN") || "";
+const CORESIGNAL_JWT_TOKEN = Deno.env.get("CORESIGNAL_JWT_TOKEN") || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -41,9 +41,9 @@ serve(async (req) => {
 
     console.log("Processing LinkedIn URL:", linkedInUrl);
 
-    if (!CORESIGNAL_API_KEY) {
+    if (!CORESIGNAL_JWT_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "CORESIGNAL_API_KEY is not configured" }),
+        JSON.stringify({ error: "CORESIGNAL_JWT_TOKEN is not configured" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -96,7 +96,7 @@ serve(async (req) => {
     const searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${CORESIGNAL_API_KEY}`,
+        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(searchQuery)
@@ -208,7 +208,7 @@ serve(async (req) => {
     const detailsResponse = await fetch(detailsUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${CORESIGNAL_API_KEY}`,
+        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
         'Content-Type': 'application/json'
       }
     });
