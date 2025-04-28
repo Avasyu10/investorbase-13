@@ -107,21 +107,21 @@ Analyze each section with a structured breakdown and ALWAYS include external mar
    
 6. **Go-to-Market Strategy**  
    - Provide data on CAC (EXACT DOLLAR AMOUNTS), conversion rates (SPECIFIC PERCENTAGES), and sales cycles (SPECIFIC TIME PERIODS) for the industry
-   - "POINTERS" - (Use relevant pointers from your understanding in this section)
+   - "POINTERS" - 1. Does the startup have a clear and scalable revenue model? 2. What is the unit economics (e.g., CAC vs. LTV, contribution margin)? 3. How sticky are the customers (e.g., retention, churn, customer satisfaction)? 4. Is the business model defensible or can it be easily replicated by competitors? 5. How aligned is the business model with long-term market trends and customer needs?
    - Include successful GTM case studies with NUMERICAL OUTCOMES from the industry
    - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's GTM strategy
    - Add specific marketing spend benchmarks with dollar figures
    
 7. **Team**  
    - Compare team experience and composition to successful startups with SPECIFIC TENURE METRICS
-   - "POINTERS" - (Use relevant pointers from your understanding in this section)
+   - "POINTERS" - 1. What is the total number of years of relevant industry experience within the core team (founders + key hires)? 2. How many founding team members have prior startup experience (including previous exits or growth)? 3. Does the team have specific domain expertise relevant to the startup’s product or service? 4. How well does the team's background complement each other (business vs. technical expertise, etc.)? 5. Does the team have experience or exposure to scaling a company (e.g., team growth, product scaling)? 6. How well does the background of the team align with the startup’s vision and mission (e.g., industry relevance, personal commitment)?
    - Include industry hiring trends and talent requirements with NUMERICAL ANALYSIS
    - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's team composition
    - Add specific failure rates for startups with comparable team compositions
    
 8. **Financials**  
    - Compare financial projections to industry standards with SPECIFIC REVENUE AND GROWTH FIGURES
-   - "POINTERS" - (Use relevant pointers from your understanding in this section)
+   - "POINTERS" - 1. Does the pitch deck include clear revenue projections for the next 1-3 years? 2. Is there a realistic breakdown of expenses (e.g., salaries, marketing, product development)? 3. Is there an explicit burn rate and cash runway mentioned in the deck? 4. Does the pitch deck highlight current funding (e.g., how much capital raised so far, investors, and any key milestones)? 5. Does the financial plan mention unit economics (e.g., cost per acquisition, customer lifetime value, margin)? 6. Are financial projections supported by market research or comparable benchmarks?
    - Include relevant unit economics with EXACT NUMBERS from similar companies
    - Limit to 4-7 key insights that are DIRECTLY RELEVANT to the company's financial projections
    - Add specific burn rate comparisons and runway metrics
