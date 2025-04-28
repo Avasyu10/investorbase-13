@@ -1,3 +1,4 @@
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string) {
@@ -307,20 +308,32 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
             return JSON.parse(jsonStr);
           } catch (initialError) {
             console.error("Initial JSON parsing error:", initialError);
+            console.log("Error position:", initialError.message);
             
             try {
               // Fix common JSON syntax issues
               let fixedJson = jsonStr;
               
+              // Log a sample around the error position if available
+              if (initialError.message && initialError.message.includes("position")) {
+                const posMatch = initialError.message.match(/position (\d+)/);
+                if (posMatch && posMatch[1]) {
+                  const errPos = parseInt(posMatch[1]);
+                  const start = Math.max(0, errPos - 50);
+                  const end = Math.min(fixedJson.length, errPos + 50);
+                  console.log(`JSON error context (around position ${errPos}):`);
+                  console.log(fixedJson.substring(start, errPos) + " ### ERROR HERE ### " + fixedJson.substring(errPos, end));
+                }
+              }
+              
               // Fix trailing commas
               fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
               
-              // Fix missing commas between array elements
-              fixedJson = fixedJson.replace(/\]([^,\s}])/g, '],$1');
-              fixedJson = fixedJson.replace(/\}([^,\s\]])/g, '},$1');
+              // Fix missing commas between array elements or object properties
+              fixedJson = fixedJson.replace(/\]([^,\s}\])])/g, '],$1');
+              fixedJson = fixedJson.replace(/\}([^,\s}\])])/g, '},$1');
               
               // Fix unterminated strings by adding missing quotes
-              // This is a basic approach and might not work for all cases
               const lines = fixedJson.split('\n');
               for (let i = 0; i < lines.length; i++) {
                 const quoteCount = (lines[i].match(/"/g) || []).length;
@@ -330,15 +343,88 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
               }
               fixedJson = lines.join('\n');
               
+              // Attempt more aggressive fixes for array syntax errors
+              // Replace any invalid JSON array separations
+              fixedJson = fixedJson.replace(/("[^"]*")\s*([^\s,\]}])/g, '$1,$2');
+              
+              // Find and fix array elements that aren't properly separated
+              fixedJson = fixedJson.replace(/(\]|\}|"[^"]*"|true|false|null|\d+)\s+(\{|\[|")/g, '$1,$2');
+              
               console.log("Attempting to parse fixed JSON");
               return JSON.parse(fixedJson);
             } catch (fixedError) {
               console.error("Failed to parse fixed JSON:", fixedError);
               
-              // If all else fails, create a simplified but valid result
-              return createFallbackAnalysis(jsonStr);
+              // Try a more aggressive approach with a regex-based JSON parser
+              try {
+                console.log("Attempting manual JSON extraction");
+                
+                // Extract key parts of the JSON structure
+                const extractedData = extractJSONStructure(jsonStr);
+                if (extractedData) {
+                  console.log("Successfully extracted JSON structure manually");
+                  return extractedData;
+                }
+                
+                // If all else fails, create a simplified but valid result
+                return createFallbackAnalysis(jsonStr);
+              } catch (manualExtractError) {
+                console.error("Manual extraction failed:", manualExtractError);
+                return createFallbackAnalysis(jsonStr);
+              }
             }
           }
+        };
+        
+        // Helper function to manually extract JSON structure when parsing fails
+        const extractJSONStructure = (jsonStr) => {
+          // This is a simplified approach - extract key parts we need
+          try {
+            // Extract overall score
+            const overallScoreMatch = jsonStr.match(/"overallScore"\s*:\s*([0-9.]+)/);
+            const overallScore = overallScoreMatch ? parseFloat(overallScoreMatch[1]) : 3.8;
+            
+            // Extract overall summary
+            const summaryMatch = jsonStr.match(/"overallSummary"\s*:\s*"([^"]*)"/);
+            const overallSummary = summaryMatch ? 
+              summaryMatch[1] : 
+              "Analysis could not be fully parsed due to format issues.";
+              
+            // Create a basic structure
+            return {
+              overallSummary: overallSummary,
+              sections: createDefaultSections(),
+              overallScore: overallScore,
+              assessmentPoints: [
+                "Analysis could not be fully parsed due to format issues.",
+                "Please review the raw analysis data for more information."
+              ],
+              parsingError: true
+            };
+          } catch (e) {
+            console.error("Error in manual extraction:", e);
+            return null;
+          }
+        };
+        
+        // Function to create default sections
+        const createDefaultSections = () => {
+          const sectionTypes = [
+            "PROBLEM", "MARKET", "SOLUTION", "COMPETITIVE_LANDSCAPE", 
+            "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", 
+            "TEAM", "FINANCIALS", "ASK"
+          ];
+          
+          return sectionTypes.map(type => {
+            return {
+              type: type,
+              title: sectionTypeToTitle(type),
+              score: type.includes("PROBLEM") || type.includes("MARKET") ? 3.5 : 3.0,
+              description: `Analysis for ${sectionTypeToTitle(type)} section could not be fully parsed.`,
+              strengths: ["Analysis data could not be fully parsed."],
+              weaknesses: ["Analysis data could not be fully parsed."]
+            };
+          });
         };
         
         // Function to create a fallback analysis when JSON parsing fails
@@ -349,29 +435,10 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
           const overallSummary = extractTextBetween(rawContent, '"overallSummary":', '",') || 
                                 "Analysis could not be fully parsed due to format issues.";
           
-          // Define the expected section types
-          const sectionTypes = [
-            "PROBLEM", "MARKET", "SOLUTION", "COMPETITIVE_LANDSCAPE", 
-            "TRACTION", "BUSINESS_MODEL", "GTM_STRATEGY", 
-            "TEAM", "FINANCIALS", "ASK"
-          ];
-          
           // Create a basic structure with all required sections
-          const sections = sectionTypes.map(type => {
-            const title = sectionTypeToTitle(type);
-            return {
-              type: type,
-              title: title,
-              score: type === "PROBLEM" || type === "MARKET" ? 3.5 : 3.0, // Reasonable defaults
-              description: `Analysis for ${title} section could not be fully parsed.`,
-              strengths: ["Analysis data could not be fully parsed."],
-              weaknesses: ["Analysis data could not be fully parsed."]
-            };
-          });
-          
           return {
             overallSummary: overallSummary,
-            sections: sections,
+            sections: createDefaultSections(),
             overallScore: 3.8, // Reasonable default
             assessmentPoints: [
               "Analysis could not be fully parsed due to format issues.",
