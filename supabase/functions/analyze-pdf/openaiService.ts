@@ -117,7 +117,7 @@ A concise description (2-3 sentences) explaining the key insights.
 EXACTLY 3-6 key insights that are VERY CLOSELY RELEVANT to the company being analyzed, each with SPECIFIC NUMERICAL DATA.
 A score from 1 to 5 (with one decimal precision, e.g., 3.7, 4.2). DO NOT use percentages or scores out of 100.
 For present sections ONLY: 4-5 strengths with MEASURABLE IMPACTS (DO NOT include ANY strengths for missing sections with a score of 1.0).
-4-5 weaknesses or areas for improvement with QUANTIFIABLE GAPS.
+4-5 weaknesses or areas for improvement with QUANTIFIABLE GAPS(DO NOT SIMPLY ITERATE WHAT IS ABSENT/PRESENT IN THE DECK LIKE AN ASSHOLE, USE REAL WORLD DATA AND INSIGHTS TO GET THESE).
 Step 3: Score Calculation:
 **The Score Calculation of the total Score would be the numerical average of scores of all the sections i.e. (Sum of scores of all the sections)/Total Number of Sections **
 IMPORTANT - SCORE NORMALIZATION:
