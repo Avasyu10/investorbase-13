@@ -129,7 +129,7 @@ This compensates for the rigorous evaluation criteria and ensures a more balance
 The normalized score (after applying this formula) should be what appears in the "overallScore" field of your response.
 The individual section scores should NOT be normalized - only the final overall score.
 The normalized score must still use one decimal point precision (e.g., 4.2)
-If the formula would result in a score higher than 5.0, cap it at exactly 5.0
+If the formula would result in a score equal to or higher than 5.0, cap it at exactly 4.8
 CRITICAL RULES -
 NEVER reference "according to the deck" or similar phrases
 EVERY data point must have a specific source
