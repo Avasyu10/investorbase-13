@@ -73,7 +73,7 @@ Include pricing comparisons with exact dollar figures
 Add measurable efficiency improvements with specific percentage gains or cost reductions
 Competitive Landscape
 Provide detailed competitor analysis with SPECIFIC MARKET SHARE DATA (percentages)
-"POINTERS" - 1. How many credible players are currently addressing the same or adjacent problem? 2. How mature and entrenched are the leading competitors? 3. How differentiated is the startup’s approach relative to what exists in market (tech, model, distribution, UX)? 4. How fast is the competitive landscape evolving (e.g., new entrants, M&A, funding rounds)? 5. Is there a clear pathway for this startup to build a moat (data, brand, network, switching cost)?
+"POINTERS" - 1. How many credible players are currently addressing the same or adjacent problem? 2. How mature and entrenched are the leading competitors? 3. How differentiated is the startup's approach relative to what exists in market (tech, model, distribution, UX)? 4. How fast is the competitive landscape evolving (e.g., new entrants, M&A, funding rounds)? 5. Is there a clear pathway for this startup to build a moat (data, brand, network, switching cost)?
 Include list of competitors with their EXACT FUNDING AMOUNTS and dates, market valuations, and growth metrics
 Limit to 3-6 key insights that are DIRECTLY RELEVANT to the company's competitive position
 Include pricing model comparisons with exact dollar figures
@@ -97,7 +97,7 @@ Limit to 3-6 key insights that are DIRECTLY RELEVANT to the company's GTM strate
 Add specific marketing spend benchmarks with dollar figures
 Team
 Compare team experience and composition to successful startups with SPECIFIC TENURE METRICS
-"POINTERS" - 1. What is the total number of years of relevant industry experience within the core team (founders + key hires)? 2. How many founding team members have prior startup experience (including previous exits or growth)? 3. Does the team have specific domain expertise relevant to the startup’s product or service? 4. How well does the team's background complement each other (business vs. technical expertise, etc.)? 5. Does the team have experience or exposure to scaling a company (e.g., team growth, product scaling)? 6. How well does the background of the team align with the startup’s vision and mission (e.g., industry relevance, personal commitment)?
+"POINTERS" - 1. What is the total number of years of relevant industry experience within the core team (founders + key hires)? 2. How many founding team members have prior startup experience (including previous exits or growth)? 3. Does the team have specific domain expertise relevant to the startup's product or service? 4. How well does the team's background complement each other (business vs. technical expertise, etc.)? 5. Does the team have experience or exposure to scaling a company (e.g., team growth, product scaling)? 6. How well does the background of the team align with the startup's vision and mission (e.g., industry relevance, personal commitment)?
 Include industry hiring trends and talent requirements with NUMERICAL ANALYSIS
 Limit to 3-6 key insights that are DIRECTLY RELEVANT to the company's team composition
 Add specific failure rates for startups with comparable team compositions
@@ -302,7 +302,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
         console.log("Attempting to parse JSON:", jsonContent.substring(0, 100) + "...");
         
         // Enhanced JSON parsing with better error handling
-        const parseJSON = (jsonStr) => {
+        const parseJSON = (jsonStr: string) => {
           try {
             // First try regular parsing
             return JSON.parse(jsonStr);
@@ -315,7 +315,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
               let fixedJson = jsonStr;
               
               // Log a sample around the error position if available
-              if (initialError.message && initialError.message.includes("position")) {
+              if (typeof initialError.message === 'string' && initialError.message.includes("position")) {
                 const posMatch = initialError.message.match(/position (\d+)/);
                 if (posMatch && posMatch[1]) {
                   const errPos = parseInt(posMatch[1]);
@@ -326,12 +326,21 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
                 }
               }
               
-              // Fix trailing commas
+              // Fix trailing commas - specifically look for cases where comma appears before closing brackets
               fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
               
               // Fix missing commas between array elements or object properties
-              fixedJson = fixedJson.replace(/\]([^,\s}\])])/g, '],$1');
-              fixedJson = fixedJson.replace(/\}([^,\s}\])])/g, '},$1');
+              fixedJson = fixedJson.replace(/}\s*{/g, '},{');
+              fixedJson = fixedJson.replace(/]\s*{/g, '],{');
+              fixedJson = fixedJson.replace(/}\s*\[/g, '},['
+              );
+              fixedJson = fixedJson.replace(/]\s*\[/g, '],['
+              );
+              
+              // Specifically target the issue around position 14317 by adding a smart fix for missing commas in arrays
+              fixedJson = fixedJson.replace(/("\s*[^"\\]*(?:\\.[^"\\]*)*")\s+(?="\s*[^"\\]*(?:\\.[^"\\]*)*")/g, '$1,');
+              fixedJson = fixedJson.replace(/(\d+)\s+(")/g, '$1,$2');
+              fixedJson = fixedJson.replace(/(true|false)\s+(")/g, '$1,$2');
               
               // Fix unterminated strings by adding missing quotes
               const lines = fixedJson.split('\n');
@@ -343,12 +352,12 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
               }
               fixedJson = lines.join('\n');
               
-              // Attempt more aggressive fixes for array syntax errors
+              // Fix JSON more aggressively
               // Replace any invalid JSON array separations
               fixedJson = fixedJson.replace(/("[^"]*")\s*([^\s,\]}])/g, '$1,$2');
               
-              // Find and fix array elements that aren't properly separated
-              fixedJson = fixedJson.replace(/(\]|\}|"[^"]*"|true|false|null|\d+)\s+(\{|\[|")/g, '$1,$2');
+              // Find array elements that aren't properly separated - key fix for the issue at position 14317
+              fixedJson = fixedJson.replace(/(\]|\}|"[^"]*"|true|false|null|\d+)[ \t\r\n]+(\{|\[|")/g, '$1,$2');
               
               console.log("Attempting to parse fixed JSON");
               return JSON.parse(fixedJson);
@@ -377,7 +386,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
         };
         
         // Helper function to manually extract JSON structure when parsing fails
-        const extractJSONStructure = (jsonStr) => {
+        const extractJSONStructure = (jsonStr: string) => {
           // This is a simplified approach - extract key parts we need
           try {
             // Extract overall score
@@ -428,7 +437,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
         };
         
         // Function to create a fallback analysis when JSON parsing fails
-        const createFallbackAnalysis = (rawContent) => {
+        const createFallbackAnalysis = (rawContent: string) => {
           console.log("Creating fallback analysis due to JSON parsing errors");
           
           // Extract any information we can from the raw content
@@ -449,7 +458,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
         };
         
         // Helper function to extract text between markers
-        const extractTextBetween = (text, startMarker, endMarker) => {
+        const extractTextBetween = (text: string, startMarker: string, endMarker: string) => {
           const startIndex = text.indexOf(startMarker);
           if (startIndex === -1) return null;
           
@@ -461,7 +470,7 @@ IMPORTANT: ONLY RESPOND WITH JSON. Do not include any other text, explanations, 
         };
         
         // Helper function to convert section type to title
-        const sectionTypeToTitle = (type) => {
+        const sectionTypeToTitle = (type: string) => {
           switch (type) {
             case "PROBLEM": return "Problem Statement";
             case "MARKET": return "Market Opportunity";
