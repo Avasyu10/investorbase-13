@@ -1,5 +1,7 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.analyze-pdf]
 verify_jwt = false
 timeout_seconds = 120
 
