@@ -95,10 +95,12 @@ serve(async (req) => {
     console.log("Sending search query to Coresignal API:", JSON.stringify(searchQuery));
 
     // Make sure the Authorization header is properly formatted with "Bearer " prefix
+    // And trim any whitespace from the token
+    const cleanToken = CORESIGNAL_JWT_TOKEN.trim();
     const searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN.trim()}`,
+        'Authorization': `Bearer ${cleanToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(searchQuery)
@@ -210,7 +212,7 @@ serve(async (req) => {
     const detailsResponse = await fetch(detailsUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN.trim()}`,
+        'Authorization': `Bearer ${cleanToken}`,
         'Content-Type': 'application/json'
       }
     });
