@@ -1,4 +1,4 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
-verify_jwt = true
+verify_jwt = false
 timeout_seconds = 60
