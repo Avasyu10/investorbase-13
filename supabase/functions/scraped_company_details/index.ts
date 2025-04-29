@@ -93,19 +93,6 @@ serve(async (req) => {
     };
 
     console.log("Sending search query to Coresignal API:", JSON.stringify(searchQuery));
-        // Extract shorthand name from LinkedIn URL
-    // Example: https://www.linkedin.com/company/example-company -> example-company
-    let shorthandName = linkedInUrl;
-    const match = linkedInUrl.match(/linkedin\.com\/company\/([^\/]+)/);
-    if (match && match[1]) {
-      shorthandName = match[1];
-    }
-    console.log("Extracted shorthand name:", shorthandName);
-    
-    // First try to fetch using the shorthand name
-    const apiUrl = `https://api.coresignal.com/v1/multi_source/company/collect/${shorthandName}`;
-
-    console.log("Calling Coresignal API:", apiUrl);
 
     // Make sure the Authorization header is properly formatted with "Bearer " prefix
     const searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
@@ -114,7 +101,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN.trim()}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(shorthandName)
+      body: JSON.stringify(searchQuery)
     });
 
     // Log detailed information about the search response
