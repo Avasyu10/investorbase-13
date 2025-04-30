@@ -41,7 +41,6 @@ serve(async (req) => {
 
     console.log("Processing LinkedIn URL:", linkedInUrl);
 
-    // Validate CORESIGNAL_JWT_TOKEN
     if (!CORESIGNAL_JWT_TOKEN) {
       return new Response(
         JSON.stringify({ error: "CORESIGNAL_JWT_TOKEN is not configured" }),
@@ -94,13 +93,10 @@ serve(async (req) => {
 
     console.log("Sending search query to Coresignal API:", JSON.stringify(searchQuery));
 
-    // Make sure the Authorization header is properly formatted with "Bearer " prefix
-    // And trim any whitespace from the token
-    const cleanToken = CORESIGNAL_JWT_TOKEN.trim();
     const searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${cleanToken}`,
+        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(searchQuery)
@@ -212,7 +208,7 @@ serve(async (req) => {
     const detailsResponse = await fetch(detailsUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${cleanToken}`,
+        'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
         'Content-Type': 'application/json'
       }
     });
