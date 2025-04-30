@@ -91,9 +91,9 @@ export function ReportUpload({
         return;
       }
       
-      if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
         toast.error("File too large", {
-          description: "Please upload a file smaller than 20MB"
+          description: "Please upload a file smaller than 10MB"
         });
         return;
       }
@@ -113,9 +113,9 @@ export function ReportUpload({
         return;
       }
       
-      if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
         toast.error("File too large", {
-          description: "Please upload a file smaller than 20MB"
+          description: "Please upload a file smaller than 10MB"
         });
         return;
       }
@@ -790,7 +790,7 @@ export function ReportUpload({
             file={file}
             onFileChange={handleFileChange}
             accept=".pdf"
-            description="PDF files only, max 20MB"
+            description="PDF files only, max 10MB"
             buttonText="Select PDF"
             disabled={isProcessing}
             required={true}
@@ -824,7 +824,7 @@ export function ReportUpload({
             />
             
             {supplementFiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No supplementary files added (PDF only, max 20MB)</p>
+              <p className="text-sm text-muted-foreground">No supplementary files added (PDF only, max 10MB)</p>
             ) : (
               <div className="space-y-2">
                 {supplementFiles.map((file, index) => (
