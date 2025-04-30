@@ -2,3 +2,7 @@
 # Configuration for the scraped_company_details function
 project_id = "jhtnruktmtjqrfoiyrep"
 verify_jwt = false
+
+[global.http]
+max_request_body_size = 20971520  # Increase file size limit to 20MB (from default 10MB)
+

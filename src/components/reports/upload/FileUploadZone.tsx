@@ -22,7 +22,7 @@ export function FileUploadZone({
   file,
   onFileChange,
   accept = "*",
-  description = "File max 10MB",
+  description = "File max 20MB",
   buttonText = "Select File",
   disabled = false,
   required = false
