@@ -26,10 +26,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Request received by scraped_company_details function");
+    
     // Parse the request to get the LinkedIn URL
     const { linkedInUrl } = await req.json();
     
     if (!linkedInUrl) {
+      console.error("Error: LinkedIn URL is required");
       return new Response(
         JSON.stringify({ error: "LinkedIn URL is required" }),
         {
@@ -43,6 +46,7 @@ serve(async (req) => {
 
     // Check if CORESIGNAL_JWT_TOKEN is configured
     if (!CORESIGNAL_JWT_TOKEN) {
+      console.error("Error: CORESIGNAL_JWT_TOKEN is not configured");
       return new Response(
         JSON.stringify({ error: "CORESIGNAL_JWT_TOKEN is not configured" }),
         {
@@ -54,6 +58,8 @@ serve(async (req) => {
 
     // Clean the token - remove any leading/trailing whitespace
     const cleanToken = CORESIGNAL_JWT_TOKEN.trim();
+    console.log("Token first 10 chars:", cleanToken.substring(0, 10) + "...");
+    console.log("Token length:", cleanToken.length);
 
     // Start by creating a record in the database
     const { data: dbEntry, error: insertError } = await supabase
@@ -96,13 +102,18 @@ serve(async (req) => {
     };
 
     console.log("Sending search query to Coresignal API:", JSON.stringify(searchQuery));
+    console.log("API endpoint: https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl");
+
+    // Prepare headers for debugging
+    const searchHeaders = {
+      'Authorization': `Bearer ${cleanToken}`,
+      'Content-Type': 'application/json'
+    };
+    console.log("Request headers:", JSON.stringify(searchHeaders));
 
     const searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cleanToken}`,
-        'Content-Type': 'application/json'
-      },
+      headers: searchHeaders,
       body: JSON.stringify(searchQuery)
     });
 
@@ -209,12 +220,16 @@ serve(async (req) => {
     const detailsUrl = `https://api.coresignal.com/cdapi/v1/multi_source/company/collect/${companyId}`;
     console.log("Fetching company details from:", detailsUrl);
 
+    // Prepare headers for debugging
+    const detailsHeaders = {
+      'Authorization': `Bearer ${cleanToken}`,
+      'Content-Type': 'application/json'
+    };
+    console.log("Details request headers:", JSON.stringify(detailsHeaders));
+
     const detailsResponse = await fetch(detailsUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${cleanToken}`,
-        'Content-Type': 'application/json'
-      }
+      headers: detailsHeaders
     });
 
     // Log detailed information about the details response
