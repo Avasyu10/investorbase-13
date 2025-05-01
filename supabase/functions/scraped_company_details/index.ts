@@ -12,8 +12,7 @@ const corsHeaders = {
 // Supabase client initialization with service role key
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-// Use the hard-coded token instead of environment variable
-const CORESIGNAL_JWT_TOKEN = "maLVe60a86gZJQuIrmvTs5DGxOvBg69k";
+const CORESIGNAL_JWT_TOKEN = Deno.env.get("CORESIGNAL_JWT_TOKEN") || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -45,7 +44,7 @@ serve(async (req) => {
 
     console.log("Processing LinkedIn URL:", linkedInUrl);
 
-    // Check if token is properly defined
+    // Check if CORESIGNAL_JWT_TOKEN is configured
     if (!CORESIGNAL_JWT_TOKEN) {
       console.error("Error: CORESIGNAL_JWT_TOKEN is not configured");
       return new Response(
@@ -57,9 +56,10 @@ serve(async (req) => {
       );
     }
 
-    // Log the token we're using for debugging
-    console.log("Token first 10 chars:", CORESIGNAL_JWT_TOKEN.substring(0, 10) + "...");
-    console.log("Token length:", CORESIGNAL_JWT_TOKEN.length);
+    // Clean the token - remove any leading/trailing whitespace
+    const cleanToken = CORESIGNAL_JWT_TOKEN.trim();
+    console.log("Token first 10 chars:", cleanToken.substring(0, 10) + "...");
+    console.log("Token length:", cleanToken.length);
 
     // Start by creating a record in the database
     const { data: dbEntry, error: insertError } = await supabase
@@ -106,7 +106,7 @@ serve(async (req) => {
 
     // Prepare headers for debugging
     const searchHeaders = {
-      'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+      'Authorization': `Bearer ${cleanToken}`,
       'Content-Type': 'application/json'
     };
     console.log("Request headers:", JSON.stringify(searchHeaders));
@@ -222,7 +222,7 @@ serve(async (req) => {
 
     // Prepare headers for debugging
     const detailsHeaders = {
-      'Authorization': `Bearer ${CORESIGNAL_JWT_TOKEN}`,
+      'Authorization': `Bearer ${cleanToken}`,
       'Content-Type': 'application/json'
     };
     console.log("Details request headers:", JSON.stringify(detailsHeaders));
