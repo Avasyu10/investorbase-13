@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,6 +49,7 @@ const CompanyDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [fullResponse, setFullResponse] = useState<any>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any[]>([]);
 
   // Reset state when ID changes
   useEffect(() => {
@@ -76,38 +76,162 @@ const CompanyDetailPage = () => {
       setResponse(null);
       setFullResponse(null);
       setIsSubmitted(true);
+      setDebugInfo([]);
       
-      console.log("Sending request to scraped_company_details function with URL:", linkedInUrl);
+      // Debug info for the console
+      console.log("=========== COMPANY DETAILS DEBUG INFO ===========");
+      console.log(`[${new Date().toISOString()}] Starting API request`);
+      console.log(`LinkedIn URL: ${linkedInUrl}`);
+      console.log("Sending request to scraped_company_details function");
       
-      const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-        body: { linkedInUrl }
-      });
+      let debugLogs = [{
+        timestamp: new Date().toISOString(),
+        event: "Request started",
+        data: { linkedInUrl }
+      }];
+      
+      // Create a custom fetch function with detailed logging
+      const fetchWithLogging = async () => {
+        const startTime = Date.now();
+        debugLogs.push({
+          timestamp: new Date().toISOString(),
+          event: "Initiating function call",
+          data: { 
+            function: 'scraped_company_details',
+            body: { linkedInUrl }
+          }
+        });
+        
+        console.log(`[${new Date().toISOString()}] Creating function request with body:`, { linkedInUrl });
+        
+        // First log the request details that will be sent
+        let reqConfig;
+        try {
+          // Get the request config that supabase will use
+          const { data: configData, error: configError } = await supabase.functions.invoke('scraped_company_details', {
+            body: { linkedInUrl },
+            __method: 'HEAD' // This is a hack to get the config without actually making the request
+          });
+          
+          reqConfig = configData;
+          console.log(`[${new Date().toISOString()}] Request configuration:`, reqConfig);
+          debugLogs.push({
+            timestamp: new Date().toISOString(),
+            event: "Request configuration obtained",
+            data: reqConfig
+          });
+        } catch (configErr) {
+          console.log(`[${new Date().toISOString()}] Could not get request config:`, configErr);
+        }
+        
+        // Now make the actual request
+        console.log(`[${new Date().toISOString()}] Sending request to scraped_company_details function with URL:`, linkedInUrl);
+        
+        try {
+          // Create a direct fetch to log raw request/response
+          const supabaseUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co";
+          const endpoint = `${supabaseUrl}/functions/v1/scraped_company_details`;
+          
+          console.log(`[${new Date().toISOString()}] Direct API call to: ${endpoint}`);
+          debugLogs.push({
+            timestamp: new Date().toISOString(),
+            event: "Direct API call initiated",
+            data: { 
+              url: endpoint,
+              method: 'POST',
+              body: { linkedInUrl }
+            }
+          });
+          
+          // Make the official supabase function call
+          const { data, error } = await supabase.functions.invoke('scraped_company_details', {
+            body: { linkedInUrl }
+          });
+          
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          
+          console.log(`[${new Date().toISOString()}] Function call completed in ${duration}ms`);
+          console.log(`[${new Date().toISOString()}] Response data:`, data);
+          console.log(`[${new Date().toISOString()}] Response error:`, error);
+          
+          debugLogs.push({
+            timestamp: new Date().toISOString(),
+            event: "Response received",
+            duration: `${duration}ms`,
+            data: data,
+            error: error
+          });
+          
+          return { data, error };
+        } catch (fetchErr) {
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          
+          console.error(`[${new Date().toISOString()}] Fetch error after ${duration}ms:`, fetchErr);
+          debugLogs.push({
+            timestamp: new Date().toISOString(),
+            event: "Fetch error",
+            duration: `${duration}ms`,
+            error: fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+          });
+          
+          throw fetchErr;
+        }
+      };
+      
+      const { data, error } = await fetchWithLogging();
       
       if (error) {
-        console.error("Function error:", error);
+        console.error(`[${new Date().toISOString()}] Function error:`, error);
+        debugLogs.push({
+          timestamp: new Date().toISOString(),
+          event: "Function error",
+          error: error
+        });
+        
         setError(error.message || "An error occurred while calling the function");
         toast({
           title: "Error",
           description: error.message || "Failed to fetch company details",
           variant: "destructive"
         });
+        setDebugInfo(debugLogs);
         return;
       }
       
-      console.log("Function response:", data);
+      console.log(`[${new Date().toISOString()}] Function response:`, data);
+      debugLogs.push({
+        timestamp: new Date().toISOString(),
+        event: "Function success",
+        data: data
+      });
       
       if (data.error) {
+        console.error(`[${new Date().toISOString()}] API Error:`, data.error);
+        debugLogs.push({
+          timestamp: new Date().toISOString(),
+          event: "API error",
+          error: data.error
+        });
+        
         setError(data.error);
         toast({
           title: "API Error",
           description: data.error,
           variant: "destructive"
         });
+        setDebugInfo(debugLogs);
         return;
       }
       
       // Store the full response for debugging
       setFullResponse(data);
+      debugLogs.push({
+        timestamp: new Date().toISOString(),
+        event: "Data processed",
+        processedData: "Full response stored for debugging"
+      });
       
       // Extract only the fields we need
       if (data.companyData) {
@@ -135,14 +259,31 @@ const CompanyDetailPage = () => {
         };
         
         setResponse(extractedData);
+        debugLogs.push({
+          timestamp: new Date().toISOString(),
+          event: "Data extracted",
+          extractedData: extractedData
+        });
       }
+      
+      console.log(`[${new Date().toISOString()}] Request completed successfully`);
+      console.log("=========== END DEBUG INFO ===========");
       
       toast({
         title: "Success",
         description: "Company details fetched successfully",
       });
+      
+      setDebugInfo(debugLogs);
     } catch (err: any) {
-      console.error("Unexpected error:", err);
+      console.error(`[${new Date().toISOString()}] Unexpected error:`, err);
+      const debugLog = {
+        timestamp: new Date().toISOString(),
+        event: "Unexpected error",
+        error: err.message || "Unknown error"
+      };
+      
+      setDebugInfo(prevLogs => [...prevLogs, debugLog]);
       setError(err.message || "An unexpected error occurred");
       toast({
         title: "Error",
@@ -216,6 +357,28 @@ const CompanyDetailPage = () => {
     );
   };
 
+  // Debug info display for development
+  const renderDebugInfo = () => {
+    if (debugInfo.length === 0) return null;
+    
+    return (
+      <div className="mt-8 p-4 bg-gray-100 rounded-md overflow-auto max-h-96 text-xs">
+        <h3 className="font-bold mb-2 text-lg">Debug Information</h3>
+        {debugInfo.map((log, index) => (
+          <div key={index} className="mb-2 border-b pb-1">
+            <div className="flex justify-between">
+              <span className="font-mono text-blue-600">{log.timestamp}</span>
+              <span className="font-semibold">{log.event}</span>
+            </div>
+            <pre className="mt-1 whitespace-pre-wrap">
+              {JSON.stringify(log.data || log.error || {}, null, 2)}
+            </pre>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 animate-fade-in">
       {/* Back Button */}
@@ -269,6 +432,28 @@ const CompanyDetailPage = () => {
 
       {isSubmitted && (
         <>
+          {/* Debug button to show console logs */}
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              console.log("=========== MANUAL DEBUG INFO DUMP ===========");
+              console.log("Debug info:", debugInfo);
+              console.log("Full response:", fullResponse);
+              console.log("Error state:", error);
+              console.log("LinkedIn URL:", linkedInUrl);
+              console.log("Is loading:", isLoading);
+              console.log("=========== END MANUAL DEBUG INFO DUMP ===========");
+              toast({
+                title: "Debug Info",
+                description: "Debug information has been logged to console",
+              });
+            }}
+            className="mb-4"
+          >
+            Dump Debug Info to Console
+          </Button>
+          
           {isLoading && (
             <div className="text-center py-12">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
@@ -283,6 +468,7 @@ const CompanyDetailPage = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-red-600">{error}</p>
+                {renderDebugInfo()}
               </CardContent>
             </Card>
           )}
@@ -390,6 +576,7 @@ const CompanyDetailPage = () => {
                 <TabsList className="mb-4 w-full flex max-w-md mx-auto">
                   <TabsTrigger value="details" className="flex-1">Detailed Info</TabsTrigger>
                   <TabsTrigger value="competitors" className="flex-1">Competitors</TabsTrigger>
+                  <TabsTrigger value="debug" className="flex-1">Debug</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="details">
@@ -442,6 +629,20 @@ const CompanyDetailPage = () => {
                       ) : (
                         <p className="text-muted-foreground py-4">No competitor information available</p>
                       )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="debug">
+                  <Card className="border-0 shadow-md">
+                    <CardHeader>
+                      <CardTitle className="text-gold">Debug Information</CardTitle>
+                      <CardDescription>
+                        Technical details about the API request and response
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {renderDebugInfo()}
                     </CardContent>
                   </Card>
                 </TabsContent>
