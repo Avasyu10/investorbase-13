@@ -125,19 +125,14 @@ serve(async (req) => {
 
     // Prepare headers for debugging
     const searchHeaders = {
-      'Authorization': `Bearer ${tokenToUse}`,
+      'apikey': tokenToUse,
       'Content-Type': 'application/json'
     };
     console.log("Request headers:", JSON.stringify(searchHeaders));
     
-    // FIX: Remove this line that was causing the error
-    // The original line was trying to log Authorization header value from req headers
-    // which may not exist, causing the undefined.replace() error
-    // console.log("Authorization header value:", searchHeaders.Authorization);
-    
-    // Log the token from our searchHeaders object instead
-    console.log("Authorization header value:", searchHeaders.Authorization || "Not set");
-    console.log("Token in Authorization header:", searchHeaders.Authorization ? searchHeaders.Authorization.replace("Bearer ", "") : "None");
+    // Log the token values safely
+    console.log("Authorization header value:", searchHeaders.apikey || "Not set");
+    console.log("Token in Authorization header:", searchHeaders.apikey || "None");
 
     // Log the full request details
     console.log("Search Request details:", {
@@ -283,11 +278,11 @@ serve(async (req) => {
 
     // Prepare headers for debugging
     const detailsHeaders = {
-      'Authorization': `Bearer ${tokenToUse}`,
+      'apikey': tokenToUse,
       'Content-Type': 'application/json'
     };
     console.log("Details request headers:", JSON.stringify(detailsHeaders));
-    console.log("Authorization header for details request:", detailsHeaders.Authorization);
+    console.log("Authorization header for details request:", detailsHeaders.apikey);
 
     // Log the full details request
     console.log("Details Request details:", {
