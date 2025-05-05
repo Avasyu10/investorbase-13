@@ -44,9 +44,14 @@ serve(async (req) => {
 
     console.log("Processing LinkedIn URL:", linkedInUrl);
 
-    // Check if CORESIGNAL_JWT_TOKEN is configured
+    // -------- TOKEN HANDLING DIAGNOSTIC LOGS ---------
+    // Get the token from environment variables
+    console.log("Environment variable CORESIGNAL_JWT_TOKEN length:", CORESIGNAL_JWT_TOKEN.length);
+    console.log("Environment variable CORESIGNAL_JWT_TOKEN first few chars:", CORESIGNAL_JWT_TOKEN.substring(0, 5) + "...");
+    
+    // Check if environment variable token is defined
     if (!CORESIGNAL_JWT_TOKEN) {
-      console.error("Error: CORESIGNAL_JWT_TOKEN is not configured");
+      console.error("Error: CORESIGNAL_JWT_TOKEN is not configured in environment");
       return new Response(
         JSON.stringify({ error: "CORESIGNAL_JWT_TOKEN is not configured" }),
         {
@@ -58,8 +63,22 @@ serve(async (req) => {
 
     // Clean the token - remove any leading/trailing whitespace
     const cleanToken = CORESIGNAL_JWT_TOKEN.trim();
-    console.log("Token first 10 chars:", cleanToken.substring(0, 10) + "...");
-    console.log("Token length:", cleanToken.length);
+    console.log("Token first 10 chars (after trim):", cleanToken.substring(0, 10) + "...");
+    console.log("Token length (after trim):", cleanToken.length);
+    
+    // Hardcoding the expected token for comparison
+    const expectedToken = "maLVe60a86gZJQuIrmvTs5DGxOvBg69k";
+    console.log("Expected token first 10 chars:", expectedToken.substring(0, 10) + "...");
+    console.log("Expected token length:", expectedToken.length);
+    
+    // Check if the tokens match
+    const tokensMatch = cleanToken === expectedToken;
+    console.log("Do tokens match?", tokensMatch);
+    console.log("Using token for API calls:", cleanToken);
+
+    // Use the expected token directly for testing
+    const tokenToUse = expectedToken;
+    console.log("Token being used for API call:", tokenToUse);
 
     // Start by creating a record in the database
     const { data: dbEntry, error: insertError } = await supabase
@@ -106,10 +125,20 @@ serve(async (req) => {
 
     // Prepare headers for debugging
     const searchHeaders = {
-      'Authorization': `Bearer ${cleanToken}`,
+      'Authorization': `Bearer ${tokenToUse}`,
       'Content-Type': 'application/json'
     };
     console.log("Request headers:", JSON.stringify(searchHeaders));
+    console.log("Authorization header value:", searchHeaders.Authorization);
+    console.log("Token in Authorization header:", searchHeaders.Authorization.replace("Bearer ", ""));
+
+    // Log the full request details
+    console.log("Search Request details:", {
+      method: 'POST',
+      url: 'https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl',
+      headers: searchHeaders,
+      body: searchQuery
+    });
 
     const searchResponse = await fetch('https://api.coresignal.com/cdapi/v1/multi_source/company/search/es_dsl', {
       method: 'POST',
@@ -119,11 +148,31 @@ serve(async (req) => {
 
     // Log detailed information about the search response
     console.log("Search response status:", searchResponse.status);
+    console.log("Search response status text:", searchResponse.statusText);
     console.log("Search response headers:", JSON.stringify(Object.fromEntries(searchResponse.headers.entries())));
     
+    // If response is not ok, try to get more error details
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
       console.error("Search API error:", searchResponse.status, errorText);
+      
+      // Try to parse response as JSON for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error("Error JSON:", JSON.stringify(errorJson));
+      } catch (e) {
+        console.error("Error is not in JSON format");
+      }
+      
+      // Check for specific error codes
+      if (searchResponse.status === 401) {
+        console.error("Authentication failed (401 Unauthorized) - Token may be invalid or expired");
+        console.error("Token used:", tokenToUse);
+      } else if (searchResponse.status === 403) {
+        console.error("Authorization failed (403 Forbidden) - Token may not have access to this resource");
+      } else if (searchResponse.status === 429) {
+        console.error("Rate limit exceeded (429 Too Many Requests)");
+      }
       
       // Update the database record with the error
       await supabase
@@ -139,7 +188,12 @@ serve(async (req) => {
         JSON.stringify({ 
           error: `Coresignal Search API error: ${searchResponse.status}`,
           message: errorText,
-          query: searchQuery
+          query: searchQuery,
+          token_details: {
+            used: tokenToUse.substring(0, 5) + "...",
+            length: tokenToUse.length,
+            bearer_header: `Bearer ${tokenToUse.substring(0, 5)}...`
+          }
         }),
         {
           status: searchResponse.status,
@@ -222,10 +276,18 @@ serve(async (req) => {
 
     // Prepare headers for debugging
     const detailsHeaders = {
-      'Authorization': `Bearer ${cleanToken}`,
+      'Authorization': `Bearer ${tokenToUse}`,
       'Content-Type': 'application/json'
     };
     console.log("Details request headers:", JSON.stringify(detailsHeaders));
+    console.log("Authorization header for details request:", detailsHeaders.Authorization);
+
+    // Log the full details request
+    console.log("Details Request details:", {
+      method: 'GET',
+      url: detailsUrl,
+      headers: detailsHeaders
+    });
 
     const detailsResponse = await fetch(detailsUrl, {
       method: 'GET',
@@ -234,11 +296,20 @@ serve(async (req) => {
 
     // Log detailed information about the details response
     console.log("Details response status:", detailsResponse.status);
+    console.log("Details response status text:", detailsResponse.statusText);
     console.log("Details response headers:", JSON.stringify(Object.fromEntries(detailsResponse.headers.entries())));
 
     if (!detailsResponse.ok) {
       const errorText = await detailsResponse.text();
       console.error("Details API error:", detailsResponse.status, errorText);
+      
+      // Try to parse response as JSON for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error("Error JSON:", JSON.stringify(errorJson));
+      } catch (e) {
+        console.error("Error is not in JSON format");
+      }
       
       // Update the database record with the error
       await supabase
@@ -254,7 +325,12 @@ serve(async (req) => {
           error: `Coresignal Details API error: ${detailsResponse.status}`,
           message: errorText,
           companyId: companyId,
-          detailsUrl: detailsUrl
+          detailsUrl: detailsUrl,
+          token_details: {
+            used: tokenToUse.substring(0, 5) + "...",
+            length: tokenToUse.length,
+            bearer_header: `Bearer ${tokenToUse.substring(0, 5)}...`
+          }
         }),
         {
           status: detailsResponse.status,
