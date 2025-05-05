@@ -129,8 +129,15 @@ serve(async (req) => {
       'Content-Type': 'application/json'
     };
     console.log("Request headers:", JSON.stringify(searchHeaders));
-    console.log("Authorization header value:", searchHeaders.Authorization);
-    console.log("Token in Authorization header:", searchHeaders.Authorization.replace("Bearer ", ""));
+    
+    // FIX: Remove this line that was causing the error
+    // The original line was trying to log Authorization header value from req headers
+    // which may not exist, causing the undefined.replace() error
+    // console.log("Authorization header value:", searchHeaders.Authorization);
+    
+    // Log the token from our searchHeaders object instead
+    console.log("Authorization header value:", searchHeaders.Authorization || "Not set");
+    console.log("Token in Authorization header:", searchHeaders.Authorization ? searchHeaders.Authorization.replace("Bearer ", "") : "None");
 
     // Log the full request details
     console.log("Search Request details:", {
