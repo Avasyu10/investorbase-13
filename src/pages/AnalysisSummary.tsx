@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,7 +19,7 @@ const PrintStyles = () => (
   <style type="text/css">{`
     @media print {
       @page {
-        margin: 10mm;
+        margin: 0;
         size: auto;
       }
       
@@ -29,7 +28,7 @@ const PrintStyles = () => (
         padding: 0;
         background-color: #1a1a1a !important;
         color: white !important;
-        font-size: 11pt !important;
+        font-size: 12pt !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -47,10 +46,6 @@ const PrintStyles = () => (
       
       .print-break-inside-avoid {
         break-inside: avoid !important;
-      }
-      
-      .print-page-break {
-        page-break-after: always !important;
       }
       
       .print-full-width {
@@ -71,10 +66,9 @@ const PrintStyles = () => (
         break-inside: avoid !important;
         background-color: #1a1a1a !important;
         color: white !important;
-        padding: 20px !important;
       }
       
-      .print-text-white {
+      .print-text-black {
         color: white !important;
       }
       
@@ -96,111 +90,26 @@ const PrintStyles = () => (
       }
       
       .print-title {
-        font-size: 24pt !important;
+        font-size: 18pt !important;
         font-weight: bold !important;
         margin-bottom: 8px !important;
         color: white !important;
-        text-align: center !important;
-      }
-      
-      .print-subtitle {
-        font-size: 16pt !important;
-        margin-top: 0 !important;
-        margin-bottom: 24px !important;
-        color: #bbb !important;
-        text-align: center !important;
       }
       
       .print-header, .print-footer {
         display: none !important;
       }
       
+      .print-page-break {
+        page-break-after: always !important;
+      }
+      
       .print-section-title {
         font-size: 14pt !important;
         font-weight: bold !important;
-        margin-top: 20px !important;
+        margin-top: 15px !important;
         margin-bottom: 10px !important;
         color: white !important;
-        border-bottom: 1px solid #444 !important;
-        padding-bottom: 5px !important;
-      }
-      
-      .print-section-content {
-        margin-bottom: 15px !important;
-      }
-      
-      .print-section {
-        margin-bottom: 30px !important;
-      }
-      
-      .print-memo-header {
-        text-align: center !important;
-        margin-bottom: 30px !important;
-      }
-      
-      .print-company-meta {
-        display: flex !important;
-        justify-content: center !important;
-        flex-wrap: wrap !important;
-        gap: 15px !important;
-        margin-bottom: 20px !important;
-        color: #bbb !important;
-      }
-      
-      .print-company-meta-item {
-        font-size: 10pt !important;
-      }
-      
-      .print-score-container {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 20px 0 !important;
-      }
-      
-      .print-score-badge {
-        padding: 5px 15px !important;
-        border-radius: 9999px !important;
-        font-weight: bold !important;
-        font-size: 14pt !important;
-        background-color: #334155 !important;
-        color: white !important;
-      }
-      
-      .print-score-excellent {
-        background-color: #22c55e !important;
-      }
-      
-      .print-score-good {
-        background-color: #84cc16 !important;
-      }
-      
-      .print-score-average {
-        background-color: #facc15 !important;
-        color: #1a1a1a !important;
-      }
-      
-      .print-score-poor {
-        background-color: #f97316 !important;
-      }
-      
-      .print-score-critical {
-        background-color: #ef4444 !important;
-      }
-      
-      .print-assessment-items {
-        margin-top: 10px !important;
-      }
-      
-      .print-assessment-item {
-        margin-bottom: 8px !important;
-        display: flex !important;
-      }
-      
-      .print-assessment-item:before {
-        content: "•" !important;
-        margin-right: 10px !important;
-        color: #bbb !important;
       }
       
       .recharts-text.recharts-label {
@@ -233,49 +142,8 @@ const PrintStyles = () => (
         fill: white !important;
       }
       
-      .print-date {
-        text-align: right !important;
-        font-size: 9pt !important;
-        color: #999 !important;
-        margin-bottom: 20px !important;
-      }
-      
       .progress-content div {
         background-color: inherit !important;
-      }
-      
-      .print-section-content ul {
-        list-style-type: disc !important;
-        padding-left: 20px !important;
-        margin-top: 10px !important;
-      }
-      
-      .print-section-content ul li {
-        margin-bottom: 5px !important;
-      }
-      
-      .print-insights-list {
-        padding-left: 20px !important;
-      }
-      
-      .print-insights-item {
-        margin-bottom: 5px !important;
-        position: relative !important;
-      }
-      
-      .print-insights-item:before {
-        content: "•" !important;
-        position: absolute !important;
-        left: -18px !important;
-        color: #bbb !important;
-      }
-      
-      .print-strengths {
-        color: #22c55e !important;
-      }
-      
-      .print-weaknesses {
-        color: #ef4444 !important;
       }
     }
   `}</style>
@@ -286,14 +154,10 @@ export default function AnalysisSummary() {
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const [sectionDetails, setSectionDetails] = useState<{
-    [key: string]: { strengths: string[], weaknesses: string[] }
-  }>({});
   
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -316,50 +180,9 @@ export default function AnalysisSummary() {
     getUser();
   }, []);
 
-  useEffect(() => {
-    const fetchSectionDetails = async () => {
-      if (!company?.id) return;
-
-      try {
-        // Fetch all sections for this company
-        const { data: sections, error: sectionsError } = await supabase
-          .from('sections')
-          .select('id, title, type')
-          .eq('company_id', company.id);
-
-        if (sectionsError) throw sectionsError;
-        
-        const details: { [key: string]: { strengths: string[], weaknesses: string[] } } = {};
-        
-        // Fetch details for each section
-        for (const section of sections || []) {
-          const { data: sectionDetails, error: detailsError } = await supabase
-            .from('section_details')
-            .select('content, detail_type')
-            .eq('section_id', section.id);
-            
-          if (detailsError) throw detailsError;
-          
-          details[section.title] = {
-            strengths: sectionDetails?.filter(d => d.detail_type === 'strength').map(d => d.content) || [],
-            weaknesses: sectionDetails?.filter(d => d.detail_type === 'weakness').map(d => d.content) || []
-          };
-        }
-        
-        setSectionDetails(details);
-      } catch (error) {
-        console.error('Error fetching section details:', error);
-      }
-    };
-    
-    if (company) {
-      fetchSectionDetails();
-    }
-  }, [company]);
-
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: `${company?.name || 'Company'} - Investment Memo`,
+    documentTitle: `${company?.name || 'Company'} - Investment Analysis`,
     onBeforeGetContent: () => {
       setIsPrinting(true);
       return new Promise<void>((resolve) => {
@@ -371,13 +194,11 @@ export default function AnalysisSummary() {
     onAfterPrint: () => {
       setIsPrinting(false);
       toast({
-        title: "Investment Memo prepared",
-        description: "Your investment memo has been prepared for printing",
+        title: "Print prepared",
+        description: "Your analysis document has been prepared for printing",
       });
-      // Don't close the modal automatically after printing
-      // so user can see what was printed and close manually
     },
-    pageStyle: '@page { size: auto; margin: 10mm; }',
+    pageStyle: '@page { size: auto; margin: 0; }',
   });
 
   if (isLoading) {
@@ -437,22 +258,6 @@ export default function AnalysisSummary() {
     );
   };
 
-  const getSectionInsights = (sectionName: string) => {
-    const normalizedName = sectionName.toLowerCase();
-    
-    // Find the matching section by normalizing titles
-    const key = Object.keys(sectionDetails).find(title => 
-      title.toLowerCase().includes(normalizedName) || 
-      normalizedName.includes(title.toLowerCase())
-    );
-    
-    if (key && sectionDetails[key]) {
-      return sectionDetails[key];
-    }
-    
-    return { strengths: [], weaknesses: [] };
-  };
-
   return (
     <>
       <PrintStyles />
@@ -482,199 +287,53 @@ export default function AnalysisSummary() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowPrintModal(true)}
+              onClick={handlePrint}
+              disabled={isPrinting}
               className="no-print"
             >
               <Printer className="mr-2 h-4 w-4" />
-              Print Investment Memo
+              {isPrinting ? "Preparing..." : "Print Analysis"}
             </Button>
           </div>
         </div>
 
-        {/* Main content of the Analysis Summary page */}
-        <Card className="mb-4 print-shadow-none print-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-2xl font-bold">
-              {company.name}
-            </CardTitle>
-            <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Company Overview</h3>
-                <p className="text-muted-foreground">
-                  {company?.introduction || 'No description available.'}
-                </p>
-                <div className="mt-4">
+        <div ref={printRef} className="print-container">
+          <Card className="mb-8 print-shadow-none print-card">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-2xl print-text-black">{company?.name}</CardTitle>
+                <div className="flex items-center">
                   <Badge variant={getScoreVariant(company.overallScore)}>
-                    Overall Score: {formattedScore}/5
+                    Score: {formattedScore}/5
                   </Badge>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {getScoreDescription(company.overallScore)}
-                  </p>
+                  <TooltipProvider>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground no-print">
+                          <HelpCircle className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                        <p>{getScoreDescription(company.overallScore)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Key Metrics</h3>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-sm font-medium">Market Opportunity:</p>
-                    <Progress value={company.marketScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.marketScore, "Market Opportunity")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Team:</p>
-                    <Progress value={company.teamScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.teamScore, "Team")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Product:</p>
-                    <Progress value={company.productScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.productScore, "Product")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Financials:</p>
-                    <Progress value={company.financialsScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.financialsScore, "Financials")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Traction:</p>
-                    <Progress value={company.tractionScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.tractionScore, "Traction")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Go-to-Market:</p>
-                    <Progress value={company.goToMarketScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.goToMarketScore, "Go-to-Market")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Competitive Landscape:</p>
-                    <Progress value={company.competitiveScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.competitiveScore, "Competitive Landscape")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Business Model:</p>
-                    <Progress value={company.businessModelScore * 20} className="h-4" />
-                    <p className="text-xs text-muted-foreground">
-                      {getSectionScoreDescription(company.businessModelScore, "Business Model")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {company.reportId && (
-          <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
-            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
-              <DialogHeader>
-                <DialogTitle>{company.name} - Analysis Report</DialogTitle>
-              </DialogHeader>
-              <div className="flex-1 overflow-auto p-1">
-                <ReportViewer reportId={company.reportId} />
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Print Investment Memo Dialog */}
-        <Dialog 
-          open={showPrintModal} 
-          onOpenChange={(open) => {
-            setShowPrintModal(open);
-            if (open) {
-              // Reset printing state when opening the dialog
-              setIsPrinting(false);
-            }
-          }}
-        >
-          <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle>{company.name} - Investment Memo</DialogTitle>
-            </DialogHeader>
-            <div className="flex justify-end mb-4">
-              <Button
-                onClick={handlePrint}
-                disabled={isPrinting}
-              >
-                <Printer className="mr-2 h-4 w-4" />
-                {isPrinting ? "Preparing..." : "Print Memo"}
-              </Button>
-            </div>
-            
-            {/* Print Content */}
-            <div ref={printRef} className="print-container">
-              {/* Investment Memo Format */}
-              <div className="print-memo-header">
-                <h1 className="print-title">{company?.name} - Investment Memo</h1>
-                <div className="print-company-meta">
-                  {company?.website && (
-                    <span className="print-company-meta-item">
-                      Website: {company.website}
-                    </span>
-                  )}
-                  {company?.stage && (
-                    <span className="print-company-meta-item">
-                      Stage: {company.stage}
-                    </span>
-                  )}
-                  {company?.industry && (
-                    <span className="print-company-meta-item">
-                      Industry: {company.industry}
-                    </span>
-                  )}
-                </div>
-                <div className="print-date">
-                  Generated on {currentDate}
-                </div>
-              </div>
-
-              {/* 2. Score */}
-              <div className="print-section">
-                <div className="print-score-container">
-                  <div className={`print-score-badge ${getScoreColor(company.overallScore)}`}>
-                    Investment Score: {formattedScore}/5
-                  </div>
-                </div>
-                <p className="print-text-gray text-center">
+              <CardDescription className="print-text-dark">Complete analysis summary and market research</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-6 print-break-inside-avoid">
+                <h3 className="text-lg font-medium mb-2 print-text-black">Overall Performance</h3>
+                <Progress value={company.overallScore * 20} className="h-2.5 mb-2 progress-content" />
+                <p className="text-sm text-muted-foreground print-text-gray">
                   {getScoreDescription(company.overallScore)}
                 </p>
               </div>
-              
-              {/* 3. Overall Assessment */}
-              <div className="print-section">
-                <h2 className="print-section-title">Overall Assessment</h2>
-                <div className="print-section-content">
-                  <div className="print-assessment-items">
-                    {company.assessmentPoints && company.assessmentPoints.map((point, index) => (
-                      <div key={index} className="print-assessment-item">
-                        {point}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
-              {/* 4. The Graph */}
-              <div className="print-section print-break-inside-avoid">
-                <h2 className="print-section-title">Performance Analysis by Category</h2>
-                <div className="print-chart-container">
+              <div className="mb-8 print-break-inside-avoid">
+                <h3 className="text-lg font-medium mb-4 print-text-black print-section-title">Section Performance Analysis</h3>
+                <div className="h-80 print-chart-container">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={chartData}
@@ -688,11 +347,13 @@ export default function AnalysisSummary() {
                         height={70} 
                         tick={<CustomXAxisTick />}
                         stroke={isPrinting ? "#ffffff" : "#666"}
+                        className="print-text-black"
                       />
                       <YAxis 
                         domain={[0, 5]} 
                         tickCount={6} 
                         stroke={isPrinting ? "#ffffff" : "#666"}
+                        className="print-text-black"
                       />
                       <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
                       <Bar dataKey="score" fill="#8884d8" />
@@ -701,128 +362,68 @@ export default function AnalysisSummary() {
                 </div>
               </div>
 
-              {/* 5. Problem Statement */}
-              <div className="print-section">
-                <h2 className="print-section-title">Problem Statement</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('problem'))}
+              <div>
+                <h3 className="text-lg font-medium mb-4 print-text-black print-section-title">Detailed Section Breakdown</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {company.sections.map((section) => (
+                    <Card key={section.id} className="overflow-hidden print-card print-break-inside-avoid">
+                      <CardHeader className="bg-muted/50 pb-2">
+                        <CardTitle className="text-base print-text-black">{section.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="flex items-center mb-2">
+                          <span className="font-medium mr-2 print-text-black">Score: {section.score}/5</span>
+                          <Progress 
+                            value={section.score * 20} 
+                            className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
+                          />
+                          <TooltipProvider>
+                            <Tooltip delayDuration={300}>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground no-print">
+                                  <HelpCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
+                                <p>{getSectionScoreDescription(section.score, section.title)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2 print-text-dark">
+                          {section.description || 'No description available'}
+                        </p>
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          className="p-0 h-auto mt-2 no-print"
+                          onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
+                        >
+                          View Research Details →
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
 
-              {/* 6. Market Opportunity */}
-              <div className="print-section">
-                <h2 className="print-section-title">Market Opportunity</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('market'))}
-                </div>
+        {company.reportId && (
+          <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{company.name} - Analysis Report</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-auto p-1">
+                <ReportViewer reportId={company.reportId} />
               </div>
-
-              {/* 7. Solution */}
-              <div className="print-section">
-                <h2 className="print-section-title">Solution</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('solution'))}
-                </div>
-              </div>
-
-              {/* 8. Competitive Landscape */}
-              <div className="print-section">
-                <h2 className="print-section-title">Competitive Landscape</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('competitive'))}
-                </div>
-              </div>
-
-              {/* 9. Traction */}
-              <div className="print-section">
-                <h2 className="print-section-title">Traction</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('traction'))}
-                </div>
-              </div>
-
-              {/* 10. Business Model */}
-              <div className="print-section">
-                <h2 className="print-section-title">Business Model</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('business model'))}
-                </div>
-              </div>
-
-              {/* 11. Go-to-market Strategy */}
-              <div className="print-section">
-                <h2 className="print-section-title">Go-to-market Strategy</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('go-to-market'))}
-                </div>
-              </div>
-
-              {/* 12. Team */}
-              <div className="print-section">
-                <h2 className="print-section-title">Team</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('team'))}
-                </div>
-              </div>
-
-              {/* 13. Financials */}
-              <div className="print-section">
-                <h2 className="print-section-title">Financials</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('financials'))}
-                </div>
-              </div>
-
-              {/* 14. The Ask */}
-              <div className="print-section">
-                <h2 className="print-section-title">The Ask</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('ask'))}
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </>
-  );
-}
-
-// Helper function to render section strengths and weaknesses
-function renderSectionInsights(insights: { strengths: string[], weaknesses: string[] }) {
-  if ((!insights.strengths || insights.strengths.length === 0) && 
-      (!insights.weaknesses || insights.weaknesses.length === 0)) {
-    return <p className="text-muted-foreground print-text-gray">No specific insights available.</p>;
-  }
-  
-  return (
-    <div>
-      {insights.strengths && insights.strengths.length > 0 && (
-        <div className="mb-3">
-          <p className="font-medium print-strengths">Strengths:</p>
-          <div className="print-insights-list">
-            {insights.strengths.map((strength, idx) => (
-              <div key={`strength-${idx}`} className="print-insights-item">
-                {strength}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {insights.weaknesses && insights.weaknesses.length > 0 && (
-        <div>
-          <p className="font-medium print-weaknesses">Weaknesses:</p>
-          <div className="print-insights-list">
-            {insights.weaknesses.map((weakness, idx) => (
-              <div key={`weakness-${idx}`} className="print-insights-item">
-                {weakness}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -832,14 +433,6 @@ function getColorForScore(score: number): string {
   if (score >= 2) return '#facc15'; // Yellow
   if (score >= 1) return '#f97316'; // Orange
   return '#ef4444'; // Red
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 4.5) return "print-score-excellent";
-  if (score >= 3.5) return "print-score-good";
-  if (score >= 2.5) return "print-score-average";
-  if (score >= 1.5) return "print-score-poor";
-  return "print-score-critical";
 }
 
 function getScoreVariant(score: number): 'default' | 'outline' | 'secondary' | 'destructive' {
@@ -883,43 +476,42 @@ function getSectionSpecificFeedback(score: number, sectionTitle: string): string
   }
   
   if (sectionLower.includes("product") || sectionLower.includes("solution")) {
-    if (score >= 3.5) return "The product demonstrates strong innovation, clear product-market fit, and compelling differentiation from competitors.";
-    if (score >= 2.5) return "The product solves a real problem but may lack strong differentiation or have some technical limitations.";
-    return "The product has critical flaws in design, lacks clear differentiation, or fails to address the stated problem effectively.";
+    if (score >= 3.5) return "The product shows clear differentiation, addresses a specific need, and has demonstrable competitive advantages.";
+    if (score >= 2.5) return "The product addresses a real problem but has limited differentiation or hasn't fully validated product-market fit.";
+    return "The product lacks unique selling proposition, faces significant technical challenges, or doesn't effectively solve the stated problem.";
   }
   
-  if (sectionLower.includes("financials") || sectionLower.includes("finance")) {
-    if (score >= 3.5) return "Financial projections are realistic and well-supported by market data and unit economics. The company demonstrates a clear path to profitability.";
-    if (score >= 2.5) return "Financial model is generally sound but contains some optimistic assumptions or lacks detailed unit economics analysis.";
-    return "Financial projections are unrealistic, with major gaps in understanding of unit economics or capital requirements.";
+  if (sectionLower.includes("finance") || sectionLower.includes("financial")) {
+    if (score >= 3.5) return "Financial projections are realistic with clear unit economics, reasonable growth assumptions, and well-planned capital needs.";
+    if (score >= 2.5) return "Financial model is structurally sound but contains optimistic assumptions or lacks detail in key operational metrics.";
+    return "Financial projections lack credibility, contain major inconsistencies, or fail to demonstrate a path to profitability.";
   }
   
-  if (sectionLower.includes("traction")) {
-    if (score >= 3.5) return "Strong demonstrated traction with validated customer interest, expanding user base, and positive growth trajectory.";
-    if (score >= 2.5) return "Some early traction indicators but limited historical data or slower-than-expected user adoption.";
-    return "Minimal verifiable traction, with limited customer validation or concerning churn metrics.";
+  if (sectionLower.includes("traction") || sectionLower.includes("metrics")) {
+    if (score >= 3.5) return "Strong validated traction with growing user/customer base, improving engagement metrics, and solid revenue growth.";
+    if (score >= 2.5) return "Shows early traction with some customer validation, but limited operating history or inconsistent growth metrics.";
+    return "Limited or unverifiable traction, concerning churn rates, or inability to demonstrate product-market fit with actual usage data.";
   }
   
-  if (sectionLower.includes("go") && sectionLower.includes("market")) {
-    if (score >= 3.5) return "Clear go-to-market strategy with well-defined customer acquisition channels, reasonable CAC projections, and strong sales approach.";
-    if (score >= 2.5) return "Basic go-to-market approach defined but may lack detailed channel strategy or have unclear customer acquisition economics.";
-    return "Inadequate go-to-market plan with unrealistic customer acquisition costs or poorly defined sales strategy.";
+  if (sectionLower.includes("go-to-market") || sectionLower.includes("strategy") || sectionLower.includes("marketing")) {
+    if (score >= 3.5) return "Well-defined customer acquisition strategy with clear channels, realistic CAC projections, and proven conversion metrics.";
+    if (score >= 2.5) return "Basic customer acquisition approach is outlined but lacks detail on specific channels, conversion rates, or scaling strategies.";
+    return "Go-to-market strategy is vague, lacks proven channels, or shows unrealistic customer acquisition cost assumptions.";
   }
   
-  if (sectionLower.includes("competitive")) {
-    if (score >= 3.5) return "Strong competitive positioning with clear differentiation and sustainable advantages in a well-understood competitive landscape.";
-    if (score >= 2.5) return "Adequate competitive analysis but with some gaps in differentiation strategy or vulnerability to larger competitors.";
-    return "Poor understanding of the competitive landscape with limited differentiation or clear vulnerability to existing solutions.";
+  if (sectionLower.includes("competition") || sectionLower.includes("competitive")) {
+    if (score >= 3.5) return "Thorough competitive analysis with clear differentiation strategy and realistic assessment of market positioning.";
+    if (score >= 2.5) return "Identifies major competitors but has gaps in competitive differentiation strategy or underestimates competitive threats.";
+    return "Fails to identify key competitors, lacks meaningful differentiation, or underestimates barriers to entry and competitive responses.";
   }
   
-  if (sectionLower.includes("business") && sectionLower.includes("model")) {
-    if (score >= 3.5) return "Well-defined business model with clear revenue streams, strong unit economics, and scalable approach.";
-    if (score >= 2.5) return "Plausible business model but with some concerns about long-term sustainability or scalability.";
-    return "Poorly defined business model with fundamental flaws in revenue generation approach or unsustainable economics.";
+  if (sectionLower.includes("business model")) {
+    if (score >= 3.5) return "Clear, sustainable revenue model with strong unit economics, reasonable pricing strategy, and multiple potential revenue streams.";
+    if (score >= 2.5) return "Viable revenue model but with concerns about scalability, pricing power, or long-term margin potential.";
+    return "Unclear path to sustainable revenue, problematic unit economics, or unproven business model requiring significant validation.";
   }
   
-  // Default feedback for other sections
-  if (score >= 3.5) return "Shows strong performance and potential in this area with minimal concerns.";
-  if (score >= 2.5) return "Demonstrates adequate capability in this area but with room for improvement.";
-  return "Shows significant weaknesses in this area requiring substantial improvement.";
+  if (score >= 3.5) return "This aspect is well-handled with strong execution and clear strategic alignment.";
+  if (score >= 2.5) return "This aspect meets basic requirements but has room for improvement in execution and strategic alignment.";
+  return "This aspect shows significant weaknesses that require substantial revision to meet investor expectations.";
 }
