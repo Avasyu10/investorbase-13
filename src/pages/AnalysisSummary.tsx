@@ -1,15 +1,16 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Maximize, HelpCircle, Printer, ArrowRight } from 'lucide-react';
+import { ChevronLeft, Maximize, HelpCircle, Printer } from 'lucide-react';
 import { useCompanyDetails } from '@/hooks/useCompanies';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ReportViewer } from '@/components/reports/ReportViewer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { InvestorResearch } from '@/components/companies/InvestorResearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useReactToPrint } from 'react-to-print';
@@ -406,13 +407,14 @@ export default function AnalysisSummary() {
     );
   }
 
-  const formattedScore = company.overallScore ? parseFloat(company.overallScore.toFixed(1)) : 0;
-  
-  const chartData = company.sections?.map(section => ({
+  const formattedScore = parseFloat(company.overallScore.toFixed(1));
+  console.log(`Company score: original=${company.overallScore}, formatted=${formattedScore}`);
+
+  const chartData = company.sections.map(section => ({
     name: section.title,
     score: parseFloat(section.score.toFixed(1)),
     fill: getColorForScore(section.score)
-  })) || [];
+  }));
 
   const CustomXAxisTick = (props: any) => {
     const { x, y, payload } = props;
@@ -454,21 +456,23 @@ export default function AnalysisSummary() {
     <>
       <PrintStyles />
       <div className="container max-w-5xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 no-print">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate(`/company/${companyId}`)}
+            className="no-print"
           >
             <ChevronLeft className="mr-1" /> Back to Company Details
           </Button>
           
           <div className="flex gap-2">
-            {company.reportId && (
+            {company?.reportId && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowReportModal(true)}
+                className="no-print"
               >
                 <Maximize className="mr-2 h-4 w-4" />
                 View Deck
@@ -478,6 +482,7 @@ export default function AnalysisSummary() {
               variant="outline"
               size="sm"
               onClick={() => setShowPrintModal(true)}
+              className="no-print"
             >
               <Printer className="mr-2 h-4 w-4" />
               Print Investment Memo
@@ -485,129 +490,95 @@ export default function AnalysisSummary() {
           </div>
         </div>
 
-        {/* Main content of the Analysis Summary page - Restored original format */}
-        <Card className="mb-6 bg-card/50 border-0 shadow-md">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-2xl font-bold">
-                  {company.name}
-                </CardTitle>
-                <p className="text-muted-foreground text-sm">
-                  Complete analysis summary and market research
-                </p>
-              </div>
-              <div className="flex items-center">
-                <span className="font-semibold mr-2">Score: {formattedScore}/5</span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">{getScoreDescription(company.overallScore || 0)}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </div>
+        {/* Main content of the Analysis Summary page */}
+        <Card className="mb-4 print-shadow-none print-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-2xl font-bold">
+              {company.name}
+            </CardTitle>
+            <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {/* Overall Performance section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h3 className="text-xl font-semibold mb-2">Overall Performance</h3>
-                <div className="mb-2">
-                  <Progress value={(company.overallScore || 0) * 20} className="h-3" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {getScoreDescription(company.overallScore || 0)}
+                <h3 className="text-lg font-semibold mb-2">Company Overview</h3>
+                <p className="text-muted-foreground">
+                  {company.companyDetails?.description || 'No description available.'}
                 </p>
-              </div>
-
-              {/* Section Performance Analysis - Chart */}
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Section Performance Analysis</h3>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-                      <XAxis 
-                        dataKey="name" 
-                        angle={-45} 
-                        textAnchor="end" 
-                        height={70}
-                        tick={CustomXAxisTick}
-                        stroke="#666"
-                      />
-                      <YAxis 
-                        domain={[0, 5]} 
-                        tickCount={6} 
-                        stroke="#666"
-                      />
-                      <RechartsTooltip 
-                        formatter={(value: any) => [`${value}/5`, 'Score']} 
-                        contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                      />
-                      <Bar dataKey="score" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="mt-4">
+                  <Badge variant={getScoreVariant(company.overallScore)}>
+                    Overall Score: {formattedScore}/5
+                  </Badge>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {getScoreDescription(company.overallScore)}
+                  </p>
                 </div>
               </div>
-
-              {/* Detailed Section Breakdown */}
               <div>
-                <h3 className="text-xl font-semibold mb-4">Detailed Section Breakdown</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {company.sections?.map((section) => (
-                    <Card key={section.id} className="bg-card/70 border-0 shadow-sm">
-                      <CardHeader className="py-3 px-4">
-                        <h4 className="text-base font-semibold">{section.title}</h4>
-                      </CardHeader>
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm font-medium">Score: {section.score.toFixed(1)}/5</span>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">{getSectionScoreDescription(section.score, section.title)}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <Progress value={section.score * 20} className="h-2 mb-3" />
-                        
-                        {section.content ? (
-                          <p className="text-sm text-muted-foreground">{section.content}</p>
-                        ) : (
-                          <div className="flex items-start gap-2">
-                            <p className="text-sm text-amber-500 flex items-center">
-                              ⚠️ MISSING SECTION: {section.title} is not present in this pitch deck
-                            </p>
-                          </div>
-                        )}
-                        
-                        <div className="mt-3 flex justify-end">
-                          <Button variant="link" size="sm" className="p-0 h-auto text-primary">
-                            View Research Details <ArrowRight className="h-3 w-3 ml-1" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <h3 className="text-lg font-semibold mb-2">Key Metrics</h3>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm font-medium">Market Opportunity:</p>
+                    <Progress value={company.marketScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.marketScore, "Market Opportunity")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Team:</p>
+                    <Progress value={company.teamScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.teamScore, "Team")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Product:</p>
+                    <Progress value={company.productScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.productScore, "Product")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Financials:</p>
+                    <Progress value={company.financialsScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.financialsScore, "Financials")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Traction:</p>
+                    <Progress value={company.tractionScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.tractionScore, "Traction")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Go-to-Market:</p>
+                    <Progress value={company.goToMarketScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.goToMarketScore, "Go-to-Market")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Competitive Landscape:</p>
+                    <Progress value={company.competitiveScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.competitiveScore, "Competitive Landscape")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Business Model:</p>
+                    <Progress value={company.businessModelScore * 20} className="h-4" />
+                    <p className="text-xs text-muted-foreground">
+                      {getSectionScoreDescription(company.businessModelScore, "Business Model")}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Report Modal */}
         {company.reportId && (
           <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
             <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
@@ -650,19 +621,19 @@ export default function AnalysisSummary() {
             <div ref={printRef} className="print-container">
               {/* Investment Memo Format */}
               <div className="print-memo-header">
-                <h1 className="print-title">{company.name} - Investment Memo</h1>
+                <h1 className="print-title">{company?.name} - Investment Memo</h1>
                 <div className="print-company-meta">
-                  {company.companyDetails?.website && (
+                  {company?.companyDetails?.website && (
                     <span className="print-company-meta-item">
                       Website: {company.companyDetails.website}
                     </span>
                   )}
-                  {company.companyDetails?.stage && (
+                  {company?.companyDetails?.stage && (
                     <span className="print-company-meta-item">
                       Stage: {company.companyDetails.stage}
                     </span>
                   )}
-                  {company.companyDetails?.industry && (
+                  {company?.companyDetails?.industry && (
                     <span className="print-company-meta-item">
                       Industry: {company.companyDetails.industry}
                     </span>
@@ -676,12 +647,12 @@ export default function AnalysisSummary() {
               {/* 2. Score */}
               <div className="print-section">
                 <div className="print-score-container">
-                  <div className={`print-score-badge ${getScoreColor(company.overallScore || 0)}`}>
+                  <div className={`print-score-badge ${getScoreColor(company.overallScore)}`}>
                     Investment Score: {formattedScore}/5
                   </div>
                 </div>
                 <p className="print-text-gray text-center">
-                  {getScoreDescription(company.overallScore || 0)}
+                  {getScoreDescription(company.overallScore)}
                 </p>
               </div>
               
@@ -722,7 +693,7 @@ export default function AnalysisSummary() {
                         tickCount={6} 
                         stroke={isPrinting ? "#ffffff" : "#666"}
                       />
-                      <RechartsTooltip formatter={(value: any) => [`${value}/5`, 'Score']} />
+                      <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
                       <Bar dataKey="score" fill="#8884d8" />
                     </BarChart>
                   </ResponsiveContainer>
