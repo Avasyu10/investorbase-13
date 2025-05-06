@@ -209,7 +209,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
               <TableHead className="w-[100px]">Industry</TableHead>
               <TableHead className="w-[120px]">LinkedIn</TableHead>
               <TableHead className="w-[120px]">Status</TableHead>
-              <TableHead className="w-[120px]">Status Date</TableHead>
+              <TableHead className="w-[120px]">Status Changed</TableHead>
               <TableHead className="w-[120px]">Account Manager</TableHead>
               <TableHead className="w-[150px]">Notes</TableHead>
               <TableHead className="w-[50px]">Actions</TableHead>
