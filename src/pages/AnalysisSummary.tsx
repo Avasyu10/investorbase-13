@@ -19,7 +19,7 @@ const PrintStyles = () => (
   <style type="text/css">{`
     @media print {
       @page {
-        margin: 0;
+        margin: 10mm;
         size: auto;
       }
       
@@ -28,7 +28,7 @@ const PrintStyles = () => (
         padding: 0;
         background-color: #1a1a1a !important;
         color: white !important;
-        font-size: 12pt !important;
+        font-size: 11pt !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -46,6 +46,10 @@ const PrintStyles = () => (
       
       .print-break-inside-avoid {
         break-inside: avoid !important;
+      }
+      
+      .print-page-break {
+        page-break-after: always !important;
       }
       
       .print-full-width {
@@ -66,9 +70,10 @@ const PrintStyles = () => (
         break-inside: avoid !important;
         background-color: #1a1a1a !important;
         color: white !important;
+        padding: 20px !important;
       }
       
-      .print-text-black {
+      .print-text-white {
         color: white !important;
       }
       
@@ -90,26 +95,111 @@ const PrintStyles = () => (
       }
       
       .print-title {
-        font-size: 18pt !important;
+        font-size: 24pt !important;
         font-weight: bold !important;
         margin-bottom: 8px !important;
         color: white !important;
+        text-align: center !important;
+      }
+      
+      .print-subtitle {
+        font-size: 16pt !important;
+        margin-top: 0 !important;
+        margin-bottom: 24px !important;
+        color: #bbb !important;
+        text-align: center !important;
       }
       
       .print-header, .print-footer {
         display: none !important;
       }
       
-      .print-page-break {
-        page-break-after: always !important;
-      }
-      
       .print-section-title {
         font-size: 14pt !important;
         font-weight: bold !important;
-        margin-top: 15px !important;
+        margin-top: 20px !important;
         margin-bottom: 10px !important;
         color: white !important;
+        border-bottom: 1px solid #444 !important;
+        padding-bottom: 5px !important;
+      }
+      
+      .print-section-content {
+        margin-bottom: 15px !important;
+      }
+      
+      .print-section {
+        margin-bottom: 30px !important;
+      }
+      
+      .print-memo-header {
+        text-align: center !important;
+        margin-bottom: 30px !important;
+      }
+      
+      .print-company-meta {
+        display: flex !important;
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        gap: 15px !important;
+        margin-bottom: 20px !important;
+        color: #bbb !important;
+      }
+      
+      .print-company-meta-item {
+        font-size: 10pt !important;
+      }
+      
+      .print-score-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 20px 0 !important;
+      }
+      
+      .print-score-badge {
+        padding: 5px 15px !important;
+        border-radius: 9999px !important;
+        font-weight: bold !important;
+        font-size: 14pt !important;
+        background-color: #334155 !important;
+        color: white !important;
+      }
+      
+      .print-score-excellent {
+        background-color: #22c55e !important;
+      }
+      
+      .print-score-good {
+        background-color: #84cc16 !important;
+      }
+      
+      .print-score-average {
+        background-color: #facc15 !important;
+        color: #1a1a1a !important;
+      }
+      
+      .print-score-poor {
+        background-color: #f97316 !important;
+      }
+      
+      .print-score-critical {
+        background-color: #ef4444 !important;
+      }
+      
+      .print-assessment-items {
+        margin-top: 10px !important;
+      }
+      
+      .print-assessment-item {
+        margin-bottom: 8px !important;
+        display: flex !important;
+      }
+      
+      .print-assessment-item:before {
+        content: "•" !important;
+        margin-right: 10px !important;
+        color: #bbb !important;
       }
       
       .recharts-text.recharts-label {
@@ -142,8 +232,49 @@ const PrintStyles = () => (
         fill: white !important;
       }
       
+      .print-date {
+        text-align: right !important;
+        font-size: 9pt !important;
+        color: #999 !important;
+        margin-bottom: 20px !important;
+      }
+      
       .progress-content div {
         background-color: inherit !important;
+      }
+      
+      .print-section-content ul {
+        list-style-type: disc !important;
+        padding-left: 20px !important;
+        margin-top: 10px !important;
+      }
+      
+      .print-section-content ul li {
+        margin-bottom: 5px !important;
+      }
+      
+      .print-insights-list {
+        padding-left: 20px !important;
+      }
+      
+      .print-insights-item {
+        margin-bottom: 5px !important;
+        position: relative !important;
+      }
+      
+      .print-insights-item:before {
+        content: "•" !important;
+        position: absolute !important;
+        left: -18px !important;
+        color: #bbb !important;
+      }
+      
+      .print-strengths {
+        color: #22c55e !important;
+      }
+      
+      .print-weaknesses {
+        color: #ef4444 !important;
       }
     }
   `}</style>
@@ -158,6 +289,9 @@ export default function AnalysisSummary() {
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [sectionDetails, setSectionDetails] = useState<{
+    [key: string]: { strengths: string[], weaknesses: string[] }
+  }>({});
   
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -180,9 +314,50 @@ export default function AnalysisSummary() {
     getUser();
   }, []);
 
+  useEffect(() => {
+    const fetchSectionDetails = async () => {
+      if (!company?.id) return;
+
+      try {
+        // Fetch all sections for this company
+        const { data: sections, error: sectionsError } = await supabase
+          .from('sections')
+          .select('id, title, type')
+          .eq('company_id', company.id);
+
+        if (sectionsError) throw sectionsError;
+        
+        const details: { [key: string]: { strengths: string[], weaknesses: string[] } } = {};
+        
+        // Fetch details for each section
+        for (const section of sections || []) {
+          const { data: sectionDetails, error: detailsError } = await supabase
+            .from('section_details')
+            .select('content, detail_type')
+            .eq('section_id', section.id);
+            
+          if (detailsError) throw detailsError;
+          
+          details[section.title] = {
+            strengths: sectionDetails?.filter(d => d.detail_type === 'strength').map(d => d.content) || [],
+            weaknesses: sectionDetails?.filter(d => d.detail_type === 'weakness').map(d => d.content) || []
+          };
+        }
+        
+        setSectionDetails(details);
+      } catch (error) {
+        console.error('Error fetching section details:', error);
+      }
+    };
+    
+    if (company) {
+      fetchSectionDetails();
+    }
+  }, [company]);
+
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: `${company?.name || 'Company'} - Investment Analysis`,
+    documentTitle: `${company?.name || 'Company'} - Investment Memo`,
     onBeforeGetContent: () => {
       setIsPrinting(true);
       return new Promise<void>((resolve) => {
@@ -194,11 +369,11 @@ export default function AnalysisSummary() {
     onAfterPrint: () => {
       setIsPrinting(false);
       toast({
-        title: "Print prepared",
-        description: "Your analysis document has been prepared for printing",
+        title: "Investment Memo prepared",
+        description: "Your investment memo has been prepared for printing",
       });
     },
-    pageStyle: '@page { size: auto; margin: 0; }',
+    pageStyle: '@page { size: auto; margin: 10mm; }',
   });
 
   if (isLoading) {
@@ -258,6 +433,22 @@ export default function AnalysisSummary() {
     );
   };
 
+  const getSectionInsights = (sectionName: string) => {
+    const normalizedName = sectionName.toLowerCase();
+    
+    // Find the matching section by normalizing titles
+    const key = Object.keys(sectionDetails).find(title => 
+      title.toLowerCase().includes(normalizedName) || 
+      normalizedName.includes(title.toLowerCase())
+    );
+    
+    if (key && sectionDetails[key]) {
+      return sectionDetails[key];
+    }
+    
+    return { strengths: [], weaknesses: [] };
+  };
+
   return (
     <>
       <PrintStyles />
@@ -292,122 +483,172 @@ export default function AnalysisSummary() {
               className="no-print"
             >
               <Printer className="mr-2 h-4 w-4" />
-              {isPrinting ? "Preparing..." : "Print Analysis"}
+              {isPrinting ? "Preparing..." : "Print Investment Memo"}
             </Button>
           </div>
         </div>
 
         <div ref={printRef} className="print-container">
-          <Card className="mb-8 print-shadow-none print-card">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl print-text-black">{company?.name}</CardTitle>
-                <div className="flex items-center">
-                  <Badge variant={getScoreVariant(company.overallScore)}>
-                    Score: {formattedScore}/5
-                  </Badge>
-                  <TooltipProvider>
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground no-print">
-                          <HelpCircle className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                        <p>{getScoreDescription(company.overallScore)}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </div>
-              <CardDescription className="print-text-dark">Complete analysis summary and market research</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6 print-break-inside-avoid">
-                <h3 className="text-lg font-medium mb-2 print-text-black">Overall Performance</h3>
-                <Progress value={company.overallScore * 20} className="h-2.5 mb-2 progress-content" />
-                <p className="text-sm text-muted-foreground print-text-gray">
-                  {getScoreDescription(company.overallScore)}
-                </p>
-              </div>
+          {/* Investment Memo Format */}
+          <div className="print-memo-header">
+            <h1 className="print-title">{company?.name} - Investment Memo</h1>
+            <div className="print-company-meta">
+              {company?.companyDetails?.website && (
+                <span className="print-company-meta-item">
+                  Website: {company.companyDetails.website}
+                </span>
+              )}
+              {company?.companyDetails?.stage && (
+                <span className="print-company-meta-item">
+                  Stage: {company.companyDetails.stage}
+                </span>
+              )}
+              {company?.companyDetails?.industry && (
+                <span className="print-company-meta-item">
+                  Industry: {company.companyDetails.industry}
+                </span>
+              )}
+            </div>
+            <div className="print-date">
+              Generated on {currentDate}
+            </div>
+          </div>
 
-              <div className="mb-8 print-break-inside-avoid">
-                <h3 className="text-lg font-medium mb-4 print-text-black print-section-title">Section Performance Analysis</h3>
-                <div className="h-80 print-chart-container">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="name" 
-                        angle={-45} 
-                        textAnchor="end" 
-                        height={70} 
-                        tick={<CustomXAxisTick />}
-                        stroke={isPrinting ? "#ffffff" : "#666"}
-                        className="print-text-black"
-                      />
-                      <YAxis 
-                        domain={[0, 5]} 
-                        tickCount={6} 
-                        stroke={isPrinting ? "#ffffff" : "#666"}
-                        className="print-text-black"
-                      />
-                      <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
-                      <Bar dataKey="score" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+          {/* 2. Score */}
+          <div className="print-section">
+            <div className="print-score-container">
+              <div className={`print-score-badge ${getScoreColor(company.overallScore)}`}>
+                Investment Score: {formattedScore}/5
               </div>
+            </div>
+            <p className="print-text-gray text-center">
+              {getScoreDescription(company.overallScore)}
+            </p>
+          </div>
+          
+          {/* 3. Overall Assessment */}
+          <div className="print-section">
+            <h2 className="print-section-title">Overall Assessment</h2>
+            <div className="print-section-content">
+              <div className="print-assessment-items">
+                {company.assessmentPoints && company.assessmentPoints.map((point, index) => (
+                  <div key={index} className="print-assessment-item">
+                    {point}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
-              <div>
-                <h3 className="text-lg font-medium mb-4 print-text-black print-section-title">Detailed Section Breakdown</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {company.sections.map((section) => (
-                    <Card key={section.id} className="overflow-hidden print-card print-break-inside-avoid">
-                      <CardHeader className="bg-muted/50 pb-2">
-                        <CardTitle className="text-base print-text-black">{section.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4">
-                        <div className="flex items-center mb-2">
-                          <span className="font-medium mr-2 print-text-black">Score: {section.score}/5</span>
-                          <Progress 
-                            value={section.score * 20} 
-                            className={`h-2 flex-1 ${section.score >= 4 ? 'bg-green-100' : section.score >= 2.5 ? 'bg-amber-100' : 'bg-red-100'}`} 
-                          />
-                          <TooltipProvider>
-                            <Tooltip delayDuration={300}>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 ml-1 text-muted-foreground no-print">
-                                  <HelpCircle className="h-3.5 w-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                                <p>{getSectionScoreDescription(section.score, section.title)}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2 print-text-dark">
-                          {section.description || 'No description available'}
-                        </p>
-                        <Button 
-                          variant="link" 
-                          size="sm" 
-                          className="p-0 h-auto mt-2 no-print"
-                          onClick={() => navigate(`/company/${companyId}/section/${section.id}`)}
-                        >
-                          View Research Details →
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* 4. The Graph */}
+          <div className="print-section print-break-inside-avoid">
+            <h2 className="print-section-title">Performance Analysis by Category</h2>
+            <div className="print-chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={70} 
+                    tick={<CustomXAxisTick />}
+                    stroke={isPrinting ? "#ffffff" : "#666"}
+                  />
+                  <YAxis 
+                    domain={[0, 5]} 
+                    tickCount={6} 
+                    stroke={isPrinting ? "#ffffff" : "#666"}
+                  />
+                  <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
+                  <Bar dataKey="score" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 5. Problem Statement */}
+          <div className="print-section">
+            <h2 className="print-section-title">Problem Statement</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('problem'))}
+            </div>
+          </div>
+
+          {/* 6. Market Opportunity */}
+          <div className="print-section">
+            <h2 className="print-section-title">Market Opportunity</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('market'))}
+            </div>
+          </div>
+
+          {/* 7. Solution */}
+          <div className="print-section">
+            <h2 className="print-section-title">Solution</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('solution'))}
+            </div>
+          </div>
+
+          {/* 8. Competitive Landscape */}
+          <div className="print-section">
+            <h2 className="print-section-title">Competitive Landscape</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('competitive'))}
+            </div>
+          </div>
+
+          {/* 9. Traction */}
+          <div className="print-section">
+            <h2 className="print-section-title">Traction</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('traction'))}
+            </div>
+          </div>
+
+          {/* 10. Business Model */}
+          <div className="print-section">
+            <h2 className="print-section-title">Business Model</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('business model'))}
+            </div>
+          </div>
+
+          {/* 11. Go-to-market Strategy */}
+          <div className="print-section">
+            <h2 className="print-section-title">Go-to-market Strategy</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('go-to-market'))}
+            </div>
+          </div>
+
+          {/* 12. Team */}
+          <div className="print-section">
+            <h2 className="print-section-title">Team</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('team'))}
+            </div>
+          </div>
+
+          {/* 13. Financials */}
+          <div className="print-section">
+            <h2 className="print-section-title">Financials</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('financials'))}
+            </div>
+          </div>
+
+          {/* 14. The Ask */}
+          <div className="print-section">
+            <h2 className="print-section-title">The Ask</h2>
+            <div className="print-section-content">
+              {renderSectionInsights(getSectionInsights('ask'))}
+            </div>
+          </div>
         </div>
 
         {company.reportId && (
@@ -427,12 +668,58 @@ export default function AnalysisSummary() {
   );
 }
 
+// Helper function to render section strengths and weaknesses
+function renderSectionInsights(insights: { strengths: string[], weaknesses: string[] }) {
+  if ((!insights.strengths || insights.strengths.length === 0) && 
+      (!insights.weaknesses || insights.weaknesses.length === 0)) {
+    return <p className="text-muted-foreground print-text-gray">No specific insights available.</p>;
+  }
+  
+  return (
+    <div>
+      {insights.strengths && insights.strengths.length > 0 && (
+        <div className="mb-3">
+          <p className="font-medium print-strengths">Strengths:</p>
+          <div className="print-insights-list">
+            {insights.strengths.map((strength, idx) => (
+              <div key={`strength-${idx}`} className="print-insights-item">
+                {strength}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {insights.weaknesses && insights.weaknesses.length > 0 && (
+        <div>
+          <p className="font-medium print-weaknesses">Weaknesses:</p>
+          <div className="print-insights-list">
+            {insights.weaknesses.map((weakness, idx) => (
+              <div key={`weakness-${idx}`} className="print-insights-item">
+                {weakness}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function getColorForScore(score: number): string {
   if (score >= 4) return '#22c55e'; // Green
   if (score >= 3) return '#84cc16'; // Lime green
   if (score >= 2) return '#facc15'; // Yellow
   if (score >= 1) return '#f97316'; // Orange
   return '#ef4444'; // Red
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 4.5) return "print-score-excellent";
+  if (score >= 3.5) return "print-score-good";
+  if (score >= 2.5) return "print-score-average";
+  if (score >= 1.5) return "print-score-poor";
+  return "print-score-critical";
 }
 
 function getScoreVariant(score: number): 'default' | 'outline' | 'secondary' | 'destructive' {
