@@ -879,3 +879,46 @@ function getSectionSpecificFeedback(score: number, sectionTitle: string): string
     if (score >= 3.5) return "The team demonstrates strong relevant experience, complementary skill sets, and proven execution ability in this domain.";
     if (score >= 2.5) return "The team has adequate experience but may lack specific expertise or track record in key business areas.";
     return "The team lacks critical experience or capabilities needed for success, with significant gaps in leadership or domain expertise.";
+  }
+  
+  if (sectionLower.includes("product") || sectionLower.includes("solution")) {
+    if (score >= 3.5) return "The product demonstrates strong innovation, clear product-market fit, and compelling differentiation from competitors.";
+    if (score >= 2.5) return "The product solves a real problem but may lack strong differentiation or have some technical limitations.";
+    return "The product has critical flaws in design, lacks clear differentiation, or fails to address the stated problem effectively.";
+  }
+  
+  if (sectionLower.includes("financials") || sectionLower.includes("finance")) {
+    if (score >= 3.5) return "Financial projections are realistic and well-supported by market data and unit economics. The company demonstrates a clear path to profitability.";
+    if (score >= 2.5) return "Financial model is generally sound but contains some optimistic assumptions or lacks detailed unit economics analysis.";
+    return "Financial projections are unrealistic, with major gaps in understanding of unit economics or capital requirements.";
+  }
+  
+  if (sectionLower.includes("traction")) {
+    if (score >= 3.5) return "Strong demonstrated traction with validated customer interest, expanding user base, and positive growth trajectory.";
+    if (score >= 2.5) return "Some early traction indicators but limited historical data or slower-than-expected user adoption.";
+    return "Minimal verifiable traction, with limited customer validation or concerning churn metrics.";
+  }
+  
+  if (sectionLower.includes("go") && sectionLower.includes("market")) {
+    if (score >= 3.5) return "Clear go-to-market strategy with well-defined customer acquisition channels, reasonable CAC projections, and strong sales approach.";
+    if (score >= 2.5) return "Basic go-to-market approach defined but may lack detailed channel strategy or have unclear customer acquisition economics.";
+    return "Inadequate go-to-market plan with unrealistic customer acquisition costs or poorly defined sales strategy.";
+  }
+  
+  if (sectionLower.includes("competitive")) {
+    if (score >= 3.5) return "Strong competitive positioning with clear differentiation and sustainable advantages in a well-understood competitive landscape.";
+    if (score >= 2.5) return "Adequate competitive analysis but with some gaps in differentiation strategy or vulnerability to larger competitors.";
+    return "Poor understanding of the competitive landscape with limited differentiation or clear vulnerability to existing solutions.";
+  }
+  
+  if (sectionLower.includes("business") && sectionLower.includes("model")) {
+    if (score >= 3.5) return "Well-defined business model with clear revenue streams, strong unit economics, and scalable approach.";
+    if (score >= 2.5) return "Plausible business model but with some concerns about long-term sustainability or scalability.";
+    return "Poorly defined business model with fundamental flaws in revenue generation approach or unsustainable economics.";
+  }
+  
+  // Default feedback for other sections
+  if (score >= 3.5) return "Shows strong performance and potential in this area with minimal concerns.";
+  if (score >= 2.5) return "Demonstrates adequate capability in this area but with room for improvement.";
+  return "Shows significant weaknesses in this area requiring substantial improvement.";
+}
