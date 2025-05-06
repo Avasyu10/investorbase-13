@@ -687,36 +687,6 @@ export default function AnalysisSummary() {
                 </div>
               </div>
 
-              {/* 4. The Graph */}
-              <div className="print-section print-break-inside-avoid">
-                <h2 className="print-section-title">Performance Analysis by Category</h2>
-                <div className="print-chart-container">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="name" 
-                        angle={-45} 
-                        textAnchor="end" 
-                        height={70} 
-                        tick={<CustomXAxisTick />}
-                        stroke={isPrinting ? "#ffffff" : "#666"}
-                      />
-                      <YAxis 
-                        domain={[0, 5]} 
-                        tickCount={6} 
-                        stroke={isPrinting ? "#ffffff" : "#666"}
-                      />
-                      <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
-                      <Bar dataKey="score" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
               {/* 5. Problem Statement */}
               <div className="print-section">
                 <h2 className="print-section-title">Problem Statement</h2>
