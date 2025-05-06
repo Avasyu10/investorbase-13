@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -145,6 +146,117 @@ const PrintStyles = () => (
       .progress-content div {
         background-color: inherit !important;
       }
+      
+      /* Investment Memo Specific Styles */
+      .print-memo-header {
+        margin-bottom: 20px !important;
+        padding-bottom: 10px !important;
+        border-bottom: 1px solid #444 !important;
+      }
+      
+      .print-company-meta {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 15px !important;
+        margin: 10px 0 !important;
+      }
+      
+      .print-company-meta-item {
+        color: #ccc !important;
+        font-size: 11pt !important;
+      }
+      
+      .print-date {
+        color: #999 !important;
+        font-size: 10pt !important;
+        margin-top: 5px !important;
+      }
+      
+      .print-section {
+        margin-bottom: 20px !important;
+        break-inside: avoid !important;
+      }
+      
+      .print-score-container {
+        display: flex !important;
+        justify-content: center !important;
+        margin: 15px 0 !important;
+      }
+      
+      .print-score-badge {
+        padding: 8px 16px !important;
+        border-radius: 4px !important;
+        font-weight: bold !important;
+        font-size: 14pt !important;
+        display: inline-block !important;
+      }
+      
+      .print-score-excellent {
+        background-color: #065f46 !important;
+        color: white !important;
+      }
+      
+      .print-score-good {
+        background-color: #047857 !important;
+        color: white !important;
+      }
+      
+      .print-score-average {
+        background-color: #a16207 !important;
+        color: white !important;
+      }
+      
+      .print-score-poor {
+        background-color: #b45309 !important;
+        color: white !important;
+      }
+      
+      .print-score-critical {
+        background-color: #991b1b !important;
+        color: white !important;
+      }
+      
+      .print-section-content {
+        padding: 0 10px !important;
+      }
+      
+      .print-assessment-items {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+      }
+      
+      .print-assessment-item {
+        padding: 8px !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-left: 3px solid #4f46e5 !important;
+      }
+      
+      .print-strengths {
+        color: #22c55e !important;
+        font-weight: bold !important;
+      }
+      
+      .print-weaknesses {
+        color: #f97316 !important;
+        font-weight: bold !important;
+      }
+      
+      .print-insights-list {
+        margin-left: 15px !important;
+      }
+      
+      .print-insights-item {
+        position: relative !important;
+        padding: 5px !important;
+        margin-bottom: 5px !important;
+      }
+      
+      .print-insights-item:before {
+        content: "•" !important;
+        position: absolute !important;
+        left: -12px !important;
+      }
     }
   `}</style>
 );
@@ -154,10 +266,14 @@ export default function AnalysisSummary() {
   const navigate = useNavigate();
   const { company, isLoading } = useCompanyDetails(companyId);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [sectionDetails, setSectionDetails] = useState<{
+    [key: string]: { strengths: string[], weaknesses: string[] }
+  }>({});
   
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -180,9 +296,50 @@ export default function AnalysisSummary() {
     getUser();
   }, []);
 
+  useEffect(() => {
+    const fetchSectionDetails = async () => {
+      if (!company?.id) return;
+
+      try {
+        // Fetch all sections for this company
+        const { data: sections, error: sectionsError } = await supabase
+          .from('sections')
+          .select('id, title, type')
+          .eq('company_id', company.id);
+
+        if (sectionsError) throw sectionsError;
+        
+        const details: { [key: string]: { strengths: string[], weaknesses: string[] } } = {};
+        
+        // Fetch details for each section
+        for (const section of sections || []) {
+          const { data: sectionDetails, error: detailsError } = await supabase
+            .from('section_details')
+            .select('content, detail_type')
+            .eq('section_id', section.id);
+            
+          if (detailsError) throw detailsError;
+          
+          details[section.title.toLowerCase()] = {
+            strengths: sectionDetails?.filter(d => d.detail_type === 'strength').map(d => d.content) || [],
+            weaknesses: sectionDetails?.filter(d => d.detail_type === 'weakness').map(d => d.content) || []
+          };
+        }
+        
+        setSectionDetails(details);
+      } catch (error) {
+        console.error('Error fetching section details:', error);
+      }
+    };
+    
+    if (company) {
+      fetchSectionDetails();
+    }
+  }, [company]);
+
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: `${company?.name || 'Company'} - Investment Analysis`,
+    documentTitle: `${company?.name || 'Company'} - Investment Memo`,
     onBeforeGetContent: () => {
       setIsPrinting(true);
       return new Promise<void>((resolve) => {
@@ -194,11 +351,13 @@ export default function AnalysisSummary() {
     onAfterPrint: () => {
       setIsPrinting(false);
       toast({
-        title: "Print prepared",
-        description: "Your analysis document has been prepared for printing",
+        title: "Investment Memo prepared",
+        description: "Your investment memo has been prepared for printing",
       });
+      // Don't close the modal automatically after printing
+      // so user can see what was printed and close manually
     },
-    pageStyle: '@page { size: auto; margin: 0; }',
+    pageStyle: '@page { size: auto; margin: 10mm; }',
   });
 
   if (isLoading) {
@@ -258,6 +417,29 @@ export default function AnalysisSummary() {
     );
   };
 
+  // Helper function to get section insights based on section type/name
+  const getSectionInsights = (sectionName: string) => {
+    // Try to find section by exact name match
+    const exactMatch = Object.entries(sectionDetails).find(([key]) => 
+      key.toLowerCase() === sectionName.toLowerCase()
+    );
+    
+    if (exactMatch) {
+      return exactMatch[1];
+    }
+    
+    // If no exact match, try to find by partial match
+    const partialMatch = Object.entries(sectionDetails).find(([key]) => 
+      key.toLowerCase().includes(sectionName.toLowerCase())
+    );
+    
+    if (partialMatch) {
+      return partialMatch[1];
+    }
+    
+    return { strengths: [], weaknesses: [] };
+  };
+
   return (
     <>
       <PrintStyles />
@@ -287,12 +469,11 @@ export default function AnalysisSummary() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handlePrint}
-              disabled={isPrinting}
+              onClick={() => setShowPrintModal(true)}
               className="no-print"
             >
               <Printer className="mr-2 h-4 w-4" />
-              {isPrinting ? "Preparing..." : "Print Analysis"}
+              Print Investment Memo
             </Button>
           </div>
         </div>
@@ -422,8 +603,242 @@ export default function AnalysisSummary() {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Print Investment Memo Dialog */}
+        <Dialog 
+          open={showPrintModal} 
+          onOpenChange={(open) => {
+            setShowPrintModal(open);
+            if (open) {
+              // Reset printing state when opening the dialog
+              setIsPrinting(false);
+            }
+          }}
+        >
+          <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>{company.name} - Investment Memo</DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={handlePrint}
+                disabled={isPrinting}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                {isPrinting ? "Preparing..." : "Print Memo"}
+              </Button>
+            </div>
+            
+            {/* Print Content */}
+            <div ref={printRef} className="print-container">
+              {/* Investment Memo Format */}
+              <div className="print-memo-header">
+                <h1 className="print-title">{company?.name} - Investment Memo</h1>
+                <div className="print-company-meta">
+                  {company?.website && (
+                    <span className="print-company-meta-item">
+                      Website: {company.website}
+                    </span>
+                  )}
+                  {company?.stage && (
+                    <span className="print-company-meta-item">
+                      Stage: {company.stage}
+                    </span>
+                  )}
+                  {company?.industry && (
+                    <span className="print-company-meta-item">
+                      Industry: {company.industry}
+                    </span>
+                  )}
+                </div>
+                <div className="print-date">
+                  Generated on {currentDate}
+                </div>
+              </div>
+
+              {/* 2. Score */}
+              <div className="print-section">
+                <div className="print-score-container">
+                  <div className={`print-score-badge ${getScoreColor(company.overallScore)}`}>
+                    Investment Score: {formattedScore}/5
+                  </div>
+                </div>
+                <p className="print-text-gray text-center">
+                  {getScoreDescription(company.overallScore)}
+                </p>
+              </div>
+              
+              {/* 3. Overall Assessment */}
+              <div className="print-section">
+                <h2 className="print-section-title">Overall Assessment</h2>
+                <div className="print-section-content">
+                  <div className="print-assessment-items">
+                    {company.assessmentPoints && company.assessmentPoints.map((point, index) => (
+                      <div key={index} className="print-assessment-item">
+                        {point}
+                      </div>
+                    ))}
+                    {(!company.assessmentPoints || company.assessmentPoints.length === 0) && (
+                      <div className="print-assessment-item">
+                        No assessment points available.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. The Graph */}
+              <div className="print-section print-break-inside-avoid">
+                <h2 className="print-section-title">Performance Analysis by Category</h2>
+                <div className="print-chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={chartData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={70} 
+                        tick={<CustomXAxisTick />}
+                        stroke={isPrinting ? "#ffffff" : "#666"}
+                      />
+                      <YAxis 
+                        domain={[0, 5]} 
+                        tickCount={6} 
+                        stroke={isPrinting ? "#ffffff" : "#666"}
+                      />
+                      <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
+                      <Bar dataKey="score" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* 5. Problem Statement */}
+              <div className="print-section">
+                <h2 className="print-section-title">Problem Statement</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('problem'))}
+                </div>
+              </div>
+
+              {/* 6. Market Opportunity */}
+              <div className="print-section">
+                <h2 className="print-section-title">Market Opportunity</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('market'))}
+                </div>
+              </div>
+
+              {/* 7. Solution */}
+              <div className="print-section">
+                <h2 className="print-section-title">Solution</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('solution'))}
+                </div>
+              </div>
+
+              {/* 8. Competitive Landscape */}
+              <div className="print-section">
+                <h2 className="print-section-title">Competitive Landscape</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('competitive'))}
+                </div>
+              </div>
+
+              {/* 9. Traction */}
+              <div className="print-section">
+                <h2 className="print-section-title">Traction</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('traction'))}
+                </div>
+              </div>
+
+              {/* 10. Business Model */}
+              <div className="print-section">
+                <h2 className="print-section-title">Business Model</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('business model'))}
+                </div>
+              </div>
+
+              {/* 11. Go-to-market Strategy */}
+              <div className="print-section">
+                <h2 className="print-section-title">Go-to-market Strategy</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('go-to-market'))}
+                </div>
+              </div>
+
+              {/* 12. Team */}
+              <div className="print-section">
+                <h2 className="print-section-title">Team</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('team'))}
+                </div>
+              </div>
+
+              {/* 13. Financials */}
+              <div className="print-section">
+                <h2 className="print-section-title">Financials</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('financials'))}
+                </div>
+              </div>
+
+              {/* 14. The Ask */}
+              <div className="print-section">
+                <h2 className="print-section-title">The Ask</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('ask'))}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
+  );
+}
+
+// Helper function to render section strengths and weaknesses
+function renderSectionInsights(insights: { strengths: string[], weaknesses: string[] }) {
+  if ((!insights.strengths || insights.strengths.length === 0) && 
+      (!insights.weaknesses || insights.weaknesses.length === 0)) {
+    return <p className="text-muted-foreground print-text-gray">No specific insights available.</p>;
+  }
+  
+  return (
+    <div>
+      {insights.strengths && insights.strengths.length > 0 && (
+        <div className="mb-3">
+          <p className="font-medium print-strengths">Strengths:</p>
+          <div className="print-insights-list">
+            {insights.strengths.map((strength, idx) => (
+              <div key={`strength-${idx}`} className="print-insights-item">
+                {strength}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {insights.weaknesses && insights.weaknesses.length > 0 && (
+        <div>
+          <p className="font-medium print-weaknesses">Weaknesses:</p>
+          <div className="print-insights-list">
+            {insights.weaknesses.map((weakness, idx) => (
+              <div key={`weakness-${idx}`} className="print-insights-item">
+                {weakness}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -433,6 +848,14 @@ function getColorForScore(score: number): string {
   if (score >= 2) return '#facc15'; // Yellow
   if (score >= 1) return '#f97316'; // Orange
   return '#ef4444'; // Red
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 4.5) return "print-score-excellent";
+  if (score >= 3.5) return "print-score-good";
+  if (score >= 2.5) return "print-score-average";
+  if (score >= 1.5) return "print-score-poor";
+  return "print-score-critical";
 }
 
 function getScoreVariant(score: number): 'default' | 'outline' | 'secondary' | 'destructive' {
