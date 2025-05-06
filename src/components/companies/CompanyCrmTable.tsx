@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Table, 
@@ -60,6 +61,7 @@ const STATUS_OPTIONS = [
 export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTableProps) {
   const [editingCompany, setEditingCompany] = useState<{ id: string, crmData: CrmData } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
 
   const handleEditClick = async (company: CompanyListItem, e: React.MouseEvent) => {
@@ -160,6 +162,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
       setIsDialogOpen(false);
       setEditingCompany(null);
       
+      // Trigger a refresh of the CRM fields
+      setRefreshTrigger(prev => prev + 1);
+      
       toast({
         title: "Success",
         description: "Company details updated successfully",
@@ -222,6 +227,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                   <CompanyCrmField 
                     companyId={company.id.toString()} 
                     field="point_of_contact" 
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell className="max-w-[150px] truncate" title="Contact Email">
@@ -229,18 +235,21 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     companyId={company.id.toString()} 
                     field="contact_email"
                     isEmail={true}
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell className="max-w-[120px] truncate" title="Source of Introduction">
                   <CompanyCrmField 
                     companyId={company.id.toString()} 
                     field="source_of_introduction"
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell title="Industry">
                   <CompanyCrmField 
                     companyId={company.id.toString()} 
                     field="industry"
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell title="LinkedIn URL">
@@ -248,12 +257,14 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     companyId={company.id.toString()} 
                     field="linkedin_url"
                     isUrl={true}
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell title="Status">
                   <CompanyCrmField 
                     companyId={company.id.toString()} 
                     field="status"
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell title="Status Date">
@@ -261,18 +272,21 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     companyId={company.id.toString()} 
                     field="status_date"
                     isDate={true}
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell className="max-w-[120px] truncate" title="Account Manager">
                   <CompanyCrmField 
                     companyId={company.id.toString()} 
                     field="account_manager"
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell className="max-w-[150px] truncate" title="Notes">
                   <CompanyCrmField 
                     companyId={company.id.toString()} 
                     field="notes"
+                    refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
                 <TableCell>
@@ -456,21 +470,24 @@ function CompanyCrmField({
   field, 
   isUrl = false, 
   isEmail = false,
-  isDate = false
+  isDate = false,
+  refreshTrigger = 0
 }: { 
   companyId: string; 
   field: keyof CrmData; 
   isUrl?: boolean;
   isEmail?: boolean;
   isDate?: boolean;
+  refreshTrigger?: number;
 }) {
   const [value, setValue] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch the field value when the component mounts
-  useState(() => {
+  // Fetch the field value when the component mounts or when refreshTrigger changes
+  useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('company_details')
           .select(field)
@@ -490,7 +507,7 @@ function CompanyCrmField({
     };
     
     fetchData();
-  });
+  }, [companyId, field, refreshTrigger]);
 
   if (isLoading) {
     return <span className="text-muted-foreground italic">Loading...</span>;
@@ -501,18 +518,33 @@ function CompanyCrmField({
   }
 
   if (isUrl) {
-    return (
-      <a 
-        href={value.startsWith('http') ? value : `https://${value}`}
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="text-blue-500 hover:underline flex items-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <span className="truncate">{new URL(value.startsWith('http') ? value : `https://${value}`).hostname}</span>
-        <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
-      </a>
-    );
+    try {
+      return (
+        <a 
+          href={value.startsWith('http') ? value : `https://${value}`}
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:underline flex items-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="truncate">{new URL(value.startsWith('http') ? value : `https://${value}`).hostname}</span>
+          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+        </a>
+      );
+    } catch {
+      return (
+        <a 
+          href={value.startsWith('http') ? value : `https://${value}`}
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:underline flex items-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="truncate">{value}</span>
+          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+        </a>
+      );
+    }
   }
 
   if (isEmail) {
@@ -537,3 +569,4 @@ function CompanyCrmField({
 
   return <span className="truncate">{value}</span>;
 }
+
