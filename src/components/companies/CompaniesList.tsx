@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +10,12 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { ListFilter, Grid, Table as TableIcon, AlertTriangle, Search } from "lucide-react";
+import { ListFilter, Grid, Table as TableIcon, AlertTriangle, Search, FileText } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { CompanyListItem } from "@/lib/api/apiContract";
 import { Button } from "@/components/ui/button";
 import { CompaniesTable } from "./CompaniesTable";
+import { CompanyCrmTable } from "./CompanyCrmTable";
 import { Badge } from "@/components/ui/badge";
 import {
   Pagination,
@@ -29,7 +31,7 @@ import { RealtimeSubscriptions } from "@/components/RealtimeSubscriptions";
 import { Input } from "@/components/ui/input";
 
 type SortOption = "name" | "score" | "date" | "source";
-type ViewMode = "grid" | "table";
+type ViewMode = "grid" | "table" | "crm";
 
 const getSortField = (option: SortOption): string => {
   switch (option) {
@@ -68,7 +70,7 @@ export function CompaniesList() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>("date");
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [viewMode, setViewMode] = useState<ViewMode>("crm"); // Default to CRM view
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const pageSize = 20;
@@ -205,6 +207,15 @@ export function CompaniesList() {
                   <TableIcon className="h-4 w-4 mr-1" />
                   Table
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode("crm")}
+                  className={viewMode === "crm" ? "bg-muted" : ""}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  CRM
+                </Button>
               </div>
               
               <Select
@@ -288,10 +299,15 @@ export function CompaniesList() {
                     );
                   })}
                 </div>
-              ) : (
+              ) : viewMode === "table" ? (
                 <CompaniesTable 
                   companies={companies} 
                   onCompanyClick={handleCompanyClick} 
+                />
+              ) : (
+                <CompanyCrmTable
+                  companies={companies}
+                  onCompanyClick={handleCompanyClick}
                 />
               )}
               

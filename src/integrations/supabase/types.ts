@@ -94,32 +94,56 @@ export type Database = {
       }
       company_details: {
         Row: {
+          account_manager: string | null
           company_id: string
+          contact_email: string | null
           created_at: string
           id: string
           industry: string | null
           introduction: string | null
+          linkedin_url: string | null
+          notes: string | null
+          point_of_contact: string | null
+          source_of_introduction: string | null
           stage: string | null
+          status: string
+          status_date: string
           updated_at: string
           website: string | null
         }
         Insert: {
+          account_manager?: string | null
           company_id: string
+          contact_email?: string | null
           created_at?: string
           id?: string
           industry?: string | null
           introduction?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          point_of_contact?: string | null
+          source_of_introduction?: string | null
           stage?: string | null
+          status?: string
+          status_date?: string
           updated_at?: string
           website?: string | null
         }
         Update: {
+          account_manager?: string | null
           company_id?: string
+          contact_email?: string | null
           created_at?: string
           id?: string
           industry?: string | null
           introduction?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          point_of_contact?: string | null
+          source_of_introduction?: string | null
           stage?: string | null
+          status?: string
+          status_date?: string
           updated_at?: string
           website?: string | null
         }
