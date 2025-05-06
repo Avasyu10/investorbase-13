@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -72,9 +71,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
         .from('company_details')
         .select('*')
         .eq('company_id', company.id)
-        .single();
+        .maybeSingle();
       
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error("Error fetching company details:", error);
         throw error;
       }
@@ -115,7 +114,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
         .from('company_details')
         .select('status')
         .eq('company_id', editingCompany.id)
-        .single();
+        .maybeSingle();
         
       const updateData = { ...editingCompany.crmData };
       
@@ -124,13 +123,34 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
         updateData.status_date = new Date().toISOString();
       }
       
-      // Update or insert company details
-      const { data, error } = await supabase
+      // First check if there is an existing record
+      const { data: existingRecord } = await supabase
         .from('company_details')
-        .upsert({ 
-          company_id: editingCompany.id,
-          ...updateData
-        }, { onConflict: 'company_id' });
+        .select('id')
+        .eq('company_id', editingCompany.id)
+        .maybeSingle();
+      
+      let result;
+      
+      if (existingRecord) {
+        // Update existing record
+        result = await supabase
+          .from('company_details')
+          .update({
+            ...updateData
+          })
+          .eq('company_id', editingCompany.id);
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('company_details')
+          .insert({
+            company_id: editingCompany.id,
+            ...updateData
+          });
+      }
+      
+      const { error } = result;
       
       if (error) {
         console.error("Error updating company details:", error);
@@ -455,7 +475,7 @@ function CompanyCrmField({
           .from('company_details')
           .select(field)
           .eq('company_id', companyId)
-          .single();
+          .maybeSingle();
         
         if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
           console.error(`Error fetching ${field}:`, error);
