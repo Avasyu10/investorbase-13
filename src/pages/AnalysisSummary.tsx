@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -503,7 +504,7 @@ export default function AnalysisSummary() {
               <div>
                 <h3 className="text-lg font-semibold mb-2">Company Overview</h3>
                 <p className="text-muted-foreground">
-                  {company.companyDetails?.description || 'No description available.'}
+                  {company?.introduction || 'No description available.'}
                 </p>
                 <div className="mt-4">
                   <Badge variant={getScoreVariant(company.overallScore)}>
@@ -623,19 +624,19 @@ export default function AnalysisSummary() {
               <div className="print-memo-header">
                 <h1 className="print-title">{company?.name} - Investment Memo</h1>
                 <div className="print-company-meta">
-                  {company?.companyDetails?.website && (
+                  {company?.website && (
                     <span className="print-company-meta-item">
-                      Website: {company.companyDetails.website}
+                      Website: {company.website}
                     </span>
                   )}
-                  {company?.companyDetails?.stage && (
+                  {company?.stage && (
                     <span className="print-company-meta-item">
-                      Stage: {company.companyDetails.stage}
+                      Stage: {company.stage}
                     </span>
                   )}
-                  {company?.companyDetails?.industry && (
+                  {company?.industry && (
                     <span className="print-company-meta-item">
-                      Industry: {company.companyDetails.industry}
+                      Industry: {company.industry}
                     </span>
                   )}
                 </div>
