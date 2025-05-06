@@ -308,7 +308,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Company Details</DialogTitle>
+            <DialogTitle>Edit Prospect</DialogTitle>
           </DialogHeader>
           {editingCompany && (
             <div className="grid gap-4 py-4">
