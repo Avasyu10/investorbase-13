@@ -257,130 +257,6 @@ const PrintStyles = () => (
         position: absolute !important;
         left: -12px !important;
       }
-
-      /* Enhanced professional styling for investment memo */
-      .memo-container {
-        max-width: 800px !important;
-        margin: 0 auto !important;
-        padding: 30px !important;
-        background-color: #1a1a1a !important;
-        color: #fff !important;
-      }
-      
-      .memo-logo-area {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        margin-bottom: 25px !important;
-      }
-      
-      .memo-company-name {
-        font-size: 24pt !important;
-        font-weight: bold !important;
-        letter-spacing: -0.5px !important;
-        border-bottom: 2px solid #4f46e5 !important;
-        padding-bottom: 8px !important;
-        margin-bottom: 15px !important;
-      }
-      
-      .memo-section {
-        margin: 25px 0 !important;
-        padding-bottom: 15px !important;
-        border-bottom: 1px solid #333 !important;
-      }
-      
-      .memo-section-title {
-        font-size: 14pt !important;
-        font-weight: bold !important;
-        color: #fff !important;
-        margin-bottom: 12px !important;
-        padding-bottom: 5px !important;
-        border-bottom: 1px solid #444 !important;
-      }
-      
-      .memo-content-block {
-        background: rgba(255, 255, 255, 0.03) !important;
-        border-radius: 6px !important;
-        padding: 15px !important;
-        margin-top: 10px !important;
-      }
-      
-      .memo-metadata {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 15px !important;
-        margin: 15px 0 !important;
-      }
-      
-      .memo-metadata-item {
-        background: rgba(255, 255, 255, 0.05) !important;
-        padding: 8px 12px !important;
-        border-radius: 4px !important;
-      }
-      
-      .memo-metadata-label {
-        font-size: 10pt !important;
-        color: #999 !important;
-        display: block !important;
-        margin-bottom: 3px !important;
-      }
-      
-      .memo-metadata-value {
-        font-size: 12pt !important;
-        font-weight: 500 !important;
-      }
-      
-      .memo-assessment-point {
-        padding: 10px !important;
-        margin-bottom: 8px !important;
-        border-left: 3px solid #4f46e5 !important;
-        background: rgba(79, 70, 229, 0.08) !important;
-      }
-      
-      .memo-strength-item {
-        border-left: 3px solid #22c55e !important;
-        padding: 8px 12px !important;
-        margin-bottom: 6px !important;
-        background: rgba(34, 197, 94, 0.05) !important;
-      }
-      
-      .memo-weakness-item {
-        border-left: 3px solid #f97316 !important;
-        padding: 8px 12px !important;
-        margin-bottom: 6px !important;
-        background: rgba(249, 115, 22, 0.05) !important;
-      }
-      
-      .memo-chart-container {
-        background: rgba(255, 255, 255, 0.02) !important;
-        border-radius: 8px !important;
-        padding: 15px !important;
-        margin: 20px 0 !important;
-      }
-      
-      .memo-footer {
-        margin-top: 40px !important;
-        padding-top: 10px !important;
-        border-top: 1px solid #444 !important;
-        font-size: 10pt !important;
-        color: #777 !important;
-        text-align: center !important;
-      }
-      
-      .memo-confidential {
-        text-transform: uppercase !important;
-        letter-spacing: 1px !important;
-        font-size: 9pt !important;
-        color: #f97316 !important;
-        margin-bottom: 20px !important;
-        text-align: center !important;
-      }
-      
-      .memo-section-content-wrapper {
-        background: rgba(255, 255, 255, 0.02) !important;
-        border-radius: 6px !important;
-        padding: 15px !important;
-      }
     }
   `}</style>
 );
@@ -722,7 +598,7 @@ export default function AnalysisSummary() {
                 <DialogTitle>{company.name} - Analysis Report</DialogTitle>
               </DialogHeader>
               <div className="flex-1 overflow-auto p-1">
-                <ReportViewer reportId={company.reportId.toString()} />
+                <ReportViewer reportId={company.reportId} />
               </div>
             </DialogContent>
           </Dialog>
@@ -753,145 +629,142 @@ export default function AnalysisSummary() {
               </Button>
             </div>
             
-            {/* Print Content with enhanced professional styling */}
-            <div ref={printRef} className="memo-container print-container">
-              <div className="memo-confidential">Confidential Investment Memorandum</div>
-              
-              <div className="memo-company-name">{company?.name}</div>
-              
-              <div className="memo-metadata">
-                {company?.website && (
-                  <div className="memo-metadata-item">
-                    <span className="memo-metadata-label">Website</span>
-                    <span className="memo-metadata-value">{company.website}</span>
-                  </div>
-                )}
-                {company?.stage && (
-                  <div className="memo-metadata-item">
-                    <span className="memo-metadata-label">Stage</span>
-                    <span className="memo-metadata-value">{company.stage}</span>
-                  </div>
-                )}
-                {company?.industry && (
-                  <div className="memo-metadata-item">
-                    <span className="memo-metadata-label">Industry</span>
-                    <span className="memo-metadata-value">{company.industry}</span>
-                  </div>
-                )}
+            {/* Print Content */}
+            <div ref={printRef} className="print-container">
+              {/* Investment Memo Format */}
+              <div className="print-memo-header">
+                <h1 className="print-title">{company?.name} - Investment Memo</h1>
+                <div className="print-company-meta">
+                  {company?.website && (
+                    <span className="print-company-meta-item">
+                      Website: {company.website}
+                    </span>
+                  )}
+                  {company?.stage && (
+                    <span className="print-company-meta-item">
+                      Stage: {company.stage}
+                    </span>
+                  )}
+                  {company?.industry && (
+                    <span className="print-company-meta-item">
+                      Industry: {company.industry}
+                    </span>
+                  )}
+                </div>
+                <div className="print-date">
+                  Generated on {currentDate}
+                </div>
               </div>
 
-              <div className="memo-section">
-                <div className="memo-section-title">Investment Score</div>
-                <div className="print-score-container memo-content-block">
+              {/* 2. Score */}
+              <div className="print-section">
+                <div className="print-score-container">
                   <div className={`print-score-badge ${getScoreColor(company.overallScore)}`}>
                     Investment Score: {formattedScore}/5
                   </div>
                 </div>
-                <p className="print-text-gray text-center mt-2">
+                <p className="print-text-gray text-center">
                   {getScoreDescription(company.overallScore)}
                 </p>
               </div>
               
-              <div className="memo-section">
-                <div className="memo-section-title">Overall Assessment</div>
-                <div className="memo-section-content-wrapper">
-                  {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
-                    <div className="print-assessment-items">
-                      {company.assessmentPoints.map((point, index) => (
-                        <div key={index} className="memo-assessment-point">
-                          {point}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No assessment points available.</p>
-                  )}
+              {/* 3. Overall Assessment */}
+              <div className="print-section">
+                <h2 className="print-section-title">Overall Assessment</h2>
+                <div className="print-section-content">
+                  <div className="print-assessment-items">
+                    {company.assessmentPoints && company.assessmentPoints.map((point, index) => (
+                      <div key={index} className="print-assessment-item">
+                        {point}
+                      </div>
+                    ))}
+                    {(!company.assessmentPoints || company.assessmentPoints.length === 0) && (
+                      <div className="print-assessment-item">
+                        No assessment points available.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="memo-section print-break-inside-avoid">
-                <div className="memo-section-title">Performance Analysis</div>
-                <div className="memo-chart-container">
-                  <ResponsiveContainer width="100%" height={320}>
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="name" 
-                        angle={-45} 
-                        textAnchor="end" 
-                        height={70} 
-                        tick={<CustomXAxisTick />}
-                        stroke={isPrinting ? "#ffffff" : "#666"}
-                      />
-                      <YAxis 
-                        domain={[0, 5]} 
-                        tickCount={6} 
-                        stroke={isPrinting ? "#ffffff" : "#666"}
-                      />
-                      <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
-                      <Bar dataKey="score" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
+              {/* 5. Problem Statement */}
+              <div className="print-section">
+                <h2 className="print-section-title">Problem Statement</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('problem'))}
                 </div>
               </div>
 
-              {/* Memo sections with consistent styling */}
-              <MemoSectionInsights 
-                title="Problem Statement" 
-                insights={getSectionInsights('problem')} 
-              />
+              {/* 6. Market Opportunity */}
+              <div className="print-section">
+                <h2 className="print-section-title">Market Opportunity</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('market'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Market Opportunity" 
-                insights={getSectionInsights('market')} 
-              />
+              {/* 7. Solution */}
+              <div className="print-section">
+                <h2 className="print-section-title">Solution</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('solution'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Solution" 
-                insights={getSectionInsights('solution')} 
-              />
+              {/* 8. Competitive Landscape */}
+              <div className="print-section">
+                <h2 className="print-section-title">Competitive Landscape</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('competitive'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Competitive Landscape" 
-                insights={getSectionInsights('competitive')} 
-              />
+              {/* 9. Traction */}
+              <div className="print-section">
+                <h2 className="print-section-title">Traction</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('traction'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Traction" 
-                insights={getSectionInsights('traction')} 
-              />
+              {/* 10. Business Model */}
+              <div className="print-section">
+                <h2 className="print-section-title">Business Model</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('business model'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Business Model" 
-                insights={getSectionInsights('business model')} 
-              />
+              {/* 11. Go-to-market Strategy */}
+              <div className="print-section">
+                <h2 className="print-section-title">Go-to-market Strategy</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('go-to-market'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Go-to-market Strategy" 
-                insights={getSectionInsights('go-to-market')} 
-              />
+              {/* 12. Team */}
+              <div className="print-section">
+                <h2 className="print-section-title">Team</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('team'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Team" 
-                insights={getSectionInsights('team')} 
-              />
+              {/* 13. Financials */}
+              <div className="print-section">
+                <h2 className="print-section-title">Financials</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('financials'))}
+                </div>
+              </div>
 
-              <MemoSectionInsights 
-                title="Financials" 
-                insights={getSectionInsights('financials')} 
-              />
-
-              <MemoSectionInsights 
-                title="The Ask" 
-                insights={getSectionInsights('ask')} 
-              />
-
-              <div className="memo-footer">
-                This document is confidential and intended solely for internal investment evaluation.
-                <br />Generated on {currentDate}
+              {/* 14. The Ask */}
+              <div className="print-section">
+                <h2 className="print-section-title">The Ask</h2>
+                <div className="print-section-content">
+                  {renderSectionInsights(getSectionInsights('ask'))}
+                </div>
               </div>
             </div>
           </DialogContent>
@@ -901,59 +774,43 @@ export default function AnalysisSummary() {
   );
 }
 
-// Memo Section component for consistent styling
-const MemoSectionInsights = ({ 
-  title, 
-  insights 
-}: { 
-  title: string; 
-  insights: { strengths: string[], weaknesses: string[] } 
-}) => {
+// Helper function to render section strengths and weaknesses
+function renderSectionInsights(insights: { strengths: string[], weaknesses: string[] }) {
   if ((!insights.strengths || insights.strengths.length === 0) && 
       (!insights.weaknesses || insights.weaknesses.length === 0)) {
-    return (
-      <div className="memo-section print-break-inside-avoid">
-        <div className="memo-section-title">{title}</div>
-        <div className="memo-section-content-wrapper">
-          <p className="text-muted-foreground print-text-gray">No specific insights available.</p>
-        </div>
-      </div>
-    );
+    return <p className="text-muted-foreground print-text-gray">No specific insights available.</p>;
   }
   
   return (
-    <div className="memo-section print-break-inside-avoid">
-      <div className="memo-section-title">{title}</div>
-      <div className="memo-section-content-wrapper">
-        {insights.strengths && insights.strengths.length > 0 && (
-          <div className="mb-4">
-            <p className="font-medium print-strengths mb-2">Strengths:</p>
-            <div>
-              {insights.strengths.map((strength, idx) => (
-                <div key={`strength-${idx}`} className="memo-strength-item">
-                  {strength}
-                </div>
-              ))}
-            </div>
+    <div>
+      {insights.strengths && insights.strengths.length > 0 && (
+        <div className="mb-3">
+          <p className="font-medium print-strengths">Strengths:</p>
+          <div className="print-insights-list">
+            {insights.strengths.map((strength, idx) => (
+              <div key={`strength-${idx}`} className="print-insights-item">
+                {strength}
+              </div>
+            ))}
           </div>
-        )}
-        
-        {insights.weaknesses && insights.weaknesses.length > 0 && (
-          <div>
-            <p className="font-medium print-weaknesses mb-2">Weaknesses:</p>
-            <div>
-              {insights.weaknesses.map((weakness, idx) => (
-                <div key={`weakness-${idx}`} className="memo-weakness-item">
-                  {weakness}
-                </div>
-              ))}
-            </div>
+        </div>
+      )}
+      
+      {insights.weaknesses && insights.weaknesses.length > 0 && (
+        <div>
+          <p className="font-medium print-weaknesses">Weaknesses:</p>
+          <div className="print-insights-list">
+            {insights.weaknesses.map((weakness, idx) => (
+              <div key={`weakness-${idx}`} className="print-insights-item">
+                {weakness}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 function getColorForScore(score: number): string {
   if (score >= 4) return '#22c55e'; // Green
