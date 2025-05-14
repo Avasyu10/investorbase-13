@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -110,7 +109,7 @@ const PrintStyles = () => (
         font-weight: bold !important;
         margin-top: 15px !important;
         margin-bottom: 10px !important;
-        color: white !important;
+        color: hsl(35, 90%, 60%) !important;
       }
       
       .recharts-text.recharts-label {
@@ -175,6 +174,7 @@ const PrintStyles = () => (
       .print-section {
         margin-bottom: 20px !important;
         break-inside: avoid !important;
+        padding: 0 10px !important;
       }
       
       .print-score-container {
@@ -235,11 +235,20 @@ const PrintStyles = () => (
       .print-strengths {
         color: #22c55e !important;
         font-weight: bold !important;
+        margin-bottom: 5px !important;
+        display: block !important;
+        border-bottom: 1px solid #22c55e33 !important;
+        padding-bottom: 3px !important;
       }
       
       .print-weaknesses {
         color: #f97316 !important;
         font-weight: bold !important;
+        margin-bottom: 5px !important;
+        display: block !important;
+        border-bottom: 1px solid #f9731633 !important;
+        padding-bottom: 3px !important;
+        margin-top: 12px !important;
       }
       
       .print-insights-list {
@@ -478,7 +487,7 @@ export default function AnalysisSummary() {
           </div>
         </div>
 
-        <div ref={printRef} className="print-container">
+        <div className="print-container">
           <Card className="mb-8 print-shadow-none print-card">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
@@ -630,142 +639,189 @@ export default function AnalysisSummary() {
             </div>
             
             {/* Print Content */}
-            <div ref={printRef} className="print-container">
+            <div ref={printRef} className="print-container p-6 bg-background">
               {/* Investment Memo Format */}
-              <div className="print-memo-header">
-                <h1 className="print-title">{company?.name} - Investment Memo</h1>
-                <div className="print-company-meta">
+              <div className="border-b border-border pb-4 mb-8">
+                <h1 className="text-2xl font-bold text-primary mb-2">{company?.name} - Investment Memo</h1>
+                <div className="flex flex-wrap gap-4 my-3">
                   {company?.website && (
-                    <span className="print-company-meta-item">
-                      Website: {company.website}
-                    </span>
+                    <div className="text-sm">
+                      <span className="font-medium text-muted-foreground">Website:</span>{' '}
+                      <span>{company.website}</span>
+                    </div>
                   )}
                   {company?.stage && (
-                    <span className="print-company-meta-item">
-                      Stage: {company.stage}
-                    </span>
+                    <div className="text-sm">
+                      <span className="font-medium text-muted-foreground">Stage:</span>{' '}
+                      <span>{company.stage}</span>
+                    </div>
                   )}
                   {company?.industry && (
-                    <span className="print-company-meta-item">
-                      Industry: {company.industry}
-                    </span>
+                    <div className="text-sm">
+                      <span className="font-medium text-muted-foreground">Industry:</span>{' '}
+                      <span>{company.industry}</span>
+                    </div>
                   )}
                 </div>
-                <div className="print-date">
+                <div className="text-xs text-muted-foreground">
                   Generated on {currentDate}
                 </div>
               </div>
 
-              {/* 2. Score */}
-              <div className="print-section">
-                <div className="print-score-container">
-                  <div className={`print-score-badge ${getScoreColor(company.overallScore)}`}>
-                    Investment Score: {formattedScore}/5
-                  </div>
+              {/* Score */}
+              <div className="mb-8 flex flex-col items-center">
+                <div className={`px-5 py-2 rounded-md font-semibold text-lg ${getScoreBadgeClass(company.overallScore)}`}>
+                  Investment Score: {formattedScore}/5
                 </div>
-                <p className="print-text-gray text-center">
+                <p className="text-sm mt-2 text-center max-w-2xl text-muted-foreground">
                   {getScoreDescription(company.overallScore)}
                 </p>
               </div>
               
-              {/* 3. Overall Assessment */}
-              <div className="print-section">
-                <h2 className="print-section-title">Overall Assessment</h2>
-                <div className="print-section-content">
-                  <div className="print-assessment-items">
-                    {company.assessmentPoints && company.assessmentPoints.map((point, index) => (
-                      <div key={index} className="print-assessment-item">
-                        {point}
-                      </div>
-                    ))}
-                    {(!company.assessmentPoints || company.assessmentPoints.length === 0) && (
-                      <div className="print-assessment-item">
-                        No assessment points available.
-                      </div>
-                    )}
-                  </div>
+              {/* Overall Assessment */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-3 text-primary">Overall Assessment</h2>
+                <div className="space-y-2 pl-2">
+                  {company.assessmentPoints && company.assessmentPoints.map((point, index) => (
+                    <div key={index} className="py-2 px-3 bg-secondary/30 border-l-4 border-primary rounded-sm">
+                      {point}
+                    </div>
+                  ))}
+                  {(!company.assessmentPoints || company.assessmentPoints.length === 0) && (
+                    <div className="py-2 px-3 bg-secondary/30 rounded-sm text-muted-foreground">
+                      No assessment points available.
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* 5. Problem Statement */}
-              <div className="print-section">
-                <h2 className="print-section-title">Problem Statement</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('problem'))}
+              {/* Chart */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-3 text-primary">Performance Analysis</h2>
+                <div className="h-72 print-chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={chartData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                      <XAxis
+                        dataKey="name"
+                        angle={-45}
+                        textAnchor="end"
+                        height={70}
+                        tick={<CustomXAxisTick />}
+                      />
+                      <YAxis
+                        domain={[0, 5]}
+                        tickCount={6}
+                      />
+                      <RechartsTooltip formatter={(value) => [`${value}/5`, 'Score']} />
+                      <Bar dataKey="score" fill="hsl(35, 90%, 60%)" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* 6. Market Opportunity */}
-              <div className="print-section">
-                <h2 className="print-section-title">Market Opportunity</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('market'))}
-                </div>
-              </div>
+              {/* Problem Statement */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Problem Statement</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('problem'))}
+                </CardContent>
+              </Card>
 
-              {/* 7. Solution */}
-              <div className="print-section">
-                <h2 className="print-section-title">Solution</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('solution'))}
-                </div>
-              </div>
+              {/* Market Opportunity */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Market Opportunity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('market'))}
+                </CardContent>
+              </Card>
 
-              {/* 8. Competitive Landscape */}
-              <div className="print-section">
-                <h2 className="print-section-title">Competitive Landscape</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('competitive'))}
-                </div>
-              </div>
+              {/* Solution */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Solution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('solution'))}
+                </CardContent>
+              </Card>
 
-              {/* 9. Traction */}
-              <div className="print-section">
-                <h2 className="print-section-title">Traction</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('traction'))}
-                </div>
-              </div>
+              {/* Competitive Landscape */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Competitive Landscape</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('competitive'))}
+                </CardContent>
+              </Card>
 
-              {/* 10. Business Model */}
-              <div className="print-section">
-                <h2 className="print-section-title">Business Model</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('business model'))}
-                </div>
-              </div>
+              {/* Traction */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Traction</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('traction'))}
+                </CardContent>
+              </Card>
 
-              {/* 11. Go-to-market Strategy */}
-              <div className="print-section">
-                <h2 className="print-section-title">Go-to-market Strategy</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('go-to-market'))}
-                </div>
-              </div>
+              {/* Business Model */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Business Model</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('business model'))}
+                </CardContent>
+              </Card>
 
-              {/* 12. Team */}
-              <div className="print-section">
-                <h2 className="print-section-title">Team</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('team'))}
-                </div>
-              </div>
+              {/* Go-to-market Strategy */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Go-to-market Strategy</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('go-to-market'))}
+                </CardContent>
+              </Card>
 
-              {/* 13. Financials */}
-              <div className="print-section">
-                <h2 className="print-section-title">Financials</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('financials'))}
-                </div>
-              </div>
+              {/* Team */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Team</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('team'))}
+                </CardContent>
+              </Card>
 
-              {/* 14. The Ask */}
-              <div className="print-section">
-                <h2 className="print-section-title">The Ask</h2>
-                <div className="print-section-content">
-                  {renderSectionInsights(getSectionInsights('ask'))}
-                </div>
-              </div>
+              {/* Financials */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">Financials</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('financials'))}
+                </CardContent>
+              </Card>
+
+              {/* The Ask */}
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-primary">The Ask</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderFormattedSectionInsights(getSectionInsights('ask'))}
+                </CardContent>
+              </Card>
             </div>
           </DialogContent>
         </Dialog>
@@ -774,38 +830,47 @@ export default function AnalysisSummary() {
   );
 }
 
-// Helper function to render section strengths and weaknesses
-function renderSectionInsights(insights: { strengths: string[], weaknesses: string[] }) {
+// Helper function to get color for the score badge
+function getScoreBadgeClass(score: number): string {
+  if (score >= 4.5) return "bg-emerald-700 text-white";
+  if (score >= 3.5) return "bg-emerald-600 text-white";
+  if (score >= 2.5) return "bg-amber-600 text-white";
+  if (score >= 1.5) return "bg-orange-600 text-white";
+  return "bg-red-700 text-white";
+}
+
+// Helper function to render section strengths and weaknesses with improved formatting
+function renderFormattedSectionInsights(insights: { strengths: string[], weaknesses: string[] }) {
   if ((!insights.strengths || insights.strengths.length === 0) && 
       (!insights.weaknesses || insights.weaknesses.length === 0)) {
-    return <p className="text-muted-foreground print-text-gray">No specific insights available.</p>;
+    return <p className="text-muted-foreground">No specific insights available.</p>;
   }
   
   return (
-    <div>
+    <div className="space-y-4">
       {insights.strengths && insights.strengths.length > 0 && (
-        <div className="mb-3">
-          <p className="font-medium print-strengths">Strengths:</p>
-          <div className="print-insights-list">
+        <div>
+          <h3 className="font-medium text-emerald-500 mb-2 border-b border-emerald-500/20 pb-1">Strengths:</h3>
+          <ul className="list-disc pl-5 space-y-1.5">
             {insights.strengths.map((strength, idx) => (
-              <div key={`strength-${idx}`} className="print-insights-item">
+              <li key={`strength-${idx}`} className="text-sm">
                 {strength}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
       
       {insights.weaknesses && insights.weaknesses.length > 0 && (
         <div>
-          <p className="font-medium print-weaknesses">Weaknesses:</p>
-          <div className="print-insights-list">
+          <h3 className="font-medium text-amber-500 mb-2 border-b border-amber-500/20 pb-1">Weaknesses:</h3>
+          <ul className="list-disc pl-5 space-y-1.5">
             {insights.weaknesses.map((weakness, idx) => (
-              <div key={`weakness-${idx}`} className="print-insights-item">
+              <li key={`weakness-${idx}`} className="text-sm">
                 {weakness}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
     </div>
