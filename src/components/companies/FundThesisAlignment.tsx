@@ -104,23 +104,33 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         return;
       }
       
-      // Get the URL of the fund thesis document
-      const { data, error } = await supabase.functions.invoke('handle-vc-document-upload', {
-        body: { 
-          action: 'get_url', 
-          userId: user.id,
-          documentType: 'fund_thesis' 
+      // Check if user has fund thesis directly in vc_profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('vc_profiles')
+        .select('fund_thesis_url')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError || !profileData?.fund_thesis_url) {
+        console.log("No fund thesis found in vc_profiles table, trying to get URL directly");
+        
+        // Get the URL of the fund thesis document using the Edge Function
+        const { data, error } = await supabase.storage
+          .from('vc_documents')
+          .createSignedUrl(`${user.id}/fund_thesis.pdf`, 60);
+        
+        if (error || !data?.signedUrl) {
+          console.error("Error getting fund thesis URL:", error);
+          toast.error("Failed to retrieve fund thesis document");
+          return;
         }
-      });
-      
-      if (error || !data?.url) {
-        console.error("Error getting fund thesis URL:", error);
-        toast.error("Failed to retrieve fund thesis document");
-        return;
+        
+        // Open the fund thesis in a new tab
+        window.open(data.signedUrl, '_blank');
+      } else {
+        // Open the fund thesis URL from the profile
+        window.open(profileData.fund_thesis_url, '_blank');
       }
-      
-      // Open the fund thesis in a new tab
-      window.open(data.url, '_blank');
     } catch (error) {
       console.error("Error viewing fund thesis:", error);
       toast.error("Failed to retrieve fund thesis document");
