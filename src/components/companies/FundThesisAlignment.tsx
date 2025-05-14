@@ -5,6 +5,7 @@ import { ExternalLink, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisModal } from '@/components/submissions/AnalysisModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface FundThesisAlignmentProps {
   companyId: string;
@@ -18,6 +19,8 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
+  const [fundThesisUrl, setFundThesisUrl] = useState<string | null>(null);
 
   const analyzeThesisAlignment = async (forceRefresh = false) => {
     try {
@@ -125,11 +128,13 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           return;
         }
         
-        // Open the fund thesis in a new tab
-        window.open(data.signedUrl, '_blank');
+        // Set the fund thesis URL and open modal
+        setFundThesisUrl(data.signedUrl);
+        setIsFundThesisModalOpen(true);
       } else {
-        // Open the fund thesis URL from the profile
-        window.open(profileData.fund_thesis_url, '_blank');
+        // Set the fund thesis URL from profile and open modal
+        setFundThesisUrl(profileData.fund_thesis_url);
+        setIsFundThesisModalOpen(true);
       }
     } catch (error) {
       console.error("Error viewing fund thesis:", error);
@@ -195,6 +200,28 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         </Button>
       </div>
+
+      {/* Fund Thesis PDF Modal */}
+      <Dialog open={isFundThesisModalOpen} onOpenChange={setIsFundThesisModalOpen}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Your Fund Thesis</DialogTitle>
+            <DialogDescription>
+              Review your investment thesis document
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-2 flex-grow overflow-hidden">
+            {fundThesisUrl && (
+              <iframe 
+                src={`${fundThesisUrl}#toolbar=0`} 
+                className="w-full h-[70vh] border-none"
+                title="Fund Thesis PDF"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AnalysisModal
         isOpen={isAnalysisModalOpen}
