@@ -67,7 +67,7 @@ serve(async (req) => {
     console.log("Token length (after trim):", cleanToken.length);
     
     // Hardcoding the expected token for comparison
-    const expectedToken = "maLVe60a86gZJQuIrmvTs5DGxOvBg69k";
+    const expectedToken = "Vn3B3cCbbWVfOffJiYVAZqWgcGH6tARI";
     console.log("Expected token first 10 chars:", expectedToken.substring(0, 10) + "...");
     console.log("Expected token length:", expectedToken.length);
     
