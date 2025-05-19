@@ -107,22 +107,24 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         return;
       }
       
-      // Check if user has fund thesis directly in vc_profiles table
+      // Check if user has fund thesis in vc_profiles table
       const { data: profileData, error: profileError } = await supabase
         .from('vc_profiles')
         .select('fund_thesis_url')
         .eq('id', user.id)
         .single();
       
-      let thesisUrl: string | null = null;
-      
-      if (profileError || !profileData?.fund_thesis_url) {
-        console.log("No fund thesis found in vc_profiles table, trying to get URL directly");
+      // Use either the stored URL from the profile or construct one using the user ID
+      if (profileData?.fund_thesis_url) {
+        // Get the file path from the stored URL
+        const filePath = profileData.fund_thesis_url.includes('/') 
+          ? profileData.fund_thesis_url 
+          : `${user.id}/${profileData.fund_thesis_url}`;
         
-        // Get the URL of the fund thesis document using the Edge Function
+        // Get the URL of the fund thesis document
         const { data, error } = await supabase.storage
-          .from('vc_documents')
-          .createSignedUrl(`${user.id}/fund_thesis.pdf`, 60);
+          .from('vc-documents')
+          .createSignedUrl(filePath, 60);
         
         if (error || !data?.signedUrl) {
           console.error("Error getting fund thesis URL:", error);
@@ -130,19 +132,43 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           return;
         }
         
-        thesisUrl = data.signedUrl;
-      } else {
-        thesisUrl = profileData.fund_thesis_url;
-      }
-      
-      if (thesisUrl) {
         // Create a temporary anchor element to download the file
         const downloadLink = document.createElement('a');
-        downloadLink.href = thesisUrl;
+        downloadLink.href = data.signedUrl;
         downloadLink.download = 'fund_thesis.pdf'; 
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
+      } else {
+        // Try direct access using user ID
+        console.log("No URL in profile, trying direct access with user ID:", user.id);
+        
+        // Get the URL of the fund thesis document using Edge Function
+        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('handle-vc-document-upload', {
+          body: { 
+            action: 'download',
+            userId: user.id,
+            documentType: 'fund_thesis'
+          }
+        });
+        
+        if (edgeError) {
+          console.error("Error invoking edge function:", edgeError);
+          toast.error("Failed to retrieve fund thesis document");
+          return;
+        }
+        
+        if (edgeData?.url) {
+          // Create a temporary anchor element to download the file
+          const downloadLink = document.createElement('a');
+          downloadLink.href = edgeData.url;
+          downloadLink.download = 'fund_thesis.pdf'; 
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } else {
+          toast.error("Fund thesis document URL not found");
+        }
       }
     } catch (error) {
       console.error("Error downloading fund thesis:", error);
