@@ -38,7 +38,6 @@ Format each insight like a NEWS ARTICLE with:
 1. A compelling headline (make it specific and directly related to this company's business model)
 2. Publication information in parentheses (e.g., "Bloomberg, June 2024")
 3. 2-3 concise sentences with concrete facts, figures, and insights DIRECTLY APPLICABLE to this specific company
-4. ALWAYS include a URL to a real, reputable news source at the end
 
 Focus on these categories and provide EXACTLY ONE article for each:
 - Market Size & Growth: Latest projections with SPECIFIC numbers and growth percentages directly relevant to this company
@@ -50,7 +49,6 @@ Focus on these categories and provide EXACTLY ONE article for each:
 Each news item should be formatted with a ### prefix, like:
 ### [COMPELLING HEADLINE SPECIFIC TO THIS COMPANY]
 (Publication Name, Date) Key insights with concrete facts and figures RELEVANT TO THIS COMPANY. More specific details about how this directly impacts this business. Additional context about why this particularly matters to this company's strategy.
-Source: [URL]
 
 Provide exactly 6-8 diverse articles total, one per category. Make each headline unique and insightful. Focus on RECENT, FACTUAL data that would be valuable to investors assessing THIS SPECIFIC COMPANY.`;
 
