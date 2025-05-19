@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Loader2, AlertCircle, RefreshCw, Download } from "lucide-react";
@@ -132,13 +131,9 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           return;
         }
         
-        // Create a temporary anchor element to download the file
-        const downloadLink = document.createElement('a');
-        downloadLink.href = data.signedUrl;
-        downloadLink.download = 'fund_thesis.pdf'; 
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
+        // Set the URL and open the modal
+        setFundThesisUrl(data.signedUrl);
+        setIsFundThesisModalOpen(true);
       } else {
         // Try direct access using user ID
         console.log("No URL in profile, trying direct access with user ID:", user.id);
@@ -159,19 +154,15 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         }
         
         if (edgeData?.url) {
-          // Create a temporary anchor element to download the file
-          const downloadLink = document.createElement('a');
-          downloadLink.href = edgeData.url;
-          downloadLink.download = 'fund_thesis.pdf'; 
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-          document.body.removeChild(downloadLink);
+          // Set the URL and open the modal
+          setFundThesisUrl(edgeData.url);
+          setIsFundThesisModalOpen(true);
         } else {
           toast.error("Fund thesis document URL not found");
         }
       }
     } catch (error) {
-      console.error("Error downloading fund thesis:", error);
+      console.error("Error viewing fund thesis:", error);
       toast.error("Failed to retrieve fund thesis document");
     }
   };
@@ -202,8 +193,8 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
                 className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50"
                 onClick={handleViewThesis}
               >
-                <span>Download Fund Thesis</span>
-                <Download className="h-4 w-4" />
+                <span>View Fund Thesis</span>
+                <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -221,7 +212,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           onClick={handleViewThesis}
         >
           <span>View Your Fund Thesis</span>
-          <Download className="h-4 w-4" />
+          <ExternalLink className="h-4 w-4" />
         </Button>
         
         <Button
