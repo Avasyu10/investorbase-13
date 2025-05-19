@@ -194,7 +194,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 mt-4"
           onClick={handleViewThesis}
         >
-          <span>Download Fund Thesis</span>
+          <span>View Your Fund Thesis</span>
           <Download className="h-4 w-4" />
         </Button>
         

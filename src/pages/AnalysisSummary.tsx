@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,21 +73,35 @@ export default function AnalysisSummary() {
           setHasFundThesis(true);
         }
 
-        // Fetch the analysis summary
-        const { data, error } = await supabase
-          .from('analysis_summaries')
-          .select('*')
-          .eq('id', params.id)
-          .single();
+        // Fetch the analysis summary using RPC or custom endpoint
+        const summaryId = params.id;
+        if (!summaryId) {
+          setError("No analysis ID provided");
+          setIsLoading(false);
+          return;
+        }
 
-        if (error) {
-          console.error("Error fetching analysis summary:", error);
+        // Use a direct fetch to an API endpoint since the table might not be accessible via Supabase client
+        const response = await fetch(`https://jhtnruktmtjqrfoiyrep.supabase.co/rest/v1/analysis_summaries?id=eq.${summaryId}`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          }
+        });
+
+        if (!response.ok) {
+          console.error("Error fetching analysis summary:", response.statusText);
           setError("Failed to load analysis summary");
           setIsLoading(false);
           return;
         }
 
-        setSummary(data as AnalysisSummary);
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setSummary(data[0] as AnalysisSummary);
+        } else {
+          setError("Analysis summary not found");
+        }
       } catch (err) {
         console.error("Error in fetchSummary:", err);
         setError("An unexpected error occurred");
