@@ -6,7 +6,7 @@ import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, Briefcase } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2 } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,7 +68,7 @@ function CompanyDetails() {
         <ChevronLeft className="mr-1" /> Back
       </Button>
 
-      {/* Company Info and Score */}
+      {/* Combined Company Overview and Score */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2">
           <CompanyInfoCard
@@ -76,6 +76,7 @@ function CompanyDetails() {
             stage={stageToShow}
             industry={industryToShow}
             introduction={introductionToShow}
+            companyName={company.name}
           />
         </div>
         <div>
@@ -90,7 +91,10 @@ function CompanyDetails() {
       />
 
       {/* Sections */}
-      <h2 className="text-2xl font-bold mt-12 mb-6">Detailed Analysis</h2>
+      <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+        <BarChart2 className="h-5 w-5 text-primary" />
+        Detailed Analysis
+      </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {company.sections &&
           company.sections.map((section) => (
@@ -113,57 +117,6 @@ function CompanyDetails() {
           </Card>
         )}
       </div>
-      
-      {/* Company Information Section */}
-      <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-        <Briefcase className="h-5 w-5" />
-        Company Information
-      </h2>
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">About {company.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-medium mb-2">Description</h3>
-              <p className="text-muted-foreground whitespace-pre-line">
-                {introductionToShow || "No detailed description available."}
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <h3 className="font-medium mb-1">Industry</h3>
-                <p className="text-muted-foreground">{industryToShow || "Not specified"}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-1">Stage</h3>
-                <p className="text-muted-foreground">{stageToShow || "Not specified"}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-1">Website</h3>
-                <p className="text-muted-foreground">
-                  {websiteToShow ? (
-                    <a 
-                      href={websiteToShow.startsWith('http') ? websiteToShow : `https://${websiteToShow}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {websiteToShow}
-                    </a>
-                  ) : (
-                    "Not available"
-                  )}
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

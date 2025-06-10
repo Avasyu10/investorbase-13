@@ -13,6 +13,7 @@ type CompanyInfoProps = {
   description?: string; // Added for backward compatibility
   pitchUrl?: string;    // Added for backward compatibility
   reportId?: string;    // Added for backward compatibility
+  companyName?: string; // Added to display company name in description
 };
 
 export function CompanyInfoCard({
@@ -23,7 +24,8 @@ export function CompanyInfoCard({
   introduction = "No detailed information available for this company.",
   description, // For backward compatibility
   pitchUrl,    // For backward compatibility
-  reportId     // For backward compatibility
+  reportId,     // For backward compatibility
+  companyName = "this company"
 }: CompanyInfoProps) {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -50,22 +52,31 @@ export function CompanyInfoCard({
     <div className="mb-7">
       <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
         <Briefcase className="h-5 w-5 text-primary" />
-        Overview
+        Company Overview
       </h3>
       
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
+          {/* Company Description */}
+          <div className="mb-6">
+            <h4 className="font-medium mb-2">About {companyName}</h4>
+            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+              {displayIntroduction}
+            </p>
+          </div>
+          
+          {/* Company Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary" />
-              <div>
+              <Globe className="h-4 w-4 text-primary flex-shrink-0" />
+              <div className="min-w-0">
                 <p className="text-sm font-medium">Website</p>
                 {websiteUrl ? (
                   <a 
                     href={websiteUrl}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                    className="text-sm text-muted-foreground hover:text-primary hover:underline truncate block"
                   >
                     {displayWebsite}
                   </a>
@@ -76,7 +87,7 @@ export function CompanyInfoCard({
             </div>
             
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
+              <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Stage</p>
                 <p className="text-sm text-muted-foreground">{stage}</p>
@@ -84,7 +95,7 @@ export function CompanyInfoCard({
             </div>
             
             <div className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4 text-primary" />
+              <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Industry</p>
                 <p className="text-sm text-muted-foreground">{industry}</p>
@@ -92,17 +103,17 @@ export function CompanyInfoCard({
             </div>
           </div>
         </CardContent>
-            <CardFooter className="justify-end">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate('/company-detail-page')}
-                className="flex items-center gap-2 text-primary"
-              >
-                <ExternalLink className="h-4 w-4" />
-                More Information
-              </Button>
-            </CardFooter>
+        <CardFooter className="justify-end">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate('/company-detail-page')}
+            className="flex items-center gap-2 text-primary"
+          >
+            <ExternalLink className="h-4 w-4" />
+            More Information
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
