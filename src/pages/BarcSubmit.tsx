@@ -94,7 +94,7 @@ const BarcSubmit = () => {
       console.log('Submission data prepared:', submissionData);
 
       try {
-        // Use Supabase client for insertion - the new RLS policy allows all insertions
+        // Use Supabase client for insertion - the updated RLS policies now allow anonymous insertions
         const { data, error } = await supabase
           .from('barc_form_submissions')
           .insert(submissionData)
@@ -103,6 +103,12 @@ const BarcSubmit = () => {
 
         if (error) {
           console.error('Supabase insertion error:', error);
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
           throw new Error(`Submission failed: ${error.message}`);
         }
 
