@@ -30,7 +30,6 @@ interface BarcFormData {
 const BarcSubmit = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<BarcFormData>({
     defaultValues: {
@@ -47,30 +46,14 @@ const BarcSubmit = () => {
     },
   });
 
-  // Fetch form details - for BARC forms, we'll check if a form exists or allow access with user ID
+  // For BARC forms, we don't need to validate against database forms
+  // Just ensure the slug exists and create a virtual form structure
   const { data: formData, isLoading: isLoadingForm } = useQuery({
     queryKey: ['barc-form', slug],
     queryFn: async () => {
       if (!slug) throw new Error("Form slug is required");
       
-      // First try to find an actual BARC form
-      const { data, error } = await supabase
-        .from('public_submission_forms')
-        .select('*')
-        .eq('form_slug', slug)
-        .eq('form_type', 'barc')
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (error) throw error;
-      
-      // If we found a form, return it
-      if (data) {
-        return data;
-      }
-      
-      // If no form found but slug looks like a user ID, create a virtual form
-      // This allows BARC forms to work with user IDs as slugs
+      // Return a virtual form for BARC submissions
       return {
         id: `barc-${slug}`,
         form_name: "IIT Bombay Application Form",
@@ -78,7 +61,7 @@ const BarcSubmit = () => {
         form_type: 'barc',
         is_active: true,
         user_id: slug,
-        auto_analyze: false,
+        auto_analyze: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -86,11 +69,14 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation
+  // Submit form mutation - using direct insert without authentication
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
+      console.log('Submitting BARC form data:', formData);
+
+      // Direct insert to barc_form_submissions table
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .insert({
@@ -105,18 +91,25 @@ const BarcSubmit = () => {
           question_4: formData.question4,
           question_5: formData.question5,
           submitter_email: formData.submitterEmail,
+          analysis_status: 'pending'
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error submitting BARC form:', error);
+        throw error;
+      }
+
+      console.log('BARC form submitted successfully:', data);
       return data;
     },
     onSuccess: async (data) => {
       toast.success("Application submitted successfully!");
       
-      // Trigger analysis
+      // Trigger analysis after successful submission
       try {
+        console.log('Triggering analysis for submission:', data.id);
         const { error: analysisError } = await supabase.functions.invoke('analyze-barc-submission', {
           body: { submissionId: data.id }
         });
@@ -138,14 +131,14 @@ const BarcSubmit = () => {
       }, 2000);
     },
     onError: (error: any) => {
+      console.error('Form submission error:', error);
       toast.error(`Failed to submit application: ${error.message}`);
     }
   });
 
   const onSubmit = (data: BarcFormData) => {
-    setIsSubmitting(true);
+    console.log('Form submission triggered with data:', data);
     submitMutation.mutate(data);
-    setIsSubmitting(false);
   };
 
   if (isLoadingForm) {
@@ -166,7 +159,7 @@ const BarcSubmit = () => {
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-2">Form Not Found</h2>
             <p className="text-muted-foreground mb-4">
-              The requested application form could not be found or is currently inactive.
+              The requested application form could not be found.
             </p>
             <Button onClick={() => navigate('/')}>
               Return Home
@@ -402,10 +395,10 @@ const BarcSubmit = () => {
                 <div className="flex justify-end pt-6">
                   <Button 
                     type="submit" 
-                    disabled={isSubmitting || submitMutation.isPending}
+                    disabled={submitMutation.isPending}
                     size="lg"
                   >
-                    {(isSubmitting || submitMutation.isPending) && (
+                    {submitMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     Submit Application
