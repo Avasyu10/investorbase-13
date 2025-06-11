@@ -10,7 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail, ExternalLink, Sparkles } from "lucide-react";
+import { FileText, Mail, ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PublicSubmission {
   id: string;
@@ -33,6 +36,8 @@ interface PublicSubmissionsTableProps {
 }
 
 export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmissionsTableProps) {
+  const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
+
   if (!submissions) {
     return (
       <div className="text-center py-8">
@@ -56,6 +61,58 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       </div>
     );
   }
+
+  const handleAnalyze = async (submission: PublicSubmission) => {
+    if (!submission.report_id) {
+      toast.error("Analysis failed", {
+        description: "No report ID found for this submission"
+      });
+      return;
+    }
+
+    setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
+
+    try {
+      console.log("Starting analysis for submission:", submission.id, "with report_id:", submission.report_id);
+      
+      const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+        body: { reportId: submission.report_id }
+      });
+      
+      if (error) {
+        console.error("Error invoking analyze-pdf function:", error);
+        throw error;
+      }
+      
+      if (!data || data.error) {
+        const errorMessage = data?.error || "Unknown error occurred during analysis";
+        console.error("API returned error:", errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      console.log("Analysis completed successfully:", data);
+      
+      toast.success("Analysis complete", {
+        description: "The submission has been analyzed successfully"
+      });
+      
+      // Call the original onAnalyze callback
+      onAnalyze(submission);
+      
+    } catch (error) {
+      console.error("Error analyzing submission:", error);
+      
+      toast.error("Analysis failed", {
+        description: error instanceof Error ? error.message : "Failed to analyze submission"
+      });
+    } finally {
+      setAnalyzingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(submission.id);
+        return newSet;
+      });
+    }
+  };
 
   const truncateText = (text: string | null, maxLength: number) => {
     if (!text) return "—";
@@ -122,6 +179,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
         </TableHeader>
         <TableBody>
           {submissions.map((submission) => {
+            const isAnalyzing = analyzingSubmissions.has(submission.id);
+            
             try {
               return (
                 <TableRow key={submission.id}>
@@ -159,11 +218,21 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => onAnalyze(submission)}
+                      onClick={() => handleAnalyze(submission)}
+                      disabled={isAnalyzing || !submission.report_id}
                       className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
                     >
-                      <Sparkles className="mr-1 h-3 w-3" />
-                      Analyze
+                      {isAnalyzing ? (
+                        <>
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-1 h-3 w-3" />
+                          Analyze
+                        </>
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>
