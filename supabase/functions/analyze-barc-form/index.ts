@@ -278,7 +278,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, metric-based analysis in valid JSON format. Be objective and evidence-based in your scoring.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, metric-based analysis in valid JSON format only. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
           },
           {
             role: 'user',
@@ -303,15 +303,26 @@ serve(async (req) => {
       throw new Error('Invalid response structure from OpenAI');
     }
 
-    const analysisText = openaiData.choices[0].message.content;
+    let analysisText = openaiData.choices[0].message.content;
+    console.log('Raw analysis text:', analysisText);
+
+    // Clean up the response if it's wrapped in markdown code blocks
+    if (analysisText.startsWith('```json')) {
+      console.log('Removing markdown code block formatting...');
+      analysisText = analysisText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (analysisText.startsWith('```')) {
+      console.log('Removing generic code block formatting...');
+      analysisText = analysisText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
 
     // Parse the JSON response
     let analysisResult;
     try {
       analysisResult = JSON.parse(analysisText);
+      console.log('Successfully parsed analysis result');
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
-      console.error('Raw response:', analysisText);
+      console.error('Cleaned response:', analysisText);
       throw new Error('Analysis response was not valid JSON');
     }
 

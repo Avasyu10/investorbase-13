@@ -98,34 +98,29 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       .update({ analysis_status: 'processing' })
       .eq('id', submissionId);
 
-    console.log('Calling analyze-barc-form edge function with POST method...');
+    console.log('Calling analyze-barc-form edge function with supabase.functions.invoke...');
     
-    // Make a direct fetch call to the edge function since supabase.functions.invoke seems to have issues
-    const supabaseUrl = 'https://jhtnruktmtjqrfoiyrep.supabase.co';
-    const functionUrl = `${supabaseUrl}/functions/v1/analyze-barc-form`;
-    
-    console.log('Making direct fetch call to:', functionUrl);
-
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabase.supabaseKey}`,
-      },
-      body: JSON.stringify({ submissionId })
+    // Use supabase.functions.invoke instead of direct fetch to handle auth properly
+    const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
+      body: { submissionId }
     });
 
-    console.log('Fetch response status:', response.status);
-    console.log('Fetch response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('Edge function response:', { data, error });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Fetch response error:', errorText);
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    if (error) {
+      console.error('Edge function error:', error);
+      
+      // Update status to failed
+      await supabase
+        .from('barc_form_submissions')
+        .update({ 
+          analysis_status: 'failed',
+          analysis_error: `Edge function error: ${error.message}` 
+        })
+        .eq('id', submissionId);
+      
+      throw new Error(`Analysis failed: ${error.message}`);
     }
-
-    const data = await response.json();
-    console.log('Edge function response data:', data);
 
     if (!data) {
       const errorMsg = 'No response from analysis function';
