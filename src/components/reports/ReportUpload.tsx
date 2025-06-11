@@ -260,7 +260,6 @@ export function ReportUpload({
         
         // Email handling - use a default value when hideEmailField is true
         if (hideEmailField) {
-          // Use a placeholder email when the field is hidden
           formData.append('email', 'no-email-required@pitchdeck.com');
           console.log("Using placeholder email since hideEmailField is true");
         } else {
@@ -284,7 +283,6 @@ export function ReportUpload({
           hideEmailField,
           formSlug,
           question,
-          // New fields
           companyRegistrationType,
           registrationNumber,
           dpiitRecognitionNumber,
@@ -297,7 +295,6 @@ export function ReportUpload({
           valuation,
           lastFyRevenue,
           lastQuarterRevenue,
-          // Founder information
           founderName,
           founderGender,
           founderEmail,
@@ -329,10 +326,11 @@ export function ReportUpload({
           formData.append('industry', industry);
         }
         
-        // Add LinkedIn profiles as JSON string
+        // Add LinkedIn profiles as JSON string - the backend will handle scraping
         const filteredProfiles = founderLinkedIns.filter(profile => profile.trim());
         if (filteredProfiles.length > 0) {
           formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
+          console.log("LinkedIn profiles will be scraped by backend:", filteredProfiles);
         }
         
         // Add question field to form data
@@ -427,6 +425,9 @@ export function ReportUpload({
         
         const apiUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload";
         console.log("Sending public upload request to:", apiUrl);
+        
+        setProgressStage("Uploading and processing LinkedIn profiles...");
+        setProgress(50);
         
         try {
           const response = await fetch(apiUrl, {
@@ -531,9 +532,9 @@ export function ReportUpload({
         });
       }
       
-      // Only scrape website content if scraping features are enabled
+      // Only scrape website content if scraping features are enabled AND it's not a public upload
       let scrapedContent = null;
-      if (!disableScrapingFeatures && companyWebsite && companyWebsite.trim()) {
+      if (!disableScrapingFeatures && !isPublic && companyWebsite && companyWebsite.trim()) {
         setProgress(40);
         setIsScrapingWebsite(true);
         const websiteResult = await scrapeWebsite(companyWebsite);
@@ -550,9 +551,9 @@ export function ReportUpload({
         }
       }
       
-      // Enhanced LinkedIn profile scraping with better error handling
+      // Enhanced LinkedIn profile scraping for NON-PUBLIC uploads only
       let linkedInContent = null;
-      if (!disableScrapingFeatures) {
+      if (!disableScrapingFeatures && !isPublic) {
         const validLinkedInProfiles = founderLinkedIns.filter(url => {
           const trimmedUrl = url.trim();
           return trimmedUrl && (
@@ -658,7 +659,7 @@ export function ReportUpload({
       } else if (isPublic) {
         setProgress(100);
         toast.success("Submission received", {
-          description: "Your pitch deck has been submitted successfully!"
+          description: "Your pitch deck has been submitted successfully! LinkedIn profiles have been processed automatically."
         });
         
         // Reset form fields

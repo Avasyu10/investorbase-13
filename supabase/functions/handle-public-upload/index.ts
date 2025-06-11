@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.29.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { decode } from 'https://deno.land/std@0.177.0/encoding/base64.ts';
@@ -7,6 +6,196 @@ import { decode } from 'https://deno.land/std@0.177.0/encoding/base64.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// LinkedIn scraping function for public uploads
+const scrapeLinkedInProfilesPublic = async (urls: string[], reportId: string, supabase: any) => {
+  if (!urls || urls.length === 0) return null;
+  
+  // Filter out empty URLs and validate LinkedIn URLs
+  const validUrls = urls.filter(url => {
+    const trimmedUrl = url.trim();
+    return trimmedUrl && (
+      trimmedUrl.includes('linkedin.com/in/') || 
+      trimmedUrl.includes('linkedin.com/pub/') ||
+      trimmedUrl.includes('www.linkedin.com/in/') ||
+      trimmedUrl.includes('www.linkedin.com/pub/')
+    );
+  });
+  
+  if (validUrls.length === 0) {
+    console.log("No valid LinkedIn URLs found");
+    return null;
+  }
+  
+  // RapidAPI configuration
+  const RAPIDAPI_HOST = "linkedin-data-api.p.rapidapi.com";
+  const RAPIDAPI_KEY = "2ccd2d34c2msh7cc3d6fb000aae8p1349bbjsn62fea1629a93";
+  const RAPIDAPI_URL = "https://linkedin-data-api.p.rapidapi.com/get-profile-data-by-url";
+  
+  const profiles = [];
+  let successCount = 0;
+  let privateProfileCount = 0;
+  let errorCount = 0;
+  
+  for (const url of validUrls) {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) continue;
+    
+    try {
+      console.log(`Scraping profile: ${trimmedUrl}`);
+      
+      // Encode the LinkedIn URL
+      const encodedUrl = encodeURIComponent(trimmedUrl);
+      const apiUrl = `${RAPIDAPI_URL}?url=${encodedUrl}`;
+      
+      // Make request to RapidAPI
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-host': RAPIDAPI_HOST,
+          'x-rapidapi-key': RAPIDAPI_KEY
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`RapidAPI error (${response.status}): ${errorText}`);
+        
+        if (response.status === 403 || response.status === 401 || errorText.toLowerCase().includes('private')) {
+          console.log(`Profile appears to be private: ${trimmedUrl}`);
+          privateProfileCount++;
+        } else {
+          errorCount++;
+        }
+        continue;
+      }
+
+      const data = await response.json();
+      
+      if (!data || (data.error && data.error.toLowerCase().includes('private'))) {
+        console.log(`Profile is private: ${trimmedUrl}`);
+        privateProfileCount++;
+        continue;
+      }
+      
+      console.log(`Successfully scraped public profile: ${trimmedUrl}`);
+      
+      // Format the content from the API data for team analysis
+      let content = `FOUNDER PROFESSIONAL PROFILE:\n\n`;
+      
+      if (data.full_name) {
+        content += `Name: ${data.full_name}\n`;
+      }
+      
+      if (data.headline || data.occupation) {
+        content += `Current Role: ${data.headline || data.occupation}\n`;
+      }
+      
+      if (data.location) {
+        content += `Location: ${data.location}\n`;
+      }
+      
+      content += `\n`;
+      
+      // Add professional summary
+      if (data.summary || data.about) {
+        content += `PROFESSIONAL SUMMARY:\n${data.summary || data.about}\n\n`;
+      }
+      
+      // Add experience - crucial for team analysis
+      if (data.experiences && Array.isArray(data.experiences) && data.experiences.length > 0) {
+        content += `PROFESSIONAL EXPERIENCE:\n`;
+        data.experiences.forEach((exp, index) => {
+          content += `\n${index + 1}. ${exp.title || 'Position'} at ${exp.company || 'Company'}`;
+          if (exp.date_range || exp.duration) {
+            content += ` (${exp.date_range || exp.duration})`;
+          }
+          content += `\n`;
+          if (exp.description) {
+            content += `   Description: ${exp.description}\n`;
+          }
+        });
+        content += `\n`;
+      }
+      
+      // Add education
+      if (data.education && Array.isArray(data.education) && data.education.length > 0) {
+        content += `EDUCATION:\n`;
+        data.education.forEach((edu, index) => {
+          content += `${index + 1}. ${edu.school || edu.institution || 'Institution'}`;
+          if (edu.degree || edu.field_of_study) {
+            const degree = edu.degree || '';
+            const field = edu.field_of_study || '';
+            content += ` - ${degree} ${field}`.trim();
+          }
+          if (edu.date_range) {
+            content += ` (${edu.date_range})`;
+          }
+          content += `\n`;
+        });
+        content += `\n`;
+      }
+      
+      // Add skills - important for team capability assessment
+      if (data.skills && Array.isArray(data.skills) && data.skills.length > 0) {
+        content += `KEY SKILLS:\n`;
+        content += data.skills.slice(0, 15).join(", "); // Limit to top 15 skills
+        content += `\n\n`;
+      }
+      
+      // Add any certifications or honors
+      if (data.certifications && Array.isArray(data.certifications)) {
+        content += `CERTIFICATIONS:\n`;
+        data.certifications.forEach((cert, index) => {
+          content += `${index + 1}. ${cert.name || cert.title || cert}\n`;
+        });
+        content += `\n`;
+      }
+      
+      // Remove any HTML tags that might be present
+      content = content.replace(/<[^>]*>/g, '');
+      
+      profiles.push({
+        url: trimmedUrl,
+        content
+      });
+      
+      successCount++;
+      
+    } catch (error) {
+      console.error(`Error processing LinkedIn profile ${trimmedUrl}:`, error);
+      errorCount++;
+    }
+  }
+  
+  // Prepare response message
+  let message = `Processed ${validUrls.length} LinkedIn profiles: `;
+  message += `${successCount} public profiles scraped successfully`;
+  
+  if (privateProfileCount > 0) {
+    message += `, ${privateProfileCount} private profiles ignored`;
+  }
+  
+  if (errorCount > 0) {
+    message += `, ${errorCount} profiles failed`;
+  }
+  
+  console.log(message);
+  
+  if (profiles.length > 0) {
+    return {
+      success: true,
+      profiles,
+      message
+    };
+  } else {
+    return {
+      success: false,
+      profiles: null,
+      error: "No public LinkedIn profiles could be scraped"
+    };
+  }
 };
 
 serve(async (req) => {
@@ -67,9 +256,7 @@ serve(async (req) => {
       const email = formData.get('email') as string;
       const description = formData.get('description') as string || '';
       const websiteUrl = formData.get('websiteUrl') as string || '';
-      // Extract the form slug from the form data
       const formSlug = formData.get('formSlug') as string || '';
-      // Extract question field
       const question = formData.get('question') as string || '';
       
       console.log("Processing submission with form slug:", formSlug);
@@ -193,6 +380,41 @@ serve(async (req) => {
       
       console.log("File uploaded successfully:", filePath);
       
+      // Scrape LinkedIn profiles if provided
+      let enhancedDescription = description;
+      if (linkedInProfiles.length > 0) {
+        console.log("Starting LinkedIn profile scraping for public submission");
+        try {
+          const linkedInResult = await scrapeLinkedInProfilesPublic(linkedInProfiles, 'public', supabase);
+          
+          if (linkedInResult?.success && linkedInResult.profiles) {
+            let linkedInContent = "FOUNDER LINKEDIN PROFILES ANALYSIS:\n\n";
+            
+            linkedInResult.profiles.forEach((profile, index) => {
+              linkedInContent += `=== FOUNDER ${index + 1} PROFILE ===\n`;
+              linkedInContent += `LinkedIn URL: ${profile.url}\n\n`;
+              linkedInContent += `Professional Background:\n${profile.content}\n\n`;
+              linkedInContent += "--- End of Profile ---\n\n";
+            });
+            
+            linkedInContent += "\nThis LinkedIn profile data should be analyzed for:\n";
+            linkedInContent += "- Relevant industry experience\n";
+            linkedInContent += "- Leadership roles and achievements\n";
+            linkedInContent += "- Educational background\n";
+            linkedInContent += "- Skills relevant to the business\n";
+            linkedInContent += "- Network and connections quality\n";
+            linkedInContent += "- Previous startup or entrepreneurial experience\n\n";
+            
+            enhancedDescription += `\n\n${linkedInContent}`;
+            console.log("LinkedIn profiles scraped and added to description");
+          } else {
+            console.log("LinkedIn scraping failed or no public profiles found");
+          }
+        } catch (linkedInError) {
+          console.error("Error scraping LinkedIn profiles:", linkedInError);
+        }
+      }
+      
       // Parse employee count to number if provided
       let employeeCountNum = null;
       if (employeeCount) {
@@ -208,15 +430,15 @@ serve(async (req) => {
         .from('public_form_submissions')
         .insert({
           title,
-          description,
+          description: enhancedDescription, // Use enhanced description with LinkedIn data
           website_url: websiteUrl,
-          pdf_url: filePath, // Store the full path to retrieve the file correctly
-          form_slug: formSlug, // Save the form slug to the database
+          pdf_url: filePath,
+          form_slug: formSlug,
           company_stage: companyStage,
           industry,
           founder_linkedin_profiles: linkedInProfiles,
-          question, // Store the question field
-          submitter_email: email, // Store the submitter's email
+          question,
+          submitter_email: email,
           // New company fields
           company_registration_type: companyRegistrationType,
           registration_number: registrationNumber,
@@ -267,7 +489,7 @@ serve(async (req) => {
           .from('reports')
           .insert({
             title,
-            description,
+            description: enhancedDescription, // Use enhanced description with LinkedIn data
             pdf_url: filePath, // Use the full path here as well
             user_id: formOwnerId,
             is_public_submission: true,
