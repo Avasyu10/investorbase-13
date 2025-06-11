@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -11,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
-import { submitBarcForm, analyzeBarcSubmission } from "@/lib/api/barc";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BarcFormData {
   companyName: string;
@@ -68,14 +69,14 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation using the new API
+  // Submit form mutation using direct Supabase client (same as PSI form)
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
       console.log('Starting BARC form submission:', { slug, formData });
 
-      const submissionPayload = {
+      const submissionData = {
         form_slug: slug,
         company_name: formData.companyName,
         company_registration_type: formData.companyRegistrationType,
@@ -87,13 +88,25 @@ const BarcSubmit = () => {
         question_4: formData.question4,
         question_5: formData.question5,
         submitter_email: formData.submitterEmail,
+        analysis_status: 'pending'
       };
 
-      console.log('Submission payload prepared:', submissionPayload);
-      
-      const result = await submitBarcForm(submissionPayload);
-      console.log('Submission successful:', result);
-      return result;
+      console.log('Inserting BARC submission into database:', submissionData);
+
+      // Use direct Supabase client insertion (same pattern as PSI form)
+      const { data, error } = await supabase
+        .from('barc_form_submissions')
+        .insert(submissionData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database insertion error:', error);
+        throw new Error(`Failed to save submission: ${error.message}`);
+      }
+
+      console.log('BARC submission saved successfully:', data);
+      return data;
     },
     onSuccess: async (data) => {
       console.log('BARC form submitted successfully:', data);
@@ -104,8 +117,17 @@ const BarcSubmit = () => {
         try {
           console.log('Triggering analysis for submission:', data.id);
           
-          await analyzeBarcSubmission(data.id);
-          toast.info("Application submitted and analysis started!");
+          const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-barc-submission', {
+            body: { submissionId: data.id }
+          });
+
+          if (analysisError) {
+            console.error('Failed to trigger analysis:', analysisError);
+            toast.info("Application submitted. Analysis will be processed shortly.");
+          } else {
+            console.log('Analysis triggered successfully:', analysisData);
+            toast.success("Application submitted and analysis started!");
+          }
         } catch (error) {
           console.error('Failed to trigger analysis:', error);
           toast.info("Application submitted. Analysis will be processed shortly.");
