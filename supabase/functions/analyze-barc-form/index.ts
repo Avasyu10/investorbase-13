@@ -70,6 +70,40 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Get the auth user from the request headers
+    const authHeader = req.headers.get('Authorization');
+    let currentUserId = null;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) {
+          currentUserId = user.id;
+          console.log('Found authenticated user:', currentUserId);
+        }
+      } catch (authErr) {
+        console.log('Could not get authenticated user:', authErr);
+      }
+    }
+
+    // If no authenticated user, try to get an admin user
+    if (!currentUserId) {
+      console.log('No authenticated user found, looking for admin user...');
+      const { data: adminUsers, error: adminError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_admin', true)
+        .limit(1);
+
+      if (!adminError && adminUsers && adminUsers.length > 0) {
+        currentUserId = adminUsers[0].id;
+        console.log('Using admin user as fallback:', currentUserId);
+      }
+    }
+
+    console.log('Using user ID for company creation:', currentUserId);
+
     // Fetch the submission data
     console.log('Fetching submission data...');
     const { data: submission, error: fetchError } = await supabase
@@ -234,13 +268,13 @@ serve(async (req) => {
     if (analysisResult.recommendation === 'Accept') {
       console.log('Creating company and sections for accepted submission...');
       
-      // Create company
+      // Create company with proper user_id
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
           name: submission.company_name,
           overall_score: analysisResult.overall_score || 0,
-          user_id: null, // BARC submissions don't have a specific user
+          user_id: currentUserId, // Use the authenticated user or admin user
           source: 'barc_form'
         })
         .select()
@@ -252,7 +286,7 @@ serve(async (req) => {
       }
 
       companyId = company.id;
-      console.log('Created company with ID:', companyId);
+      console.log('Created company with ID:', companyId, 'for user:', currentUserId);
 
       // Create sections based on analysis
       const sectionsToCreate = [
