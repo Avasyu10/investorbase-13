@@ -98,7 +98,7 @@ serve(async (req) => {
       console.error('Failed to update status to processing:', statusUpdateError);
     }
 
-    // Prepare the comprehensive analysis prompt with specific metrics
+    // Prepare the comprehensive analysis prompt
     const analysisPrompt = `
     You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application using the specific metrics provided for each question.
 
@@ -328,7 +328,7 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log(`Successfully analyzed BARC submission ${submissionId} with new metrics`);
+    console.log(`Successfully analyzed BARC submission ${submissionId}`);
 
     return new Response(
       JSON.stringify({ 
