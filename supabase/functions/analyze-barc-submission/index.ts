@@ -6,18 +6,37 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
   console.log(`Request method: ${req.method}`);
+  console.log(`Request URL: ${req.url}`);
+  console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
   
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('Handling CORS preflight request');
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204 
+    });
+  }
+
+  if (req.method !== 'POST') {
+    console.log(`Method ${req.method} not allowed`);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Method not allowed' }),
+      {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 
   let submissionId = null;
 
   try {
+    console.log('Reading request body...');
     const requestBody = await req.json();
     submissionId = requestBody.submissionId;
     
@@ -30,6 +49,12 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      hasOpenAIKey: !!openaiApiKey
+    });
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase configuration is missing');
@@ -194,7 +219,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4.1-2025-04-14',
         messages: [
           {
             role: 'system',
@@ -212,13 +237,19 @@ serve(async (req) => {
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
+      console.error('OpenAI API error:', errorText);
       throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
     }
 
     const openaiData = await openaiResponse.json();
-    const analysisText = openaiData.choices[0].message.content;
+    console.log('OpenAI response status:', openaiResponse.status);
+    console.log('OpenAI response received, parsing...');
 
-    console.log('Received response from OpenAI, parsing...');
+    if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
+      throw new Error('Invalid response structure from OpenAI');
+    }
+
+    const analysisText = openaiData.choices[0].message.content;
 
     // Parse the JSON response
     let analysisResult;
@@ -274,12 +305,12 @@ serve(async (req) => {
           await supabase
             .from('barc_form_submissions')
             .update({
-              analysis_status: 'error',
+              analysis_status: 'failed',
               analysis_error: error instanceof Error ? error.message : 'Unknown error'
             })
             .eq('id', submissionId);
           
-          console.log('Updated submission status to error');
+          console.log('Updated submission status to failed');
         }
       } catch (updateError) {
         console.error('Failed to update error status:', updateError);

@@ -126,7 +126,7 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
-        // Fetch BARC form submissions
+        // Fetch BARC form submissions - include failed ones
         try {
           console.log("Fetching BARC form submissions...");
           const { data: barcData, error: barcError } = await supabase
@@ -151,7 +151,7 @@ export function PublicSubmissionsList() {
                 created_at: submission.created_at,
                 form_slug: submission.form_slug || "",
                 pdf_url: null,
-                report_id: null, // BARC submissions don't have report_id initially
+                report_id: null,
                 source: "barc_form" as const,
                 from_email: submission.submitter_email
               }));
@@ -248,7 +248,7 @@ export function PublicSubmissionsList() {
             description: "The BARC application has been successfully analyzed",
           });
           
-          // Only remove the submission from the list if analysis was truly successful
+          // Remove the submission from the list only if analysis was successful
           setSubmissions(prev => prev.filter(s => s.id !== submission.id));
         } else {
           throw new Error("Analysis completed but no result was returned");
@@ -264,8 +264,8 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
         
-        // Don't remove the submission from the list if analysis failed
-        // It should stay in the list so user can retry
+        // Keep the submission in the list so user can retry
+        // Don't remove it from the list
       } finally {
         setIsAnalyzing(false);
         setAnalyzingSubmissions(prev => {

@@ -92,7 +92,6 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       current_status: submission.analysis_status
     });
 
-    // Don't update status here - let the edge function handle it
     console.log('Calling analyze-barc-submission edge function...');
     
     const { data, error } = await supabase.functions.invoke('analyze-barc-submission', {
@@ -107,11 +106,11 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     if (error) {
       console.error('Edge function error:', error);
       
-      // Update status to error only if the edge function failed to communicate
+      // Update status to failed
       await supabase
         .from('barc_form_submissions')
         .update({ 
-          analysis_status: 'error',
+          analysis_status: 'failed',
           analysis_error: `Edge function error: ${error.message}` 
         })
         .eq('id', submissionId);
@@ -125,7 +124,7 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       await supabase
         .from('barc_form_submissions')
         .update({ 
-          analysis_status: 'error',
+          analysis_status: 'failed',
           analysis_error: errorMsg 
         })
         .eq('id', submissionId);
@@ -139,7 +138,7 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       await supabase
         .from('barc_form_submissions')
         .update({ 
-          analysis_status: 'error',
+          analysis_status: 'failed',
           analysis_error: errorMsg 
         })
         .eq('id', submissionId);
@@ -153,23 +152,15 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   } catch (error) {
     console.error('Analysis API error:', error);
     
-    // Only update error status if we haven't already done so
+    // Update error status in database
     try {
-      const { data: currentSubmission } = await supabase
+      await supabase
         .from('barc_form_submissions')
-        .select('analysis_status')
-        .eq('id', submissionId)
-        .single();
-      
-      if (currentSubmission && currentSubmission.analysis_status !== 'error') {
-        await supabase
-          .from('barc_form_submissions')
-          .update({ 
-            analysis_status: 'error',
-            analysis_error: error instanceof Error ? error.message : 'Unknown error' 
-          })
-          .eq('id', submissionId);
-      }
+        .update({ 
+          analysis_status: 'failed',
+          analysis_error: error instanceof Error ? error.message : 'Unknown error' 
+        })
+        .eq('id', submissionId);
     } catch (updateError) {
       console.error('Failed to update error status:', updateError);
     }
