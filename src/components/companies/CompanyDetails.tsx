@@ -5,6 +5,7 @@ import { ScoreAssessment } from "./ScoreAssessment";
 import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2, Files, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -307,90 +308,92 @@ const CompanyDetails = () => {
   });
 
   return (
-    <div className="flex w-full h-screen overflow-hidden">
-      <div className={`${showChat ? 'w-1/2 border-r border-border' : 'w-full'} h-screen overflow-auto`}>
-        <div className="container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in">
-          <div className="mb-7 sm:mb-9">
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBack}
-                  className="flex items-center"
-                >
-                  <ChevronLeft className="mr-1" /> Back
-                </Button>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company?.name}</h1>
-              </div>
-              <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                {company?.reportId && (
+    <div className="flex w-full h-screen">
+      <div className={`${showChat ? 'w-1/2' : 'w-full'} flex flex-col`}>
+        <ScrollArea className="flex-1">
+          <div className="container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in">
+            <div className="mb-7 sm:mb-9">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBack}
+                    className="flex items-center"
+                  >
+                    <ChevronLeft className="mr-1" /> Back
+                  </Button>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company?.name}</h1>
+                </div>
+                <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                  {company?.reportId && (
+                    <Button 
+                      onClick={navigateToReport} 
+                      variant="outline" 
+                      className="flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      View Deck
+                    </Button>
+                  )}
                   <Button 
-                    onClick={navigateToReport} 
+                    onClick={navigateToSupplementaryMaterials} 
                     variant="outline" 
                     className="flex items-center gap-2"
                   >
-                    <FileText className="h-4 w-4" />
-                    View Deck
+                    <Files className="h-4 w-4" />
+                    Supplementary Material
                   </Button>
-                )}
-                <Button 
-                  onClick={navigateToSupplementaryMaterials} 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                >
-                  <Files className="h-4 w-4" />
-                  Supplementary Material
-                </Button>
-                <Button
-                  onClick={handleChatbotClick}
-                  variant={showChat ? "secondary" : "default"}
-                  className="flex items-center gap-2"
-                >
-                  <BotMessageSquare className="h-4 w-4" />
-                </Button>
+                  <Button
+                    onClick={handleChatbotClick}
+                    variant={showChat ? "secondary" : "default"}
+                    className="flex items-center gap-2"
+                  >
+                    <BotMessageSquare className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            
-            <div className="mt-6 mb-8">
-              <CompanyInfoCard 
-                website={companyInfo.website}
-                stage={companyInfo.stage}
-                industry={companyInfo.industry}
-                founderLinkedIns={companyInfo.founderLinkedIns}
-                introduction={companyInfo.introduction}
-                companyName={company?.name}
-              />
-            </div>
-            
-            <div className="mb-5">
-              <Progress 
-                value={progressPercentage} 
-                className={`h-2 ${getScoreColor(company.overallScore)}`} 
-              />
-            </div>
+              
+              <div className="mt-6 mb-8">
+                <CompanyInfoCard 
+                  website={companyInfo.website}
+                  stage={companyInfo.stage}
+                  industry={companyInfo.industry}
+                  founderLinkedIns={companyInfo.founderLinkedIns}
+                  introduction={companyInfo.introduction}
+                  companyName={company?.name}
+                />
+              </div>
+              
+              <div className="mb-5">
+                <Progress 
+                  value={progressPercentage} 
+                  className={`h-2 ${getScoreColor(company.overallScore)}`} 
+                />
+              </div>
 
-            <ScoreAssessment company={company} />
+              <ScoreAssessment company={company} />
+            </div>
+            
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+              <BarChart2 className="h-5 w-5 text-primary" />
+              Section Metrics
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+              {sortedSections.map((section) => (
+                <SectionCard 
+                  key={section.id} 
+                  section={section} 
+                  onClick={() => handleSectionClick(section.id)} 
+                />
+              ))}
+            </div>
           </div>
-          
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-            <BarChart2 className="h-5 w-5 text-primary" />
-            Section Metrics
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-            {sortedSections.map((section) => (
-              <SectionCard 
-                key={section.id} 
-                section={section} 
-                onClick={() => handleSectionClick(section.id)} 
-              />
-            ))}
-          </div>
-        </div>
+        </ScrollArea>
       </div>
       
       {showChat && (
-        <div className="w-1/2 h-screen flex flex-col border-l border-border bg-background shadow-card">
+        <div className="w-1/2 flex flex-col border-l border-border bg-background shadow-card">
           <div className="p-4 border-b border-border flex justify-between items-center">
             <div>
               <h2 className="font-semibold text-lg flex items-center gap-2 text-primary">
@@ -410,7 +413,7 @@ const CompanyDetails = () => {
             </Button>
           </div>
           
-          <div className="flex-1 overflow-auto p-4 bg-secondary/10">
+          <ScrollArea className="flex-1 p-4 bg-secondary/10">
             <div className="flex flex-col space-y-4">
               {messages.map((message, index) => (
                 <div 
@@ -446,7 +449,7 @@ const CompanyDetails = () => {
                 </div>
               )}
             </div>
-          </div>
+          </ScrollArea>
           
           <div className="p-4 border-t border-border">
             <div className="flex gap-2">

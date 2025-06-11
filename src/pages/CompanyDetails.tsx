@@ -6,6 +6,7 @@ import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Loader2, BarChart2 } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
@@ -57,66 +58,70 @@ function CompanyDetails() {
   const introductionToShow = company.introduction || "";
 
   return (
-    <div className="container mx-auto px-4 pt-0 pb-6 animate-fade-in">
-      {/* Back Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => navigate("/dashboard")}
-        className="mb-6 flex items-center"
-      >
-        <ChevronLeft className="mr-1" /> Back
-      </Button>
+    <div className="h-screen flex flex-col">
+      <ScrollArea className="flex-1">
+        <div className="container mx-auto px-4 pt-0 pb-6 animate-fade-in">
+          {/* Back Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/dashboard")}
+            className="mb-6 flex items-center"
+          >
+            <ChevronLeft className="mr-1" /> Back
+          </Button>
 
-      {/* Combined Company Overview and Score */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2">
-          <CompanyInfoCard
-            website={websiteToShow}
-            stage={stageToShow}
-            industry={industryToShow}
-            introduction={introductionToShow}
-            companyName={company.name}
+          {/* Combined Company Overview and Score */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <CompanyInfoCard
+                website={websiteToShow}
+                stage={stageToShow}
+                industry={industryToShow}
+                introduction={introductionToShow}
+                companyName={company.name}
+              />
+            </div>
+            <div>
+              <ScoreAssessment company={company} />
+            </div>
+          </div>
+
+          {/* Overall Assessment */}
+          <OverallAssessment
+            score={company.overallScore || 0}
+            assessmentPoints={company.assessmentPoints || []}
           />
-        </div>
-        <div>
-          <ScoreAssessment company={company} />
-        </div>
-      </div>
 
-      {/* Overall Assessment */}
-      <OverallAssessment
-        score={company.overallScore || 0}
-        assessmentPoints={company.assessmentPoints || []}
-      />
-
-      {/* Sections */}
-      <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-        <BarChart2 className="h-5 w-5 text-primary" />
-        Detailed Analysis
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {company.sections &&
-          company.sections.map((section) => (
-            <SectionCard
-              key={section.id}
-              section={section}
-              onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
-            />
-          ))}
-        {(!company.sections || company.sections.length === 0) && (
-          <Card className="col-span-full">
-            <CardHeader>
-              <CardTitle>No Analysis Sections Available</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                There are no detailed analysis sections available for this company.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          {/* Sections */}
+          <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+            <BarChart2 className="h-5 w-5 text-primary" />
+            Detailed Analysis
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {company.sections &&
+              company.sections.map((section) => (
+                <SectionCard
+                  key={section.id}
+                  section={section}
+                  onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
+                />
+              ))}
+            {(!company.sections || company.sections.length === 0) && (
+              <Card className="col-span-full">
+                <CardHeader>
+                  <CardTitle>No Analysis Sections Available</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    There are no detailed analysis sections available for this company.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 }
