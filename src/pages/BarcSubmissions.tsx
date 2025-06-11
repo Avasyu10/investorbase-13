@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +38,7 @@ const BarcSubmissions = () => {
       // Transform the data to match our BarcSubmission interface
       return (data || []).map(item => ({
         ...item,
-        analysis_result: item.analysis_result as BarcAnalysisResult | null
+        analysis_result: item.analysis_result ? item.analysis_result as unknown as BarcAnalysisResult : null
       })) as BarcSubmission[];
     },
     enabled: !!user,
