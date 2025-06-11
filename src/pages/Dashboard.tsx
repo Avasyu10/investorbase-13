@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -86,6 +86,14 @@ const Dashboard = () => {
                 Admin Panel
               </Button>
             )}
+            <Button 
+              onClick={() => navigate("/public-forms")} 
+              variant="outline"
+              className="flex items-center"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Public Forms
+            </Button>
             <Button 
               onClick={() => navigate("/news-feed")} 
               variant="outline"
