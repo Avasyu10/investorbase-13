@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -68,12 +69,12 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation using anonymous access with updated RLS policies
+  // Submit form mutation using the new RLS policies that allow anonymous access
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission with updated RLS policies:', { slug, formData });
+      console.log('Starting BARC form submission with new RLS policies:', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -90,9 +91,9 @@ const BarcSubmit = () => {
         analysis_status: 'pending'
       };
 
-      console.log('Inserting BARC submission with updated policies:', submissionData);
+      console.log('Inserting BARC submission with new anonymous-friendly policies:', submissionData);
 
-      // Use direct Supabase client insertion with anonymous access - should work now
+      // Use direct Supabase client insertion - now works with anonymous access
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .insert(submissionData)
@@ -110,7 +111,7 @@ const BarcSubmit = () => {
         throw new Error(`Failed to save submission: ${error.message}`);
       }
 
-      console.log('BARC submission saved successfully with updated RLS policies:', data);
+      console.log('BARC submission saved successfully with new RLS policies:', data);
       return data;
     },
     onSuccess: async (data) => {
@@ -145,13 +146,13 @@ const BarcSubmit = () => {
       }, 2000);
     },
     onError: (error: any) => {
-      console.error('BARC form submission error with updated RLS policies:', error);
+      console.error('BARC form submission error with new RLS policies:', error);
       
       // Provide more helpful error messages
       let errorMessage = 'Unknown error occurred';
       if (error.message) {
         if (error.message.includes('violates row-level security')) {
-          errorMessage = 'Permission denied. The RLS policies may still need adjustment.';
+          errorMessage = 'Permission denied. Please contact support if this issue persists.';
         } else if (error.message.includes('duplicate key')) {
           errorMessage = 'This submission already exists.';
         } else if (error.message.includes('violates check constraint')) {
@@ -185,7 +186,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting with updated anonymous access policies...');
+    console.log('Validation passed, submitting with new anonymous-friendly policies...');
     submitMutation.mutate(data);
   };
 
