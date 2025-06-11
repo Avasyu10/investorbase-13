@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -89,7 +88,7 @@ const Profile = () => {
           setThesisFilename(profileData.fund_thesis_url.split('/').pop() || "Fund Thesis.pdf");
         }
         
-        // Fetch all forms for this user
+        // Fetch all forms for this user - both from public_submission_forms and generated BARC forms
         const { data: formData, error: formError } = await supabase
           .from('public_submission_forms')
           .select('id, form_slug, form_name, form_type, created_at, auto_analyze')
@@ -99,7 +98,25 @@ const Profile = () => {
         if (formError) {
           console.error("Error fetching public forms:", formError);
         } else if (formData) {
+          console.log("Fetched forms:", formData);
           setPublicForms(formData as PublicForm[]);
+        }
+
+        // Also check if there are any BARC forms that might not be in public_submission_forms
+        // Create a default BARC form entry if user has a profile but no BARC form exists
+        const barcForm = formData?.find(form => form.form_type === 'barc');
+        if (!barcForm && profileData) {
+          console.log("No BARC form found, creating default entry for display");
+          // Create a virtual BARC form for display purposes
+          const virtualBarcForm: PublicForm = {
+            id: `barc-${user.id}`,
+            form_slug: user.id,
+            form_name: "IIT Bombay submission form",
+            form_type: 'barc',
+            created_at: new Date().toISOString(),
+            auto_analyze: false
+          };
+          setPublicForms(prev => [...prev, virtualBarcForm]);
         }
       } catch (error) {
         console.error("Error:", error);
@@ -158,6 +175,15 @@ const Profile = () => {
 
   const toggleAutoAnalyze = async (formId: string, currentValue: boolean) => {
     if (!user) return;
+    
+    // Skip toggle for virtual BARC forms
+    if (formId.startsWith('barc-')) {
+      toast({
+        title: "BARC Form Setting",
+        description: "Auto-analyze settings for BARC forms are managed separately.",
+      });
+      return;
+    }
     
     try {
       setUpdatingAutoAnalyze(formId);
@@ -506,7 +532,7 @@ const Profile = () => {
                           <Switch
                             checked={form.auto_analyze}
                             onCheckedChange={() => toggleAutoAnalyze(form.id, form.auto_analyze)}
-                            disabled={updatingAutoAnalyze === form.id}
+                            disabled={updatingAutoAnalyze === form.id || form.id.startsWith('barc-')}
                             id={`auto-analyze-${form.id}`}
                           />
                           {updatingAutoAnalyze === form.id && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
