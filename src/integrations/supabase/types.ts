@@ -1046,6 +1046,18 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
+      can_access_company: {
+        Args: { company_user_id: string; company_report_id: string }
+        Returns: boolean
+      }
+      can_access_report: {
+        Args: {
+          report_user_id: string
+          report_is_public: boolean
+          report_submitter_email: string
+        }
+        Returns: boolean
+      }
       create_find_company_by_numeric_id_bigint_function: {
         Args: Record<PropertyKey, never>
         Returns: boolean

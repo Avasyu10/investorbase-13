@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Building2 } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
+import { CompanyListItem } from "@/lib/api/apiContract";
 
 interface Company {
   id: string;
@@ -16,10 +17,11 @@ interface Company {
   source: string;
   user_id?: string;
   report_id?: string;
+  assessment_points?: string[];
 }
 
 export function CompaniesList() {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,7 +54,17 @@ export function CompaniesList() {
           });
         } else {
           console.log("Companies fetched successfully:", data?.length || 0);
-          setCompanies(data || []);
+          // Map Company to CompanyListItem
+          const mappedCompanies: CompanyListItem[] = (data || []).map((company: Company) => ({
+            id: parseInt(company.id.split('-')[0], 16), // Convert UUID to number for compatibility
+            name: company.name,
+            overallScore: company.overall_score,
+            createdAt: company.created_at,
+            updatedAt: company.created_at, // Use created_at as fallback for updated_at
+            source: company.source,
+            assessmentPoints: company.assessment_points || []
+          }));
+          setCompanies(mappedCompanies);
         }
       } catch (error) {
         console.error("Error in fetchCompanies:", error);
@@ -68,6 +80,15 @@ export function CompaniesList() {
 
     fetchCompanies();
   }, [toast, user]);
+
+  const handleCompanyClick = (companyId: number) => {
+    // Convert the numeric ID back to find the original company
+    const company = companies.find(c => c.id === companyId);
+    if (company) {
+      // For now, navigate to a company detail page using the numeric ID
+      navigate(`/company/${companyId}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -111,7 +132,7 @@ export function CompaniesList() {
       </div>
 
       {companies.length > 0 ? (
-        <CompaniesTable companies={companies} />
+        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} />
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
