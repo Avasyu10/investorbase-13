@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -40,31 +39,38 @@ export async function getReports() {
 
   console.log('Fetching reports for user:', user.id);
 
-  // Get all reports with more permissive filtering - include user_id from companies
-  const { data: tableData, error: tableError } = await supabase
-    .from('reports')
-    .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
-    .order('created_at', { ascending: false });
+  try {
+    const { data: tableData, error: tableError } = await supabase
+      .from('reports')
+      .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
+      .order('created_at', { ascending: false });
 
-  if (tableError) {
-    console.error('Error fetching reports from table:', tableError);
-    // Don't throw immediately, let's see if we can get some data
+    if (tableError) {
+      console.error('Error fetching reports from table:', tableError);
+      toast({
+        title: "Failed to load reports",
+        description: "Please try again later or contact support",
+        variant: "destructive"
+      });
+      return [];
+    }
+
+    if (tableData && tableData.length > 0) {
+      console.log('Found reports in table:', tableData.length);
+      return tableData as Report[];
+    }
+
+    console.log('No reports found');
+    return [];
+  } catch (error) {
+    console.error('Error in getReports:', error);
+    toast({
+      title: "Failed to load reports",
+      description: "Please try again later or contact support",
+      variant: "destructive"
+    });
+    return [];
   }
-
-  if (tableData && tableData.length > 0) {
-    console.log('Found reports in table:', tableData.length);
-    // Filter on the client side to be more permissive
-    const userReports = tableData.filter(report => 
-      report.user_id === user.id || 
-      (report.is_public_submission && report.user_id === user.id) ||
-      (report.companies && report.companies.user_id === user.id)
-    );
-    console.log('Filtered user reports:', userReports.length);
-    return userReports as Report[];
-  }
-
-  console.log('No reports found');
-  return [];
 }
 
 export async function getReportById(id: string) {
@@ -83,53 +89,29 @@ export async function getReportById(id: string) {
     throw new Error('Authentication required');
   }
   
-  // First try to get reports directly owned by the user or public submissions assigned to the user
-  let { data: tableData, error: tableError } = await supabase
-    .from('reports')
-    .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
-    .eq('id', id)
-    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id})`)
-    .maybeSingle();
-
-  // If report not found by user_id, check if user has access through company ownership
-  if (!tableData && !tableError) {
-    console.log('Report not found by direct ownership, checking company access');
-    
-    // Get reports where the user owns the associated company
-    const { data: companyReportData, error: companyReportError } = await supabase
+  try {
+    const { data: tableData, error: tableError } = await supabase
       .from('reports')
       .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
       .eq('id', id)
-      .not('company_id', 'is', null)
       .maybeSingle();
-    
-    if (companyReportError) {
-      console.error('Error checking company report access:', companyReportError);
-      throw companyReportError;
+
+    if (tableError) {
+      console.error('Error fetching report from table:', tableError);
+      throw tableError;
     }
-    
-    // If we found a report and the company exists and is owned by the user
-    if (companyReportData && 
-        companyReportData.companies && 
-        companyReportData.companies.user_id === user.id) {
-      console.log('User has access through company ownership');
-      tableData = companyReportData;
-    } else {
-      console.error('Report not found or user does not have access');
+
+    if (!tableData) {
+      console.error('Report not found with ID:', id);
       throw new Error('Report not found or you do not have permission to access it');
     }
-  } else if (tableError) {
-    console.error('Error fetching report from table:', tableError);
-    throw tableError;
-  }
 
-  if (!tableData) {
-    console.error('Report not found with ID:', id);
-    throw new Error('Report not found or you do not have permission to access it');
+    console.log('Report found:', tableData);
+    return tableData as Report;
+  } catch (error) {
+    console.error('Error in getReportById:', error);
+    throw error;
   }
-
-  console.log('Report found:', tableData);
-  return tableData as Report;
 }
 
 export async function downloadReport(fileUrl: string, userId?: string) {
