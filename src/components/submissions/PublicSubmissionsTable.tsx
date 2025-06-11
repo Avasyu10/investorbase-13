@@ -62,19 +62,16 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   }
 
   const handleAnalyze = async (submission: PublicSubmission) => {
-    // For BARC submissions, use the correct analysis function
+    console.log('PublicSubmissionsTable handleAnalyze called with:', submission);
+    
+    // For BARC submissions, call the passed onAnalyze callback to handle loading state
     if (submission.source === "barc_form") {
-      try {
-        console.log('Analyzing BARC submission:', submission.id);
-        await analyzeBarcSubmission(submission.id);
-        toast.success("BARC analysis started! Results will be available shortly.");
-      } catch (error: any) {
-        console.error('BARC analysis error:', error);
-        toast.error(`Failed to start BARC analysis: ${error.message}`);
-      }
+      console.log('Calling onAnalyze for BARC submission');
+      onAnalyze(submission);
       return;
     }
 
+    // Handle other submission types
     if (!submission.report_id) {
       toast.error("Analysis failed", {
         description: "No report ID found for this submission"

@@ -94,12 +94,9 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
 
     console.log('Calling analyze-barc-form edge function...');
     
-    // Use the analyze-barc-form edge function with correct method
+    // Use the analyze-barc-form edge function
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
-      body: JSON.stringify({ submissionId }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      body: { submissionId }
     });
 
     console.log('Edge function response:', { data, error });

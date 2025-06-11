@@ -230,17 +230,24 @@ export function PublicSubmissionsList() {
   }, [toast, user]);
 
   const handleAnalyze = async (submission: PublicSubmission) => {
-    // Handle BARC form submissions differently
+    console.log('PublicSubmissionsList handleAnalyze called with:', submission);
+    
+    // Handle BARC form submissions
     if (submission.source === "barc_form") {
+      console.log('Handling BARC form submission analysis');
+      
+      // Add to analyzing set to show loading state
+      setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
       setCurrentSubmission(submission);
       setShowModal(true);
       setIsAnalyzing(true);
-      setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
       
       try {
         console.log(`Calling BARC analysis for submission: ${submission.id}`);
         
         const result = await analyzeBarcSubmission(submission.id);
+        
+        console.log('BARC analysis result:', result);
         
         if (result && result.success) {
           toast({
@@ -248,7 +255,7 @@ export function PublicSubmissionsList() {
             description: "The BARC application has been successfully analyzed",
           });
           
-          // Remove the submission from the list only if analysis was successful
+          // Remove the submission from the list since it's now analyzed
           setSubmissions(prev => prev.filter(s => s.id !== submission.id));
         } else {
           throw new Error("Analysis completed but no result was returned");
@@ -265,7 +272,6 @@ export function PublicSubmissionsList() {
         });
         
         // Keep the submission in the list so user can retry
-        // Don't remove it from the list
       } finally {
         setIsAnalyzing(false);
         setAnalyzingSubmissions(prev => {
