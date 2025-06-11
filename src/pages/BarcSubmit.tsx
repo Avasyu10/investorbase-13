@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BarcFormData {
   companyName: string;
@@ -68,7 +69,7 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation - simplified approach
+  // Submit form mutation using Supabase client
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
@@ -93,33 +94,20 @@ const BarcSubmit = () => {
       console.log('Submission data prepared:', submissionData);
 
       try {
-        const response = await fetch('https://jhtnruktmtjqrfoiyrep.supabase.co/rest/v1/barc_form_submissions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(submissionData)
-        });
+        // Use Supabase client for insertion
+        const { data, error } = await supabase
+          .from('barc_form_submissions')
+          .insert(submissionData)
+          .select()
+          .single();
 
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('HTTP Error Details:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText
-          });
-          throw new Error(`Submission failed (${response.status}): ${errorText}`);
+        if (error) {
+          console.error('Supabase insertion error:', error);
+          throw new Error(`Submission failed: ${error.message}`);
         }
 
-        const data = await response.json();
         console.log('Submission successful:', data);
-        
-        return Array.isArray(data) ? data[0] : data;
+        return data;
       } catch (error) {
         console.error('Submission error:', error);
         throw error;
@@ -133,20 +121,15 @@ const BarcSubmit = () => {
       try {
         console.log('Triggering analysis for submission:', data.id);
         
-        const analysisResponse = await fetch('https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/analyze-barc-submission', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY'
-          },
-          body: JSON.stringify({ submissionId: data.id })
+        const { error: analysisError } = await supabase.functions.invoke('analyze-barc-submission', {
+          body: { submissionId: data.id }
         });
         
-        if (analysisResponse.ok) {
-          toast.info("Application submitted and analysis started!");
-        } else {
-          console.error('Failed to trigger analysis:', await analysisResponse.text());
+        if (analysisError) {
+          console.error('Failed to trigger analysis:', analysisError);
           toast.info("Application submitted. Analysis will be processed shortly.");
+        } else {
+          toast.info("Application submitted and analysis started!");
         }
       } catch (error) {
         console.error('Failed to trigger analysis:', error);
