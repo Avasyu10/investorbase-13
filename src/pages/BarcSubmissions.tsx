@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Eye, FileText, Building, Star, Calendar } from "lucide-react";
 import { BarcAnalysisModal } from "@/components/submissions/BarcAnalysisModal";
 import { toast } from "sonner";
+import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
 
 const BarcSubmissions = () => {
   const { user } = useAuth();
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<BarcSubmission | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
 
   const { data: submissions, isLoading, refetch } = useQuery({
@@ -34,7 +35,7 @@ const BarcSubmissions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as BarcSubmission[];
     },
     enabled: !!user,
   });
@@ -80,6 +81,12 @@ const BarcSubmissions = () => {
     }
   };
 
+  // Helper function to safely get analysis result
+  const getAnalysisResult = (submission: BarcSubmission): BarcAnalysisResult | null => {
+    if (!submission.analysis_result) return null;
+    return submission.analysis_result as BarcAnalysisResult;
+  };
+
   if (isLoading) {
     return (
       <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -114,81 +121,85 @@ const BarcSubmissions = () => {
         </Card>
       ) : (
         <div className="grid gap-6">
-          {submissions?.map((submission) => (
-            <Card key={submission.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <Building className="h-5 w-5 text-primary" />
-                    <div>
-                      <CardTitle className="text-xl">{submission.company_name}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {submission.company_type} • {submission.company_registration_type}
-                      </p>
+          {submissions?.map((submission) => {
+            const analysisResult = getAnalysisResult(submission);
+            
+            return (
+              <Card key={submission.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <Building className="h-5 w-5 text-primary" />
+                      <div>
+                        <CardTitle className="text-xl">{submission.company_name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {submission.company_type} • {submission.company_registration_type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(submission.analysis_status || 'pending')}
+                      {analysisResult?.recommendation && 
+                        getRecommendationBadge(analysisResult.recommendation)
+                      }
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(submission.analysis_status || 'pending')}
-                    {submission.analysis_result?.recommendation && 
-                      getRecommendationBadge(submission.analysis_result.recommendation)
-                    }
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Submitted {new Date(submission.created_at).toLocaleDateString()}
-                  </div>
-                  {submission.submitter_email && (
-                    <div>Contact: {submission.submitter_email}</div>
-                  )}
-                  {submission.analysis_result?.overall_score && (
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      Score: {submission.analysis_result.overall_score}/10
+                      <Calendar className="h-4 w-4" />
+                      Submitted {new Date(submission.created_at).toLocaleDateString()}
                     </div>
-                  )}
-                </div>
+                    {submission.submitter_email && (
+                      <div>Contact: {submission.submitter_email}</div>
+                    )}
+                    {analysisResult?.overall_score && (
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        Score: {analysisResult.overall_score}/10
+                      </div>
+                    )}
+                  </div>
 
-                <p className="text-sm line-clamp-3">
-                  {submission.executive_summary}
-                </p>
+                  <p className="text-sm line-clamp-3">
+                    {submission.executive_summary}
+                  </p>
 
-                <div className="flex items-center gap-2 pt-4">
-                  {submission.analysis_status === 'completed' ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedSubmission(submission);
-                        setIsAnalysisModalOpen(true);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Analysis
-                    </Button>
-                  ) : submission.analysis_status === 'processing' ? (
-                    <Button variant="outline" size="sm" disabled>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => triggerAnalysis(submission.id)}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Start Analysis
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex items-center gap-2 pt-4">
+                    {submission.analysis_status === 'completed' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedSubmission(submission);
+                          setIsAnalysisModalOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Analysis
+                      </Button>
+                    ) : submission.analysis_status === 'processing' ? (
+                      <Button variant="outline" size="sm" disabled>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => triggerAnalysis(submission.id)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Start Analysis
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, XCircle, AlertTriangle, Star } from "lucide-react";
+import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
 
 interface BarcAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
-  submission: any;
+  submission: BarcSubmission | null;
 }
 
 export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisModalProps) => {
@@ -16,7 +17,7 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
     return null;
   }
 
-  const analysis = submission.analysis_result;
+  const analysis = submission.analysis_result as BarcAnalysisResult;
   const sections = analysis.sections || {};
 
   const getRecommendationIcon = (recommendation: string) => {
@@ -56,7 +57,7 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
     ];
 
     return sectionKeys.map(({ key, title }) => {
-      const section = sections[key];
+      const section = sections[key as keyof typeof sections];
       if (!section) return null;
 
       return (
