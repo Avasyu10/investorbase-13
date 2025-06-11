@@ -1,4 +1,3 @@
-
 export const AreaOfInterestOptions = [
   { label: "AI/Machine Learning", value: "ai-ml" },
   { label: "SaaS", value: "saas" },
@@ -45,14 +44,14 @@ export const SECTION_TYPES = {
 export const SECTION_TITLES = {
   [SECTION_TYPES.PROBLEM]: "Problem Statement",
   [SECTION_TYPES.MARKET]: "Market Opportunity",
-  [SECTION_TYPES.SOLUTION]: "Solution (Product)",
+  [SECTION_TYPES.SOLUTION]: "Solution",
   [SECTION_TYPES.COMPETITIVE_LANDSCAPE]: "Competitive Landscape",
-  [SECTION_TYPES.TRACTION]: "Traction & Milestones",
+  [SECTION_TYPES.TRACTION]: "Traction",
   [SECTION_TYPES.BUSINESS_MODEL]: "Business Model",
   [SECTION_TYPES.GTM_STRATEGY]: "Go-to-Market Strategy",
-  [SECTION_TYPES.TEAM]: "Founder & Team Background",
-  [SECTION_TYPES.FINANCIALS]: "Financial Overview & Projections",
-  [SECTION_TYPES.ASK]: "The Ask & Next Steps"
+  [SECTION_TYPES.TEAM]: "Team",
+  [SECTION_TYPES.FINANCIALS]: "Financial",
+  [SECTION_TYPES.ASK]: "Ask"
 };
 
 // Define the ordered array for section display
