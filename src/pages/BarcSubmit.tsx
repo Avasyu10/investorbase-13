@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -14,18 +13,20 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
 
-// Create a completely anonymous Supabase client for public submissions
-const anonSupabase = createClient(
+// Create a completely isolated anonymous Supabase client for public submissions
+const publicClient = createClient(
   "https://jhtnruktmtjqrfoiyrep.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY",
   {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
+      detectSessionInUrl: false
     },
     global: {
       headers: {
-        'x-client-info': 'barc-public-form'
+        'x-client-info': 'barc-public-form',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY`
       }
     }
   }
@@ -86,59 +87,76 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation - using anonymous client
+  // Submit form mutation - using isolated public client
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Submitting BARC form data with anonymous client:', formData);
+      console.log('Submitting BARC form data with public client:', formData);
 
-      // Clear any existing auth state to ensure we're truly anonymous
-      await anonSupabase.auth.signOut();
+      try {
+        // Use direct fetch to avoid any auth-related issues
+        const response = await fetch('https://jhtnruktmtjqrfoiyrep.supabase.co/rest/v1/barc_form_submissions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            form_slug: slug,
+            company_name: formData.companyName,
+            company_registration_type: formData.companyRegistrationType,
+            executive_summary: formData.executiveSummary,
+            company_type: formData.companyType,
+            question_1: formData.question1,
+            question_2: formData.question2,
+            question_3: formData.question3,
+            question_4: formData.question4,
+            question_5: formData.question5,
+            submitter_email: formData.submitterEmail,
+            analysis_status: 'pending'
+          })
+        });
 
-      // Direct insert to barc_form_submissions table using anonymous client
-      const { data, error } = await anonSupabase
-        .from('barc_form_submissions')
-        .insert({
-          form_slug: slug,
-          company_name: formData.companyName,
-          company_registration_type: formData.companyRegistrationType,
-          executive_summary: formData.executiveSummary,
-          company_type: formData.companyType,
-          question_1: formData.question1,
-          question_2: formData.question2,
-          question_3: formData.question3,
-          question_4: formData.question4,
-          question_5: formData.question5,
-          submitter_email: formData.submitterEmail,
-          analysis_status: 'pending'
-        })
-        .select()
-        .single();
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('HTTP Error:', response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
 
-      if (error) {
+        const data = await response.json();
+        console.log('BARC form submitted successfully:', data);
+        
+        // Return the first item if it's an array, otherwise return the data
+        return Array.isArray(data) ? data[0] : data;
+      } catch (error) {
         console.error('Error submitting BARC form:', error);
         throw error;
       }
-
-      console.log('BARC form submitted successfully:', data);
-      return data;
     },
     onSuccess: async (data) => {
       toast.success("Application submitted successfully!");
       
-      // Trigger analysis after successful submission using anonymous client
+      // Trigger analysis after successful submission using direct fetch
       try {
         console.log('Triggering analysis for submission:', data.id);
-        const { error: analysisError } = await anonSupabase.functions.invoke('analyze-barc-submission', {
-          body: { submissionId: data.id }
+        
+        const analysisResponse = await fetch('https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/analyze-barc-submission', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY'
+          },
+          body: JSON.stringify({ submissionId: data.id })
         });
         
-        if (analysisError) {
-          console.error('Failed to trigger analysis:', analysisError);
-          toast.info("Application submitted. Analysis will be processed shortly.");
-        } else {
+        if (analysisResponse.ok) {
           toast.info("Application submitted and analysis started!");
+        } else {
+          console.error('Failed to trigger analysis:', await analysisResponse.text());
+          toast.info("Application submitted. Analysis will be processed shortly.");
         }
       } catch (error) {
         console.error('Failed to trigger analysis:', error);
