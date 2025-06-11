@@ -57,4 +57,5 @@ export interface BarcSubmission {
   created_at: string;
   analysis_status?: string;
   analysis_result?: BarcAnalysisResult;
+  company_id?: string;
 }
