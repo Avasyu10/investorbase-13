@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -36,6 +37,7 @@ interface PublicForm {
   id: string;
   form_slug: string;
   form_name: string;
+  form_type: string;
   created_at: string;
   auto_analyze: boolean;
 }
@@ -48,9 +50,9 @@ const Profile = () => {
   const [profile, setProfile] = useState<VCProfile | null>(null);
   const [profileChecked, setProfileChecked] = useState(false);
   const [thesisFilename, setThesisFilename] = useState<string | null>(null);
-  const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
+  const [publicForms, setPublicForms] = useState<PublicForm[]>([]);
   const [generatingUrl, setGeneratingUrl] = useState(false);
-  const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState(false);
+  const [updatingAutoAnalyze, setUpdatingAutoAnalyze] = useState<string | null>(null);
 
   const getAreaOfInterestLabel = (value: string) => {
     const option = AreaOfInterestOptions.find(opt => opt.value === value);
@@ -87,16 +89,17 @@ const Profile = () => {
           setThesisFilename(profileData.fund_thesis_url.split('/').pop() || "Fund Thesis.pdf");
         }
         
+        // Fetch all forms for this user
         const { data: formData, error: formError } = await supabase
           .from('public_submission_forms')
-          .select('id, form_slug, form_name, created_at, auto_analyze')
+          .select('id, form_slug, form_name, form_type, created_at, auto_analyze')
           .eq('user_id', user.id)
-          .maybeSingle();
+          .order('created_at', { ascending: false });
           
         if (formError) {
-          console.error("Error fetching public form:", formError);
+          console.error("Error fetching public forms:", formError);
         } else if (formData) {
-          setPublicForm(formData as PublicForm);
+          setPublicForms(formData as PublicForm[]);
         }
       } catch (error) {
         console.error("Error:", error);
@@ -124,6 +127,7 @@ const Profile = () => {
         .insert([{
           form_name: profile?.fund_name ? `${profile.fund_name} Submission Form` : 'VC Submission Form',
           form_slug: slug,
+          form_type: 'general',
           is_active: true,
           user_id: user.id,
           auto_analyze: false
@@ -135,7 +139,7 @@ const Profile = () => {
         throw error;
       }
       
-      setPublicForm(data as PublicForm);
+      setPublicForms(prev => [data as PublicForm, ...prev]);
       
       toast({
         title: "Public URL generated",
@@ -152,33 +156,36 @@ const Profile = () => {
     }
   };
 
-  const toggleAutoAnalyze = async () => {
-    if (!user || !publicForm) return;
+  const toggleAutoAnalyze = async (formId: string, currentValue: boolean) => {
+    if (!user) return;
     
     try {
-      setUpdatingAutoAnalyze(true);
+      setUpdatingAutoAnalyze(formId);
       
-      const newValue = !publicForm.auto_analyze;
+      const newValue = !currentValue;
       
       const { error } = await supabase
         .from('public_submission_forms')
         .update({ auto_analyze: newValue })
-        .eq('id', publicForm.id);
+        .eq('id', formId);
         
       if (error) {
         throw error;
       }
       
-      setPublicForm({
-        ...publicForm,
-        auto_analyze: newValue
-      });
+      setPublicForms(prev => 
+        prev.map(form => 
+          form.id === formId 
+            ? { ...form, auto_analyze: newValue }
+            : form
+        )
+      );
       
       toast({
         title: newValue ? "Auto-analyze enabled" : "Auto-analyze disabled",
         description: newValue 
-          ? "Pitch decks submitted through your form will be automatically analyzed" 
-          : "You'll need to manually analyze submitted pitch decks",
+          ? "Pitch decks submitted through this form will be automatically analyzed" 
+          : "Submitted pitch decks will require manual approval for analysis",
       });
     } catch (error: any) {
       toast({
@@ -187,7 +194,24 @@ const Profile = () => {
         variant: "destructive",
       });
     } finally {
-      setUpdatingAutoAnalyze(false);
+      setUpdatingAutoAnalyze(null);
+    }
+  };
+
+  const getFormUrl = (form: PublicForm) => {
+    if (form.form_type === 'barc') {
+      return `${window.location.origin}/barc-submit/${form.form_slug}`;
+    }
+    return `${window.location.origin}/public-upload/${form.form_slug}`;
+  };
+
+  const getFormTypeLabel = (formType: string) => {
+    switch (formType) {
+      case 'barc':
+        return 'BARC Application';
+      case 'general':
+      default:
+        return 'General Submission';
     }
   };
 
@@ -252,10 +276,6 @@ const Profile = () => {
       </div>
     );
   }
-
-  const publicSubmissionUrl = publicForm 
-    ? `${window.location.origin}/public-upload?form=${publicForm.form_slug}`
-    : null;
 
   return (
     <div className="container max-w-4xl mx-auto px-4 py-12">
@@ -421,90 +441,114 @@ const Profile = () => {
           <div>
             <div className="flex items-center mb-3">
               <Globe className="h-5 w-5 text-primary mr-2" />
-              <h3 className="text-base font-semibold text-foreground/80">Public Submission URL</h3>
+              <h3 className="text-base font-semibold text-foreground/80">Public Submission Forms</h3>
             </div>
             <Separator className="mb-4" />
             
             <p className="text-sm text-muted-foreground mb-4">
-              Share this form on your website to let founders submit decks directly to your dashboard—streamlining submissions and keeping all potential investments organized in one place.
+              Create and manage forms for receiving submissions. Share these forms on your website to streamline the submission process.
             </p>
             
-            <div className="bg-secondary/10 p-4 rounded-lg">
-              {publicForm ? (
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm font-medium text-primary">Submission Form URL</p>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 p-3 bg-background/80 rounded-md break-all border border-border/10">
-                        <a 
-                          href={publicSubmissionUrl || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline flex items-start gap-2"
-                        >
-                          <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{publicSubmissionUrl}</span>
-                        </a>
+            <div className="space-y-4">
+              {publicForms.length > 0 ? (
+                publicForms.map((form) => (
+                  <div key={form.id} className="bg-secondary/10 p-4 rounded-lg">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-primary">{form.form_name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {getFormTypeLabel(form.form_type)} • Created {new Date(form.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">
+                          {getFormTypeLabel(form.form_type)}
+                        </Badge>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (publicSubmissionUrl) {
-                            navigator.clipboard.writeText(publicSubmissionUrl);
+                      
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 p-3 bg-background/80 rounded-md break-all border border-border/10">
+                          <a 
+                            href={getFormUrl(form)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-start gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm">{getFormUrl(form)}</span>
+                          </a>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(getFormUrl(form));
                             toast({
                               title: "URL copied",
-                              description: "The public submission URL has been copied to clipboard",
+                              description: "The form URL has been copied to clipboard",
                             });
-                          }
-                        }}
-                      >
-                        Copy
-                      </Button>
+                          }}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center justify-between space-x-2 pt-2 border-t border-border/10">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Auto-analyze Submissions</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {form.auto_analyze ? 
+                              "Submissions will be automatically analyzed" : 
+                              "Submissions require manual approval for analysis"}
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <Switch
+                            checked={form.auto_analyze}
+                            onCheckedChange={() => toggleAutoAnalyze(form.id, form.auto_analyze)}
+                            disabled={updatingAutoAnalyze === form.id}
+                            id={`auto-analyze-${form.id}`}
+                          />
+                          {updatingAutoAnalyze === form.id && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between space-x-2 pt-4 pb-2 border-t border-border/10">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Auto-analyze Submissions</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {publicForm.auto_analyze ? 
-                          "Pitch decks will be automatically analyzed when submitted" : 
-                          "Submitted pitch decks will require manual approval for analysis"}
-                      </p>
-                    </div>
-                    <div className="flex items-center">
-                      <Switch
-                        checked={publicForm.auto_analyze}
-                        onCheckedChange={toggleAutoAnalyze}
-                        disabled={updatingAutoAnalyze}
-                        id="auto-analyze"
-                      />
-                      {updatingAutoAnalyze && <Loader2 className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                    </div>
-                  </div>
-                </div>
+                ))
               ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-primary mb-1">Generate Public URL</p>
-                    <p className="text-xs text-muted-foreground">Create a link for founders to submit their pitch decks</p>
+                <div className="bg-secondary/10 p-4 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-primary mb-1">No forms created yet</p>
+                      <p className="text-xs text-muted-foreground">Create forms for founders to submit their information</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={generatePublicUrl}
+                      disabled={generatingUrl}
+                      className="w-full sm:w-auto"
+                    >
+                      {generatingUrl ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="mr-2 h-4 w-4" />
+                      )}
+                      Create First Form
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={generatePublicUrl}
-                    disabled={generatingUrl}
-                    className="w-full sm:w-auto"
-                  >
-                    {generatingUrl ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="mr-2 h-4 w-4" />
-                    )}
-                    Generate URL
-                  </Button>
                 </div>
               )}
+              
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/public-forms')}
+                  className="w-full sm:w-auto"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Manage All Forms
+                </Button>
+              </div>
             </div>
           </div>
           
