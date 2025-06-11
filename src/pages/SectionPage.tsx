@@ -1,3 +1,4 @@
+
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -7,7 +8,7 @@ import { ChevronLeft, FileText } from "lucide-react";
 import { useCompanyDetails, useSectionDetails } from "@/hooks/useCompanies";
 import { Dialog, DialogContent, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { ReportViewer } from "@/components/reports/ReportViewer";
-import { ORDERED_SECTIONS } from "@/lib/constants";
+import { ORDERED_SECTIONS, SECTION_TITLES, SECTION_TYPES } from "@/lib/constants";
 import { SectionDetailed } from "@/lib/api/apiContract";
 
 const SectionPage = () => {
@@ -31,6 +32,48 @@ const SectionPage = () => {
     if (companyId) {
       navigate(`/company/${companyId}`);
     }
+  };
+
+  // Helper function to get standardized display title for navigation
+  const getNavigationTitle = (section: any): string => {
+    const sectionType = section.type?.toUpperCase();
+    if (sectionType && SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES]) {
+      return SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES];
+    }
+    
+    const title = section.title.toLowerCase();
+    if (title.includes('solution') || title.includes('product')) {
+      return SECTION_TITLES[SECTION_TYPES.SOLUTION];
+    }
+    if (title.includes('traction') || title.includes('milestone')) {
+      return SECTION_TITLES[SECTION_TYPES.TRACTION];
+    }
+    if (title.includes('team') || title.includes('founder')) {
+      return SECTION_TITLES[SECTION_TYPES.TEAM];
+    }
+    if (title.includes('financial') || title.includes('projection')) {
+      return SECTION_TITLES[SECTION_TYPES.FINANCIALS];
+    }
+    if (title.includes('ask') || title.includes('next step')) {
+      return SECTION_TITLES[SECTION_TYPES.ASK];
+    }
+    if (title.includes('problem')) {
+      return SECTION_TITLES[SECTION_TYPES.PROBLEM];
+    }
+    if (title.includes('market') || title.includes('opportunity')) {
+      return SECTION_TITLES[SECTION_TYPES.MARKET];
+    }
+    if (title.includes('competitive') || title.includes('landscape')) {
+      return SECTION_TITLES[SECTION_TYPES.COMPETITIVE_LANDSCAPE];
+    }
+    if (title.includes('business model')) {
+      return SECTION_TITLES[SECTION_TYPES.BUSINESS_MODEL];
+    }
+    if (title.includes('go-to-market') || title.includes('strategy')) {
+      return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
+    }
+    
+    return section.title;
   };
 
   const getAdjacentSections = () => {
@@ -116,7 +159,7 @@ const SectionPage = () => {
               className="flex items-center gap-2"
             >
               <ChevronLeft className="h-4 w-4" /> 
-              Previous: {prevSection.title}
+              Previous: {getNavigationTitle(prevSection)}
             </Button>
           )}
           <div></div>
@@ -126,7 +169,7 @@ const SectionPage = () => {
               onClick={() => navigateToSection(nextSection.id)}
               className="flex items-center gap-2"
             >
-              {nextSection.title} <ChevronLeft className="h-4 w-4 rotate-180" />
+              {getNavigationTitle(nextSection)} <ChevronLeft className="h-4 w-4 rotate-180" />
             </Button>
           )}
         </div>

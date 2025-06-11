@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -18,11 +17,57 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
+import { SECTION_TITLES, SECTION_TYPES } from "@/lib/constants";
 
 interface SectionDetailProps {
   section: SectionDetailed | null;
   isLoading: boolean;
 }
+
+// Helper function to get standardized display title
+const getDisplayTitle = (section: SectionDetailed): string => {
+  // Try to match the section type to our constants
+  const sectionType = section.type?.toUpperCase();
+  if (sectionType && SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES]) {
+    return SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES];
+  }
+  
+  // Fallback: try to map common title patterns to our section types
+  const title = section.title.toLowerCase();
+  if (title.includes('solution') || title.includes('product')) {
+    return SECTION_TITLES[SECTION_TYPES.SOLUTION];
+  }
+  if (title.includes('traction') || title.includes('milestone')) {
+    return SECTION_TITLES[SECTION_TYPES.TRACTION];
+  }
+  if (title.includes('team') || title.includes('founder')) {
+    return SECTION_TITLES[SECTION_TYPES.TEAM];
+  }
+  if (title.includes('financial') || title.includes('projection')) {
+    return SECTION_TITLES[SECTION_TYPES.FINANCIALS];
+  }
+  if (title.includes('ask') || title.includes('next step')) {
+    return SECTION_TITLES[SECTION_TYPES.ASK];
+  }
+  if (title.includes('problem')) {
+    return SECTION_TITLES[SECTION_TYPES.PROBLEM];
+  }
+  if (title.includes('market') || title.includes('opportunity')) {
+    return SECTION_TITLES[SECTION_TYPES.MARKET];
+  }
+  if (title.includes('competitive') || title.includes('landscape')) {
+    return SECTION_TITLES[SECTION_TYPES.COMPETITIVE_LANDSCAPE];
+  }
+  if (title.includes('business model')) {
+    return SECTION_TITLES[SECTION_TYPES.BUSINESS_MODEL];
+  }
+  if (title.includes('go-to-market') || title.includes('strategy')) {
+    return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
+  }
+  
+  // Final fallback to original title
+  return section.title;
+};
 
 // Helper function to format description as bullet points
 const formatDescriptionAsBullets = (description: string): string[] => {
@@ -82,6 +127,8 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
     return <div>Section not found</div>;
   }
 
+  const displayTitle = getDisplayTitle(section);
+
   // Check if section is missing (score of 0.5 indicates a missing section)
   const isSectionMissing = section?.score === 0.5;
 
@@ -134,7 +181,7 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{section?.title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{displayTitle}</h1>
 
         <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
           <CardHeader className="border-b pb-4">
