@@ -1,5 +1,3 @@
-
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -247,7 +245,7 @@ const CompanyDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen overflow-y-auto">
+      <div className="min-h-screen">
         <div className="container mx-auto px-4 py-4">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-secondary rounded w-1/3"></div>
@@ -278,7 +276,7 @@ const CompanyDetails = () => {
 
   if (!company) {
     return (
-      <div className="h-screen overflow-y-auto">
+      <div className="min-h-screen">
         <div className="container mx-auto px-4 py-4">
           <p>Company not found</p>
         </div>
@@ -313,8 +311,8 @@ const CompanyDetails = () => {
   });
 
   return (
-    <div className="h-screen overflow-y-auto">
-      <div className="flex w-full min-h-full">
+    <div className="min-h-screen">
+      <div className="flex w-full">
         <div className={`${showChat ? 'w-1/2' : 'w-full'} flex flex-col`}>
           <div className="container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in">
             <div className="mb-7 sm:mb-9">
@@ -397,7 +395,7 @@ const CompanyDetails = () => {
         </div>
         
         {showChat && (
-          <div className="w-1/2 flex flex-col border-l border-border bg-background shadow-card min-h-full">
+          <div className="w-1/2 border-l border-border bg-background shadow-card fixed right-0 top-0 h-screen flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center flex-shrink-0">
               <div>
                 <h2 className="font-semibold text-lg flex items-center gap-2 text-primary">
@@ -486,4 +484,3 @@ const CompanyDetails = () => {
 };
 
 export default CompanyDetails;
-
