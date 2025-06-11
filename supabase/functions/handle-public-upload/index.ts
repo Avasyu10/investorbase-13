@@ -202,24 +202,24 @@ serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response(null, {
-      headers: {
-        ...corsHeaders,
-      },
+      headers: corsHeaders,
     });
   }
 
   try {
+    console.log("Public upload handler started");
+    
     // Get environment variables
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Supabase credentials not configured");
+      console.error("Missing Supabase configuration");
       return new Response(
         JSON.stringify({ 
           success: false, 
           error: "Server configuration error",
-          details: "Supabase credentials not configured"
+          details: "Missing Supabase configuration"
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -228,13 +228,15 @@ serve(async (req) => {
       );
     }
     
-    // Create a supabase client with the service role key - this bypasses RLS
+    // Create supabase client with service role key (bypasses RLS)
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     });
+    
+    console.log("Supabase client created with service role");
     
     // Handle form data
     if (req.headers.get("content-type")?.includes("multipart/form-data")) {
@@ -256,17 +258,13 @@ serve(async (req) => {
         );
       }
       
-      // Extract other form fields
+      // Extract form fields
       const title = formData.get('title') as string || 'Untitled Submission';
       const email = formData.get('email') as string;
       const description = formData.get('description') as string || '';
       const websiteUrl = formData.get('websiteUrl') as string || '';
       const formSlug = formData.get('formSlug') as string || '';
       const question = formData.get('question') as string || '';
-      
-      console.log("Processing submission with form slug:", formSlug);
-      
-      // Extract optional fields with fallbacks
       const companyStage = formData.get('companyStage') as string || '';
       const industry = formData.get('industry') as string || '';
       
@@ -281,7 +279,7 @@ serve(async (req) => {
         }
       }
       
-      // Extract new company fields
+      // Extract additional company fields
       const companyRegistrationType = formData.get('company_registration_type') as string || '';
       const registrationNumber = formData.get('registration_number') as string || '';
       const dpiitRecognitionNumber = formData.get('dpiit_recognition_number') as string || '';
@@ -303,6 +301,14 @@ serve(async (req) => {
       const founderAddress = formData.get('founder_address') as string || '';
       const founderState = formData.get('founder_state') as string || '';
       
+      console.log("Form data extracted:", { 
+        title, 
+        email, 
+        formSlug,
+        hasFile: !!file,
+        linkedInProfilesCount: linkedInProfiles.length 
+      });
+      
       // Validate required fields
       if (!email) {
         return new Response(
@@ -318,28 +324,27 @@ serve(async (req) => {
         );
       }
 
-      // Create a unique file name
+      // Create unique file name
       const timestamp = Date.now();
       const fileExt = file.name.split('.').pop();
       const fileName = `${timestamp}.${fileExt}`;
       
-      console.log(`Processing file: ${file.name}, size: ${file.size} bytes, new name: ${fileName}`);
+      console.log(`Processing file: ${file.name}, size: ${file.size} bytes`);
       
-      // Decide where to store the file:
-      // 1. If it's associated with a form, use the form creator's user_id
-      // 2. If no form is associated, use a default location
+      // Determine storage path and form owner
       let storageUserId = 'public-uploads';
-      
-      // Get associated form if formSlug is provided
       let formOwnerId = null;
       let shouldAutoAnalyze = false;
       let submissionFormId = null;
+      
       if (formSlug) {
         try {
+          console.log("Fetching form data for slug:", formSlug);
           const { data: formData, error: formError } = await supabase
             .from('public_submission_forms')
             .select('id, user_id, auto_analyze')
             .eq('form_slug', formSlug)
+            .eq('is_active', true)
             .maybeSingle();
             
           if (formError) {
@@ -351,22 +356,21 @@ serve(async (req) => {
             shouldAutoAnalyze = formData.auto_analyze;
             submissionFormId = formData.id;
           } else {
-            console.log("No form found with slug:", formSlug);
+            console.log("No active form found with slug:", formSlug);
           }
         } catch (err) {
           console.error("Error querying form data:", err);
         }
       }
       
-      // Create the proper file path structure
       const filePath = `${storageUserId}/${fileName}`;
+      console.log("Storage path:", filePath);
       
-      // Convert file data to buffer for storage
-      const arrayBuffer = await file.arrayBuffer();
-      const fileBuffer = new Uint8Array(arrayBuffer);
-      
-      // Upload the file to storage using service role (bypasses RLS)
+      // Upload file to storage
       try {
+        const arrayBuffer = await file.arrayBuffer();
+        const fileBuffer = new Uint8Array(arrayBuffer);
+        
         const { error: uploadError } = await supabase.storage
           .from('report_pdfs')
           .upload(filePath, fileBuffer, {
@@ -374,7 +378,7 @@ serve(async (req) => {
           });
           
         if (uploadError) {
-          console.error("Error uploading file:", uploadError);
+          console.error("Storage upload error:", uploadError);
           return new Response(
             JSON.stringify({ 
               success: false, 
@@ -388,14 +392,14 @@ serve(async (req) => {
           );
         }
         
-        console.log("File uploaded successfully:", filePath);
+        console.log("File uploaded successfully to storage");
       } catch (uploadErr) {
         console.error("File upload exception:", uploadErr);
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: "File upload failed", 
-            details: uploadErr instanceof Error ? uploadErr.message : "Unknown error"
+            details: uploadErr instanceof Error ? uploadErr.message : "Unknown upload error"
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -407,7 +411,7 @@ serve(async (req) => {
       // Scrape LinkedIn profiles if provided
       let enhancedDescription = description;
       if (linkedInProfiles.length > 0) {
-        console.log("Starting LinkedIn profile scraping for public submission");
+        console.log("Starting LinkedIn profile scraping");
         try {
           const linkedInResult = await scrapeLinkedInProfilesPublic(linkedInProfiles, 'public', supabase);
           
@@ -430,7 +434,7 @@ serve(async (req) => {
             linkedInContent += "- Previous startup or entrepreneurial experience\n\n";
             
             enhancedDescription += `\n\n${linkedInContent}`;
-            console.log("LinkedIn profiles scraped and added to description");
+            console.log("LinkedIn profiles added to description");
           } else {
             console.log("LinkedIn scraping failed or no public profiles found");
           }
@@ -439,7 +443,7 @@ serve(async (req) => {
         }
       }
       
-      // Parse employee count to number if provided
+      // Parse employee count
       let employeeCountNum = null;
       if (employeeCount) {
         try {
@@ -449,14 +453,15 @@ serve(async (req) => {
         }
       }
       
-      // Create a record in public_form_submissions table using service role
+      // Create submission record
       let submissionData;
       try {
+        console.log("Creating submission record");
         const { data, error: submissionError } = await supabase
           .from('public_form_submissions')
           .insert({
             title,
-            description: enhancedDescription, // Use enhanced description with LinkedIn data
+            description: enhancedDescription,
             website_url: websiteUrl,
             pdf_url: filePath,
             form_slug: formSlug,
@@ -465,7 +470,6 @@ serve(async (req) => {
             founder_linkedin_profiles: linkedInProfiles,
             question,
             submitter_email: email,
-            // New company fields
             company_registration_type: companyRegistrationType,
             registration_number: registrationNumber,
             dpiit_recognition_number: dpiitRecognitionNumber,
@@ -478,7 +482,6 @@ serve(async (req) => {
             valuation: valuation,
             last_fy_revenue: lastFyRevenue,
             last_quarter_revenue: lastQuarterRevenue,
-            // Founder information
             founder_name: founderName,
             founder_gender: founderGender,
             founder_email: founderEmail,
@@ -490,7 +493,7 @@ serve(async (req) => {
           .single();
           
         if (submissionError) {
-          console.error("Error creating submission record:", submissionError);
+          console.error("Submission record creation error:", submissionError);
           return new Response(
             JSON.stringify({ 
               success: false, 
@@ -505,14 +508,14 @@ serve(async (req) => {
         }
         
         submissionData = data;
-        console.log("Submission record created:", submissionData.id);
+        console.log("Submission record created successfully:", submissionData.id);
       } catch (submissionErr) {
         console.error("Submission creation exception:", submissionErr);
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: "Submission creation failed", 
-            details: submissionErr instanceof Error ? submissionErr.message : "Unknown error"
+            details: submissionErr instanceof Error ? submissionErr.message : "Unknown submission error"
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -521,7 +524,7 @@ serve(async (req) => {
         );
       }
       
-      // Create a corresponding report record that can be analyzed
+      // Create report record and trigger analysis if needed
       let reportId;
       if (formOwnerId) {
         console.log("Creating report record for form owner:", formOwnerId);
@@ -531,8 +534,8 @@ serve(async (req) => {
             .from('reports')
             .insert({
               title,
-              description: enhancedDescription, // Use enhanced description with LinkedIn data
-              pdf_url: filePath, // Use the full path here as well
+              description: enhancedDescription,
+              pdf_url: filePath,
               user_id: formOwnerId,
               is_public_submission: true,
               submitter_email: email,
@@ -542,12 +545,12 @@ serve(async (req) => {
             .single();
             
           if (reportError) {
-            console.error("Error creating report record:", reportError);
+            console.error("Report record creation error:", reportError);
           } else if (reportData) {
-            console.log("Report record created:", reportData.id);
+            console.log("Report record created successfully:", reportData.id);
             reportId = reportData.id;
             
-            // Update the submission record with the report ID
+            // Update submission with report ID
             try {
               const { error: updateError } = await supabase
                 .from('public_form_submissions')
@@ -556,17 +559,18 @@ serve(async (req) => {
                 
               if (updateError) {
                 console.error("Error updating submission with report ID:", updateError);
+              } else {
+                console.log("Submission updated with report ID");
               }
             } catch (updateErr) {
               console.error("Update submission exception:", updateErr);
             }
             
-            // If auto-analyze is enabled, trigger analysis
+            // Trigger auto-analysis if enabled
             if (shouldAutoAnalyze) {
+              console.log("Auto-analyze enabled, triggering analysis");
+              
               try {
-                console.log("Auto-analyze is enabled, triggering analysis");
-                
-                // Call the auto-analyze edge function
                 const analyzeResponse = await fetch(`${supabaseUrl}/functions/v1/auto-analyze-public-pdf`, {
                   method: 'POST',
                   headers: {
@@ -579,19 +583,26 @@ serve(async (req) => {
                 });
                 
                 if (!analyzeResponse.ok) {
-                  console.error("Analysis triggering failed:", await analyzeResponse.text());
+                  const errorText = await analyzeResponse.text();
+                  console.error("Analysis trigger failed:", errorText);
                 } else {
-                  console.log("Analysis successfully triggered");
+                  console.log("Analysis triggered successfully");
                 }
               } catch (analyzeError) {
                 console.error("Error triggering auto-analysis:", analyzeError);
               }
+            } else {
+              console.log("Auto-analyze disabled for this form");
             }
           }
         } catch (reportErr) {
           console.error("Report creation exception:", reportErr);
         }
+      } else {
+        console.log("No form owner found, submission saved without report creation");
       }
+      
+      console.log("Public upload completed successfully");
       
       // Return success response
       return new Response(
@@ -599,7 +610,8 @@ serve(async (req) => {
           success: true, 
           message: "Submission received successfully",
           submissionId: submissionData.id,
-          reportId
+          reportId,
+          autoAnalyzeTriggered: shouldAutoAnalyze && reportId
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -607,6 +619,7 @@ serve(async (req) => {
         }
       );
     } else {
+      console.error("Invalid content type");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -620,13 +633,13 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error("Fatal error:", error);
+    console.error("Fatal error in public upload handler:", error);
     
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: "Server error", 
-        details: error instanceof Error ? error.message : "Unknown error" 
+        details: error instanceof Error ? error.message : "Unknown fatal error" 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
