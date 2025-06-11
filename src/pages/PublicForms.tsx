@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { Plus, Copy, ExternalLink, Trash2 } from "lucide-react";
 const PublicForms = () => {
   const [newFormName, setNewFormName] = useState("");
   const [newFormSlug, setNewFormSlug] = useState("");
+  const [newFormType, setNewFormType] = useState("general");
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
@@ -35,7 +36,7 @@ const PublicForms = () => {
 
   // Create new form mutation
   const createFormMutation = useMutation({
-    mutationFn: async ({ name, slug, autoAnalyze }: { name: string, slug: string, autoAnalyze: boolean }) => {
+    mutationFn: async ({ name, slug, formType, autoAnalyze }: { name: string, slug: string, formType: string, autoAnalyze: boolean }) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not authenticated");
 
@@ -44,6 +45,7 @@ const PublicForms = () => {
         .insert({
           form_name: name,
           form_slug: slug,
+          form_type: formType,
           auto_analyze: autoAnalyze,
           user_id: userData.user.id,
           is_active: true
@@ -58,6 +60,7 @@ const PublicForms = () => {
       queryClient.invalidateQueries({ queryKey: ['public-forms'] });
       setNewFormName("");
       setNewFormSlug("");
+      setNewFormType("general");
       setAutoAnalyze(false);
       setIsCreateDialogOpen(false);
       toast.success("Form created successfully!");
@@ -122,8 +125,21 @@ const PublicForms = () => {
     toast.success("Copied to clipboard!");
   };
 
-  const getFormUrl = (slug: string) => {
+  const getFormUrl = (slug: string, formType: string) => {
+    if (formType === 'barc') {
+      return `${window.location.origin}/barc-submit/${slug}`;
+    }
     return `${window.location.origin}/public-upload/${slug}`;
+  };
+
+  const getFormTypeLabel = (formType: string) => {
+    switch (formType) {
+      case 'barc':
+        return 'BARC Application';
+      case 'general':
+      default:
+        return 'General Submission';
+    }
   };
 
   if (isLoading) {
@@ -156,10 +172,22 @@ const PublicForms = () => {
             <DialogHeader>
               <DialogTitle>Create New Submission Form</DialogTitle>
               <DialogDescription>
-                Create a new form that others can use to submit their pitch decks to you.
+                Create a new form that others can use to submit their information to you.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="formType">Form Type</Label>
+                <Select value={newFormType} onValueChange={setNewFormType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select form type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General Submission</SelectItem>
+                    <SelectItem value="barc">BARC Application</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="formName">Form Name</Label>
                 <Input
@@ -178,7 +206,7 @@ const PublicForms = () => {
                   placeholder="e.g., investment-submissions"
                 />
                 <p className="text-sm text-muted-foreground">
-                  This will be used in the URL: /public-upload/{newFormSlug}
+                  This will be used in the URL: {newFormType === 'barc' ? '/barc-submit/' : '/public-upload/'}{newFormSlug}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -193,6 +221,7 @@ const PublicForms = () => {
                 onClick={() => createFormMutation.mutate({ 
                   name: newFormName, 
                   slug: newFormSlug, 
+                  formType: newFormType,
                   autoAnalyze 
                 })}
                 disabled={!newFormName || !newFormSlug || createFormMutation.isPending}
@@ -223,7 +252,12 @@ const PublicForms = () => {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle>{form.form_name}</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      {form.form_name}
+                      <span className="text-xs bg-secondary px-2 py-1 rounded">
+                        {getFormTypeLabel(form.form_type)}
+                      </span>
+                    </CardTitle>
                     <CardDescription>
                       Created {new Date(form.created_at).toLocaleDateString()}
                     </CardDescription>
@@ -263,21 +297,21 @@ const PublicForms = () => {
                     <Label className="text-sm font-medium">Public URL:</Label>
                     <div className="flex items-center space-x-2">
                       <Input
-                        value={getFormUrl(form.form_slug)}
+                        value={getFormUrl(form.form_slug, form.form_type)}
                         readOnly
                         className="font-mono text-sm"
                       />
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(getFormUrl(form.form_slug))}
+                        onClick={() => copyToClipboard(getFormUrl(form.form_slug, form.form_type))}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(getFormUrl(form.form_slug), '_blank')}
+                        onClick={() => window.open(getFormUrl(form.form_slug, form.form_type), '_blank')}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>

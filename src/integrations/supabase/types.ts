@@ -33,6 +33,60 @@ export type Database = {
         }
         Relationships: []
       }
+      barc_form_submissions: {
+        Row: {
+          company_name: string
+          company_registration_type: string
+          company_type: string
+          created_at: string
+          executive_summary: string
+          form_slug: string
+          id: string
+          question_1: string | null
+          question_2: string | null
+          question_3: string | null
+          question_4: string | null
+          question_5: string | null
+          report_id: string | null
+          submitter_email: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          company_registration_type: string
+          company_type: string
+          created_at?: string
+          executive_summary: string
+          form_slug: string
+          id?: string
+          question_1?: string | null
+          question_2?: string | null
+          question_3?: string | null
+          question_4?: string | null
+          question_5?: string | null
+          report_id?: string | null
+          submitter_email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          company_registration_type?: string
+          company_type?: string
+          created_at?: string
+          executive_summary?: string
+          form_slug?: string
+          id?: string
+          question_1?: string | null
+          question_2?: string | null
+          question_3?: string | null
+          question_4?: string | null
+          question_5?: string | null
+          report_id?: string | null
+          submitter_email?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           assessment_points: string[] | null
@@ -761,6 +815,7 @@ export type Database = {
           created_at: string
           form_name: string
           form_slug: string
+          form_type: string
           id: string
           is_active: boolean
           updated_at: string
@@ -771,6 +826,7 @@ export type Database = {
           created_at?: string
           form_name: string
           form_slug: string
+          form_type?: string
           id?: string
           is_active?: boolean
           updated_at?: string
@@ -781,6 +837,7 @@ export type Database = {
           created_at?: string
           form_name?: string
           form_slug?: string
+          form_type?: string
           id?: string
           is_active?: boolean
           updated_at?: string
