@@ -1,4 +1,5 @@
 
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -246,27 +247,29 @@ const CompanyDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-4">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-secondary rounded w-1/3"></div>
-          <div className="h-6 bg-secondary rounded w-1/2"></div>
-          
-          <Card className="mb-8 border-0 shadow-subtle">
-            <CardContent className="p-6">
-              <div className="h-6 bg-secondary rounded w-1/2 mb-4"></div>
-              <div className="space-y-3">
-                <div className="h-4 bg-secondary rounded w-full"></div>
-                <div className="h-4 bg-secondary rounded w-full"></div>
-                <div className="h-4 bg-secondary rounded w-3/4"></div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="h-6 bg-secondary rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-40 bg-secondary rounded shadow-subtle"></div>
-            ))}
+      <div className="h-screen overflow-y-auto">
+        <div className="container mx-auto px-4 py-4">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-secondary rounded w-1/3"></div>
+            <div className="h-6 bg-secondary rounded w-1/2"></div>
+            
+            <Card className="mb-8 border-0 shadow-subtle">
+              <CardContent className="p-6">
+                <div className="h-6 bg-secondary rounded w-1/2 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-secondary rounded w-full"></div>
+                  <div className="h-4 bg-secondary rounded w-full"></div>
+                  <div className="h-4 bg-secondary rounded w-3/4"></div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="h-6 bg-secondary rounded w-1/4 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-40 bg-secondary rounded shadow-subtle"></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -275,8 +278,10 @@ const CompanyDetails = () => {
 
   if (!company) {
     return (
-      <div className="container mx-auto px-4 py-4">
-        <p>Company not found</p>
+      <div className="h-screen overflow-y-auto">
+        <div className="container mx-auto px-4 py-4">
+          <p>Company not found</p>
+        </div>
       </div>
     );
   }
@@ -308,9 +313,9 @@ const CompanyDetails = () => {
   });
 
   return (
-    <div className="flex w-full h-screen">
-      <div className={`${showChat ? 'w-1/2' : 'w-full'} flex flex-col`}>
-        <div className="flex-1 overflow-y-auto">
+    <div className="h-screen overflow-y-auto">
+      <div className="flex w-full min-h-full">
+        <div className={`${showChat ? 'w-1/2' : 'w-full'} flex flex-col`}>
           <div className="container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in">
             <div className="mb-7 sm:mb-9">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
@@ -390,94 +395,95 @@ const CompanyDetails = () => {
             </div>
           </div>
         </div>
-      </div>
-      
-      {showChat && (
-        <div className="w-1/2 flex flex-col border-l border-border bg-background shadow-card">
-          <div className="p-4 border-b border-border flex justify-between items-center">
-            <div>
-              <h2 className="font-semibold text-lg flex items-center gap-2 text-primary">
-                InsightMaster
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Discuss {company?.name}'s investment opportunity with InsightMaster
-              </p>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleChatbotClick} 
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="flex-1 p-4 bg-secondary/10 overflow-y-auto">
-            <div className="flex flex-col space-y-4">
-              {messages.map((message, index) => (
-                <div 
-                  key={index} 
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div 
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === 'user' 
-                        ? 'bg-primary text-primary-foreground ml-4' 
-                        : 'bg-muted text-foreground mr-4'
-                    }`}
-                  >
-                    {message.role === 'user' ? (
-                      message.content
-                    ) : (
-                      <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
-                        {message.content}
-                      </ReactMarkdown>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {isSendingMessage && (
-                <div className="flex justify-start">
-                  <div className="bg-muted text-foreground max-w-[80%] rounded-lg p-3 mr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
-                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-75"></div>
-                      <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-150"></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="p-4 border-t border-border">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask about this company..."
-                className="flex-1 p-2 rounded-md border border-input bg-background"
-                disabled={isSendingMessage}
-              />
+        
+        {showChat && (
+          <div className="w-1/2 flex flex-col border-l border-border bg-background shadow-card min-h-full">
+            <div className="p-4 border-b border-border flex justify-between items-center flex-shrink-0">
+              <div>
+                <h2 className="font-semibold text-lg flex items-center gap-2 text-primary">
+                  InsightMaster
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Discuss {company?.name}'s investment opportunity with InsightMaster
+                </p>
+              </div>
               <Button 
-                onClick={handleSendMessage} 
-                size="icon"
-                disabled={isSendingMessage || !currentMessage.trim()}
+                variant="ghost" 
+                size="icon" 
+                onClick={handleChatbotClick} 
+                className="h-8 w-8"
               >
-                <Send className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Press Enter to send your message
-            </p>
+            
+            <div className="flex-1 p-4 bg-secondary/10 overflow-y-auto">
+              <div className="flex flex-col space-y-4">
+                {messages.map((message, index) => (
+                  <div 
+                    key={index} 
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div 
+                      className={`max-w-[80%] rounded-lg p-3 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground ml-4' 
+                          : 'bg-muted text-foreground mr-4'
+                      }`}
+                    >
+                      {message.role === 'user' ? (
+                        message.content
+                      ) : (
+                        <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
+                          {message.content}
+                        </ReactMarkdown>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {isSendingMessage && (
+                  <div className="flex justify-start">
+                    <div className="bg-muted text-foreground max-w-[80%] rounded-lg p-3 mr-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
+                        <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-75"></div>
+                        <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-150"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-border flex-shrink-0">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about this company..."
+                  className="flex-1 p-2 rounded-md border border-input bg-background"
+                  disabled={isSendingMessage}
+                />
+                <Button 
+                  onClick={handleSendMessage} 
+                  size="icon"
+                  disabled={isSendingMessage || !currentMessage.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Press Enter to send your message
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
 export default CompanyDetails;
+
