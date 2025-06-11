@@ -43,18 +43,16 @@ const PublicUpload = () => {
           .from('public_submission_forms')
           .select('form_name, user_id, is_active, auto_analyze')
           .eq('form_slug', activeFormSlug)
+          .eq('is_active', true)
           .maybeSingle();
 
         if (error) {
           console.error("Error fetching form data:", error);
-          setError("Form not found");
+          setError("Database error while fetching form");
           setErrorDetails(error.message);
         } else if (!data) {
           setError("Form not found");
-          setErrorDetails("The form you're looking for doesn't exist or has been removed.");
-        } else if (!data.is_active) {
-          setError("This form is no longer active");
-          setErrorDetails("The form owner has disabled submissions for this form.");
+          setErrorDetails("The form you're looking for doesn't exist, has been removed, or is no longer active. Please check the URL or contact the form owner.");
         } else {
           console.log("Form data loaded successfully:", data);
           setFormData(data);
@@ -125,7 +123,7 @@ const PublicUpload = () => {
               {errorDetails && (
                 <div className="mt-2 text-sm bg-red-50 p-2 rounded border border-red-200">
                   <details>
-                    <summary className="cursor-pointer font-medium">Debug details</summary>
+                    <summary className="cursor-pointer font-medium">Details</summary>
                     <p className="mt-1 whitespace-pre-wrap">{errorDetails}</p>
                   </details>
                 </div>
@@ -152,10 +150,7 @@ const PublicUpload = () => {
                 {formData ? formData.form_name : "Submit Your Pitch Deck"}
               </h1>
               <p className="text-muted-foreground">
-                {isGenericUpload 
-                  ? "Upload a PDF of your Pitch Deck along with the following information"
-                  : "Upload a PDF of your Pitch Deck along with the following information"
-                }
+                Upload a PDF of your Pitch Deck along with the following information
               </p>
             </div>
             
