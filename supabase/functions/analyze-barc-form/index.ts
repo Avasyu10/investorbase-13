@@ -136,7 +136,7 @@ serve(async (req) => {
       console.error('Failed to update status to processing:', statusUpdateError);
     }
 
-    // Prepare the comprehensive analysis prompt for the old format
+    // Prepare the comprehensive analysis prompt
     const analysisPrompt = `
     You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application and provide comprehensive feedback in sections.
 
@@ -155,38 +155,43 @@ serve(async (req) => {
     4. Team Background: "${submission.question_4 || 'Not provided'}"
     5. Incubation Goals: "${submission.question_5 || 'Not provided'}"
 
-    Please provide a detailed analysis in the following JSON format that matches our evaluation structure:
+    Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-5 (not 1-10):
 
     {
-      "overall_score": number (1-10),
+      "overall_score": number (1-5),
       "recommendation": "Accept" | "Consider" | "Reject",
+      "company_info": {
+        "industry": "string (infer from the application)",
+        "stage": "string (e.g., Idea, Prototype, Early Revenue, Growth)",
+        "introduction": "string (2-3 sentence company description based on executive summary and responses)"
+      },
       "sections": {
         "problem_solution_fit": {
-          "score": number (1-10),
+          "score": number (1-5),
           "analysis": "detailed analysis text",
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement area 1", "improvement area 2"]
         },
         "market_opportunity": {
-          "score": number (1-10),
+          "score": number (1-5),
           "analysis": "detailed analysis text",
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement area 1", "improvement area 2"]
         },
         "competitive_advantage": {
-          "score": number (1-10),
+          "score": number (1-5),
           "analysis": "detailed analysis text",
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement area 1", "improvement area 2"]
         },
         "team_strength": {
-          "score": number (1-10),
+          "score": number (1-5),
           "analysis": "detailed analysis text",
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement area 1", "improvement area 2"]
         },
         "execution_plan": {
-          "score": number (1-10),
+          "score": number (1-5),
           "analysis": "detailed analysis text",
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement area 1", "improvement area 2"]
@@ -195,11 +200,12 @@ serve(async (req) => {
       "summary": {
         "overall_feedback": "comprehensive feedback on the overall application",
         "key_factors": ["factor 1", "factor 2", "factor 3"],
-        "next_steps": ["step 1", "step 2", "step 3"]
+        "next_steps": ["step 1", "step 2", "step 3"],
+        "assessment_points": ["detailed assessment point 1", "detailed assessment point 2", "detailed assessment point 3", "detailed assessment point 4", "detailed assessment point 5"]
       }
     }
 
-    Focus on providing actionable insights and specific recommendations based on the responses to each question.
+    Focus on providing actionable insights and specific recommendations based on the responses to each question. Include comprehensive assessment points that highlight market opportunities, business model viability, competitive positioning, and growth potential.
     `;
 
     // Call OpenAI API
@@ -215,7 +221,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, metric-based analysis in valid JSON format only. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, metric-based analysis in valid JSON format only. All scores must be on a scale of 1-5. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
           },
           {
             role: 'user',
@@ -268,14 +274,18 @@ serve(async (req) => {
     if (analysisResult.recommendation === 'Accept') {
       console.log('Creating company and sections for accepted submission...');
       
-      // Create company with proper user_id
+      // Extract company info from analysis
+      const companyInfo = analysisResult.company_info || {};
+      
+      // Create company with proper user_id and company information
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
           name: submission.company_name,
           overall_score: analysisResult.overall_score || 0,
-          user_id: currentUserId, // Use the authenticated user or admin user
-          source: 'barc_form'
+          user_id: currentUserId,
+          source: 'barc_form',
+          assessment_points: analysisResult.summary?.assessment_points || []
         })
         .select()
         .single();
@@ -287,6 +297,25 @@ serve(async (req) => {
 
       companyId = company.id;
       console.log('Created company with ID:', companyId, 'for user:', currentUserId);
+
+      // Create company details with additional info
+      if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
+        const { error: detailsError } = await supabase
+          .from('company_details')
+          .insert({
+            company_id: companyId,
+            industry: companyInfo.industry || null,
+            stage: companyInfo.stage || null,
+            introduction: companyInfo.introduction || null,
+            status: 'New'
+          });
+
+        if (detailsError) {
+          console.error('Failed to create company details:', detailsError);
+        } else {
+          console.log('Created company details');
+        }
+      }
 
       // Create sections based on analysis
       const sectionsToCreate = [

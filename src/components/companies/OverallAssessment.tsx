@@ -13,19 +13,26 @@ interface OverallAssessmentProps {
 export function OverallAssessment({ 
   score, 
   maxScore = 5,
-  assessmentPoints = [
-    "The global remote patient monitoring market is projected to reach $175.2 billion by 2030, growing at a CAGR of 17.1%, presenting a significant opportunity for PulseGuard.",
-    "PulseGuard's 30% reduction in hospital readmissions from pilot programs is a strong proof point, but more data is needed to validate the results.",
-    "The company's business model is based on subscription-based revenue, data analytics services, and value-added partnerships, providing multiple revenue streams.",
-    "The team has a strong combination of clinical, technical, and operational expertise, increasing the likelihood of success.",
-    "PulseGuard is seeking $2.5M in seed capital to accelerate product development, expand go-to-market initiatives, and ensure regulatory compliance, a reasonable ask for a seed-stage company."
-  ] 
+  assessmentPoints = []
 }: OverallAssessmentProps) {
   // Calculate progress percentage
   const progressPercentage = (score / maxScore) * 100;
   
   // Format score to one decimal place
   const formattedScore = typeof score === 'number' ? score.toFixed(1) : '0.0';
+
+  // Default assessment points if none provided
+  const defaultAssessmentPoints = [
+    "This company shows strong potential for growth in their target market segment.",
+    "The founding team demonstrates relevant experience and domain expertise.",
+    "The business model presents clear revenue opportunities and scalability potential.",
+    "Market timing appears favorable for this type of solution.",
+    "Further validation of customer demand and competitive positioning would strengthen the proposition."
+  ];
+
+  const displayPoints = assessmentPoints && assessmentPoints.length > 0 
+    ? assessmentPoints 
+    : defaultAssessmentPoints;
 
   return (
     <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
@@ -51,7 +58,7 @@ export function OverallAssessment({
         </div>
         
         <div className="space-y-4">
-          {assessmentPoints.map((point, index) => (
+          {displayPoints.map((point, index) => (
             <div 
               key={index} 
               className="flex items-start gap-3 p-4 rounded-lg border-0"
