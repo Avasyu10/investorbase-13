@@ -35,6 +35,10 @@ export type Database = {
       }
       barc_form_submissions: {
         Row: {
+          analysis_error: string | null
+          analysis_result: Json | null
+          analysis_status: string | null
+          analyzed_at: string | null
           company_name: string
           company_registration_type: string
           company_type: string
@@ -52,6 +56,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
           company_name: string
           company_registration_type: string
           company_type: string
@@ -69,6 +77,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
           company_name?: string
           company_registration_type?: string
           company_type?: string

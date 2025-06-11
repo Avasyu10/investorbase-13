@@ -112,8 +112,26 @@ const BarcSubmit = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       toast.success("Application submitted successfully!");
+      
+      // Trigger analysis
+      try {
+        const { error: analysisError } = await supabase.functions.invoke('analyze-barc-submission', {
+          body: { submissionId: data.id }
+        });
+        
+        if (analysisError) {
+          console.error('Failed to trigger analysis:', analysisError);
+          toast.info("Application submitted. Analysis will be processed shortly.");
+        } else {
+          toast.info("Application submitted and analysis started!");
+        }
+      } catch (error) {
+        console.error('Failed to trigger analysis:', error);
+        toast.info("Application submitted. Analysis will be processed shortly.");
+      }
+      
       form.reset();
       setTimeout(() => {
         navigate('/');
