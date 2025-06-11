@@ -14,11 +14,12 @@ serve(async (req) => {
   console.log(`Request URL: ${req.url}`);
   console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
   
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
     return new Response(null, { 
       headers: corsHeaders,
-      status: 204 
+      status: 200 
     });
   }
 
@@ -219,7 +220,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
