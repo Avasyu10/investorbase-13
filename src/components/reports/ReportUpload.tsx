@@ -326,11 +326,11 @@ export function ReportUpload({
           formData.append('industry', industry);
         }
         
-        // Add LinkedIn profiles as JSON string - the backend will handle scraping
+        // For public uploads, add LinkedIn profiles as JSON string - the backend handles scraping
         const filteredProfiles = founderLinkedIns.filter(profile => profile.trim());
         if (filteredProfiles.length > 0) {
           formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
-          console.log("LinkedIn profiles will be scraped by backend:", filteredProfiles);
+          console.log("LinkedIn profiles will be scraped by backend automatically:", filteredProfiles);
         }
         
         // Add question field to form data
@@ -532,87 +532,90 @@ export function ReportUpload({
         });
       }
       
-      // Only scrape website content if scraping features are enabled AND it's not a public upload
-      let scrapedContent = null;
-      if (!disableScrapingFeatures && !isPublic && companyWebsite && companyWebsite.trim()) {
-        setProgress(40);
-        setIsScrapingWebsite(true);
-        const websiteResult = await scrapeWebsite(companyWebsite);
-        setIsScrapingWebsite(false);
-        if (websiteResult?.success) {
-          scrapedContent = websiteResult.scrapedContent;
-          toast.success("Website scraped successfully", {
-            description: "Website content will be included in the analysis"
-          });
-        } else if (websiteResult) {
-          toast.error("Website scraping failed", {
-            description: "Could not scrape the company website. Continuing without website data."
-          });
-        }
-      }
-      
-      // Enhanced LinkedIn profile scraping for NON-PUBLIC uploads only
-      let linkedInContent = null;
-      if (!disableScrapingFeatures && !isPublic) {
-        const validLinkedInProfiles = founderLinkedIns.filter(url => {
-          const trimmedUrl = url.trim();
-          return trimmedUrl && (
-            trimmedUrl.includes('linkedin.com/in/') || 
-            trimmedUrl.includes('linkedin.com/pub/') ||
-            trimmedUrl.includes('www.linkedin.com/in/') ||
-            trimmedUrl.includes('www.linkedin.com/pub/')
-          );
-        });
-        
-        if (validLinkedInProfiles.length > 0) {
-          setProgress(50);
-          setProgressStage("Scraping founder LinkedIn profiles...");
-          console.log("Starting LinkedIn profile scraping for:", validLinkedInProfiles);
-          
-          try {
-            const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
-            
-            if (linkedInResult?.success) {
-              linkedInContent = formatLinkedInContent(linkedInResult);
-              const profileCount = linkedInResult.profiles?.length || 0;
-              
-              toast.success("LinkedIn profiles processed", {
-                description: `Successfully scraped ${profileCount} public LinkedIn profile(s) for team analysis`
-              });
-              
-              console.log("LinkedIn scraping successful:", {
-                profileCount,
-                contentLength: linkedInContent?.length || 0
-              });
-            } else if (linkedInResult) {
-              console.warn("LinkedIn scraping completed with issues:", linkedInResult.error);
-              toast.warning("LinkedIn profile scraping", {
-                description: "Some LinkedIn profiles could not be accessed (likely private). Continuing with available data."
-              });
-            }
-          } catch (linkedInError) {
-            console.error("LinkedIn scraping error:", linkedInError);
-            toast.warning("LinkedIn profile scraping", {
-              description: "Could not access LinkedIn profiles. Continuing without LinkedIn data."
+      // Only perform client-side scraping for NON-PUBLIC uploads
+      if (!isPublic) {
+        // Only scrape website content if scraping features are enabled
+        let scrapedContent = null;
+        if (!disableScrapingFeatures && companyWebsite && companyWebsite.trim()) {
+          setProgress(40);
+          setIsScrapingWebsite(true);
+          const websiteResult = await scrapeWebsite(companyWebsite);
+          setIsScrapingWebsite(false);
+          if (websiteResult?.success) {
+            scrapedContent = websiteResult.scrapedContent;
+            toast.success("Website scraped successfully", {
+              description: "Website content will be included in the analysis"
+            });
+          } else if (websiteResult) {
+            toast.error("Website scraping failed", {
+              description: "Could not scrape the company website. Continuing without website data."
             });
           }
         }
-      }
-      
-      if (scrapedContent) {
-        description += `\n\nWebsite Content:\n${scrapedContent}\n`;
-      }
-      
-      if (linkedInContent) {
-        description += `\n\n${linkedInContent}\n`;
-        description += `\nNOTE: This LinkedIn profile data should be specifically analyzed in the TEAM section to assess:\n`;
-        description += `- Founder experience and background relevance\n`;
-        description += `- Leadership capabilities and track record\n`;
-        description += `- Industry expertise and domain knowledge\n`;
-        description += `- Educational qualifications\n`;
-        description += `- Previous startup or entrepreneurial experience\n`;
-        description += `- Technical skills and competencies\n`;
-        description += `- Network quality and professional connections\n\n`;
+        
+        // Enhanced LinkedIn profile scraping for NON-PUBLIC uploads only
+        let linkedInContent = null;
+        if (!disableScrapingFeatures) {
+          const validLinkedInProfiles = founderLinkedIns.filter(url => {
+            const trimmedUrl = url.trim();
+            return trimmedUrl && (
+              trimmedUrl.includes('linkedin.com/in/') || 
+              trimmedUrl.includes('linkedin.com/pub/') ||
+              trimmedUrl.includes('www.linkedin.com/in/') ||
+              trimmedUrl.includes('www.linkedin.com/pub/')
+            );
+          });
+          
+          if (validLinkedInProfiles.length > 0) {
+            setProgress(50);
+            setProgressStage("Scraping founder LinkedIn profiles...");
+            console.log("Starting LinkedIn profile scraping for:", validLinkedInProfiles);
+            
+            try {
+              const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
+              
+              if (linkedInResult?.success) {
+                linkedInContent = formatLinkedInContent(linkedInResult);
+                const profileCount = linkedInResult.profiles?.length || 0;
+                
+                toast.success("LinkedIn profiles processed", {
+                  description: `Successfully scraped ${profileCount} public LinkedIn profile(s) for team analysis`
+                });
+                
+                console.log("LinkedIn scraping successful:", {
+                  profileCount,
+                  contentLength: linkedInContent?.length || 0
+                });
+              } else if (linkedInResult) {
+                console.warn("LinkedIn scraping completed with issues:", linkedInResult.error);
+                toast.warning("LinkedIn profile scraping", {
+                  description: "Some LinkedIn profiles could not be accessed (likely private). Continuing with available data."
+                });
+              }
+            } catch (linkedInError) {
+              console.error("LinkedIn scraping error:", linkedInError);
+              toast.warning("LinkedIn profile scraping", {
+                description: "Could not access LinkedIn profiles. Continuing without LinkedIn data."
+              });
+            }
+          }
+        }
+        
+        if (scrapedContent) {
+          description += `\n\nWebsite Content:\n${scrapedContent}\n`;
+        }
+        
+        if (linkedInContent) {
+          description += `\n\n${linkedInContent}\n`;
+          description += `\nNOTE: This LinkedIn profile data should be specifically analyzed in the TEAM section to assess:\n`;
+          description += `- Founder experience and background relevance\n`;
+          description += `- Leadership capabilities and track record\n`;
+          description += `- Industry expertise and domain knowledge\n`;
+          description += `- Educational qualifications\n`;
+          description += `- Previous startup or entrepreneurial experience\n`;
+          description += `- Technical skills and competencies\n`;
+          description += `- Network quality and professional connections\n\n`;
+        }
       }
       
       if (!isPublic && !skipAnalysis) {
