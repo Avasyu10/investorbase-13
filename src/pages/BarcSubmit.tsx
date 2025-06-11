@@ -12,7 +12,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface BarcFormData {
   companyName: string;
@@ -69,14 +68,14 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation using Supabase client
+  // Submit form mutation using the same API approach as PSI form
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission:', { slug, formData });
+      console.log('Starting BARC form submission via API:', { slug, formData });
 
-      const submissionData = {
+      const submissionPayload = {
         form_slug: slug,
         company_name: formData.companyName,
         company_registration_type: formData.companyRegistrationType,
@@ -88,58 +87,56 @@ const BarcSubmit = () => {
         question_4: formData.question4,
         question_5: formData.question5,
         submitter_email: formData.submitterEmail,
-        analysis_status: 'pending'
+        form_type: 'barc'
       };
 
-      console.log('Submission data prepared:', submissionData);
+      console.log('Submission payload prepared:', submissionPayload);
 
-      try {
-        // Use Supabase client for insertion - the updated RLS policies now allow anonymous insertions
-        const { data, error } = await supabase
-          .from('barc_form_submissions')
-          .insert(submissionData)
-          .select()
-          .single();
+      // Use the same submission approach as PSI form
+      const response = await fetch('/api/submit-barc', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionPayload),
+      });
 
-        if (error) {
-          console.error('Supabase insertion error:', error);
-          console.error('Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
-          throw new Error(`Submission failed: ${error.message}`);
-        }
-
-        console.log('Submission successful:', data);
-        return data;
-      } catch (error) {
-        console.error('Submission error:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API submission error:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const result = await response.json();
+      console.log('Submission successful via API:', result);
+      return result;
     },
     onSuccess: async (data) => {
-      console.log('Form submitted successfully:', data);
+      console.log('BARC form submitted successfully:', data);
       toast.success("Application submitted successfully!");
       
-      // Trigger analysis after successful submission
-      try {
-        console.log('Triggering analysis for submission:', data.id);
-        
-        const { error: analysisError } = await supabase.functions.invoke('analyze-barc-submission', {
-          body: { submissionId: data.id }
-        });
-        
-        if (analysisError) {
-          console.error('Failed to trigger analysis:', analysisError);
+      // Trigger analysis if auto-analyze is enabled
+      if (data.submissionId) {
+        try {
+          console.log('Triggering analysis for submission:', data.submissionId);
+          
+          const analysisResponse = await fetch('/api/analyze-barc', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ submissionId: data.submissionId }),
+          });
+          
+          if (analysisResponse.ok) {
+            toast.info("Application submitted and analysis started!");
+          } else {
+            toast.info("Application submitted. Analysis will be processed shortly.");
+          }
+        } catch (error) {
+          console.error('Failed to trigger analysis:', error);
           toast.info("Application submitted. Analysis will be processed shortly.");
-        } else {
-          toast.info("Application submitted and analysis started!");
         }
-      } catch (error) {
-        console.error('Failed to trigger analysis:', error);
-        toast.info("Application submitted. Analysis will be processed shortly.");
       }
       
       form.reset();
@@ -148,29 +145,17 @@ const BarcSubmit = () => {
       }, 2000);
     },
     onError: (error: any) => {
-      console.error('Form submission error:', error);
+      console.error('BARC form submission error:', error);
       toast.error(`Failed to submit application: ${error.message || 'Unknown error'}`);
     }
   });
 
   const onSubmit = (data: BarcFormData) => {
-    console.log('Form submit triggered:', data);
+    console.log('BARC form submit triggered:', data);
     
-    // Validate required fields
+    // Basic validation
     if (!data.companyName.trim()) {
       toast.error("Company name is required");
-      return;
-    }
-    if (!data.companyRegistrationType) {
-      toast.error("Company registration type is required");
-      return;
-    }
-    if (!data.executiveSummary.trim()) {
-      toast.error("Executive summary is required");
-      return;
-    }
-    if (!data.companyType) {
-      toast.error("Company type is required");
       return;
     }
     if (!data.submitterEmail.trim()) {
@@ -185,7 +170,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting...');
+    console.log('Validation passed, submitting via API...');
     submitMutation.mutate(data);
   };
 
