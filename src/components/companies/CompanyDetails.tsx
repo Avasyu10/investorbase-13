@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -5,7 +6,6 @@ import { ScoreAssessment } from "./ScoreAssessment";
 import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2, Files, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -310,7 +310,7 @@ const CompanyDetails = () => {
   return (
     <div className="flex w-full h-screen">
       <div className={`${showChat ? 'w-1/2' : 'w-full'} flex flex-col`}>
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-3 sm:px-4 pt-0 pb-4 sm:pb-8 animate-fade-in">
             <div className="mb-7 sm:mb-9">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
@@ -389,7 +389,7 @@ const CompanyDetails = () => {
               ))}
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </div>
       
       {showChat && (
