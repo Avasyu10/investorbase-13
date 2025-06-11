@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -31,22 +32,29 @@ export async function getReports() {
     return [];
   }
 
-  // Get reports from the reports table that belong to the user
-  // or are public submissions assigned to the user
+  console.log('Fetching reports for user:', user.id);
+
+  // Get all reports with more permissive filtering
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
     .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
-    .or(`user_id.eq.${user.id},and(is_public_submission.eq.true,user_id.eq.${user.id})`)
     .order('created_at', { ascending: false });
 
   if (tableError) {
     console.error('Error fetching reports from table:', tableError);
-    throw tableError;
+    // Don't throw immediately, let's see if we can get some data
   }
 
   if (tableData && tableData.length > 0) {
-    console.log('Found reports in table:', tableData);
-    return tableData as Report[];
+    console.log('Found reports in table:', tableData.length);
+    // Filter on the client side to be more permissive
+    const userReports = tableData.filter(report => 
+      report.user_id === user.id || 
+      (report.is_public_submission && report.user_id === user.id) ||
+      (report.companies && report.companies.user_id === user.id)
+    );
+    console.log('Filtered user reports:', userReports.length);
+    return userReports as Report[];
   }
 
   console.log('No reports found');

@@ -40,223 +40,178 @@ export function PublicSubmissionsList() {
     async function fetchSubmissions() {
       try {
         if (!user) {
+          console.log("No user found, clearing submissions");
           setSubmissions([]);
           setIsLoading(false);
           return;
         }
         
         setIsLoading(true);
-        console.log("Fetching public submissions for user:", user.id);
-        console.log("User email:", user.email);
+        console.log("Fetching submissions for user:", user.id, "email:", user.email);
         
-        // Fetch reports that are public submissions and not yet completed
-        const { data: reportData, error: reportError } = await supabase
-          .from('reports')
-          .select(`
-            id,
-            title,
-            description,
-            pdf_url,
-            created_at,
-            analysis_status,
-            submitter_email,
-            companies:companies!reports_company_id_fkey(id)
-          `)
-          .eq('is_public_submission', true)
-          .is('company_id', null)
-          .in('analysis_status', ['pending', 'failed'])
-          .order('created_at', { ascending: false });
-          
-        if (reportError) {
-          console.error("Error fetching public submissions from reports:", reportError);
-          throw reportError;
+        const allSubmissions: PublicSubmission[] = [];
+        
+        // Fetch reports that are public submissions and not completed
+        try {
+          console.log("Fetching reports...");
+          const { data: reportData, error: reportError } = await supabase
+            .from('reports')
+            .select('*')
+            .eq('is_public_submission', true)
+            .in('analysis_status', ['pending', 'failed'])
+            .order('created_at', { ascending: false });
+            
+          if (reportError) {
+            console.error("Error fetching reports:", reportError);
+          } else {
+            console.log("Reports fetched:", reportData?.length || 0);
+            
+            if (reportData && reportData.length > 0) {
+              const transformedReports = reportData.map(report => ({
+                id: report.id,
+                title: report.title,
+                description: report.description,
+                company_stage: null,
+                industry: null,
+                website_url: null,
+                created_at: report.created_at,
+                form_slug: "",
+                pdf_url: report.pdf_url,
+                report_id: report.id,
+                source: "public_form" as const
+              }));
+              
+              allSubmissions.push(...transformedReports);
+              console.log("Added reports to submissions:", transformedReports.length);
+            }
+          }
+        } catch (err) {
+          console.error("Error in reports fetch:", err);
         }
-        
-        console.log("Public submissions from reports:", reportData?.length || 0);
         
         // Fetch public form submissions
-        const { data: formData, error: formError } = await supabase
-          .from('public_form_submissions')
-          .select(`
-            *,
-            reports:report_id (
-              id,
-              company_id,
-              analysis_status,
-              user_id
-            )
-          `)
-          .order('created_at', { ascending: false });
-          
-        if (formError) {
-          console.error("Error fetching public form submissions:", formError);
-          // Don't throw, continue with other data
-        }
-        
-        console.log("Public form submissions fetched:", formData?.length || 0);
-        
-        // Fetch email submissions that match the user's email
-        const { data: emailData, error: emailError } = await supabase
-          .from('email_submissions')
-          .select(`
-            *,
-            reports:report_id (
-              id,
-              company_id,
-              analysis_status,
-              user_id
-            )
-          `)
-          .order('created_at', { ascending: false });
-          
-        if (emailError) {
-          console.error("Error fetching email submissions:", emailError);
-          // Don't throw, continue with other data
-        }
-        
-        console.log("Email submissions fetched:", emailData?.length || 0);
-        
-        // Fetch email pitch submissions - these should now be visible due to RLS fix
-        let emailPitchData = [];
         try {
-          const { data: pitchData, error: emailPitchError } = await supabase
+          console.log("Fetching public form submissions...");
+          const { data: formData, error: formError } = await supabase
+            .from('public_form_submissions')
+            .select('*')
+            .order('created_at', { ascending: false });
+            
+          if (formError) {
+            console.error("Error fetching public form submissions:", formError);
+          } else {
+            console.log("Public form submissions fetched:", formData?.length || 0);
+            
+            if (formData && formData.length > 0) {
+              const transformedForms = formData.map(submission => ({
+                id: submission.id,
+                title: submission.title,
+                description: submission.description,
+                company_stage: submission.company_stage,
+                industry: submission.industry,
+                website_url: submission.website_url,
+                created_at: submission.created_at,
+                form_slug: submission.form_slug || "",
+                pdf_url: submission.pdf_url,
+                report_id: submission.report_id,
+                source: "public_form" as const
+              }));
+              
+              allSubmissions.push(...transformedForms);
+              console.log("Added public forms to submissions:", transformedForms.length);
+            }
+          }
+        } catch (err) {
+          console.error("Error in public form submissions fetch:", err);
+        }
+        
+        // Fetch email submissions
+        try {
+          console.log("Fetching email submissions...");
+          const { data: emailData, error: emailError } = await supabase
+            .from('email_submissions')
+            .select('*')
+            .order('created_at', { ascending: false });
+            
+          if (emailError) {
+            console.error("Error fetching email submissions:", emailError);
+          } else {
+            console.log("Email submissions fetched:", emailData?.length || 0);
+            
+            if (emailData && emailData.length > 0) {
+              const transformedEmails = emailData.map(submission => ({
+                id: submission.id,
+                title: submission.subject || "Email Submission",
+                description: submission.email_body,
+                company_stage: null,
+                industry: null,
+                website_url: null,
+                created_at: submission.received_at,
+                form_slug: "",
+                pdf_url: submission.attachment_url,
+                report_id: submission.report_id,
+                source: "email" as const,
+                from_email: submission.from_email
+              }));
+              
+              allSubmissions.push(...transformedEmails);
+              console.log("Added email submissions:", transformedEmails.length);
+            }
+          }
+        } catch (err) {
+          console.error("Error in email submissions fetch:", err);
+        }
+        
+        // Fetch email pitch submissions
+        try {
+          console.log("Fetching email pitch submissions...");
+          const { data: pitchData, error: pitchError } = await supabase
             .from('email_pitch_submissions')
-            .select(`
-              *,
-              reports:report_id (
-                id,
-                company_id,
-                analysis_status,
-                user_id
-              )
-            `)
+            .select('*')
             .order('received_at', { ascending: false });
           
-          if (emailPitchError) {
-            console.error("Error fetching email pitch submissions:", emailPitchError);
+          if (pitchError) {
+            console.error("Error fetching email pitch submissions:", pitchError);
           } else {
             console.log("Email pitch submissions fetched:", pitchData?.length || 0);
-            emailPitchData = pitchData || [];
+            
+            if (pitchData && pitchData.length > 0) {
+              const transformedPitches = pitchData.map(submission => ({
+                id: submission.id,
+                title: submission.company_name || "Pitch Submission",
+                description: `Email pitch from ${submission.sender_name || submission.sender_email}`,
+                company_stage: null,
+                industry: null,
+                website_url: null,
+                created_at: submission.received_at || submission.created_at,
+                form_slug: "",
+                pdf_url: submission.attachment_url,
+                report_id: submission.report_id,
+                source: "email_pitch" as const,
+                from_email: submission.sender_email
+              }));
+              
+              allSubmissions.push(...transformedPitches);
+              console.log("Added email pitch submissions:", transformedPitches.length);
+            }
           }
-        } catch (pitchError) {
-          console.error("Error in pitch email fetch:", pitchError);
+        } catch (err) {
+          console.error("Error in email pitch submissions fetch:", err);
         }
         
-        // Transform report data
-        const transformedReportData = (reportData || [])
-          .filter(report => !report.companies?.id)
-          .map(report => ({
-            id: report.id,
-            title: report.title,
-            description: report.description,
-            company_stage: null,
-            industry: null,
-            website_url: null,
-            created_at: report.created_at,
-            form_slug: "",
-            pdf_url: report.pdf_url,
-            report_id: report.id,
-            source: "public_form" as const
-          }));
-          
-        console.log("Transformed report data:", transformedReportData.length);
+        // Remove duplicates and sort
+        const uniqueSubmissions = allSubmissions.filter((submission, index, self) => 
+          index === self.findIndex(s => s.id === submission.id)
+        ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
-        // Transform form data - only include unprocessed submissions
-        const transformedFormData = (formData || [])
-          .filter(submission => {
-            return !submission.reports || 
-                   !submission.reports.company_id ||
-                   submission.reports.analysis_status === 'failed' ||
-                   submission.reports.analysis_status === 'pending';
-          })
-          .map(submission => ({
-            id: submission.id,
-            title: submission.title,
-            description: submission.description,
-            company_stage: submission.company_stage,
-            industry: submission.industry,
-            website_url: submission.website_url,
-            created_at: submission.created_at,
-            form_slug: submission.form_slug,
-            pdf_url: submission.pdf_url,
-            report_id: submission.report_id,
-            source: "public_form" as const
-          }));
-          
-        console.log("Filtered public form submissions:", transformedFormData.length);
-        
-        // Transform email data - only include submissions relevant to this user
-        const transformedEmailData = (emailData || [])
-          .filter(submission => {
-            const isRelevant = submission.from_email === user.email;
-            const isUnprocessed = !submission.reports || 
-                   !submission.reports.company_id ||
-                   submission.reports.analysis_status === 'failed' ||
-                   submission.reports.analysis_status === 'pending';
-            return isRelevant && isUnprocessed;
-          })
-          .map(submission => ({
-            id: submission.id,
-            title: submission.subject || "Email Submission",
-            description: submission.email_body,
-            company_stage: null,
-            industry: null,
-            website_url: null,
-            created_at: submission.received_at,
-            form_slug: "",
-            pdf_url: submission.attachment_url,
-            report_id: submission.report_id,
-            source: "email" as const,
-            from_email: submission.from_email
-          }));
-        
-        console.log("Filtered email submissions:", transformedEmailData.length);
-        
-        // Transform email pitch data - should now work with updated RLS
-        const transformedEmailPitchData = emailPitchData
-          .filter(submission => {
-            const isUnprocessed = !submission.reports || 
-                   !submission.reports.company_id ||
-                   submission.reports.analysis_status === 'failed' ||
-                   submission.reports.analysis_status === 'pending';
-            return isUnprocessed;
-          })
-          .map(submission => ({
-            id: submission.id,
-            title: submission.company_name || "Pitch Submission",
-            description: `Email pitch from ${submission.sender_name || submission.sender_email}`,
-            company_stage: null,
-            industry: null,
-            website_url: null,
-            created_at: submission.received_at || submission.created_at,
-            form_slug: "",
-            pdf_url: submission.attachment_url,
-            report_id: submission.report_id,
-            source: "email_pitch" as const,
-            from_email: submission.sender_email
-          }));
-        
-        console.log("Filtered email pitch submissions:", transformedEmailPitchData.length);
-        
-        // Combine and deduplicate submissions
-        const submissionsMap = new Map();
-        
-        [...transformedReportData, ...transformedFormData, ...transformedEmailData, ...transformedEmailPitchData].forEach(submission => {
-          const key = submission.report_id || submission.id;
-          
-          if (!submissionsMap.has(key) || 
-              new Date(submission.created_at) > new Date(submissionsMap.get(key).created_at)) {
-            submissionsMap.set(key, submission);
-          }
+        console.log("Final submissions count:", uniqueSubmissions.length);
+        console.log("Submissions by source:", {
+          public_form: uniqueSubmissions.filter(s => s.source === 'public_form').length,
+          email: uniqueSubmissions.filter(s => s.source === 'email').length,
+          email_pitch: uniqueSubmissions.filter(s => s.source === 'email_pitch').length
         });
         
-        const combinedSubmissions = Array.from(submissionsMap.values())
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        
-        console.log("Combined submissions after deduplication:", combinedSubmissions.length);
-        console.log("Email pitch submissions in final list:", combinedSubmissions.filter(s => s.source === 'email_pitch').length);
-        
-        setSubmissions(combinedSubmissions);
+        setSubmissions(uniqueSubmissions);
       } catch (error) {
         console.error("Error fetching submissions:", error);
         toast({

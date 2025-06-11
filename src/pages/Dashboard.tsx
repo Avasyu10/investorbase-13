@@ -42,11 +42,12 @@ const Dashboard = () => {
         return;
       }
       
+      console.log("Checking admin status for user:", user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid errors if no profile exists
         
       if (error) {
         console.error('Error checking admin status:', error);
