@@ -571,22 +571,15 @@ serve(async (req) => {
               console.log("Auto-analyze enabled, triggering analysis");
               
               try {
-                const analyzeResponse = await fetch(`${supabaseUrl}/functions/v1/auto-analyze-public-pdf`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${supabaseServiceKey}`
-                  },
-                  body: JSON.stringify({ 
-                    reportId: reportId
-                  })
+                // Use supabase.functions.invoke instead of fetch to avoid auth issues
+                const { data: analyzeData, error: analyzeError } = await supabase.functions.invoke('auto-analyze-public-pdf', {
+                  body: { reportId: reportId }
                 });
                 
-                if (!analyzeResponse.ok) {
-                  const errorText = await analyzeResponse.text();
-                  console.error("Analysis trigger failed:", errorText);
+                if (analyzeError) {
+                  console.error("Analysis trigger failed:", analyzeError);
                 } else {
-                  console.log("Analysis triggered successfully");
+                  console.log("Analysis triggered successfully:", analyzeData);
                 }
               } catch (analyzeError) {
                 console.error("Error triggering auto-analysis:", analyzeError);
