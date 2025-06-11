@@ -3,7 +3,7 @@ import React from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
 import { RealtimeEmailListener } from '@/components/RealtimeEmailListener';
-import { BrowserRouter, Routes, Route, useRoutes } from 'react-router-dom';
+import { BrowserRouter, useRoutes } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from '@/components/layout/Navbar';
@@ -23,10 +23,9 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <RealtimeSubscriptions />
-          {/* Only include RealtimeEmailListener once in the app */}
           <RealtimeEmailListener />
           <Navbar />
-          <div className="pt-16"> {/* Add padding to accommodate fixed navbar */}
+          <div className="pt-16">
             <AppRoutes />
           </div>
           <Toaster />
