@@ -40,10 +40,10 @@ export type Database = {
           analysis_status: string | null
           analyzed_at: string | null
           company_name: string
-          company_registration_type: string
-          company_type: string
+          company_registration_type: string | null
+          company_type: string | null
           created_at: string
-          executive_summary: string
+          executive_summary: string | null
           form_slug: string
           id: string
           question_1: string | null
@@ -61,10 +61,10 @@ export type Database = {
           analysis_status?: string | null
           analyzed_at?: string | null
           company_name: string
-          company_registration_type: string
-          company_type: string
+          company_registration_type?: string | null
+          company_type?: string | null
           created_at?: string
-          executive_summary: string
+          executive_summary?: string | null
           form_slug: string
           id?: string
           question_1?: string | null
@@ -82,10 +82,10 @@ export type Database = {
           analysis_status?: string | null
           analyzed_at?: string | null
           company_name?: string
-          company_registration_type?: string
-          company_type?: string
+          company_registration_type?: string | null
+          company_type?: string | null
           created_at?: string
-          executive_summary?: string
+          executive_summary?: string | null
           form_slug?: string
           id?: string
           question_1?: string | null

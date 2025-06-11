@@ -17,14 +17,14 @@ interface BarcSubmissionData {
 
 export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
   try {
-    console.log('BARC API submission:', submissionData);
+    console.log('BARC API submission with corrected structure:', submissionData);
 
     // Validate required fields
     if (!submissionData.form_slug || !submissionData.company_name || !submissionData.submitter_email) {
       throw new Error('Missing required fields: form_slug, company_name, and submitter_email are required');
     }
 
-    // Prepare submission data
+    // Prepare submission data for the corrected table structure
     const formattedData = {
       form_slug: submissionData.form_slug,
       company_name: submissionData.company_name,
@@ -36,13 +36,12 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       question_3: submissionData.question_3 || null,
       question_4: submissionData.question_4 || null,
       question_5: submissionData.question_5 || null,
-      submitter_email: submissionData.submitter_email,
-      analysis_status: 'pending'
+      submitter_email: submissionData.submitter_email
     };
 
-    console.log('Inserting BARC submission into database:', formattedData);
+    console.log('Inserting BARC submission with corrected structure:', formattedData);
 
-    // Insert into barc_form_submissions table
+    // Insert into barc_form_submissions table using the corrected RLS policies
     const { data, error } = await supabase
       .from('barc_form_submissions')
       .insert(formattedData)
@@ -54,7 +53,7 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       throw new Error(`Failed to save submission: ${error.message}`);
     }
 
-    console.log('BARC submission saved successfully:', data);
+    console.log('BARC submission saved successfully with corrected structure:', data);
     return data;
 
   } catch (error) {

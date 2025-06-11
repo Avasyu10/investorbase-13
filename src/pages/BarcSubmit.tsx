@@ -69,12 +69,12 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation using the new RLS policies that allow anonymous access
+  // Submit form mutation using the corrected table structure and RLS policies
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission with new RLS policies:', { slug, formData });
+      console.log('Starting BARC form submission with corrected table structure:', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -87,13 +87,12 @@ const BarcSubmit = () => {
         question_3: formData.question3,
         question_4: formData.question4,
         question_5: formData.question5,
-        submitter_email: formData.submitterEmail,
-        analysis_status: 'pending'
+        submitter_email: formData.submitterEmail
       };
 
-      console.log('Inserting BARC submission with new anonymous-friendly policies:', submissionData);
+      console.log('Inserting BARC submission with corrected structure:', submissionData);
 
-      // Use direct Supabase client insertion - now works with anonymous access
+      // Use direct Supabase client insertion - now works with the corrected RLS policies
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .insert(submissionData)
@@ -111,7 +110,7 @@ const BarcSubmit = () => {
         throw new Error(`Failed to save submission: ${error.message}`);
       }
 
-      console.log('BARC submission saved successfully with new RLS policies:', data);
+      console.log('BARC submission saved successfully with corrected structure:', data);
       return data;
     },
     onSuccess: async (data) => {
@@ -146,7 +145,7 @@ const BarcSubmit = () => {
       }, 2000);
     },
     onError: (error: any) => {
-      console.error('BARC form submission error with new RLS policies:', error);
+      console.error('BARC form submission error with corrected structure:', error);
       
       // Provide more helpful error messages
       let errorMessage = 'Unknown error occurred';
@@ -186,7 +185,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting with new anonymous-friendly policies...');
+    console.log('Validation passed, submitting with corrected table structure...');
     submitMutation.mutate(data);
   };
 
