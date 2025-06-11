@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail, ExternalLink } from "lucide-react";
+import { FileText, Mail, ExternalLink, Sparkles } from "lucide-react";
 
 interface PublicSubmission {
   id: string;
@@ -75,8 +75,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       case 'email':
         return (
           <Badge 
-            variant="blue"
-            className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-blue-50 text-blue-700 border-blue-200"
           >
             <Mail className="h-3 w-3" />
             <span>Email</span>
@@ -85,8 +85,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       case 'email_pitch':
         return (
           <Badge 
-            variant="blue"
-            className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-blue-50 text-blue-700 border-blue-200"
           >
             <Mail className="h-3 w-3" />
             <span>Email Pitch</span>
@@ -96,8 +96,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       default:
         return (
           <Badge 
-            variant="green"
-            className="flex items-center gap-1 font-medium px-2 py-1 w-fit"
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-green-50 text-green-700 border-green-200"
           >
             <FileText className="h-3 w-3" />
             <span>Public Form</span>
@@ -157,10 +157,12 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
-                      className="bg-gold text-gold-foreground hover:bg-gold/90"
+                      variant="default"
                       size="sm"
                       onClick={() => onAnalyze(submission)}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
                     >
+                      <Sparkles className="mr-1 h-3 w-3" />
                       Analyze
                     </Button>
                   </TableCell>
