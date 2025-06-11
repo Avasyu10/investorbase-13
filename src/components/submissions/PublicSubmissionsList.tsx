@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { AnalysisModal } from "./AnalysisModal";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeReport } from "@/lib/supabase/analysis";
+import { analyzeBarcSubmission } from "@/lib/api/barc";
 
 interface PublicSubmission {
   id: string;
@@ -21,7 +21,7 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
-  source: "email" | "email_pitch" | "public_form";
+  source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
 }
 
@@ -125,6 +125,44 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
+        // Fetch BARC form submissions
+        try {
+          console.log("Fetching BARC form submissions...");
+          const { data: barcData, error: barcError } = await supabase
+            .from('barc_form_submissions')
+            .select('*')
+            .in('analysis_status', ['pending', 'failed'])
+            .order('created_at', { ascending: false });
+            
+          if (barcError) {
+            console.error("Error fetching BARC form submissions:", barcError);
+          } else {
+            console.log("BARC form submissions fetched:", barcData?.length || 0);
+            
+            if (barcData && barcData.length > 0) {
+              const transformedBarc = barcData.map(submission => ({
+                id: submission.id,
+                title: submission.company_name || "BARC Application",
+                description: submission.executive_summary,
+                company_stage: null,
+                industry: null,
+                website_url: null,
+                created_at: submission.created_at,
+                form_slug: submission.form_slug || "",
+                pdf_url: null,
+                report_id: null, // BARC submissions don't have report_id initially
+                source: "barc_form" as const,
+                from_email: submission.submitter_email
+              }));
+              
+              allSubmissions.push(...transformedBarc);
+              console.log("Added BARC forms to submissions:", transformedBarc.length);
+            }
+          }
+        } catch (err) {
+          console.error("Error in BARC form submissions fetch:", err);
+        }
+        
         // Fetch email submissions
         try {
           console.log("Fetching email submissions...");
@@ -162,43 +200,6 @@ export function PublicSubmissionsList() {
           console.error("Error in email submissions fetch:", err);
         }
         
-        // Fetch email pitch submissions
-        try {
-          console.log("Fetching email pitch submissions...");
-          const { data: pitchData, error: pitchError } = await supabase
-            .from('email_pitch_submissions')
-            .select('*')
-            .order('received_at', { ascending: false });
-          
-          if (pitchError) {
-            console.error("Error fetching email pitch submissions:", pitchError);
-          } else {
-            console.log("Email pitch submissions fetched:", pitchData?.length || 0);
-            
-            if (pitchData && pitchData.length > 0) {
-              const transformedPitches = pitchData.map(submission => ({
-                id: submission.id,
-                title: submission.company_name || "Pitch Submission",
-                description: `Email pitch from ${submission.sender_name || submission.sender_email}`,
-                company_stage: null,
-                industry: null,
-                website_url: null,
-                created_at: submission.received_at || submission.created_at,
-                form_slug: "",
-                pdf_url: submission.attachment_url,
-                report_id: submission.report_id,
-                source: "email_pitch" as const,
-                from_email: submission.sender_email
-              }));
-              
-              allSubmissions.push(...transformedPitches);
-              console.log("Added email pitch submissions:", transformedPitches.length);
-            }
-          }
-        } catch (err) {
-          console.error("Error in email pitch submissions fetch:", err);
-        }
-        
         // Remove duplicates and sort
         const uniqueSubmissions = allSubmissions.filter((submission, index, self) => 
           index === self.findIndex(s => s.id === submission.id)
@@ -208,7 +209,7 @@ export function PublicSubmissionsList() {
         console.log("Submissions by source:", {
           public_form: uniqueSubmissions.filter(s => s.source === 'public_form').length,
           email: uniqueSubmissions.filter(s => s.source === 'email').length,
-          email_pitch: uniqueSubmissions.filter(s => s.source === 'email_pitch').length
+          barc_form: uniqueSubmissions.filter(s => s.source === 'barc_form').length
         });
         
         setSubmissions(uniqueSubmissions);
@@ -228,7 +229,48 @@ export function PublicSubmissionsList() {
   }, [toast, user]);
 
   const handleAnalyze = async (submission: PublicSubmission) => {
+    // Handle BARC form submissions differently
+    if (submission.source === "barc_form") {
+      setCurrentSubmission(submission);
+      setShowModal(true);
+      setIsAnalyzing(true);
+      
+      try {
+        console.log(`Calling BARC analysis for submission: ${submission.id}`);
+        
+        const result = await analyzeBarcSubmission(submission.id);
+        
+        if (result) {
+          toast({
+            title: "Analysis complete",
+            description: "The BARC application has been successfully analyzed",
+          });
+          
+          // Refresh the submissions list to remove the analyzed submission
+          setSubmissions(prev => prev.filter(s => s.id !== submission.id));
+        } else {
+          throw new Error("Analysis completed but no result was returned");
+        }
+      } catch (error) {
+        console.error("BARC analysis error:", error);
+        
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+        
+        toast({
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setIsAnalyzing(false);
+        setShowModal(false);
+      }
+      
+      return;
+    }
+
     if (!submission.report_id) {
+      // ... keep existing code for handling email pitch submissions
       if (submission.source === "email_pitch") {
         setCurrentSubmission(submission);
         setShowModal(true);
@@ -423,7 +465,7 @@ export function PublicSubmissionsList() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-2">New Applications</h1>
           <p className="text-muted-foreground">
-            Submissions from public forms and emails waiting to be analyzed
+            Submissions from public forms, BARC applications, and emails waiting to be analyzed
           </p>
         </div>
       </div>

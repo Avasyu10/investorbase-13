@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { submitBarcForm } from "@/lib/api/barc";
 
 interface BarcFormData {
   companyName: string;
@@ -69,12 +69,12 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation using the corrected table structure and RLS policies
+  // Submit form mutation using the API function
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission with corrected table structure:', { slug, formData });
+      console.log('Starting BARC form submission:', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -90,62 +90,24 @@ const BarcSubmit = () => {
         submitter_email: formData.submitterEmail
       };
 
-      console.log('Inserting BARC submission with corrected structure:', submissionData);
-
-      // Use direct Supabase client insertion - now works with the corrected RLS policies
-      const { data, error } = await supabase
-        .from('barc_form_submissions')
-        .insert(submissionData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Database insertion error:', error);
-        console.error('Error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        throw new Error(`Failed to save submission: ${error.message}`);
-      }
-
-      console.log('BARC submission saved successfully with corrected structure:', data);
-      return data;
-    },
-    onSuccess: async (data) => {
-      console.log('BARC form submitted successfully:', data);
-      toast.success("Application submitted successfully!");
+      console.log('Calling submitBarcForm API:', submissionData);
       
-      // Trigger analysis if auto-analyze is enabled
-      if (data.id) {
-        try {
-          console.log('Triggering analysis for submission:', data.id);
-          
-          const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-barc-submission', {
-            body: { submissionId: data.id }
-          });
-
-          if (analysisError) {
-            console.error('Failed to trigger analysis:', analysisError);
-            toast.info("Application submitted. Analysis will be processed shortly.");
-          } else {
-            console.log('Analysis triggered successfully:', analysisData);
-            toast.success("Application submitted and analysis started!");
-          }
-        } catch (error) {
-          console.error('Failed to trigger analysis:', error);
-          toast.info("Application submitted. Analysis will be processed shortly.");
-        }
-      }
+      // Use the API function which handles both submission and analysis trigger
+      return await submitBarcForm(submissionData);
+    },
+    onSuccess: (data) => {
+      console.log('BARC form submitted successfully:', data);
+      toast.success("Application submitted successfully! Your submission is now available for analysis.");
       
       form.reset();
+      
+      // Navigate to home instead of dashboard to avoid logout
       setTimeout(() => {
-        navigate('/');
+        navigate('/', { replace: true });
       }, 2000);
     },
     onError: (error: any) => {
-      console.error('BARC form submission error with corrected structure:', error);
+      console.error('BARC form submission error:', error);
       
       // Provide more helpful error messages
       let errorMessage = 'Unknown error occurred';
@@ -185,7 +147,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting with corrected table structure...');
+    console.log('Validation passed, submitting...');
     submitMutation.mutate(data);
   };
 
