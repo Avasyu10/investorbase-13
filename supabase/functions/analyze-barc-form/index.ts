@@ -12,6 +12,7 @@ const corsHeaders = {
 serve(async (req) => {
   console.log(`Request method: ${req.method}`);
   console.log(`Request URL: ${req.url}`);
+  console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -38,6 +39,8 @@ serve(async (req) => {
   try {
     console.log('Reading request body...');
     const requestBody = await req.json();
+    console.log('Received request body:', requestBody);
+    
     submissionId = requestBody.submissionId;
     
     console.log('Received analysis request for BARC submission:', submissionId);

@@ -126,7 +126,7 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
-        // Fetch BARC form submissions - include failed ones
+        // Fetch BARC form submissions - only show pending and failed ones in New Applications
         try {
           console.log("Fetching BARC form submissions...");
           const { data: barcData, error: barcError } = await supabase
@@ -257,6 +257,9 @@ export function PublicSubmissionsList() {
           
           // Remove the submission from the list since it's now analyzed
           setSubmissions(prev => prev.filter(s => s.id !== submission.id));
+          
+          // Navigate to BARC submissions page to view results
+          navigate('/barc-submissions');
         } else {
           throw new Error("Analysis completed but no result was returned");
         }
