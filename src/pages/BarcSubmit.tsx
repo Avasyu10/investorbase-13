@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
+import { submitBarcForm, analyzeBarcSubmission } from "@/lib/api/barc";
 
 interface BarcFormData {
   companyName: string;
@@ -68,12 +68,12 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation using the same API approach as PSI form
+  // Submit form mutation using the new API
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission via API:', { slug, formData });
+      console.log('Starting BARC form submission:', { slug, formData });
 
       const submissionPayload = {
         form_slug: slug,
@@ -87,28 +87,12 @@ const BarcSubmit = () => {
         question_4: formData.question4,
         question_5: formData.question5,
         submitter_email: formData.submitterEmail,
-        form_type: 'barc'
       };
 
       console.log('Submission payload prepared:', submissionPayload);
-
-      // Use the same submission approach as PSI form
-      const response = await fetch('/api/submit-barc', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submissionPayload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API submission error:', errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('Submission successful via API:', result);
+      
+      const result = await submitBarcForm(submissionPayload);
+      console.log('Submission successful:', result);
       return result;
     },
     onSuccess: async (data) => {
@@ -116,23 +100,12 @@ const BarcSubmit = () => {
       toast.success("Application submitted successfully!");
       
       // Trigger analysis if auto-analyze is enabled
-      if (data.submissionId) {
+      if (data.id) {
         try {
-          console.log('Triggering analysis for submission:', data.submissionId);
+          console.log('Triggering analysis for submission:', data.id);
           
-          const analysisResponse = await fetch('/api/analyze-barc', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ submissionId: data.submissionId }),
-          });
-          
-          if (analysisResponse.ok) {
-            toast.info("Application submitted and analysis started!");
-          } else {
-            toast.info("Application submitted. Analysis will be processed shortly.");
-          }
+          await analyzeBarcSubmission(data.id);
+          toast.info("Application submitted and analysis started!");
         } catch (error) {
           console.error('Failed to trigger analysis:', error);
           toast.info("Application submitted. Analysis will be processed shortly.");
@@ -170,7 +143,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting via API...');
+    console.log('Validation passed, submitting...');
     submitMutation.mutate(data);
   };
 
