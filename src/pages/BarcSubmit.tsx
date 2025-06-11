@@ -94,7 +94,7 @@ const BarcSubmit = () => {
       console.log('Submission data prepared:', submissionData);
 
       try {
-        // Use Supabase client for insertion
+        // Use Supabase client for insertion - the new RLS policy allows all insertions
         const { data, error } = await supabase
           .from('barc_form_submissions')
           .insert(submissionData)
