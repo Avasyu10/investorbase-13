@@ -15,6 +15,12 @@ export type Report = {
   analysis_error?: string;
   is_public_submission?: boolean;
   submission_form_id?: string;
+  companies?: {
+    id: string;
+    name: string;
+    overall_score: number;
+    user_id?: string;
+  };
 };
 
 // Functions to interact with Supabase
@@ -34,10 +40,10 @@ export async function getReports() {
 
   console.log('Fetching reports for user:', user.id);
 
-  // Get all reports with more permissive filtering
+  // Get all reports with more permissive filtering - include user_id from companies
   const { data: tableData, error: tableError } = await supabase
     .from('reports')
-    .select('*, companies!reports_company_id_fkey(id, name, overall_score)')
+    .select('*, companies!reports_company_id_fkey(id, name, overall_score, user_id)')
     .order('created_at', { ascending: false });
 
   if (tableError) {
