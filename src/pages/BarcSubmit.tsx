@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from '@supabase/supabase-js';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
+
+// Create a completely anonymous Supabase client for public submissions
+const anonSupabase = createClient(
+  "https://jhtnruktmtjqrfoiyrep.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY",
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        'x-client-info': 'barc-public-form'
+      }
+    }
+  }
+);
 
 interface BarcFormData {
   companyName: string;
@@ -69,15 +86,18 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation - using direct insert without authentication
+  // Submit form mutation - using anonymous client
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Submitting BARC form data:', formData);
+      console.log('Submitting BARC form data with anonymous client:', formData);
 
-      // Direct insert to barc_form_submissions table
-      const { data, error } = await supabase
+      // Clear any existing auth state to ensure we're truly anonymous
+      await anonSupabase.auth.signOut();
+
+      // Direct insert to barc_form_submissions table using anonymous client
+      const { data, error } = await anonSupabase
         .from('barc_form_submissions')
         .insert({
           form_slug: slug,
@@ -107,10 +127,10 @@ const BarcSubmit = () => {
     onSuccess: async (data) => {
       toast.success("Application submitted successfully!");
       
-      // Trigger analysis after successful submission
+      // Trigger analysis after successful submission using anonymous client
       try {
         console.log('Triggering analysis for submission:', data.id);
-        const { error: analysisError } = await supabase.functions.invoke('analyze-barc-submission', {
+        const { error: analysisError } = await anonSupabase.functions.invoke('analyze-barc-submission', {
           body: { submissionId: data.id }
         });
         
