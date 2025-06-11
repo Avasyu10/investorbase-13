@@ -413,7 +413,7 @@ const CompanyDetails = () => {
             </Button>
           </div>
           
-          <ScrollArea className="flex-1 p-4 bg-secondary/10">
+          <div className="flex-1 p-4 bg-secondary/10 overflow-y-auto">
             <div className="flex flex-col space-y-4">
               {messages.map((message, index) => (
                 <div 
@@ -449,7 +449,7 @@ const CompanyDetails = () => {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
           
           <div className="p-4 border-t border-border">
             <div className="flex gap-2">
