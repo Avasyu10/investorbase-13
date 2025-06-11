@@ -65,10 +65,19 @@ export async function getReportData(reportId: string) {
   
   console.log("PDF downloaded successfully, size:", pdfData.size);
   
-  // Convert to base64
+  // Convert to base64 using a more efficient method to avoid stack overflow
   const arrayBuffer = await pdfData.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  const pdfBase64 = btoa(String.fromCharCode(...uint8Array));
+  const bytes = new Uint8Array(arrayBuffer);
+  
+  // Convert to base64 in chunks to avoid stack overflow
+  let pdfBase64 = '';
+  const chunkSize = 8192; // Process in 8KB chunks
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.slice(i, i + chunkSize);
+    const chunkArray = Array.from(chunk);
+    pdfBase64 += btoa(String.fromCharCode.apply(null, chunkArray));
+  }
   
   console.log("PDF converted to base64, length:", pdfBase64.length);
   
