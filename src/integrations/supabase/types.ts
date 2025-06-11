@@ -39,6 +39,7 @@ export type Database = {
           analysis_result: Json | null
           analysis_status: string | null
           analyzed_at: string | null
+          company_id: string | null
           company_name: string
           company_registration_type: string | null
           company_type: string | null
@@ -60,6 +61,7 @@ export type Database = {
           analysis_result?: Json | null
           analysis_status?: string | null
           analyzed_at?: string | null
+          company_id?: string | null
           company_name: string
           company_registration_type?: string | null
           company_type?: string | null
@@ -81,6 +83,7 @@ export type Database = {
           analysis_result?: Json | null
           analysis_status?: string | null
           analyzed_at?: string | null
+          company_id?: string | null
           company_name?: string
           company_registration_type?: string | null
           company_type?: string | null
@@ -97,7 +100,15 @@ export type Database = {
           submitter_email?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "barc_form_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {

@@ -25,14 +25,6 @@ const BarcSubmissions = () => {
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .select('*')
-        .in('form_slug', 
-          await supabase
-            .from('public_submission_forms')
-            .select('form_slug')
-            .eq('user_id', user.id)
-            .eq('form_type', 'barc')
-            .then(({ data }) => data?.map(f => f.form_slug) || [])
-        )
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -174,17 +166,29 @@ const BarcSubmissions = () => {
 
                   <div className="flex items-center gap-2 pt-4">
                     {submission.analysis_status === 'completed' ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedSubmission(submission);
-                          setIsAnalysisModalOpen(true);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Analysis
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedSubmission(submission);
+                            setIsAnalysisModalOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Analysis
+                        </Button>
+                        {submission.company_id && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => window.open(`/company/${submission.company_id}`, '_blank')}
+                          >
+                            <Building className="h-4 w-4 mr-2" />
+                            View Company
+                          </Button>
+                        )}
+                      </div>
                     ) : submission.analysis_status === 'processing' ? (
                       <Button variant="outline" size="sm" disabled>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

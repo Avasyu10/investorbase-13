@@ -3,8 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, AlertTriangle, Star } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Star, Building } from "lucide-react";
 import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface BarcAnalysisModalProps {
   isOpen: boolean;
@@ -13,6 +15,8 @@ interface BarcAnalysisModalProps {
 }
 
 export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisModalProps) => {
+  const navigate = useNavigate();
+
   if (!submission?.analysis_result) {
     return null;
   }
@@ -52,8 +56,7 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
       { key: 'market_opportunity', title: 'Market Opportunity' },
       { key: 'competitive_advantage', title: 'Competitive Advantage' },
       { key: 'team_strength', title: 'Team Strength' },
-      { key: 'execution_plan', title: 'Execution Plan' },
-      { key: 'overall_assessment', title: 'Overall Assessment' }
+      { key: 'execution_plan', title: 'Execution Plan' }
     ];
 
     return sectionKeys.map(({ key, title }) => {
@@ -138,6 +141,33 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
               </p>
             </CardContent>
           </Card>
+
+          {/* Company Link for Accepted Applications */}
+          {analysis.recommendation === 'Accept' && submission.company_id && (
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <Building className="h-5 w-5 text-green-600" />
+                  <div>
+                    <h4 className="font-medium text-green-800">Company Created</h4>
+                    <p className="text-sm text-green-600">
+                      This application has been added to your prospects
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => {
+                    navigate(`/company/${submission.company_id}`);
+                    onClose();
+                  }}
+                  variant="outline"
+                  className="border-green-300 text-green-700 hover:bg-green-100"
+                >
+                  View Company Profile
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Section Scores */}
           <div>

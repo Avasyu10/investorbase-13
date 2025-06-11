@@ -102,168 +102,70 @@ serve(async (req) => {
       console.error('Failed to update status to processing:', statusUpdateError);
     }
 
-    // Prepare the comprehensive analysis prompt
+    // Prepare the comprehensive analysis prompt for the old format
     const analysisPrompt = `
-    You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application using the specific metrics provided for each question.
+    You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application and provide comprehensive feedback in sections.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
     - Company Type: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
+    - Submitter Email: ${submission.submitter_email || 'Not provided'}
 
-    Application Responses and Analysis Framework:
+    Application Responses:
 
-    1. QUESTION 1: "What specific problem are you solving, and why is now the right time to solve it?"
-    RESPONSE: ${submission.question_1 || 'Not provided'}
-    
-    METRICS TO EVALUATE:
-    - Clarity of Problem Definition (Is it a real, urgent pain point?) - Score 1-10
-    - Market Timing Justification (Evidence of market shift, tech readiness, policy, etc.) - Score 1-10
-    - Insight Depth (Customer anecdotes, data, or firsthand experience) - Score 1-10
+    1. Problem and Timing: "${submission.question_1 || 'Not provided'}"
+    2. Customer Discovery: "${submission.question_2 || 'Not provided'}"
+    3. Competitive Advantage: "${submission.question_3 || 'Not provided'}"
+    4. Team Background: "${submission.question_4 || 'Not provided'}"
+    5. Incubation Goals: "${submission.question_5 || 'Not provided'}"
 
-    2. QUESTION 2: "Who are your first 10 customers or users, and how did you find or plan to find them?"
-    RESPONSE: ${submission.question_2 || 'Not provided'}
-    
-    METRICS TO EVALUATE:
-    - Customer Clarity (Can they describe the personas or segments well?) - Score 1-10
-    - Validation Effort (Have they spoken to customers or secured pilots?) - Score 1-10
-    - GTMP Realism (Is the acquisition strategy practical and scalable?) - Score 1-10
+    Please provide a detailed analysis in the following JSON format that matches our evaluation structure:
 
-    3. QUESTION 3: "What is your unfair advantage or moat that will help you win over time?"
-    RESPONSE: ${submission.question_3 || 'Not provided'}
-    
-    METRICS TO EVALUATE:
-    - Differentiation (Clearly stated vs existing solutions?) - Score 1-10
-    - Defensibility (Is it hard to replicate—tech IP, data, partnerships?) - Score 1-10
-    - Strategic Awareness (Are they aware of and positioned against incumbents?) - Score 1-10
-
-    4. QUESTION 4: "How does your team's background uniquely equip you to solve this problem?"
-    RESPONSE: ${submission.question_4 || 'Not provided'}
-    
-    METRICS TO EVALUATE:
-    - Founder-Problem Fit (Domain or lived experience?) - Score 1-10
-    - Complementarity of Skills (Tech + business + ops?) - Score 1-10
-    - Execution History (Track record of building, selling, or scaling?) - Score 1-10
-
-    5. QUESTION 5: "What milestones do you aim to achieve during the incubation period, and what support do you need from us to get there?"
-    RESPONSE: ${submission.question_5 || 'Not provided'}
-    
-    METRICS TO EVALUATE:
-    - Goal Specificity (Clear KPIs: MVP, first customer, funding?) - Score 1-10
-    - Feasibility (Are goals realistic in 3–6 months?) - Score 1-10
-    - Support Clarity (Do they know what they need from your incubator—mentorship, infra, access?) - Score 1-10
-
-    Please provide a comprehensive analysis in valid JSON format with the following structure:
     {
       "overall_score": number (1-10),
       "recommendation": "Accept" | "Consider" | "Reject",
-      "question_analyses": {
-        "question_1": {
-          "clarity_of_problem_definition": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "market_timing_justification": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "insight_depth": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "question_score": number,
-          "overall_analysis": "string"
+      "sections": {
+        "problem_solution_fit": {
+          "score": number (1-10),
+          "analysis": "detailed analysis text",
+          "strengths": ["strength 1", "strength 2"],
+          "improvements": ["improvement area 1", "improvement area 2"]
         },
-        "question_2": {
-          "customer_clarity": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "validation_effort": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "gtmp_realism": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "question_score": number,
-          "overall_analysis": "string"
+        "market_opportunity": {
+          "score": number (1-10),
+          "analysis": "detailed analysis text",
+          "strengths": ["strength 1", "strength 2"],
+          "improvements": ["improvement area 1", "improvement area 2"]
         },
-        "question_3": {
-          "differentiation": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "defensibility": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "strategic_awareness": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "question_score": number,
-          "overall_analysis": "string"
+        "competitive_advantage": {
+          "score": number (1-10),
+          "analysis": "detailed analysis text",
+          "strengths": ["strength 1", "strength 2"],
+          "improvements": ["improvement area 1", "improvement area 2"]
         },
-        "question_4": {
-          "founder_problem_fit": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "complementarity_of_skills": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "execution_history": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "question_score": number,
-          "overall_analysis": "string"
+        "team_strength": {
+          "score": number (1-10),
+          "analysis": "detailed analysis text",
+          "strengths": ["strength 1", "strength 2"],
+          "improvements": ["improvement area 1", "improvement area 2"]
         },
-        "question_5": {
-          "goal_specificity": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "feasibility": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "support_clarity": {
-            "score": number,
-            "analysis": "string",
-            "evidence": "string"
-          },
-          "question_score": number,
-          "overall_analysis": "string"
+        "execution_plan": {
+          "score": number (1-10),
+          "analysis": "detailed analysis text",
+          "strengths": ["strength 1", "strength 2"],
+          "improvements": ["improvement area 1", "improvement area 2"]
         }
       },
       "summary": {
-        "key_strengths": ["string"],
-        "key_weaknesses": ["string"],
-        "recommendation_rationale": "string",
-        "next_steps": ["string"]
+        "overall_feedback": "comprehensive feedback on the overall application",
+        "key_factors": ["factor 1", "factor 2", "factor 3"],
+        "next_steps": ["step 1", "step 2", "step 3"]
       }
     }
 
-    Ensure each metric is scored objectively based on the evidence in the responses, and provide detailed analysis explaining the scoring rationale.
+    Focus on providing actionable insights and specific recommendations based on the responses to each question.
     `;
 
     // Call OpenAI API
@@ -327,14 +229,134 @@ serve(async (req) => {
       throw new Error('Analysis response was not valid JSON');
     }
 
-    // Update the submission with analysis results
+    // Create company and sections if recommendation is Accept
+    let companyId = null;
+    if (analysisResult.recommendation === 'Accept') {
+      console.log('Creating company and sections for accepted submission...');
+      
+      // Create company
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: submission.company_name,
+          overall_score: analysisResult.overall_score || 0,
+          user_id: null, // BARC submissions don't have a specific user
+          source: 'barc_form'
+        })
+        .select()
+        .single();
+
+      if (companyError || !company) {
+        console.error('Failed to create company:', companyError);
+        throw new Error(`Failed to create company: ${companyError?.message || 'Unknown error'}`);
+      }
+
+      companyId = company.id;
+      console.log('Created company with ID:', companyId);
+
+      // Create sections based on analysis
+      const sectionsToCreate = [
+        {
+          company_id: companyId,
+          title: 'Problem-Solution Fit',
+          type: 'problem_solution_fit',
+          score: analysisResult.sections?.problem_solution_fit?.score || 0,
+          description: analysisResult.sections?.problem_solution_fit?.analysis || ''
+        },
+        {
+          company_id: companyId,
+          title: 'Market Opportunity',
+          type: 'market_opportunity', 
+          score: analysisResult.sections?.market_opportunity?.score || 0,
+          description: analysisResult.sections?.market_opportunity?.analysis || ''
+        },
+        {
+          company_id: companyId,
+          title: 'Competitive Advantage',
+          type: 'competitive_advantage',
+          score: analysisResult.sections?.competitive_advantage?.score || 0,
+          description: analysisResult.sections?.competitive_advantage?.analysis || ''
+        },
+        {
+          company_id: companyId,
+          title: 'Team Strength',
+          type: 'team_strength',
+          score: analysisResult.sections?.team_strength?.score || 0,
+          description: analysisResult.sections?.team_strength?.analysis || ''
+        },
+        {
+          company_id: companyId,
+          title: 'Execution Plan',
+          type: 'execution_plan',
+          score: analysisResult.sections?.execution_plan?.score || 0,
+          description: analysisResult.sections?.execution_plan?.analysis || ''
+        }
+      ];
+
+      const { data: sections, error: sectionsError } = await supabase
+        .from('sections')
+        .insert(sectionsToCreate)
+        .select();
+
+      if (sectionsError) {
+        console.error('Failed to create sections:', sectionsError);
+        // Don't throw error here, just log it
+      } else {
+        console.log('Created sections:', sections?.length || 0);
+
+        // Create section details for strengths and improvements
+        for (const section of sections || []) {
+          const sectionType = section.type;
+          const sectionData = analysisResult.sections?.[sectionType];
+          
+          if (sectionData) {
+            const detailsToCreate = [];
+            
+            // Add strengths
+            if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
+              for (const strength of sectionData.strengths) {
+                detailsToCreate.push({
+                  section_id: section.id,
+                  detail_type: 'strength',
+                  content: strength
+                });
+              }
+            }
+            
+            // Add improvements
+            if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
+              for (const improvement of sectionData.improvements) {
+                detailsToCreate.push({
+                  section_id: section.id,
+                  detail_type: 'weakness',
+                  content: improvement
+                });
+              }
+            }
+
+            if (detailsToCreate.length > 0) {
+              const { error: detailsError } = await supabase
+                .from('section_details')
+                .insert(detailsToCreate);
+
+              if (detailsError) {
+                console.error(`Failed to create details for section ${section.type}:`, detailsError);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Update the submission with analysis results and company_id
     console.log('Updating submission with analysis results...');
     const { error: updateError } = await supabase
       .from('barc_form_submissions')
       .update({
         analysis_status: 'completed',
         analysis_result: analysisResult,
-        analyzed_at: new Date().toISOString()
+        analyzed_at: new Date().toISOString(),
+        company_id: companyId
       })
       .eq('id', submissionId);
 
@@ -343,13 +365,14 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log(`Successfully analyzed BARC submission ${submissionId}`);
+    console.log(`Successfully analyzed BARC submission ${submissionId}${companyId ? ` and created company ${companyId}` : ''}`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         submissionId,
-        analysisResult
+        analysisResult,
+        companyId
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
