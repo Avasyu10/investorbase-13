@@ -1,7 +1,7 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { createClient } from '@supabase/supabase-js';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,25 +12,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Loader2, Building } from "lucide-react";
-
-// Create a completely isolated anonymous Supabase client for public submissions
-const publicClient = createClient(
-  "https://jhtnruktmtjqrfoiyrep.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY",
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
-    },
-    global: {
-      headers: {
-        'x-client-info': 'barc-public-form',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY`
-      }
-    }
-  }
-);
 
 interface BarcFormData {
   companyName: string;
@@ -87,59 +68,68 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation - using isolated public client
+  // Submit form mutation - simplified approach
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Submitting BARC form data with public client:', formData);
+      console.log('Starting BARC form submission:', { slug, formData });
+
+      const submissionData = {
+        form_slug: slug,
+        company_name: formData.companyName,
+        company_registration_type: formData.companyRegistrationType,
+        executive_summary: formData.executiveSummary,
+        company_type: formData.companyType,
+        question_1: formData.question1,
+        question_2: formData.question2,
+        question_3: formData.question3,
+        question_4: formData.question4,
+        question_5: formData.question5,
+        submitter_email: formData.submitterEmail,
+        analysis_status: 'pending'
+      };
+
+      console.log('Submission data prepared:', submissionData);
 
       try {
-        // Use direct fetch to avoid any auth-related issues
         const response = await fetch('https://jhtnruktmtjqrfoiyrep.supabase.co/rest/v1/barc_form_submissions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY',
             'Prefer': 'return=representation'
           },
-          body: JSON.stringify({
-            form_slug: slug,
-            company_name: formData.companyName,
-            company_registration_type: formData.companyRegistrationType,
-            executive_summary: formData.executiveSummary,
-            company_type: formData.companyType,
-            question_1: formData.question1,
-            question_2: formData.question2,
-            question_3: formData.question3,
-            question_4: formData.question4,
-            question_5: formData.question5,
-            submitter_email: formData.submitterEmail,
-            analysis_status: 'pending'
-          })
+          body: JSON.stringify(submissionData)
         });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('HTTP Error:', response.status, errorText);
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
+          console.error('HTTP Error Details:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          throw new Error(`Submission failed (${response.status}): ${errorText}`);
         }
 
         const data = await response.json();
-        console.log('BARC form submitted successfully:', data);
+        console.log('Submission successful:', data);
         
-        // Return the first item if it's an array, otherwise return the data
         return Array.isArray(data) ? data[0] : data;
       } catch (error) {
-        console.error('Error submitting BARC form:', error);
+        console.error('Submission error:', error);
         throw error;
       }
     },
     onSuccess: async (data) => {
+      console.log('Form submitted successfully:', data);
       toast.success("Application submitted successfully!");
       
-      // Trigger analysis after successful submission using direct fetch
+      // Trigger analysis after successful submission
       try {
         console.log('Triggering analysis for submission:', data.id);
         
@@ -170,12 +160,43 @@ const BarcSubmit = () => {
     },
     onError: (error: any) => {
       console.error('Form submission error:', error);
-      toast.error(`Failed to submit application: ${error.message}`);
+      toast.error(`Failed to submit application: ${error.message || 'Unknown error'}`);
     }
   });
 
   const onSubmit = (data: BarcFormData) => {
-    console.log('Form submission triggered with data:', data);
+    console.log('Form submit triggered:', data);
+    
+    // Validate required fields
+    if (!data.companyName.trim()) {
+      toast.error("Company name is required");
+      return;
+    }
+    if (!data.companyRegistrationType) {
+      toast.error("Company registration type is required");
+      return;
+    }
+    if (!data.executiveSummary.trim()) {
+      toast.error("Executive summary is required");
+      return;
+    }
+    if (!data.companyType) {
+      toast.error("Company type is required");
+      return;
+    }
+    if (!data.submitterEmail.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.submitterEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    console.log('Validation passed, submitting...');
     submitMutation.mutate(data);
   };
 
