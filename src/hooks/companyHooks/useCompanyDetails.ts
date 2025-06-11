@@ -49,6 +49,7 @@ export function useCompanyDetails(companyId: string | undefined) {
           
           if (companyData) {
             console.log('Found company by direct UUID lookup:', companyData);
+            console.log('Sections found:', companyData.sections?.length || 0);
             const transformedCompany = transformCompanyData(companyData);
             setCompany(transformedCompany);
             
@@ -119,6 +120,7 @@ export function useCompanyDetails(companyId: string | undefined) {
           
           if (companyData) {
             console.log('Successfully fetched company details:', companyData);
+            console.log('Sections found:', companyData.sections?.length || 0);
             const transformedCompany = transformCompanyData(companyData);
             
             // Fetch company details if they're not fully loaded in the first query
@@ -181,6 +183,7 @@ export function useCompanyDetails(companyId: string | undefined) {
     // Console log for debugging
     console.log('Raw company data:', rawData);
     console.log('Company details:', companyDetails);
+    console.log('Raw sections data:', rawData.sections);
     
     return {
       id: rawData.id,
@@ -190,15 +193,18 @@ export function useCompanyDetails(companyId: string | undefined) {
       perplexityResponse: rawData.perplexity_response,
       perplexityRequestedAt: rawData.perplexity_requested_at,
       assessmentPoints: rawData.assessment_points || [],
-      sections: rawData.sections?.map((section: any) => ({
-        id: section.id,
-        title: section.title,
-        type: section.type,
-        score: section.score,
-        description: section.description,
-        createdAt: section.created_at,
-        updatedAt: section.updated_at,
-      })) || [],
+      sections: rawData.sections?.map((section: any) => {
+        console.log('Transforming section:', section);
+        return {
+          id: section.id,
+          title: section.title,
+          type: section.type,
+          score: section.score,
+          description: section.description,
+          createdAt: section.created_at,
+          updatedAt: section.updated_at,
+        };
+      }) || [],
       // Explicitly incorporate company details information 
       website: companyDetails.website || "",
       industry: companyDetails.industry || "",

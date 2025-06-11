@@ -143,6 +143,15 @@ const CompanyDetails = () => {
     }
   }, [showChat, messages.length, companyInfo.introduction, company?.name]);
 
+  // Debug logging for sections
+  useEffect(() => {
+    if (company) {
+      console.log('Company data loaded:', company);
+      console.log('Company sections:', company.sections);
+      console.log('Number of sections:', company.sections?.length || 0);
+    }
+  }, [company]);
+
   const handleSectionClick = (sectionId: number | string) => {
     navigate(`/company/${id}/section/${sectionId.toString()}`);
   };
@@ -310,6 +319,10 @@ const CompanyDetails = () => {
     return 0;
   });
 
+  // Debug logging for sorted sections
+  console.log('Sorted sections:', sortedSections);
+  console.log('Number of sorted sections:', sortedSections.length);
+
   return (
     <div className="min-h-screen">
       <div className="flex w-full">
@@ -382,15 +395,36 @@ const CompanyDetails = () => {
               <BarChart2 className="h-5 w-5 text-primary" />
               Section Metrics
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-              {sortedSections.map((section) => (
-                <SectionCard 
-                  key={section.id} 
-                  section={section} 
-                  onClick={() => handleSectionClick(section.id)} 
-                />
-              ))}
-            </div>
+            
+            {/* Debug info - remove this after testing */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-4 p-4 bg-gray-100 rounded">
+                <p>Debug: Sections count: {sortedSections.length}</p>
+                <p>Debug: Company sections: {JSON.stringify(company.sections?.map(s => ({ id: s.id, title: s.title, type: s.type })) || [])}</p>
+              </div>
+            )}
+            
+            {sortedSections.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                {sortedSections.map((section) => (
+                  <SectionCard 
+                    key={section.id} 
+                    section={section} 
+                    onClick={() => handleSectionClick(section.id)} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="mb-8 border-0 shadow-subtle">
+                <CardContent className="p-6 text-center">
+                  <BarChart2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">No Sections Available</h3>
+                  <p className="text-muted-foreground">
+                    This company doesn't have any analysis sections yet. The analysis might still be in progress or hasn't been completed.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
         
