@@ -65,25 +65,40 @@ export async function getReportData(reportId: string) {
   
   console.log("PDF downloaded successfully, size:", pdfData.size);
   
-  // Convert to base64 using a more efficient method to avoid stack overflow
-  const arrayBuffer = await pdfData.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  
-  // Convert to base64 in chunks to avoid stack overflow
-  let pdfBase64 = '';
-  const chunkSize = 8192; // Process in 8KB chunks
-  
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.slice(i, i + chunkSize);
-    const chunkArray = Array.from(chunk);
-    pdfBase64 += btoa(String.fromCharCode.apply(null, chunkArray));
+  // Convert to base64 using a more reliable method
+  try {
+    const arrayBuffer = await pdfData.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Use the built-in btoa function with proper string conversion
+    let binaryString = '';
+    const chunkSize = 8192;
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const pdfBase64 = btoa(binaryString);
+    
+    console.log("PDF converted to base64, length:", pdfBase64.length);
+    
+    // Verify the base64 is valid by attempting to decode a small portion
+    try {
+      const testDecode = atob(pdfBase64.substring(0, 100));
+      console.log("Base64 validation successful");
+    } catch (validateError) {
+      console.error("Base64 validation failed:", validateError);
+      throw new Error("Invalid base64 encoding generated");
+    }
+    
+    return {
+      supabase,
+      report,
+      pdfBase64
+    };
+  } catch (encodingError) {
+    console.error("Error encoding PDF to base64:", encodingError);
+    throw new Error(`Failed to encode PDF: ${encodingError.message}`);
   }
-  
-  console.log("PDF converted to base64, length:", pdfBase64.length);
-  
-  return {
-    supabase,
-    report,
-    pdfBase64
-  };
 }
