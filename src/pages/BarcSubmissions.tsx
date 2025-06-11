@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import { Loader2, Eye, FileText, Building, Star, Calendar } from "lucide-react";
 import { BarcAnalysisModal } from "@/components/submissions/BarcAnalysisModal";
 import { toast } from "sonner";
 import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
+import { analyzeBarcSubmission } from "@/lib/api/barc";
 
 const BarcSubmissions = () => {
   const { user } = useAuth();
@@ -46,15 +48,15 @@ const BarcSubmissions = () => {
 
   const triggerAnalysis = async (submissionId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('analyze-barc-submission', {
-        body: { submissionId }
-      });
-
-      if (error) throw error;
+      console.log('Triggering analysis for submission:', submissionId);
+      
+      // Use the correct analysis function from the API
+      await analyzeBarcSubmission(submissionId);
 
       toast.success("Analysis started! Results will be available shortly.");
       refetch();
     } catch (error: any) {
+      console.error('Analysis trigger error:', error);
       toast.error(`Failed to start analysis: ${error.message}`);
     }
   };

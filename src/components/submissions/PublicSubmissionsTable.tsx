@@ -13,6 +13,7 @@ import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucid
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { analyzeBarcSubmission } from "@/lib/api/barc";
 
 interface PublicSubmission {
   id: string;
@@ -61,9 +62,16 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   }
 
   const handleAnalyze = async (submission: PublicSubmission) => {
-    // For BARC submissions, we can analyze without a report ID
+    // For BARC submissions, use the correct analysis function
     if (submission.source === "barc_form") {
-      onAnalyze(submission);
+      try {
+        console.log('Analyzing BARC submission:', submission.id);
+        await analyzeBarcSubmission(submission.id);
+        toast.success("BARC analysis started! Results will be available shortly.");
+      } catch (error: any) {
+        console.error('BARC analysis error:', error);
+        toast.error(`Failed to start BARC analysis: ${error.message}`);
+      }
       return;
     }
 
@@ -74,7 +82,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
       return;
     }
 
-    // Call the original onAnalyze callback first to show the modal
+    // Call the original onAnalyze callback for other submission types
     onAnalyze(submission);
   };
 
