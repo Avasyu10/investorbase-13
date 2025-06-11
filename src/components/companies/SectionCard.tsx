@@ -6,6 +6,7 @@ import { SectionBase } from "@/lib/api/apiContract";
 import { ArrowUpRight, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { SECTION_TITLES, SECTION_TYPES } from "@/lib/constants";
 
 interface SectionCardProps {
   section: SectionBase;
@@ -20,6 +21,53 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
   
   // Calculate progress percentage (0-100 scale) from score (0-5 scale)
   const progressPercentage = scoreValue * 20;
+
+  // Get the display title from constants based on section type, fallback to database title
+  const getDisplayTitle = (section: SectionBase): string => {
+    // Try to match the section type to our constants
+    const sectionType = section.type?.toUpperCase();
+    if (sectionType && SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES]) {
+      return SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES];
+    }
+    
+    // Fallback: try to map common title patterns to our section types
+    const title = section.title.toLowerCase();
+    if (title.includes('solution') || title.includes('product')) {
+      return SECTION_TITLES[SECTION_TYPES.SOLUTION];
+    }
+    if (title.includes('traction') || title.includes('milestone')) {
+      return SECTION_TITLES[SECTION_TYPES.TRACTION];
+    }
+    if (title.includes('team') || title.includes('founder')) {
+      return SECTION_TITLES[SECTION_TYPES.TEAM];
+    }
+    if (title.includes('financial') || title.includes('projection')) {
+      return SECTION_TITLES[SECTION_TYPES.FINANCIALS];
+    }
+    if (title.includes('ask') || title.includes('next step')) {
+      return SECTION_TITLES[SECTION_TYPES.ASK];
+    }
+    if (title.includes('problem')) {
+      return SECTION_TITLES[SECTION_TYPES.PROBLEM];
+    }
+    if (title.includes('market') || title.includes('opportunity')) {
+      return SECTION_TITLES[SECTION_TYPES.MARKET];
+    }
+    if (title.includes('competitive') || title.includes('landscape')) {
+      return SECTION_TITLES[SECTION_TYPES.COMPETITIVE_LANDSCAPE];
+    }
+    if (title.includes('business model')) {
+      return SECTION_TITLES[SECTION_TYPES.BUSINESS_MODEL];
+    }
+    if (title.includes('go-to-market') || title.includes('strategy')) {
+      return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
+    }
+    
+    // Final fallback to original title
+    return section.title;
+  };
+
+  const displayTitle = getDisplayTitle(section);
 
   const getScoreColor = (score: number) => {
     if (score >= 4.5) return "score-excellent";
@@ -80,7 +128,7 @@ export function SectionCard({ section, onClick }: SectionCardProps) {
     >
       <CardContent className="pt-6">
         <div className="flex justify-between items-start mb-3">
-          <h3 className="text-lg font-semibold line-clamp-1">{section.title}</h3>
+          <h3 className="text-lg font-semibold line-clamp-1">{displayTitle}</h3>
           <div className="flex items-center">
             <span className="font-bold text-lg text-primary">{scoreValue}</span>
             <TooltipProvider>
