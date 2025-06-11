@@ -47,12 +47,13 @@ const BarcSubmit = () => {
     },
   });
 
-  // Fetch form details
+  // Fetch form details - for BARC forms, we'll check if a form exists or allow access with user ID
   const { data: formData, isLoading: isLoadingForm } = useQuery({
     queryKey: ['barc-form', slug],
     queryFn: async () => {
       if (!slug) throw new Error("Form slug is required");
       
+      // First try to find an actual BARC form
       const { data, error } = await supabase
         .from('public_submission_forms')
         .select('*')
@@ -62,9 +63,25 @@ const BarcSubmit = () => {
         .maybeSingle();
       
       if (error) throw error;
-      if (!data) throw new Error("Form not found or inactive");
       
-      return data;
+      // If we found a form, return it
+      if (data) {
+        return data;
+      }
+      
+      // If no form found but slug looks like a user ID, create a virtual form
+      // This allows BARC forms to work with user IDs as slugs
+      return {
+        id: `barc-${slug}`,
+        form_name: "IIT Bombay Application Form",
+        form_slug: slug,
+        form_type: 'barc',
+        is_active: true,
+        user_id: slug,
+        auto_analyze: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     },
     enabled: !!slug,
   });
@@ -98,7 +115,6 @@ const BarcSubmit = () => {
     onSuccess: () => {
       toast.success("Application submitted successfully!");
       form.reset();
-      // Optionally redirect to a thank you page
       setTimeout(() => {
         navigate('/');
       }, 2000);
@@ -150,10 +166,10 @@ const BarcSubmit = () => {
           <CardHeader className="text-center border-b">
             <div className="flex items-center justify-center mb-4">
               <Building className="h-8 w-8 text-primary mr-2" />
-              <CardTitle className="text-2xl">BARC Application Form</CardTitle>
+              <CardTitle className="text-2xl">IIT Bombay Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
-              {formData.form_name}
+              Submit your application for the incubation program
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -184,7 +200,7 @@ const BarcSubmit = () => {
                     rules={{ required: "Registration type is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Registration Type *</FormLabel>
+                        <FormLabel>Company Registered as *</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -192,39 +208,9 @@ const BarcSubmit = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="private-limited">Private Limited Company</SelectItem>
-                            <SelectItem value="public-limited">Public Limited Company</SelectItem>
-                            <SelectItem value="llp">Limited Liability Partnership (LLP)</SelectItem>
-                            <SelectItem value="partnership">Partnership</SelectItem>
                             <SelectItem value="sole-proprietorship">Sole Proprietorship</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="companyType"
-                    rules={{ required: "Company type is required" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Company Type *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select company type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="startup">Startup</SelectItem>
-                            <SelectItem value="sme">Small & Medium Enterprise</SelectItem>
-                            <SelectItem value="large-enterprise">Large Enterprise</SelectItem>
-                            <SelectItem value="non-profit">Non-Profit Organization</SelectItem>
-                            <SelectItem value="research-institution">Research Institution</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
+                            <SelectItem value="private-limited">Private Limited Company</SelectItem>
+                            <SelectItem value="partnership">Partnership</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -250,6 +236,29 @@ const BarcSubmit = () => {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="companyType"
+                    rules={{ required: "Company type is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Type *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select company type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="product-based">Product Based</SelectItem>
+                            <SelectItem value="service-based">Service Based</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Application Questions */}
@@ -261,10 +270,10 @@ const BarcSubmit = () => {
                     name="question1"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>1. What is your primary business objective?</FormLabel>
+                        <FormLabel>1. What specific problem are you solving, and why is now the right time to solve it?</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Describe your primary business objective"
+                            placeholder="Describe the specific problem you are solving and the timing"
                             {...field}
                           />
                         </FormControl>
@@ -278,10 +287,10 @@ const BarcSubmit = () => {
                     name="question2"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>2. What is your target market and customer base?</FormLabel>
+                        <FormLabel>2. Who are your first 10 customers or users, and how did you find or plan to find them?</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Describe your target market and customer base"
+                            placeholder="Describe your target customers and customer acquisition strategy"
                             {...field}
                           />
                         </FormControl>
@@ -295,10 +304,10 @@ const BarcSubmit = () => {
                     name="question3"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>3. What stage is your business currently in?</FormLabel>
+                        <FormLabel>3. What is your unfair advantage or moat that will help you win over time?</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Describe your current business stage and milestones achieved"
+                            placeholder="Describe your competitive advantage and moat"
                             {...field}
                           />
                         </FormControl>
@@ -312,10 +321,10 @@ const BarcSubmit = () => {
                     name="question4"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>4. What support are you seeking from BARC?</FormLabel>
+                        <FormLabel>4. How does your team's background uniquely equip you to solve this problem?</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Describe the specific support you are seeking"
+                            placeholder="Describe your team's background and expertise"
                             {...field}
                           />
                         </FormControl>
@@ -329,10 +338,10 @@ const BarcSubmit = () => {
                     name="question5"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>5. How do you plan to utilize BARC's resources?</FormLabel>
+                        <FormLabel>5. What milestones do you aim to achieve during the incubation period, and what support do you need from us to get there?</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Explain how you plan to utilize BARC's resources and facilities"
+                            placeholder="Describe your milestones and support needs"
                             {...field}
                           />
                         </FormControl>
