@@ -1,93 +1,22 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Loader2, Building2 } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
-import { CompanyListItem } from "@/lib/api/apiContract";
-
-interface Company {
-  id: string;
-  name: string;
-  overall_score: number;
-  created_at: string;
-  source: string;
-  user_id?: string;
-  report_id?: string;
-  assessment_points?: string[];
-}
+import { useCompanies } from "@/hooks/useCompanies";
 
 export function CompaniesList() {
-  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    async function fetchCompanies() {
-      try {
-        if (!user) {
-          console.log("No user found, clearing companies");
-          setCompanies([]);
-          setIsLoading(false);
-          return;
-        }
-        
-        setIsLoading(true);
-        console.log("Fetching companies for user:", user.id, "email:", user.email);
-        
-        const { data, error } = await supabase
-          .from('companies')
-          .select('*')
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error("Error fetching companies:", error);
-          toast({
-            title: "Failed to load companies",
-            description: "Please try again later or contact support",
-            variant: "destructive",
-          });
-        } else {
-          console.log("Companies fetched successfully:", data?.length || 0);
-          // Map Company to CompanyListItem
-          const mappedCompanies: CompanyListItem[] = (data || []).map((company: Company) => ({
-            id: parseInt(company.id.split('-')[0], 16), // Convert UUID to number for compatibility
-            name: company.name,
-            overallScore: company.overall_score,
-            createdAt: company.created_at,
-            updatedAt: company.created_at, // Use created_at as fallback for updated_at
-            source: company.source,
-            assessmentPoints: company.assessment_points || []
-          }));
-          setCompanies(mappedCompanies);
-        }
-      } catch (error) {
-        console.error("Error in fetchCompanies:", error);
-        toast({
-          title: "Failed to load companies",
-          description: "Please try again later or contact support",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchCompanies();
-  }, [toast, user]);
+  // Use the useCompanies hook which has proper RLS handling
+  const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
   const handleCompanyClick = (companyId: number) => {
-    // Convert the numeric ID back to find the original company
-    const company = companies.find(c => c.id === companyId);
-    if (company) {
-      // For now, navigate to a company detail page using the numeric ID
-      navigate(`/company/${companyId}`);
-    }
+    navigate(`/company/${companyId}`);
   };
 
   if (isLoading) {
@@ -114,6 +43,26 @@ export function CompaniesList() {
             className="mt-6"
           >
             Go to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center py-12 border rounded-lg bg-card/50">
+          <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">Failed to Load Companies</h3>
+          <p className="mt-2 text-muted-foreground">
+            {error.message || 'There was an error loading your prospects. Please try again.'}
+          </p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-6"
+          >
+            Try Again
           </Button>
         </div>
       </div>

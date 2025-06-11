@@ -1,7 +1,9 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useCompanyDetails } from './companyHooks/useCompanyDetails';
+import { useAuth } from '@/hooks/useAuth';
 
 // Map Supabase DB types to API contract types
 function mapDbCompanyToApi(company: any) {
@@ -66,14 +68,21 @@ export function useCompanies(
   sortOrder: 'asc' | 'desc' = 'desc',
   search: string = '' // Add search parameter
 ) {
+  const { user } = useAuth();
+
   const {
     data: companiesData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['companies', page, pageSize, sortBy, sortOrder, search], // Add search to queryKey
+    queryKey: ['companies', page, pageSize, sortBy, sortOrder, search, user?.id], // Add user.id to queryKey
     queryFn: async () => {
       try {
+        if (!user) {
+          console.log('No user found, returning empty results');
+          return { companies: [], totalCount: 0 };
+        }
+
         // Calculate offset based on page number and page size
         const from = (page - 1) * pageSize;
         const to = from + pageSize - 1;
@@ -84,21 +93,9 @@ export function useCompanies(
           dbSortField = sortBy === 'overallScore' ? 'overall_score' : 'name';
         }
         
-        // Get the authenticated user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          toast({
-            title: 'Authentication required',
-            description: 'Please sign in to view companies',
-            variant: 'destructive',
-          });
-          return { companies: [], totalCount: 0 };
-        }
-        
         console.log('Fetching companies for user:', user.id);
         
-        // Build query
+        // Build query - fetch all companies that the user has access to via RLS
         let query = supabase
           .from('companies')
           .select(`
@@ -106,8 +103,7 @@ export function useCompanies(
             assessment_points, report_id, perplexity_requested_at, 
             perplexity_response, perplexity_prompt, user_id, source,
             report:report_id (pdf_url, is_public_submission)
-          `, { count: 'exact' })
-          .eq('user_id', user.id); // Filter by user_id
+          `, { count: 'exact' });
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
@@ -124,15 +120,15 @@ export function useCompanies(
           throw error;
         }
         
-        console.log(`Retrieved ${data.length} companies out of ${count} total`);
+        console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total`);
         
         // Log the first few companies to help with debugging
-        if (data.length > 0) {
+        if (data && data.length > 0) {
           console.log('Sample company data:', data[0]);
         }
 
         return {
-          companies: data.map(mapDbCompanyToApi),
+          companies: (data || []).map(mapDbCompanyToApi),
           totalCount: count || 0
         };
       } catch (err) {
@@ -140,8 +136,10 @@ export function useCompanies(
         throw err;
       }
     },
+    enabled: !!user, // Only run query when user is available
     meta: {
       onError: (err: any) => {
+        console.error("useCompanies query error:", err);
         toast({
           title: 'Error loading companies',
           description: err.message || 'Failed to load companies data',
