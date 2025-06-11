@@ -17,7 +17,7 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
     return null;
   }
 
-  const analysis = submission.analysis_result as BarcAnalysisResult;
+  const analysis = submission.analysis_result;
   const sections = analysis.sections || {};
 
   const getRecommendationIcon = (recommendation: string) => {

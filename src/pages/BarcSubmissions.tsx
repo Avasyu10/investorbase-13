@@ -35,7 +35,12 @@ const BarcSubmissions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as BarcSubmission[];
+      
+      // Transform the data to match our BarcSubmission interface
+      return (data || []).map(item => ({
+        ...item,
+        analysis_result: item.analysis_result as BarcAnalysisResult | null
+      })) as BarcSubmission[];
     },
     enabled: !!user,
   });
@@ -83,8 +88,7 @@ const BarcSubmissions = () => {
 
   // Helper function to safely get analysis result
   const getAnalysisResult = (submission: BarcSubmission): BarcAnalysisResult | null => {
-    if (!submission.analysis_result) return null;
-    return submission.analysis_result as BarcAnalysisResult;
+    return submission.analysis_result || null;
   };
 
   if (isLoading) {
