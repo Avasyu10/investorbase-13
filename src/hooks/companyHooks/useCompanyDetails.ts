@@ -28,7 +28,7 @@ export interface CompanyDetails {
 }
 
 export const useCompanyDetails = (id: string) => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['company', id],
     queryFn: async (): Promise<CompanyDetails | null> => {
       console.log('Fetching company details for ID:', id);
@@ -104,6 +104,13 @@ export const useCompanyDetails = (id: string) => {
     },
     enabled: !!id
   });
+
+  return {
+    company: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch
+  };
 };
 
 function transformCompanyData(company: any): CompanyDetails {
