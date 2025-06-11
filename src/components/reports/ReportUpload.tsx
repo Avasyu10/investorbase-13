@@ -550,22 +550,49 @@ export function ReportUpload({
         }
       }
       
-      // Only scrape LinkedIn profiles if scraping features are enabled
+      // Enhanced LinkedIn profile scraping with better error handling
       let linkedInContent = null;
       if (!disableScrapingFeatures) {
-        const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
+        const validLinkedInProfiles = founderLinkedIns.filter(url => {
+          const trimmedUrl = url.trim();
+          return trimmedUrl && (
+            trimmedUrl.includes('linkedin.com/in/') || 
+            trimmedUrl.includes('linkedin.com/pub/') ||
+            trimmedUrl.includes('www.linkedin.com/in/') ||
+            trimmedUrl.includes('www.linkedin.com/pub/')
+          );
+        });
+        
         if (validLinkedInProfiles.length > 0) {
           setProgress(50);
-          setProgressStage("Scraping LinkedIn profiles...");
-          const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
-          if (linkedInResult?.success) {
-            linkedInContent = formatLinkedInContent(linkedInResult);
-            toast.success("LinkedIn profiles scraped successfully", {
-              description: "LinkedIn profile data will be included in the analysis"
-            });
-          } else if (linkedInResult) {
-            toast.error("LinkedIn profile scraping failed", {
-              description: "Could not scrape the LinkedIn profiles. Continuing without LinkedIn data."
+          setProgressStage("Scraping founder LinkedIn profiles...");
+          console.log("Starting LinkedIn profile scraping for:", validLinkedInProfiles);
+          
+          try {
+            const linkedInResult = await scrapeLinkedInProfiles(validLinkedInProfiles, report.id);
+            
+            if (linkedInResult?.success) {
+              linkedInContent = formatLinkedInContent(linkedInResult);
+              const profileCount = linkedInResult.profiles?.length || 0;
+              
+              toast.success("LinkedIn profiles processed", {
+                description: `Successfully scraped ${profileCount} public LinkedIn profile(s) for team analysis`
+              });
+              
+              console.log("LinkedIn scraping successful:", {
+                profileCount,
+                contentLength: linkedInContent?.length || 0
+              });
+            } else if (linkedInResult) {
+              console.warn("LinkedIn scraping completed with issues:", linkedInResult.error);
+              toast.warning("LinkedIn profile scraping", {
+                description: "Some LinkedIn profiles could not be accessed (likely private). Continuing with available data."
+              });
+            }
+          } catch (linkedInError) {
+            console.error("LinkedIn scraping error:", linkedInError);
+            toast.warning("LinkedIn profile scraping", {
+              description: "Could not access LinkedIn profiles. Continuing without LinkedIn data."
             });
           }
         }
@@ -576,18 +603,15 @@ export function ReportUpload({
       }
       
       if (linkedInContent) {
-        description += `\n\nFounder LinkedIn Profiles:\n${linkedInContent}\n`;
-      }
-      
-      if (description && !isPublic) {
-        const { error: updateError } = await supabase
-          .from('reports')
-          .update({ description })
-          .eq('id', report.id);
-          
-        if (updateError) {
-          console.error("Error updating report description:", updateError);
-        }
+        description += `\n\n${linkedInContent}\n`;
+        description += `\nNOTE: This LinkedIn profile data should be specifically analyzed in the TEAM section to assess:\n`;
+        description += `- Founder experience and background relevance\n`;
+        description += `- Leadership capabilities and track record\n`;
+        description += `- Industry expertise and domain knowledge\n`;
+        description += `- Educational qualifications\n`;
+        description += `- Previous startup or entrepreneurial experience\n`;
+        description += `- Technical skills and competencies\n`;
+        description += `- Network quality and professional connections\n\n`;
       }
       
       if (!isPublic && !skipAnalysis) {

@@ -15,9 +15,19 @@ export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): 
     return null;
   }
   
-  // Filter out empty URLs
-  const validUrls = urls.filter(url => url.trim());
+  // Filter out empty URLs and validate LinkedIn URLs
+  const validUrls = urls.filter(url => {
+    const trimmedUrl = url.trim();
+    return trimmedUrl && (
+      trimmedUrl.includes('linkedin.com/in/') || 
+      trimmedUrl.includes('linkedin.com/pub/') ||
+      trimmedUrl.includes('www.linkedin.com/in/') ||
+      trimmedUrl.includes('www.linkedin.com/pub/')
+    );
+  });
+  
   if (validUrls.length === 0) {
+    console.log("No valid LinkedIn URLs found");
     return null;
   }
   
@@ -46,12 +56,12 @@ export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): 
       };
     }
     
-    console.log("LinkedIn profiles scraped successfully, profiles:", data.profiles.length);
+    console.log("LinkedIn profiles scraped successfully, profiles:", data.profiles?.length || 0);
     
     // Format the scraped content for inclusion in the report
     return {
       success: true,
-      profiles: data.profiles
+      profiles: data.profiles || []
     };
   } catch (error: any) {
     console.error("Error scraping LinkedIn profiles:", error);
@@ -68,7 +78,22 @@ export const formatLinkedInContent = (scrapingResult: LinkedInScrapingResult): s
     return null;
   }
   
-  return scrapingResult.profiles.map(profile => 
-    `LinkedIn Profile: ${profile.url}\n${profile.content}\n\n`
-  ).join('---\n\n');
+  let formattedContent = "FOUNDER LINKEDIN PROFILES ANALYSIS:\n\n";
+  
+  scrapingResult.profiles.forEach((profile, index) => {
+    formattedContent += `=== FOUNDER ${index + 1} PROFILE ===\n`;
+    formattedContent += `LinkedIn URL: ${profile.url}\n\n`;
+    formattedContent += `Professional Background:\n${profile.content}\n\n`;
+    formattedContent += "--- End of Profile ---\n\n";
+  });
+  
+  formattedContent += "\nThis LinkedIn profile data should be analyzed for:\n";
+  formattedContent += "- Relevant industry experience\n";
+  formattedContent += "- Leadership roles and achievements\n";
+  formattedContent += "- Educational background\n";
+  formattedContent += "- Skills relevant to the business\n";
+  formattedContent += "- Network and connections quality\n";
+  formattedContent += "- Previous startup or entrepreneurial experience\n\n";
+  
+  return formattedContent;
 };
