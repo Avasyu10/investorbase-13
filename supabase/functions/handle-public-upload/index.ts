@@ -1,6 +1,6 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.29.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { decode } from 'https://deno.land/std@0.177.0/encoding/base64.ts';
 
 // CORS Headers
 const corsHeaders = {
@@ -228,8 +228,13 @@ serve(async (req) => {
       );
     }
     
-    // Create a supabase client with the service key
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Create a supabase client with the service role key - this bypasses RLS
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
     
     // Handle form data
     if (req.headers.get("content-type")?.includes("multipart/form-data")) {
@@ -330,22 +335,26 @@ serve(async (req) => {
       let shouldAutoAnalyze = false;
       let submissionFormId = null;
       if (formSlug) {
-        const { data: formData, error: formError } = await supabase
-          .from('public_submission_forms')
-          .select('id, user_id, auto_analyze')
-          .eq('form_slug', formSlug)
-          .maybeSingle();
-          
-        if (formError) {
-          console.error("Error fetching form data:", formError);
-        } else if (formData) {
-          console.log("Found form:", formData);
-          formOwnerId = formData.user_id;
-          storageUserId = formData.user_id;
-          shouldAutoAnalyze = formData.auto_analyze;
-          submissionFormId = formData.id;
-        } else {
-          console.log("No form found with slug:", formSlug);
+        try {
+          const { data: formData, error: formError } = await supabase
+            .from('public_submission_forms')
+            .select('id, user_id, auto_analyze')
+            .eq('form_slug', formSlug)
+            .maybeSingle();
+            
+          if (formError) {
+            console.error("Error fetching form data:", formError);
+          } else if (formData) {
+            console.log("Found form:", formData);
+            formOwnerId = formData.user_id;
+            storageUserId = formData.user_id;
+            shouldAutoAnalyze = formData.auto_analyze;
+            submissionFormId = formData.id;
+          } else {
+            console.log("No form found with slug:", formSlug);
+          }
+        } catch (err) {
+          console.error("Error querying form data:", err);
         }
       }
       
@@ -356,20 +365,37 @@ serve(async (req) => {
       const arrayBuffer = await file.arrayBuffer();
       const fileBuffer = new Uint8Array(arrayBuffer);
       
-      // Upload the file to storage
-      const { error: uploadError } = await supabase.storage
-        .from('report_pdfs')
-        .upload(filePath, fileBuffer, {
-          contentType: file.type
-        });
+      // Upload the file to storage using service role (bypasses RLS)
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('report_pdfs')
+          .upload(filePath, fileBuffer, {
+            contentType: file.type
+          });
+          
+        if (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: "Upload failed", 
+              details: uploadError.message 
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500 
+            }
+          );
+        }
         
-      if (uploadError) {
-        console.error("Error uploading file:", uploadError);
+        console.log("File uploaded successfully:", filePath);
+      } catch (uploadErr) {
+        console.error("File upload exception:", uploadErr);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: "Upload failed", 
-            details: uploadError.message 
+            error: "File upload failed", 
+            details: uploadErr instanceof Error ? uploadErr.message : "Unknown error"
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -377,8 +403,6 @@ serve(async (req) => {
           }
         );
       }
-      
-      console.log("File uploaded successfully:", filePath);
       
       // Scrape LinkedIn profiles if provided
       let enhancedDescription = description;
@@ -425,51 +449,70 @@ serve(async (req) => {
         }
       }
       
-      // Create a record in public_form_submissions table
-      const { data: submissionData, error: submissionError } = await supabase
-        .from('public_form_submissions')
-        .insert({
-          title,
-          description: enhancedDescription, // Use enhanced description with LinkedIn data
-          website_url: websiteUrl,
-          pdf_url: filePath,
-          form_slug: formSlug,
-          company_stage: companyStage,
-          industry,
-          founder_linkedin_profiles: linkedInProfiles,
-          question,
-          submitter_email: email,
-          // New company fields
-          company_registration_type: companyRegistrationType,
-          registration_number: registrationNumber,
-          dpiit_recognition_number: dpiitRecognitionNumber,
-          indian_citizen_shareholding: indianCitizenShareholding,
-          executive_summary: executiveSummary,
-          company_type: companyType,
-          products_services: productsServices,
-          employee_count: employeeCountNum,
-          funds_raised: fundsRaised,
-          valuation: valuation,
-          last_fy_revenue: lastFyRevenue,
-          last_quarter_revenue: lastQuarterRevenue,
-          // Founder information
-          founder_name: founderName,
-          founder_gender: founderGender,
-          founder_email: founderEmail,
-          founder_contact: founderContact,
-          founder_address: founderAddress,
-          founder_state: founderState
-        })
-        .select()
-        .single();
+      // Create a record in public_form_submissions table using service role
+      let submissionData;
+      try {
+        const { data, error: submissionError } = await supabase
+          .from('public_form_submissions')
+          .insert({
+            title,
+            description: enhancedDescription, // Use enhanced description with LinkedIn data
+            website_url: websiteUrl,
+            pdf_url: filePath,
+            form_slug: formSlug,
+            company_stage: companyStage,
+            industry,
+            founder_linkedin_profiles: linkedInProfiles,
+            question,
+            submitter_email: email,
+            // New company fields
+            company_registration_type: companyRegistrationType,
+            registration_number: registrationNumber,
+            dpiit_recognition_number: dpiitRecognitionNumber,
+            indian_citizen_shareholding: indianCitizenShareholding,
+            executive_summary: executiveSummary,
+            company_type: companyType,
+            products_services: productsServices,
+            employee_count: employeeCountNum,
+            funds_raised: fundsRaised,
+            valuation: valuation,
+            last_fy_revenue: lastFyRevenue,
+            last_quarter_revenue: lastQuarterRevenue,
+            // Founder information
+            founder_name: founderName,
+            founder_gender: founderGender,
+            founder_email: founderEmail,
+            founder_contact: founderContact,
+            founder_address: founderAddress,
+            founder_state: founderState
+          })
+          .select()
+          .single();
+          
+        if (submissionError) {
+          console.error("Error creating submission record:", submissionError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: "Submission record creation failed", 
+              details: submissionError.message 
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500 
+            }
+          );
+        }
         
-      if (submissionError) {
-        console.error("Error creating submission record:", submissionError);
+        submissionData = data;
+        console.log("Submission record created:", submissionData.id);
+      } catch (submissionErr) {
+        console.error("Submission creation exception:", submissionErr);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: "Submission record creation failed", 
-            details: submissionError.message 
+            error: "Submission creation failed", 
+            details: submissionErr instanceof Error ? submissionErr.message : "Unknown error"
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -478,69 +521,75 @@ serve(async (req) => {
         );
       }
       
-      console.log("Submission record created:", submissionData.id);
-      
       // Create a corresponding report record that can be analyzed
       let reportId;
       if (formOwnerId) {
         console.log("Creating report record for form owner:", formOwnerId);
         
-        const { data: reportData, error: reportError } = await supabase
-          .from('reports')
-          .insert({
-            title,
-            description: enhancedDescription, // Use enhanced description with LinkedIn data
-            pdf_url: filePath, // Use the full path here as well
-            user_id: formOwnerId,
-            is_public_submission: true,
-            submitter_email: email,
-            submission_form_id: submissionFormId
-          })
-          .select()
-          .single();
-          
-        if (reportError) {
-          console.error("Error creating report record:", reportError);
-        } else if (reportData) {
-          console.log("Report record created:", reportData.id);
-          reportId = reportData.id;
-          
-          // Update the submission record with the report ID
-          const { error: updateError } = await supabase
-            .from('public_form_submissions')
-            .update({ report_id: reportId })
-            .eq('id', submissionData.id);
+        try {
+          const { data: reportData, error: reportError } = await supabase
+            .from('reports')
+            .insert({
+              title,
+              description: enhancedDescription, // Use enhanced description with LinkedIn data
+              pdf_url: filePath, // Use the full path here as well
+              user_id: formOwnerId,
+              is_public_submission: true,
+              submitter_email: email,
+              submission_form_id: submissionFormId
+            })
+            .select()
+            .single();
             
-          if (updateError) {
-            console.error("Error updating submission with report ID:", updateError);
-          }
-          
-          // If auto-analyze is enabled, trigger analysis
-          if (shouldAutoAnalyze) {
+          if (reportError) {
+            console.error("Error creating report record:", reportError);
+          } else if (reportData) {
+            console.log("Report record created:", reportData.id);
+            reportId = reportData.id;
+            
+            // Update the submission record with the report ID
             try {
-              console.log("Auto-analyze is enabled, triggering analysis");
-              
-              // Call the auto-analyze edge function
-              const analyzeResponse = await fetch(`${supabaseUrl}/functions/v1/auto-analyze-public-pdf`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabaseServiceKey}`
-                },
-                body: JSON.stringify({ 
-                  reportId: reportId
-                })
-              });
-              
-              if (!analyzeResponse.ok) {
-                console.error("Analysis triggering failed:", await analyzeResponse.text());
-              } else {
-                console.log("Analysis successfully triggered");
+              const { error: updateError } = await supabase
+                .from('public_form_submissions')
+                .update({ report_id: reportId })
+                .eq('id', submissionData.id);
+                
+              if (updateError) {
+                console.error("Error updating submission with report ID:", updateError);
               }
-            } catch (analyzeError) {
-              console.error("Error triggering auto-analysis:", analyzeError);
+            } catch (updateErr) {
+              console.error("Update submission exception:", updateErr);
+            }
+            
+            // If auto-analyze is enabled, trigger analysis
+            if (shouldAutoAnalyze) {
+              try {
+                console.log("Auto-analyze is enabled, triggering analysis");
+                
+                // Call the auto-analyze edge function
+                const analyzeResponse = await fetch(`${supabaseUrl}/functions/v1/auto-analyze-public-pdf`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseServiceKey}`
+                  },
+                  body: JSON.stringify({ 
+                    reportId: reportId
+                  })
+                });
+                
+                if (!analyzeResponse.ok) {
+                  console.error("Analysis triggering failed:", await analyzeResponse.text());
+                } else {
+                  console.log("Analysis successfully triggered");
+                }
+              } catch (analyzeError) {
+                console.error("Error triggering auto-analysis:", analyzeError);
+              }
             }
           }
+        } catch (reportErr) {
+          console.error("Report creation exception:", reportErr);
         }
       }
       
