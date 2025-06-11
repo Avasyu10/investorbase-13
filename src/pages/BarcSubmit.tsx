@@ -69,12 +69,12 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
-  // Submit form mutation using direct Supabase client (same as PSI form)
+  // Submit form mutation using direct Supabase client with anonymous access
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission:', { slug, formData });
+      console.log('Starting BARC form submission with new RLS policies:', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -91,9 +91,9 @@ const BarcSubmit = () => {
         analysis_status: 'pending'
       };
 
-      console.log('Inserting BARC submission into database:', submissionData);
+      console.log('Inserting BARC submission with anonymous access:', submissionData);
 
-      // Use direct Supabase client insertion (same pattern as PSI form)
+      // Use direct Supabase client insertion with anonymous access
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .insert(submissionData)
@@ -102,10 +102,16 @@ const BarcSubmit = () => {
 
       if (error) {
         console.error('Database insertion error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         throw new Error(`Failed to save submission: ${error.message}`);
       }
 
-      console.log('BARC submission saved successfully:', data);
+      console.log('BARC submission saved successfully with new RLS policies:', data);
       return data;
     },
     onSuccess: async (data) => {
@@ -140,8 +146,23 @@ const BarcSubmit = () => {
       }, 2000);
     },
     onError: (error: any) => {
-      console.error('BARC form submission error:', error);
-      toast.error(`Failed to submit application: ${error.message || 'Unknown error'}`);
+      console.error('BARC form submission error with new RLS policies:', error);
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Unknown error occurred';
+      if (error.message) {
+        if (error.message.includes('violates row-level security')) {
+          errorMessage = 'Permission denied. Please check your submission data.';
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = 'This submission already exists.';
+        } else if (error.message.includes('violates check constraint')) {
+          errorMessage = 'Invalid data provided. Please check your form fields.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(`Failed to submit application: ${errorMessage}`);
     }
   });
 
@@ -165,7 +186,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting...');
+    console.log('Validation passed, submitting with anonymous access...');
     submitMutation.mutate(data);
   };
 
