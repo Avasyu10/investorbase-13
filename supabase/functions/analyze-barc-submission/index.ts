@@ -41,16 +41,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Update status to processing
-    console.log('Updating submission status to processing...');
-    await supabase
-      .from('barc_form_submissions')
-      .update({ 
-        analysis_status: 'processing'
-      })
-      .eq('id', submissionId);
-
-    // Fetch the submission data
+    // Fetch the submission data first to make sure it exists
     console.log('Fetching submission data...');
     const { data: submission, error: fetchError } = await supabase
       .from('barc_form_submissions')
@@ -59,14 +50,29 @@ serve(async (req) => {
       .single();
 
     if (fetchError || !submission) {
+      console.error('Failed to fetch submission:', fetchError);
       throw new Error(`Failed to fetch submission: ${fetchError?.message || 'Submission not found'}`);
     }
 
     console.log('Retrieved submission:', {
       id: submission.id,
       company_name: submission.company_name,
-      submitter_email: submission.submitter_email
+      submitter_email: submission.submitter_email,
+      current_status: submission.analysis_status
     });
+
+    // Update status to processing
+    console.log('Updating submission status to processing...');
+    const { error: statusUpdateError } = await supabase
+      .from('barc_form_submissions')
+      .update({ 
+        analysis_status: 'processing'
+      })
+      .eq('id', submissionId);
+
+    if (statusUpdateError) {
+      console.error('Failed to update status to processing:', statusUpdateError);
+    }
 
     // Prepare the analysis prompt
     const analysisPrompt = `
@@ -236,6 +242,7 @@ serve(async (req) => {
       .eq('id', submissionId);
 
     if (updateError) {
+      console.error('Failed to update submission:', updateError);
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
@@ -271,6 +278,8 @@ serve(async (req) => {
               analysis_error: error instanceof Error ? error.message : 'Unknown error'
             })
             .eq('id', submissionId);
+          
+          console.log('Updated submission status to error');
         }
       } catch (updateError) {
         console.error('Failed to update error status:', updateError);

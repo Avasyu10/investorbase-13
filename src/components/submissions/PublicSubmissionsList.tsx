@@ -32,6 +32,7 @@ export function PublicSubmissionsList() {
   const [currentSubmission, setCurrentSubmission] = useState<PublicSubmission | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -234,19 +235,20 @@ export function PublicSubmissionsList() {
       setCurrentSubmission(submission);
       setShowModal(true);
       setIsAnalyzing(true);
+      setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
       
       try {
         console.log(`Calling BARC analysis for submission: ${submission.id}`);
         
         const result = await analyzeBarcSubmission(submission.id);
         
-        if (result) {
+        if (result && result.success) {
           toast({
             title: "Analysis complete",
             description: "The BARC application has been successfully analyzed",
           });
           
-          // Refresh the submissions list to remove the analyzed submission
+          // Only remove the submission from the list if analysis was truly successful
           setSubmissions(prev => prev.filter(s => s.id !== submission.id));
         } else {
           throw new Error("Analysis completed but no result was returned");
@@ -261,8 +263,16 @@ export function PublicSubmissionsList() {
           description: errorMessage,
           variant: "destructive",
         });
+        
+        // Don't remove the submission from the list if analysis failed
+        // It should stay in the list so user can retry
       } finally {
         setIsAnalyzing(false);
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submission.id);
+          return newSet;
+        });
         setShowModal(false);
       }
       
@@ -270,7 +280,6 @@ export function PublicSubmissionsList() {
     }
 
     if (!submission.report_id) {
-      // ... keep existing code for handling email pitch submissions
       if (submission.source === "email_pitch") {
         setCurrentSubmission(submission);
         setShowModal(true);
@@ -473,7 +482,8 @@ export function PublicSubmissionsList() {
       {submissions.length > 0 ? (
         <PublicSubmissionsTable 
           submissions={submissions} 
-          onAnalyze={handleAnalyze} 
+          onAnalyze={handleAnalyze}
+          analyzingSubmissions={analyzingSubmissions}
         />
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">

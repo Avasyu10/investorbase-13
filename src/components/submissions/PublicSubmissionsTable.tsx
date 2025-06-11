@@ -1,4 +1,3 @@
-
 import { 
   Table, 
   TableBody, 
@@ -33,11 +32,10 @@ interface PublicSubmission {
 interface PublicSubmissionsTableProps {
   submissions: PublicSubmission[];
   onAnalyze: (submission: PublicSubmission) => void;
+  analyzingSubmissions?: Set<string>;
 }
 
-export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmissionsTableProps) {
-  const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
-
+export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set() }: PublicSubmissionsTableProps) {
   if (!submissions) {
     return (
       <div className="text-center py-8">
