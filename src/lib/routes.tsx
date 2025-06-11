@@ -1,6 +1,5 @@
-
 import { Routes, Route } from "react-router-dom";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
 import UploadReport from "@/pages/UploadReport";
