@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, BarChart2, Files, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,107 +32,38 @@ const CompanyDetails = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
-  useEffect(() => {
-    async function fetchCompanyInfo() {
-      if (!company || !company.id) return;
-      
-      try {
-        const { data: companyDetails } = await supabase
-          .from('company_details')
-          .select('website, stage, industry, introduction')
-          .eq('company_id', company.id.toString())
-          .maybeSingle();
-        
-        if (companyDetails) {
-          setCompanyInfo({
-            website: companyDetails.website || "",
-            stage: companyDetails.stage || "Not specified",
-            industry: companyDetails.industry || "Not specified",
-            founderLinkedIns: [],
-            introduction: companyDetails.introduction || "No description available."
-          });
-          setInfoLoading(false);
-          return;
-        }
-        
-        if (company.reportId) {
-          const { data: report } = await supabase
-            .from('reports')
-            .select('is_public_submission, submission_form_id')
-            .eq('id', company.reportId)
-            .single();
-          
-          if (report?.is_public_submission) {
-            const { data: submission } = await supabase
-              .from('public_form_submissions')
-              .select('website_url, company_stage, industry, founder_linkedin_profiles, description')
-              .eq('report_id', company.reportId)
-              .single();
-            
-            if (submission) {
-              setCompanyInfo({
-                website: submission.website_url || "",
-                stage: submission.company_stage || "Not specified",
-                industry: submission.industry || "Not specified",
-                founderLinkedIns: submission.founder_linkedin_profiles || [],
-                introduction: submission.description || "No description available."
-              });
-            }
-          } else {
-            const { data: sections } = await supabase
-              .from('sections')
-              .select('title, description')
-              .eq('company_id', id as string);
-            
-            let intro = "";
-            let industry = "Not specified";
-            let stage = "Not specified";
-            
-            sections?.forEach(section => {
-              const title = section.title.toLowerCase();
-              const description = section.description || "";
-              
-              if (title.includes('company') || title.includes('introduction') || title.includes('about')) {
-                intro = description;
-              }
-              
-              if (description.toLowerCase().includes('industry')) {
-                const industryMatch = description.match(/industry.{0,5}:?\s*([^\.]+)/i);
-                if (industryMatch && industryMatch[1]) {
-                  industry = industryMatch[1].trim();
-                }
-              }
-              
-              if (description.toLowerCase().includes('stage')) {
-                const stageMatch = description.match(/stage.{0,5}:?\s*([^\.]+)/i);
-                if (stageMatch && stageMatch[1]) {
-                  stage = stageMatch[1].trim();
-                }
-              }
-            });
-            
-            setCompanyInfo({
-              website: "",
-              stage,
-              industry,
-              founderLinkedIns: [],
-              introduction: intro || "No detailed information available for this company."
-            });
-          }
-        }
-        
-        setInfoLoading(false);
-      } catch (error) {
-        console.error("Error fetching company information:", error);
-      } finally {
-        setInfoLoading(false);
-      }
-    }
+  // Memoize sorted sections for better performance
+  const sortedSections = useMemo(() => {
+    if (!company?.sections) return [];
     
+    return [...company.sections].sort((a, b) => {
+      const indexA = ORDERED_SECTIONS.indexOf(a.type);
+      const indexB = ORDERED_SECTIONS.indexOf(b.type);
+      
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      return 0;
+    });
+  }, [company?.sections]);
+
+  // Use company data directly from useCompanyDetails if available
+  useEffect(() => {
     if (company) {
-      fetchCompanyInfo();
+      setCompanyInfo({
+        website: company.website || "",
+        stage: company.stage || "Not specified",
+        industry: company.industry || "Not specified", 
+        founderLinkedIns: [],
+        introduction: company.introduction || "No description available."
+      });
+      setInfoLoading(false);
     }
-  }, [company, id]);
+  }, [company]);
 
   useEffect(() => {
     if (showChat && messages.length === 0 && companyInfo.introduction) {
@@ -152,13 +83,12 @@ const CompanyDetails = () => {
     }
   }, [company]);
 
-  const handleSectionClick = (sectionId: number | string) => {
+  const handleSectionClick = useCallback((sectionId: number | string) => {
     navigate(`/company/${id}/section/${sectionId.toString()}`);
-  };
+  }, [navigate, id]);
 
-  const navigateToReport = () => {
+  const navigateToReport = useCallback(() => {
     if (company?.reportId) {
-      console.log('Navigating to report:', company.reportId);
       navigate(`/reports/${company.reportId}`);
     } else {
       toast({
@@ -167,19 +97,19 @@ const CompanyDetails = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [company?.reportId, navigate]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     navigate("/dashboard");
-  };
+  }, [navigate]);
 
-  const navigateToSupplementaryMaterials = () => {
+  const navigateToSupplementaryMaterials = useCallback(() => {
     navigate(`/company/${id}/supplementary`);
-  };
+  }, [navigate, id]);
   
-  const handleChatbotClick = () => {
+  const handleChatbotClick = useCallback(() => {
     setShowChat(!showChat);
-  };
+  }, [showChat]);
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || isSendingMessage) return;
@@ -305,24 +235,6 @@ const CompanyDetails = () => {
     return "score-critical";
   };
 
-  const sortedSections = [...company?.sections || []].sort((a, b) => {
-    const indexA = ORDERED_SECTIONS.indexOf(a.type);
-    const indexB = ORDERED_SECTIONS.indexOf(b.type);
-    
-    if (indexA !== -1 && indexB !== -1) {
-      return indexA - indexB;
-    }
-    
-    if (indexA !== -1) return -1;
-    if (indexB !== -1) return 1;
-    
-    return 0;
-  });
-
-  // Debug logging for sorted sections
-  console.log('Sorted sections:', sortedSections);
-  console.log('Number of sorted sections:', sortedSections.length);
-
   return (
     <div className="min-h-screen">
       <div className="flex w-full">
@@ -395,14 +307,6 @@ const CompanyDetails = () => {
               <BarChart2 className="h-5 w-5 text-primary" />
               Section Metrics
             </h2>
-            
-            {/* Debug info - remove this after testing */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 p-4 bg-gray-100 rounded">
-                <p>Debug: Sections count: {sortedSections.length}</p>
-                <p>Debug: Company sections: {JSON.stringify(company.sections?.map(s => ({ id: s.id, title: s.title, type: s.type })) || [])}</p>
-              </div>
-            )}
             
             {sortedSections.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
