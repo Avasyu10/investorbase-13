@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { ReportUpload } from "@/components/reports/ReportUpload";
 import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, FileUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface FormData {
@@ -32,6 +32,7 @@ const PublicUpload = () => {
   useEffect(() => {
     const fetchFormData = async () => {
       if (!activeFormSlug) {
+        // No form slug provided - this is a generic upload page
         setLoading(false);
         return;
       }
@@ -50,8 +51,10 @@ const PublicUpload = () => {
           setErrorDetails(error.message);
         } else if (!data) {
           setError("Form not found");
+          setErrorDetails("The form you're looking for doesn't exist or has been removed.");
         } else if (!data.is_active) {
           setError("This form is no longer active");
+          setErrorDetails("The form owner has disabled submissions for this form.");
         } else {
           console.log("Form data loaded successfully:", data);
           setFormData(data);
@@ -106,6 +109,9 @@ const PublicUpload = () => {
     );
   }
 
+  // If no form slug is provided or form not found, show generic upload page
+  const isGenericUpload = !activeFormSlug || error;
+
   return (
     <div className="animate-fade-in">
       <Toaster position="top-center" />
@@ -139,11 +145,17 @@ const PublicUpload = () => {
         ) : (
           <div className="w-full max-w-2xl">
             <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <FileUp className="h-12 w-12 text-primary" />
+              </div>
               <h1 className="text-2xl font-bold tracking-tight mb-2">
                 {formData ? formData.form_name : "Submit Your Pitch Deck"}
               </h1>
               <p className="text-muted-foreground">
-                Upload a PDF of your Pitch Deck along with the following information
+                {isGenericUpload 
+                  ? "Upload a PDF of your Pitch Deck along with the following information"
+                  : "Upload a PDF of your Pitch Deck along with the following information"
+                }
               </p>
             </div>
             

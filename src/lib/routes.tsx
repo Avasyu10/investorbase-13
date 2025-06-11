@@ -1,4 +1,3 @@
-
 import Index from "@/pages/Index";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -22,6 +21,7 @@ import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Admin from "@/pages/Admin";
+import PublicForms from "@/pages/PublicForms";
 
 const routes = [
   {
@@ -99,6 +99,18 @@ const routes = [
   {
     path: "/public-upload",
     element: <PublicUpload />,
+  },
+  {
+    path: "/public-upload/:formSlug",
+    element: <PublicUpload />,
+  },
+  {
+    path: "/public-forms",
+    element: (
+      <ProtectedRoute>
+        <PublicForms />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/company/:companyId/analysis",
