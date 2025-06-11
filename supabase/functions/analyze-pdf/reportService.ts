@@ -40,7 +40,9 @@ export async function getReportData(reportId: string) {
     title: report.title,
     pdfUrl: report.pdf_url,
     hasDescription: !!report.description,
-    descriptionLength: report.description?.length || 0
+    descriptionLength: report.description?.length || 0,
+    isPublicSubmission: report.is_public_submission,
+    userId: report.user_id
   });
   
   // Get the PDF file from storage
@@ -50,17 +52,103 @@ export async function getReportData(reportId: string) {
   
   console.log("Downloading PDF from storage:", report.pdf_url);
   
-  const { data: pdfData, error: downloadError } = await supabase.storage
-    .from('report_pdfs')
-    .download(report.pdf_url);
+  // Try different storage buckets based on the source
+  let pdfData = null;
+  let downloadError = null;
+  
+  // First try report_pdfs bucket
+  try {
+    const { data, error } = await supabase.storage
+      .from('report_pdfs')
+      .download(report.pdf_url);
+      
+    if (error) {
+      console.log("Failed to download from report_pdfs bucket:", error.message);
+      downloadError = error;
+    } else if (data) {
+      pdfData = data;
+      console.log("Successfully downloaded from report_pdfs bucket");
+    }
+  } catch (err) {
+    console.log("Error accessing report_pdfs bucket:", err);
+  }
+  
+  // If that failed, try email_attachments bucket for email submissions
+  if (!pdfData && report.is_public_submission) {
+    try {
+      console.log("Trying email_attachments bucket for public submission");
+      const { data, error } = await supabase.storage
+        .from('email_attachments')
+        .download(report.pdf_url);
+        
+      if (error) {
+        console.log("Failed to download from email_attachments bucket:", error.message);
+      } else if (data) {
+        pdfData = data;
+        console.log("Successfully downloaded from email_attachments bucket");
+      }
+    } catch (err) {
+      console.log("Error accessing email_attachments bucket:", err);
+    }
+  }
+  
+  // If still no data, check if this is linked to an email submission
+  if (!pdfData) {
+    console.log("Checking for associated email submissions");
     
-  if (downloadError) {
-    console.error("PDF download error:", downloadError);
-    throw new Error(`Failed to download PDF: ${downloadError.message}`);
+    // Check email_submissions table
+    const { data: emailSubmission } = await supabase
+      .from('email_submissions')
+      .select('attachment_url')
+      .eq('report_id', reportId)
+      .maybeSingle();
+    
+    if (emailSubmission?.attachment_url) {
+      console.log("Found email submission attachment:", emailSubmission.attachment_url);
+      try {
+        const { data, error } = await supabase.storage
+          .from('email_attachments')
+          .download(emailSubmission.attachment_url);
+          
+        if (!error && data) {
+          pdfData = data;
+          console.log("Successfully downloaded from email submission attachment URL");
+        }
+      } catch (err) {
+        console.log("Error downloading email submission attachment:", err);
+      }
+    }
+    
+    // Check email_pitch_submissions table
+    if (!pdfData) {
+      const { data: pitchSubmission } = await supabase
+        .from('email_pitch_submissions')
+        .select('attachment_url')
+        .eq('report_id', reportId)
+        .maybeSingle();
+      
+      if (pitchSubmission?.attachment_url) {
+        console.log("Found pitch submission attachment:", pitchSubmission.attachment_url);
+        try {
+          const { data, error } = await supabase.storage
+            .from('email_attachments')
+            .download(pitchSubmission.attachment_url);
+            
+          if (!error && data) {
+            pdfData = data;
+            console.log("Successfully downloaded from pitch submission attachment URL");
+          }
+        } catch (err) {
+          console.log("Error downloading pitch submission attachment:", err);
+        }
+      }
+    }
   }
   
   if (!pdfData) {
-    throw new Error("No PDF data received");
+    const errorMsg = downloadError ? downloadError.message : "No PDF data found in any storage location";
+    console.error("PDF download failed:", errorMsg);
+    throw new Error(`Failed to download PDF: ${errorMsg}`);
   }
   
   console.log("PDF downloaded successfully, size:", pdfData.size);

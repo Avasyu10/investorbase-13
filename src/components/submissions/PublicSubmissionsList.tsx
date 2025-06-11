@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +49,7 @@ export function PublicSubmissionsList() {
         console.log("Fetching public submissions for user:", user.id);
         console.log("User email:", user.email);
         
+        // Fetch reports that are public submissions and not yet completed
         const { data: reportData, error: reportError } = await supabase
           .from('reports')
           .select(`
@@ -57,11 +59,12 @@ export function PublicSubmissionsList() {
             pdf_url,
             created_at,
             analysis_status,
+            submitter_email,
             companies:companies!reports_company_id_fkey(id)
           `)
           .eq('is_public_submission', true)
-          .eq('user_id', user.id)
           .is('company_id', null)
+          .in('analysis_status', ['pending', 'failed'])
           .order('created_at', { ascending: false });
           
         if (reportError) {
@@ -71,6 +74,7 @@ export function PublicSubmissionsList() {
         
         console.log("Public submissions from reports:", reportData?.length || 0);
         
+        // Fetch public form submissions
         const { data: formData, error: formError } = await supabase
           .from('public_form_submissions')
           .select(`
@@ -78,18 +82,20 @@ export function PublicSubmissionsList() {
             reports:report_id (
               id,
               company_id,
-              analysis_status
+              analysis_status,
+              user_id
             )
           `)
           .order('created_at', { ascending: false });
           
         if (formError) {
           console.error("Error fetching public form submissions:", formError);
-          throw formError;
+          // Don't throw, continue with other data
         }
         
         console.log("Public form submissions fetched:", formData?.length || 0);
         
+        // Fetch email submissions that match the user's email
         const { data: emailData, error: emailError } = await supabase
           .from('email_submissions')
           .select(`
@@ -97,19 +103,20 @@ export function PublicSubmissionsList() {
             reports:report_id (
               id,
               company_id,
-              analysis_status
+              analysis_status,
+              user_id
             )
           `)
-          .eq('from_email', user.email)
           .order('created_at', { ascending: false });
           
         if (emailError) {
           console.error("Error fetching email submissions:", emailError);
-          throw emailError;
+          // Don't throw, continue with other data
         }
         
         console.log("Email submissions fetched:", emailData?.length || 0);
         
+        // Fetch email pitch submissions - these should now be visible due to RLS fix
         let emailPitchData = [];
         try {
           const { data: pitchData, error: emailPitchError } = await supabase
@@ -119,31 +126,25 @@ export function PublicSubmissionsList() {
               reports:report_id (
                 id,
                 company_id,
-                analysis_status
+                analysis_status,
+                user_id
               )
             `)
-            .order('created_at', { ascending: false });
+            .order('received_at', { ascending: false });
           
           if (emailPitchError) {
             console.error("Error fetching email pitch submissions:", emailPitchError);
-            // Continue with other data, don't throw error
           } else {
             console.log("Email pitch submissions fetched:", pitchData?.length || 0);
-            console.log("Sample email pitch submission:", pitchData?.[0]);
-            
-            emailPitchData = pitchData?.filter(submission => 
-              submission.sender_email === user.email
-            ) || [];
-            
-            console.log("Filtered email pitch submissions for current user:", emailPitchData.length);
+            emailPitchData = pitchData || [];
           }
         } catch (pitchError) {
           console.error("Error in pitch email fetch:", pitchError);
-          // Continue with other data
         }
         
-        const transformedReportData = reportData
-          .filter(report => report.analysis_status !== 'completed' && !report.companies?.id)
+        // Transform report data
+        const transformedReportData = (reportData || [])
+          .filter(report => !report.companies?.id)
           .map(report => ({
             id: report.id,
             title: report.title,
@@ -160,7 +161,8 @@ export function PublicSubmissionsList() {
           
         console.log("Transformed report data:", transformedReportData.length);
         
-        const transformedFormData = formData
+        // Transform form data - only include unprocessed submissions
+        const transformedFormData = (formData || [])
           .filter(submission => {
             return !submission.reports || 
                    !submission.reports.company_id ||
@@ -183,12 +185,15 @@ export function PublicSubmissionsList() {
           
         console.log("Filtered public form submissions:", transformedFormData.length);
         
-        const transformedEmailData = emailData
+        // Transform email data - only include submissions relevant to this user
+        const transformedEmailData = (emailData || [])
           .filter(submission => {
-            return !submission.reports || 
+            const isRelevant = submission.from_email === user.email;
+            const isUnprocessed = !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
                    submission.reports.analysis_status === 'pending';
+            return isRelevant && isUnprocessed;
           })
           .map(submission => ({
             id: submission.id,
@@ -207,12 +212,14 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email submissions:", transformedEmailData.length);
         
+        // Transform email pitch data - should now work with updated RLS
         const transformedEmailPitchData = emailPitchData
           .filter(submission => {
-            return !submission.reports || 
+            const isUnprocessed = !submission.reports || 
                    !submission.reports.company_id ||
                    submission.reports.analysis_status === 'failed' ||
                    submission.reports.analysis_status === 'pending';
+            return isUnprocessed;
           })
           .map(submission => ({
             id: submission.id,
@@ -221,7 +228,7 @@ export function PublicSubmissionsList() {
             company_stage: null,
             industry: null,
             website_url: null,
-            created_at: submission.received_at ? submission.received_at : submission.created_at,
+            created_at: submission.received_at || submission.created_at,
             form_slug: "",
             pdf_url: submission.attachment_url,
             report_id: submission.report_id,
@@ -231,6 +238,7 @@ export function PublicSubmissionsList() {
         
         console.log("Filtered email pitch submissions:", transformedEmailPitchData.length);
         
+        // Combine and deduplicate submissions
         const submissionsMap = new Map();
         
         [...transformedReportData, ...transformedFormData, ...transformedEmailData, ...transformedEmailPitchData].forEach(submission => {
@@ -246,9 +254,7 @@ export function PublicSubmissionsList() {
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         console.log("Combined submissions after deduplication:", combinedSubmissions.length);
-        
-        const emailPitchCount = combinedSubmissions.filter(s => s.source === 'email_pitch').length;
-        console.log("Email pitch submissions in final combined list:", emailPitchCount);
+        console.log("Email pitch submissions in final list:", combinedSubmissions.filter(s => s.source === 'email_pitch').length);
         
         setSubmissions(combinedSubmissions);
       } catch (error) {
@@ -293,6 +299,7 @@ export function PublicSubmissionsList() {
           const reportId = response.data.reportId;
           console.log(`Report created with ID: ${reportId}`);
           
+          // Wait for analysis to complete
           let analysisComplete = false;
           let retries = 0;
           let companyId = null;
@@ -307,7 +314,7 @@ export function PublicSubmissionsList() {
             if (reportError) {
               console.error("Error fetching report:", reportError);
               retries++;
-              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+              await new Promise(resolve => setTimeout(resolve, 2000));
               continue;
             }
             
@@ -320,7 +327,7 @@ export function PublicSubmissionsList() {
             }
             
             retries++;
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
           
           if (companyId) {
@@ -364,20 +371,6 @@ export function PublicSubmissionsList() {
     
     try {
       console.log(`Calling analyze function with report ID: ${submission.report_id}`);
-      console.log("Checking if this is a public submission...");
-      
-      const { data: formSubmission } = await supabase
-        .from('public_form_submissions')
-        .select('*')
-        .eq('report_id', submission.report_id)
-        .maybeSingle();
-        
-      if (formSubmission) {
-        console.log("Report is a public submission");
-        console.log("Will use analyze-public-pdf function for analysis");
-      } else {
-        console.log("Not a public form submission, will use default analyze-pdf");
-      }
       
       const result = await analyzeReport(submission.report_id);
       
@@ -404,8 +397,7 @@ export function PublicSubmissionsList() {
           description: "There was an error accessing the PDF file. Please check that the file exists in storage.",
           variant: "destructive",
         });
-      }
-      else if ((errorMessage.includes("Network error") || 
+      } else if ((errorMessage.includes("Network error") || 
            errorMessage.includes("Failed to fetch") ||
            errorMessage.includes("Failed to send") ||
            errorMessage.includes("CORS") ||
@@ -428,16 +420,11 @@ export function PublicSubmissionsList() {
           variant: "destructive",
         });
       } else {
-        if (!errorMessage.includes("Network error") && 
-            !errorMessage.includes("timed out") &&
-            !errorMessage.includes("analysis failed") &&
-            !errorMessage.includes("Edge Function")) {
-          toast({
-            title: "Analysis failed",
-            description: errorMessage,
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     } finally {
       setIsAnalyzing(false);
