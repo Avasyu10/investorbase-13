@@ -423,17 +423,20 @@ export function ReportUpload({
           }
         }
         
-        const apiUrl = "https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload";
+        // Use the correct Supabase edge function URL
+        const apiUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload`;
         console.log("Sending public upload request to:", apiUrl);
         
         setProgressStage("Uploading and processing LinkedIn profiles...");
         setProgress(50);
         
         try {
+          console.log("Making request to edge function...");
           const response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
-            // Don't set any headers - let the browser handle it
+            // Don't set Content-Type header - let browser handle it for multipart/form-data
+            // Don't set Authorization header for public endpoint
           });
           
           console.log("Response received:", {
@@ -450,7 +453,9 @@ export function ReportUpload({
               errorDetails = errorData.details || errorData.message || errorData.error || `Status: ${response.status}`;
             } catch (parseError) {
               console.error("Failed to parse error response:", parseError);
-              errorDetails = `Status: ${response.status} (could not parse response)`;
+              const responseText = await response.text().catch(() => "Could not read response");
+              console.error("Raw response:", responseText);
+              errorDetails = `Status: ${response.status} - ${response.statusText}`;
             }
             
             throw new Error(`Upload failed: ${errorDetails}`);

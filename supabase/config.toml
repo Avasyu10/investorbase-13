@@ -1,9 +1,23 @@
 
 project_id = "jhtnruktmtjqrfoiyrep"
 
-[functions]
+[functions.handle-public-upload]
+verify_jwt = false
+
 [functions.send-alert-emails]
 verify_jwt = true
 
 [functions.trigger-daily-alerts]
 verify_jwt = false
+
+[functions.auto-analyze-public-pdf]
+verify_jwt = false
+
+[functions.analyze-public-pdf]
+verify_jwt = false
+
+[functions.analyze-pdf]
+verify_jwt = true
+
+[functions.analyze-pdf-direct]
+verify_jwt = true

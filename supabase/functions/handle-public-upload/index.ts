@@ -5,6 +5,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // LinkedIn scraping function for public uploads
@@ -198,8 +199,12 @@ const scrapeLinkedInProfilesPublic = async (urls: string[], reportId: string, su
 };
 
 serve(async (req) => {
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
+  
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, {
       headers: corsHeaders,
     });
@@ -207,10 +212,18 @@ serve(async (req) => {
 
   try {
     console.log("Public upload handler started - NO AUTH REQUIRED");
+    console.log("Request method:", req.method);
+    console.log("Content-Type:", req.headers.get("content-type"));
     
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    console.log("Environment check:", {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      supabaseUrl: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'missing'
+    });
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase configuration");
@@ -258,6 +271,7 @@ serve(async (req) => {
     let formData;
     try {
       formData = await req.formData();
+      console.log("Form data parsed successfully");
     } catch (parseError) {
       console.error("Error parsing form data:", parseError);
       return new Response(
@@ -649,6 +663,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Fatal error in public upload handler:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     
     return new Response(
       JSON.stringify({ 
