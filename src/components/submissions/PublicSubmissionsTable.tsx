@@ -1,4 +1,3 @@
-
 import { 
   Table, 
   TableBody, 
@@ -70,48 +69,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze }: PublicSubmiss
       return;
     }
 
-    setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
-
-    try {
-      console.log("Starting analysis for submission:", submission.id, "with report_id:", submission.report_id);
-      
-      const { data, error } = await supabase.functions.invoke('analyze-pdf', {
-        body: { reportId: submission.report_id }
-      });
-      
-      if (error) {
-        console.error("Error invoking analyze-pdf function:", error);
-        throw error;
-      }
-      
-      if (!data || data.error) {
-        const errorMessage = data?.error || "Unknown error occurred during analysis";
-        console.error("API returned error:", errorMessage);
-        throw new Error(errorMessage);
-      }
-      
-      console.log("Analysis completed successfully:", data);
-      
-      toast.success("Analysis complete", {
-        description: "The submission has been analyzed successfully"
-      });
-      
-      // Call the original onAnalyze callback
-      onAnalyze(submission);
-      
-    } catch (error) {
-      console.error("Error analyzing submission:", error);
-      
-      toast.error("Analysis failed", {
-        description: error instanceof Error ? error.message : "Failed to analyze submission"
-      });
-    } finally {
-      setAnalyzingSubmissions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(submission.id);
-        return newSet;
-      });
-    }
+    // Call the original onAnalyze callback first to show the modal
+    onAnalyze(submission);
   };
 
   const truncateText = (text: string | null, maxLength: number) => {
