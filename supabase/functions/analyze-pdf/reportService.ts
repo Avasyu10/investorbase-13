@@ -1,148 +1,80 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { corsHeaders } from "./cors.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.29.0';
 
 export async function getReportData(reportId: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  console.log(`Getting report data for ID: ${reportId}`);
   
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase configuration');
   }
   
-  // Create Supabase clients
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+  // Create supabase client with service role key to bypass RLS
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
   
-  // Get the report details
-  const { data: report, error: reportError } = await serviceClient
+  // Get the report data
+  const { data: report, error: reportError } = await supabase
     .from('reports')
-    .select('*, email_submissions(attachment_url)')
+    .select('*')
     .eq('id', reportId)
     .single();
-  
+    
   if (reportError) {
-    console.error('Error fetching report:', reportError);
-    throw reportError;
+    console.error("Report fetch error:", reportError);
+    throw new Error(`Report not found: ${reportError.message}`);
   }
   
   if (!report) {
-    throw new Error(`Report not found: ${reportId}`);
+    throw new Error("Report not found");
   }
   
-  console.log('Report details:', {
+  console.log("Report found:", {
     id: report.id,
     title: report.title,
-    pdf_url: report.pdf_url,
-    hasEmailSubmission: !!report.email_submissions,
+    pdfUrl: report.pdf_url,
+    hasDescription: !!report.description,
+    descriptionLength: report.description?.length || 0
   });
   
-  let fileData: Blob;
-  
-  // Handle email attachments differently
-  if (report.email_submissions && report.email_submissions.attachment_url) {
-    const attachmentPath = report.email_submissions.attachment_url;
-    console.log(`Downloading email attachment from: ${attachmentPath}`);
-    
-    try {
-      const { data, error } = await serviceClient.storage
-        .from('email_attachments')
-        .download(attachmentPath);
-        
-      if (error) {
-        console.error('Error downloading email attachment:', error);
-        
-        // Try with just the filename if the full path fails
-        const filename = attachmentPath.split('/').pop() || '';
-        console.log(`Trying with just filename: ${filename}`);
-        
-        const { data: altData, error: altError } = await serviceClient.storage
-          .from('email_attachments')
-          .download(filename);
-          
-        if (altError) {
-          console.error('Error downloading email attachment with alternate path:', altError);
-          throw error; // Throw original error if both attempts fail
-        }
-        
-        if (!altData) {
-          throw new Error('Email attachment not found with alternate path');
-        }
-        
-        fileData = altData;
-      } else {
-        if (!data) {
-          throw new Error('Email attachment not found');
-        }
-        
-        fileData = data;
-      }
-    } catch (error) {
-      console.error('Failed to download email attachment:', error);
-      throw error;
-    }
-  } else {
-    // Handle regular uploads
-    let storagePath = report.pdf_url;
-    let userId = report.user_id;
-    
-    // For reports with user_id, the path includes the user ID
-    if (userId && !storagePath.includes('/')) {
-      storagePath = `${userId}/${storagePath}`;
-    }
-    
-    console.log(`Downloading PDF from report_pdfs: ${storagePath}`);
-    
-    try {
-      const { data, error } = await serviceClient.storage
-        .from('report_pdfs')
-        .download(storagePath);
-        
-      if (error) {
-        console.error('Error downloading PDF:', error);
-        
-        // Try alternative path without user ID prefix
-        console.log('Trying alternative path without user ID prefix');
-        const altPath = report.pdf_url.split('/').pop() || report.pdf_url;
-        
-        const { data: altData, error: altError } = await serviceClient.storage
-          .from('report_pdfs')
-          .download(altPath);
-          
-        if (altError) {
-          console.error('Error downloading PDF with alternative path:', altError);
-          throw error; // Throw the original error
-        }
-        
-        if (!altData) {
-          throw new Error('PDF not found with alternative path');
-        }
-        
-        fileData = altData;
-      } else {
-        if (!data) {
-          throw new Error('PDF not found');
-        }
-        
-        fileData = data;
-      }
-    } catch (error) {
-      console.error('Failed to download PDF:', error);
-      throw error;
-    }
+  // Get the PDF file from storage
+  if (!report.pdf_url) {
+    throw new Error("No PDF URL found in report");
   }
   
+  console.log("Downloading PDF from storage:", report.pdf_url);
+  
+  const { data: pdfData, error: downloadError } = await supabase.storage
+    .from('report_pdfs')
+    .download(report.pdf_url);
+    
+  if (downloadError) {
+    console.error("PDF download error:", downloadError);
+    throw new Error(`Failed to download PDF: ${downloadError.message}`);
+  }
+  
+  if (!pdfData) {
+    throw new Error("No PDF data received");
+  }
+  
+  console.log("PDF downloaded successfully, size:", pdfData.size);
+  
   // Convert to base64
-  const arrayBuffer = await fileData.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  const base64 = btoa(
-    Array.from(bytes)
-      .map(byte => String.fromCharCode(byte))
-      .join('')
-  );
+  const arrayBuffer = await pdfData.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  const pdfBase64 = btoa(String.fromCharCode(...uint8Array));
   
-  console.log(`Successfully converted PDF to base64, length: ${base64.length}`);
+  console.log("PDF converted to base64, length:", pdfBase64.length);
   
-  return { supabase, report, pdfBase64: base64 };
+  return {
+    supabase,
+    report,
+    pdfBase64
+  };
 }
