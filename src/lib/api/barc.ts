@@ -89,8 +89,19 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     console.log('Found submission for analysis:', {
       id: submission.id,
       company_name: submission.company_name,
-      current_status: submission.analysis_status
+      current_status: submission.analysis_status,
+      existing_company_id: submission.company_id
     });
+
+    // If already analyzed and has a company_id, return early to prevent duplicates
+    if (submission.analysis_status === 'completed' && submission.company_id) {
+      console.log('Submission already analyzed with company ID:', submission.company_id);
+      return {
+        success: true,
+        companyId: submission.company_id,
+        message: 'Submission already analyzed'
+      };
+    }
 
     // Update status to processing first
     await supabase

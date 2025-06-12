@@ -126,12 +126,14 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
-        // Fetch BARC form submissions - show ALL BARC submissions regardless of status
+        // Fetch BARC form submissions - only show unanalyzed ones to prevent duplicates in prospects
         try {
           console.log("Fetching BARC form submissions...");
           const { data: barcData, error: barcError } = await supabase
             .from('barc_form_submissions')
             .select('*')
+            .in('analysis_status', ['pending', 'failed', 'processing'])
+            .is('company_id', null)
             .order('created_at', { ascending: false });
             
           if (barcError) {
@@ -254,20 +256,18 @@ export function PublicSubmissionsList() {
             description: "The BARC application has been successfully analyzed",
           });
           
-          // If a company was created (for Accept recommendations), navigate to it
+          // Remove the analyzed submission from the list to prevent duplicates
+          setSubmissions(prev => prev.filter(s => s.id !== submission.id));
+          
+          // If a company was created, navigate to it
           if (result.companyId) {
             toast({
               title: "Company created",
               description: "A new company prospect has been added to your dashboard",
             });
             
-            // Don't remove from submissions list, just refresh the data
-            // The submission will still show but with updated analysis status
-            // Users can navigate to the company or view the analysis
-            
             navigate(`/company/${result.companyId}`);
           } else {
-            // For Consider/Reject recommendations, stay on submissions page
             // Navigate to BARC submissions page to view analysis
             navigate('/barc-submissions');
           }
