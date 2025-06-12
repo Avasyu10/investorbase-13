@@ -176,6 +176,9 @@ serve(async (req) => {
     - Reference actual market conditions, growth projections, and industry data
     - Provide context about market timing and competitive positioning with concrete examples
     - Include specific market size figures, growth rates, and investment trends relevant to the industry
+    - Each assessment point should contain at least 2-3 specific quantified metrics or market data points
+    - Use actual dollar amounts, percentages, market sizes, and growth rates wherever possible
+    - Reference recent funding rounds, market valuations, and industry benchmarks with specific numbers
 
     Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-5 (not 1-10):
 
@@ -223,11 +226,11 @@ serve(async (req) => {
         "overall_feedback": "comprehensive feedback that synthesizes form responses with detailed market context, industry positioning, and specific market opportunities",
         "key_factors": ["detailed factor 1 combining answers with specific market insights and data", "detailed factor 2 with market trends and competitive analysis", "detailed factor 3 with industry positioning and growth potential"],
         "next_steps": ["detailed step 1 with market-informed recommendations and specific actions", "detailed step 2 with industry best practices and concrete milestones", "detailed step 3 with market opportunities and strategic positioning"],
-        "assessment_points": ["detailed assessment point 1 with specific market data, growth rates, and industry context that validates or challenges the business model", "detailed assessment point 2 with competitive landscape analysis, market positioning data, and concrete market opportunities", "detailed assessment point 3 with industry trends, investment patterns, and market timing considerations including specific numbers", "detailed assessment point 4 with customer acquisition insights, market penetration strategies, and industry benchmarks with actual data", "detailed assessment point 5 with scaling potential, market expansion opportunities, and long-term industry projections with quantified metrics"]
+        "assessment_points": ["Market analysis shows the ${submission.company_name || 'company'}'s target industry has a market size of $X billion with Y% annual growth, positioning this solution in a rapidly expanding segment worth approximately $Z million addressable market by 2025", "Competitive landscape analysis reveals similar companies have raised an average of $X million in Series A funding, with successful exits averaging $Y million, indicating strong investor interest and market validation for solutions in this space", "Customer acquisition metrics from comparable startups show average customer acquisition costs of $X and lifetime values of $Y, suggesting a healthy unit economics model with Z% gross margins typical for this industry vertical", "Market timing analysis indicates this industry is experiencing a X% increase in demand driven by recent regulatory changes and consumer behavior shifts, with early movers capturing an average of Y% market share within 2-3 years", "Investment landscape data shows VCs have allocated $X billion to this sector in the last 12 months, representing a Y% increase from previous year, with average deal sizes of $Z million for companies at similar stages and market positioning"]
       }
     }
 
-    Focus on providing actionable insights that combine the applicant's responses with specific, quantified market intelligence. Include market-informed assessment points that highlight concrete market opportunities, competitive positioning with numbers, industry trends with growth data, and realistic growth potential while staying grounded in the specific answers provided by the applicant. Use actual market figures, growth percentages, investment amounts, and industry statistics wherever possible to support your analysis.
+    Focus on providing actionable insights that combine the applicant's responses with specific, quantified market intelligence. Each assessment point MUST include concrete market figures, growth percentages, investment amounts, and industry statistics to support the analysis. Ensure every assessment point contains at least 2-3 specific quantified metrics that validate or challenge the business model while staying grounded in the specific answers provided by the applicant.
     `;
 
     // Call OpenAI API
@@ -243,7 +246,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay with comprehensive market knowledge and access to industry data. Provide thorough, market-informed analysis with specific numbers, growth rates, market sizes, and industry trends in valid JSON format only. All scores must be on a scale of 1-5. Integrate detailed market data with quantified metrics alongside form responses to provide comprehensive evaluation with concrete market insights. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay with comprehensive market knowledge and access to industry data. Provide thorough, market-informed analysis with specific numbers, growth rates, market sizes, and industry trends in valid JSON format only. All scores must be on a scale of 1-5. Each assessment point must contain at least 2-3 specific quantified metrics including dollar amounts, percentages, market sizes, growth rates, funding figures, or industry benchmarks. Integrate detailed market data with quantified metrics alongside form responses to provide comprehensive evaluation with concrete market insights. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
           },
           {
             role: 'user',
@@ -436,102 +439,6 @@ serve(async (req) => {
               }
             }
           }
-        }
-      }
-
-      // Generate real-time market research after company creation
-      if (companyId) {
-        console.log('Generating real-time market research for company:', companyId);
-        
-        // Prepare market research prompt
-        const marketResearchPrompt = `
-        Generate comprehensive real-time market research for the startup ${submission.company_name || 'this startup'} based on the following information:
-
-        Company: ${submission.company_name || 'Not provided'}
-        Industry: ${companyInfo.industry || 'Not provided'}
-        Executive Summary: ${submission.executive_summary || 'Not provided'}
-        
-        Please provide research in the following JSON format:
-        {
-          "market_research": {
-            "content": "Detailed market research analysis with current market size, growth trends, key players, and market dynamics. Include specific numbers, percentages, and recent data from credible sources.",
-            "sources": ["Source 1: Description", "Source 2: Description"]
-          },
-          "latest_news": {
-            "content": "Recent news and developments in the industry or related to similar companies. Include funding announcements, partnerships, regulatory changes, and market movements from the last 6 months.",
-            "sources": ["News Source 1: Description", "News Source 2: Description"]
-          },
-          "market_trends": {
-            "content": "Current and emerging market trends, technology adoption patterns, consumer behavior shifts, and future outlook. Include quantified data about trend growth rates and market predictions.",
-            "sources": ["Trend Source 1: Description", "Trend Source 2: Description"]
-          }
-        }
-        
-        Ensure all content is relevant, recent, and includes credible source attributions. Focus on actionable market intelligence.
-        `;
-
-        const marketResearchResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a market research analyst providing comprehensive, data-driven market intelligence. Generate detailed research with specific numbers, recent data, and credible sources. Return only valid JSON without markdown formatting.'
-              },
-              {
-                role: 'user',
-                content: marketResearchPrompt
-              }
-            ],
-            temperature: 0.3,
-            max_tokens: 2000,
-          }),
-        });
-
-        if (marketResearchResponse.ok) {
-          const marketData = await marketResearchResponse.json();
-          let marketResearchText = marketData.choices[0].message.content;
-          
-          // Clean up the response
-          if (marketResearchText.startsWith('```json')) {
-            marketResearchText = marketResearchText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-          } else if (marketResearchText.startsWith('```')) {
-            marketResearchText = marketResearchText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-          }
-
-          try {
-            const marketResearchResult = JSON.parse(marketResearchText);
-            
-            // Store market research in company record
-            const { error: marketUpdateError } = await supabase
-              .from('companies')
-              .update({
-                market_research: marketResearchResult.market_research?.content || '',
-                latest_news: marketResearchResult.latest_news?.content || '',
-                market_trends: marketResearchResult.market_trends?.content || '',
-                market_research_sources: [
-                  ...(marketResearchResult.market_research?.sources || []),
-                  ...(marketResearchResult.latest_news?.sources || []),
-                  ...(marketResearchResult.market_trends?.sources || [])
-                ]
-              })
-              .eq('id', companyId);
-
-            if (marketUpdateError) {
-              console.error('Failed to update market research:', marketUpdateError);
-            } else {
-              console.log('Successfully updated market research for company');
-            }
-          } catch (parseError) {
-            console.error('Failed to parse market research JSON:', parseError);
-          }
-        } else {
-          console.error('Market research API call failed:', marketResearchResponse.status);
         }
       }
     } else {
