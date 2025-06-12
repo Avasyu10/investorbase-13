@@ -438,6 +438,102 @@ serve(async (req) => {
           }
         }
       }
+
+      // Generate real-time market research after company creation
+      if (companyId) {
+        console.log('Generating real-time market research for company:', companyId);
+        
+        // Prepare market research prompt
+        const marketResearchPrompt = `
+        Generate comprehensive real-time market research for the startup ${submission.company_name || 'this startup'} based on the following information:
+
+        Company: ${submission.company_name || 'Not provided'}
+        Industry: ${companyInfo.industry || 'Not provided'}
+        Executive Summary: ${submission.executive_summary || 'Not provided'}
+        
+        Please provide research in the following JSON format:
+        {
+          "market_research": {
+            "content": "Detailed market research analysis with current market size, growth trends, key players, and market dynamics. Include specific numbers, percentages, and recent data from credible sources.",
+            "sources": ["Source 1: Description", "Source 2: Description"]
+          },
+          "latest_news": {
+            "content": "Recent news and developments in the industry or related to similar companies. Include funding announcements, partnerships, regulatory changes, and market movements from the last 6 months.",
+            "sources": ["News Source 1: Description", "News Source 2: Description"]
+          },
+          "market_trends": {
+            "content": "Current and emerging market trends, technology adoption patterns, consumer behavior shifts, and future outlook. Include quantified data about trend growth rates and market predictions.",
+            "sources": ["Trend Source 1: Description", "Trend Source 2: Description"]
+          }
+        }
+        
+        Ensure all content is relevant, recent, and includes credible source attributions. Focus on actionable market intelligence.
+        `;
+
+        const marketResearchResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a market research analyst providing comprehensive, data-driven market intelligence. Generate detailed research with specific numbers, recent data, and credible sources. Return only valid JSON without markdown formatting.'
+              },
+              {
+                role: 'user',
+                content: marketResearchPrompt
+              }
+            ],
+            temperature: 0.3,
+            max_tokens: 2000,
+          }),
+        });
+
+        if (marketResearchResponse.ok) {
+          const marketData = await marketResearchResponse.json();
+          let marketResearchText = marketData.choices[0].message.content;
+          
+          // Clean up the response
+          if (marketResearchText.startsWith('```json')) {
+            marketResearchText = marketResearchText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+          } else if (marketResearchText.startsWith('```')) {
+            marketResearchText = marketResearchText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+          }
+
+          try {
+            const marketResearchResult = JSON.parse(marketResearchText);
+            
+            // Store market research in company record
+            const { error: marketUpdateError } = await supabase
+              .from('companies')
+              .update({
+                market_research: marketResearchResult.market_research?.content || '',
+                latest_news: marketResearchResult.latest_news?.content || '',
+                market_trends: marketResearchResult.market_trends?.content || '',
+                market_research_sources: [
+                  ...(marketResearchResult.market_research?.sources || []),
+                  ...(marketResearchResult.latest_news?.sources || []),
+                  ...(marketResearchResult.market_trends?.sources || [])
+                ]
+              })
+              .eq('id', companyId);
+
+            if (marketUpdateError) {
+              console.error('Failed to update market research:', marketUpdateError);
+            } else {
+              console.log('Successfully updated market research for company');
+            }
+          } catch (parseError) {
+            console.error('Failed to parse market research JSON:', parseError);
+          }
+        } else {
+          console.error('Market research API call failed:', marketResearchResponse.status);
+        }
+      }
     } else {
       console.log('Not creating company because no user ID available');
     }
