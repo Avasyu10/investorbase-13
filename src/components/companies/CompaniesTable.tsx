@@ -44,7 +44,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold w-[150px]">Company</TableHead>
+              <TableHead className="font-semibold w-[120px]">Company</TableHead>
               <TableHead className="font-semibold w-[120px]">Core Score</TableHead>
               <TableHead className="font-semibold w-[100px]">Source</TableHead>
               <TableHead className="font-semibold w-[120px]">Date Added</TableHead>
