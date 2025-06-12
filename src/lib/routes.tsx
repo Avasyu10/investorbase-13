@@ -24,6 +24,7 @@ import Signup from "@/pages/Signup";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
+import BarcSubmit from "@/pages/BarcSubmit";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -32,6 +33,7 @@ export const routes = [
   { path: "/reset-password", element: <ResetPassword /> },
   { path: "/public-upload/:slug", element: <PublicUpload /> },
   { path: "/public-upload", element: <PublicUpload /> },
+  { path: "/barc-submit/:slug", element: <BarcSubmit /> },
   { 
     path: "/dashboard", 
     element: (
