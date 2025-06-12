@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Settings, AlertCircle, Building } from "lucide-react";
+import { FileText, Settings, AlertCircle } from "lucide-react";
 
 export const ProfileNavigation = () => {
   return (
@@ -18,12 +18,6 @@ export const ProfileNavigation = () => {
           <Link to="/public-forms">
             <FileText className="h-4 w-4 mr-2" />
             Manage Public Forms
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="w-full justify-start">
-          <Link to="/barc-submissions">
-            <Building className="h-4 w-4 mr-2" />
-            BARC Submissions
           </Link>
         </Button>
         <Button asChild variant="outline" className="w-full justify-start">

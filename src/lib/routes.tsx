@@ -8,8 +8,6 @@ import Report from "@/pages/Report";
 import CompanyPage from "@/pages/CompanyPage";
 import SectionPage from "@/pages/SectionPage";
 import PublicUpload from "@/pages/PublicUpload";
-import BarcSubmit from "@/pages/BarcSubmit";
-import BarcSubmissions from "@/pages/BarcSubmissions";
 import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
 import AnalysisSummary from "@/pages/AnalysisSummary";
@@ -34,7 +32,6 @@ export const routes = [
   { path: "/reset-password", element: <ResetPassword /> },
   { path: "/public-upload/:slug", element: <PublicUpload /> },
   { path: "/public-upload", element: <PublicUpload /> },
-  { path: "/barc-submit/:slug", element: <BarcSubmit /> },
   { 
     path: "/dashboard", 
     element: (
@@ -144,14 +141,6 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <PublicForms />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/barc-submissions", 
-    element: (
-      <ProtectedRoute>
-        <BarcSubmissions />
       </ProtectedRoute>
     )
   },
