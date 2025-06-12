@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, Building2 } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
+import { OverallAssessment } from "./OverallAssessment";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies } from "@/hooks/useCompanies";
 
@@ -18,6 +19,20 @@ export function CompaniesList() {
   const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
   };
+
+  // Calculate summary statistics for OverallAssessment
+  const averageScore = companies.length > 0 
+    ? companies.reduce((sum, company) => sum + company.overallScore, 0) / companies.length
+    : 0;
+
+  const assessmentPoints = companies.length > 0 ? [
+    `You have ${companies.length} prospect${companies.length === 1 ? '' : 's'} in your pipeline with an average score of ${Math.round(averageScore)}/100.`,
+    `${companies.filter(c => c.overallScore >= 80).length} prospect${companies.filter(c => c.overallScore >= 80).length === 1 ? ' is' : 's are'} in the high-potential category (80+ score).`,
+    `${companies.filter(c => c.overallScore >= 60 && c.overallScore < 80).length} prospect${companies.filter(c => c.overallScore >= 60 && c.overallScore < 80).length === 1 ? ' shows' : 's show'} moderate potential (60-79 score).`,
+    `${companies.filter(c => c.source === 'email').length} prospect${companies.filter(c => c.source === 'email').length === 1 ? ' was' : 's were'} received via email submissions.`,
+    `Most recent prospect was added ${companies.length > 0 ? new Date(companies[0].createdAt).toLocaleDateString() : 'N/A'}.`,
+    "Continue reviewing prospects to identify the most promising investment opportunities for your fund."
+  ] : [];
 
   if (isLoading) {
     return (
@@ -81,7 +96,13 @@ export function CompaniesList() {
       </div>
 
       {companies.length > 0 ? (
-        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} />
+        <div className="space-y-6">
+          <OverallAssessment 
+            score={averageScore}
+            assessmentPoints={assessmentPoints}
+          />
+          <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} />
+        </div>
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
