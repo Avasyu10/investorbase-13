@@ -137,9 +137,9 @@ serve(async (req) => {
       console.error('Failed to update status to processing:', statusUpdateError);
     }
 
-    // Prepare the comprehensive analysis prompt with enhanced market data integration
+    // Prepare the analysis prompt that prioritizes form answers with market data as supporting context
     const analysisPrompt = `
-    You are an expert startup evaluator for IIT Bombay's incubation program with deep market knowledge and access to industry data. Analyze the following startup application and provide comprehensive feedback that combines the applicant's responses with specific market data, industry trends, and real numbers.
+    You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application with PRIMARY FOCUS on the applicant's answers to the form questions. Use market data and industry insights as SUPPORTING CONTEXT to validate or challenge their responses, but the core evaluation should be based on what they've actually written.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -148,37 +148,42 @@ serve(async (req) => {
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
     - Submitter Email: ${submission.submitter_email || 'Not provided'}
 
-    Application Responses:
+    Application Responses (PRIMARY EVALUATION CRITERIA):
 
     1. Problem and Timing: "${submission.question_1 || 'Not provided'}"
+       Evaluation Criteria: Clarity of problem definition, market timing assessment, solution relevance
+
     2. Customer Discovery: "${submission.question_2 || 'Not provided'}"
+       Evaluation Criteria: Market size and potential, customer acquisition strategy, go-to-market approach
+
     3. Competitive Advantage: "${submission.question_3 || 'Not provided'}"
+       Evaluation Criteria: Uniqueness of solution, defensibility of moat, competitive positioning
+
     4. Team Background: "${submission.question_4 || 'Not provided'}"
+       Evaluation Criteria: Relevant experience and expertise, team composition, domain knowledge
+
     5. Incubation Goals: "${submission.question_5 || 'Not provided'}"
+       Evaluation Criteria: Clarity of milestones, realistic timeline, resource requirements
 
-    ENHANCED ANALYSIS INSTRUCTIONS:
+    ANALYSIS INSTRUCTIONS:
 
-    For each section metric, provide analysis that:
-    1. PRIMARILY focuses on the applicant's answers to the questions
-    2. INCORPORATES specific market data with actual numbers (market size, growth rates, investment figures, user adoption rates, etc.)
-    3. References industry trends, competitive landscape, and market timing with concrete data points
-    4. Includes market opportunity size with specific dollar amounts or user base numbers
-    5. Cites relevant industry reports, funding rounds, or market research findings where applicable
+    For each section:
+    1. START with analyzing what the applicant actually wrote in their answer
+    2. Evaluate their response against the specific criteria for that question
+    3. Use market data and industry trends as SUPPORTING EVIDENCE to either:
+       - Validate their claims and understanding
+       - Highlight gaps or inconsistencies in their responses
+       - Provide additional context that strengthens or weakens their position
 
-    For strengths and weaknesses in each section:
-    - Use SPECIFIC market data and numbers to support or challenge the applicant's claims
-    - Reference actual market growth rates, competitive dynamics, and industry benchmarks
-    - Include concrete examples from the industry or similar companies
-    - Mention specific market opportunities with quantified potential
+    For strengths and weaknesses:
+    - Base them primarily on the quality and depth of their answers
+    - Use market insights to support your assessment (e.g., "Their understanding of X is validated by recent industry trend Y showing Z%")
+    - Focus on what they demonstrated they know vs. don't know through their responses
 
     For overall assessment points:
-    - Include detailed market analysis with specific numbers and trends
-    - Reference actual market conditions, growth projections, and industry data
-    - Provide context about market timing and competitive positioning with concrete examples
-    - Include specific market size figures, growth rates, and investment trends relevant to the industry
-    - Each assessment point should contain at least 2-3 specific quantified metrics or market data points
-    - Use actual dollar amounts, percentages, market sizes, and growth rates wherever possible
-    - Reference recent funding rounds, market valuations, and industry benchmarks with specific numbers
+    - Should be grounded in their actual answers but enriched with relevant market context
+    - Include 1-2 specific market data points per assessment point to provide supporting evidence
+    - Each point should clearly connect their response to broader market realities
 
     Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-5 (not 1-10):
 
@@ -186,55 +191,55 @@ serve(async (req) => {
       "overall_score": number (1-5),
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
-        "industry": "string (infer from the application and market context)",
-        "stage": "string (e.g., Idea, Prototype, Early Revenue, Growth)",
-        "introduction": "string (2-3 sentence company description based on executive summary, responses, and market positioning)"
+        "industry": "string (infer from the application)",
+        "stage": "string (based on their responses - Idea, Prototype, Early Revenue, Growth)",
+        "introduction": "string (2-3 sentence description based on their executive summary and responses)"
       },
       "sections": {
         "problem_solution_fit": {
           "score": number (1-5),
-          "analysis": "detailed analysis text that evaluates the problem statement against current market needs, timing, and industry pain points with specific market data and trends",
-          "strengths": ["detailed strength 1 with specific market data, numbers, and industry context", "detailed strength 2 with market trends and concrete examples"],
-          "improvements": ["detailed improvement area 1 with market data and competitive analysis", "detailed improvement area 2 with industry benchmarks and specific recommendations"]
+          "analysis": "detailed analysis that STARTS with evaluating their actual answer to question 1, then uses market context to validate or challenge their understanding of the problem and timing",
+          "strengths": ["strength based on their answer quality, supported by market validation", "another strength from their response with industry context"],
+          "improvements": ["improvement area based on gaps in their answer, with market data showing what they missed", "another improvement with specific recommendations"]
         },
         "market_opportunity": {
           "score": number (1-5),
-          "analysis": "detailed analysis text that combines customer discovery answers with specific market size data, growth projections, addressable market figures, and industry trends",
-          "strengths": ["detailed strength 1 with market size numbers, growth rates, and industry data", "detailed strength 2 with specific market opportunities and competitive positioning"],
-          "improvements": ["detailed improvement area 1 with market research gaps and specific data needs", "detailed improvement area 2 with competitive analysis and market positioning recommendations"]
+          "analysis": "detailed analysis that STARTS with evaluating their customer discovery response (question 2), then uses market size data and trends to assess the validity of their market understanding",
+          "strengths": ["strength based on their market understanding demonstrated in their answer, validated by market data", "another strength from their customer acquisition approach with industry benchmarks"],
+          "improvements": ["improvement area based on what their answer revealed they don't understand about the market", "another gap in their market analysis with supporting data"]
         },
         "competitive_advantage": {
           "score": number (1-5),
-          "analysis": "detailed analysis text that evaluates stated advantages against actual competitive landscape, market positioning, and industry differentiation with specific examples",
-          "strengths": ["detailed strength 1 with competitive analysis and market positioning data", "detailed strength 2 with differentiation factors and industry examples"],
-          "improvements": ["detailed improvement area 1 with competitive landscape analysis and specific recommendations", "detailed improvement area 2 with market positioning and differentiation strategies"]
+          "analysis": "detailed analysis that STARTS with evaluating their competitive advantage claims (question 3), then uses competitive landscape data to assess the strength of their positioning",
+          "strengths": ["strength based on the uniqueness they described, supported by competitive analysis", "another strength from their moat description with market validation"],
+          "improvements": ["improvement based on competitive blind spots in their answer", "another area where their competitive analysis needs strengthening"]
         },
         "team_strength": {
           "score": number (1-5),
-          "analysis": "detailed analysis text that assesses team background against industry requirements, market needs, and successful team compositions in similar markets",
-          "strengths": ["detailed strength 1 with industry experience context and market relevance", "detailed strength 2 with team composition analysis and industry benchmarks"],
-          "improvements": ["detailed improvement area 1 with specific skill gaps and industry requirements", "detailed improvement area 2 with team development recommendations and market context"]
+          "analysis": "detailed analysis that STARTS with evaluating their team background description (question 4), then considers industry requirements and successful team patterns as context",
+          "strengths": ["strength based on the experience they described, with industry relevance context", "another strength from their team composition with market benchmarks"],
+          "improvements": ["improvement based on skill gaps evident in their team description", "another team development need with industry context"]
         },
         "execution_plan": {
           "score": number (1-5),
-          "analysis": "detailed analysis text that evaluates incubation goals and execution strategy against market realities, industry benchmarks, and successful execution patterns",
-          "strengths": ["detailed strength 1 with execution feasibility and market timing analysis", "detailed strength 2 with resource planning and industry best practices"],
-          "improvements": ["detailed improvement area 1 with execution challenges and market-specific recommendations", "detailed improvement area 2 with milestone planning and industry timeline expectations"]
+          "analysis": "detailed analysis that STARTS with evaluating their incubation goals and milestones (question 5), then uses industry execution benchmarks to assess feasibility",
+          "strengths": ["strength based on the clarity of their goals, with execution feasibility context", "another strength from their milestone planning with industry timelines"],
+          "improvements": ["improvement based on gaps in their execution planning", "another area where their timeline or resource planning needs refinement"]
         }
       },
       "summary": {
-        "overall_feedback": "comprehensive feedback that synthesizes form responses with detailed market context, industry positioning, and specific market opportunities",
-        "key_factors": ["detailed factor 1 combining answers with specific market insights and data", "detailed factor 2 with market trends and competitive analysis", "detailed factor 3 with industry positioning and growth potential"],
-        "next_steps": ["detailed step 1 with market-informed recommendations and specific actions", "detailed step 2 with industry best practices and concrete milestones", "detailed step 3 with market opportunities and strategic positioning"],
-        "assessment_points": ["Market analysis shows the ${submission.company_name || 'company'}'s target industry has a market size of $X billion with Y% annual growth, positioning this solution in a rapidly expanding segment worth approximately $Z million addressable market by 2025", "Competitive landscape analysis reveals similar companies have raised an average of $X million in Series A funding, with successful exits averaging $Y million, indicating strong investor interest and market validation for solutions in this space", "Customer acquisition metrics from comparable startups show average customer acquisition costs of $X and lifetime values of $Y, suggesting a healthy unit economics model with Z% gross margins typical for this industry vertical", "Market timing analysis indicates this industry is experiencing a X% increase in demand driven by recent regulatory changes and consumer behavior shifts, with early movers capturing an average of Y% market share within 2-3 years", "Investment landscape data shows VCs have allocated $X billion to this sector in the last 12 months, representing a Y% increase from previous year, with average deal sizes of $Z million for companies at similar stages and market positioning"]
+        "overall_feedback": "comprehensive feedback that synthesizes their form responses with market context, focusing on what they demonstrated they understand vs. gaps in their knowledge",
+        "key_factors": ["factor based on their strongest answers with market validation", "factor based on their weakest responses with market context", "factor about overall application quality with industry positioning"],
+        "next_steps": ["specific recommendation based on gaps in their responses", "another step with market-informed guidance", "third step with concrete actions for improvement"],
+        "assessment_points": ["Assessment based on their problem definition combined with market data showing the ${submission.company_name || 'company'}'s target market is worth $X billion and growing at Y% annually", "Analysis of their customer discovery approach reveals Z understanding, while industry data shows similar companies achieve $A customer acquisition costs", "Their competitive positioning shows B level of differentiation, supported by market analysis indicating C% of companies in this space have similar advantages", "Team evaluation based on their background demonstrates D expertise level, with industry benchmarks showing E% success rate for similar team compositions", "Execution planning assessment shows F level of clarity, with market timing analysis indicating G% probability of success given current industry trends"]
       }
     }
 
-    Focus on providing actionable insights that combine the applicant's responses with specific, quantified market intelligence. Each assessment point MUST include concrete market figures, growth percentages, investment amounts, and industry statistics to support the analysis. Ensure every assessment point contains at least 2-3 specific quantified metrics that validate or challenge the business model while staying grounded in the specific answers provided by the applicant.
+    Remember: The applicant's actual answers are your PRIMARY source for evaluation. Market data should SUPPORT and VALIDATE your assessment of their responses, not replace evaluation of what they actually wrote. Focus on what their answers reveal about their understanding, preparedness, and capability.
     `;
 
     // Call OpenAI API
-    console.log('Calling OpenAI API for enhanced market analysis...');
+    console.log('Calling OpenAI API for form-focused analysis with market context...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -246,7 +251,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay with comprehensive market knowledge and access to industry data. Provide thorough, market-informed analysis with specific numbers, growth rates, market sizes, and industry trends in valid JSON format only. All scores must be on a scale of 1-5. Each assessment point must contain at least 2-3 specific quantified metrics including dollar amounts, percentages, market sizes, growth rates, funding figures, or industry benchmarks. Integrate detailed market data with quantified metrics alongside form responses to provide comprehensive evaluation with concrete market insights. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Your PRIMARY focus is evaluating the quality and depth of applicant responses to form questions. Use market data as SUPPORTING CONTEXT to validate their understanding, not as the main evaluation criteria. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-5. Assessment points should be grounded in their actual answers but enriched with relevant market context (1-2 data points per point). Do not wrap your response in markdown code blocks - return only the raw JSON object.'
           },
           {
             role: 'user',
