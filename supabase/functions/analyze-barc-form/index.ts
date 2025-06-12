@@ -82,7 +82,7 @@ serve(async (req) => {
       }
     }
 
-    // IMPROVED: Get submission and handle status more gracefully
+    // Get submission and check if analysis is already completed
     console.log('Fetching submission for analysis...');
     const { data: existingSubmission, error: fetchError } = await supabase
       .from('barc_form_submissions')
@@ -104,9 +104,27 @@ serve(async (req) => {
       analysis_status: existingSubmission.analysis_status
     });
 
-    // IMPROVED: Handle different statuses more gracefully
+    // Check if analysis is already completed and company exists
+    if (existingSubmission.analysis_status === 'completed' && existingSubmission.company_id) {
+      console.log('Analysis already completed, returning existing result');
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          submissionId,
+          analysisResult: existingSubmission.analysis_result,
+          companyId: existingSubmission.company_id,
+          isNewCompany: false,
+          message: 'Analysis already completed'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Check if analysis is currently processing
     if (existingSubmission.analysis_status === 'processing') {
-      console.log('Submission is already being processed, returning existing status');
+      console.log('Submission is already being processed, returning conflict');
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -121,11 +139,6 @@ serve(async (req) => {
       );
     }
 
-    // If already completed, allow re-analysis but log it
-    if (existingSubmission.analysis_status === 'completed') {
-      console.log('Re-analyzing a previously completed submission');
-    }
-
     // Get the form details to find the owner
     let formOwnerId = null;
     if (existingSubmission.form_slug) {
@@ -137,7 +150,6 @@ serve(async (req) => {
 
       if (formError) {
         console.error('Failed to fetch form data:', formError);
-        // Continue without form owner - we'll use current user or create without user
       } else if (formData) {
         formOwnerId = formData.user_id;
         console.log('Form owner ID:', formOwnerId);
@@ -148,7 +160,7 @@ serve(async (req) => {
     const effectiveUserId = formOwnerId || currentUserId;
     console.log('Using user ID for company creation:', effectiveUserId);
 
-    // IMPROVED: Try to update status to processing, but don't fail if it doesn't work
+    // Update status to processing with optimistic locking
     console.log('Attempting to update submission status to processing...');
     const { data: statusUpdateResult, error: statusUpdateError } = await supabase
       .from('barc_form_submissions')
@@ -156,22 +168,32 @@ serve(async (req) => {
         analysis_status: 'processing'
       })
       .eq('id', submissionId)
-      .neq('analysis_status', 'processing') // Only update if not already processing
+      .eq('analysis_status', existingSubmission.analysis_status) // Optimistic locking
       .select()
-      .maybeSingle(); // Use maybeSingle to avoid errors if no rows updated
+      .maybeSingle();
 
     if (statusUpdateError) {
       console.error('Error updating status:', statusUpdateError);
-      // Continue anyway - the analysis might still be valuable
-    } else if (!statusUpdateResult) {
-      console.log('Status was not updated - possibly already being processed by another request');
-      // Continue with analysis anyway since we're not in processing state
-    } else {
-      console.log('Successfully updated submission status to processing');
+      throw new Error('Failed to start analysis - please try again');
     }
 
-    // Continue with the analysis regardless of status update result
-    console.log('Proceeding with OpenAI analysis...');
+    if (!statusUpdateResult) {
+      console.log('Status was not updated - another process is handling this submission');
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Another analysis is already in progress for this submission.',
+          submissionId,
+          status: 'concurrent_processing'
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    console.log('Successfully updated submission status to processing');
 
     // Enhanced analysis prompt with specific metrics-based scoring and market-focused weaknesses
     const analysisPrompt = `
@@ -418,7 +440,6 @@ serve(async (req) => {
 
         if (companyUpdateError) {
           console.error('Failed to update company:', companyUpdateError);
-          // Continue with analysis even if company update fails
         } else {
           console.log('Successfully updated existing company:', companyId);
         }
