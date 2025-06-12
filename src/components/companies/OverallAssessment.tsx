@@ -21,13 +21,15 @@ export function OverallAssessment({
   // Format score to whole number
   const formattedScore = Math.round(score);
 
-  // Default assessment points if none provided
+  // Default assessment points if none provided (6-7 points)
   const defaultAssessmentPoints = [
-    "This company shows strong potential for growth in their target market segment.",
-    "The founding team demonstrates relevant experience and domain expertise.",
-    "The business model presents clear revenue opportunities and scalability potential.",
-    "Market timing appears favorable for this type of solution.",
-    "Further validation of customer demand and competitive positioning would strengthen the proposition."
+    "This company shows strong potential for growth in their target market segment based on current industry trends and their solution approach.",
+    "The founding team demonstrates relevant experience and domain expertise that aligns with successful startup patterns in this sector.",
+    "The business model presents clear revenue opportunities and scalability potential, though market penetration costs need consideration.",
+    "Market timing appears favorable for this type of solution, with industry growth rates supporting early adoption scenarios.",
+    "Customer acquisition strategy shows promise but requires validation against industry benchmarks for sustainable growth.",
+    "Competitive positioning demonstrates some differentiation, though market dynamics suggest challenges in maintaining advantages long-term.",
+    "Further validation of customer demand and competitive positioning would strengthen the proposition for investment readiness."
   ];
 
   const displayPoints = assessmentPoints && assessmentPoints.length > 0 

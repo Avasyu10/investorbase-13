@@ -155,7 +155,7 @@ const BarcSubmissions = () => {
                     {analysisResult?.overall_score && (
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 text-yellow-500" />
-                        Score: {analysisResult.overall_score}/10
+                        Score: {Math.round(analysisResult.overall_score)}/100
                       </div>
                     )}
                   </div>
@@ -219,6 +219,7 @@ const BarcSubmissions = () => {
           setSelectedSubmission(null);
         }}
         submission={selectedSubmission}
+        onRefresh={refetch}
       />
     </div>
   );

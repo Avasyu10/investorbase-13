@@ -168,22 +168,23 @@ serve(async (req) => {
     ANALYSIS INSTRUCTIONS:
 
     For the OVERALL ASSESSMENT:
-    - Give EQUAL WEIGHT to both the quality of their answers AND relevant market data
-    - Evaluate how well their responses align with market realities and opportunities
-    - Include specific market data points, numbers, and industry trends in your assessment
-    - Consider both what they understand (based on answers) and market validation of their approach
+    - Generate EXACTLY 6-7 assessment points that deeply integrate both answer quality AND market data
+    - Each point should combine specific insights from their responses with concrete market metrics, industry benchmarks, and data points
+    - Include market size data, growth rates, customer acquisition costs, competitive landscape metrics, and timing indicators
+    - Balance evaluation between what they understand (based on answers) and market validation of their approach
 
     For STRENGTHS AND WEAKNESSES in each section:
     - Provide exactly 4-5 STRENGTHS and 4-5 WEAKNESSES for each section
-    - Balance evaluation between answer quality AND market data/numbers
-    - Include specific market metrics, growth rates, market size data, and industry benchmarks
-    - Connect their responses to concrete market evidence and data points
-    - For weaknesses, highlight both gaps in their answers AND market challenges they haven't addressed
+    - SIGNIFICANTLY ENHANCE weaknesses with more market data, competitive threats, industry challenges, and specific metrics
+    - Include market barriers, competitive dynamics, industry failure rates, cost benchmarks, and regulatory challenges in weaknesses
+    - Balance evaluation between answer quality AND extensive market data/numbers for both strengths and weaknesses
+    - Connect their responses to concrete market evidence and data points in both positive and negative aspects
 
     Each strength and weakness should integrate:
     1. Assessment of their actual response quality/depth
     2. Relevant market data, statistics, or industry benchmarks
     3. How market realities support or challenge their position
+    4. Specific numbers, percentages, dollar amounts, and comparative metrics
 
     Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-100 (not 1-5 or 1-10):
 
@@ -200,46 +201,46 @@ serve(async (req) => {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their answer quality AND market data to evaluate problem definition and timing",
           "strengths": ["exactly 4-5 strengths that balance answer assessment with market validation and specific data points", "another strength combining their response quality with industry metrics", "third strength with market size/growth data", "fourth strength with competitive landscape data", "fifth strength with timing and market trends data"],
-          "improvements": ["exactly 4-5 improvements that balance answer gaps with market challenges and specific data", "another improvement combining response weaknesses with market realities", "third improvement with competitive data", "fourth improvement with market timing concerns", "fifth improvement with industry benchmark gaps"]
+          "improvements": ["exactly 4-5 improvements heavily incorporating market data, competitive threats, and industry challenges with specific metrics", "another improvement combining response weaknesses with market realities, barrier data, and competitive costs", "third improvement with competitive threats, market saturation data, and industry failure rates", "fourth improvement with market timing risks, regulatory challenges, and adoption curve data", "fifth improvement with industry benchmark gaps, cost barriers, and market penetration challenges"]
         },
         "market_opportunity": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their customer discovery response AND market size/potential data",
           "strengths": ["exactly 4-5 strengths balancing their market understanding with actual market data and metrics", "another strength with customer acquisition insights and industry benchmarks", "third strength with go-to-market approach and market penetration data", "fourth strength with addressable market size validation", "fifth strength with market growth trends and opportunity sizing"],
-          "improvements": ["exactly 4-5 improvements balancing answer gaps with market analysis and specific metrics", "another improvement with customer acquisition challenges and cost data", "third improvement with market penetration barriers", "fourth improvement with competitive market dynamics", "fifth improvement with market timing and saturation concerns"]
+          "improvements": ["exactly 4-5 improvements heavily incorporating market analysis, competitive dynamics, and customer acquisition cost challenges", "another improvement with customer acquisition barriers, market penetration costs, and industry CAC benchmarks", "third improvement with market saturation risks, competitive spending data, and customer retention challenges", "fourth improvement with market timing barriers, adoption cycle data, and go-to-market cost analysis", "fifth improvement with competitive market dynamics, customer acquisition difficulty metrics, and market entry barriers"]
         },
         "competitive_advantage": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their competitive claims AND competitive landscape data",
           "strengths": ["exactly 4-5 strengths balancing their differentiation claims with competitive analysis data", "another strength with moat assessment and industry defensibility metrics", "third strength with competitive positioning and market share data", "fourth strength with innovation metrics and patent landscape", "fifth strength with sustainable advantage validation through market data"],
-          "improvements": ["exactly 4-5 improvements balancing competitive blind spots with market competition data", "another improvement with competitive threats and market dynamics", "third improvement with differentiation gaps and competitor analysis", "fourth improvement with moat sustainability concerns", "fifth improvement with competitive landscape evolution"]
+          "improvements": ["exactly 4-5 improvements heavily incorporating competitive threats, market dynamics, and differentiation challenges", "another improvement with competitive landscape risks, market consolidation data, and threat analysis", "third improvement with differentiation erosion risks, competitive spending data, and moat sustainability challenges", "fourth improvement with competitive response threats, market positioning costs, and defensibility gaps", "fifth improvement with innovation cycle data, competitive advantage decay rates, and market disruption risks"]
         },
         "team_strength": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their team description AND industry team success patterns/data",
           "strengths": ["exactly 4-5 strengths balancing their team experience with industry success metrics", "another strength with domain expertise and industry leadership benchmarks", "third strength with team composition and startup success rate data", "fourth strength with relevant background and industry network validation", "fifth strength with execution capability and track record assessment"],
-          "improvements": ["exactly 4-5 improvements balancing team gaps with industry requirements and success data", "another improvement with skill gaps and industry competency benchmarks", "third improvement with experience deficits and learning curve analysis", "fourth improvement with team composition optimization based on industry data", "fifth improvement with advisory needs and industry mentorship patterns"]
+          "improvements": ["exactly 4-5 improvements heavily incorporating team gaps, industry requirements, and execution risk data", "another improvement with skill gaps, hiring challenges, and industry competency costs", "third improvement with experience deficits, team scaling risks, and leadership gap analysis", "fourth improvement with team composition risks, hiring market data, and retention challenges", "fifth improvement with execution risk factors, team building costs, and advisory needs with market benchmarks"]
         },
         "execution_plan": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their execution planning AND industry execution benchmarks/data",
           "strengths": ["exactly 4-5 strengths balancing their planning clarity with execution feasibility data", "another strength with milestone realism and industry timeline benchmarks", "third strength with resource planning and startup capital efficiency metrics", "fourth strength with goal specificity and success probability analysis", "fifth strength with implementation strategy and industry best practices alignment"],
-          "improvements": ["exactly 4-5 improvements balancing planning gaps with execution challenges and industry data", "another improvement with timeline realism and startup failure rate analysis", "third improvement with resource estimation and burn rate benchmarks", "fourth improvement with milestone specificity and achievement probability", "fifth improvement with risk assessment and industry challenge patterns"]
+          "improvements": ["exactly 4-5 improvements heavily incorporating execution challenges, industry failure data, and resource requirement analysis", "another improvement with timeline risks, startup failure rates, and milestone achievement difficulties", "third improvement with resource estimation gaps, burn rate dangers, and capital requirement challenges", "fourth improvement with execution barrier analysis, implementation cost data, and timeline risk factors", "fifth improvement with market entry challenges, scaling difficulties, and execution success rate benchmarks"]
         }
       },
       "summary": {
         "overall_feedback": "comprehensive feedback that integrates their form responses with extensive market context, data points, and industry insights",
         "key_factors": ["factor balancing their strongest answers with market validation and specific data", "factor balancing their weakest responses with market challenges and metrics", "factor about overall application quality with industry positioning and benchmarks"],
         "next_steps": ["specific recommendation based on gaps in responses and market data", "another step with market-informed guidance and industry benchmarks", "third step with concrete actions supported by industry insights"],
-        "assessment_points": ["Assessment integrating their problem definition quality with market data showing the ${submission.company_name || 'company'}'s target market is worth $X billion and growing at Y% annually", "Analysis combining their customer discovery depth with industry data showing similar companies achieve $A customer acquisition costs and B% market penetration rates", "Evaluation balancing their competitive positioning quality with market analysis indicating C% of companies in this space have similar advantages and D% market concentration", "Team assessment combining their background demonstration with industry benchmarks showing E% success rate for similar team compositions and F average time to key milestones", "Execution planning evaluation balancing their clarity with market timing analysis indicating G% probability of success given current industry trends and H average capital requirements"]
+        "assessment_points": ["Assessment point 1 integrating their problem definition quality with specific market data showing the ${submission.company_name || 'company'}'s target market is worth $X billion and growing at Y% annually, combined with evaluation of their problem articulation depth", "Assessment point 2 analyzing their customer discovery approach alongside industry data showing similar companies achieve $A customer acquisition costs and B% market penetration rates, with assessment of their go-to-market understanding", "Assessment point 3 evaluating their competitive positioning quality against market analysis indicating C% of companies in this space have similar advantages and D% market concentration, plus their competitive awareness depth", "Assessment point 4 assessing their team background demonstration with industry benchmarks showing E% success rate for similar team compositions and F average time to key milestones, combined with team capability evaluation", "Assessment point 5 examining their execution planning clarity with market timing analysis indicating G% probability of success given current industry trends and H average capital requirements, plus milestone realism assessment", "Assessment point 6 analyzing their overall market understanding against industry growth patterns showing I% annual market expansion and J competitive intensity metrics, combined with strategic thinking evaluation", "Assessment point 7 evaluating their innovation potential with market disruption data indicating K% of successful startups in this sector achieve L market penetration within M years, plus solution uniqueness assessment"]
       }
     }
 
-    Remember: Give EQUAL importance to both the applicant's actual answers AND relevant market data/industry insights. Each strength and weakness must integrate both aspects with specific data points and metrics. All scores must be on a 1-100 scale.
+    Remember: Give EQUAL importance to both the applicant's actual answers AND relevant market data/industry insights. Generate EXACTLY 6-7 assessment points. Each strength and weakness must integrate both aspects with specific data points and metrics. Significantly enhance weaknesses with more market data and competitive analysis. All scores must be on a 1-100 scale.
     `;
 
     // Call OpenAI API
-    console.log('Calling OpenAI API for balanced form and market analysis...');
+    console.log('Calling OpenAI API for enhanced analysis...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -251,7 +252,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Give EQUAL weight to both the quality of applicant responses AND relevant market data/industry insights. Provide exactly 4-5 strengths and 4-5 weaknesses for each section, integrating both answer assessment and market metrics. Include specific data points, growth rates, market sizes, and industry benchmarks in every strength and weakness. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-100. Do not wrap your response in markdown code blocks - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Give EQUAL weight to both the quality of applicant responses AND relevant market data/industry insights. Generate EXACTLY 6-7 assessment points that deeply integrate answer evaluation with market metrics. Provide exactly 4-5 strengths and 4-5 weaknesses for each section, with weaknesses heavily enhanced with market data, competitive threats, and industry challenges. Include specific data points, growth rates, market sizes, competitive dynamics, and industry benchmarks in every strength and weakness. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-100. Do not wrap your response in markdown code blocks - return only the raw JSON object.'
           },
           {
             role: 'user',

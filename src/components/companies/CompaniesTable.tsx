@@ -1,122 +1,84 @@
 
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { CompanyListItem } from "@/lib/api/apiContract";
-import { cn } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Company } from "@/lib/api/apiContract";
+import { format } from "date-fns";
+import { Star } from "lucide-react";
 
 interface CompaniesTableProps {
-  companies: CompanyListItem[];
+  companies: Company[];
   onCompanyClick: (companyId: number) => void;
 }
 
 export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
-  if (!companies || companies.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No companies found</p>
-      </div>
-    );
-  }
-
-  // Helper to get score color class
-  const getScoreColorClass = (score: number) => {
-    if (score >= 4) return "text-green-600 font-medium";
-    if (score >= 3) return "text-blue-600";
-    if (score >= 2) return "text-yellow-600"; 
+  const getScoreColor = (score: number): string => {
+    if (score >= 90) return "text-emerald-600";
+    if (score >= 70) return "text-blue-600";
+    if (score >= 50) return "text-amber-600";
+    if (score >= 30) return "text-orange-600";
     return "text-red-600";
   };
 
-  // Helper to get assessment summary
-  const getAssessmentSummary = (company: CompanyListItem) => {
-    // First check if there is a summary in the description field of the first report
-    // Fall back to assessment points if available
-    if ('assessmentPoints' in company && company.assessmentPoints && company.assessmentPoints.length > 0) {
-      // Return up to 2 assessment points with ellipsis if more exist
-      const points = company.assessmentPoints.slice(0, 2);
-      const summary = points.join(', ');
-      return company.assessmentPoints.length > 2 
-        ? `${summary}, ...` 
-        : summary;
-    }
-    
-    return "No summary available";
-  };
-
-  // Helper to get source info with appropriate styling
-  const getSourceInfo = (source: string | undefined) => {
-    if (source === 'email') {
-      return {
-        label: "Email",
-        className: "text-sm text-blue-600 font-medium"
-      };
-    }
-    if (source === 'public_url') {
-      return {
-        label: "Public URL",
-        className: "text-sm text-green-600 font-medium"
-      };
-    }
-    
-    // Default to Dashboard (gold color)
-    return {
-      label: "Dashboard",
-      className: "text-sm text-gold font-medium"
-    };
+  const getScoreBadgeColor = (score: number): string => {
+    if (score >= 90) return "bg-emerald-100 text-emerald-800";
+    if (score >= 70) return "bg-blue-100 text-blue-800";
+    if (score >= 50) return "bg-amber-100 text-amber-800";
+    if (score >= 30) return "bg-orange-100 text-orange-800";
+    return "bg-red-100 text-red-800";
   };
 
   return (
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-1/5">
-              Name
-            </TableHead>
-            <TableHead className="w-1/6">
-              Score
-            </TableHead>
-            <TableHead className="w-1/6">
-              Source
-            </TableHead>
-            <TableHead className="w-1/6">
-              Date Added
-            </TableHead>
-            <TableHead className="w-2/5">
-              Summary
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {companies.map((company) => {
-            const sourceInfo = getSourceInfo(company.source);
-            return (
-              <TableRow 
-                key={company.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => onCompanyClick(company.id)}
-              >
-                <TableCell className="font-medium">{company.name}</TableCell>
-                <TableCell className={getScoreColorClass(company.overallScore)}>
-                  {company.overallScore}/5
-                </TableCell>
-                <TableCell>
-                  <span className={sourceInfo.className}>{sourceInfo.label}</span>
-                </TableCell>
-                <TableCell>{new Date(company.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {getAssessmentSummary(company)}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    <Card>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="font-semibold">Company</TableHead>
+              <TableHead className="font-semibold">Core Score</TableHead>
+              <TableHead className="font-semibold">Source</TableHead>
+              <TableHead className="font-semibold">Date Added</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {companies.map((company) => {
+              const formattedScore = Math.round(company.overallScore);
+              
+              return (
+                <TableRow 
+                  key={company.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => onCompanyClick(company.id)}
+                >
+                  <TableCell>
+                    <div>
+                      <div className="font-medium text-foreground">{company.name}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <Badge className={getScoreBadgeColor(formattedScore)}>
+                        <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
+                          {formattedScore}/100
+                        </span>
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {company.source || 'Dashboard'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {format(new Date(company.createdAt), 'MMM dd, yyyy')}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
