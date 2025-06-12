@@ -28,6 +28,10 @@ export interface CompanyDetailed {
 export interface Company {
   id: number;
   name: string;
+  overallScore: number;
+  source?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Report {
