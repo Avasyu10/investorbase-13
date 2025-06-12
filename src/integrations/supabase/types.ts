@@ -33,6 +33,83 @@ export type Database = {
         }
         Relationships: []
       }
+      barc_form_submissions: {
+        Row: {
+          analysis_error: string | null
+          analysis_result: Json | null
+          analysis_status: string | null
+          analyzed_at: string | null
+          company_id: string | null
+          company_name: string
+          company_registration_type: string | null
+          company_type: string | null
+          created_at: string
+          executive_summary: string | null
+          form_slug: string
+          id: string
+          question_1: string | null
+          question_2: string | null
+          question_3: string | null
+          question_4: string | null
+          question_5: string | null
+          report_id: string | null
+          submitter_email: string | null
+          updated_at: string
+        }
+        Insert: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          company_id?: string | null
+          company_name: string
+          company_registration_type?: string | null
+          company_type?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          form_slug: string
+          id?: string
+          question_1?: string | null
+          question_2?: string | null
+          question_3?: string | null
+          question_4?: string | null
+          question_5?: string | null
+          report_id?: string | null
+          submitter_email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          company_id?: string | null
+          company_name?: string
+          company_registration_type?: string | null
+          company_type?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          form_slug?: string
+          id?: string
+          question_1?: string | null
+          question_2?: string | null
+          question_3?: string | null
+          question_4?: string | null
+          question_5?: string | null
+          report_id?: string | null
+          submitter_email?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barc_form_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           assessment_points: string[] | null

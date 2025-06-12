@@ -1,4 +1,3 @@
-
 import { 
   Table, 
   TableBody, 
@@ -10,7 +9,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail, ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { analyzeBarcSubmission } from "@/lib/api/barc";
 
 interface PublicSubmission {
   id: string;
@@ -23,7 +26,7 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
-  source: "email" | "email_pitch" | "public_form";
+  source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
 }
 
@@ -60,6 +63,23 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
 
   const handleAnalyze = async (submission: PublicSubmission) => {
     console.log('PublicSubmissionsTable handleAnalyze called with:', submission);
+    
+    // For BARC submissions, call the passed onAnalyze callback to handle loading state
+    if (submission.source === "barc_form") {
+      console.log('Calling onAnalyze for BARC submission');
+      onAnalyze(submission);
+      return;
+    }
+
+    // Handle other submission types
+    if (!submission.report_id) {
+      toast.error("Analysis failed", {
+        description: "No report ID found for this submission"
+      });
+      return;
+    }
+
+    // Call the original onAnalyze callback for other submission types
     onAnalyze(submission);
   };
 
@@ -96,6 +116,16 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
           >
             <Mail className="h-3 w-3" />
             <span>Email Pitch</span>
+          </Badge>
+        );
+      case 'barc_form':
+        return (
+          <Badge 
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-purple-50 text-purple-700 border-purple-200"
+          >
+            <Building className="h-3 w-3" />
+            <span>BARC Form</span>
           </Badge>
         );
       case 'public_form':
@@ -168,7 +198,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
                       variant="default"
                       size="sm"
                       onClick={() => handleAnalyze(submission)}
-                      disabled={isAnalyzing || !submission.report_id}
+                      disabled={isAnalyzing || (submission.source !== "barc_form" && !submission.report_id)}
                       className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
                     >
                       {isAnalyzing ? (

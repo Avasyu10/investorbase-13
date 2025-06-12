@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { AnalysisModal } from "./AnalysisModal";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeReport } from "@/lib/supabase/analysis";
+import { analyzeBarcSubmission } from "@/lib/api/barc";
 
 interface PublicSubmission {
   id: string;
@@ -21,7 +21,7 @@ interface PublicSubmission {
   form_slug: string;
   pdf_url: string | null;
   report_id: string | null;
-  source: "email" | "email_pitch" | "public_form";
+  source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
 }
 
@@ -126,6 +126,43 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
+        // Fetch BARC form submissions - show ALL BARC submissions regardless of status
+        try {
+          console.log("Fetching BARC form submissions...");
+          const { data: barcData, error: barcError } = await supabase
+            .from('barc_form_submissions')
+            .select('*')
+            .order('created_at', { ascending: false });
+            
+          if (barcError) {
+            console.error("Error fetching BARC form submissions:", barcError);
+          } else {
+            console.log("BARC form submissions fetched:", barcData?.length || 0);
+            
+            if (barcData && barcData.length > 0) {
+              const transformedBarc = barcData.map(submission => ({
+                id: submission.id,
+                title: submission.company_name || "BARC Application",
+                description: submission.executive_summary,
+                company_stage: null,
+                industry: null,
+                website_url: null,
+                created_at: submission.created_at,
+                form_slug: submission.form_slug || "",
+                pdf_url: null,
+                report_id: null,
+                source: "barc_form" as const,
+                from_email: submission.submitter_email
+              }));
+              
+              allSubmissions.push(...transformedBarc);
+              console.log("Added BARC forms to submissions:", transformedBarc.length);
+            }
+          }
+        } catch (err) {
+          console.error("Error in BARC form submissions fetch:", err);
+        }
+        
         // Fetch email submissions
         try {
           console.log("Fetching email submissions...");
@@ -171,7 +208,8 @@ export function PublicSubmissionsList() {
         console.log("Final submissions count:", uniqueSubmissions.length);
         console.log("Submissions by source:", {
           public_form: uniqueSubmissions.filter(s => s.source === 'public_form').length,
-          email: uniqueSubmissions.filter(s => s.source === 'email').length
+          email: uniqueSubmissions.filter(s => s.source === 'email').length,
+          barc_form: uniqueSubmissions.filter(s => s.source === 'barc_form').length
         });
         
         setSubmissions(uniqueSubmissions);
@@ -193,6 +231,72 @@ export function PublicSubmissionsList() {
   const handleAnalyze = async (submission: PublicSubmission) => {
     console.log('PublicSubmissionsList handleAnalyze called with:', submission);
     
+    // Handle BARC form submissions
+    if (submission.source === "barc_form") {
+      console.log('Handling BARC form submission analysis');
+      
+      // Add to analyzing set to show loading state
+      setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
+      setCurrentSubmission(submission);
+      setShowModal(true);
+      setIsAnalyzing(true);
+      
+      try {
+        console.log(`Calling BARC analysis for submission: ${submission.id}`);
+        
+        const result = await analyzeBarcSubmission(submission.id);
+        
+        console.log('BARC analysis result:', result);
+        
+        if (result && result.success) {
+          toast({
+            title: "Analysis complete",
+            description: "The BARC application has been successfully analyzed",
+          });
+          
+          // If a company was created (for Accept recommendations), navigate to it
+          if (result.companyId) {
+            toast({
+              title: "Company created",
+              description: "A new company prospect has been added to your dashboard",
+            });
+            
+            // Don't remove from submissions list, just refresh the data
+            // The submission will still show but with updated analysis status
+            // Users can navigate to the company or view the analysis
+            
+            navigate(`/company/${result.companyId}`);
+          } else {
+            // For Consider/Reject recommendations, stay on submissions page
+            // Navigate to BARC submissions page to view analysis
+            navigate('/barc-submissions');
+          }
+        } else {
+          throw new Error("Analysis completed but no result was returned");
+        }
+      } catch (error) {
+        console.error("BARC analysis error:", error);
+        
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+        
+        toast({
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setIsAnalyzing(false);
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submission.id);
+          return newSet;
+        });
+        setShowModal(false);
+      }
+      
+      return;
+    }
+
     if (!submission.report_id) {
       if (submission.source === "email_pitch") {
         setCurrentSubmission(submission);
@@ -388,7 +492,7 @@ export function PublicSubmissionsList() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight mb-2">New Applications</h1>
           <p className="text-muted-foreground">
-            Submissions from public forms and emails waiting to be analyzed
+            Submissions from public forms, BARC applications, and emails waiting to be analyzed
           </p>
         </div>
       </div>
