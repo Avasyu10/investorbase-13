@@ -74,6 +74,7 @@ export function useCompanies(
     data: companiesData,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['companies', page, pageSize, sortBy, sortOrder, search, user?.id], // Add user.id to queryKey
     queryFn: async () => {
@@ -95,7 +96,8 @@ export function useCompanies(
         
         console.log('Fetching companies for user:', user.id);
         
-        // Build query - fetch all companies that the user has access to via RLS
+        // Build query - The RLS policies will now handle access control properly
+        // This includes companies owned by the user, from accessible reports, etc.
         let query = supabase
           .from('companies')
           .select(`
@@ -125,6 +127,7 @@ export function useCompanies(
         // Log the first few companies to help with debugging
         if (data && data.length > 0) {
           console.log('Sample company data:', data[0]);
+          console.log('Companies with BARC source:', data.filter(c => c.source === 'barc_form').length);
         }
 
         return {
@@ -154,6 +157,7 @@ export function useCompanies(
     totalCount: companiesData?.totalCount || 0,
     isLoading,
     error,
+    refetch,
   };
 }
 

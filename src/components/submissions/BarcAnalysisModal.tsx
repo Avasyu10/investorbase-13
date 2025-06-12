@@ -3,19 +3,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, AlertTriangle, Star, Building } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Star, Building, RefreshCw } from "lucide-react";
 import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface BarcAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   submission: BarcSubmission | null;
+  onRefresh?: () => void;
 }
 
-export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisModalProps) => {
+export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: BarcAnalysisModalProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   if (!submission?.analysis_result) {
     return null;
@@ -50,6 +53,19 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
     }
   };
 
+  const handleViewCompany = () => {
+    if (submission.company_id) {
+      navigate(`/company/${submission.company_id}`);
+      onClose();
+    } else {
+      toast({
+        title: "Company not found",
+        description: "The company profile is not available yet. Please try refreshing the data.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getSectionCards = () => {
     const sectionKeys = [
       { key: 'problem_solution_fit', title: 'Problem-Solution Fit' },
@@ -70,10 +86,10 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
               <span>{title}</span>
               <div className="flex items-center gap-2">
                 <Star className="h-4 w-4 text-yellow-500" />
-                <span className="font-bold text-lg">{section.score}/10</span>
+                <span className="font-bold text-lg">{section.score}/5</span>
               </div>
             </CardTitle>
-            <Progress value={section.score * 10} className="h-2" />
+            <Progress value={section.score * 20} className="h-2" />
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -130,12 +146,12 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
                 <span>Overall Score</span>
                 <div className="flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-500" />
-                  <span className="text-2xl font-bold">{analysis.overall_score}/10</span>
+                  <span className="text-2xl font-bold">{analysis.overall_score}/5</span>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Progress value={analysis.overall_score * 10} className="h-3 mb-4" />
+              <Progress value={analysis.overall_score * 20} className="h-3 mb-4" />
               <p className="text-sm text-muted-foreground">
                 {analysis.summary?.overall_feedback}
               </p>
@@ -143,28 +159,45 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission }: BarcAnalysisM
           </Card>
 
           {/* Company Link for Accepted Applications */}
-          {analysis.recommendation === 'Accept' && submission.company_id && (
+          {analysis.recommendation === 'Accept' && (
             <Card className="bg-green-50 border-green-200">
               <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
                   <Building className="h-5 w-5 text-green-600" />
                   <div>
-                    <h4 className="font-medium text-green-800">Company Created</h4>
+                    <h4 className="font-medium text-green-800">
+                      {submission.company_id ? 'Company Created' : 'Company Being Created'}
+                    </h4>
                     <p className="text-sm text-green-600">
-                      This application has been added to your prospects
+                      {submission.company_id 
+                        ? 'This application has been added to your prospects'
+                        : 'The company profile is being created and will be available soon'
+                      }
                     </p>
                   </div>
                 </div>
-                <Button
-                  onClick={() => {
-                    navigate(`/company/${submission.company_id}`);
-                    onClose();
-                  }}
-                  variant="outline"
-                  className="border-green-300 text-green-700 hover:bg-green-100"
-                >
-                  View Company Profile
-                </Button>
+                <div className="flex gap-2">
+                  {onRefresh && (
+                    <Button
+                      onClick={onRefresh}
+                      variant="outline"
+                      size="sm"
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                  )}
+                  {submission.company_id && (
+                    <Button
+                      onClick={handleViewCompany}
+                      variant="outline"
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      View Company Profile
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}

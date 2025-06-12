@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -87,9 +86,28 @@ serve(async (req) => {
       }
     }
 
-    // If no authenticated user, try to get an admin user
-    if (!currentUserId) {
-      console.log('No authenticated user found, looking for admin user...');
+    // Get the form details to find the owner
+    const { data: formData, error: formError } = await supabase
+      .from('barc_form_submissions')
+      .select(`
+        *,
+        public_submission_forms!inner(user_id)
+      `)
+      .eq('id', submissionId)
+      .single();
+
+    if (formError || !formData) {
+      console.error('Failed to fetch submission with form data:', formError);
+      throw new Error(`Failed to fetch submission: ${formError?.message || 'Submission not found'}`);
+    }
+
+    // Use the form owner as the user for the company
+    const formOwnerId = formData.public_submission_forms.user_id;
+    console.log('Form owner ID:', formOwnerId);
+
+    // If no form owner and no authenticated user, try to get an admin user
+    if (!formOwnerId && !currentUserId) {
+      console.log('No form owner or authenticated user found, looking for admin user...');
       const { data: adminUsers, error: adminError } = await supabase
         .from('profiles')
         .select('id')
@@ -102,7 +120,8 @@ serve(async (req) => {
       }
     }
 
-    console.log('Using user ID for company creation:', currentUserId);
+    const effectiveUserId = formOwnerId || currentUserId;
+    console.log('Using user ID for company creation:', effectiveUserId);
 
     // Fetch the submission data
     console.log('Fetching submission data...');
@@ -269,9 +288,9 @@ serve(async (req) => {
       throw new Error('Analysis response was not valid JSON');
     }
 
-    // Create company and sections if recommendation is Accept
+    // Create company and sections if recommendation is Accept and we have a user
     let companyId = null;
-    if (analysisResult.recommendation === 'Accept') {
+    if (analysisResult.recommendation === 'Accept' && effectiveUserId) {
       console.log('Creating company and sections for accepted submission...');
       
       // Extract company info from analysis
@@ -283,7 +302,7 @@ serve(async (req) => {
         .insert({
           name: submission.company_name,
           overall_score: analysisResult.overall_score || 0,
-          user_id: currentUserId,
+          user_id: effectiveUserId,
           source: 'barc_form',
           assessment_points: analysisResult.summary?.assessment_points || []
         })
@@ -296,7 +315,7 @@ serve(async (req) => {
       }
 
       companyId = company.id;
-      console.log('Created company with ID:', companyId, 'for user:', currentUserId);
+      console.log('Created company with ID:', companyId, 'for user:', effectiveUserId);
 
       // Create company details with additional info
       if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
@@ -363,7 +382,6 @@ serve(async (req) => {
 
       if (sectionsError) {
         console.error('Failed to create sections:', sectionsError);
-        // Don't throw error here, just log it
       } else {
         console.log('Created sections:', sections?.length || 0);
 
