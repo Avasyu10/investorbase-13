@@ -4,11 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe, TrendingUp, Newspaper, ArrowDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { BarChart2, ExternalLink, Search, Loader2, Sparkle, Globe, TrendingUp, Newspaper } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface MarketResearchProps {
   companyId: string;
@@ -52,6 +50,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           console.error('Error checking existing research:', error);
         } else if (data) {
           setResearchData(data);
+          console.log('Found existing research data:', data);
         }
       } catch (error) {
         console.error('Error in checkExistingResearch:', error);
@@ -63,23 +62,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     checkExistingResearch();
   }, [companyId]);
 
-  // Add this new useEffect to automatically trigger the research request
-  useEffect(() => {
-    // Only auto-trigger if we're done checking and no research exists,
-    // or if research exists but isn't completed
-    if (!isCheckingExisting) {
-      const shouldAutoTrigger = !researchData || researchData.status !== 'completed';
-      if (shouldAutoTrigger) {
-        // Add a small delay to avoid UI glitches
-        const timer = setTimeout(() => {
-          handleRequestResearch();
-        }, 500);
-        
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [isCheckingExisting, researchData]);
-
   const handleRequestResearch = async () => {
     if (!companyId || !assessmentPoints || assessmentPoints.length === 0) {
       toast.error("Missing company information", {
@@ -90,6 +72,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
 
     try {
       setIsLoading(true);
+      console.log('Starting market research for company:', companyId);
       
       const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
         body: { 
@@ -106,7 +89,10 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
         return;
       }
       
+      console.log('Research function response:', data);
+      
       if (data.success) {
+        // Refresh the data from the database
         const { data: refreshedData, error: refreshError } = await supabase
           .from('market_research')
           .select('*')
@@ -121,8 +107,9 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           });
         } else {
           console.error('Error refreshing research data:', refreshError);
-          setResearchData(data.research);
-          setShowDetailView(true);
+          toast.error("Research completed but failed to load", {
+            description: "Please refresh the page to see the results"
+          });
         }
       } else {
         toast.error("Research failed", {
@@ -139,11 +126,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString();
-  };
-
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
     if (researchData && researchData.status === 'completed') {
@@ -151,10 +133,15 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     }
   };
 
-  // Helper function to remove double stars from text
-  const removeDoubleStars = (text: string): string => {
+  // Helper function to remove formatting artifacts
+  const cleanText = (text: string): string => {
     if (!text) return '';
-    return text.replace(/\*\*/g, '');
+    return text
+      .replace(/\*\*/g, '')
+      .replace(/\*\*Analysis:\*\*/gi, '')
+      .replace(/Analysis:/gi, '')
+      .replace(/\*\*Analysis\*\*/gi, '')
+      .replace(/analysis:/gi, '');
   };
 
   const renderDetailView = () => {
@@ -165,14 +152,14 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     return (
       <div className="h-full">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gold">
+          <h3 className="text-xl font-semibold text-primary">
             {activeTab === "summary" && "Research Summary"}
             {activeTab === "news" && "Latest News"}
             {activeTab === "insights" && "Market Insights"}
           </h3>
         </div>
         
-        <ScrollArea className="h-[calc(100vh-300px)] pr-4">
+        <ScrollArea className="h-[500px] pr-4">
           {activeTab === "summary" && (
             <div className="prose prose-sm max-w-none">
               <div dangerouslySetInnerHTML={{ 
@@ -189,19 +176,13 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                 <div className="space-y-6">
                   {researchData.news_highlights.map((news: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
-                      <h3 className="text-lg font-semibold mb-1">{removeDoubleStars(news.headline)}</h3>
+                      <h3 className="text-lg font-semibold mb-1">{cleanText(news.headline || news.title || '')}</h3>
                       {news.source && (
                         <p className="text-sm text-primary mb-2">{news.source}</p>
                       )}
-                      <p className="text-sm text-muted-foreground mb-3">{
-                        news.content 
-                          ? removeDoubleStars(news.content)
-                              .replace(/\*\*Analysis:\*\*/gi, '')
-                              .replace(/Analysis:/gi, '')
-                              .replace(/\*\*Analysis\*\*/gi, '')
-                              .replace(/analysis:/gi, '')
-                          : ''
-                      }</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {cleanText(news.content || '')}
+                      </p>
                       {news.url && (
                         <a 
                           href={news.url} 
@@ -232,20 +213,14 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                   {researchData.market_insights.map((insight: any, index: number) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
                       <h3 className="text-lg font-semibold mb-1">
-                        {removeDoubleStars(insight.headline || insight.title)}
+                        {cleanText(insight.headline || insight.title || '')}
                       </h3>
                       {insight.source && (
                         <p className="text-sm text-primary mb-2">{insight.source}</p>
                       )}
-                      <p className="text-sm text-muted-foreground mb-3">{
-                        insight.content 
-                          ? removeDoubleStars(insight.content)
-                              .replace(/\*\*Analysis:\*\*/gi, '')
-                              .replace(/Analysis:/gi, '')
-                              .replace(/\*\*Analysis\*\*/gi, '')
-                              .replace(/analysis:/gi, '')
-                          : ''
-                      }</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {cleanText(insight.content || '')}
+                      </p>
                       {insight.url && (
                         <a 
                           href={insight.url} 
@@ -293,183 +268,188 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
   };
 
   return (
-    <>
-      <Card className="shadow-md border bg-card overflow-hidden mb-8">
-        <CardHeader className="bg-muted/50 border-b pb-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <BarChart2 className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl font-semibold">Real-Time Market Research</CardTitle>
-            </div>
-            
-            <Button 
-              variant={researchData ? "outline" : "default"}
-              onClick={handleRequestResearch}
-              disabled={isLoading || isCheckingExisting}
-              className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkle className="mr-2 h-4 w-4" />
-                  {researchData ? "Update Research" : "Real-Time Analysis"}
-                </>
-              )}
-            </Button>
+    <Card className="shadow-md border bg-card overflow-hidden mb-8">
+      <CardHeader className="bg-muted/50 border-b pb-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <BarChart2 className="h-5 w-5 text-primary" />
+            <CardTitle className="text-xl font-semibold">Real-Time Market Research</CardTitle>
           </div>
-        </CardHeader>
-        
-        <CardContent className="pt-5 px-4 sm:px-6">
-          {isCheckingExisting ? (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-pulse">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <p className="text-muted-foreground">Checking for existing research...</p>
-            </div>
-          ) : researchData ? (
-            <div>
-              {researchData.status === 'failed' && (
-                <div className="bg-destructive/10 text-destructive rounded-md p-4 mt-4">
-                  <h4 className="font-semibold">Error Details</h4>
-                  <p className="text-sm mt-1">{researchData.error_message || "Unknown error occurred"}</p>
-                </div>
-              )}
-              
-              {researchData.status === 'completed' && (
-                <>
-                  {showDetailView ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4 text-gold">Research Categories</h3>
-                        <div className="grid grid-cols-1 gap-4 mt-2">
-                          <Card 
-                            className={`bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50 ${activeTab === 'summary' ? 'border-primary' : ''}`}
-                            onClick={() => handleTabClick('summary')}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                                <Globe className="h-4 w-4 text-blue-500" />
-                                Market Research
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Comprehensive market analysis with up-to-date insights from reputable sources.
-                              </p>
-                            </CardContent>
-                          </Card>
-                          
-                          <Card 
-                            className={`bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50 ${activeTab === 'news' ? 'border-primary' : ''}`}
-                            onClick={() => handleTabClick('news')}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                                <Newspaper className="h-4 w-4 text-green-500" />
-                                Latest News
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Recent industry news and events with relevant implications for this company.
-                              </p>
-                            </CardContent>
-                          </Card>
-                          
-                          <Card 
-                            className={`bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50 ${activeTab === 'insights' ? 'border-primary' : ''}`}
-                            onClick={() => handleTabClick('insights')}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                                <TrendingUp className="h-4 w-4 text-amber-500" />
-                                Market Trends
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Current trends, market size data, and competitive landscape analysis.
-                              </p>
-                            </CardContent>
-                          </Card>
+          
+          <Button 
+            variant={researchData ? "outline" : "default"}
+            onClick={handleRequestResearch}
+            disabled={isLoading || isCheckingExisting}
+            className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkle className="mr-2 h-4 w-4" />
+                {researchData ? "Update Research" : "Start Analysis"}
+              </>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-5 px-4 sm:px-6">
+        {isCheckingExisting ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-pulse">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-muted-foreground">Checking for existing research...</p>
+          </div>
+        ) : researchData ? (
+          <div>
+            {researchData.status === 'failed' && (
+              <div className="bg-destructive/10 text-destructive rounded-md p-4 mb-4">
+                <h4 className="font-semibold">Research Failed</h4>
+                <p className="text-sm mt-1">{researchData.error_message || "Unknown error occurred"}</p>
+              </div>
+            )}
+            
+            {researchData.status === 'pending' && (
+              <div className="bg-amber-50 text-amber-800 rounded-md p-4 mb-4">
+                <h4 className="font-semibold">Research In Progress</h4>
+                <p className="text-sm mt-1">Market research is being generated. This may take a few minutes.</p>
+              </div>
+            )}
+            
+            {researchData.status === 'completed' && (
+              <>
+                {showDetailView ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-primary">Research Categories</h3>
+                      <div className="grid grid-cols-1 gap-4 mt-2">
+                        <Card 
+                          className={`bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50 ${activeTab === 'summary' ? 'border-primary ring-1 ring-primary' : ''}`}
+                          onClick={() => handleTabClick('summary')}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                              <Globe className="h-4 w-4 text-blue-500" />
+                              Market Research
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Comprehensive market analysis with up-to-date insights from reputable sources.
+                            </p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card 
+                          className={`bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50 ${activeTab === 'news' ? 'border-primary ring-1 ring-primary' : ''}`}
+                          onClick={() => handleTabClick('news')}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                              <Newspaper className="h-4 w-4 text-green-500" />
+                              Latest News
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Recent industry news and events with relevant implications for this company.
+                            </p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card 
+                          className={`bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50 ${activeTab === 'insights' ? 'border-primary ring-1 ring-primary' : ''}`}
+                          onClick={() => handleTabClick('insights')}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                              <TrendingUp className="h-4 w-4 text-amber-500" />
+                              Market Trends
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Current trends, market size data, and competitive landscape analysis.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                    
+                    <div className="border-l pl-6">
+                      {renderDetailView()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                    <Card 
+                      className="bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50"
+                      onClick={() => handleTabClick('summary')}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                          <Globe className="h-4 w-4 text-blue-500" />
+                          Market Research
                         </div>
-                      </div>
-                      
-                      <div className="border-l pl-6">
-                        {renderDetailView()}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                      <Card 
-                        className="bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50"
-                        onClick={() => handleTabClick('summary')}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                            <Globe className="h-4 w-4 text-blue-500" />
-                            Market Research
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Comprehensive market analysis with up-to-date insights from reputable sources.
-                          </p>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card 
-                        className="bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50"
-                        onClick={() => handleTabClick('news')}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                            <Newspaper className="h-4 w-4 text-green-500" />
-                            Latest News
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Recent industry news and events with relevant implications for this company.
-                          </p>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card 
-                        className="bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50"
-                        onClick={() => handleTabClick('insights')}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 font-medium text-sm mb-2">
-                            <TrendingUp className="h-4 w-4 text-amber-500" />
-                            Market Trends
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Current trends, market size data, and competitive landscape analysis.
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Search className="h-12 w-12 mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No Market Research Available</h3>
-              <p className="text-muted-foreground max-w-md mb-6">
-                Get real-time market research, industry news, and competitive analysis for this company.
-              </p>
-              <p className="text-sm text-muted-foreground max-w-md mb-8">
-                Our AI will analyze recent news, market trends, and industry data to provide actionable insights.
-              </p>
-            </div>
-          )}
-        </CardContent>
-        
-        {(researchData?.sources?.length > 0) && (
-          <CardFooter className="flex justify-end border-t pt-4 bg-muted/30 px-6">
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium">{researchData.sources.length}</span> sources referenced
-            </div>
-          </CardFooter>
+                        <p className="text-xs text-muted-foreground">
+                          Comprehensive market analysis with up-to-date insights.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card 
+                      className="bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50"
+                      onClick={() => handleTabClick('news')}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                          <Newspaper className="h-4 w-4 text-green-500" />
+                          Latest News
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Recent industry news and events.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card 
+                      className="bg-muted/30 cursor-pointer transition-colors hover:bg-muted/50"
+                      onClick={() => handleTabClick('insights')}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 font-medium text-sm mb-2">
+                          <TrendingUp className="h-4 w-4 text-amber-500" />
+                          Market Trends
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Current trends and market analysis.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Search className="h-12 w-12 mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No Market Research Available</h3>
+            <p className="text-muted-foreground max-w-md mb-6">
+              Get real-time market research, industry news, and competitive analysis for this company.
+            </p>
+            <p className="text-sm text-muted-foreground max-w-md mb-8">
+              Our AI will analyze recent news, market trends, and industry data to provide actionable insights.
+            </p>
+          </div>
         )}
-      </Card>
-    </>
+      </CardContent>
+      
+      {(researchData?.sources?.length > 0) && (
+        <CardFooter className="flex justify-end border-t pt-4 bg-muted/30 px-6">
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">{researchData.sources.length}</span> sources referenced
+          </div>
+        </CardFooter>
+      )}
+    </Card>
   );
 }
 
@@ -488,6 +468,8 @@ function ResearchSkeleton() {
 }
 
 function extractSection(text: string, sectionName: string): string {
+  if (!text) return '<p>No content available</p>';
+  
   const sectionRegex = new RegExp(`#+\\s*${sectionName}[\\s\\S]*?(?=#+\\s*|$)`, 'i');
   const sectionMatch = text.match(sectionRegex);
   
@@ -506,15 +488,11 @@ function extractSection(text: string, sectionName: string): string {
     .replace(/<\/p><ul>/g, '<ul>')
     .replace(/<\/li>(?!<li|<\/ul>)/g, '</li></ul>')
     .replace(/\n(\d+\. )(.*)/g, '</p><div class="pl-4 py-2 my-3 border-l-4 border-primary/20"><span class="font-semibold">$1</span>$2</div><p>')
-    .replace(/\*\*Analysis:\*\*/gi, '')
-    .replace(/Analysis:/gi, '')
-    .replace(/\*\*Analysis\*\*/gi, '')
-    .replace(/analysis:/gi, '')
     .replace(/Source:.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/https?:\/\/[^\s]+/g, '')
-    .replace(/\*\*/g, '') // Remove any remaining double stars
+    .replace(/\*\*/g, '')
     .replace(/\n/g, ' ');
 
   if (!html.startsWith('<')) {
@@ -544,15 +522,11 @@ function formatResearchHtml(text: string): string {
     .replace(/(\$[0-9.,]+ (?:billion|million|trillion)|\d+% growth|market (?:value|size|cap) of \$[0-9.,]+ (?:billion|million|trillion))/gi, 
              '<span class="font-medium">$1</span>')
     .replace(/^(\d+)\. (.*$)/gim, '<div class="mb-4 pl-4 border-l-2 border-primary/20"><span class="font-bold">$1.</span> $2</div>')
-    .replace(/\*\*Analysis:\*\*/gi, '')
-    .replace(/Analysis:/gi, '')
-    .replace(/\*\*Analysis\*\*/gi, '')
-    .replace(/analysis:/gi, '')
     .replace(/Source:.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*Source:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/\*\*URL:\*\*.*https?:\/\/[^\s]+/g, '')
     .replace(/https?:\/\/[^\s]+/g, '')
-    .replace(/\*\*/g, '') // Remove any remaining double stars
+    .replace(/\*\*/g, '')
     .replace(/\n/g, ' ')
     + '</div>';
   
