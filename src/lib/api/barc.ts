@@ -69,7 +69,7 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       throw new Error('Missing submissionId');
     }
 
-    // First check if the submission exists and get its current status
+    // First check if the submission exists
     const { data: submission, error: fetchError } = await supabase
       .from('barc_form_submissions')
       .select('*')
@@ -87,45 +87,19 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
 
     console.log('Found submission for analysis:', {
       id: submission.id,
-      company_name: submission.company_name,
-      current_status: submission.analysis_status,
-      existing_company_id: submission.company_id
+      company_name: submission.company_name
     });
 
-    // If already analyzed and has a company_id, return early to prevent duplicates
-    if (submission.analysis_status === 'completed' && submission.company_id) {
-      console.log('Submission already analyzed with company ID:', submission.company_id);
-      return {
-        success: true,
-        companyId: submission.company_id,
-        message: 'Submission already analyzed'
-      };
-    }
-
-    // Check if analysis is already in progress to prevent concurrent analysis
-    if (submission.analysis_status === 'processing') {
-      console.log('Analysis already in progress for submission:', submissionId);
-      throw new Error('Analysis is already in progress for this submission. Please wait for it to complete.');
-    }
-
-    // Use a database transaction to prevent race conditions
-    const { data: updateResult, error: updateError } = await supabase
+    // Update status to processing
+    await supabase
       .from('barc_form_submissions')
       .update({ 
         analysis_status: 'processing',
         analyzed_at: new Date().toISOString()
       })
-      .eq('id', submissionId)
-      .eq('analysis_status', submission.analysis_status) // Only update if status hasn't changed
-      .select()
-      .single();
+      .eq('id', submissionId);
 
-    if (updateError || !updateResult) {
-      console.error('Failed to acquire lock for analysis:', updateError);
-      throw new Error('Another analysis process may be running. Please try again in a moment.');
-    }
-
-    console.log('Successfully acquired analysis lock, calling edge function...');
+    console.log('Calling analyze-barc-form edge function...');
     
     // Use supabase.functions.invoke to call the analysis function
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
