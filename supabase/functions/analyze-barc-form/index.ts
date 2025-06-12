@@ -82,33 +82,7 @@ serve(async (req) => {
       }
     }
 
-    // Get the form details to find the owner
-    const { data: formData, error: formError } = await supabase
-      .from('barc_form_submissions')
-      .select(`
-        *,
-        public_submission_forms!inner(user_id)
-      `)
-      .eq('id', submissionId)
-      .single();
-
-    if (formError || !formData) {
-      console.error('Failed to fetch submission with form data:', formError);
-      throw new Error(`Failed to fetch submission: ${formError?.message || 'Submission not found'}`);
-    }
-
-    // Use the form owner as the user for the company
-    const formOwnerId = formData.public_submission_forms.user_id;
-    console.log('Form owner ID:', formOwnerId);
-
-    const effectiveUserId = formOwnerId || currentUserId;
-    console.log('Using user ID for company creation:', effectiveUserId);
-
-    if (!effectiveUserId) {
-      throw new Error('No valid user ID found for company creation');
-    }
-
-    // Fetch the submission data
+    // Fetch the submission data first
     console.log('Fetching submission data...');
     const { data: submission, error: fetchError } = await supabase
       .from('barc_form_submissions')
@@ -124,8 +98,31 @@ serve(async (req) => {
     console.log('Retrieved submission for analysis:', {
       id: submission.id,
       company_name: submission.company_name,
-      submitter_email: submission.submitter_email
+      submitter_email: submission.submitter_email,
+      form_slug: submission.form_slug
     });
+
+    // Get the form details to find the owner (separate query to avoid JOIN issues)
+    let formOwnerId = null;
+    if (submission.form_slug) {
+      const { data: formData, error: formError } = await supabase
+        .from('public_submission_forms')
+        .select('user_id')
+        .eq('form_slug', submission.form_slug)
+        .single();
+
+      if (formError) {
+        console.error('Failed to fetch form data:', formError);
+        // Continue without form owner - we'll use current user or create without user
+      } else if (formData) {
+        formOwnerId = formData.user_id;
+        console.log('Form owner ID:', formOwnerId);
+      }
+    }
+
+    // Use the form owner as the user for the company, fallback to current user
+    const effectiveUserId = formOwnerId || currentUserId;
+    console.log('Using user ID for company creation:', effectiveUserId);
 
     // Update status to processing
     console.log('Updating submission status to processing...');
