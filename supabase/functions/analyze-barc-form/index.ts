@@ -99,8 +99,39 @@ serve(async (req) => {
       id: submission.id,
       company_name: submission.company_name,
       submitter_email: submission.submitter_email,
-      form_slug: submission.form_slug
+      form_slug: submission.form_slug,
+      existing_company_id: submission.company_id,
+      analysis_status: submission.analysis_status
     });
+
+    // Check if this submission already has a company created
+    if (submission.company_id) {
+      console.log('Submission already has a company created:', submission.company_id);
+      
+      // Return the existing company information
+      const { data: existingCompany, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', submission.company_id)
+        .single();
+
+      if (existingCompany) {
+        console.log('Returning existing company:', existingCompany.id);
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            submissionId,
+            companyId: existingCompany.id,
+            message: 'Company already exists for this submission'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      } else {
+        console.log('Company ID exists but company not found, proceeding with new analysis...');
+      }
+    }
 
     // Get the form details to find the owner (separate query to avoid JOIN issues)
     let formOwnerId = null;
