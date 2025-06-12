@@ -137,9 +137,11 @@ serve(async (req) => {
       console.error('Failed to update status to processing:', statusUpdateError);
     }
 
-    // Prepare the enhanced analysis prompt that balances form answers with market data
+    // Enhanced analysis prompt with specific metrics-based scoring
     const analysisPrompt = `
-    You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application by EQUALLY prioritizing both the applicant's answers to form questions AND relevant market data/industry insights. Both aspects should carry significant weight in your evaluation.
+    You are an expert startup evaluator for IIT Bombay's incubation program. Your task is to provide a comprehensive and HIGHLY DISCRIMINATIVE analysis that clearly distinguishes between excellent and poor responses. Use the specific metrics provided for each question to score accurately.
+
+    CRITICAL SCORING INSTRUCTION: You MUST create significant score differences between good and poor responses. Excellent answers should score 80-100, average answers 50-70, and poor/incomplete answers 10-40. DO NOT give similar scores to vastly different quality responses.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -148,114 +150,139 @@ serve(async (req) => {
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
     - Submitter Email: ${submission.submitter_email || 'Not provided'}
 
-    Application Responses:
+    Application Responses and Specific Metrics for Evaluation:
 
-    1. Problem and Timing: "${submission.question_1 || 'Not provided'}"
-       Evaluation Criteria: Clarity of problem definition, market timing assessment, solution relevance
+    1. PROBLEM & TIMING: "${submission.question_1 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Clarity of Problem Definition (20-30 points): Is it a real, urgent pain point with clear articulation?
+    - Market Timing Justification (20-30 points): Evidence of market shift, tech readiness, policy changes, etc.
+    - Insight Depth (20-30 points): Customer anecdotes, data, firsthand experience provided
+    
+    Score harshly if: Vague problem description, no timing evidence, lacks personal insight
+    Score highly if: Crystal clear pain point, strong timing evidence, rich customer insights
 
-    2. Customer Discovery: "${submission.question_2 || 'Not provided'}"
-       Evaluation Criteria: Market size and potential, customer acquisition strategy, go-to-market approach
+    2. CUSTOMER DISCOVERY: "${submission.question_2 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Customer Clarity (25-35 points): Can they describe personas/segments with precision?
+    - Validation Effort (25-35 points): Have they spoken to customers, secured pilots, gathered feedback?
+    - GTMP Realism (25-35 points): Is acquisition strategy practical and scalable?
+    
+    Score harshly if: Generic customer descriptions, no validation efforts, unrealistic GTM
+    Score highly if: Detailed customer personas, extensive validation, practical GTM strategy
 
-    3. Competitive Advantage: "${submission.question_3 || 'Not provided'}"
-       Evaluation Criteria: Uniqueness of solution, defensibility of moat, competitive positioning
+    3. COMPETITIVE ADVANTAGE: "${submission.question_3 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Differentiation (30-35 points): Clearly stated advantages vs existing solutions?
+    - Defensibility (30-35 points): Hard to replicate—tech IP, data, partnerships, network effects?
+    - Strategic Awareness (30-35 points): Aware of and positioned against incumbents?
+    
+    Score harshly if: No clear differentiation, easily replicable, unaware of competition
+    Score highly if: Strong unique value prop, defensible moats, competitive intelligence
 
-    4. Team Background: "${submission.question_4 || 'Not provided'}"
-       Evaluation Criteria: Relevant experience and expertise, team composition, domain knowledge
+    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
+    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
+    - Execution History (30-35 points): Track record of building, selling, or scaling?
+    
+    Score harshly if: No domain experience, skill gaps, no execution track record
+    Score highly if: Deep domain expertise, complementary skills, proven execution
 
-    5. Incubation Goals: "${submission.question_5 || 'Not provided'}"
-       Evaluation Criteria: Clarity of milestones, realistic timeline, resource requirements
+    5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Goal Specificity (30-35 points): Clear KPIs like MVP, first customer, funding targets?
+    - Feasibility (30-35 points): Are goals realistic for 3-6 month timeframe?
+    - Support Clarity (30-35 points): Do they know what they need—mentorship, infrastructure, access?
+    
+    Score harshly if: Vague goals, unrealistic timelines, unclear support needs
+    Score highly if: Specific measurable goals, realistic timelines, clear support requirements
 
-    ANALYSIS INSTRUCTIONS:
+    SCORING GUIDELINES - BE HIGHLY DISCRIMINATIVE:
+    - 90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding
+    - 80-89: Strong responses with good evidence and understanding, minor gaps
+    - 70-79: Adequate responses with some evidence, moderate understanding
+    - 60-69: Weak responses with limited evidence, significant gaps
+    - 40-59: Poor responses with minimal substance, major deficiencies
+    - 20-39: Very poor responses, largely inadequate or missing key elements
+    - 1-19: Extremely poor or non-responses
 
-    For the OVERALL ASSESSMENT - CRITICAL REQUIREMENT FOR ASSESSMENT POINTS:
-    - Generate EXACTLY 6-7 assessment points that MUST include SPECIFIC NUMBERS in every single point
-    - Every assessment point MUST contain at least 3-4 of these quantitative elements: market size in dollars (e.g., "$2.5 billion market"), growth rates with percentages (e.g., "15% CAGR"), customer metrics with numbers (e.g., "$500 average customer acquisition cost"), competitive data with figures (e.g., "competitors spending $50M annually"), industry benchmarks with percentages (e.g., "industry average 30% gross margins")
-    - MANDATORY: Each point must seamlessly integrate their response quality assessment with extensive market numbers including: TAM/SAM figures, growth percentages, cost metrics, competitive spending, success rates, timeline data, pricing benchmarks, market penetration rates
-    - Example format: "The company demonstrates strong market understanding in a rapidly expanding $X billion sector growing at X% annually, though their customer acquisition strategy requires validation against industry benchmarks showing average CAC of $X and X-month payback periods typical for successful companies in this space."
-    - Focus heavily on: market size data, growth rate percentages, cost analysis, competitive landscape numbers, customer metrics, financial benchmarks, timing indicators with specific data points
+    MARKET INTEGRATION REQUIREMENT:
+    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context.
 
-    For STRENGTHS AND WEAKNESSES in each section:
-    - Provide exactly 4-5 STRENGTHS and 4-5 WEAKNESSES for each section
-    - WEAKNESSES should focus on identifying actual flaws, gaps, risks, and limitations in their approach/responses combined with market challenges - NOT recommendations for improvement
-    - Weaknesses should highlight: response quality deficiencies, market barriers they face, competitive threats they're exposed to, industry challenges affecting them, cost disadvantages, timing risks, execution gaps, market positioning problems
-    - Balance evaluation between answer quality AND extensive market data/numbers for both strengths and weaknesses
-    - Connect their responses to concrete market evidence and data points in both positive and negative aspects
-    - For weaknesses, focus on what IS wrong or missing, not what SHOULD BE done
+    For ASSESSMENT POINTS (6-7 points required):
+    Each point MUST contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation.
 
-    Each strength and weakness should integrate:
-    1. Assessment of their actual response quality/depth
-    2. Relevant market data, statistics, or industry benchmarks
-    3. How market realities support or challenge their position
-    4. Specific numbers, percentages, dollar amounts, and comparative metrics
+    For STRENGTHS AND WEAKNESSES (exactly 4-5 each per section):
+    - STRENGTHS: Highlight what they did well, supported by market validation and data
+    - WEAKNESSES: Identify actual flaws, gaps, and limitations in their responses combined with market challenges they face (NOT improvement recommendations)
 
-    Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-100 (not 1-5 or 1-10):
+    Provide analysis in this JSON format with ALL scores on 1-100 scale:
 
     {
       "overall_score": number (1-100),
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
-        "industry": "string (infer from the application)",
-        "stage": "string (based on their responses - Idea, Prototype, Early Revenue, Growth)",
-        "introduction": "string (2-3 sentence description based on their executive summary and responses)"
+        "industry": "string (infer from application)",
+        "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
+        "introduction": "string (2-3 sentence description)"
       },
       "sections": {
         "problem_solution_fit": {
           "score": number (1-100),
-          "analysis": "detailed analysis that equally weighs their answer quality AND market data to evaluate problem definition and timing",
-          "strengths": ["exactly 4-5 strengths that balance answer assessment with market validation and specific data points", "another strength combining their response quality with industry metrics", "third strength with market size/growth data", "fourth strength with competitive landscape data", "fifth strength with timing and market trends data"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps in their problem understanding combined with market barriers, expressed as deficiencies rather than recommendations", "another weakness highlighting response limitations with market reality challenges and competitive threats", "third weakness about problem validation gaps with market saturation data and industry failure rates", "fourth weakness regarding market timing risks with regulatory challenges and adoption curve barriers", "fifth weakness about execution gaps with industry benchmark deficiencies and market penetration challenges"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
         },
         "market_opportunity": {
           "score": number (1-100),
-          "analysis": "detailed analysis that equally weighs their customer discovery response AND market size/potential data",
-          "strengths": ["exactly 4-5 strengths balancing their market understanding with actual market data and metrics", "another strength with customer acquisition insights and industry benchmarks", "third strength with go-to-market approach and market penetration data", "fourth strength with addressable market size validation", "fifth strength with market growth trends and opportunity sizing"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual market analysis flaws and customer understanding gaps combined with acquisition cost challenges", "another weakness highlighting market penetration barriers with customer acquisition cost disadvantages and retention risks", "third weakness about market size validation gaps with saturation risks and competitive spending disadvantages", "fourth weakness regarding customer discovery deficiencies with adoption cycle barriers and go-to-market cost challenges", "fifth weakness about competitive market positioning gaps with customer acquisition difficulty and market entry obstacles"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
         },
         "competitive_advantage": {
           "score": number (1-100),
-          "analysis": "detailed analysis that equally weighs their competitive claims AND competitive landscape data",
-          "strengths": ["exactly 4-5 strengths balancing their differentiation claims with competitive analysis data", "another strength with moat assessment and industry defensibility metrics", "third strength with competitive positioning and market share data", "fourth strength with innovation metrics and patent landscape", "fifth strength with sustainable advantage validation through market data"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual competitive disadvantages and differentiation gaps combined with market threats", "another weakness highlighting competitive landscape vulnerabilities with market consolidation risks and threat exposure", "third weakness about differentiation sustainability gaps with competitive response risks and moat erosion", "fourth weakness regarding competitive positioning deficiencies with market positioning costs and defensibility limitations", "fifth weakness about innovation cycle gaps with competitive advantage decay risks and market disruption vulnerabilities"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
         },
         "team_strength": {
           "score": number (1-100),
-          "analysis": "detailed analysis that equally weighs their team description AND industry team success patterns/data",
-          "strengths": ["exactly 4-5 strengths balancing their team experience with industry success metrics", "another strength with domain expertise and industry leadership benchmarks", "third strength with team composition and startup success rate data", "fourth strength with relevant background and industry network validation", "fifth strength with execution capability and track record assessment"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual team gaps and experience deficiencies combined with industry execution risks", "another weakness highlighting skill deficiencies with hiring challenges and industry competency gaps", "third weakness about experience limitations with team scaling risks and leadership capability gaps", "fourth weakness regarding team composition deficiencies with hiring market challenges and retention risks", "fifth weakness about execution capability gaps with team building costs and advisory dependency risks"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
         },
         "execution_plan": {
           "score": number (1-100),
-          "analysis": "detailed analysis that equally weighs their execution planning AND industry execution benchmarks/data",
-          "strengths": ["exactly 4-5 strengths balancing their planning clarity with execution feasibility data", "another strength with milestone realism and industry timeline benchmarks", "third strength with resource planning and startup capital efficiency metrics", "fourth strength with goal specificity and success probability analysis", "fifth strength with implementation strategy and industry best practices alignment"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual execution planning gaps and timeline unreliability combined with industry failure risks", "another weakness highlighting resource estimation deficiencies with burn rate dangers and capital requirement underestimation", "third weakness about milestone planning gaps with execution barrier underestimation and implementation cost challenges", "fourth weakness regarding goal specificity deficiencies with market entry timeline risks and scaling execution gaps", "fifth weakness about implementation strategy limitations with execution success rate challenges and industry benchmark gaps"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
         }
       },
       "summary": {
-        "overall_feedback": "comprehensive feedback that integrates their form responses with extensive market context, data points, and industry insights",
-        "key_factors": ["factor balancing their strongest answers with market validation and specific data", "factor balancing their weakest responses with market challenges and metrics", "factor about overall application quality with industry positioning and benchmarks"],
-        "next_steps": ["specific recommendation based on gaps in responses and market data", "another step with market-informed guidance and industry benchmarks", "third step with concrete actions supported by industry insights"],
-        "assessment_points": ["MANDATORY: This point must contain specific market size (e.g., $X billion), growth rate (e.g., X% CAGR), and at least 2 other quantitative metrics like CAC ($X), competitive spending ($X), or success rates (X%) while evaluating their application quality and market positioning", "MANDATORY: This point must include TAM/SAM figures ($X billion addressable market), customer metrics (e.g., $X average revenue per customer), competitive benchmarks (e.g., competitors with X% market share), and adoption timelines (X months) integrated with assessment of their business model and execution capability", "MANDATORY: This point must feature pricing data ($X per unit), market penetration rates (X% adoption), cost analysis ($X operational costs), and industry failure rates (X% of startups fail) combined with evaluation of their competitive differentiation and team strength", "MANDATORY: This point must contain customer acquisition metrics ($X CAC, X-month payback), market growth data (X% annual growth), competitive landscape analysis (X players spending $X annually), and regulatory cost impacts ($X compliance costs) while assessing their go-to-market strategy and market timing", "MANDATORY: This point must include financial benchmarks (X% gross margins, $X average deal size), market maturity indicators (X years to adoption), competitive response data ($X R&D spending by incumbents), and scaling metrics (X% revenue growth typical) integrated with their execution plan evaluation", "MANDATORY: This point must feature market validation data ($X billion current market size expanding to $X billion by 20XX), customer behavior metrics (X% conversion rates, $X customer lifetime value), and competitive positioning costs ($X annual marketing spend) combined with overall investment potential assessment", "MANDATORY: This point must contain comprehensive market analysis including sector growth (X% CAGR over X years), barrier-to-entry costs ($X typical investment required), success probability (X% of similar companies achieve profitability), and resource requirements ($X funding needed for next X months) while providing final recommendation rationale"]
+        "overall_feedback": "comprehensive feedback integrating response quality with market context",
+        "key_factors": ["key decision factors with market validation"],
+        "next_steps": ["specific recommendations with market-informed guidance"],
+        "assessment_points": ["EXACTLY 6-7 points, each containing multiple specific market numbers (market size, growth rates, CAC, competitive data, success rates) seamlessly integrated with response evaluation"]
       }
     }
 
-    CRITICAL REQUIREMENTS FOR ASSESSMENT POINTS:
-    - EVERY assessment point MUST contain at least 4-5 specific numbers, dollar amounts, percentages, or quantitative metrics
-    - MANDATORY inclusion of market size data, growth percentages, cost figures, competitive metrics, and success rates in EVERY point
-    - Generate natural, flowing statements that seamlessly blend response evaluation with extensive quantitative market data
-    - Do NOT use prefixes like "Assessment point 1" or "Assessment" - write as clean, professional investment analysis statements
-    - Focus on providing actionable investment insights supported by concrete market numbers and financial metrics
-
-    CRITICAL REQUIREMENTS FOR WEAKNESSES:
-    - Focus on identifying actual problems, gaps, and limitations - NOT providing recommendations
-    - Express weaknesses as deficiencies, risks, and challenges they face
-    - Avoid phrases like "should improve" or "needs to" - instead use "lacks", "shows gaps in", "faces risks from", "demonstrates deficiencies in"
-    - Combine response quality issues with market data showing the challenges and barriers they face
-
-    Remember: Give EQUAL importance to both the applicant's actual answers AND relevant market data/industry insights. Generate EXACTLY 6-7 assessment points that are clean, natural statements without prefixes. Each assessment point MUST include multiple specific market numbers, dollar amounts, growth rates, and industry metrics seamlessly integrated with answer evaluation. Each strength and weakness must integrate both aspects with specific data points and metrics. Focus weaknesses on actual problems and gaps, not improvement recommendations. All scores must be on a 1-100 scale.
+    CRITICAL REQUIREMENTS:
+    1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
+    2. Use the exact metrics provided for each question in your evaluation
+    3. Each assessment point must contain at least 4-5 specific market numbers/percentages
+    4. Focus weaknesses on actual problems/gaps, not improvement suggestions
+    5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
+    6. All scores must be 1-100 scale
+    7. Return only valid JSON without markdown formatting
     `;
 
     // Call OpenAI API
-    console.log('Calling OpenAI API for enhanced analysis...');
+    console.log('Calling OpenAI API for enhanced metrics-based analysis...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -263,18 +290,18 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-2025-04-14',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Give EQUAL weight to both the quality of applicant responses AND relevant market data/industry insights. Generate EXACTLY 6-7 clean, natural assessment points that MUST include specific numbers in every single point - market sizes in dollars, growth rates as percentages, customer acquisition costs, competitive spending figures, success rates, and other quantitative metrics. EVERY assessment point must contain at least 4-5 specific numbers, dollar amounts, or percentages. Do NOT use prefixes like "Assessment point 1", "Assessment point 2", or start with "Assessment". Write them as natural, flowing investment analysis statements that seamlessly blend response analysis with extensive quantitative market data and financial metrics. Provide exactly 4-5 strengths and 4-5 weaknesses for each section. For weaknesses, focus on identifying actual flaws, gaps, risks, and limitations - NOT recommendations for improvement. Express weaknesses as deficiencies and challenges they face, using phrases like "lacks", "shows gaps in", "faces risks from", "demonstrates deficiencies in" rather than "should improve" or "needs to". Include specific data points, growth rates, market sizes, competitive dynamics, and industry benchmarks with numbers in every strength and weakness. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-100. Do not wrap your response in markdown code blocks - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses on actual flaws/gaps, not recommendations. Return only valid JSON without markdown formatting.'
           },
           {
             role: 'user',
             content: analysisPrompt
           }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 4500,
       }),
     });
