@@ -126,12 +126,14 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
-        // Fetch BARC form submissions - show ALL BARC submissions regardless of analysis status
+        // Fetch BARC form submissions - only show unanalyzed ones to prevent duplicates
         try {
           console.log("Fetching BARC form submissions...");
           const { data: barcData, error: barcError } = await supabase
             .from('barc_form_submissions')
             .select('*')
+            .neq('analysis_status', 'completed')
+            .is('company_id', null)
             .order('created_at', { ascending: false });
             
           if (barcError) {
@@ -231,6 +233,16 @@ export function PublicSubmissionsList() {
   const handleAnalyze = async (submission: PublicSubmission) => {
     console.log('PublicSubmissionsList handleAnalyze called with:', submission);
     
+    // Prevent multiple simultaneous analyses of the same submission
+    if (analyzingSubmissions.has(submission.id)) {
+      toast({
+        title: "Analysis in progress",
+        description: "This submission is already being analyzed. Please wait for it to complete.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Handle BARC form submissions
     if (submission.source === "barc_form") {
       console.log('Handling BARC form submission analysis');
@@ -254,7 +266,8 @@ export function PublicSubmissionsList() {
             description: "The BARC application has been successfully analyzed",
           });
           
-          // Don't remove from submissions list - keep it visible in New Applications
+          // Remove the analyzed submission from the list to prevent duplicates
+          setSubmissions(prev => prev.filter(s => s.id !== submission.id));
           
           // If a company was created, navigate to it
           if (result.companyId) {

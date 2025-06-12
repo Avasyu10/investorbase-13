@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface BarcSubmissionData {
@@ -103,13 +102,30 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       };
     }
 
-    // Update status to processing first
-    await supabase
-      .from('barc_form_submissions')
-      .update({ analysis_status: 'processing' })
-      .eq('id', submissionId);
+    // Check if analysis is already in progress to prevent concurrent analysis
+    if (submission.analysis_status === 'processing') {
+      console.log('Analysis already in progress for submission:', submissionId);
+      throw new Error('Analysis is already in progress for this submission. Please wait for it to complete.');
+    }
 
-    console.log('Calling analyze-barc-form edge function with supabase.functions.invoke...');
+    // Use a database transaction to prevent race conditions
+    const { data: updateResult, error: updateError } = await supabase
+      .from('barc_form_submissions')
+      .update({ 
+        analysis_status: 'processing',
+        analyzed_at: new Date().toISOString()
+      })
+      .eq('id', submissionId)
+      .eq('analysis_status', submission.analysis_status) // Only update if status hasn't changed
+      .select()
+      .single();
+
+    if (updateError || !updateResult) {
+      console.error('Failed to acquire lock for analysis:', updateError);
+      throw new Error('Another analysis process may be running. Please try again in a moment.');
+    }
+
+    console.log('Successfully acquired analysis lock, calling edge function...');
     
     // Use supabase.functions.invoke to call the analysis function
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
