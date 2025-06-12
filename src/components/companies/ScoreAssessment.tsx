@@ -22,37 +22,37 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [hasFundThesis, setHasFundThesis] = useState(false);
   
-  // Format overall score to 1 decimal place
-  const formattedScore = parseFloat(company.overallScore.toFixed(1));
+  // Format overall score to whole number
+  const formattedScore = Math.round(company.overallScore);
   
-  // Calculate progress percentage (0-100 scale) from score (0-5 scale)
-  const progressPercentage = formattedScore * 20;
+  // Calculate progress percentage (already 0-100 scale)
+  const progressPercentage = formattedScore;
   
   // Get score color class
   const getScoreColor = (score: number) => {
-    if (score >= 4.5) return "text-emerald-600";
-    if (score >= 3.5) return "text-blue-600";
-    if (score >= 2.5) return "text-amber-600";
-    if (score >= 1.5) return "text-orange-600";
+    if (score >= 90) return "text-emerald-600";
+    if (score >= 70) return "text-blue-600";
+    if (score >= 50) return "text-amber-600";
+    if (score >= 30) return "text-orange-600";
     return "text-red-600";
   };
   
   // Get progress bar color class
   const getProgressColor = (score: number) => {
-    if (score >= 4.5) return "score-excellent";
-    if (score >= 3.5) return "score-good"; 
-    if (score >= 2.5) return "score-average";
-    if (score >= 1.5) return "score-poor";
+    if (score >= 90) return "score-excellent";
+    if (score >= 70) return "score-good"; 
+    if (score >= 50) return "score-average";
+    if (score >= 30) return "score-poor";
     return "score-critical";
   };
   
   // Get score description
   const getScoreDescription = (score: number): string => {
-    if (score >= 4.5) return `Outstanding Investment Opportunity (${score}/5): This company demonstrates exceptional market position, business model, and growth metrics. Clear competitive advantages with minimal risk factors. Recommended for immediate investment consideration.`;
-    if (score >= 3.5) return `Strong Investment Candidate (${score}/5): This company shows solid fundamentals with some competitive advantages, though minor concerns exist. Good potential for returns with manageable risk profile. Worth serious investment consideration.`;
-    if (score >= 2.5) return `Moderate Investment Potential (${score}/5): This company has sound basic operations but several areas need improvement. Moderate risk factors exist that could impact growth. Requires careful due diligence before investment.`;
-    if (score >= 1.5) return `High-Risk Investment (${score}/5): Significant flaws in business model, market approach, or financials create substantial concerns. Many improvements needed before being investment-ready. Consider only with extensive restructuring.`;
-    return `Not Recommended (${score}/5): This company shows critical deficiencies across multiple dimensions, presenting unacceptable investment risk. Fundamental business model or execution issues require complete overhaul.`;
+    if (score >= 90) return `Outstanding Investment Opportunity (${score}/100): This company demonstrates exceptional market position, business model, and growth metrics. Clear competitive advantages with minimal risk factors. Recommended for immediate investment consideration.`;
+    if (score >= 70) return `Strong Investment Candidate (${score}/100): This company shows solid fundamentals with some competitive advantages, though minor concerns exist. Good potential for returns with manageable risk profile. Worth serious investment consideration.`;
+    if (score >= 50) return `Moderate Investment Potential (${score}/100): This company has sound basic operations but several areas need improvement. Moderate risk factors exist that could impact growth. Requires careful due diligence before investment.`;
+    if (score >= 30) return `High-Risk Investment (${score}/100): Significant flaws in business model, market approach, or financials create substantial concerns. Many improvements needed before being investment-ready. Consider only with extensive restructuring.`;
+    return `Not Recommended (${score}/100): This company shows critical deficiencies across multiple dimensions, presenting unacceptable investment risk. Fundamental business model or execution issues require complete overhaul.`;
   };
 
   // Highlight numbers in assessment points
@@ -120,7 +120,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
             </CardTitle>
             <div className="flex items-center">
               <span className={`text-xl font-bold ${getScoreColor(formattedScore)}`}>
-                {formattedScore}/5
+                {formattedScore}/100
               </span>
               <TooltipProvider>
                 <Tooltip delayDuration={300}>

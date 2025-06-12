@@ -185,10 +185,10 @@ serve(async (req) => {
     2. Relevant market data, statistics, or industry benchmarks
     3. How market realities support or challenge their position
 
-    Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-5 (not 1-10):
+    Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-100 (not 1-5 or 1-10):
 
     {
-      "overall_score": number (1-5),
+      "overall_score": number (1-100),
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from the application)",
@@ -197,31 +197,31 @@ serve(async (req) => {
       },
       "sections": {
         "problem_solution_fit": {
-          "score": number (1-5),
+          "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their answer quality AND market data to evaluate problem definition and timing",
           "strengths": ["exactly 4-5 strengths that balance answer assessment with market validation and specific data points", "another strength combining their response quality with industry metrics", "third strength with market size/growth data", "fourth strength with competitive landscape data", "fifth strength with timing and market trends data"],
           "improvements": ["exactly 4-5 improvements that balance answer gaps with market challenges and specific data", "another improvement combining response weaknesses with market realities", "third improvement with competitive data", "fourth improvement with market timing concerns", "fifth improvement with industry benchmark gaps"]
         },
         "market_opportunity": {
-          "score": number (1-5),
+          "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their customer discovery response AND market size/potential data",
           "strengths": ["exactly 4-5 strengths balancing their market understanding with actual market data and metrics", "another strength with customer acquisition insights and industry benchmarks", "third strength with go-to-market approach and market penetration data", "fourth strength with addressable market size validation", "fifth strength with market growth trends and opportunity sizing"],
           "improvements": ["exactly 4-5 improvements balancing answer gaps with market analysis and specific metrics", "another improvement with customer acquisition challenges and cost data", "third improvement with market penetration barriers", "fourth improvement with competitive market dynamics", "fifth improvement with market timing and saturation concerns"]
         },
         "competitive_advantage": {
-          "score": number (1-5),
+          "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their competitive claims AND competitive landscape data",
           "strengths": ["exactly 4-5 strengths balancing their differentiation claims with competitive analysis data", "another strength with moat assessment and industry defensibility metrics", "third strength with competitive positioning and market share data", "fourth strength with innovation metrics and patent landscape", "fifth strength with sustainable advantage validation through market data"],
           "improvements": ["exactly 4-5 improvements balancing competitive blind spots with market competition data", "another improvement with competitive threats and market dynamics", "third improvement with differentiation gaps and competitor analysis", "fourth improvement with moat sustainability concerns", "fifth improvement with competitive landscape evolution"]
         },
         "team_strength": {
-          "score": number (1-5),
+          "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their team description AND industry team success patterns/data",
           "strengths": ["exactly 4-5 strengths balancing their team experience with industry success metrics", "another strength with domain expertise and industry leadership benchmarks", "third strength with team composition and startup success rate data", "fourth strength with relevant background and industry network validation", "fifth strength with execution capability and track record assessment"],
           "improvements": ["exactly 4-5 improvements balancing team gaps with industry requirements and success data", "another improvement with skill gaps and industry competency benchmarks", "third improvement with experience deficits and learning curve analysis", "fourth improvement with team composition optimization based on industry data", "fifth improvement with advisory needs and industry mentorship patterns"]
         },
         "execution_plan": {
-          "score": number (1-5),
+          "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their execution planning AND industry execution benchmarks/data",
           "strengths": ["exactly 4-5 strengths balancing their planning clarity with execution feasibility data", "another strength with milestone realism and industry timeline benchmarks", "third strength with resource planning and startup capital efficiency metrics", "fourth strength with goal specificity and success probability analysis", "fifth strength with implementation strategy and industry best practices alignment"],
           "improvements": ["exactly 4-5 improvements balancing planning gaps with execution challenges and industry data", "another improvement with timeline realism and startup failure rate analysis", "third improvement with resource estimation and burn rate benchmarks", "fourth improvement with milestone specificity and achievement probability", "fifth improvement with risk assessment and industry challenge patterns"]
@@ -235,7 +235,7 @@ serve(async (req) => {
       }
     }
 
-    Remember: Give EQUAL importance to both the applicant's actual answers AND relevant market data/industry insights. Each strength and weakness must integrate both aspects with specific data points and metrics.
+    Remember: Give EQUAL importance to both the applicant's actual answers AND relevant market data/industry insights. Each strength and weakness must integrate both aspects with specific data points and metrics. All scores must be on a 1-100 scale.
     `;
 
     // Call OpenAI API
@@ -251,7 +251,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Give EQUAL weight to both the quality of applicant responses AND relevant market data/industry insights. Provide exactly 4-5 strengths and 4-5 weaknesses for each section, integrating both answer assessment and market metrics. Include specific data points, growth rates, market sizes, and industry benchmarks in every strength and weakness. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-5. Do not wrap your response in markdown code blocks - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Give EQUAL weight to both the quality of applicant responses AND relevant market data/industry insights. Provide exactly 4-5 strengths and 4-5 weaknesses for each section, integrating both answer assessment and market metrics. Include specific data points, growth rates, market sizes, and industry benchmarks in every strength and weakness. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-100. Do not wrap your response in markdown code blocks - return only the raw JSON object.'
           },
           {
             role: 'user',
@@ -301,10 +301,10 @@ serve(async (req) => {
       throw new Error('Analysis response was not valid JSON');
     }
 
-    // Ensure the overall score is properly normalized to 1-5 scale
-    if (analysisResult.overall_score > 5) {
-      console.log('Normalizing score from', analysisResult.overall_score, 'to 5-point scale');
-      analysisResult.overall_score = Math.min(Math.round(analysisResult.overall_score / 2), 5);
+    // Ensure the overall score is within the 1-100 range
+    if (analysisResult.overall_score > 100) {
+      console.log('Normalizing score from', analysisResult.overall_score, 'to 100-point scale');
+      analysisResult.overall_score = Math.min(analysisResult.overall_score, 100);
     }
 
     // Create company and sections for ALL analysis results (not just Accept)

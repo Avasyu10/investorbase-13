@@ -96,10 +96,10 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: Ba
               <span>{title}</span>
               <div className="flex items-center gap-2">
                 <Star className="h-4 w-4 text-yellow-500" />
-                <span className="font-bold text-lg">{section.score}/5</span>
+                <span className="font-bold text-lg">{Math.round(section.score)}/100</span>
               </div>
             </CardTitle>
-            <Progress value={section.score * 20} className="h-2" />
+            <Progress value={section.score} className="h-2" />
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -156,12 +156,12 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: Ba
                 <span>Overall Score</span>
                 <div className="flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-500" />
-                  <span className="text-2xl font-bold">{analysis.overall_score}/5</span>
+                  <span className="text-2xl font-bold">{Math.round(analysis.overall_score)}/100</span>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Progress value={analysis.overall_score * 20} className="h-3 mb-4" />
+              <Progress value={analysis.overall_score} className="h-3 mb-4" />
               <p className="text-sm text-muted-foreground">
                 {analysis.summary?.overall_feedback}
               </p>

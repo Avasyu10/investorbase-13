@@ -119,38 +119,38 @@ serve(async (req) => {
 
     Please provide a detailed analysis covering:
 
-    1. **Problem-Solution Fit** (Score: 1-10)
+    1. **Problem-Solution Fit** (Score: 1-100)
        - Clarity of problem definition
        - Market timing assessment
        - Solution relevance
 
-    2. **Market Opportunity** (Score: 1-10)
+    2. **Market Opportunity** (Score: 1-100)
        - Market size and potential
        - Customer acquisition strategy
        - Go-to-market approach
 
-    3. **Competitive Advantage** (Score: 1-10)
+    3. **Competitive Advantage** (Score: 1-100)
        - Uniqueness of solution
        - Defensibility of moat
        - Competitive positioning
 
-    4. **Team Strength** (Score: 1-10)
+    4. **Team Strength** (Score: 1-100)
        - Relevant experience and expertise
        - Team composition
        - Domain knowledge
 
-    5. **Execution Plan** (Score: 1-10)
+    5. **Execution Plan** (Score: 1-100)
        - Clarity of milestones
        - Realistic timeline
        - Resource requirements
 
-    6. **Overall Assessment** (Score: 1-10)
+    6. **Overall Assessment** (Score: 1-100)
        - Investment potential
        - Program fit
        - Risk assessment
 
     For each section, provide:
-    - Numerical score (1-10)
+    - Numerical score (1-100)
     - Detailed analysis (2-3 paragraphs)
     - Key strengths
     - Areas for improvement
@@ -163,41 +163,41 @@ serve(async (req) => {
 
     Format your response as valid JSON with the following structure:
     {
-      "overall_score": number,
+      "overall_score": number (1-100),
       "recommendation": "Accept" | "Consider" | "Reject",
       "sections": {
         "problem_solution_fit": {
-          "score": number,
+          "score": number (1-100),
           "analysis": "string",
           "strengths": ["string"],
           "improvements": ["string"]
         },
         "market_opportunity": {
-          "score": number,
+          "score": number (1-100),
           "analysis": "string",
           "strengths": ["string"],
           "improvements": ["string"]
         },
         "competitive_advantage": {
-          "score": number,
+          "score": number (1-100),
           "analysis": "string",
           "strengths": ["string"],
           "improvements": ["string"]
         },
         "team_strength": {
-          "score": number,
+          "score": number (1-100),
           "analysis": "string",
           "strengths": ["string"],
           "improvements": ["string"]
         },
         "execution_plan": {
-          "score": number,
+          "score": number (1-100),
           "analysis": "string",
           "strengths": ["string"],
           "improvements": ["string"]
         },
         "overall_assessment": {
-          "score": number,
+          "score": number (1-100),
           "analysis": "string",
           "strengths": ["string"],
           "improvements": ["string"]
@@ -224,7 +224,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, constructive analysis in valid JSON format.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, constructive analysis in valid JSON format. All scores must be on a scale of 1-100.'
           },
           {
             role: 'user',

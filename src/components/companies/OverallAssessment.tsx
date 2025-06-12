@@ -12,14 +12,14 @@ interface OverallAssessmentProps {
 
 export function OverallAssessment({ 
   score, 
-  maxScore = 5,
+  maxScore = 100,
   assessmentPoints = []
 }: OverallAssessmentProps) {
   // Calculate progress percentage
   const progressPercentage = (score / maxScore) * 100;
   
-  // Format score to one decimal place
-  const formattedScore = typeof score === 'number' ? score.toFixed(1) : '0.0';
+  // Format score to whole number
+  const formattedScore = Math.round(score);
 
   // Default assessment points if none provided
   const defaultAssessmentPoints = [
