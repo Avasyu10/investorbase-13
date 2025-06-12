@@ -3,18 +3,16 @@ import { CompaniesList } from "@/components/companies/CompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
 import { useAuth } from "@/hooks/useAuth";
-import { useIITBombayUser } from "@/hooks/useIITBombayUser";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
-  const { isIITBombayUser, isLoading: isIITBombayLoading } = useIITBombayUser();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -63,7 +61,7 @@ const Dashboard = () => {
     }
   };
 
-  if (isLoading || isIITBombayLoading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -97,16 +95,6 @@ const Dashboard = () => {
               <Settings className="mr-2 h-4 w-4" />
               Public Forms
             </Button>
-            {isIITBombayUser && (
-              <Button 
-                onClick={() => navigate("/iit-bombay-form")} 
-                variant="outline"
-                className="flex items-center bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-              >
-                <GraduationCap className="mr-2 h-4 w-4" />
-                IIT Bombay Form
-              </Button>
-            )}
             <Button 
               onClick={() => navigate("/news-feed")} 
               variant="outline"

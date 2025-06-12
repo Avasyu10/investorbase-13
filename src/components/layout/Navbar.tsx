@@ -2,8 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useIITBombayUser } from "@/hooks/useIITBombayUser";
-import { LogOut, Building, User, MessageCircle, ShieldCheck, GraduationCap } from "lucide-react";
+import { LogOut, Building, User, MessageCircle, ShieldCheck } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +14,6 @@ import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isIITBombayUser } = useIITBombayUser();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -90,20 +88,6 @@ export function Navbar() {
                   </Link>
                 </Button>
               )}
-
-              {isIITBombayUser && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  asChild
-                  className="transition-colors hidden sm:flex text-orange-700 hover:bg-orange-50"
-                >
-                  <Link to="/iit-bombay-form">
-                    <GraduationCap className="h-4 w-4 mr-2" />
-                    IIT Bombay
-                  </Link>
-                </Button>
-              )}
               
               <Button 
                 variant="ghost" 
@@ -150,14 +134,6 @@ export function Navbar() {
                       <Link to="/admin" className="flex items-center">
                         <ShieldCheck className="h-4 w-4 mr-2" />
                         Admin
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {isIITBombayUser && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/iit-bombay-form" className="flex items-center text-orange-700">
-                        <GraduationCap className="h-4 w-4 mr-2" />
-                        IIT Bombay Form
                       </Link>
                     </DropdownMenuItem>
                   )}
