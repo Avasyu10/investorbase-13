@@ -104,11 +104,11 @@ serve(async (req) => {
       analysis_status: submission.analysis_status
     });
 
-    // Check if this submission already has a company created
+    // CRITICAL CHECK: If submission already has a company, return immediately without creating a new one
     if (submission.company_id) {
       console.log('Submission already has a company created:', submission.company_id);
       
-      // Return the existing company information
+      // Verify the company exists
       const { data: existingCompany, error: companyError } = await supabase
         .from('companies')
         .select('*')
@@ -116,20 +116,25 @@ serve(async (req) => {
         .single();
 
       if (existingCompany) {
-        console.log('Returning existing company:', existingCompany.id);
+        console.log('Returning existing company without creating new one:', existingCompany.id);
         return new Response(
           JSON.stringify({ 
             success: true,
             submissionId,
             companyId: existingCompany.id,
-            message: 'Company already exists for this submission'
+            message: 'Company already exists for this submission - no new company created'
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
       } else {
-        console.log('Company ID exists but company not found, proceeding with new analysis...');
+        console.log('Company ID exists in submission but company not found in database, proceeding with analysis...');
+        // Clear the invalid company_id from submission
+        await supabase
+          .from('barc_form_submissions')
+          .update({ company_id: null })
+          .eq('id', submissionId);
       }
     }
 
@@ -381,10 +386,10 @@ serve(async (req) => {
       analysisResult.overall_score = Math.min(analysisResult.overall_score, 100);
     }
 
-    // Create company and sections for ALL analysis results (not just Accept)
+    // ONLY create company if we have an effective user ID AND no existing company
     let companyId = null;
-    if (effectiveUserId) {
-      console.log('Creating company and sections for analyzed submission...');
+    if (effectiveUserId && !submission.company_id) {
+      console.log('Creating NEW company for analyzed submission...');
       
       // Extract company info from analysis
       const companyInfo = analysisResult.company_info || {};
@@ -408,7 +413,7 @@ serve(async (req) => {
       }
 
       companyId = company.id;
-      console.log('Successfully created company with ID:', companyId, 'for user:', effectiveUserId);
+      console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
 
       // Create company details with additional info
       if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
@@ -521,7 +526,7 @@ serve(async (req) => {
         }
       }
     } else {
-      console.log('Not creating company because no user ID available');
+      console.log('Not creating company - either no user ID or company already exists');
     }
 
     // Update the submission with analysis results and company_id
