@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -178,6 +179,9 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
     return <CheckCircle className="h-5 w-5 text-primary/70 shrink-0" />;
   };
 
+  // Convert score from 0-5 scale to 0-100 scale and round to integer
+  const scoreOutOf100 = Math.round(section?.score * 20);
+
   return (
     <div className="space-y-6">
       <div>
@@ -191,8 +195,8 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
                 <CardTitle className="text-xl font-semibold">Key Insights</CardTitle>
               </div>
               <div className="flex items-center">
-                <span className="text-xl font-bold mr-1">{section?.score.toFixed(1)}</span>
-                <span className="text-sm text-muted-foreground">/5</span>
+                <span className="text-xl font-bold mr-1">{scoreOutOf100}</span>
+                <span className="text-sm text-muted-foreground">/100</span>
               </div>
             </div>
           </CardHeader>
