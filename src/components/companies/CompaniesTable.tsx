@@ -44,10 +44,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold">Company</TableHead>
-              <TableHead className="font-semibold">Core Score</TableHead>
-              <TableHead className="font-semibold">Source</TableHead>
-              <TableHead className="font-semibold">Date Added</TableHead>
+              <TableHead className="font-semibold w-[200px]">Company</TableHead>
+              <TableHead className="font-semibold w-[120px]">Core Score</TableHead>
+              <TableHead className="font-semibold w-[100px]">Source</TableHead>
+              <TableHead className="font-semibold w-[120px]">Date Added</TableHead>
               <TableHead className="font-semibold">Summary</TableHead>
             </TableRow>
           </TableHeader>
@@ -62,12 +62,12 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => onCompanyClick(company.id)}
                 >
-                  <TableCell>
+                  <TableCell className="w-[200px]">
                     <div>
                       <div className="font-medium text-foreground">{company.name}</div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="w-[120px]">
                     <div className="flex items-center gap-2">
                       <Star className="h-4 w-4 text-yellow-500" />
                       <Badge className={getScoreBadgeColor(formattedScore)}>
@@ -77,15 +77,15 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="w-[100px]">
                     <Badge variant="outline" className="capitalize">
                       {company.source || 'Dashboard'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="w-[120px] text-muted-foreground">
                     {format(new Date(company.createdAt), 'MMM dd, yyyy')}
                   </TableCell>
-                  <TableCell className="max-w-md">
+                  <TableCell>
                     <div className="space-y-1">
                       {summaryPoints.map((point, index) => (
                         <div key={index} className="flex items-start gap-2 text-sm">
