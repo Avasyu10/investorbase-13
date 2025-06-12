@@ -32,6 +32,7 @@ export interface Company {
   source?: string;
   createdAt: string;
   updatedAt?: string;
+  assessmentPoints?: string[];
 }
 
 export interface Report {
