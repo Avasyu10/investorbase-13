@@ -104,13 +104,13 @@ export function IITBombayCompaniesList() {
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-green-600">
-            {companies.filter(c => c.overall_score >= 8).length}
+            {companies.filter(c => c.overallScore >= 8).length}
           </div>
           <div className="text-sm text-muted-foreground">High Potential</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-yellow-600">
-            {companies.filter(c => c.overall_score >= 6 && c.overall_score < 8).length}
+            {companies.filter(c => c.overallScore >= 6 && c.overallScore < 8).length}
           </div>
           <div className="text-sm text-muted-foreground">Medium Potential</div>
         </div>
