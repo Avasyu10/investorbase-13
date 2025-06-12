@@ -66,6 +66,16 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: Ba
     }
   };
 
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+      toast({
+        title: "Refreshing data",
+        description: "Checking for updated company information...",
+      });
+    }
+  };
+
   const getSectionCards = () => {
     const sectionKeys = [
       { key: 'problem_solution_fit', title: 'Problem-Solution Fit' },
@@ -166,28 +176,26 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: Ba
                   <Building className="h-5 w-5 text-green-600" />
                   <div>
                     <h4 className="font-medium text-green-800">
-                      {submission.company_id ? 'Company Created' : 'Company Being Created'}
+                      {submission.company_id ? 'Company Profile Available' : 'Company Profile Being Created'}
                     </h4>
                     <p className="text-sm text-green-600">
                       {submission.company_id 
-                        ? 'This application has been added to your prospects'
-                        : 'The company profile is being created and will be available soon'
+                        ? 'This application has been processed and added to your prospects'
+                        : 'The company profile is being created. Please check the Prospects tab or refresh this view.'
                       }
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {onRefresh && (
-                    <Button
-                      onClick={onRefresh}
-                      variant="outline"
-                      size="sm"
-                      className="border-green-300 text-green-700 hover:bg-green-100"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh
-                    </Button>
-                  )}
+                  <Button
+                    onClick={handleRefresh}
+                    variant="outline"
+                    size="sm"
+                    className="border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
                   {submission.company_id && (
                     <Button
                       onClick={handleViewCompany}

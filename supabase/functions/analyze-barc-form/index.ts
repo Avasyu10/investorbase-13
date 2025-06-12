@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -11,8 +12,6 @@ const corsHeaders = {
 
 serve(async (req) => {
   console.log(`Request method: ${req.method}`);
-  console.log(`Request URL: ${req.url}`);
-  console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -37,13 +36,10 @@ serve(async (req) => {
   let submissionId = null;
 
   try {
-    console.log('Reading request body...');
     const requestBody = await req.json();
     console.log('Received request body:', requestBody);
     
     submissionId = requestBody.submissionId;
-    
-    console.log('Received analysis request for BARC submission:', submissionId);
     
     if (!submissionId) {
       throw new Error('Submission ID is required');
@@ -105,23 +101,12 @@ serve(async (req) => {
     const formOwnerId = formData.public_submission_forms.user_id;
     console.log('Form owner ID:', formOwnerId);
 
-    // If no form owner and no authenticated user, try to get an admin user
-    if (!formOwnerId && !currentUserId) {
-      console.log('No form owner or authenticated user found, looking for admin user...');
-      const { data: adminUsers, error: adminError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('is_admin', true)
-        .limit(1);
-
-      if (!adminError && adminUsers && adminUsers.length > 0) {
-        currentUserId = adminUsers[0].id;
-        console.log('Using admin user as fallback:', currentUserId);
-      }
-    }
-
     const effectiveUserId = formOwnerId || currentUserId;
     console.log('Using user ID for company creation:', effectiveUserId);
+
+    if (!effectiveUserId) {
+      throw new Error('No valid user ID found for company creation');
+    }
 
     // Fetch the submission data
     console.log('Fetching submission data...');
@@ -266,7 +251,7 @@ serve(async (req) => {
     }
 
     let analysisText = openaiData.choices[0].message.content;
-    console.log('Raw analysis text:', analysisText);
+    console.log('Raw analysis text received from OpenAI');
 
     // Clean up the response if it's wrapped in markdown code blocks
     if (analysisText.startsWith('```json')) {
@@ -282,10 +267,18 @@ serve(async (req) => {
     try {
       analysisResult = JSON.parse(analysisText);
       console.log('Successfully parsed analysis result');
+      console.log('Analysis overall score:', analysisResult.overall_score);
+      console.log('Analysis recommendation:', analysisResult.recommendation);
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
       console.error('Cleaned response:', analysisText);
       throw new Error('Analysis response was not valid JSON');
+    }
+
+    // Ensure the overall score is properly normalized to 1-5 scale
+    if (analysisResult.overall_score > 5) {
+      console.log('Normalizing score from', analysisResult.overall_score, 'to 5-point scale');
+      analysisResult.overall_score = Math.min(Math.round(analysisResult.overall_score / 2), 5);
     }
 
     // Create company and sections if recommendation is Accept and we have a user
@@ -301,7 +294,7 @@ serve(async (req) => {
         .from('companies')
         .insert({
           name: submission.company_name,
-          overall_score: analysisResult.overall_score || 0,
+          overall_score: Number(analysisResult.overall_score) || 0,
           user_id: effectiveUserId,
           source: 'barc_form',
           assessment_points: analysisResult.summary?.assessment_points || []
@@ -315,7 +308,7 @@ serve(async (req) => {
       }
 
       companyId = company.id;
-      console.log('Created company with ID:', companyId, 'for user:', effectiveUserId);
+      console.log('Successfully created company with ID:', companyId, 'for user:', effectiveUserId);
 
       // Create company details with additional info
       if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
@@ -342,35 +335,35 @@ serve(async (req) => {
           company_id: companyId,
           title: 'Problem-Solution Fit',
           type: 'problem_solution_fit',
-          score: analysisResult.sections?.problem_solution_fit?.score || 0,
+          score: Number(analysisResult.sections?.problem_solution_fit?.score) || 0,
           description: analysisResult.sections?.problem_solution_fit?.analysis || ''
         },
         {
           company_id: companyId,
           title: 'Market Opportunity',
           type: 'market_opportunity', 
-          score: analysisResult.sections?.market_opportunity?.score || 0,
+          score: Number(analysisResult.sections?.market_opportunity?.score) || 0,
           description: analysisResult.sections?.market_opportunity?.analysis || ''
         },
         {
           company_id: companyId,
           title: 'Competitive Advantage',
           type: 'competitive_advantage',
-          score: analysisResult.sections?.competitive_advantage?.score || 0,
+          score: Number(analysisResult.sections?.competitive_advantage?.score) || 0,
           description: analysisResult.sections?.competitive_advantage?.analysis || ''
         },
         {
           company_id: companyId,
           title: 'Team Strength',
           type: 'team_strength',
-          score: analysisResult.sections?.team_strength?.score || 0,
+          score: Number(analysisResult.sections?.team_strength?.score) || 0,
           description: analysisResult.sections?.team_strength?.analysis || ''
         },
         {
           company_id: companyId,
           title: 'Execution Plan',
           type: 'execution_plan',
-          score: analysisResult.sections?.execution_plan?.score || 0,
+          score: Number(analysisResult.sections?.execution_plan?.score) || 0,
           description: analysisResult.sections?.execution_plan?.analysis || ''
         }
       ];
@@ -427,6 +420,11 @@ serve(async (req) => {
           }
         }
       }
+    } else {
+      console.log('Not creating company because:', {
+        recommendation: analysisResult.recommendation,
+        hasUserId: !!effectiveUserId
+      });
     }
 
     // Update the submission with analysis results and company_id

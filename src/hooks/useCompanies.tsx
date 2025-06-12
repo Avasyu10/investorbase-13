@@ -40,27 +40,6 @@ function mapDbCompanyToApi(company: any) {
   };
 }
 
-function mapDbSectionToApi(section: any) {
-  return {
-    id: section.id,
-    type: section.type,
-    title: section.title,
-    score: section.score,
-    description: section.description || '',
-    createdAt: section.created_at,
-    updatedAt: section.updated_at || section.created_at,
-  };
-}
-
-function mapDbSectionDetailedToApi(section: any, strengths: string[], weaknesses: string[]) {
-  return {
-    ...mapDbSectionToApi(section),
-    strengths,
-    weaknesses,
-    detailedContent: section.description || '',
-  };
-}
-
 export function useCompanies(
   page: number = 1, 
   pageSize: number = 20, 
@@ -96,8 +75,8 @@ export function useCompanies(
         
         console.log('Fetching companies for user:', user.id);
         
-        // Build query - The RLS policies will now handle access control properly
-        // This includes companies owned by the user, from accessible reports, etc.
+        // Since RLS was removed, we'll fetch all companies that belong to this user
+        // or are from reports they have access to
         let query = supabase
           .from('companies')
           .select(`
@@ -105,7 +84,8 @@ export function useCompanies(
             assessment_points, report_id, perplexity_requested_at, 
             perplexity_response, perplexity_prompt, user_id, source,
             report:report_id (pdf_url, is_public_submission)
-          `, { count: 'exact' });
+          `, { count: 'exact' })
+          .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
@@ -124,10 +104,14 @@ export function useCompanies(
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total`);
         
-        // Log the first few companies to help with debugging
+        // Log the companies by source for debugging
         if (data && data.length > 0) {
           console.log('Sample company data:', data[0]);
-          console.log('Companies with BARC source:', data.filter(c => c.source === 'barc_form').length);
+          const sourceBreakdown = data.reduce((acc, company) => {
+            acc[company.source || 'unknown'] = (acc[company.source || 'unknown'] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          console.log('Companies by source:', sourceBreakdown);
         }
 
         return {
@@ -159,6 +143,26 @@ export function useCompanies(
     error,
     refetch,
   };
+}
+
+// Helper function to get report IDs the user has access to
+async function getUserAccessibleReports(userId: string): Promise<string> {
+  try {
+    const { data: reports, error } = await supabase
+      .from('reports')
+      .select('id')
+      .or(`user_id.eq.${userId},is_public_submission.eq.true`);
+
+    if (error) {
+      console.error('Error fetching accessible reports:', error);
+      return '';
+    }
+
+    return reports?.map(r => r.id).join(',') || '';
+  } catch (err) {
+    console.error('Error in getUserAccessibleReports:', err);
+    return '';
+  }
 }
 
 export { useCompanyDetails } from './companyHooks/useCompanyDetails';
