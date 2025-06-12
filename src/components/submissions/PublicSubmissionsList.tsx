@@ -126,9 +126,9 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
-        // Fetch BARC form submissions - show ALL BARC submissions regardless of analysis status
+        // Fetch ALL BARC form submissions regardless of analysis status
         try {
-          console.log("Fetching BARC form submissions...");
+          console.log("Fetching ALL BARC form submissions...");
           const { data: barcData, error: barcError } = await supabase
             .from('barc_form_submissions')
             .select('*')
@@ -156,7 +156,7 @@ export function PublicSubmissionsList() {
               }));
               
               allSubmissions.push(...transformedBarc);
-              console.log("Added BARC forms to submissions:", transformedBarc.length);
+              console.log("Added ALL BARC forms to submissions:", transformedBarc.length);
             }
           }
         } catch (err) {
@@ -259,18 +259,21 @@ export function PublicSubmissionsList() {
         console.log('BARC analysis result:', result);
         
         if (result && result.success) {
+          const isNewCompany = result.isNewCompany;
+          const actionText = isNewCompany ? "created" : "updated";
+          
           toast({
             title: "Analysis complete",
-            description: "The BARC application has been successfully analyzed",
+            description: `The BARC application has been successfully analyzed and company ${actionText}`,
           });
           
-          // Don't remove from submissions list - keep it visible in New Applications
+          // IMPORTANT: Don't remove from submissions list - keep it visible in New Applications
           
-          // If a company was created, navigate to it
+          // If a company was created/updated, navigate to it
           if (result.companyId) {
             toast({
-              title: "Company created",
-              description: "A new company prospect has been added to your dashboard",
+              title: `Company ${actionText}`,
+              description: `A company prospect has been ${actionText} in your dashboard`,
             });
             
             navigate(`/company/${result.companyId}`);
@@ -286,11 +289,20 @@ export function PublicSubmissionsList() {
         
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
         
-        toast({
-          title: "Analysis failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        // Check if it's a duplicate analysis error
+        if (errorMessage.includes('already being analyzed') || errorMessage.includes('already being processed')) {
+          toast({
+            title: "Analysis in progress",
+            description: "This submission is already being analyzed. Please wait for it to complete.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Analysis failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       } finally {
         setIsAnalyzing(false);
         setAnalyzingSubmissions(prev => {

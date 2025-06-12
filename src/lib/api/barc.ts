@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface BarcSubmissionData {
@@ -69,7 +70,7 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       throw new Error('Missing submissionId');
     }
 
-    // First check if the submission exists
+    // First check if the submission exists and get its current status
     const { data: submission, error: fetchError } = await supabase
       .from('barc_form_submissions')
       .select('*')
@@ -87,17 +88,14 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
 
     console.log('Found submission for analysis:', {
       id: submission.id,
-      company_name: submission.company_name
+      company_name: submission.company_name,
+      analysis_status: submission.analysis_status
     });
 
-    // Update status to processing
-    await supabase
-      .from('barc_form_submissions')
-      .update({ 
-        analysis_status: 'processing',
-        analyzed_at: new Date().toISOString()
-      })
-      .eq('id', submissionId);
+    // PREVENT DUPLICATE ANALYSIS: Check if already processing
+    if (submission.analysis_status === 'processing') {
+      throw new Error('This submission is already being analyzed. Please wait for it to complete.');
+    }
 
     console.log('Calling analyze-barc-form edge function...');
     
@@ -111,7 +109,12 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     if (error) {
       console.error('Edge function error:', error);
       
-      // Update status to failed
+      // Check if it's a conflict error (already processing)
+      if (error.message?.includes('already being analyzed') || error.message?.includes('already being processed')) {
+        throw new Error('This submission is already being analyzed. Please wait for it to complete.');
+      }
+      
+      // Update status to failed for other errors
       await supabase
         .from('barc_form_submissions')
         .update({ 
@@ -140,13 +143,16 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     if (!data.success) {
       const errorMsg = data.error || 'Unknown error from analysis function';
       
-      await supabase
-        .from('barc_form_submissions')
-        .update({ 
-          analysis_status: 'failed',
-          analysis_error: errorMsg 
-        })
-        .eq('id', submissionId);
+      // Don't update status if it's a conflict (already processing)
+      if (!errorMsg.includes('already being analyzed') && !errorMsg.includes('already being processed')) {
+        await supabase
+          .from('barc_form_submissions')
+          .update({ 
+            analysis_status: 'failed',
+            analysis_error: errorMsg 
+          })
+          .eq('id', submissionId);
+      }
       
       throw new Error(`Analysis failed: ${errorMsg}`);
     }
@@ -157,17 +163,19 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   } catch (error) {
     console.error('Analysis API error:', error);
     
-    // Update error status in database
-    try {
-      await supabase
-        .from('barc_form_submissions')
-        .update({ 
-          analysis_status: 'failed',
-          analysis_error: error instanceof Error ? error.message : 'Unknown error' 
-        })
-        .eq('id', submissionId);
-    } catch (updateError) {
-      console.error('Failed to update error status:', updateError);
+    // Only update error status for non-conflict errors
+    if (!error.message?.includes('already being analyzed') && !error.message?.includes('already being processed')) {
+      try {
+        await supabase
+          .from('barc_form_submissions')
+          .update({ 
+            analysis_status: 'failed',
+            analysis_error: error instanceof Error ? error.message : 'Unknown error' 
+          })
+          .eq('id', submissionId);
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError);
+      }
     }
     
     throw error;

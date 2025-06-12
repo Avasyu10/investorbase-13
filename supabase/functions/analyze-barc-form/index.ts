@@ -82,69 +82,51 @@ serve(async (req) => {
       }
     }
 
-    // Fetch the submission data first
-    console.log('Fetching submission data...');
-    const { data: submission, error: fetchError } = await supabase
+    // CRITICAL FIX: Check if this submission is already being processed
+    console.log('Checking if submission is already being processed...');
+    const { data: existingSubmission, error: fetchError } = await supabase
       .from('barc_form_submissions')
       .select('*')
       .eq('id', submissionId)
       .single();
 
-    if (fetchError || !submission) {
+    if (fetchError || !existingSubmission) {
       console.error('Failed to fetch submission:', fetchError);
       throw new Error(`Failed to fetch submission: ${fetchError?.message || 'Submission not found'}`);
     }
 
-    console.log('Retrieved submission for analysis:', {
-      id: submission.id,
-      company_name: submission.company_name,
-      submitter_email: submission.submitter_email,
-      form_slug: submission.form_slug,
-      existing_company_id: submission.company_id,
-      analysis_status: submission.analysis_status
-    });
-
-    // CRITICAL CHECK: If submission already has a company, return immediately without creating a new one
-    if (submission.company_id) {
-      console.log('Submission already has a company created:', submission.company_id);
-      
-      // Verify the company exists
-      const { data: existingCompany, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', submission.company_id)
-        .single();
-
-      if (existingCompany) {
-        console.log('Returning existing company without creating new one:', existingCompany.id);
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            submissionId,
-            companyId: existingCompany.id,
-            message: 'Company already exists for this submission - no new company created'
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      } else {
-        console.log('Company ID exists in submission but company not found in database, proceeding with analysis...');
-        // Clear the invalid company_id from submission
-        await supabase
-          .from('barc_form_submissions')
-          .update({ company_id: null })
-          .eq('id', submissionId);
-      }
+    // PREVENT DUPLICATE PROCESSING: If already processing, return immediately
+    if (existingSubmission.analysis_status === 'processing') {
+      console.log('Submission is already being processed, preventing duplicate analysis');
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'This submission is already being analyzed. Please wait for it to complete.',
+          submissionId
+        }),
+        {
+          status: 409, // Conflict status
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
+
+    console.log('Retrieved submission for analysis:', {
+      id: existingSubmission.id,
+      company_name: existingSubmission.company_name,
+      submitter_email: existingSubmission.submitter_email,
+      form_slug: existingSubmission.form_slug,
+      existing_company_id: existingSubmission.company_id,
+      analysis_status: existingSubmission.analysis_status
+    });
 
     // Get the form details to find the owner (separate query to avoid JOIN issues)
     let formOwnerId = null;
-    if (submission.form_slug) {
+    if (existingSubmission.form_slug) {
       const { data: formData, error: formError } = await supabase
         .from('public_submission_forms')
         .select('user_id')
-        .eq('form_slug', submission.form_slug)
+        .eq('form_slug', existingSubmission.form_slug)
         .single();
 
       if (formError) {
@@ -160,18 +142,34 @@ serve(async (req) => {
     const effectiveUserId = formOwnerId || currentUserId;
     console.log('Using user ID for company creation:', effectiveUserId);
 
-    // Update status to processing
-    console.log('Updating submission status to processing...');
-    const { error: statusUpdateError } = await supabase
+    // ATOMIC UPDATE: Set status to processing with a single update to prevent race conditions
+    console.log('Atomically updating submission status to processing...');
+    const { data: updatedSubmission, error: statusUpdateError } = await supabase
       .from('barc_form_submissions')
       .update({ 
         analysis_status: 'processing'
       })
-      .eq('id', submissionId);
+      .eq('id', submissionId)
+      .eq('analysis_status', existingSubmission.analysis_status) // Only update if status hasn't changed
+      .select()
+      .single();
 
-    if (statusUpdateError) {
-      console.error('Failed to update status to processing:', statusUpdateError);
+    if (statusUpdateError || !updatedSubmission) {
+      console.error('Failed to update status to processing or status already changed:', statusUpdateError);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'This submission is already being processed by another request.',
+          submissionId
+        }),
+        {
+          status: 409, // Conflict status
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
+
+    console.log('Successfully set submission status to processing');
 
     // Enhanced analysis prompt with specific metrics-based scoring and market-focused weaknesses
     const analysisPrompt = `
@@ -180,15 +178,15 @@ serve(async (req) => {
     CRITICAL SCORING INSTRUCTION: You MUST create significant score differences between good and poor responses. Excellent answers should score 80-100, average answers 50-70, and poor/incomplete answers 10-40. DO NOT give similar scores to vastly different quality responses.
 
     Company Information:
-    - Company Name: ${submission.company_name || 'Not provided'}
-    - Registration Type: ${submission.company_registration_type || 'Not provided'}
-    - Company Type: ${submission.company_type || 'Not provided'}
-    - Executive Summary: ${submission.executive_summary || 'Not provided'}
-    - Submitter Email: ${submission.submitter_email || 'Not provided'}
+    - Company Name: ${existingSubmission.company_name || 'Not provided'}
+    - Registration Type: ${existingSubmission.company_registration_type || 'Not provided'}
+    - Company Type: ${existingSubmission.company_type || 'Not provided'}
+    - Executive Summary: ${existingSubmission.executive_summary || 'Not provided'}
+    - Submitter Email: ${existingSubmission.submitter_email || 'Not provided'}
 
     Application Responses and Specific Metrics for Evaluation:
 
-    1. PROBLEM & TIMING: "${submission.question_1 || 'Not provided'}"
+    1. PROBLEM & TIMING: "${existingSubmission.question_1 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Clarity of Problem Definition (20-30 points): Is it a real, urgent pain point with clear articulation?
@@ -198,7 +196,7 @@ serve(async (req) => {
     Score harshly if: Vague problem description, no timing evidence, lacks personal insight
     Score highly if: Crystal clear pain point, strong timing evidence, rich customer insights
 
-    2. CUSTOMER DISCOVERY: "${submission.question_2 || 'Not provided'}"
+    2. CUSTOMER DISCOVERY: "${existingSubmission.question_2 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Customer Clarity (25-35 points): Can they describe personas/segments with precision?
@@ -208,7 +206,7 @@ serve(async (req) => {
     Score harshly if: Generic customer descriptions, no validation efforts, unrealistic GTM
     Score highly if: Detailed customer personas, extensive validation, practical GTM strategy
 
-    3. COMPETITIVE ADVANTAGE: "${submission.question_3 || 'Not provided'}"
+    3. COMPETITIVE ADVANTAGE: "${existingSubmission.question_3 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Differentiation (30-35 points): Clearly stated advantages vs existing solutions?
@@ -218,7 +216,7 @@ serve(async (req) => {
     Score harshly if: No clear differentiation, easily replicable, unaware of competition
     Score highly if: Strong unique value prop, defensible moats, competitive intelligence
 
-    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
+    4. TEAM STRENGTH: "${existingSubmission.question_4 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
@@ -228,7 +226,7 @@ serve(async (req) => {
     Score harshly if: No domain experience, skill gaps, no execution track record
     Score highly if: Deep domain expertise, complementary skills, proven execution
 
-    5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
+    5. EXECUTION PLAN: "${existingSubmission.question_5 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Goal Specificity (30-35 points): Clear KPIs like MVP, first customer, funding targets?
@@ -335,7 +333,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-2024-11-20',
         messages: [
           {
             role: 'system',
@@ -395,40 +393,38 @@ serve(async (req) => {
       analysisResult.overall_score = Math.min(analysisResult.overall_score, 100);
     }
 
-    // ONLY create company if we have an effective user ID AND no existing company
-    let companyId = null;
-    if (effectiveUserId && !submission.company_id) {
-      console.log('Creating NEW company for analyzed submission...');
-      
-      // Extract company info from analysis
-      const companyInfo = analysisResult.company_info || {};
-      
-      // Create company with proper user_id and company information
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: submission.company_name,
-          overall_score: Number(analysisResult.overall_score) || 0,
-          user_id: effectiveUserId,
-          source: 'barc_form',
-          assessment_points: analysisResult.summary?.assessment_points || []
-        })
-        .select()
-        .single();
+    // COMPANY CREATION/UPDATE LOGIC
+    let companyId = existingSubmission.company_id;
+    let isNewCompany = false;
 
-      if (companyError || !company) {
-        console.error('Failed to create company:', companyError);
-        throw new Error(`Failed to create company: ${companyError?.message || 'Unknown error'}`);
-      }
+    if (effectiveUserId) {
+      if (companyId) {
+        // UPDATE EXISTING COMPANY
+        console.log('Updating existing company with ID:', companyId);
+        
+        const companyInfo = analysisResult.company_info || {};
+        
+        const { error: companyUpdateError } = await supabase
+          .from('companies')
+          .update({
+            name: existingSubmission.company_name,
+            overall_score: Number(analysisResult.overall_score) || 0,
+            assessment_points: analysisResult.summary?.assessment_points || [],
+            source: 'barc_form'
+          })
+          .eq('id', companyId);
 
-      companyId = company.id;
-      console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
+        if (companyUpdateError) {
+          console.error('Failed to update company:', companyUpdateError);
+          // Continue with analysis even if company update fails
+        } else {
+          console.log('Successfully updated existing company:', companyId);
+        }
 
-      // Create company details with additional info
-      if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
-        const { error: detailsError } = await supabase
+        // Update company details
+        const { error: detailsUpdateError } = await supabase
           .from('company_details')
-          .insert({
+          .upsert({
             company_id: companyId,
             industry: companyInfo.industry || null,
             stage: companyInfo.stage || null,
@@ -436,106 +432,181 @@ serve(async (req) => {
             status: 'New'
           });
 
-        if (detailsError) {
-          console.error('Failed to create company details:', detailsError);
-        } else {
-          console.log('Created company details');
+        if (detailsUpdateError) {
+          console.error('Failed to update company details:', detailsUpdateError);
+        }
+
+      } else {
+        // CREATE NEW COMPANY
+        console.log('Creating NEW company for analyzed submission...');
+        isNewCompany = true;
+        
+        const companyInfo = analysisResult.company_info || {};
+        
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .insert({
+            name: existingSubmission.company_name,
+            overall_score: Number(analysisResult.overall_score) || 0,
+            user_id: effectiveUserId,
+            source: 'barc_form',
+            assessment_points: analysisResult.summary?.assessment_points || []
+          })
+          .select()
+          .single();
+
+        if (companyError || !company) {
+          console.error('Failed to create company:', companyError);
+          throw new Error(`Failed to create company: ${companyError?.message || 'Unknown error'}`);
+        }
+
+        companyId = company.id;
+        console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
+
+        // Create company details
+        if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
+          const { error: detailsError } = await supabase
+            .from('company_details')
+            .insert({
+              company_id: companyId,
+              industry: companyInfo.industry || null,
+              stage: companyInfo.stage || null,
+              introduction: companyInfo.introduction || null,
+              status: 'New'
+            });
+
+          if (detailsError) {
+            console.error('Failed to create company details:', detailsError);
+          } else {
+            console.log('Created company details');
+          }
         }
       }
 
-      // Create sections based on analysis
-      const sectionsToCreate = [
-        {
-          company_id: companyId,
-          title: 'Problem-Solution Fit',
-          type: 'problem_solution_fit',
-          score: Number(analysisResult.sections?.problem_solution_fit?.score) || 0,
-          description: analysisResult.sections?.problem_solution_fit?.analysis || ''
-        },
-        {
-          company_id: companyId,
-          title: 'Market Opportunity',
-          type: 'market_opportunity', 
-          score: Number(analysisResult.sections?.market_opportunity?.score) || 0,
-          description: analysisResult.sections?.market_opportunity?.analysis || ''
-        },
-        {
-          company_id: companyId,
-          title: 'Competitive Advantage',
-          type: 'competitive_advantage',
-          score: Number(analysisResult.sections?.competitive_advantage?.score) || 0,
-          description: analysisResult.sections?.competitive_advantage?.analysis || ''
-        },
-        {
-          company_id: companyId,
-          title: 'Team Strength',
-          type: 'team_strength',
-          score: Number(analysisResult.sections?.team_strength?.score) || 0,
-          description: analysisResult.sections?.team_strength?.analysis || ''
-        },
-        {
-          company_id: companyId,
-          title: 'Execution Plan',
-          type: 'execution_plan',
-          score: Number(analysisResult.sections?.execution_plan?.score) || 0,
-          description: analysisResult.sections?.execution_plan?.analysis || ''
+      // DELETE OLD SECTIONS AND CREATE NEW ONES (for both new and existing companies)
+      if (companyId) {
+        console.log('Deleting old sections for company:', companyId);
+        
+        // First delete section details
+        const { error: deleteSectionDetailsError } = await supabase
+          .from('section_details')
+          .delete()
+          .in('section_id', 
+            await supabase.from('sections').select('id').eq('company_id', companyId).then(res => 
+              res.data?.map(s => s.id) || []
+            )
+          );
+
+        if (deleteSectionDetailsError) {
+          console.error('Failed to delete old section details:', deleteSectionDetailsError);
         }
-      ];
 
-      const { data: sections, error: sectionsError } = await supabase
-        .from('sections')
-        .insert(sectionsToCreate)
-        .select();
+        // Then delete sections
+        const { error: deleteSectionsError } = await supabase
+          .from('sections')
+          .delete()
+          .eq('company_id', companyId);
 
-      if (sectionsError) {
-        console.error('Failed to create sections:', sectionsError);
-      } else {
-        console.log('Created sections:', sections?.length || 0);
+        if (deleteSectionsError) {
+          console.error('Failed to delete old sections:', deleteSectionsError);
+        } else {
+          console.log('Deleted old sections');
+        }
 
-        // Create section details for strengths and improvements
-        for (const section of sections || []) {
-          const sectionType = section.type;
-          const sectionData = analysisResult.sections?.[sectionType];
-          
-          if (sectionData) {
-            const detailsToCreate = [];
+        // Create new sections based on latest analysis
+        const sectionsToCreate = [
+          {
+            company_id: companyId,
+            title: 'Problem-Solution Fit',
+            type: 'problem_solution_fit',
+            score: Number(analysisResult.sections?.problem_solution_fit?.score) || 0,
+            description: analysisResult.sections?.problem_solution_fit?.analysis || ''
+          },
+          {
+            company_id: companyId,
+            title: 'Market Opportunity',
+            type: 'market_opportunity', 
+            score: Number(analysisResult.sections?.market_opportunity?.score) || 0,
+            description: analysisResult.sections?.market_opportunity?.analysis || ''
+          },
+          {
+            company_id: companyId,
+            title: 'Competitive Advantage',
+            type: 'competitive_advantage',
+            score: Number(analysisResult.sections?.competitive_advantage?.score) || 0,
+            description: analysisResult.sections?.competitive_advantage?.analysis || ''
+          },
+          {
+            company_id: companyId,
+            title: 'Team Strength',
+            type: 'team_strength',
+            score: Number(analysisResult.sections?.team_strength?.score) || 0,
+            description: analysisResult.sections?.team_strength?.analysis || ''
+          },
+          {
+            company_id: companyId,
+            title: 'Execution Plan',
+            type: 'execution_plan',
+            score: Number(analysisResult.sections?.execution_plan?.score) || 0,
+            description: analysisResult.sections?.execution_plan?.analysis || ''
+          }
+        ];
+
+        const { data: sections, error: sectionsError } = await supabase
+          .from('sections')
+          .insert(sectionsToCreate)
+          .select();
+
+        if (sectionsError) {
+          console.error('Failed to create sections:', sectionsError);
+        } else {
+          console.log('Created sections:', sections?.length || 0);
+
+          // Create section details for strengths and improvements
+          for (const section of sections || []) {
+            const sectionType = section.type;
+            const sectionData = analysisResult.sections?.[sectionType];
             
-            // Add strengths
-            if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
-              for (const strength of sectionData.strengths) {
-                detailsToCreate.push({
-                  section_id: section.id,
-                  detail_type: 'strength',
-                  content: strength
-                });
+            if (sectionData) {
+              const detailsToCreate = [];
+              
+              // Add strengths
+              if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
+                for (const strength of sectionData.strengths) {
+                  detailsToCreate.push({
+                    section_id: section.id,
+                    detail_type: 'strength',
+                    content: strength
+                  });
+                }
               }
-            }
-            
-            // Add improvements (now actually weaknesses)
-            if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
-              for (const improvement of sectionData.improvements) {
-                detailsToCreate.push({
-                  section_id: section.id,
-                  detail_type: 'weakness',
-                  content: improvement
-                });
+              
+              // Add improvements (now actually weaknesses)
+              if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
+                for (const improvement of sectionData.improvements) {
+                  detailsToCreate.push({
+                    section_id: section.id,
+                    detail_type: 'weakness',
+                    content: improvement
+                  });
+                }
               }
-            }
 
-            if (detailsToCreate.length > 0) {
-              const { error: detailsError } = await supabase
-                .from('section_details')
-                .insert(detailsToCreate);
+              if (detailsToCreate.length > 0) {
+                const { error: detailsError } = await supabase
+                  .from('section_details')
+                  .insert(detailsToCreate);
 
-              if (detailsError) {
-                console.error(`Failed to create details for section ${section.type}:`, detailsError);
+                if (detailsError) {
+                  console.error(`Failed to create details for section ${section.type}:`, detailsError);
+                }
               }
             }
           }
         }
       }
     } else {
-      console.log('Not creating company - either no user ID or company already exists');
+      console.log('Not creating/updating company - no effective user ID');
     }
 
     // Update the submission with analysis results and company_id
@@ -555,14 +626,19 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log(`Successfully analyzed BARC submission ${submissionId}${companyId ? ` and created company ${companyId}` : ''}`);
+    const successMessage = isNewCompany ? 
+      `Successfully analyzed BARC submission ${submissionId} and created company ${companyId}` :
+      `Successfully analyzed BARC submission ${submissionId} and updated company ${companyId}`;
+    
+    console.log(successMessage);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         submissionId,
         analysisResult,
-        companyId
+        companyId,
+        isNewCompany
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
