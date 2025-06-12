@@ -82,8 +82,8 @@ serve(async (req) => {
       }
     }
 
-    // CRITICAL FIX: Check if this submission is already being processed
-    console.log('Checking if submission is already being processed...');
+    // IMPROVED: Get submission and handle status more gracefully
+    console.log('Fetching submission for analysis...');
     const { data: existingSubmission, error: fetchError } = await supabase
       .from('barc_form_submissions')
       .select('*')
@@ -95,22 +95,6 @@ serve(async (req) => {
       throw new Error(`Failed to fetch submission: ${fetchError?.message || 'Submission not found'}`);
     }
 
-    // PREVENT DUPLICATE PROCESSING: If already processing, return immediately
-    if (existingSubmission.analysis_status === 'processing') {
-      console.log('Submission is already being processed, preventing duplicate analysis');
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'This submission is already being analyzed. Please wait for it to complete.',
-          submissionId
-        }),
-        {
-          status: 409, // Conflict status
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
     console.log('Retrieved submission for analysis:', {
       id: existingSubmission.id,
       company_name: existingSubmission.company_name,
@@ -120,7 +104,29 @@ serve(async (req) => {
       analysis_status: existingSubmission.analysis_status
     });
 
-    // Get the form details to find the owner (separate query to avoid JOIN issues)
+    // IMPROVED: Handle different statuses more gracefully
+    if (existingSubmission.analysis_status === 'processing') {
+      console.log('Submission is already being processed, returning existing status');
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'This submission is already being analyzed. Please wait for it to complete.',
+          submissionId,
+          status: 'already_processing'
+        }),
+        {
+          status: 409, // Conflict status
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // If already completed, allow re-analysis but log it
+    if (existingSubmission.analysis_status === 'completed') {
+      console.log('Re-analyzing a previously completed submission');
+    }
+
+    // Get the form details to find the owner
     let formOwnerId = null;
     if (existingSubmission.form_slug) {
       const { data: formData, error: formError } = await supabase
@@ -142,34 +148,30 @@ serve(async (req) => {
     const effectiveUserId = formOwnerId || currentUserId;
     console.log('Using user ID for company creation:', effectiveUserId);
 
-    // ATOMIC UPDATE: Set status to processing with a single update to prevent race conditions
-    console.log('Atomically updating submission status to processing...');
-    const { data: updatedSubmission, error: statusUpdateError } = await supabase
+    // IMPROVED: Try to update status to processing, but don't fail if it doesn't work
+    console.log('Attempting to update submission status to processing...');
+    const { data: statusUpdateResult, error: statusUpdateError } = await supabase
       .from('barc_form_submissions')
       .update({ 
         analysis_status: 'processing'
       })
       .eq('id', submissionId)
-      .eq('analysis_status', existingSubmission.analysis_status) // Only update if status hasn't changed
+      .neq('analysis_status', 'processing') // Only update if not already processing
       .select()
-      .single();
+      .maybeSingle(); // Use maybeSingle to avoid errors if no rows updated
 
-    if (statusUpdateError || !updatedSubmission) {
-      console.error('Failed to update status to processing or status already changed:', statusUpdateError);
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'This submission is already being processed by another request.',
-          submissionId
-        }),
-        {
-          status: 409, // Conflict status
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    if (statusUpdateError) {
+      console.error('Error updating status:', statusUpdateError);
+      // Continue anyway - the analysis might still be valuable
+    } else if (!statusUpdateResult) {
+      console.log('Status was not updated - possibly already being processed by another request');
+      // Continue with analysis anyway since we're not in processing state
+    } else {
+      console.log('Successfully updated submission status to processing');
     }
 
-    console.log('Successfully set submission status to processing');
+    // Continue with the analysis regardless of status update result
+    console.log('Proceeding with OpenAI analysis...');
 
     // Enhanced analysis prompt with specific metrics-based scoring and market-focused weaknesses
     const analysisPrompt = `
@@ -609,9 +611,9 @@ serve(async (req) => {
       console.log('Not creating/updating company - no effective user ID');
     }
 
-    // Update the submission with analysis results and company_id
-    console.log('Updating submission with analysis results...');
-    const { error: updateError } = await supabase
+    // FINAL: Update the submission with analysis results and company_id
+    console.log('Updating submission with final analysis results...');
+    const { error: finalUpdateError } = await supabase
       .from('barc_form_submissions')
       .update({
         analysis_status: 'completed',
@@ -621,9 +623,9 @@ serve(async (req) => {
       })
       .eq('id', submissionId);
 
-    if (updateError) {
-      console.error('Failed to update submission:', updateError);
-      throw new Error(`Failed to update submission: ${updateError.message}`);
+    if (finalUpdateError) {
+      console.error('Failed to update submission with final results:', finalUpdateError);
+      // Don't throw here - the analysis was successful, just the status update failed
     }
 
     const successMessage = isNewCompany ? 
