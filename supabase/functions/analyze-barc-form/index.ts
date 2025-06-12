@@ -173,7 +173,7 @@ serve(async (req) => {
       console.error('Failed to update status to processing:', statusUpdateError);
     }
 
-    // Enhanced analysis prompt with specific metrics-based scoring
+    // Enhanced analysis prompt with specific metrics-based scoring and market-focused weaknesses
     const analysisPrompt = `
     You are an expert startup evaluator for IIT Bombay's incubation program. Your task is to provide a comprehensive and HIGHLY DISCRIMINATIVE analysis that clearly distinguishes between excellent and poor responses. Use the specific metrics provided for each question to score accurately.
 
@@ -253,9 +253,18 @@ serve(async (req) => {
     For ASSESSMENT POINTS (6-7 points required):
     Each point MUST contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation.
 
-    For STRENGTHS AND WEAKNESSES (exactly 4-5 each per section):
+    CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
+    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
+    - Market saturation concerns (X% of market already captured by incumbents)
+    - High customer acquisition costs in this sector ($X CAC vs industry average)
+    - Regulatory challenges affecting X% of similar companies
+    - Economic headwinds impacting sector growth (X% decline in funding)
+    - Technology adoption barriers affecting X% of target market
+    - Competitive pressure from well-funded players with $X backing
+    - Market timing risks based on industry cycles
+
+    For STRENGTHS (exactly 4-5 each per section):
     - STRENGTHS: Highlight what they did well, supported by market validation and data
-    - WEAKNESSES: Identify actual flaws, gaps, and limitations in their responses combined with market challenges they face (NOT improvement recommendations)
 
     Provide analysis in this JSON format with ALL scores on 1-100 scale:
 
@@ -272,31 +281,31 @@ serve(async (req) => {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "market_opportunity": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "competitive_advantage": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "team_strength": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "execution_plan": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps, NOT recommendations"]
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
       },
       "summary": {
@@ -311,7 +320,7 @@ serve(async (req) => {
     1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
     2. Use the exact metrics provided for each question in your evaluation
     3. Each assessment point must contain at least 4-5 specific market numbers/percentages
-    4. Focus weaknesses on actual problems/gaps, not improvement suggestions
+    4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. Return only valid JSON without markdown formatting
@@ -330,7 +339,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses on actual flaws/gaps, not recommendations. Return only valid JSON without markdown formatting.'
+            content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT on response quality or what should have been included in the form. Return only valid JSON without markdown formatting.'
           },
           {
             role: 'user',
