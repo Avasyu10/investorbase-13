@@ -160,6 +160,33 @@ serve(async (req) => {
     const effectiveUserId = formOwnerId || currentUserId;
     console.log('Using user ID for company creation:', effectiveUserId);
 
+    // Check if a company already exists for this submission from previous attempts
+    let existingCompanyId = existingSubmission.company_id;
+    
+    // If no company_id in submission but submission has company_name, check if company exists
+    if (!existingCompanyId && existingSubmission.company_name && effectiveUserId) {
+      console.log('Checking for existing company with same name for this user...');
+      const { data: existingCompanies, error: companyCheckError } = await supabase
+        .from('companies')
+        .select('id, source, created_at')
+        .eq('name', existingSubmission.company_name)
+        .eq('user_id', effectiveUserId)
+        .eq('source', 'barc_form')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!companyCheckError && existingCompanies && existingCompanies.length > 0) {
+        existingCompanyId = existingCompanies[0].id;
+        console.log('Found existing company with same name:', existingCompanyId);
+        
+        // Update the submission to link to this existing company
+        await supabase
+          .from('barc_form_submissions')
+          .update({ company_id: existingCompanyId })
+          .eq('id', submissionId);
+      }
+    }
+
     // Update status to processing with optimistic locking
     console.log('Attempting to update submission status to processing...');
     const { data: statusUpdateResult, error: statusUpdateError } = await supabase
@@ -417,8 +444,8 @@ serve(async (req) => {
       analysisResult.overall_score = Math.min(analysisResult.overall_score, 100);
     }
 
-    // COMPANY CREATION/UPDATE LOGIC
-    let companyId = existingSubmission.company_id;
+    // COMPANY CREATION/UPDATE LOGIC - PREVENT DUPLICATES
+    let companyId = existingCompanyId; // Use the company ID we found earlier
     let isNewCompany = false;
 
     if (effectiveUserId) {
@@ -460,7 +487,7 @@ serve(async (req) => {
         }
 
       } else {
-        // CREATE NEW COMPANY
+        // CREATE NEW COMPANY ONLY IF NONE EXISTS
         console.log('Creating NEW company for analyzed submission...');
         isNewCompany = true;
         
