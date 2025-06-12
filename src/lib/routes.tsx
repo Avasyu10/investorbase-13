@@ -26,6 +26,7 @@ import Signup from "@/pages/Signup";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
+import IITBombayForm from "@/pages/IITBombayForm";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -48,6 +49,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <UploadReport />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/iit-bombay-form", 
+    element: (
+      <ProtectedRoute>
+        <IITBombayForm />
       </ProtectedRoute>
     )
   },

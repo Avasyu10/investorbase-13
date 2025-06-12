@@ -687,6 +687,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_admin: boolean
+          is_iitbombay: boolean
           updated_at: string
           username: string | null
         }
@@ -697,6 +698,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_admin?: boolean
+          is_iitbombay?: boolean
           updated_at?: string
           username?: string | null
         }
@@ -707,6 +709,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean
+          is_iitbombay?: boolean
           updated_at?: string
           username?: string | null
         }
