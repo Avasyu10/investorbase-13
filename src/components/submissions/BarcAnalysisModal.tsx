@@ -168,7 +168,7 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: Ba
             </CardContent>
           </Card>
 
-          {/* Company Link for All Analyzed Applications */}
+          {/* Company Link */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">

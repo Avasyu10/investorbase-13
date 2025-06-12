@@ -17,14 +17,14 @@ interface BarcSubmissionData {
 
 export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
   try {
-    console.log('BARC API submission with corrected structure:', submissionData);
+    console.log('BARC API submission with updated structure:', submissionData);
 
     // Validate required fields
     if (!submissionData.form_slug || !submissionData.company_name || !submissionData.submitter_email) {
       throw new Error('Missing required fields: form_slug, company_name, and submitter_email are required');
     }
 
-    // Prepare submission data for the corrected table structure
+    // Prepare submission data for the updated table structure
     const formattedData = {
       form_slug: submissionData.form_slug,
       company_name: submissionData.company_name,
@@ -39,9 +39,9 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       submitter_email: submissionData.submitter_email
     };
 
-    console.log('Inserting BARC submission with corrected structure:', formattedData);
+    console.log('Inserting BARC submission with updated structure:', formattedData);
 
-    // Insert into barc_form_submissions table using the corrected RLS policies
+    // Insert into barc_form_submissions table
     const { data, error } = await supabase
       .from('barc_form_submissions')
       .insert(formattedData)
@@ -53,7 +53,7 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       throw new Error(`Failed to save submission: ${error.message}`);
     }
 
-    console.log('BARC submission saved successfully with corrected structure:', data);
+    console.log('BARC submission saved successfully with updated structure:', data);
     return data;
 
   } catch (error) {
@@ -100,7 +100,7 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
 
     console.log('Calling analyze-barc-form edge function with supabase.functions.invoke...');
     
-    // Use supabase.functions.invoke instead of direct fetch to handle auth properly
+    // Use supabase.functions.invoke to call the analysis function
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
       body: { submissionId }
     });

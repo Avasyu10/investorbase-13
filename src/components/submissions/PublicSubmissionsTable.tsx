@@ -1,3 +1,4 @@
+
 import { 
   Table, 
   TableBody, 
@@ -10,9 +11,6 @@ import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucide-react";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 
 interface PublicSubmission {
@@ -64,19 +62,27 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   const handleAnalyze = async (submission: PublicSubmission) => {
     console.log('PublicSubmissionsTable handleAnalyze called with:', submission);
     
-    // For BARC submissions, call the passed onAnalyze callback to handle loading state
+    // For BARC submissions, trigger the analysis directly
     if (submission.source === "barc_form") {
-      console.log('Calling onAnalyze for BARC submission');
-      onAnalyze(submission);
+      console.log('Handling BARC submission analysis for:', submission.id);
+      try {
+        // Call the passed onAnalyze callback to handle loading state
+        onAnalyze(submission);
+        
+        // Call the BARC analysis function
+        await analyzeBarcSubmission(submission.id);
+        
+        console.log('BARC analysis completed successfully');
+      } catch (error) {
+        console.error('BARC analysis failed:', error);
+        throw error; // Let the parent component handle the error
+      }
       return;
     }
 
     // Handle other submission types
     if (!submission.report_id) {
-      toast.error("Analysis failed", {
-        description: "No report ID found for this submission"
-      });
-      return;
+      throw new Error("No report ID found for this submission");
     }
 
     // Call the original onAnalyze callback for other submission types
