@@ -1,18 +1,20 @@
 
-import { CompaniesList } from "@/components/companies/CompaniesList";
+import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
+  const { profile, isIITBombay } = useProfile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -75,7 +77,12 @@ const Dashboard = () => {
     <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <div className="flex items-center gap-3">
+            {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
+            <h1 className="text-3xl font-bold tracking-tight">
+              {isIITBombay ? "IIT Bombay Dashboard" : "Dashboard"}
+            </h1>
+          </div>
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
             {isAdmin && (
               <Button 
@@ -85,6 +92,16 @@ const Dashboard = () => {
               >
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Panel
+              </Button>
+            )}
+            {isIITBombay && (
+              <Button 
+                onClick={() => navigate("/iit-bombay-analytics")} 
+                variant="outline"
+                className="flex items-center bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-blue-200"
+              >
+                <GraduationCap className="mr-2 h-4 w-4" />
+                Analytics
               </Button>
             )}
             <Button 
@@ -114,12 +131,14 @@ const Dashboard = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
-            <TabsTrigger value="companies">Prospects</TabsTrigger>
+            <TabsTrigger value="companies">
+              {isIITBombay ? "IIT Bombay Prospects" : "Prospects"}
+            </TabsTrigger>
             <TabsTrigger value="submissions">New Applications</TabsTrigger>
             <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
           </TabsList>
           <TabsContent value="companies">
-            <CompaniesList />
+            <ConditionalCompaniesList />
           </TabsContent>
           <TabsContent value="submissions">
             <PublicSubmissionsList />
