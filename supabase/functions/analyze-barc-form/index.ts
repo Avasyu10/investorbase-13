@@ -176,13 +176,13 @@ serve(async (req) => {
        - Provide additional context that strengthens or weakens their position
 
     For strengths and weaknesses:
-    - Base them primarily on the quality and depth of their answers
+    - Base them primarily on the quality and depth of their answers with the market related data based on the company or the industry.
     - Use market insights to support your assessment (e.g., "Their understanding of X is validated by recent industry trend Y showing Z%")
-    - Focus on what they demonstrated they know vs. don't know through their responses
+    - Focus on what they demonstrated they know vs. don't know through their responses and also the market data
 
     For overall assessment points:
-    - Should be grounded in their actual answers but enriched with relevant market context
-    - Include 1-2 specific market data points per assessment point to provide supporting evidence
+    - Should be a mixed assessment in their actual answers but enriched with relevant market context
+    - Include 3-4 specific market data points per assessment point to provide supporting evidence
     - Each point should clearly connect their response to broader market realities
 
     Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-5 (not 1-10):
