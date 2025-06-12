@@ -168,47 +168,45 @@ export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: Ba
             </CardContent>
           </Card>
 
-          {/* Company Link for Accepted Applications */}
-          {analysis.recommendation === 'Accept' && (
-            <Card className="bg-green-50 border-green-200">
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <Building className="h-5 w-5 text-green-600" />
-                  <div>
-                    <h4 className="font-medium text-green-800">
-                      {submission.company_id ? 'Company Profile Available' : 'Company Profile Being Created'}
-                    </h4>
-                    <p className="text-sm text-green-600">
-                      {submission.company_id 
-                        ? 'This application has been processed and added to your prospects'
-                        : 'The company profile is being created. Please check the Prospects tab or refresh this view.'
-                      }
-                    </p>
-                  </div>
+          {/* Company Link for All Analyzed Applications */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <Building className="h-5 w-5 text-blue-600" />
+                <div>
+                  <h4 className="font-medium text-blue-800">
+                    {submission.company_id ? 'Company Profile Available' : 'Company Profile Being Created'}
+                  </h4>
+                  <p className="text-sm text-blue-600">
+                    {submission.company_id 
+                      ? 'This application has been processed and added to your prospects'
+                      : 'The company profile is being created. Please check the Prospects tab or refresh this view.'
+                    }
+                  </p>
                 </div>
-                <div className="flex gap-2">
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRefresh}
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+                {submission.company_id && (
                   <Button
-                    onClick={handleRefresh}
+                    onClick={handleViewCompany}
                     variant="outline"
-                    size="sm"
-                    className="border-green-300 text-green-700 hover:bg-green-100"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
+                    View Company Profile
                   </Button>
-                  {submission.company_id && (
-                    <Button
-                      onClick={handleViewCompany}
-                      variant="outline"
-                      className="border-green-300 text-green-700 hover:bg-green-100"
-                    >
-                      View Company Profile
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Section Scores */}
           <div>

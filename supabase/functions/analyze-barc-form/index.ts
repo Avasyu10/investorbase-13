@@ -278,10 +278,10 @@ serve(async (req) => {
       analysisResult.overall_score = Math.min(Math.round(analysisResult.overall_score / 2), 5);
     }
 
-    // Create company and sections if recommendation is Accept and we have a user
+    // Create company and sections for ALL analysis results (not just Accept)
     let companyId = null;
-    if (analysisResult.recommendation === 'Accept' && effectiveUserId) {
-      console.log('Creating company and sections for accepted submission...');
+    if (effectiveUserId) {
+      console.log('Creating company and sections for analyzed submission...');
       
       // Extract company info from analysis
       const companyInfo = analysisResult.company_info || {};
@@ -418,10 +418,7 @@ serve(async (req) => {
         }
       }
     } else {
-      console.log('Not creating company because:', {
-        recommendation: analysisResult.recommendation,
-        hasUserId: !!effectiveUserId
-      });
+      console.log('Not creating company because no user ID available');
     }
 
     // Update the submission with analysis results and company_id
