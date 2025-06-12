@@ -137,9 +137,9 @@ serve(async (req) => {
       console.error('Failed to update status to processing:', statusUpdateError);
     }
 
-    // Prepare the comprehensive analysis prompt
+    // Prepare the comprehensive analysis prompt with market data integration
     const analysisPrompt = `
-    You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application and provide comprehensive feedback in sections.
+    You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application and provide comprehensive feedback in sections. For each section, prioritize the answers provided in the form but also incorporate relevant market data and industry trends to provide deeper context and insights.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -156,57 +156,65 @@ serve(async (req) => {
     4. Team Background: "${submission.question_4 || 'Not provided'}"
     5. Incubation Goals: "${submission.question_5 || 'Not provided'}"
 
+    ANALYSIS INSTRUCTIONS:
+    For each section metric, provide analysis that:
+    1. PRIMARILY focuses on the applicant's answers to the questions
+    2. ADDITIONALLY incorporates relevant market data, industry trends, and competitive landscape
+    3. Considers market timing, industry growth, regulatory environment, and competitive dynamics
+    4. Evaluates market opportunity size and addressable market
+    5. Assesses competitive positioning and differentiation in current market context
+
     Please provide a detailed analysis in the following JSON format. IMPORTANT: All scores must be on a scale of 1-5 (not 1-10):
 
     {
       "overall_score": number (1-5),
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
-        "industry": "string (infer from the application)",
+        "industry": "string (infer from the application and market context)",
         "stage": "string (e.g., Idea, Prototype, Early Revenue, Growth)",
-        "introduction": "string (2-3 sentence company description based on executive summary and responses)"
+        "introduction": "string (2-3 sentence company description based on executive summary, responses, and market positioning)"
       },
       "sections": {
         "problem_solution_fit": {
           "score": number (1-5),
-          "analysis": "detailed analysis text",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement area 1", "improvement area 2"]
+          "analysis": "detailed analysis text that evaluates the problem statement against market needs, timing, and current industry pain points",
+          "strengths": ["strength 1 based on answers and market context", "strength 2 based on answers and market context"],
+          "improvements": ["improvement area 1 considering market dynamics", "improvement area 2 considering market dynamics"]
         },
         "market_opportunity": {
           "score": number (1-5),
-          "analysis": "detailed analysis text",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement area 1", "improvement area 2"]
+          "analysis": "detailed analysis text that combines customer discovery answers with market size, growth trends, and addressable market data",
+          "strengths": ["strength 1 based on answers and market analysis", "strength 2 based on answers and market analysis"],
+          "improvements": ["improvement area 1 considering market data", "improvement area 2 considering market data"]
         },
         "competitive_advantage": {
           "score": number (1-5),
-          "analysis": "detailed analysis text",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement area 1", "improvement area 2"]
+          "analysis": "detailed analysis text that evaluates stated advantages against actual competitive landscape and market positioning",
+          "strengths": ["strength 1 based on answers and competitive analysis", "strength 2 based on answers and competitive analysis"],
+          "improvements": ["improvement area 1 considering competitive dynamics", "improvement area 2 considering competitive dynamics"]
         },
         "team_strength": {
           "score": number (1-5),
-          "analysis": "detailed analysis text",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement area 1", "improvement area 2"]
+          "analysis": "detailed analysis text that assesses team background against industry requirements and market needs",
+          "strengths": ["strength 1 based on team background and industry context", "strength 2 based on team background and industry context"],
+          "improvements": ["improvement area 1 considering industry standards", "improvement area 2 considering industry standards"]
         },
         "execution_plan": {
           "score": number (1-5),
-          "analysis": "detailed analysis text",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement area 1", "improvement area 2"]
+          "analysis": "detailed analysis text that evaluates incubation goals and execution strategy against market realities and industry benchmarks",
+          "strengths": ["strength 1 based on goals and market feasibility", "strength 2 based on goals and market feasibility"],
+          "improvements": ["improvement area 1 considering market execution challenges", "improvement area 2 considering market execution challenges"]
         }
       },
       "summary": {
-        "overall_feedback": "comprehensive feedback on the overall application",
-        "key_factors": ["factor 1", "factor 2", "factor 3"],
-        "next_steps": ["step 1", "step 2", "step 3"],
-        "assessment_points": ["detailed assessment point 1", "detailed assessment point 2", "detailed assessment point 3", "detailed assessment point 4", "detailed assessment point 5"]
+        "overall_feedback": "comprehensive feedback that synthesizes form responses with market context and industry positioning",
+        "key_factors": ["factor 1 combining answers and market insights", "factor 2 combining answers and market insights", "factor 3 combining answers and market insights"],
+        "next_steps": ["step 1 considering market opportunities", "step 2 considering market opportunities", "step 3 considering market opportunities"],
+        "assessment_points": ["detailed assessment point 1 with market context", "detailed assessment point 2 with market context", "detailed assessment point 3 with market context", "detailed assessment point 4 with market context", "detailed assessment point 5 with market context"]
       }
     }
 
-    Focus on providing actionable insights and specific recommendations based on the responses to each question. Include comprehensive assessment points that highlight market opportunities, business model viability, competitive positioning, and growth potential.
+    Focus on providing actionable insights that combine the applicant's responses with relevant market intelligence. Include market-informed assessment points that highlight market opportunities, competitive positioning, industry trends, and growth potential while staying grounded in the specific answers provided by the applicant.
     `;
 
     // Call OpenAI API
@@ -222,7 +230,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, metric-based analysis in valid JSON format only. All scores must be on a scale of 1-5. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay with deep market knowledge and industry expertise. Provide thorough, market-informed analysis in valid JSON format only. All scores must be on a scale of 1-5. Integrate market data and industry trends with form responses to provide comprehensive evaluation. Do not wrap your response in markdown code blocks or any other formatting - return only the raw JSON object.'
           },
           {
             role: 'user',
