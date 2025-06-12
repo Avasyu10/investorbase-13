@@ -176,10 +176,11 @@ serve(async (req) => {
 
     For STRENGTHS AND WEAKNESSES in each section:
     - Provide exactly 4-5 STRENGTHS and 4-5 WEAKNESSES for each section
-    - SIGNIFICANTLY ENHANCE weaknesses with more market data, competitive threats, industry challenges, and specific metrics
-    - Include market barriers, competitive dynamics, industry failure rates, cost benchmarks, and regulatory challenges in weaknesses
+    - WEAKNESSES should focus on identifying actual flaws, gaps, risks, and limitations in their approach/responses combined with market challenges - NOT recommendations for improvement
+    - Weaknesses should highlight: response quality deficiencies, market barriers they face, competitive threats they're exposed to, industry challenges affecting them, cost disadvantages, timing risks, execution gaps, market positioning problems
     - Balance evaluation between answer quality AND extensive market data/numbers for both strengths and weaknesses
     - Connect their responses to concrete market evidence and data points in both positive and negative aspects
+    - For weaknesses, focus on what IS wrong or missing, not what SHOULD BE done
 
     Each strength and weakness should integrate:
     1. Assessment of their actual response quality/depth
@@ -202,31 +203,31 @@ serve(async (req) => {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their answer quality AND market data to evaluate problem definition and timing",
           "strengths": ["exactly 4-5 strengths that balance answer assessment with market validation and specific data points", "another strength combining their response quality with industry metrics", "third strength with market size/growth data", "fourth strength with competitive landscape data", "fifth strength with timing and market trends data"],
-          "improvements": ["exactly 4-5 improvements heavily incorporating market data, competitive threats, and industry challenges with specific metrics", "another improvement combining response weaknesses with market realities, barrier data, and competitive costs", "third improvement with competitive threats, market saturation data, and industry failure rates", "fourth improvement with market timing risks, regulatory challenges, and adoption curve data", "fifth improvement with industry benchmark gaps, cost barriers, and market penetration challenges"]
+          "improvements": ["exactly 4-5 weaknesses identifying actual flaws and gaps in their problem understanding combined with market barriers, expressed as deficiencies rather than recommendations", "another weakness highlighting response limitations with market reality challenges and competitive threats", "third weakness about problem validation gaps with market saturation data and industry failure rates", "fourth weakness regarding market timing risks with regulatory challenges and adoption curve barriers", "fifth weakness about execution gaps with industry benchmark deficiencies and market penetration challenges"]
         },
         "market_opportunity": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their customer discovery response AND market size/potential data",
           "strengths": ["exactly 4-5 strengths balancing their market understanding with actual market data and metrics", "another strength with customer acquisition insights and industry benchmarks", "third strength with go-to-market approach and market penetration data", "fourth strength with addressable market size validation", "fifth strength with market growth trends and opportunity sizing"],
-          "improvements": ["exactly 4-5 improvements heavily incorporating market analysis, competitive dynamics, and customer acquisition cost challenges", "another improvement with customer acquisition barriers, market penetration costs, and industry CAC benchmarks", "third improvement with market saturation risks, competitive spending data, and customer retention challenges", "fourth improvement with market timing barriers, adoption cycle data, and go-to-market cost analysis", "fifth improvement with competitive market dynamics, customer acquisition difficulty metrics, and market entry barriers"]
+          "improvements": ["exactly 4-5 weaknesses identifying actual market analysis flaws and customer understanding gaps combined with acquisition cost challenges", "another weakness highlighting market penetration barriers with customer acquisition cost disadvantages and retention risks", "third weakness about market size validation gaps with saturation risks and competitive spending disadvantages", "fourth weakness regarding customer discovery deficiencies with adoption cycle barriers and go-to-market cost challenges", "fifth weakness about competitive market positioning gaps with customer acquisition difficulty and market entry obstacles"]
         },
         "competitive_advantage": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their competitive claims AND competitive landscape data",
           "strengths": ["exactly 4-5 strengths balancing their differentiation claims with competitive analysis data", "another strength with moat assessment and industry defensibility metrics", "third strength with competitive positioning and market share data", "fourth strength with innovation metrics and patent landscape", "fifth strength with sustainable advantage validation through market data"],
-          "improvements": ["exactly 4-5 improvements heavily incorporating competitive threats, market dynamics, and differentiation challenges", "another improvement with competitive landscape risks, market consolidation data, and threat analysis", "third improvement with differentiation erosion risks, competitive spending data, and moat sustainability challenges", "fourth improvement with competitive response threats, market positioning costs, and defensibility gaps", "fifth improvement with innovation cycle data, competitive advantage decay rates, and market disruption risks"]
+          "improvements": ["exactly 4-5 weaknesses identifying actual competitive disadvantages and differentiation gaps combined with market threats", "another weakness highlighting competitive landscape vulnerabilities with market consolidation risks and threat exposure", "third weakness about differentiation sustainability gaps with competitive response risks and moat erosion", "fourth weakness regarding competitive positioning deficiencies with market positioning costs and defensibility limitations", "fifth weakness about innovation cycle gaps with competitive advantage decay risks and market disruption vulnerabilities"]
         },
         "team_strength": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their team description AND industry team success patterns/data",
           "strengths": ["exactly 4-5 strengths balancing their team experience with industry success metrics", "another strength with domain expertise and industry leadership benchmarks", "third strength with team composition and startup success rate data", "fourth strength with relevant background and industry network validation", "fifth strength with execution capability and track record assessment"],
-          "improvements": ["exactly 4-5 improvements heavily incorporating team gaps, industry requirements, and execution risk data", "another improvement with skill gaps, hiring challenges, and industry competency costs", "third improvement with experience deficits, team scaling risks, and leadership gap analysis", "fourth improvement with team composition risks, hiring market data, and retention challenges", "fifth improvement with execution risk factors, team building costs, and advisory needs with market benchmarks"]
+          "improvements": ["exactly 4-5 weaknesses identifying actual team gaps and experience deficiencies combined with industry execution risks", "another weakness highlighting skill deficiencies with hiring challenges and industry competency gaps", "third weakness about experience limitations with team scaling risks and leadership capability gaps", "fourth weakness regarding team composition deficiencies with hiring market challenges and retention risks", "fifth weakness about execution capability gaps with team building costs and advisory dependency risks"]
         },
         "execution_plan": {
           "score": number (1-100),
           "analysis": "detailed analysis that equally weighs their execution planning AND industry execution benchmarks/data",
           "strengths": ["exactly 4-5 strengths balancing their planning clarity with execution feasibility data", "another strength with milestone realism and industry timeline benchmarks", "third strength with resource planning and startup capital efficiency metrics", "fourth strength with goal specificity and success probability analysis", "fifth strength with implementation strategy and industry best practices alignment"],
-          "improvements": ["exactly 4-5 improvements heavily incorporating execution challenges, industry failure data, and resource requirement analysis", "another improvement with timeline risks, startup failure rates, and milestone achievement difficulties", "third improvement with resource estimation gaps, burn rate dangers, and capital requirement challenges", "fourth improvement with execution barrier analysis, implementation cost data, and timeline risk factors", "fifth improvement with market entry challenges, scaling difficulties, and execution success rate benchmarks"]
+          "improvements": ["exactly 4-5 weaknesses identifying actual execution planning gaps and timeline unreliability combined with industry failure risks", "another weakness highlighting resource estimation deficiencies with burn rate dangers and capital requirement underestimation", "third weakness about milestone planning gaps with execution barrier underestimation and implementation cost challenges", "fourth weakness regarding goal specificity deficiencies with market entry timeline risks and scaling execution gaps", "fifth weakness about implementation strategy limitations with execution success rate challenges and industry benchmark gaps"]
         }
       },
       "summary": {
@@ -244,7 +245,13 @@ serve(async (req) => {
     - Do NOT use prefixes like "Assessment point 1" or "Assessment" - write as clean, professional investment analysis statements
     - Focus on providing actionable investment insights supported by concrete market numbers and financial metrics
 
-    Remember: Give EQUAL importance to both the applicant's actual answers AND relevant market data/industry insights. Generate EXACTLY 6-7 assessment points that are clean, natural statements without prefixes. Each assessment point MUST include multiple specific market numbers, dollar amounts, growth rates, and industry metrics seamlessly integrated with answer evaluation. Each strength and weakness must integrate both aspects with specific data points and metrics. Significantly enhance weaknesses with more market data and competitive analysis. All scores must be on a 1-100 scale.
+    CRITICAL REQUIREMENTS FOR WEAKNESSES:
+    - Focus on identifying actual problems, gaps, and limitations - NOT providing recommendations
+    - Express weaknesses as deficiencies, risks, and challenges they face
+    - Avoid phrases like "should improve" or "needs to" - instead use "lacks", "shows gaps in", "faces risks from", "demonstrates deficiencies in"
+    - Combine response quality issues with market data showing the challenges and barriers they face
+
+    Remember: Give EQUAL importance to both the applicant's actual answers AND relevant market data/industry insights. Generate EXACTLY 6-7 assessment points that are clean, natural statements without prefixes. Each assessment point MUST include multiple specific market numbers, dollar amounts, growth rates, and industry metrics seamlessly integrated with answer evaluation. Each strength and weakness must integrate both aspects with specific data points and metrics. Focus weaknesses on actual problems and gaps, not improvement recommendations. All scores must be on a 1-100 scale.
     `;
 
     // Call OpenAI API
@@ -260,7 +267,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Give EQUAL weight to both the quality of applicant responses AND relevant market data/industry insights. Generate EXACTLY 6-7 clean, natural assessment points that MUST include specific numbers in every single point - market sizes in dollars, growth rates as percentages, customer acquisition costs, competitive spending figures, success rates, and other quantitative metrics. EVERY assessment point must contain at least 4-5 specific numbers, dollar amounts, or percentages. Do NOT use prefixes like "Assessment point 1", "Assessment point 2", or start with "Assessment". Write them as natural, flowing investment analysis statements that seamlessly blend response analysis with extensive quantitative market data and financial metrics. Provide exactly 4-5 strengths and 4-5 weaknesses for each section, with weaknesses heavily enhanced with market data, competitive threats, and industry challenges. Include specific data points, growth rates, market sizes, competitive dynamics, and industry benchmarks with numbers in every strength and weakness. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-100. Do not wrap your response in markdown code blocks - return only the raw JSON object.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Give EQUAL weight to both the quality of applicant responses AND relevant market data/industry insights. Generate EXACTLY 6-7 clean, natural assessment points that MUST include specific numbers in every single point - market sizes in dollars, growth rates as percentages, customer acquisition costs, competitive spending figures, success rates, and other quantitative metrics. EVERY assessment point must contain at least 4-5 specific numbers, dollar amounts, or percentages. Do NOT use prefixes like "Assessment point 1", "Assessment point 2", or start with "Assessment". Write them as natural, flowing investment analysis statements that seamlessly blend response analysis with extensive quantitative market data and financial metrics. Provide exactly 4-5 strengths and 4-5 weaknesses for each section. For weaknesses, focus on identifying actual flaws, gaps, risks, and limitations - NOT recommendations for improvement. Express weaknesses as deficiencies and challenges they face, using phrases like "lacks", "shows gaps in", "faces risks from", "demonstrates deficiencies in" rather than "should improve" or "needs to". Include specific data points, growth rates, market sizes, competitive dynamics, and industry benchmarks with numbers in every strength and weakness. Provide thorough analysis in valid JSON format only. All scores must be on a scale of 1-100. Do not wrap your response in markdown code blocks - return only the raw JSON object.'
           },
           {
             role: 'user',
@@ -432,7 +439,7 @@ serve(async (req) => {
               }
             }
             
-            // Add improvements
+            // Add improvements (now actually weaknesses)
             if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
               for (const improvement of sectionData.improvements) {
                 detailsToCreate.push({
