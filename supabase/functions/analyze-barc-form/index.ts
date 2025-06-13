@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('Request received:', req.method, req.url);
+  console.log('Function called with method:', req.method);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -29,18 +29,9 @@ serve(async (req) => {
   try {
     console.log('Processing POST request');
     
-    let requestBody;
-    try {
-      requestBody = await req.json();
-      console.log('Request body parsed:', requestBody);
-    } catch (parseError) {
-      console.error('Failed to parse request body:', parseError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid JSON in request body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    const requestBody = await req.json();
+    console.log('Request body received:', requestBody);
+    
     const { submissionId } = requestBody;
     
     if (!submissionId) {
@@ -69,25 +60,17 @@ serve(async (req) => {
     console.log('Supabase client created');
 
     // Fetch submission data
-    console.log('Fetching submission data for ID:', submissionId);
+    console.log('Fetching submission data');
     const { data: submission, error: fetchError } = await supabase
       .from('barc_form_submissions')
       .select('*')
       .eq('id', submissionId)
       .single();
 
-    if (fetchError) {
+    if (fetchError || !submission) {
       console.error('Database fetch error:', fetchError);
       return new Response(
-        JSON.stringify({ success: false, error: `Database error: ${fetchError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!submission) {
-      console.error('Submission not found');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Submission not found' }),
+        JSON.stringify({ success: false, error: `Submission not found: ${fetchError?.message || 'Unknown error'}` }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -109,21 +92,13 @@ serve(async (req) => {
 
     // Update to processing
     console.log('Updating status to processing');
-    const { error: updateError } = await supabase
+    await supabase
       .from('barc_form_submissions')
       .update({ analysis_status: 'processing' })
       .eq('id', submissionId);
 
-    if (updateError) {
-      console.error('Failed to update status:', updateError);
-      return new Response(
-        JSON.stringify({ success: false, error: `Failed to update status: ${updateError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Simple analysis prompt
-    const prompt = `Analyze this startup application and provide scores (1-100):
+    // Simple analysis using OpenAI
+    const prompt = `Analyze this BARC application and provide a JSON response with scores and recommendation:
 
 Company: ${submission.company_name || 'Not provided'}
 Summary: ${submission.executive_summary || 'Not provided'}
@@ -148,39 +123,25 @@ Respond with valid JSON only:
 
     console.log('Calling OpenAI API');
     
-    let openaiResponse;
-    try {
-      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: 'You are a startup evaluator. Respond with valid JSON only.' },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.3,
-        }),
-      });
-    } catch (openaiError) {
-      console.error('OpenAI fetch error:', openaiError);
-      return new Response(
-        JSON.stringify({ success: false, error: `OpenAI request failed: ${openaiError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a startup evaluator. Respond with valid JSON only.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+      }),
+    });
 
     if (!openaiResponse.ok) {
-      console.error('OpenAI API error:', openaiResponse.status, openaiResponse.statusText);
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI error details:', errorText);
-      return new Response(
-        JSON.stringify({ success: false, error: `OpenAI API error: ${openaiResponse.status}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('OpenAI API error:', openaiResponse.status);
+      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
     }
 
     const openaiData = await openaiResponse.json();
@@ -189,11 +150,7 @@ Respond with valid JSON only:
     const content = openaiData.choices?.[0]?.message?.content;
     
     if (!content) {
-      console.error('No content from OpenAI');
-      return new Response(
-        JSON.stringify({ success: false, error: 'No content from OpenAI' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('No content from OpenAI');
     }
 
     // Parse JSON response
@@ -204,16 +161,12 @@ Respond with valid JSON only:
       console.log('Analysis result parsed successfully');
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', parseError);
-      console.error('Content was:', content);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid JSON from OpenAI' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Invalid JSON from OpenAI');
     }
 
     // Update with results
     console.log('Updating submission with results');
-    const { error: finalUpdateError } = await supabase
+    await supabase
       .from('barc_form_submissions')
       .update({
         analysis_status: 'completed',
@@ -221,14 +174,6 @@ Respond with valid JSON only:
         analyzed_at: new Date().toISOString()
       })
       .eq('id', submissionId);
-
-    if (finalUpdateError) {
-      console.error('Failed to save results:', finalUpdateError);
-      return new Response(
-        JSON.stringify({ success: false, error: `Failed to save results: ${finalUpdateError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     console.log('Analysis completed successfully');
     return new Response(
@@ -241,13 +186,12 @@ Respond with valid JSON only:
     );
 
   } catch (error) {
-    console.error('Unexpected error in analysis:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error in analysis function:', error);
 
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: `Server error: ${error.message || 'Unknown error'}`
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

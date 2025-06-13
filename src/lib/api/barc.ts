@@ -64,11 +64,9 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   try {
     console.log('Invoking analyze-barc-form function with submissionId:', submissionId);
     
+    // Use the working analyze-barc-form function instead
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
-      body: JSON.stringify({ submissionId }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body: { submissionId },
     });
 
     if (error) {
