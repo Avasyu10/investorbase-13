@@ -10,8 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Copy, ExternalLink, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const PublicForms = () => {
+  const { user } = useAuth();
   const [newFormName, setNewFormName] = useState("");
   const [newFormSlug, setNewFormSlug] = useState("");
   const [newFormType, setNewFormType] = useState("general");
@@ -20,25 +22,28 @@ const PublicForms = () => {
   
   const queryClient = useQueryClient();
 
-  // Fetch user's public forms
+  // Fetch user's public forms - only forms owned by the current user
   const { data: forms, isLoading } = useQuery({
-    queryKey: ['public-forms'],
+    queryKey: ['public-forms', user?.id],
     queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('public_submission_forms')
         .select('*')
+        .eq('user_id', user.id) // Only fetch forms owned by current user
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!user
   });
 
   // Create new form mutation
   const createFormMutation = useMutation({
     mutationFn: async ({ name, slug, formType, autoAnalyze }: { name: string, slug: string, formType: string, autoAnalyze: boolean }) => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error("Not authenticated");
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from('public_submission_forms')
@@ -47,7 +52,7 @@ const PublicForms = () => {
           form_slug: slug,
           form_type: formType,
           auto_analyze: autoAnalyze,
-          user_id: userData.user.id,
+          user_id: user.id,
           is_active: true
         })
         .select()
@@ -76,7 +81,8 @@ const PublicForms = () => {
       const { error } = await supabase
         .from('public_submission_forms')
         .delete()
-        .eq('id', formId);
+        .eq('id', formId)
+        .eq('user_id', user?.id); // Ensure user can only delete their own forms
 
       if (error) throw error;
     },
@@ -95,7 +101,8 @@ const PublicForms = () => {
       const { error } = await supabase
         .from('public_submission_forms')
         .update({ is_active: isActive })
-        .eq('id', formId);
+        .eq('id', formId)
+        .eq('user_id', user?.id); // Ensure user can only update their own forms
 
       if (error) throw error;
     },

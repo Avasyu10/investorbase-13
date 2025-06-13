@@ -3,8 +3,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Settings, AlertCircle, Building } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 export const ProfileNavigation = () => {
+  const { user } = useAuth();
+  const { isIITBombay } = useProfile();
+
   return (
     <Card>
       <CardHeader>
@@ -20,12 +25,14 @@ export const ProfileNavigation = () => {
             Manage Public Forms
           </Link>
         </Button>
-        <Button asChild variant="outline" className="w-full justify-start">
-          <Link to="/barc-submissions">
-            <Building className="h-4 w-4 mr-2" />
-            BARC Submissions
-          </Link>
-        </Button>
+        {isIITBombay && (
+          <Button asChild variant="outline" className="w-full justify-start">
+            <Link to="/barc-submissions">
+              <Building className="h-4 w-4 mr-2" />
+              BARC Submissions
+            </Link>
+          </Button>
+        )}
         <Button asChild variant="outline" className="w-full justify-start">
           <Link to="/profile/edit">
             <FileText className="h-4 w-4 mr-2" />
