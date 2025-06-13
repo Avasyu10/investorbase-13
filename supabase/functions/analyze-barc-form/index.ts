@@ -149,7 +149,7 @@ serve(async (req) => {
     - Growth trajectory expectations
     - Risk factors with quantified impact
 
-    Format your response as valid JSON:
+    Format your response as valid JSON WITHOUT any markdown formatting or code blocks:
     {
       "overall_score": number (1-100),
       "recommendation": "Accept" | "Consider" | "Reject",
@@ -213,7 +213,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, constructive analysis in valid JSON format with specific market metrics and data points.'
+            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, constructive analysis in valid JSON format with specific market metrics and data points. IMPORTANT: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.'
           },
           {
             role: 'user',
@@ -238,8 +238,21 @@ serve(async (req) => {
       throw new Error('Invalid response structure from OpenAI');
     }
 
-    const analysisText = openaiData.choices[0].message.content;
+    let analysisText = openaiData.choices[0].message.content;
     console.log('Raw analysis text received from OpenAI');
+
+    // Clean up the response text to extract JSON from markdown code blocks if present
+    analysisText = analysisText.trim();
+    
+    // Remove markdown code blocks if present
+    if (analysisText.startsWith('```json')) {
+      analysisText = analysisText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (analysisText.startsWith('```')) {
+      analysisText = analysisText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Trim any remaining whitespace
+    analysisText = analysisText.trim();
 
     let analysisResult;
     try {
@@ -247,6 +260,7 @@ serve(async (req) => {
       console.log('Successfully parsed analysis result');
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
+      console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
       throw new Error('Analysis response was not valid JSON');
     }
 
@@ -333,7 +347,7 @@ serve(async (req) => {
       console.log('Created sections:', sectionsToCreate.length);
     }
 
-    // Update submission with final results (NO LinkedIn scraping here)
+    // Update submission with final results
     console.log('Updating submission with final analysis results...');
     const { error: updateError } = await supabase
       .from('barc_form_submissions')
