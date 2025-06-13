@@ -127,7 +127,6 @@ export type Database = {
           assessment_points: string[] | null
           created_at: string
           id: string
-          industry: string | null
           name: string
           overall_score: number
           perplexity_prompt: string | null
@@ -144,7 +143,6 @@ export type Database = {
           assessment_points?: string[] | null
           created_at?: string
           id?: string
-          industry?: string | null
           name: string
           overall_score?: number
           perplexity_prompt?: string | null
@@ -161,7 +159,6 @@ export type Database = {
           assessment_points?: string[] | null
           created_at?: string
           id?: string
-          industry?: string | null
           name?: string
           overall_score?: number
           perplexity_prompt?: string | null
@@ -1178,7 +1175,6 @@ export type Database = {
           assessment_points: string[] | null
           created_at: string
           id: string
-          industry: string | null
           name: string
           overall_score: number
           perplexity_prompt: string | null
