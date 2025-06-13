@@ -20,6 +20,10 @@ export interface BarcSubmissionData {
 export const submitBarcForm = async (data: BarcSubmissionData) => {
   console.log('Submitting BARC form with data:', data);
 
+  // Get current user if authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || null;
+
   const { data: submission, error } = await supabase
     .from('barc_form_submissions')
     .insert({
@@ -36,6 +40,7 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       question_5: data.question_5,
       submitter_email: data.submitter_email,
       founder_linkedin_urls: data.founder_linkedin_urls,
+      user_id: userId, // Set user_id if user is authenticated
       analysis_status: 'pending'
     })
     .select()
@@ -48,25 +53,8 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
 
   console.log('BARC form submitted successfully:', submission);
 
-  // Trigger analysis
-  try {
-    console.log('Triggering analysis for submission:', submission.id);
-    
-    const { data: analysisResult, error: analysisError } = await supabase.functions.invoke('analyze-barc-form', {
-      body: { submissionId: submission.id }
-    });
-
-    if (analysisError) {
-      console.error('Analysis trigger error:', analysisError);
-      // Don't throw here - the submission was successful, analysis can be retried
-    } else {
-      console.log('Analysis triggered successfully:', analysisResult);
-    }
-  } catch (analysisError) {
-    console.error('Failed to trigger analysis:', analysisError);
-    // Don't throw here - the submission was successful
-  }
-
+  // Return the submission without automatically triggering analysis
+  // Analysis can be triggered manually later if needed
   return submission;
 };
 
@@ -74,7 +62,7 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   console.log('Analyzing BARC submission:', submissionId);
 
   try {
-    const { data, error } = await supabase.functions.invoke('analyze-barc-submission', {
+    const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
       body: { submissionId }
     });
 

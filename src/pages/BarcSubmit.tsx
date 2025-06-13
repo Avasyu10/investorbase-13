@@ -112,17 +112,17 @@ const BarcSubmit = () => {
 
       console.log('Calling submitBarcForm API:', submissionData);
       
-      // Use the API function which handles both submission and analysis trigger
+      // Use the API function which only handles submission (no automatic analysis)
       return await submitBarcForm(submissionData);
     },
     onSuccess: (data) => {
       console.log('BARC form submitted successfully:', data);
-      toast.success("Application submitted successfully! Your submission is now available for analysis.");
+      toast.success("Application submitted successfully! You will be notified when analysis is complete.");
       
       form.reset();
       setFounderLinkedIns([""]);
       
-      // Navigate to home instead of dashboard to avoid logout
+      // Navigate to home after a short delay
       setTimeout(() => {
         navigate('/', { replace: true });
       }, 2000);

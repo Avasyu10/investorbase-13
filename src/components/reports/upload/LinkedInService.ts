@@ -32,10 +32,13 @@ export const scrapeLinkedInProfiles = async (urls: string[], companyId: string):
   }
   
   try {
-    console.log(`Scraping LinkedIn profiles: ${validUrls.join(', ')}`);
+    console.log(`Scraping LinkedIn profiles for company ${companyId}: ${validUrls.join(', ')}`);
     
     const { data, error } = await supabase.functions.invoke('scrape-linkedin', {
-      body: { linkedInUrls: validUrls, companyId }
+      body: { 
+        linkedInUrls: validUrls, 
+        companyId: companyId 
+      }
     });
     
     if (error) {
