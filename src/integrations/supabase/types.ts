@@ -40,6 +40,7 @@ export type Database = {
           analysis_status: string | null
           analyzed_at: string | null
           company_id: string | null
+          company_linkedin_url: string | null
           company_name: string
           company_registration_type: string | null
           company_type: string | null
@@ -64,6 +65,7 @@ export type Database = {
           analysis_status?: string | null
           analyzed_at?: string | null
           company_id?: string | null
+          company_linkedin_url?: string | null
           company_name: string
           company_registration_type?: string | null
           company_type?: string | null
@@ -88,6 +90,7 @@ export type Database = {
           analysis_status?: string | null
           analyzed_at?: string | null
           company_id?: string | null
+          company_linkedin_url?: string | null
           company_name?: string
           company_registration_type?: string | null
           company_type?: string | null

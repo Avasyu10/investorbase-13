@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -19,6 +18,7 @@ interface BarcFormData {
   companyRegistrationType: string;
   executiveSummary: string;
   companyType: string;
+  companyLinkedInUrl: string;
   question1: string;
   question2: string;
   question3: string;
@@ -39,6 +39,7 @@ const BarcSubmit = () => {
       companyRegistrationType: "",
       executiveSummary: "",
       companyType: "",
+      companyLinkedInUrl: "",
       question1: "",
       question2: "",
       question3: "",
@@ -99,6 +100,7 @@ const BarcSubmit = () => {
         company_registration_type: formData.companyRegistrationType,
         executive_summary: formData.executiveSummary,
         company_type: formData.companyType,
+        company_linkedin_url: formData.companyLinkedInUrl,
         question_1: formData.question1,
         question_2: formData.question2,
         question_3: formData.question3,
@@ -163,6 +165,12 @@ const BarcSubmit = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.submitterEmail)) {
       toast.error("Please enter a valid email address");
+      return;
+    }
+
+    // Validate Company LinkedIn URL if provided
+    if (data.companyLinkedInUrl.trim() && !data.companyLinkedInUrl.includes('linkedin.com/company/')) {
+      toast.error("Please enter a valid Company LinkedIn URL (e.g., https://linkedin.com/company/company-name)");
       return;
     }
 
@@ -307,6 +315,26 @@ const BarcSubmit = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="companyLinkedInUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company LinkedIn URL (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://linkedin.com/company/your-company-name" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-sm text-muted-foreground">
+                          Enter your company's LinkedIn page URL for additional company insights and analysis.
+                        </p>
                       </FormItem>
                     )}
                   />
