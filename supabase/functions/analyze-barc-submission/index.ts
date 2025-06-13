@@ -11,8 +11,6 @@ const corsHeaders = {
 
 serve(async (req) => {
   console.log(`Request method: ${req.method}`);
-  console.log(`Request URL: ${req.url}`);
-  console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
