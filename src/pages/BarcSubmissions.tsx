@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ const BarcSubmissions = () => {
   const { user } = useAuth();
   const [selectedSubmission, setSelectedSubmission] = useState<BarcSubmission | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
 
   const { data: submissions, isLoading, refetch } = useQuery({
     queryKey: ['barc-submissions', user?.id],
@@ -43,20 +45,77 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
+    refetchInterval: 5000, // Poll every 5 seconds to check for status updates
   });
 
   const triggerAnalysis = async (submissionId: string) => {
+    // Prevent duplicate analysis requests
+    if (analyzingSubmissions.has(submissionId)) {
+      console.log('Analysis already in progress for submission:', submissionId);
+      return;
+    }
+
+    // Check if submission is already being processed or completed
+    const submission = submissions?.find(s => s.id === submissionId);
+    if (submission?.analysis_status === 'processing' || submission?.analysis_status === 'completed') {
+      console.log('Submission already processed or in progress:', submissionId);
+      return;
+    }
+
     try {
       console.log('Triggering analysis for submission:', submissionId);
       
-      // Use the correct analysis function from the API
-      await analyzeBarcSubmission(submissionId);
+      // Add to analyzing set to prevent duplicate requests
+      setAnalyzingSubmissions(prev => new Set(prev).add(submissionId));
+      
+      // First update the status locally to prevent multiple clicks
+      await supabase
+        .from('barc_form_submissions')
+        .update({ analysis_status: 'processing' })
+        .eq('id', submissionId);
 
-      toast.success("Analysis started! Results will be available shortly.");
+      // Trigger the analysis
+      const result = await analyzeBarcSubmission(submissionId);
+      
+      if (result?.success) {
+        toast.success("Analysis completed successfully!");
+      } else {
+        // If the API says it failed but we got a response, check if it was a lock error
+        if (result?.error?.includes('already being analyzed')) {
+          console.log('Analysis was already in progress, checking status...');
+          toast.info("Analysis is already in progress for this submission.");
+        } else {
+          throw new Error(result?.error || 'Analysis failed');
+        }
+      }
+
+      // Refetch to get updated data
       refetch();
     } catch (error: any) {
       console.error('Analysis trigger error:', error);
-      toast.error(`Failed to start analysis: ${error.message}`);
+      
+      // Check if this is a "already analyzing" error - if so, don't show error toast
+      if (error.message?.includes('already being analyzed') || error.message?.includes('already being processed')) {
+        console.log('Submission is already being analyzed, this is expected');
+        toast.info("Analysis is already in progress for this submission.");
+      } else {
+        toast.error(`Failed to start analysis: ${error.message}`);
+        
+        // Reset status back to pending if there was a real error
+        await supabase
+          .from('barc_form_submissions')
+          .update({ analysis_status: 'pending' })
+          .eq('id', submissionId);
+      }
+    } finally {
+      // Remove from analyzing set after a delay to prevent rapid re-clicks
+      setTimeout(() => {
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submissionId);
+          return newSet;
+        });
+      }, 3000);
     }
   };
 
@@ -127,6 +186,7 @@ const BarcSubmissions = () => {
         <div className="grid gap-6">
           {submissions?.map((submission) => {
             const analysisResult = getAnalysisResult(submission);
+            const isAnalyzing = analyzingSubmissions.has(submission.id);
             
             return (
               <Card key={submission.id} className="hover:shadow-md transition-shadow">
@@ -196,7 +256,7 @@ const BarcSubmissions = () => {
                           </Button>
                         )}
                       </div>
-                    ) : submission.analysis_status === 'processing' ? (
+                    ) : submission.analysis_status === 'processing' || isAnalyzing ? (
                       <Button variant="outline" size="sm" disabled>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Analyzing...
@@ -206,6 +266,7 @@ const BarcSubmissions = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => triggerAnalysis(submission.id)}
+                        disabled={isAnalyzing}
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Start Analysis

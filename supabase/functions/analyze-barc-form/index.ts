@@ -1,4 +1,5 @@
 
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -102,6 +103,45 @@ serve(async (req) => {
 
     if (!lockResult) {
       console.log('Could not acquire lock - submission is already being processed or completed');
+      // Instead of throwing an error, let's check the current status and return accordingly
+      const { data: currentSubmission } = await supabase
+        .from('barc_form_submissions')
+        .select('analysis_status, company_id')
+        .eq('id', submissionId)
+        .single();
+
+      if (currentSubmission?.analysis_status === 'completed' && currentSubmission?.company_id) {
+        console.log('Submission already completed successfully');
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            submissionId,
+            companyId: currentSubmission.company_id,
+            isNewCompany: false,
+            message: 'Analysis already completed'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // If it's still processing, return success but indicate it's in progress
+      if (currentSubmission?.analysis_status === 'processing') {
+        console.log('Submission is currently being processed');
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            submissionId,
+            message: 'Analysis is currently in progress',
+            status: 'processing'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
       throw new Error('Submission is already being analyzed or has been completed');
     }
 
@@ -309,13 +349,9 @@ serve(async (req) => {
 
     const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => ({
       company_id: companyId,
-      name: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       score: sectionData.score || 0,
-      analysis: sectionData.analysis || '',
-      strengths: sectionData.strengths || [],
-      improvements: sectionData.improvements || [],
       section_type: sectionName,
-      type: 'analysis', // Required field for sections table
+      type: 'analysis',
       title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       description: sectionData.analysis || ''
     }));
@@ -405,3 +441,4 @@ serve(async (req) => {
     );
   }
 });
+
