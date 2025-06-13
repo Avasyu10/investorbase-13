@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Navigate } from "react-router-dom";
@@ -11,19 +11,58 @@ import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { ConditionalAlertsSection } from "@/components/profile/ConditionalAlertsSection";
 import { Loader2, GraduationCap, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { profile, isLoading: profileLoading, isIITBombay } = useProfile();
   const [activeTab, setActiveTab] = useState("email");
+  const [iitBombayFormSlug, setIitBombayFormSlug] = useState<string | null>(null);
+
+  // Fetch the IIT Bombay form belonging to the current user
+  useEffect(() => {
+    const fetchIITBombayForm = async () => {
+      if (!user || !isIITBombay) return;
+
+      try {
+        console.log('Fetching IIT Bombay forms for user:', user.id);
+        
+        const { data: forms, error } = await supabase
+          .from('public_submission_forms')
+          .select('form_slug')
+          .eq('user_id', user.id)
+          .eq('form_type', 'barc')
+          .eq('is_active', true)
+          .limit(1);
+
+        if (error) {
+          console.error('Error fetching IIT Bombay form:', error);
+          return;
+        }
+
+        if (forms && forms.length > 0) {
+          setIitBombayFormSlug(forms[0].form_slug);
+          console.log('Found IIT Bombay form slug:', forms[0].form_slug);
+        } else {
+          console.log('No IIT Bombay form found for user');
+        }
+      } catch (error) {
+        console.error('Error in fetchIITBombayForm:', error);
+      }
+    };
+
+    fetchIITBombayForm();
+  }, [user, isIITBombay]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard!");
   };
 
-  // IIT Bombay public form URL - you may need to update this with the actual form slug
-  const iitBombayFormUrl = `${window.location.origin}/barc-submit/iit-bombay-applications`;
+  // Generate the IIT Bombay form URL using the user's actual form slug
+  const iitBombayFormUrl = iitBombayFormSlug 
+    ? `${window.location.origin}/barc-submit/${iitBombayFormSlug}`
+    : null;
 
   if (authLoading || profileLoading) {
     return (
@@ -70,27 +109,40 @@ const Profile = () => {
             <p className="text-muted-foreground mb-4">
               Share this URL with applicants who want to submit their BARC applications to IIT Bombay.
             </p>
-            <div className="flex items-center space-x-2">
-              <Input
-                value={iitBombayFormUrl}
-                readOnly
-                className="font-mono text-sm"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => copyToClipboard(iitBombayFormUrl)}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(iitBombayFormUrl, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </div>
+            {iitBombayFormUrl ? (
+              <div className="flex items-center space-x-2">
+                <Input
+                  value={iitBombayFormUrl}
+                  readOnly
+                  className="font-mono text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(iitBombayFormUrl)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(iitBombayFormUrl, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="text-muted-foreground">
+                <p className="mb-2">No active BARC form found for your account.</p>
+                <p className="text-sm">
+                  Please create a BARC form in the{" "}
+                  <Button variant="link" className="p-0 h-auto" asChild>
+                    <a href="/public-forms">Public Forms</a>
+                  </Button>{" "}
+                  section first.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
