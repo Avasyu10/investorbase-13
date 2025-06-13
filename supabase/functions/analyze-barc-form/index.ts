@@ -97,28 +97,52 @@ serve(async (req) => {
       .update({ analysis_status: 'processing' })
       .eq('id', submissionId);
 
-    // Simple analysis using OpenAI
+    // Create analysis prompt
     const prompt = `Analyze this BARC application and provide a JSON response with scores and recommendation:
 
 Company: ${submission.company_name || 'Not provided'}
-Summary: ${submission.executive_summary || 'Not provided'}
-Problem: ${submission.question_1 || 'Not provided'}
-Customers: ${submission.question_2 || 'Not provided'}
-Advantage: ${submission.question_3 || 'Not provided'}
-Team: ${submission.question_4 || 'Not provided'}
-Plan: ${submission.question_5 || 'Not provided'}
+Registration Type: ${submission.company_registration_type || 'Not provided'}
+Industry: ${submission.industry || 'Not provided'}
+Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-Respond with valid JSON only:
+Application Questions:
+1. Problem & Timing: ${submission.question_1 || 'Not provided'}
+2. Target Customers: ${submission.question_2 || 'Not provided'}
+3. Competitive Advantage: ${submission.question_3 || 'Not provided'}
+4. Team Background: ${submission.question_4 || 'Not provided'}
+5. Milestones & Support: ${submission.question_5 || 'Not provided'}
+
+Contact: ${submission.submitter_email || 'Not provided'}
+
+Provide a comprehensive analysis in this JSON format:
 {
   "overall_score": 75,
   "recommendation": "Accept",
   "sections": {
-    "problem_solution_fit": {"score": 80, "analysis": "Good problem definition"},
-    "market_opportunity": {"score": 70, "analysis": "Strong market potential"},
-    "competitive_advantage": {"score": 75, "analysis": "Clear differentiation"},
-    "team_strength": {"score": 80, "analysis": "Experienced team"},
-    "execution_plan": {"score": 70, "analysis": "Realistic timeline"}
-  }
+    "problem_solution_fit": {
+      "score": 80,
+      "analysis": "Clear problem identification with good market timing"
+    },
+    "market_opportunity": {
+      "score": 70,
+      "analysis": "Strong market potential with clear target customers"
+    },
+    "competitive_advantage": {
+      "score": 75,
+      "analysis": "Differentiated approach with sustainable advantages"
+    },
+    "team_strength": {
+      "score": 80,
+      "analysis": "Experienced team with relevant background"
+    },
+    "execution_plan": {
+      "score": 70,
+      "analysis": "Realistic milestones with clear support needs"
+    }
+  },
+  "summary": "Brief overall assessment",
+  "strengths": ["Key strength 1", "Key strength 2"],
+  "concerns": ["Area for improvement 1", "Area for improvement 2"]
 }`;
 
     console.log('Calling OpenAI API');
@@ -132,15 +156,19 @@ Respond with valid JSON only:
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a startup evaluator. Respond with valid JSON only.' },
+          { 
+            role: 'system', 
+            content: 'You are an expert startup evaluator for IIT Bombay incubation program. Analyze applications thoroughly and provide detailed, constructive feedback. Respond with valid JSON only.' 
+          },
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
+        max_tokens: 2000,
       }),
     });
 
     if (!openaiResponse.ok) {
-      console.error('OpenAI API error:', openaiResponse.status);
+      console.error('OpenAI API error:', openaiResponse.status, await openaiResponse.text());
       throw new Error(`OpenAI API error: ${openaiResponse.status}`);
     }
 
@@ -161,12 +189,13 @@ Respond with valid JSON only:
       console.log('Analysis result parsed successfully');
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', parseError);
+      console.error('Raw content:', content);
       throw new Error('Invalid JSON from OpenAI');
     }
 
-    // Update with results
+    // Update submission with results
     console.log('Updating submission with results');
-    await supabase
+    const { error: updateError } = await supabase
       .from('barc_form_submissions')
       .update({
         analysis_status: 'completed',
@@ -174,6 +203,11 @@ Respond with valid JSON only:
         analyzed_at: new Date().toISOString()
       })
       .eq('id', submissionId);
+
+    if (updateError) {
+      console.error('Error updating submission:', updateError);
+      throw new Error(`Failed to update submission: ${updateError.message}`);
+    }
 
     console.log('Analysis completed successfully');
     return new Response(
@@ -187,6 +221,29 @@ Respond with valid JSON only:
 
   } catch (error) {
     console.error('Error in analysis function:', error);
+
+    // Try to update status to error if we have submissionId
+    const requestBody = await req.json().catch(() => ({}));
+    const submissionId = requestBody?.submissionId;
+    
+    if (submissionId) {
+      try {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
+        
+        await supabase
+          .from('barc_form_submissions')
+          .update({ 
+            analysis_status: 'error',
+            analysis_error: error instanceof Error ? error.message : 'Unknown error'
+          })
+          .eq('id', submissionId);
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError);
+      }
+    }
 
     return new Response(
       JSON.stringify({ 
