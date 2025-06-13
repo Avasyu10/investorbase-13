@@ -336,19 +336,28 @@ serve(async (req) => {
         "overall_feedback": "comprehensive feedback integrating response quality with market context",
         "key_factors": ["key decision factors with market validation"],
         "next_steps": ["specific recommendations with market-informed guidance"],
-        "assessment_points": ["EXACTLY 6-7 points, each containing multiple specific market numbers (market size, growth rates, CAC, competitive data, success rates) seamlessly integrated with response evaluation"]
+        "assessment_points": [
+          "EXACTLY 6-7 market-focused assessment points that combine insights across all sections",
+          "Each point must prioritize market data and numbers above all else",
+          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
+          "Weave in insights from the startup's responses to show market positioning",
+          "Focus on quantifiable market opportunities, risks, and benchmarks",
+          "Examples: 'Operating in the $47B EdTech market growing at 16.3% CAGR, but faces $89 average CAC challenges that affect 73% of similar startups, though their university partnership approach could reduce acquisition costs by 40% based on sector data'",
+          "Prioritize hard numbers and market intelligence over qualitative assessments"
+        ]
       }
     }
 
     CRITICAL REQUIREMENTS:
     1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
     2. Use the exact metrics provided for each question in your evaluation
-    3. Each assessment point must contain at least 4-5 specific market numbers/percentages
+    3. ASSESSMENT POINTS: Each of the 6-7 points must be heavily weighted toward market data, numbers, and quantifiable metrics
     4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. Return only valid JSON without markdown formatting
     8. FOR TEAM SECTION: Include LinkedIn founder insights in strengths when available
+    9. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors
     `;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -429,7 +438,7 @@ serve(async (req) => {
         .insert({
           name: submission.company_name,
           overall_score: analysisResult.overall_score,
-          assessment_points: [
+          assessment_points: analysisResult.summary?.assessment_points || [
             `Overall recommendation: ${analysisResult.recommendation}`,
             `Problem-solution fit score: ${analysisResult.sections?.problem_solution_fit?.score || 'N/A'}/100`,
             `Market opportunity score: ${analysisResult.sections?.market_opportunity?.score || 'N/A'}/100`,
