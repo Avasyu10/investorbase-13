@@ -47,6 +47,31 @@ export function CompanyInfoCard({
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
 
+  // Fetch company data to get the industry from the companies table
+  const { data: companyData } = useQuery({
+    queryKey: ['company-industry', id],
+    queryFn: async () => {
+      if (!id) return null;
+      
+      const { data, error } = await supabase
+        .from('companies')
+        .select('industry')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching company industry:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  // Use industry from companies table if available, otherwise fall back to prop
+  const displayIndustry = companyData?.industry || industry;
+
   // Check if LinkedIn scraping already exists for this company
   const { data: existingScrape } = useQuery({
     queryKey: ['company-linkedin-scrape', id],
@@ -155,7 +180,7 @@ export function CompanyInfoCard({
               <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Industry</p>
-                <p className="text-sm text-muted-foreground">{industry}</p>
+                <p className="text-sm text-muted-foreground">{displayIndustry}</p>
               </div>
             </div>
           </div>

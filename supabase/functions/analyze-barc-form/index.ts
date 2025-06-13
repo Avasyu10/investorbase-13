@@ -79,7 +79,8 @@ serve(async (req) => {
       form_slug: submission.form_slug,
       existing_company_id: submission.existing_company_id,
       analysis_status: submission.analysis_status,
-      user_id: submission.user_id
+      user_id: submission.user_id,
+      industry: submission.industry
     });
 
     // Check if already processing or completed using an atomic update
@@ -441,6 +442,7 @@ serve(async (req) => {
         .insert({
           name: submission.company_name,
           overall_score: analysisResult.overall_score,
+          industry: submission.industry || analysisResult.company_info?.industry || 'Not specified',
           assessment_points: analysisResult.summary?.assessment_points || [
             `Overall recommendation: ${analysisResult.recommendation}`,
             `Problem-solution fit score: ${analysisResult.sections?.problem_solution_fit?.score || 'N/A'}/100`,
