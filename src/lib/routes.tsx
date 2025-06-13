@@ -37,147 +37,76 @@ export const routes = [
   { path: "/barc-submit/:slug", element: <BarcSubmit /> },
   { 
     path: "/dashboard", 
-    element: (
-      <ProtectedRoute>
-        <Dashboard />
-      </ProtectedRoute>
-    )
+    element: <Dashboard />
   },
   { 
     path: "/upload", 
-    element: (
-      <ProtectedRoute>
-        <UploadReport />
-      </ProtectedRoute>
-    )
+    element: <UploadReport />
   },
   { 
     path: "/report/:id", 
-    element: (
-      <ProtectedRoute>
-        <Report />
-      </ProtectedRoute>
-    )
+    element: <Report />
   },
   { 
     path: "/company/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyPage />
-      </ProtectedRoute>
-    )
+    element: <CompanyPage />
   },
   { 
     path: "/company/:companyId/section/:sectionId", 
-    element: (
-      <ProtectedRoute>
-        <SectionPage />
-      </ProtectedRoute>
-    )
+    element: <SectionPage />
   },
   { 
     path: "/company-detail/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyDetailPage />
-      </ProtectedRoute>
-    )
+    element: <CompanyDetailPage />
   },
   { 
     path: "/company-overview/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyOverviewPage />
-      </ProtectedRoute>
-    )
+    element: <CompanyOverviewPage />
   },
   { 
     path: "/analysis-summary/:id", 
-    element: (
-      <ProtectedRoute>
-        <AnalysisSummary />
-      </ProtectedRoute>
-    )
+    element: <AnalysisSummary />
   },
   { 
     path: "/profile", 
-    element: (
-      <ProtectedRoute>
-        <Profile />
-      </ProtectedRoute>
-    )
+    element: <Profile />
   },
   { 
     path: "/profile/edit", 
-    element: (
-      <ProtectedRoute>
-        <ProfileEdit />
-      </ProtectedRoute>
-    )
+    element: <ProfileEdit />
   },
   { 
     path: "/profile/setup", 
-    element: (
-      <ProtectedRoute>
-        <ProfileSetup />
-      </ProtectedRoute>
-    )
+    element: <ProfileSetup />
   },
   { 
     path: "/feedback", 
-    element: (
-      <ProtectedRoute>
-        <Feedback />
-      </ProtectedRoute>
-    )
+    element: <Feedback />
   },
   { 
     path: "/admin", 
-    element: (
-      <ProtectedRoute>
-        <Admin />
-      </ProtectedRoute>
-    )
+    element: <Admin />
   },
   { 
     path: "/public-forms", 
-    element: (
-      <ProtectedRoute>
-        <PublicForms />
-      </ProtectedRoute>
-    )
+    element: <PublicForms />
   },
   { 
     path: "/barc-submissions", 
-    element: (
-      <ProtectedRoute>
-        <BarcSubmissions />
-      </ProtectedRoute>
-    )
+    element: <BarcSubmissions />
   },
   { 
     path: "/news-feed", 
-    element: (
-      <ProtectedRoute>
-        <NewsFeed />
-      </ProtectedRoute>
-    )
+    element: <NewsFeed />
   },
   { 
     path: "/email-test", 
-    element: (
-      <ProtectedRoute>
-        <EmailTest />
-      </ProtectedRoute>
-    )
+    element: <EmailTest />
   },
   { 
     path: "/supplementary-materials/:companyId", 
-    element: (
-      <ProtectedRoute>
-        <SupplementaryMaterials />
-      </ProtectedRoute>
-    )
+    element: <SupplementaryMaterials />
   },
   { path: "*", element: <NotFound /> }
 ];
+</lov-code>

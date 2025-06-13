@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ThemeProvider } from "@/components/ThemeProvider"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster"
@@ -16,6 +16,12 @@ import Feedback from '@/pages/Feedback';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const queryClient = new QueryClient();
+
+// Wrapper component to extract reportId from URL params
+const ReportViewerWrapper = () => {
+  const { id } = useParams<{ id: string }>();
+  return <ReportViewer reportId={id || ''} />;
+};
 
 function App() {
   return (
@@ -36,7 +42,7 @@ function App() {
                 <Route path="/company/:id" element={<CompanyDetails />} />
                 <Route path="/company/:id/overview" element={<CompanyOverviewPage />} />
                 <Route path="/company/:id/section/:sectionId" element={<CompanyOverviewPageOld />} />
-                <Route path="/reports/:id" element={<ReportViewer />} />
+                <Route path="/reports/:id" element={<ReportViewerWrapper />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/setup" element={<Profile />} />
                 <Route path="/feedback" element={<Feedback />} />
