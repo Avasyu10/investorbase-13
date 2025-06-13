@@ -1,19 +1,18 @@
 
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
   console.log(`Request method: ${req.method}`);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
     return new Response(null, { 
@@ -37,9 +36,9 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    console.log('Received request body:', requestBody);
-    
     submissionId = requestBody.submissionId;
+    
+    console.log('Received request body:', { submissionId });
     
     if (!submissionId) {
       throw new Error('Submission ID is required');
@@ -55,231 +54,106 @@ serve(async (req) => {
       hasOpenAIKey: !!openaiApiKey
     });
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase configuration is missing');
-    }
-
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!supabaseUrl || !supabaseServiceKey || !openaiApiKey) {
+      throw new Error('Required environment variables are missing');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the auth user from the request headers
-    const authHeader = req.headers.get('Authorization');
-    let currentUserId = null;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) {
-          currentUserId = user.id;
-          console.log('Found authenticated user:', currentUserId);
-        }
-      } catch (authErr) {
-        console.log('Could not get authenticated user:', authErr);
-      }
-    }
-
-    // Get submission and check if analysis is already completed
+    // Fetch submission data
     console.log('Fetching submission for analysis...');
-    const { data: existingSubmission, error: fetchError } = await supabase
+    const { data: submission, error: fetchError } = await supabase
       .from('barc_form_submissions')
       .select('*')
       .eq('id', submissionId)
       .single();
 
-    if (fetchError || !existingSubmission) {
+    if (fetchError || !submission) {
       console.error('Failed to fetch submission:', fetchError);
       throw new Error(`Failed to fetch submission: ${fetchError?.message || 'Submission not found'}`);
     }
 
     console.log('Retrieved submission for analysis:', {
-      id: existingSubmission.id,
-      company_name: existingSubmission.company_name,
-      submitter_email: existingSubmission.submitter_email,
-      form_slug: existingSubmission.form_slug,
-      existing_company_id: existingSubmission.company_id,
-      analysis_status: existingSubmission.analysis_status,
-      founder_linkedin_urls: existingSubmission.founder_linkedin_urls,
-      company_linkedin_url: existingSubmission.company_linkedin_url,
-      user_id: existingSubmission.user_id
+      id: submission.id,
+      company_name: submission.company_name,
+      submitter_email: submission.submitter_email,
+      form_slug: submission.form_slug,
+      existing_company_id: submission.existing_company_id,
+      analysis_status: submission.analysis_status,
+      user_id: submission.user_id
     });
 
-    // Check if analysis is already completed and company exists
-    if (existingSubmission.analysis_status === 'completed' && existingSubmission.company_id) {
-      console.log('Analysis already completed, returning existing result');
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          submissionId,
-          analysisResult: existingSubmission.analysis_result,
-          companyId: existingSubmission.company_id,
-          isNewCompany: false,
-          message: 'Analysis already completed'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Improved locking mechanism with better error responses
-    const lockTimestamp = new Date().toISOString();
-    
-    // Try to update status to processing with timestamp-based locking
+    // Check if already processing or completed using an atomic update
     console.log('Attempting to acquire lock for submission analysis...');
     const { data: lockResult, error: lockError } = await supabase
       .from('barc_form_submissions')
       .update({ 
         analysis_status: 'processing',
-        updated_at: lockTimestamp
+        updated_at: new Date().toISOString()
       })
       .eq('id', submissionId)
-      .in('analysis_status', ['pending', 'failed']) // Only allow from these states
+      .eq('analysis_status', 'pending')
       .select()
       .maybeSingle();
 
     if (lockError) {
       console.error('Error acquiring lock:', lockError);
-      throw new Error('Failed to start analysis - please try again');
+      throw new Error(`Failed to acquire processing lock: ${lockError.message}`);
     }
 
     if (!lockResult) {
       console.log('Could not acquire lock - submission is already being processed or completed');
-      
-      // Return a more specific response for concurrent processing
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'This submission is already being analyzed or has been completed. Please wait or refresh the page.',
-          submissionId,
-          status: 'concurrent_processing',
-          code: 'ALREADY_PROCESSING'
-        }),
-        {
-          status: 409, // Conflict status code
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      // Instead of throwing an error, let's check the current status and return accordingly
+      const { data: currentSubmission } = await supabase
+        .from('barc_form_submissions')
+        .select('analysis_status, company_id')
+        .eq('id', submissionId)
+        .single();
+
+      if (currentSubmission?.analysis_status === 'completed' && currentSubmission?.company_id) {
+        console.log('Submission already completed successfully');
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            submissionId,
+            companyId: currentSubmission.company_id,
+            isNewCompany: false,
+            message: 'Analysis already completed'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // If it's still processing, return success but indicate it's in progress
+      if (currentSubmission?.analysis_status === 'processing') {
+        console.log('Submission is currently being processed');
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            submissionId,
+            message: 'Analysis is currently in progress',
+            status: 'processing'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      throw new Error('Submission is already being analyzed or has been completed');
     }
 
     console.log('Successfully acquired lock for submission analysis');
 
     // Determine the effective user ID for company creation
-    // Priority: 1) User from submission (if IIT Bombay), 2) Form owner, 3) Current user
-    let effectiveUserId = existingSubmission.user_id; // This will be set for IIT Bombay users
-
-    // If no user_id in submission, try to get form owner
-    if (!effectiveUserId && existingSubmission.form_slug) {
-      const { data: formData, error: formError } = await supabase
-        .from('public_submission_forms')
-        .select('user_id')
-        .eq('form_slug', existingSubmission.form_slug)
-        .single();
-
-      if (!formError && formData) {
-        effectiveUserId = formData.user_id;
-        console.log('Using form owner as effective user:', effectiveUserId);
-      }
-    }
-
-    // Fallback to current user if still no effective user
-    if (!effectiveUserId) {
-      effectiveUserId = currentUserId;
-    }
-
+    const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
-    // Scrape LinkedIn profiles if provided - with improved error handling
-    let linkedInContent = '';
-    let hasLinkedInData = false;
-    let founderProfiles = [];
+    // Call OpenAI for analysis
+    console.log('Calling OpenAI API for enhanced metrics-based analysis...');
     
-    if (existingSubmission.founder_linkedin_urls && existingSubmission.founder_linkedin_urls.length > 0) {
-      console.log('Found LinkedIn URLs to scrape:', existingSubmission.founder_linkedin_urls);
-      
-      try {
-        // Call the scrape-linkedin function with better error handling - use reportId instead of companyId
-        const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-linkedin', {
-          body: { 
-            linkedInUrls: existingSubmission.founder_linkedin_urls,
-            reportId: submissionId // Use reportId for identification instead of companyId
-          }
-        });
-
-        if (scrapeError) {
-          console.error('LinkedIn scraping error (non-fatal):', scrapeError);
-          linkedInContent = '\n\nNote: LinkedIn profile scraping encountered issues, but continuing with analysis.\n';
-          linkedInContent += `Scraping error: ${scrapeError.message || 'Unknown error'}\n`;
-        } else if (scrapeResult?.success && scrapeResult?.profiles) {
-          console.log('LinkedIn profiles scraped successfully:', scrapeResult.profiles.length);
-          hasLinkedInData = true;
-          founderProfiles = scrapeResult.profiles;
-          
-          linkedInContent = '\n\nFOUNDER LINKEDIN PROFILES ANALYSIS:\n\n';
-          scrapeResult.profiles.forEach((profile: any, index: number) => {
-            linkedInContent += `=== FOUNDER ${index + 1} PROFILE ===\n`;
-            linkedInContent += `LinkedIn URL: ${profile.url}\n\n`;
-            linkedInContent += `Professional Background:\n${profile.content}\n\n`;
-            linkedInContent += "--- End of Profile ---\n\n";
-          });
-          
-          linkedInContent += "\nThis LinkedIn profile data should be analyzed for:\n";
-          linkedInContent += "- Relevant industry experience\n";
-          linkedInContent += "- Leadership roles and achievements\n";
-          linkedInContent += "- Educational background\n";
-          linkedInContent += "- Skills relevant to the business\n";
-          linkedInContent += "- Network and connections quality\n";
-          linkedInContent += "- Previous startup or entrepreneurial experience\n\n";
-        } else {
-          console.log('LinkedIn scraping returned no profiles');
-          linkedInContent = '\n\nNote: LinkedIn profile data was not available for analysis.\n';
-        }
-      } catch (scrapeError) {
-        console.error('LinkedIn scraping failed (non-fatal):', scrapeError);
-        linkedInContent = '\n\nNote: LinkedIn profile scraping failed, but continuing with analysis.\n';
-        linkedInContent += `Error details: ${scrapeError.message || 'Unknown error'}\n`;
-      }
-    }
-
-    // Create team section instructions based on LinkedIn data availability
-    const teamSectionInstructions = hasLinkedInData ? `
-    4. TEAM STRENGTH: "${existingSubmission.question_4 || 'Not provided'}"
-    ${linkedInContent}
-    
-    SPECIAL INSTRUCTIONS FOR TEAM SECTION WHEN LINKEDIN DATA IS AVAILABLE:
-    - In the STRENGTHS section, format founder information as: "Founder/Co-founder [Name]: [2-3 most important points about their background, experience, and relevance to the business]"
-    - Extract founder names from the LinkedIn profiles and highlight their most relevant experience
-    - Include additional market-validated strengths beyond founder profiles
-    - Focus on domain expertise, track record, and complementary skills
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
-    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
-    - Execution History (30-35 points): Track record of building, selling, or scaling?
-    
-    IMPORTANT: Use the LinkedIn profile data above to assess team strength more accurately. Consider the professional backgrounds, experience, education, and achievements shown in the LinkedIn profiles when evaluating founder-problem fit and execution history.
-    
-    Score harshly if: No domain experience, skill gaps, no execution track record
-    Score highly if: Deep domain expertise, complementary skills, proven execution` : `
-    4. TEAM STRENGTH: "${existingSubmission.question_4 || 'Not provided'}"
-    
-    SPECIAL INSTRUCTIONS FOR TEAM SECTION WHEN NO LINKEDIN DATA IS AVAILABLE:
-    - Focus on analyzing the written response about team background
-    - Include market data and industry benchmarks related to team composition
-    - Evaluate based on the information provided in the application response
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
-    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
-    - Execution History (30-35 points): Track record of building, selling, or scaling?
-    
-    Score harshly if: No domain experience, skill gaps, no execution track record
-    Score highly if: Deep domain expertise, complementary skills, proven execution`;
-
-    // Enhanced analysis prompt with specific metrics-based scoring and market-focused weaknesses
     const analysisPrompt = `
     You are an expert startup evaluator for IIT Bombay's incubation program. Your task is to provide a comprehensive and HIGHLY DISCRIMINATIVE analysis that clearly distinguishes between excellent and poor responses. Use the specific metrics provided for each question to score accurately.
 
@@ -426,54 +300,32 @@ serve(async (req) => {
     8. Return only valid JSON without markdown formatting
     `;
 
-    // Call OpenAI API with better error handling
-    console.log('Calling OpenAI API for enhanced metrics-based analysis with LinkedIn data...');
-    let openaiResponse;
-    try {
-      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-2024-11-20',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or what should have been included in the form. ${hasLinkedInData ? 'When LinkedIn profile data is provided, incorporate those insights into the team strength analysis and format founder information in strengths as: "Founder/Co-founder [Name]: [key points]"' : 'When no LinkedIn data is available, analyze team strength based on written response and market data.'} Return only valid JSON without markdown formatting.`
-            },
-            {
-              role: 'user',
-              content: analysisPrompt
-            }
-          ],
-          temperature: 0.2,
-          max_tokens: 4500,
-        }),
-      });
-    } catch (fetchError) {
-      console.error('Failed to call OpenAI API:', fetchError);
-      
-      // Reset status on error
-      await supabase
-        .from('barc_form_submissions')
-        .update({ analysis_status: 'failed', analysis_error: `OpenAI API error: ${fetchError.message}` })
-        .eq('id', submissionId);
-      
-      throw new Error(`Failed to connect to OpenAI API: ${fetchError.message}`);
-    }
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, constructive analysis in valid JSON format with specific market metrics and data points. IMPORTANT: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.'
+          },
+          {
+            role: 'user',
+            content: analysisPrompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 4000,
+      }),
+    });
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
       console.error('OpenAI API error:', errorText);
-      
-      // Reset status on error
-      await supabase
-        .from('barc_form_submissions')
-        .update({ analysis_status: 'failed', analysis_error: `OpenAI API error: ${openaiResponse.status}` })
-        .eq('id', submissionId);
-      
       throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
     }
 
@@ -481,305 +333,105 @@ serve(async (req) => {
     console.log('OpenAI response received, parsing...');
 
     if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
-      await supabase
-        .from('barc_form_submissions')
-        .update({ analysis_status: 'failed', analysis_error: 'Invalid OpenAI response structure' })
-        .eq('id', submissionId);
-      
       throw new Error('Invalid response structure from OpenAI');
     }
 
     let analysisText = openaiData.choices[0].message.content;
     console.log('Raw analysis text received from OpenAI');
 
-    // Clean up the response if it's wrapped in markdown code blocks
+    // Clean up the response text to extract JSON from markdown code blocks if present
+    analysisText = analysisText.trim();
+    
+    // Remove markdown code blocks if present
     if (analysisText.startsWith('```json')) {
-      console.log('Removing markdown code block formatting...');
       analysisText = analysisText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
     } else if (analysisText.startsWith('```')) {
-      console.log('Removing generic code block formatting...');
       analysisText = analysisText.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
+    
+    // Trim any remaining whitespace
+    analysisText = analysisText.trim();
 
-    // Parse the JSON response
     let analysisResult;
     try {
       analysisResult = JSON.parse(analysisText);
       console.log('Successfully parsed analysis result');
-      console.log('Analysis overall score:', analysisResult.overall_score);
-      console.log('Analysis recommendation:', analysisResult.recommendation);
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
-      console.error('Cleaned response:', analysisText);
-      
-      await supabase
-        .from('barc_form_submissions')
-        .update({ analysis_status: 'failed', analysis_error: 'Analysis response was not valid JSON' })
-        .eq('id', submissionId);
-      
+      console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
       throw new Error('Analysis response was not valid JSON');
     }
 
-    // Ensure the overall score is within the 1-100 range
-    if (analysisResult.overall_score > 100) {
-      console.log('Normalizing score from', analysisResult.overall_score, 'to 100-point scale');
-      analysisResult.overall_score = Math.min(analysisResult.overall_score, 100);
-    }
+    console.log('Analysis overall score:', analysisResult.overall_score);
+    console.log('Analysis recommendation:', analysisResult.recommendation);
 
-    // COMPANY CREATION/UPDATE LOGIC - PREVENT DUPLICATES
-    let companyId = existingSubmission.company_id; // Use the company ID we found earlier
+    // Create or update company
+    let companyId = submission.existing_company_id;
     let isNewCompany = false;
 
-    if (effectiveUserId) {
-      if (companyId) {
-        // UPDATE EXISTING COMPANY
-        console.log('Updating existing company with ID:', companyId);
-        
-        const companyInfo = analysisResult.company_info || {};
-        
-        const { error: companyUpdateError } = await supabase
-          .from('companies')
-          .update({
-            name: existingSubmission.company_name,
-            overall_score: Number(analysisResult.overall_score) || 0,
-            assessment_points: analysisResult.summary?.assessment_points || [],
-            source: 'barc_form'
-          })
-          .eq('id', companyId);
-
-        if (companyUpdateError) {
-          console.error('Failed to update company:', companyUpdateError);
-        } else {
-          console.log('Successfully updated existing company:', companyId);
-        }
-
-        // Update company details
-        const { error: detailsUpdateError } = await supabase
-          .from('company_details')
-          .upsert({
-            company_id: companyId,
-            industry: companyInfo.industry || null,
-            stage: companyInfo.stage || null,
-            introduction: companyInfo.introduction || null,
-            status: 'New'
-          });
-
-        if (detailsUpdateError) {
-          console.error('Failed to update company details:', detailsUpdateError);
-        }
-
-      } else {
-        // CREATE NEW COMPANY ONLY IF NONE EXISTS
-        console.log('Creating NEW company for analyzed submission...');
-        isNewCompany = true;
-        
-        const companyInfo = analysisResult.company_info || {};
-        
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .insert({
-            name: existingSubmission.company_name,
-            overall_score: Number(analysisResult.overall_score) || 0,
-            user_id: effectiveUserId,
-            source: 'barc_form',
-            assessment_points: analysisResult.summary?.assessment_points || []
-          })
-          .select()
-          .single();
-
-        if (companyError || !company) {
-          console.error('Failed to create company:', companyError);
-          // Don't throw here - we can still return the analysis even if company creation fails
-          console.log('Continuing without company creation...');
-        } else {
-          companyId = company.id;
-          console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
-
-          // Create company details
-          if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
-            const { error: detailsError } = await supabase
-              .from('company_details')
-              .insert({
-                company_id: companyId,
-                industry: companyInfo.industry || null,
-                stage: companyInfo.stage || null,
-                introduction: companyInfo.introduction || null,
-                status: 'New'
-              });
-
-            if (detailsError) {
-              console.error('Failed to create company details:', detailsError);
-            } else {
-              console.log('Created company details');
-            }
-          }
-        }
-      }
-
-      // DELETE OLD SECTIONS AND CREATE NEW ONES (for both new and existing companies)
-      if (companyId) {
-        try {
-          console.log('Deleting old sections for company:', companyId);
-          
-          // First get section IDs to delete their details
-          const { data: sectionsToDelete } = await supabase
-            .from('sections')
-            .select('id')
-            .eq('company_id', companyId);
-
-          if (sectionsToDelete && sectionsToDelete.length > 0) {
-            const sectionIds = sectionsToDelete.map(s => s.id);
-            
-            // Delete section details first
-            const { error: deleteSectionDetailsError } = await supabase
-              .from('section_details')
-              .delete()
-              .in('section_id', sectionIds);
-
-            if (deleteSectionDetailsError) {
-              console.error('Failed to delete old section details:', deleteSectionDetailsError);
-            }
-          }
-
-          // Then delete sections
-          const { error: deleteSectionsError } = await supabase
-            .from('sections')
-            .delete()
-            .eq('company_id', companyId);
-
-          if (deleteSectionsError) {
-            console.error('Failed to delete old sections:', deleteSectionsError);
-          } else {
-            console.log('Deleted old sections');
-          }
-
-          // Create new sections based on latest analysis
-          const sectionsToCreate = [
-            {
-              company_id: companyId,
-              title: 'Problem-Solution Fit',
-              type: 'problem_solution_fit',
-              score: Number(analysisResult.sections?.problem_solution_fit?.score) || 0,
-              description: analysisResult.sections?.problem_solution_fit?.analysis || ''
-            },
-            {
-              company_id: companyId,
-              title: 'Market Opportunity',
-              type: 'market_opportunity', 
-              score: Number(analysisResult.sections?.market_opportunity?.score) || 0,
-              description: analysisResult.sections?.market_opportunity?.analysis || ''
-            },
-            {
-              company_id: companyId,
-              title: 'Competitive Advantage',
-              type: 'competitive_advantage',
-              score: Number(analysisResult.sections?.competitive_advantage?.score) || 0,
-              description: analysisResult.sections?.competitive_advantage?.analysis || ''
-            },
-            {
-              company_id: companyId,
-              title: 'Team Strength',
-              type: 'team_strength',
-              score: Number(analysisResult.sections?.team_strength?.score) || 0,
-              description: analysisResult.sections?.team_strength?.analysis || ''
-            },
-            {
-              company_id: companyId,
-              title: 'Execution Plan',
-              type: 'execution_plan',
-              score: Number(analysisResult.sections?.execution_plan?.score) || 0,
-              description: analysisResult.sections?.execution_plan?.analysis || ''
-            }
-          ];
-
-          const { data: sections, error: sectionsError } = await supabase
-            .from('sections')
-            .insert(sectionsToCreate)
-            .select();
-
-          if (sectionsError) {
-            console.error('Failed to create sections:', sectionsError);
-          } else {
-            console.log('Created sections:', sections?.length || 0);
-
-            // Create section details for strengths and improvements
-            for (const section of sections || []) {
-              const sectionType = section.type;
-              const sectionData = analysisResult.sections?.[sectionType];
-              
-              if (sectionData) {
-                const detailsToCreate = [];
-                
-                // Add strengths
-                if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
-                  for (const strength of sectionData.strengths) {
-                    detailsToCreate.push({
-                      section_id: section.id,
-                      detail_type: 'strength',
-                      content: strength
-                    });
-                  }
-                }
-                
-                // Add improvements (now actually weaknesses)
-                if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
-                  for (const improvement of sectionData.improvements) {
-                    detailsToCreate.push({
-                      section_id: section.id,
-                      detail_type: 'weakness',
-                      content: improvement
-                    });
-                  }
-                }
-
-                if (detailsToCreate.length > 0) {
-                  const { error: detailsError } = await supabase
-                    .from('section_details')
-                    .insert(detailsToCreate);
-
-                  if (detailsError) {
-                    console.error(`Failed to create details for section ${section.type}:`, detailsError);
-                  }
-                }
-              }
-            }
-          }
-        } catch (sectionError) {
-          console.error('Error handling sections (non-fatal):', sectionError);
-        }
-      }
-    } else {
-      console.log('Not creating/updating company - no effective user ID');
-    }
-
-    // NOW SCRAPE COMPANY LINKEDIN IF PROVIDED AND WE HAVE A COMPANY ID
-    if (existingSubmission.company_linkedin_url && companyId) {
-      console.log('Scraping Company LinkedIn URL after company creation:', existingSubmission.company_linkedin_url);
+    if (!companyId) {
+      console.log('Creating NEW company for analyzed submission...');
+      isNewCompany = true;
       
-      try {
-        // Call the scrape-linkedin function for company LinkedIn with actual companyId
-        const { data: companyScrapeResult, error: companyScrapeError } = await supabase.functions.invoke('scrape-linkedin', {
-          body: { 
-            linkedInUrls: [existingSubmission.company_linkedin_url],
-            companyId: companyId // Now we have the actual company ID
-          }
-        });
+      const { data: newCompany, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: submission.company_name,
+          overall_score: analysisResult.overall_score,
+          assessment_points: analysisResult.assessment_points || [],
+          user_id: effectiveUserId,
+          source: 'barc_form'
+        })
+        .select()
+        .single();
 
-        if (companyScrapeError) {
-          console.error('Company LinkedIn scraping error (non-fatal):', companyScrapeError);
-        } else if (companyScrapeResult?.success && companyScrapeResult?.profiles && companyScrapeResult.profiles.length > 0) {
-          console.log('Company LinkedIn profile scraped and stored successfully');
-        } else {
-          console.log('Company LinkedIn scraping returned no profiles');
-        }
-      } catch (companyScrapeError) {
-        console.error('Company LinkedIn scraping failed (non-fatal):', companyScrapeError);
+      if (companyError) {
+        console.error('Error creating company:', companyError);
+        throw new Error(`Failed to create company: ${companyError.message}`);
       }
+
+      companyId = newCompany.id;
+      console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
     }
 
-    // FINAL: Update the submission with analysis results and company_id
+    // Create sections
+    console.log('Deleting old sections for company:', companyId);
+    const { error: deleteError } = await supabase
+      .from('sections')
+      .delete()
+      .eq('company_id', companyId);
+
+    if (deleteError) {
+      console.error('Error deleting old sections:', deleteError);
+    } else {
+      console.log('Deleted old sections');
+    }
+
+    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => ({
+      company_id: companyId,
+      score: sectionData.score || 0,
+      section_type: sectionName,
+      type: 'analysis',
+      title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: sectionData.analysis || ''
+    }));
+
+    if (sectionsToCreate.length > 0) {
+      const { error: sectionsError } = await supabase
+        .from('sections')
+        .insert(sectionsToCreate);
+
+      if (sectionsError) {
+        console.error('Error creating sections:', sectionsError);
+        throw new Error(`Failed to create sections: ${sectionsError.message}`);
+      }
+
+      console.log('Created sections:', sectionsToCreate.length);
+    }
+
+    // Update submission with final results
     console.log('Updating submission with final analysis results...');
-    const { error: finalUpdateError } = await supabase
+    const { error: updateError } = await supabase
       .from('barc_form_submissions')
       .update({
         analysis_status: 'completed',
@@ -789,25 +441,20 @@ serve(async (req) => {
       })
       .eq('id', submissionId);
 
-    if (finalUpdateError) {
-      console.error('Failed to update submission with final results:', finalUpdateError);
-      // Don't throw here - the analysis was successful, just the status update failed
+    if (updateError) {
+      console.error('Failed to update submission:', updateError);
+      throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    const successMessage = isNewCompany ? 
-      `Successfully analyzed BARC submission ${submissionId} and created company ${companyId}` :
-      `Successfully analyzed BARC submission ${submissionId} and updated company ${companyId}`;
-    
-    console.log(successMessage);
+    console.log('Successfully analyzed BARC submission', submissionId, 'and created company', companyId);
 
-    // Always return success even if some parts failed
     return new Response(
       JSON.stringify({ 
         success: true,
         submissionId,
-        analysisResult,
         companyId,
-        isNewCompany
+        isNewCompany,
+        analysisResult
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -817,33 +464,38 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-barc-form function:', error);
 
-    // Determine appropriate status code
-    let statusCode = 500;
-    let errorCode = 'INTERNAL_ERROR';
-    
-    if (error instanceof Error) {
-      if (error.message.includes('Submission ID is required')) {
-        statusCode = 400;
-        errorCode = 'MISSING_SUBMISSION_ID';
-      } else if (error.message.includes('Failed to fetch submission')) {
-        statusCode = 404;
-        errorCode = 'SUBMISSION_NOT_FOUND';
-      } else if (error.message.includes('OpenAI API key not configured')) {
-        statusCode = 503;
-        errorCode = 'SERVICE_UNAVAILABLE';
+    // Update submission with error status if we have submissionId
+    if (submissionId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (supabaseUrl && supabaseServiceKey) {
+          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          
+          await supabase
+            .from('barc_form_submissions')
+            .update({
+              analysis_status: 'failed',
+              analysis_error: error instanceof Error ? error.message : 'Unknown error'
+            })
+            .eq('id', submissionId);
+          
+          console.log('Updated submission status to failed');
+        }
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError);
       }
     }
 
-    // Always return a proper HTTP response with CORS headers
     return new Response(
       JSON.stringify({ 
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        submissionId,
-        code: errorCode
+        submissionId
       }),
       {
-        status: statusCode,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
