@@ -79,8 +79,6 @@ serve(async (req) => {
       form_slug: submission.form_slug,
       existing_company_id: submission.existing_company_id,
       analysis_status: submission.analysis_status,
-      founder_linkedin_urls: submission.founder_linkedin_urls || [],
-      company_linkedin_url: submission.company_linkedin_url,
       user_id: submission.user_id
     });
 
@@ -296,21 +294,6 @@ serve(async (req) => {
       console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
     }
 
-    // Create company details
-    const { error: detailsError } = await supabase
-      .from('company_details')
-      .upsert({
-        company_id: companyId,
-        ...analysisResult
-      });
-
-    if (detailsError) {
-      console.error('Error creating company details:', detailsError);
-      throw new Error(`Failed to create company details: ${detailsError.message}`);
-    }
-
-    console.log('Created company details');
-
     // Create sections
     console.log('Deleting old sections for company:', companyId);
     const { error: deleteError } = await supabase
@@ -331,7 +314,10 @@ serve(async (req) => {
       analysis: sectionData.analysis || '',
       strengths: sectionData.strengths || [],
       improvements: sectionData.improvements || [],
-      section_type: sectionName
+      section_type: sectionName,
+      type: 'analysis', // Required field for sections table
+      title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: sectionData.analysis || ''
     }));
 
     if (sectionsToCreate.length > 0) {
