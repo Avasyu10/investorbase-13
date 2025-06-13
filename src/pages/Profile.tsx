@@ -60,6 +60,11 @@ const Profile = () => {
     toast.success("Copied to clipboard!");
   };
 
+  const handleFormCreated = (formSlug: string) => {
+    setIitBombayFormSlug(formSlug);
+    toast.success("Your new IIT Bombay BARC form has been created!");
+  };
+
   // Generate the IIT Bombay form URL using the user's actual form slug
   const iitBombayFormUrl = iitBombayFormSlug 
     ? `${window.location.origin}/barc-submit/${iitBombayFormSlug}`
@@ -111,37 +116,38 @@ const Profile = () => {
               Share this URL with applicants who want to submit their BARC applications to IIT Bombay.
             </p>
             {iitBombayFormUrl ? (
-              <div className="flex items-center space-x-2">
-                <Input
-                  value={iitBombayFormUrl}
-                  readOnly
-                  className="font-mono text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(iitBombayFormUrl)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(iitBombayFormUrl, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Input
+                    value={iitBombayFormUrl}
+                    readOnly
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(iitBombayFormUrl)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(iitBombayFormUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="text-muted-foreground">
-                <p className="mb-2">No active BARC form found for your account.</p>
-                <p className="text-sm">
-                  Please create a BARC form in the{" "}
-                  <Button variant="link" className="p-0 h-auto" asChild>
-                    <a href="/public-forms">Public Forms</a>
-                  </Button>{" "}
-                  section first.
-                </p>
+              <div className="space-y-4">
+                <div className="text-muted-foreground mb-4">
+                  <p className="mb-2">No BARC form found for your account.</p>
+                  <p className="text-sm">
+                    Create your dedicated IIT Bombay BARC form below to get started.
+                  </p>
+                </div>
+                <CreateBarcFormButton onFormCreated={handleFormCreated} />
               </div>
             )}
           </CardContent>
