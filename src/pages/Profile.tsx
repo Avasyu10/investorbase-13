@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -272,6 +271,24 @@ const Profile = () => {
           <TabsContent value="profile">
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-6">
+                {/* Edit Profile Button - prominently displayed at the top */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">Profile Management</h3>
+                        <p className="text-muted-foreground text-sm">
+                          Update your investor profile information and preferences
+                        </p>
+                      </div>
+                      <Button onClick={() => window.location.href = '/profile/edit'}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {vcProfile ? (
                   <>
                     {/* Fund Details */}
@@ -280,10 +297,6 @@ const Profile = () => {
                         <CardTitle className="flex items-center gap-2">
                           <Building className="h-5 w-5" />
                           Fund Details
-                          <Button variant="outline" size="sm" className="ml-auto" onClick={() => window.location.href = '/profile/edit'}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
