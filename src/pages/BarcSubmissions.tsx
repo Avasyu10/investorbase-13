@@ -117,18 +117,6 @@ const BarcSubmissions = () => {
     );
   }
 
-  // Check if user is IIT Bombay user
-  if (user) {
-    const { data: profile } = supabase
-      .from('profiles')
-      .select('is_iitbombay')
-      .eq('id', user.id)
-      .single();
-    
-    // Note: This is a simplified check - in practice you'd want to handle this properly with useQuery
-    // But for now, we'll rely on the RLS policies to filter the data
-  }
-
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
