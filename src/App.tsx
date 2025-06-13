@@ -10,12 +10,12 @@ import Dashboard from '@/pages/Dashboard';
 import CompanyDetails from '@/components/companies/CompanyDetails';
 import CompanyOverviewPage from '@/pages/CompanyOverviewDetailPage';
 import CompanyOverviewPageOld from '@/pages/CompanyOverviewPage';
-import { ReportViewer } from '@/components/reports/ReportViewer';
 import Profile from '@/pages/Profile';
 import Feedback from '@/pages/Feedback';
 import BarcSubmissions from '@/pages/BarcSubmissions';
 import SupplementaryMaterials from '@/pages/SupplementaryMaterials';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import ReportViewerPage from '@/components/reports/ReportViewerPage';
 
 const queryClient = new QueryClient();
 
@@ -39,7 +39,7 @@ function App() {
                 <Route path="/company/:id/overview" element={<CompanyOverviewPage />} />
                 <Route path="/company/:id/section/:sectionId" element={<CompanyOverviewPageOld />} />
                 <Route path="/company/:id/supplementary" element={<SupplementaryMaterials />} />
-                <Route path="/reports/:id" element={<ReportViewer />} />
+                <Route path="/reports/:id" element={<ReportViewerPage />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/setup" element={<Profile />} />
                 <Route path="/feedback" element={<Feedback />} />
