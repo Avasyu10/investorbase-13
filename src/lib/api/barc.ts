@@ -6,7 +6,7 @@ export interface BarcSubmissionData {
   company_name: string;
   company_registration_type: string;
   executive_summary: string;
-  company_type: string;
+  industry: string;
   company_linkedin_url?: string;
   question_1: string;
   question_2: string;
@@ -31,7 +31,7 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       company_name: data.company_name,
       company_registration_type: data.company_registration_type,
       executive_summary: data.executive_summary,
-      company_type: data.company_type,
+      industry: data.industry,
       company_linkedin_url: data.company_linkedin_url || null,
       question_1: data.question_1,
       question_2: data.question_2,

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -17,7 +18,7 @@ interface BarcFormData {
   companyName: string;
   companyRegistrationType: string;
   executiveSummary: string;
-  companyType: string;
+  industry: string;
   companyLinkedInUrl: string;
   question1: string;
   question2: string;
@@ -38,7 +39,7 @@ const BarcSubmit = () => {
       companyName: "",
       companyRegistrationType: "",
       executiveSummary: "",
-      companyType: "",
+      industry: "",
       companyLinkedInUrl: "",
       question1: "",
       question2: "",
@@ -99,7 +100,7 @@ const BarcSubmit = () => {
         company_name: formData.companyName,
         company_registration_type: formData.companyRegistrationType,
         executive_summary: formData.executiveSummary,
-        company_type: formData.companyType,
+        industry: formData.industry,
         company_linkedin_url: formData.companyLinkedInUrl,
         question_1: formData.question1,
         question_2: formData.question2,
@@ -298,23 +299,21 @@ const BarcSubmit = () => {
 
                   <FormField
                     control={form.control}
-                    name="companyType"
-                    rules={{ required: "Company type is required" }}
+                    name="industry"
+                    rules={{ required: "Industry is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Type *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select company type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="product-based">Product Based</SelectItem>
-                            <SelectItem value="service-based">Service Based</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Industry *</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., FinTech, HealthTech, EdTech, E-commerce, AI/ML, etc."
+                            {...field}
+                          />
+                        </FormControl>
                         <FormMessage />
+                        <p className="text-sm text-muted-foreground">
+                          Please specify the industry your company operates in
+                        </p>
                       </FormItem>
                     )}
                   />

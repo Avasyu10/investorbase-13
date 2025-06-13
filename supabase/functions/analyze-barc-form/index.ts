@@ -199,7 +199,7 @@ serve(async (req) => {
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
-    - Company Type: ${submission.company_type || 'Not provided'}
+    - Industry: ${submission.industry || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
     Application Responses and Specific Metrics for Evaluation:
