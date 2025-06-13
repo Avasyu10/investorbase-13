@@ -211,7 +211,7 @@ const BarcSubmit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-black py-8 px-4">
       <div className="container mx-auto max-w-3xl">
         <Card>
           <CardHeader className="text-center border-b">
