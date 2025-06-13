@@ -309,13 +309,9 @@ serve(async (req) => {
 
     const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => ({
       company_id: companyId,
-      name: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       score: sectionData.score || 0,
-      analysis: sectionData.analysis || '',
-      strengths: sectionData.strengths || [],
-      improvements: sectionData.improvements || [],
       section_type: sectionName,
-      type: 'analysis', // Required field for sections table
+      type: 'analysis',
       title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       description: sectionData.analysis || ''
     }));
