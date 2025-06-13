@@ -18,6 +18,12 @@ export function IITBombayCompaniesList() {
     navigate(`/company/${companyId}`);
   };
 
+  // Calculate rating-based stats
+  const totalProspects = companies.length;
+  const highPotential = companies.filter(c => c.overallScore > 70).length;
+  const mediumPotential = companies.filter(c => c.overallScore >= 50 && c.overallScore <= 70).length;
+  const badPotential = companies.filter(c => c.overallScore < 50).length;
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -93,26 +99,20 @@ export function IITBombayCompaniesList() {
       {/* Enhanced stats section for IIT Bombay users */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-primary">{companies.length}</div>
+          <div className="text-2xl font-bold text-primary">{totalProspects}</div>
           <div className="text-sm text-muted-foreground">Total Prospects</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-green-600">
-            {companies.filter(c => c.overallScore >= 8).length}
-          </div>
-          <div className="text-sm text-muted-foreground">High Potential</div>
+          <div className="text-2xl font-bold text-green-600">{highPotential}</div>
+          <div className="text-sm text-muted-foreground">High Potential (>70)</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-yellow-600">
-            {companies.filter(c => c.overallScore >= 6 && c.overallScore < 8).length}
-          </div>
-          <div className="text-sm text-muted-foreground">Medium Potential</div>
+          <div className="text-2xl font-bold text-yellow-600">{mediumPotential}</div>
+          <div className="text-sm text-muted-foreground">Medium Potential (50-70)</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-blue-600">
-            {companies.filter(c => c.source === 'barc_form').length}
-          </div>
-          <div className="text-sm text-muted-foreground">BARC Applications</div>
+          <div className="text-2xl font-bold text-red-600">{badPotential}</div>
+          <div className="text-sm text-muted-foreground">Bad Potential (<50)</div>
         </div>
       </div>
 
