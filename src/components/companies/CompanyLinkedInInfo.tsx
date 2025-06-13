@@ -13,7 +13,7 @@ interface CompanyLinkedInInfoProps {
 
 interface ScrapedData {
   content?: string;
-  profileData?: any;
+  [key: string]: any;
 }
 
 export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInInfoProps) => {
@@ -83,7 +83,7 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
     return null; // Don't show the component if there's no LinkedIn data
   }
 
-  // Safely parse the scraped_data JSON
+  // Safely parse the scraped_data JSON with proper type checking
   const scrapedData = linkedinData.scraped_data;
   let content = 'No content available';
   
@@ -91,11 +91,15 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
     // The scraped data from scraped_company_details contains company information
     if (typeof scrapedData === 'string') {
       content = scrapedData;
-    } else if (scrapedData.content) {
-      content = scrapedData.content;
-    } else {
-      // Format the company data for display
-      content = JSON.stringify(scrapedData, null, 2);
+    } else if (typeof scrapedData === 'object' && scrapedData !== null) {
+      // Type-safe check for content property
+      const typedData = scrapedData as ScrapedData;
+      if (typedData.content) {
+        content = typedData.content;
+      } else {
+        // Format the company data for display
+        content = JSON.stringify(scrapedData, null, 2);
+      }
     }
   }
 
