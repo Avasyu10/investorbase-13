@@ -101,7 +101,8 @@ serve(async (req) => {
       submitter_email: existingSubmission.submitter_email,
       form_slug: existingSubmission.form_slug,
       existing_company_id: existingSubmission.company_id,
-      analysis_status: existingSubmission.analysis_status
+      analysis_status: existingSubmission.analysis_status,
+      founder_linkedin_urls: existingSubmission.founder_linkedin_urls
     });
 
     // Check if analysis is already completed and company exists
@@ -222,6 +223,48 @@ serve(async (req) => {
 
     console.log('Successfully updated submission status to processing');
 
+    // Scrape LinkedIn profiles if provided
+    let linkedInContent = '';
+    if (existingSubmission.founder_linkedin_urls && existingSubmission.founder_linkedin_urls.length > 0) {
+      console.log('Found LinkedIn URLs to scrape:', existingSubmission.founder_linkedin_urls);
+      
+      try {
+        // Call the scrape-linkedin function
+        const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-linkedin', {
+          body: { 
+            linkedInUrls: existingSubmission.founder_linkedin_urls,
+            reportId: submissionId 
+          }
+        });
+
+        if (scrapeError) {
+          console.error('LinkedIn scraping error:', scrapeError);
+          linkedInContent = '\n\nNote: LinkedIn profile scraping encountered issues, but continuing with analysis.\n';
+        } else if (scrapeResult?.success && scrapeResult?.profiles) {
+          console.log('LinkedIn profiles scraped successfully:', scrapeResult.profiles.length);
+          
+          linkedInContent = '\n\nFOUNDER LINKEDIN PROFILES ANALYSIS:\n\n';
+          scrapeResult.profiles.forEach((profile: any, index: number) => {
+            linkedInContent += `=== FOUNDER ${index + 1} PROFILE ===\n`;
+            linkedInContent += `LinkedIn URL: ${profile.url}\n\n`;
+            linkedInContent += `Professional Background:\n${profile.content}\n\n`;
+            linkedInContent += "--- End of Profile ---\n\n";
+          });
+          
+          linkedInContent += "\nThis LinkedIn profile data should be analyzed for:\n";
+          linkedInContent += "- Relevant industry experience\n";
+          linkedInContent += "- Leadership roles and achievements\n";
+          linkedInContent += "- Educational background\n";
+          linkedInContent += "- Skills relevant to the business\n";
+          linkedInContent += "- Network and connections quality\n";
+          linkedInContent += "- Previous startup or entrepreneurial experience\n\n";
+        }
+      } catch (scrapeError) {
+        console.error('LinkedIn scraping failed:', scrapeError);
+        linkedInContent = '\n\nNote: LinkedIn profile scraping failed, but continuing with analysis.\n';
+      }
+    }
+
     // Enhanced analysis prompt with specific metrics-based scoring and market-focused weaknesses
     const analysisPrompt = `
     You are an expert startup evaluator for IIT Bombay's incubation program. Your task is to provide a comprehensive and HIGHLY DISCRIMINATIVE analysis that clearly distinguishes between excellent and poor responses. Use the specific metrics provided for each question to score accurately.
@@ -268,11 +311,14 @@ serve(async (req) => {
     Score highly if: Strong unique value prop, defensible moats, competitive intelligence
 
     4. TEAM STRENGTH: "${existingSubmission.question_4 || 'Not provided'}"
+    ${linkedInContent}
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
     - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
     - Execution History (30-35 points): Track record of building, selling, or scaling?
+    
+    IMPORTANT: Use the LinkedIn profile data above to assess team strength more accurately. Consider the professional backgrounds, experience, education, and achievements shown in the LinkedIn profiles when evaluating founder-problem fit and execution history.
     
     Score harshly if: No domain experience, skill gaps, no execution track record
     Score highly if: Deep domain expertise, complementary skills, proven execution
@@ -346,8 +392,8 @@ serve(async (req) => {
         },
         "team_strength": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context, SPECIFICALLY incorporating insights from the LinkedIn profile data provided above",
+          "strengths": ["exactly 4-5 strengths with market data integration, incorporating LinkedIn profile insights when available"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "execution_plan": {
@@ -372,11 +418,12 @@ serve(async (req) => {
     4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
-    7. Return only valid JSON without markdown formatting
+    7. INCORPORATE LinkedIn profile insights into team strength analysis when available
+    8. Return only valid JSON without markdown formatting
     `;
 
     // Call OpenAI API
-    console.log('Calling OpenAI API for enhanced metrics-based analysis...');
+    console.log('Calling OpenAI API for enhanced metrics-based analysis with LinkedIn data...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -388,7 +435,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT on response quality or what should have been included in the form. Return only valid JSON without markdown formatting.'
+            content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT on response quality or what should have been included in the form. When LinkedIn profile data is provided, incorporate those insights into the team strength analysis. Return only valid JSON without markdown formatting.'
           },
           {
             role: 'user',

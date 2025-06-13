@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
-import { Loader2, Building } from "lucide-react";
+import { Loader2, Building, Plus, X } from "lucide-react";
 import { submitBarcForm } from "@/lib/api/barc";
 
 interface BarcFormData {
@@ -25,11 +25,13 @@ interface BarcFormData {
   question4: string;
   question5: string;
   submitterEmail: string;
+  founderLinkedInUrls: string[];
 }
 
 const BarcSubmit = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
   const form = useForm<BarcFormData>({
     defaultValues: {
@@ -43,6 +45,7 @@ const BarcSubmit = () => {
       question4: "",
       question5: "",
       submitterEmail: "",
+      founderLinkedInUrls: [""],
     },
   });
 
@@ -69,6 +72,20 @@ const BarcSubmit = () => {
     enabled: !!slug,
   });
 
+  const addLinkedInProfile = () => {
+    setFounderLinkedIns(prev => [...prev, ""]);
+  };
+
+  const removeLinkedInProfile = (index: number) => {
+    setFounderLinkedIns(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateLinkedInProfile = (index: number, value: string) => {
+    setFounderLinkedIns(prev => 
+      prev.map((profile, i) => i === index ? value : profile)
+    );
+  };
+
   // Submit form mutation using the API function
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
@@ -87,7 +104,8 @@ const BarcSubmit = () => {
         question_3: formData.question3,
         question_4: formData.question4,
         question_5: formData.question5,
-        submitter_email: formData.submitterEmail
+        submitter_email: formData.submitterEmail,
+        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()) // Filter out empty URLs
       };
 
       console.log('Calling submitBarcForm API:', submissionData);
@@ -100,6 +118,7 @@ const BarcSubmit = () => {
       toast.success("Application submitted successfully! Your submission is now available for analysis.");
       
       form.reset();
+      setFounderLinkedIns([""]);
       
       // Navigate to home instead of dashboard to avoid logout
       setTimeout(() => {
@@ -144,6 +163,17 @@ const BarcSubmit = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.submitterEmail)) {
       toast.error("Please enter a valid email address");
+      return;
+    }
+
+    // Validate LinkedIn URLs format
+    const invalidLinkedInUrls = founderLinkedIns.filter(url => {
+      if (!url.trim()) return false; // Empty URLs are allowed
+      return !url.includes('linkedin.com/in/') && !url.includes('linkedin.com/pub/');
+    });
+
+    if (invalidLinkedInUrls.length > 0) {
+      toast.error("Please enter valid LinkedIn profile URLs (e.g., https://linkedin.com/in/username)");
       return;
     }
 
@@ -280,6 +310,54 @@ const BarcSubmit = () => {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Founder LinkedIn Profiles */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Founder Information</h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-sm font-medium">Founder LinkedIn Profiles (Optional)</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addLinkedInProfile}
+                        disabled={submitMutation.isPending}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Profile
+                      </Button>
+                    </div>
+                    
+                    {founderLinkedIns.map((url, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          placeholder="https://linkedin.com/in/username"
+                          value={url}
+                          onChange={(e) => updateLinkedInProfile(index, e.target.value)}
+                          disabled={submitMutation.isPending}
+                          className="flex-1"
+                        />
+                        {founderLinkedIns.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeLinkedInProfile(index)}
+                            disabled={submitMutation.isPending}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <p className="text-sm text-muted-foreground">
+                      Add LinkedIn profiles of founders/co-founders for team analysis. These will be used to assess team background and experience.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Application Questions */}

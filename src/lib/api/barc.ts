@@ -13,11 +13,12 @@ interface BarcSubmissionData {
   question_4?: string;
   question_5?: string;
   submitter_email: string;
+  founder_linkedin_urls?: string[];
 }
 
 export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
   try {
-    console.log('BARC API submission with updated structure:', submissionData);
+    console.log('BARC API submission with LinkedIn URLs:', submissionData);
 
     // Validate required fields
     if (!submissionData.form_slug || !submissionData.company_name || !submissionData.submitter_email) {
@@ -36,10 +37,11 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       question_3: submissionData.question_3 || null,
       question_4: submissionData.question_4 || null,
       question_5: submissionData.question_5 || null,
-      submitter_email: submissionData.submitter_email
+      submitter_email: submissionData.submitter_email,
+      founder_linkedin_urls: submissionData.founder_linkedin_urls || []
     };
 
-    console.log('Inserting BARC submission with updated structure:', formattedData);
+    console.log('Inserting BARC submission with LinkedIn URLs:', formattedData);
 
     // Insert into barc_form_submissions table
     const { data, error } = await supabase
@@ -53,7 +55,7 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       throw new Error(`Failed to save submission: ${error.message}`);
     }
 
-    console.log('BARC submission saved successfully with updated structure:', data);
+    console.log('BARC submission saved successfully with LinkedIn URLs:', data);
     return data;
 
   } catch (error) {

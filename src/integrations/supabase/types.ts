@@ -46,6 +46,7 @@ export type Database = {
           created_at: string
           executive_summary: string | null
           form_slug: string
+          founder_linkedin_urls: string[] | null
           id: string
           question_1: string | null
           question_2: string | null
@@ -68,6 +69,7 @@ export type Database = {
           created_at?: string
           executive_summary?: string | null
           form_slug: string
+          founder_linkedin_urls?: string[] | null
           id?: string
           question_1?: string | null
           question_2?: string | null
@@ -90,6 +92,7 @@ export type Database = {
           created_at?: string
           executive_summary?: string | null
           form_slug?: string
+          founder_linkedin_urls?: string[] | null
           id?: string
           question_1?: string | null
           question_2?: string | null
