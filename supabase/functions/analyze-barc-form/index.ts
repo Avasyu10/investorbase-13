@@ -59,14 +59,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error('Authentication required');
-    }
-    
-    console.log('Found authenticated user:', user.id);
-
     // Fetch submission data
     console.log('Fetching submission for analysis...');
     const { data: submission, error: fetchError } = await supabase
@@ -118,11 +110,11 @@ serve(async (req) => {
     console.log('Successfully acquired lock for submission analysis');
 
     // Determine the effective user ID for company creation
-    const effectiveUserId = submission.user_id || user.id;
+    const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
     // Call OpenAI for analysis
-    console.log('Calling OpenAI API for enhanced metrics-based analysis with LinkedIn data...');
+    console.log('Calling OpenAI API for enhanced metrics-based analysis...');
     
     const analysisPrompt = `
     You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application and provide a comprehensive assessment with specific metrics and market insights.
@@ -341,25 +333,7 @@ serve(async (req) => {
       console.log('Created sections:', sectionsToCreate.length);
     }
 
-    // Handle LinkedIn scraping asynchronously - don't let errors bubble up
-    if (submission.company_linkedin_url) {
-      console.log('Scraping Company LinkedIn URL after company creation:', submission.company_linkedin_url);
-      
-      // Start LinkedIn scraping in background without awaiting
-      supabase.functions.invoke('scraped_company_details', {
-        body: { linkedInUrl: submission.company_linkedin_url }
-      }).then((response) => {
-        if (response.error) {
-          console.log('LinkedIn scraping completed with fallback data:', response.error.message);
-        } else {
-          console.log('Company LinkedIn profile scraped and stored successfully');
-        }
-      }).catch((error) => {
-        console.log('LinkedIn scraping failed but continuing with analysis:', error.message);
-      });
-    }
-
-    // Update submission with final results
+    // Update submission with final results (NO LinkedIn scraping here)
     console.log('Updating submission with final analysis results...');
     const { error: updateError } = await supabase
       .from('barc_form_submissions')
