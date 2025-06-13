@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +23,46 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
+}
+
+// Helper function to get form slugs that the user owns
+async function getUserOwnedFormSlugs(userId: string): Promise<string[]> {
+  try {
+    const { data: forms, error } = await supabase
+      .from('public_submission_forms')
+      .select('form_slug')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error fetching user forms:', error);
+      return [];
+    }
+
+    return forms?.map(f => f.form_slug) || [];
+  } catch (err) {
+    console.error('Error in getUserOwnedFormSlugs:', err);
+    return [];
+  }
+}
+
+// Helper function to get report IDs the user has access to
+async function getUserAccessibleReports(userId: string): Promise<string[]> {
+  try {
+    const { data: reports, error } = await supabase
+      .from('reports')
+      .select('id')
+      .or(`user_id.eq.${userId},is_public_submission.eq.true`);
+
+    if (error) {
+      console.error('Error fetching accessible reports:', error);
+      return [];
+    }
+
+    return reports?.map(r => r.id) || [];
+  } catch (err) {
+    console.error('Error in getUserAccessibleReports:', err);
+    return [];
+  }
 }
 
 export function PublicSubmissionsList() {
@@ -53,6 +92,15 @@ export function PublicSubmissionsList() {
         
         const allSubmissions: PublicSubmission[] = [];
         
+        // Get user's accessible reports and form slugs
+        const [accessibleReports, userFormSlugs] = await Promise.all([
+          getUserAccessibleReports(user.id),
+          getUserOwnedFormSlugs(user.id)
+        ]);
+        
+        console.log("User accessible reports:", accessibleReports.length);
+        console.log("User owned form slugs:", userFormSlugs);
+        
         // Fetch reports that are public submissions and not completed
         try {
           console.log("Fetching reports...");
@@ -61,6 +109,7 @@ export function PublicSubmissionsList() {
             .select('*')
             .eq('is_public_submission', true)
             .in('analysis_status', ['pending', 'failed'])
+            .in('id', accessibleReports)
             .order('created_at', { ascending: false });
             
           if (reportError) {
@@ -91,85 +140,96 @@ export function PublicSubmissionsList() {
           console.error("Error in reports fetch:", err);
         }
         
-        // Fetch public form submissions
-        try {
-          console.log("Fetching public form submissions...");
-          const { data: formData, error: formError } = await supabase
-            .from('public_form_submissions')
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (formError) {
-            console.error("Error fetching public form submissions:", formError);
-          } else {
-            console.log("Public form submissions fetched:", formData?.length || 0);
-            
-            if (formData && formData.length > 0) {
-              const transformedForms = formData.map(submission => ({
-                id: submission.id,
-                title: submission.title,
-                description: submission.description,
-                company_stage: submission.company_stage,
-                industry: submission.industry,
-                website_url: submission.website_url,
-                created_at: submission.created_at,
-                form_slug: submission.form_slug || "",
-                pdf_url: submission.pdf_url,
-                report_id: submission.report_id,
-                source: "public_form" as const
-              }));
+        // Fetch public form submissions - only for user's forms
+        if (userFormSlugs.length > 0) {
+          try {
+            console.log("Fetching public form submissions for user's forms...");
+            const { data: formData, error: formError } = await supabase
+              .from('public_form_submissions')
+              .select('*')
+              .in('form_slug', userFormSlugs)
+              .order('created_at', { ascending: false });
               
-              allSubmissions.push(...transformedForms);
-              console.log("Added public forms to submissions:", transformedForms.length);
+            if (formError) {
+              console.error("Error fetching public form submissions:", formError);
+            } else {
+              console.log("Public form submissions fetched:", formData?.length || 0);
+              
+              if (formData && formData.length > 0) {
+                const transformedForms = formData.map(submission => ({
+                  id: submission.id,
+                  title: submission.title,
+                  description: submission.description,
+                  company_stage: submission.company_stage,
+                  industry: submission.industry,
+                  website_url: submission.website_url,
+                  created_at: submission.created_at,
+                  form_slug: submission.form_slug || "",
+                  pdf_url: submission.pdf_url,
+                  report_id: submission.report_id,
+                  source: "public_form" as const
+                }));
+                
+                allSubmissions.push(...transformedForms);
+                console.log("Added public forms to submissions:", transformedForms.length);
+              }
             }
+          } catch (err) {
+            console.error("Error in public form submissions fetch:", err);
           }
-        } catch (err) {
-          console.error("Error in public form submissions fetch:", err);
+        } else {
+          console.log("No user form slugs found, skipping public form submissions");
         }
         
-        // Fetch BARC form submissions (RLS policies will automatically filter to user's forms)
-        try {
-          console.log("Fetching BARC form submissions...");
-          const { data: barcData, error: barcError } = await supabase
-            .from('barc_form_submissions')
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (barcError) {
-            console.error("Error fetching BARC form submissions:", barcError);
-          } else {
-            console.log("BARC form submissions fetched:", barcData?.length || 0);
-            
-            if (barcData && barcData.length > 0) {
-              const transformedBarc = barcData.map(submission => ({
-                id: submission.id,
-                title: submission.company_name || "BARC Application",
-                description: submission.executive_summary,
-                company_stage: null,
-                industry: null,
-                website_url: null,
-                created_at: submission.created_at,
-                form_slug: submission.form_slug || "",
-                pdf_url: null,
-                report_id: null,
-                source: "barc_form" as const,
-                from_email: submission.submitter_email
-              }));
+        // Fetch BARC form submissions - only for user's forms
+        if (userFormSlugs.length > 0) {
+          try {
+            console.log("Fetching BARC form submissions for user's forms...");
+            const { data: barcData, error: barcError } = await supabase
+              .from('barc_form_submissions')
+              .select('*')
+              .in('form_slug', userFormSlugs)
+              .order('created_at', { ascending: false });
               
-              allSubmissions.push(...transformedBarc);
-              console.log("Added BARC forms to submissions:", transformedBarc.length);
+            if (barcError) {
+              console.error("Error fetching BARC form submissions:", barcError);
+            } else {
+              console.log("BARC form submissions fetched:", barcData?.length || 0);
+              
+              if (barcData && barcData.length > 0) {
+                const transformedBarc = barcData.map(submission => ({
+                  id: submission.id,
+                  title: submission.company_name || "BARC Application",
+                  description: submission.executive_summary,
+                  company_stage: null,
+                  industry: null,
+                  website_url: null,
+                  created_at: submission.created_at,
+                  form_slug: submission.form_slug || "",
+                  pdf_url: null,
+                  report_id: null,
+                  source: "barc_form" as const,
+                  from_email: submission.submitter_email
+                }));
+                
+                allSubmissions.push(...transformedBarc);
+                console.log("Added BARC forms to submissions:", transformedBarc.length);
+              }
             }
+          } catch (err) {
+            console.error("Error in BARC form submissions fetch:", err);
           }
-        } catch (err) {
-          console.error("Error in BARC form submissions fetch:", err);
+        } else {
+          console.log("No user form slugs found, skipping BARC form submissions");
         }
         
-        // Fetch email submissions
+        // Fetch email submissions - only for this user
         try {
           console.log("Fetching email submissions...");
           const { data: emailData, error: emailError } = await supabase
             .from('email_submissions')
             .select('*')
+            .or(`to_email.eq.${user.email}`)
             .order('created_at', { ascending: false });
             
           if (emailError) {
