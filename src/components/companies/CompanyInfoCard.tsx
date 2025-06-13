@@ -35,17 +35,32 @@ export function CompanyInfoCard({
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  // Use introduction or description (for backward compatibility)
-  const displayIntroduction = introduction || description || "No detailed information available for this company.";
+  // Fetch company details to get the industry from company_details table
+  const { data: companyDetails } = useQuery({
+    queryKey: ['company-details', id],
+    queryFn: async () => {
+      if (!id) return null;
+      
+      const { data, error } = await supabase
+        .from('company_details')
+        .select('industry, stage, introduction')
+        .eq('company_id', id)
+        .maybeSingle();
 
-  // Format website URL for display and linking
-  const displayWebsite = website && website !== "https://example.com" 
-    ? website.replace(/^https?:\/\/(www\.)?/, '') 
-    : "Not available";
-  
-  const websiteUrl = website && website !== "https://example.com" 
-    ? (website.startsWith('http') ? website : `https://${website}`)
-    : null;
+      if (error) {
+        console.error('Error fetching company details:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  // Use company details data if available, otherwise fall back to props
+  const displayIndustry = companyDetails?.industry || industry;
+  const displayStage = companyDetails?.stage || stage;
+  const displayIntroduction = companyDetails?.introduction || introduction || description || "No detailed information available for this company.";
 
   // Check if LinkedIn scraping already exists for this company
   const { data: existingScrape } = useQuery({
@@ -69,6 +84,15 @@ export function CompanyInfoCard({
     },
     enabled: !!id,
   });
+
+  // Format website URL for display and linking
+  const displayWebsite = website && website !== "https://example.com" 
+    ? website.replace(/^https?:\/\/(www\.)?/, '') 
+    : "Not available";
+  
+  const websiteUrl = website && website !== "https://example.com" 
+    ? (website.startsWith('http') ? website : `https://${website}`)
+    : null;
 
   const handleMoreInformation = async () => {
     if (!id) {
@@ -147,7 +171,7 @@ export function CompanyInfoCard({
               <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Stage</p>
-                <p className="text-sm text-muted-foreground">{stage}</p>
+                <p className="text-sm text-muted-foreground">{displayStage}</p>
               </div>
             </div>
             
@@ -155,7 +179,7 @@ export function CompanyInfoCard({
               <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Industry</p>
-                <p className="text-sm text-muted-foreground">{industry}</p>
+                <p className="text-sm text-muted-foreground">{displayIndustry}</p>
               </div>
             </div>
           </div>
