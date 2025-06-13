@@ -6,7 +6,7 @@ export interface BarcSubmissionData {
   company_name: string;
   company_registration_type: string;
   executive_summary: string;
-  industry: string;
+  company_type: string;
   company_linkedin_url?: string;
   question_1: string;
   question_2: string;
@@ -31,7 +31,7 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       company_name: data.company_name,
       company_registration_type: data.company_registration_type,
       executive_summary: data.executive_summary,
-      industry: data.industry,
+      company_type: data.company_type,
       company_linkedin_url: data.company_linkedin_url || null,
       question_1: data.question_1,
       question_2: data.question_2,
@@ -40,7 +40,7 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       question_5: data.question_5,
       submitter_email: data.submitter_email,
       founder_linkedin_urls: data.founder_linkedin_urls,
-      user_id: userId,
+      user_id: userId, // Set user_id if user is authenticated
       analysis_status: 'pending'
     })
     .select()
@@ -52,6 +52,9 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
   }
 
   console.log('BARC form submitted successfully:', submission);
+
+  // Return the submission without automatically triggering analysis
+  // Analysis can be triggered manually later if needed
   return submission;
 };
 
@@ -59,48 +62,19 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   console.log('Analyzing BARC submission:', submissionId);
 
   try {
-    console.log('Getting current user session...');
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      console.warn('No active session found, proceeding without authentication');
-    }
-
-    console.log('Invoking analyze-barc-form function with submissionId:', submissionId);
-    
-    // Use the correct function invocation with proper headers
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
-      body: { submissionId },
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body: { submissionId }
     });
-
-    console.log('Function invocation response:', { data, error });
 
     if (error) {
       console.error('Error invoking BARC analysis function:', error);
-      throw new Error(`Function invocation failed: ${error.message || JSON.stringify(error)}`);
+      throw error;
     }
 
-    if (!data) {
-      throw new Error('No response data from analysis function');
-    }
-
-    if (!data.success) {
-      throw new Error(data.error || 'Analysis failed');
-    }
-
-    console.log('BARC analysis completed successfully:', data);
+    console.log('BARC analysis completed:', data);
     return data;
   } catch (error) {
     console.error('Failed to analyze BARC submission:', error);
-    
-    // Provide more detailed error information
-    if (error instanceof Error) {
-      throw new Error(`Analysis failed: ${error.message}`);
-    } else {
-      throw new Error(`Analysis failed: ${JSON.stringify(error)}`);
-    }
+    throw error;
   }
 };
