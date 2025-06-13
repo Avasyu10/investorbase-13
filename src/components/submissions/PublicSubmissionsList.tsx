@@ -126,9 +126,9 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
-        // Fetch ALL BARC form submissions regardless of analysis status
+        // Fetch BARC form submissions (filtered by RLS policies)
         try {
-          console.log("Fetching ALL BARC form submissions...");
+          console.log("Fetching BARC form submissions...");
           const { data: barcData, error: barcError } = await supabase
             .from('barc_form_submissions')
             .select('*')
@@ -156,7 +156,7 @@ export function PublicSubmissionsList() {
               }));
               
               allSubmissions.push(...transformedBarc);
-              console.log("Added ALL BARC forms to submissions:", transformedBarc.length);
+              console.log("Added BARC forms to submissions:", transformedBarc.length);
             }
           }
         } catch (err) {
@@ -266,8 +266,6 @@ export function PublicSubmissionsList() {
             title: "Analysis complete",
             description: `The BARC application has been successfully analyzed and company ${actionText}`,
           });
-          
-          // IMPORTANT: Don't remove from submissions list - keep it visible in New Applications
           
           // If a company was created/updated, navigate to it
           if (result.companyId) {

@@ -56,6 +56,7 @@ export type Database = {
           report_id: string | null
           submitter_email: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           analysis_error?: string | null
@@ -79,6 +80,7 @@ export type Database = {
           report_id?: string | null
           submitter_email: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           analysis_error?: string | null
@@ -102,8 +104,17 @@ export type Database = {
           report_id?: string | null
           submitter_email?: string
           updated_at?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "barc_form_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {

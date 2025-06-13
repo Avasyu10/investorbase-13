@@ -25,6 +25,24 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       throw new Error('Missing required fields: form_slug, company_name, and submitter_email are required');
     }
 
+    // Get current user session to check if they're authenticated and an IIT Bombay user
+    const { data: { session } } = await supabase.auth.getSession();
+    let userId = null;
+
+    if (session?.user) {
+      // Check if user is IIT Bombay user
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_iitbombay')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.is_iitbombay) {
+        userId = session.user.id;
+        console.log('Setting user_id for IIT Bombay user:', userId);
+      }
+    }
+
     // Prepare submission data for the updated table structure
     const formattedData = {
       form_slug: submissionData.form_slug,
@@ -38,10 +56,11 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       question_4: submissionData.question_4 || null,
       question_5: submissionData.question_5 || null,
       submitter_email: submissionData.submitter_email,
-      founder_linkedin_urls: submissionData.founder_linkedin_urls || []
+      founder_linkedin_urls: submissionData.founder_linkedin_urls || [],
+      user_id: userId
     };
 
-    console.log('Inserting BARC submission with LinkedIn URLs:', formattedData);
+    console.log('Inserting BARC submission with user_id:', formattedData);
 
     // Insert into barc_form_submissions table
     const { data, error } = await supabase
@@ -55,7 +74,7 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       throw new Error(`Failed to save submission: ${error.message}`);
     }
 
-    console.log('BARC submission saved successfully with LinkedIn URLs:', data);
+    console.log('BARC submission saved successfully with user_id:', data);
     return data;
 
   } catch (error) {
@@ -91,7 +110,8 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     console.log('Found submission for analysis:', {
       id: submission.id,
       company_name: submission.company_name,
-      analysis_status: submission.analysis_status
+      analysis_status: submission.analysis_status,
+      user_id: submission.user_id
     });
 
     // PREVENT DUPLICATE ANALYSIS: Check if already processing

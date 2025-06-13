@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +21,7 @@ const BarcSubmissions = () => {
     queryFn: async () => {
       if (!user) return [];
 
+      // Fetch submissions that the user can access based on RLS policies
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .select('*')
