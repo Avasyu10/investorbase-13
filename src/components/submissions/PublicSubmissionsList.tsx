@@ -308,12 +308,14 @@ export function PublicSubmissionsList() {
       
       // Add to analyzing set to show loading state
       setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
-      setCurrentSubmission(submission);
-      setShowModal(true);
-      setIsAnalyzing(true);
       
       try {
         console.log(`Calling BARC analysis for submission: ${submission.id}`);
+        
+        toast({
+          title: "Analysis started",
+          description: "Analyzing the BARC application. This may take a few moments...",
+        });
         
         const result = await analyzeBarcSubmission(submission.id);
         
@@ -328,16 +330,12 @@ export function PublicSubmissionsList() {
             description: `The BARC application has been successfully analyzed and company ${actionText}`,
           });
           
-          // If a company was created/updated, navigate to it
+          // Automatically navigate to the company page
           if (result.companyId) {
-            toast({
-              title: `Company ${actionText}`,
-              description: `A company prospect has been ${actionText} in your dashboard`,
-            });
-            
+            console.log(`Navigating to company: ${result.companyId}`);
             navigate(`/company/${result.companyId}`);
           } else {
-            // Navigate to BARC submissions page to view analysis
+            // Fallback to BARC submissions page if no company ID
             navigate('/barc-submissions');
           }
         } else {
@@ -353,18 +351,16 @@ export function PublicSubmissionsList() {
             errorMessage.includes('already being processed') ||
             errorMessage.includes('concurrent_processing')) {
           
-          console.log('Concurrent processing detected, will retry...');
+          console.log('Concurrent processing detected, will check status...');
           
-          // Show a more user-friendly message
           toast({
             title: "Processing in progress",
-            description: "The analysis is being processed. We'll check the status shortly...",
+            description: "The analysis is being processed. Checking status...",
           });
           
-          // Wait a moment and then check if the analysis completed
+          // Wait and check if the analysis completed
           setTimeout(async () => {
             try {
-              // Check if the submission was analyzed
               const { data: updatedSubmission, error: fetchError } = await supabase
                 .from('barc_form_submissions')
                 .select('analysis_status, company_id')
@@ -389,7 +385,7 @@ export function PublicSubmissionsList() {
             } catch (statusError) {
               console.error('Error checking submission status:', statusError);
             }
-          }, 3000); // Wait 3 seconds before checking status
+          }, 3000);
           
         } else {
           toast({
@@ -399,13 +395,11 @@ export function PublicSubmissionsList() {
           });
         }
       } finally {
-        setIsAnalyzing(false);
         setAnalyzingSubmissions(prev => {
           const newSet = new Set(prev);
           newSet.delete(submission.id);
           return newSet;
         });
-        setShowModal(false);
       }
       
       return;
