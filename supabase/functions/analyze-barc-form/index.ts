@@ -1,12 +1,11 @@
 
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -78,7 +77,6 @@ serve(async (req) => {
       company_name: submission.company_name,
       submitter_email: submission.submitter_email,
       form_slug: submission.form_slug,
-      existing_company_id: submission.existing_company_id,
       analysis_status: submission.analysis_status,
       user_id: submission.user_id
     });
@@ -103,7 +101,7 @@ serve(async (req) => {
 
     if (!lockResult) {
       console.log('Could not acquire lock - submission is already being processed or completed');
-      // Instead of throwing an error, let's check the current status and return accordingly
+      // Check current status and return accordingly
       const { data: currentSubmission } = await supabase
         .from('barc_form_submissions')
         .select('analysis_status, company_id')
@@ -126,7 +124,6 @@ serve(async (req) => {
         );
       }
 
-      // If it's still processing, return success but indicate it's in progress
       if (currentSubmission?.analysis_status === 'processing') {
         console.log('Submission is currently being processed');
         return new Response(
@@ -151,6 +148,47 @@ serve(async (req) => {
     const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
+    // Create LinkedIn profile data section if founder profiles exist
+    const hasLinkedInData = submission.founder_linkedin_urls && submission.founder_linkedin_urls.length > 0;
+    let linkedInDataSection = '';
+    let teamSectionInstructions = '';
+
+    if (hasLinkedInData && submission.founder_linkedin_urls.some(url => url.trim())) {
+      linkedInDataSection = `
+
+    Founder LinkedIn Profile Data:
+    ${submission.founder_linkedin_urls.filter(url => url.trim()).map((url, index) => `
+    Profile ${index + 1}: ${url}
+    - Analysis: Based on the LinkedIn URL provided, this appears to be a founder/co-founder profile that should be analyzed for relevant experience and background in relation to the startup.`).join('\n')}
+    `;
+
+      teamSectionInstructions = `
+    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Experience Relevance (30-35 points): Team experience directly applicable to problem/industry?
+    - Skill Complementarity (30-35 points): Do team members have complementary skills?
+    - Execution Track Record (30-35 points): History of successful execution or achievements?
+    
+    Score harshly if: Irrelevant experience, skill gaps, no execution track record
+    Score highly if: Highly relevant experience, well-rounded skills, strong execution history
+    
+    IMPORTANT: INCORPORATE the LinkedIn profile insights provided above into your team analysis.
+    `;
+    } else {
+      teamSectionInstructions = `
+    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Experience Relevance (30-35 points): Team experience directly applicable to problem/industry?
+    - Skill Complementarity (30-35 points): Do team members have complementary skills?
+    - Execution Track Record (30-35 points): History of successful execution or achievements?
+    
+    Score harshly if: Irrelevant experience, skill gaps, no execution track record
+    Score highly if: Highly relevant experience, well-rounded skills, strong execution history
+    `;
+    }
+
     // Call OpenAI for analysis
     console.log('Calling OpenAI API for enhanced metrics-based analysis...');
     
@@ -160,16 +198,17 @@ serve(async (req) => {
     CRITICAL SCORING INSTRUCTION: You MUST create significant score differences between good and poor responses. Excellent answers should score 80-100, average answers 50-70, and poor/incomplete answers 10-40. DO NOT give similar scores to vastly different quality responses.
 
     Company Information:
-    - Company Name: ${existingSubmission.company_name || 'Not provided'}
-    - Registration Type: ${existingSubmission.company_registration_type || 'Not provided'}
-    - Company Type: ${existingSubmission.company_type || 'Not provided'}
-    - Executive Summary: ${existingSubmission.executive_summary || 'Not provided'}
-    - Company LinkedIn URL: ${existingSubmission.company_linkedin_url || 'Not provided'}
-    - Submitter Email: ${existingSubmission.submitter_email || 'Not provided'}
+    - Company Name: ${submission.company_name || 'Not provided'}
+    - Registration Type: ${submission.company_registration_type || 'Not provided'}
+    - Company Type: ${submission.company_type || 'Not provided'}
+    - Executive Summary: ${submission.executive_summary || 'Not provided'}
+    - Company LinkedIn URL: ${submission.company_linkedin_url || 'Not provided'}
+    - Submitter Email: ${submission.submitter_email || 'Not provided'}
+    ${linkedInDataSection}
 
     Application Responses and Specific Metrics for Evaluation:
 
-    1. PROBLEM & TIMING: "${existingSubmission.question_1 || 'Not provided'}"
+    1. PROBLEM & TIMING: "${submission.question_1 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Clarity of Problem Definition (20-30 points): Is it a real, urgent pain point with clear articulation?
@@ -179,7 +218,7 @@ serve(async (req) => {
     Score harshly if: Vague problem description, no timing evidence, lacks personal insight
     Score highly if: Crystal clear pain point, strong timing evidence, rich customer insights
 
-    2. CUSTOMER DISCOVERY: "${existingSubmission.question_2 || 'Not provided'}"
+    2. CUSTOMER DISCOVERY: "${submission.question_2 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Customer Clarity (25-35 points): Can they describe personas/segments with precision?
@@ -189,7 +228,7 @@ serve(async (req) => {
     Score harshly if: Generic customer descriptions, no validation efforts, unrealistic GTM
     Score highly if: Detailed customer personas, extensive validation, practical GTM strategy
 
-    3. COMPETITIVE ADVANTAGE: "${existingSubmission.question_3 || 'Not provided'}"
+    3. COMPETITIVE ADVANTAGE: "${submission.question_3 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Differentiation (30-35 points): Clearly stated advantages vs existing solutions?
@@ -201,7 +240,7 @@ serve(async (req) => {
 
     ${teamSectionInstructions}
 
-    5. EXECUTION PLAN: "${existingSubmission.question_5 || 'Not provided'}"
+    5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Goal Specificity (30-35 points): Clear KPIs like MVP, first customer, funding targets?
@@ -366,7 +405,7 @@ serve(async (req) => {
     console.log('Analysis recommendation:', analysisResult.recommendation);
 
     // Create or update company
-    let companyId = submission.existing_company_id;
+    let companyId = submission.company_id;
     let isNewCompany = false;
 
     if (!companyId) {
@@ -378,7 +417,7 @@ serve(async (req) => {
         .insert({
           name: submission.company_name,
           overall_score: analysisResult.overall_score,
-          assessment_points: analysisResult.assessment_points || [],
+          assessment_points: analysisResult.summary?.assessment_points || [],
           user_id: effectiveUserId,
           source: 'barc_form'
         })
