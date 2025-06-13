@@ -11,6 +11,11 @@ interface CompanyLinkedInInfoProps {
   companyName: string;
 }
 
+interface ScrapedData {
+  content?: string;
+  profileData?: any;
+}
+
 export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInInfoProps) => {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -68,6 +73,10 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
     return null; // Don't show the component if there's no LinkedIn data
   }
 
+  // Safely parse the scraped_data JSON
+  const scrapedData = linkedinData.scraped_data as ScrapedData | null;
+  const content = scrapedData?.content || 'No content available';
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -116,7 +125,7 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
               <h4 className="font-semibold mb-3">LinkedIn Profile Content:</h4>
               <div className="max-h-96 overflow-y-auto">
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {linkedinData.scraped_data?.content || 'No content available'}
+                  {content}
                 </pre>
               </div>
             </div>
