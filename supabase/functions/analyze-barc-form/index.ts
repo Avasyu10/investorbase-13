@@ -150,6 +150,46 @@ serve(async (req) => {
     const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
+    // Scrape LinkedIn profiles if provided
+    let linkedinData = '';
+    if (submission.founder_linkedin_urls && submission.founder_linkedin_urls.length > 0) {
+      console.log('Found LinkedIn URLs, scraping profiles...');
+      try {
+        const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-linkedin', {
+          body: { 
+            linkedInUrls: submission.founder_linkedin_urls,
+            companyId: submissionId // Using submission ID as temporary company ID
+          }
+        });
+
+        if (scrapeError) {
+          console.error('Error scraping LinkedIn profiles:', scrapeError);
+        } else if (scrapeResult && scrapeResult.success && scrapeResult.profiles) {
+          console.log('LinkedIn profiles scraped successfully:', scrapeResult.profiles.length);
+          
+          // Format LinkedIn data for analysis
+          linkedinData = '\n\nFOUNDER LINKEDIN PROFILES ANALYSIS:\n\n';
+          scrapeResult.profiles.forEach((profile, index) => {
+            linkedinData += `=== FOUNDER ${index + 1} PROFILE ===\n`;
+            linkedinData += `LinkedIn URL: ${profile.url}\n\n`;
+            linkedinData += `Professional Background:\n${profile.content}\n\n`;
+            linkedinData += "--- End of Profile ---\n\n";
+          });
+          
+          linkedinData += "\nThis LinkedIn profile data should be analyzed for:\n";
+          linkedinData += "- Relevant industry experience\n";
+          linkedinData += "- Leadership roles and achievements\n";
+          linkedinData += "- Educational background\n";
+          linkedinData += "- Skills relevant to the business\n";
+          linkedinData += "- Network and connections quality\n";
+          linkedinData += "- Previous startup or entrepreneurial experience\n\n";
+        }
+      } catch (error) {
+        console.error('LinkedIn scraping failed:', error);
+        // Continue with analysis even if LinkedIn scraping fails
+      }
+    }
+
     // Call OpenAI for analysis
     console.log('Calling OpenAI API for startup analysis...');
     
@@ -195,6 +235,7 @@ serve(async (req) => {
     Score highly if: Strong unique value prop, defensible moats, competitive intelligence
 
     4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
+    ${linkedinData}
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
@@ -203,6 +244,12 @@ serve(async (req) => {
     
     Score harshly if: No domain experience, skill gaps, no execution track record
     Score highly if: Deep domain expertise, complementary skills, proven execution
+
+    FOR TEAM SECTION STRENGTHS: If LinkedIn data is provided above, include specific founder insights in the strengths:
+    - Extract 2-3 key points per founder from their LinkedIn profiles showing relevant experience
+    - Format as: "Founder Name: [specific relevant experience or achievement]"
+    - Include 3-4 additional points related to the team response and market data
+    - Focus on industry expertise, leadership experience, technical skills, and entrepreneurial background
 
     5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
     
@@ -241,6 +288,7 @@ serve(async (req) => {
 
     For STRENGTHS (exactly 4-5 each per section):
     - STRENGTHS: Highlight what they did well, supported by market validation and data
+    - FOR TEAM SECTION: If LinkedIn data was provided, include founder-specific insights as described above
 
     Provide analysis in this JSON format with ALL scores on 1-100 scale:
 
@@ -274,7 +322,7 @@ serve(async (req) => {
         "team_strength": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "strengths": ["exactly 4-5 strengths with market data integration - include LinkedIn founder insights if available"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "execution_plan": {
@@ -300,6 +348,7 @@ serve(async (req) => {
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. Return only valid JSON without markdown formatting
+    8. FOR TEAM SECTION: Include LinkedIn founder insights in strengths when available
     `;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
