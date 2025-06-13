@@ -1,58 +1,65 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
-export const useProfile = () => {
+interface Profile {
+  id: string;
+  username: string | null;
+  email: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  is_admin: boolean;
+  is_iitbombay: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useProfile() {
   const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  return useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) {
-        throw new Error('No user ID available');
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!user) {
+        setProfile(null);
+        setIsLoading(false);
+        return;
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
+        const { data, error: fetchError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        setProfile(data);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
+      } finally {
+        setIsLoading(false);
       }
+    }
 
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-};
+    fetchProfile();
+  }, [user]);
 
-export const useVCProfile = () => {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ['vc-profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) {
-        throw new Error('No user ID available');
-      }
-
-      const { data, error } = await supabase
-        .from('vc_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching VC profile:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-};
+  return {
+    profile,
+    isLoading,
+    error,
+    isIITBombay: profile?.is_iitbombay || false,
+    isAdmin: profile?.is_admin || false
+  };
+}

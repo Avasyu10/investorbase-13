@@ -273,7 +273,7 @@ serve(async (req) => {
     MARKET INTEGRATION REQUIREMENT:
     For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context.
 
-    For ASSESSMENT POINTS (8-10 points required):
+    For ASSESSMENT POINTS (6-7 points required):
     Each point MUST contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation.
 
     CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
@@ -296,7 +296,7 @@ serve(async (req) => {
       "overall_score": number (1-100),
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
-        "industry": "string (use the provided industry: ${submission.industry || 'Technology'})",
+        "industry": "string (infer from application)",
         "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
         "introduction": "string (2-3 sentence description)"
       },
@@ -337,14 +337,13 @@ serve(async (req) => {
         "key_factors": ["key decision factors with market validation"],
         "next_steps": ["specific recommendations with market-informed guidance"],
         "assessment_points": [
-          "EXACTLY 8-10 comprehensive assessment points that provide detailed market analysis",
-          "Each point must be substantial (2-3 sentences) combining market data with startup evaluation",
-          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, funding trends, adoption rates",
-          "Provide detailed analysis of market positioning, timing, competitive dynamics, and growth potential",
-          "Examples: 'Operating in the $47B EdTech market with 16.3% CAGR growth, the company targets K-12 institutions where digital adoption increased 340% post-pandemic. However, average customer acquisition costs of $89 in this sector challenge profitability, requiring strong retention strategies. Their university partnership approach could reduce CAC by 40% based on sector benchmarks, positioning them favorably against incumbents who spend $200+ per customer acquisition.'",
-          "Focus on actionable insights that combine quantitative market intelligence with qualitative startup assessment",
-          "Address market opportunities, risks, competitive positioning, timing factors, and scalability potential",
-          "Each point should provide investors with concrete data to support investment decisions"
+          "EXACTLY 6-7 market-focused assessment points that combine insights across all sections",
+          "Each point must prioritize market data and numbers above all else",
+          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
+          "Weave in insights from the startup's responses to show market positioning",
+          "Focus on quantifiable market opportunities, risks, and benchmarks",
+          "Examples: 'Operating in the $47B EdTech market growing at 16.3% CAGR, but faces $89 average CAC challenges that affect 73% of similar startups, though their university partnership approach could reduce acquisition costs by 40% based on sector data'",
+          "Prioritize hard numbers and market intelligence over qualitative assessments"
         ]
       }
     }
@@ -352,14 +351,13 @@ serve(async (req) => {
     CRITICAL REQUIREMENTS:
     1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
     2. Use the exact metrics provided for each question in your evaluation
-    3. ASSESSMENT POINTS: Each of the 8-10 points must be detailed and substantial, heavily weighted toward market data and actionable insights
+    3. ASSESSMENT POINTS: Each of the 6-7 points must be heavily weighted toward market data, numbers, and quantifiable metrics
     4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. Return only valid JSON without markdown formatting
     8. FOR TEAM SECTION: Include LinkedIn founder insights in strengths when available
-    9. INDUSTRY FIELD: Always use the provided industry from the form submission
-    10. DETAILED ASSESSMENT POINTS: Each point should be 2-3 sentences providing comprehensive market analysis
+    9. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors
     `;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -381,7 +379,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.3,
-        max_tokens: 5000,
+        max_tokens: 4000,
       }),
     });
 
@@ -461,27 +459,6 @@ serve(async (req) => {
 
       companyId = newCompany.id;
       console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
-    }
-
-    // Create company details with industry information
-    console.log('Creating/updating company details with industry information...');
-    const { error: detailsError } = await supabase
-      .from('company_details')
-      .upsert({
-        company_id: companyId,
-        industry: submission.industry || 'Technology',
-        stage: analysisResult.company_info?.stage || 'Early Stage',
-        introduction: analysisResult.company_info?.introduction || submission.executive_summary || 'No introduction available',
-        status: 'New',
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'company_id'
-      });
-
-    if (detailsError) {
-      console.error('Error creating/updating company details:', detailsError);
-    } else {
-      console.log('Successfully created/updated company details with industry:', submission.industry);
     }
 
     // Create sections with proper section details

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -158,44 +157,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      
-      // Clear local state immediately to prevent UI issues
-      setSession(null);
-      setUser(null);
-      
-      // Attempt to sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      // Don't throw error for 403/session not found - just log it
-      if (error) {
-        console.warn('Sign out warning (non-critical):', error);
-        // Only show error for unexpected issues, not 403/session errors
-        if (error.status !== 403 && !error.message.includes('session')) {
-          toast({
-            title: "Sign out warning",
-            description: "You have been signed out, but there was a minor issue.",
-            variant: "default",
-          });
-        }
-      }
-      
-      // Always navigate and show success, regardless of API response
+      await supabase.auth.signOut();
       navigate('/');
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
       });
-      
     } catch (error: any) {
-      // Even if there's an error, ensure user is signed out locally
-      setSession(null);
-      setUser(null);
-      navigate('/');
-      
-      console.error('Sign out error (handled):', error);
       toast({
-        title: "Signed out",
-        description: "You've been signed out.",
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
