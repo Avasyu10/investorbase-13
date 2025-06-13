@@ -79,7 +79,8 @@ serve(async (req) => {
       form_slug: submission.form_slug,
       existing_company_id: submission.existing_company_id,
       analysis_status: submission.analysis_status,
-      user_id: submission.user_id
+      user_id: submission.user_id,
+      industry: submission.industry
     });
 
     // Check if already processing or completed using an atomic update
@@ -462,6 +463,25 @@ serve(async (req) => {
 
       companyId = newCompany.id;
       console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
+
+      // Create company_details record with industry from BARC submission
+      console.log('Creating company_details with industry:', submission.industry);
+      const { error: companyDetailsError } = await supabase
+        .from('company_details')
+        .insert({
+          company_id: companyId,
+          industry: submission.industry || 'Technology',
+          stage: analysisResult.company_info?.stage || 'Early Stage',
+          introduction: analysisResult.company_info?.introduction || submission.executive_summary || 'Company analysis based on BARC form submission',
+          website: submission.company_linkedin_url || null
+        });
+
+      if (companyDetailsError) {
+        console.error('Error creating company details:', companyDetailsError);
+        // Don't throw error here as the main company creation succeeded
+      } else {
+        console.log('Successfully created company_details with industry:', submission.industry);
+      }
     }
 
     // Create sections with proper section details
