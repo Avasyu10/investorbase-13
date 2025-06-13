@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { ConditionalAlertsSection } from "@/components/profile/ConditionalAlertsSection";
+import { CreateBarcFormButton } from "@/components/profile/CreateBarcFormButton";
 import { Loader2, GraduationCap, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
