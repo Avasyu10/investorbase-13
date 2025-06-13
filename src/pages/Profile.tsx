@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -11,9 +12,10 @@ import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { ConditionalAlertsSection } from "@/components/profile/ConditionalAlertsSection";
 import { CreateBarcFormButton } from "@/components/profile/CreateBarcFormButton";
 import { ProfileNavigation } from "@/components/profile/ProfileNavigation";
-import { Loader2, GraduationCap, Copy, ExternalLink, Building, Edit, Globe, Tag, Layers } from "lucide-react";
+import { Loader2, GraduationCap, Copy, ExternalLink, Building, Tag, Layers, Globe, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Separator } from "@/components/ui/separator";
 
 interface VCProfile {
   id: string;
@@ -28,6 +30,14 @@ interface VCProfile {
   updated_at: string;
 }
 
+interface PublicForm {
+  id: string;
+  form_slug: string;
+  form_name: string;
+  created_at: string;
+  auto_analyze: boolean;
+}
+
 const Profile = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { profile, isLoading: profileLoading, isIITBombay } = useProfile();
@@ -36,6 +46,7 @@ const Profile = () => {
   const [isCreatingForm, setIsCreatingForm] = useState(false);
   const [vcProfile, setVcProfile] = useState<VCProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [publicForm, setPublicForm] = useState<PublicForm | null>(null);
 
   // Fetch VC profile data
   useEffect(() => {
@@ -62,6 +73,32 @@ const Profile = () => {
     };
 
     fetchVCProfile();
+  }, [user]);
+
+  // Fetch public form data
+  useEffect(() => {
+    const fetchPublicForm = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: formData, error: formError } = await supabase
+          .from('public_submission_forms')
+          .select('id, form_slug, form_name, created_at, auto_analyze')
+          .eq('user_id', user.id)
+          .eq('form_type', 'general')
+          .maybeSingle();
+          
+        if (formError) {
+          console.error("Error fetching public form:", formError);
+        } else if (formData) {
+          setPublicForm(formData as PublicForm);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    };
+
+    fetchPublicForm();
   }, [user]);
 
   // Fetch the IIT Bombay form belonging to the current user
@@ -165,8 +202,8 @@ const Profile = () => {
     : null;
 
   // Generate the public submission URL for the VC profile
-  const publicSubmissionUrl = user 
-    ? `${window.location.origin}/public-upload?form=general-${user.id.substring(0, 8)}`
+  const publicSubmissionUrl = publicForm 
+    ? `${window.location.origin}/public-upload?form=${publicForm.form_slug}`
     : null;
 
   if (authLoading || profileLoading || loading) {
@@ -202,62 +239,6 @@ const Profile = () => {
         </div>
       )}
 
-      {isIITBombay && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
-              IIT Bombay Public Form
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Share this URL with applicants who want to submit their BARC applications to IIT Bombay.
-            </p>
-            {isCreatingForm ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Creating your BARC form...</span>
-              </div>
-            ) : iitBombayFormUrl ? (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Input
-                    value={iitBombayFormUrl}
-                    readOnly
-                    className="font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(iitBombayFormUrl)}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(iitBombayFormUrl, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-muted-foreground mb-4">
-                  <p className="mb-2">No BARC form found for your account.</p>
-                  <p className="text-sm">
-                    Create your dedicated IIT Bombay BARC form below to get started.
-                  </p>
-                </div>
-                <CreateBarcFormButton onFormCreated={handleFormCreated} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6">
           {isIITBombay && <TabsTrigger value="profile">Profile Details</TabsTrigger>}
@@ -271,153 +252,205 @@ const Profile = () => {
           <TabsContent value="profile">
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-6">
-                {/* Edit Profile Button - prominently displayed at the top */}
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium">Profile Management</h3>
-                        <p className="text-muted-foreground text-sm">
-                          Update your investor profile information and preferences
-                        </p>
-                      </div>
-                      <Button onClick={() => window.location.href = '/profile/edit'}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Profile
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {vcProfile ? (
                   <>
                     {/* Fund Details */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Building className="h-5 w-5" />
-                          Fund Details
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Fund Name</Label>
-                          <p className="text-sm">{vcProfile.fund_name || "Not specified"}</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Fund Size</Label>
-                          <p className="text-sm">{vcProfile.fund_size || "Not specified"}</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Website</Label>
-                          <p className="text-sm">{vcProfile.website_url || "Not specified"}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <div>
+                      <div className="flex items-center mb-3">
+                        <Building className="h-5 w-5 text-primary mr-2" />
+                        <h3 className="text-base font-semibold text-foreground/80">Fund Details</h3>
+                      </div>
+                      <Separator className="mb-4" />
+                      
+                      <Card>
+                        <CardContent className="space-y-4 pt-6">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Fund Name</Label>
+                            <p className="text-sm">{vcProfile.fund_name || "Not specified"}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Fund Size</Label>
+                            <p className="text-sm">{vcProfile.fund_size || "Not specified"}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Website</Label>
+                            <p className="text-sm">{vcProfile.website_url || "Not specified"}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
 
                     {/* Investment Focus */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Tag className="h-5 w-5" />
-                          Investment Focus
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Areas of Interest</Label>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {vcProfile.areas_of_interest && vcProfile.areas_of_interest.length > 0 ? (
-                              vcProfile.areas_of_interest.map((area, index) => (
-                                <span key={index} className="bg-secondary px-2 py-1 rounded-md text-xs">
-                                  {area}
-                                </span>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">Not specified</p>
-                            )}
+                    <div>
+                      <div className="flex items-center mb-3">
+                        <Tag className="h-5 w-5 text-primary mr-2" />
+                        <h3 className="text-base font-semibold text-foreground/80">Investment Focus</h3>
+                      </div>
+                      <Separator className="mb-4" />
+                      
+                      <Card>
+                        <CardContent className="space-y-4 pt-6">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Areas of Interest</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {vcProfile.areas_of_interest && vcProfile.areas_of_interest.length > 0 ? (
+                                vcProfile.areas_of_interest.map((area, index) => (
+                                  <span key={index} className="bg-secondary px-2 py-1 rounded-md text-xs">
+                                    {area}
+                                  </span>
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">Not specified</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Investment Stages</Label>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {vcProfile.investment_stage && vcProfile.investment_stage.length > 0 ? (
-                              vcProfile.investment_stage.map((stage, index) => (
-                                <span key={index} className="bg-secondary px-2 py-1 rounded-md text-xs">
-                                  {stage}
-                                </span>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">Not specified</p>
-                            )}
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Investment Stages</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {vcProfile.investment_stage && vcProfile.investment_stage.length > 0 ? (
+                                vcProfile.investment_stage.map((stage, index) => (
+                                  <span key={index} className="bg-secondary px-2 py-1 rounded-md text-xs">
+                                    {stage}
+                                  </span>
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">Not specified</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
 
                     {/* Portfolio */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Layers className="h-5 w-5" />
-                          Portfolio
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Companies Invested</Label>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {vcProfile.companies_invested && vcProfile.companies_invested.length > 0 ? (
-                              vcProfile.companies_invested.map((company, index) => (
-                                <span key={index} className="bg-secondary px-2 py-1 rounded-md text-xs">
-                                  {company}
-                                </span>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground">No companies added yet</p>
-                            )}
+                    <div>
+                      <div className="flex items-center mb-3">
+                        <Layers className="h-5 w-5 text-primary mr-2" />
+                        <h3 className="text-base font-semibold text-foreground/80">Portfolio</h3>
+                      </div>
+                      <Separator className="mb-4" />
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Companies Invested</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {vcProfile.companies_invested && vcProfile.companies_invested.length > 0 ? (
+                                vcProfile.companies_invested.map((company, index) => (
+                                  <span key={index} className="bg-secondary px-2 py-1 rounded-md text-xs">
+                                    {company}
+                                  </span>
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No companies added yet</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
 
                     {/* Public Submission URL */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Globe className="h-5 w-5" />
-                          Public Submission URL
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Share this URL with founders to receive pitch deck submissions directly.
-                        </p>
-                        {publicSubmissionUrl && (
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              value={publicSubmissionUrl}
-                              readOnly
-                              className="font-mono text-sm"
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(publicSubmissionUrl)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(publicSubmissionUrl, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
+                    <div>
+                      <div className="flex items-center mb-3">
+                        <Globe className="h-5 w-5 text-primary mr-2" />
+                        <h3 className="text-base font-semibold text-foreground/80">Public Submission URL</h3>
+                      </div>
+                      <Separator className="mb-4" />
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                              Share this URL with founders to receive pitch deck submissions directly to your dashboard.
+                            </p>
+                            
+                            {/* IIT Bombay BARC Form URL */}
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">IIT Bombay BARC Form</Label>
+                              <p className="text-xs text-muted-foreground">
+                                For IIT Bombay BARC applications
+                              </p>
+                              {isCreatingForm ? (
+                                <div className="flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span>Creating your BARC form...</span>
+                                </div>
+                              ) : iitBombayFormUrl ? (
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={iitBombayFormUrl}
+                                    readOnly
+                                    className="font-mono text-sm"
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(iitBombayFormUrl)}
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => window.open(iitBombayFormUrl, '_blank')}
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">No BARC form found.</p>
+                                  <CreateBarcFormButton onFormCreated={handleFormCreated} />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* General Public Submission URL */}
+                            {publicSubmissionUrl && (
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">General Submissions</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  For general pitch deck submissions
+                                </p>
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={publicSubmissionUrl}
+                                    readOnly
+                                    className="font-mono text-sm"
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(publicSubmissionUrl)}
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => window.open(publicSubmissionUrl, '_blank')}
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* InvestorBase Pitch Email */}
+                    <div>
+                      <div className="flex items-center mb-3">
+                        <Mail className="h-5 w-5 text-primary mr-2" />
+                        <h3 className="text-base font-semibold text-foreground/80">InvestorBase Pitch Email</h3>
+                      </div>
+                      <Separator className="mb-4" />
+                      
+                      <InvestorPitchEmail />
+                    </div>
                   </>
                 ) : (
                   <Card>
