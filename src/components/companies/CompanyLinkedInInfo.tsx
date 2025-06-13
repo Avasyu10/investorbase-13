@@ -14,44 +14,37 @@ interface CompanyLinkedInInfoProps {
 interface ScrapedData {
   content?: string;
   profileData?: any;
-  [key: string]: any;
 }
 
 export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInInfoProps) => {
   const [showDetails, setShowDetails] = useState(false);
 
   // Fetch company LinkedIn scrape data from company_scrapes table
-  const { data: linkedinData, isLoading, error } = useQuery({
+  const { data: linkedinData, isLoading } = useQuery({
     queryKey: ['company-scrapes', companyId],
     queryFn: async () => {
       console.log('Fetching company scrapes for company ID:', companyId);
       
       // Fetch the LinkedIn scrape data from company_scrapes table
-      const { data: allScrapes, error: allScrapesError } = await supabase
+      const { data: scrapeData, error: scrapeError } = await supabase
         .from('company_scrapes')
         .select('*')
-        .eq('status', 'success')
-        .order('created_at', { ascending: false });
+        .eq('company_id', companyId)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .maybeSingle();
 
-      if (allScrapesError) {
-        console.error('Error fetching all company scrapes:', allScrapesError);
+      if (scrapeError) {
+        console.error('Error fetching company scrape data:', scrapeError);
         return null;
       }
 
-      // Find scrape that looks like a company URL (contains /company/)
-      const companyScrape = allScrapes?.find(scrape => 
-        scrape.linkedin_url && scrape.linkedin_url.includes('/company/')
-      );
-
-      console.log('Company scrape data found:', companyScrape);
-      return companyScrape;
+      console.log('Company scrape data found:', scrapeData);
+      return scrapeData;
     },
     enabled: !!companyId,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
 
-  // Show loading state
   if (isLoading) {
     return (
       <Card className="mb-6">
@@ -68,45 +61,16 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
     );
   }
 
-  // Show error state if there's an error
-  if (error) {
-    console.error('Error loading LinkedIn data:', error);
-    return null;
-  }
-
-  // Don't show the component if there's no LinkedIn data
   if (!linkedinData) {
-    return null;
+    return null; // Don't show the component if there's no LinkedIn data
   }
 
   // Safely parse the scraped_data JSON
-  const scrapedData = linkedinData.scraped_data;
-  let content = 'No content available';
-  
-  if (scrapedData) {
-    try {
-      // Handle different data types safely
-      if (typeof scrapedData === 'string') {
-        content = scrapedData;
-      } else if (typeof scrapedData === 'object' && scrapedData !== null) {
-        // Check if it has a content property
-        if ('content' in scrapedData && typeof scrapedData.content === 'string') {
-          content = scrapedData.content;
-        } else {
-          // Format the company data for display
-          content = JSON.stringify(scrapedData, null, 2);
-        }
-      } else {
-        content = String(scrapedData);
-      }
-    } catch (parseError) {
-      console.error('Error parsing scraped data:', parseError);
-      content = 'Error parsing LinkedIn data';
-    }
-  }
+  const scrapedData = linkedinData.scraped_data as ScrapedData | null;
+  const content = scrapedData?.content || 'No content available';
 
   return (
-    <Card className="mb-6 animate-in fade-in-50 duration-300">
+    <Card className="mb-6">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Company LinkedIn Information</CardTitle>
@@ -149,8 +113,8 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
           </div>
           
           {showDetails && (
-            <div className="mt-4 p-4 bg-secondary/50 rounded-lg animate-in slide-in-from-top-2 duration-200">
-              <h4 className="font-semibold mb-3">LinkedIn Company Profile:</h4>
+            <div className="mt-4 p-4 bg-secondary/50 rounded-lg">
+              <h4 className="font-semibold mb-3">LinkedIn Profile Content:</h4>
               <div className="max-h-96 overflow-y-auto">
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
                   {content}
