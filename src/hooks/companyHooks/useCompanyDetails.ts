@@ -1,160 +1,144 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { Company } from '@/lib/api/apiContract';
 
-export interface CompanyDetails {
-  id: string;
-  name: string;
-  overallScore: number;
-  reportId: string | null;
-  perplexityResponse: string | null;
-  perplexityRequestedAt: string | null;
-  assessmentPoints: string[];
-  sections: Array<{
-    id: string;
-    title: string;
-    type: string;
-    score: number;
-    description: string;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  website: string;
-  industry: string;
-  stage: string;
-  introduction: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export const useCompanyDetails = (id: string) => {
-  const query = useQuery({
-    queryKey: ['company', id],
-    queryFn: async (): Promise<CompanyDetails | null> => {
-      console.log('Fetching company details for ID:', id);
+export function useCompanyDetails(companyId: string) {
+  const {
+    data: company,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['company-details', companyId],
+    queryFn: async (): Promise<Company | null> => {
+      if (!companyId) return null;
       
-      if (!id) {
-        console.log('No company ID provided');
-        return null;
-      }
-
-      let companyQuery;
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
       
-      // Check if ID looks like a UUID
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      
-      if (isUUID) {
-        console.log('Fetching by UUID:', id);
-        companyQuery = supabase
-          .from('companies')
-          .select(`
-            *,
-            sections (*),
-            company_details (
-              website,
-              industry,
-              stage,
-              introduction
-            )
-          `)
-          .eq('id', id)
-          .single();
-      } else {
-        console.log('Fetching by numeric ID:', id);
-        const numericId = parseInt(id, 10);
-        companyQuery = supabase.rpc('get_company_by_numeric_id', { 
-          p_numeric_id: numericId 
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to view company details',
+          variant: 'destructive',
         });
-      }
-
-      const { data: company, error } = await companyQuery;
-
-      if (error) {
-        console.error('Error fetching company:', error);
-        throw error;
-      }
-
-      if (!company) {
-        console.log('Company not found');
         return null;
       }
-
-      console.log('Found company by UUID:', company.name);
-
-      // If we used the RPC function, we need to fetch sections separately
-      if (!isUUID) {
-        const { data: sections, error: sectionsError } = await supabase
-          .from('sections')
-          .select('*')
-          .eq('company_id', company.id);
-
-        if (sectionsError) {
-          console.error('Error fetching sections:', sectionsError);
-          throw sectionsError;
-        }
-
-        company.sections = sections || [];
-      }
-
-      console.log('Fetched sections:', company.sections?.length || 0, 'sections');
-
-      const transformedCompany = transformCompanyData(company);
       
-      return transformedCompany;
+      // Get the company data
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', companyId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (companyError) throw companyError;
+      if (!companyData) return null;
+      
+      console.log("Retrieved company data:", companyData);
+      
+      // Get the sections for this company
+      const { data: sectionsData, error: sectionsError } = await supabase
+        .from('sections')
+        .select('*')
+        .eq('company_id', companyId);
+        
+      if (sectionsError) throw sectionsError;
+      
+      console.log("Retrieved sections data:", sectionsData);
+      
+      // Get section details (strengths and weaknesses) for all sections
+      const sectionIds = sectionsData.map(section => section.id);
+      let sectionDetailsData = [];
+      
+      if (sectionIds.length > 0) {
+        const { data: detailsData, error: detailsError } = await supabase
+          .from('section_details')
+          .select('*')
+          .in('section_id', sectionIds);
+          
+        if (detailsError) {
+          console.error('Error fetching section details:', detailsError);
+        } else {
+          sectionDetailsData = detailsData || [];
+        }
+      }
+      
+      console.log("Retrieved section details data:", sectionDetailsData);
+      
+      // Get company details if available
+      const { data: companyDetailsData, error: companyDetailsError } = await supabase
+        .from('company_details')
+        .select('*')
+        .eq('company_id', companyId)
+        .maybeSingle();
+        
+      if (companyDetailsError) {
+        console.error('Error fetching company details:', companyDetailsError);
+      }
+      
+      console.log("Retrieved company details data:", companyDetailsData);
+      
+      // Map sections with their details
+      const sectionsWithDetails = sectionsData.map(section => {
+        const sectionDetails = sectionDetailsData.filter(detail => detail.section_id === section.id);
+        
+        const strengths = sectionDetails
+          .filter(detail => detail.detail_type === 'strength')
+          .map(detail => detail.content);
+          
+        const weaknesses = sectionDetails
+          .filter(detail => detail.detail_type === 'weakness')
+          .map(detail => detail.content);
+        
+        return {
+          id: section.id,
+          type: section.type,
+          title: section.title,
+          score: Number(section.score),
+          description: section.description || 'No detailed content available.',
+          strengths,
+          weaknesses,
+          createdAt: section.created_at,
+          updatedAt: section.updated_at || section.created_at,
+        };
+      });
+      
+      console.log("Mapped sections with details:", sectionsWithDetails);
+      
+      return {
+        id: companyData.id,
+        name: companyData.name,
+        overallScore: Number(companyData.overall_score),
+        assessmentPoints: companyData.assessment_points || [],
+        sections: sectionsWithDetails,
+        createdAt: companyData.created_at,
+        updatedAt: companyData.updated_at,
+        source: companyData.source,
+        reportId: companyData.report_id,
+        website: companyDetailsData?.website || '',
+        stage: companyDetailsData?.stage || '',
+        industry: companyDetailsData?.industry || '',
+        introduction: companyDetailsData?.introduction || '',
+      };
     },
-    enabled: !!id
+    enabled: !!companyId,
+    meta: {
+      onError: (err: any) => {
+        toast({
+          title: 'Error loading company details',
+          description: err.message || 'Failed to load company details',
+          variant: 'destructive',
+        });
+      },
+    },
   });
 
   return {
-    company: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch
-  };
-};
-
-function transformCompanyData(company: any): CompanyDetails {
-  console.log('Transforming company data with', company.sections?.length || 0, 'sections');
-  
-  // Get company details from the related table
-  const companyDetails = Array.isArray(company.company_details) 
-    ? company.company_details[0] 
-    : company.company_details;
-
-  const sections = (company.sections || []).map((section: any) => {
-    console.log('Processing section:', section.title, 'Type:', section.type);
-    
-    const transformedSection = {
-      id: section.id,
-      title: section.title,
-      type: section.type,
-      score: Number(section.score) || 0,
-      description: section.description || '',
-      createdAt: section.created_at,
-      updatedAt: section.updated_at
-    };
-    
-    console.log('Section', section.title, 'final description length:', transformedSection.description.length);
-    
-    return transformedSection;
-  });
-
-  console.log('Final transformed sections count:', sections.length);
-
-  return {
-    id: company.id,
-    name: company.name,
-    overallScore: Number(company.overall_score) || 0,
-    reportId: company.report_id,
-    perplexityResponse: company.perplexity_response,
-    perplexityRequestedAt: company.perplexity_requested_at,
-    assessmentPoints: company.assessment_points || [],
-    sections,
-    website: companyDetails?.website || '',
-    industry: companyDetails?.industry || '',
-    stage: companyDetails?.stage || '',
-    introduction: companyDetails?.introduction || '',
-    createdAt: company.created_at,
-    updatedAt: company.updated_at
+    company,
+    isLoading,
+    error,
   };
 }

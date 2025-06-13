@@ -152,7 +152,6 @@ serve(async (req) => {
     // Create LinkedIn profile data section if founder profiles exist
     const hasLinkedInData = submission.founder_linkedin_urls && submission.founder_linkedin_urls.length > 0;
     let linkedInDataSection = '';
-    let teamSectionInstructions = '';
 
     if (hasLinkedInData && submission.founder_linkedin_urls.some(url => url.trim())) {
       linkedInDataSection = `
@@ -161,32 +160,6 @@ serve(async (req) => {
     ${submission.founder_linkedin_urls.filter(url => url.trim()).map((url, index) => `
     Profile ${index + 1}: ${url}
     - Analysis: Based on the LinkedIn URL provided, this appears to be a founder/co-founder profile that should be analyzed for relevant experience and background in relation to the startup.`).join('\n')}
-    `;
-
-      teamSectionInstructions = `
-    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Experience Relevance (30-35 points): Team experience directly applicable to problem/industry?
-    - Skill Complementarity (30-35 points): Do team members have complementary skills?
-    - Execution Track Record (30-35 points): History of successful execution or achievements?
-    
-    Score harshly if: Irrelevant experience, skill gaps, no execution track record
-    Score highly if: Highly relevant experience, well-rounded skills, strong execution history
-    
-    IMPORTANT: INCORPORATE the LinkedIn profile insights provided above into your team analysis.
-    `;
-    } else {
-      teamSectionInstructions = `
-    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Experience Relevance (30-35 points): Team experience directly applicable to problem/industry?
-    - Skill Complementarity (30-35 points): Do team members have complementary skills?
-    - Execution Track Record (30-35 points): History of successful execution or achievements?
-    
-    Score harshly if: Irrelevant experience, skill gaps, no execution track record
-    Score highly if: Highly relevant experience, well-rounded skills, strong execution history
     `;
     }
 
@@ -235,7 +208,7 @@ serve(async (req) => {
     Score highly if: Strong unique value prop, defensible moats, competitive intelligence
 
     4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
-    ${linkedinData}
+    ${linkedInDataSection}
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
     - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
@@ -244,12 +217,6 @@ serve(async (req) => {
     
     Score harshly if: No domain experience, skill gaps, no execution track record
     Score highly if: Deep domain expertise, complementary skills, proven execution
-
-    FOR TEAM SECTION STRENGTHS: If LinkedIn data is provided above, include specific founder insights in the strengths:
-    - Extract 2-3 key points per founder from their LinkedIn profiles showing relevant experience
-    - Format as: "Founder Name: [specific relevant experience or achievement]"
-    - Include 3-4 additional points related to the team response and market data
-    - Focus on industry expertise, leadership experience, technical skills, and entrepreneurial background
 
     5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
     
@@ -457,7 +424,7 @@ serve(async (req) => {
       console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
     }
 
-    // Create sections
+    // Create sections with proper data structure
     console.log('Deleting old sections for company:', companyId);
     const { error: deleteError } = await supabase
       .from('sections')
@@ -470,6 +437,12 @@ serve(async (req) => {
       console.log('Deleted old sections');
     }
 
+    // Also delete old section details
+    const { error: deleteDetailsError } = await supabase
+      .from('section_details')
+      .delete()
+      .in('section_id', []);
+
     const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => ({
       company_id: companyId,
       score: sectionData.score || 0,
@@ -480,9 +453,10 @@ serve(async (req) => {
     }));
 
     if (sectionsToCreate.length > 0) {
-      const { error: sectionsError } = await supabase
+      const { data: createdSections, error: sectionsError } = await supabase
         .from('sections')
-        .insert(sectionsToCreate);
+        .insert(sectionsToCreate)
+        .select();
 
       if (sectionsError) {
         console.error('Error creating sections:', sectionsError);
@@ -490,6 +464,51 @@ serve(async (req) => {
       }
 
       console.log('Created sections:', sectionsToCreate.length);
+
+      // Now create section details (strengths and weaknesses) for each section
+      const sectionDetails = [];
+      
+      for (const section of createdSections) {
+        const sectionKey = section.section_type;
+        const sectionData = analysisResult.sections[sectionKey];
+        
+        if (sectionData) {
+          // Add strengths
+          if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
+            for (const strength of sectionData.strengths) {
+              sectionDetails.push({
+                section_id: section.id,
+                detail_type: 'strength',
+                content: strength
+              });
+            }
+          }
+          
+          // Add improvements (weaknesses)
+          if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
+            for (const improvement of sectionData.improvements) {
+              sectionDetails.push({
+                section_id: section.id,
+                detail_type: 'weakness',
+                content: improvement
+              });
+            }
+          }
+        }
+      }
+
+      if (sectionDetails.length > 0) {
+        const { error: detailsError } = await supabase
+          .from('section_details')
+          .insert(sectionDetails);
+
+        if (detailsError) {
+          console.error('Error creating section details:', detailsError);
+          throw new Error(`Failed to create section details: ${detailsError.message}`);
+        }
+
+        console.log('Created section details:', sectionDetails.length);
+      }
     }
 
     // Update submission with final results
