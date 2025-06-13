@@ -223,13 +223,13 @@ serve(async (req) => {
 
     console.log('Successfully updated submission status to processing');
 
-    // Scrape LinkedIn profiles if provided
+    // Scrape LinkedIn profiles if provided - with improved error handling
     let linkedInContent = '';
     if (existingSubmission.founder_linkedin_urls && existingSubmission.founder_linkedin_urls.length > 0) {
       console.log('Found LinkedIn URLs to scrape:', existingSubmission.founder_linkedin_urls);
       
       try {
-        // Call the scrape-linkedin function
+        // Call the scrape-linkedin function with better error handling
         const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-linkedin', {
           body: { 
             linkedInUrls: existingSubmission.founder_linkedin_urls,
@@ -238,8 +238,9 @@ serve(async (req) => {
         });
 
         if (scrapeError) {
-          console.error('LinkedIn scraping error:', scrapeError);
+          console.error('LinkedIn scraping error (non-fatal):', scrapeError);
           linkedInContent = '\n\nNote: LinkedIn profile scraping encountered issues, but continuing with analysis.\n';
+          linkedInContent += `Scraping error: ${scrapeError.message || 'Unknown error'}\n`;
         } else if (scrapeResult?.success && scrapeResult?.profiles) {
           console.log('LinkedIn profiles scraped successfully:', scrapeResult.profiles.length);
           
@@ -258,10 +259,14 @@ serve(async (req) => {
           linkedInContent += "- Skills relevant to the business\n";
           linkedInContent += "- Network and connections quality\n";
           linkedInContent += "- Previous startup or entrepreneurial experience\n\n";
+        } else {
+          console.log('LinkedIn scraping returned no profiles');
+          linkedInContent = '\n\nNote: LinkedIn profile data was not available for analysis.\n';
         }
       } catch (scrapeError) {
-        console.error('LinkedIn scraping failed:', scrapeError);
+        console.error('LinkedIn scraping failed (non-fatal):', scrapeError);
         linkedInContent = '\n\nNote: LinkedIn profile scraping failed, but continuing with analysis.\n';
+        linkedInContent += `Error details: ${scrapeError.message || 'Unknown error'}\n`;
       }
     }
 
@@ -422,30 +427,36 @@ serve(async (req) => {
     8. Return only valid JSON without markdown formatting
     `;
 
-    // Call OpenAI API
+    // Call OpenAI API with better error handling
     console.log('Calling OpenAI API for enhanced metrics-based analysis with LinkedIn data...');
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-2024-11-20',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT on response quality or what should have been included in the form. When LinkedIn profile data is provided, incorporate those insights into the team strength analysis. Return only valid JSON without markdown formatting.'
-          },
-          {
-            role: 'user',
-            content: analysisPrompt
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 4500,
-      }),
-    });
+    let openaiResponse;
+    try {
+      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-2024-11-20',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT on response quality or what should have been included in the form. When LinkedIn profile data is provided, incorporate those insights into the team strength analysis. Return only valid JSON without markdown formatting.'
+            },
+            {
+              role: 'user',
+              content: analysisPrompt
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 4500,
+        }),
+      });
+    } catch (fetchError) {
+      console.error('Failed to call OpenAI API:', fetchError);
+      throw new Error(`Failed to connect to OpenAI API: ${fetchError.message}`);
+    }
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
@@ -554,152 +565,163 @@ serve(async (req) => {
 
         if (companyError || !company) {
           console.error('Failed to create company:', companyError);
-          throw new Error(`Failed to create company: ${companyError?.message || 'Unknown error'}`);
-        }
+          // Don't throw here - we can still return the analysis even if company creation fails
+          console.log('Continuing without company creation...');
+        } else {
+          companyId = company.id;
+          console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
 
-        companyId = company.id;
-        console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
+          // Create company details
+          if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
+            const { error: detailsError } = await supabase
+              .from('company_details')
+              .insert({
+                company_id: companyId,
+                industry: companyInfo.industry || null,
+                stage: companyInfo.stage || null,
+                introduction: companyInfo.introduction || null,
+                status: 'New'
+              });
 
-        // Create company details
-        if (companyInfo.industry || companyInfo.stage || companyInfo.introduction) {
-          const { error: detailsError } = await supabase
-            .from('company_details')
-            .insert({
-              company_id: companyId,
-              industry: companyInfo.industry || null,
-              stage: companyInfo.stage || null,
-              introduction: companyInfo.introduction || null,
-              status: 'New'
-            });
-
-          if (detailsError) {
-            console.error('Failed to create company details:', detailsError);
-          } else {
-            console.log('Created company details');
+            if (detailsError) {
+              console.error('Failed to create company details:', detailsError);
+            } else {
+              console.log('Created company details');
+            }
           }
         }
       }
 
       // DELETE OLD SECTIONS AND CREATE NEW ONES (for both new and existing companies)
       if (companyId) {
-        console.log('Deleting old sections for company:', companyId);
-        
-        // First delete section details
-        const { error: deleteSectionDetailsError } = await supabase
-          .from('section_details')
-          .delete()
-          .in('section_id', 
-            await supabase.from('sections').select('id').eq('company_id', companyId).then(res => 
-              res.data?.map(s => s.id) || []
-            )
-          );
+        try {
+          console.log('Deleting old sections for company:', companyId);
+          
+          // First get section IDs to delete their details
+          const { data: sectionsToDelete } = await supabase
+            .from('sections')
+            .select('id')
+            .eq('company_id', companyId);
 
-        if (deleteSectionDetailsError) {
-          console.error('Failed to delete old section details:', deleteSectionDetailsError);
-        }
-
-        // Then delete sections
-        const { error: deleteSectionsError } = await supabase
-          .from('sections')
-          .delete()
-          .eq('company_id', companyId);
-
-        if (deleteSectionsError) {
-          console.error('Failed to delete old sections:', deleteSectionsError);
-        } else {
-          console.log('Deleted old sections');
-        }
-
-        // Create new sections based on latest analysis
-        const sectionsToCreate = [
-          {
-            company_id: companyId,
-            title: 'Problem-Solution Fit',
-            type: 'problem_solution_fit',
-            score: Number(analysisResult.sections?.problem_solution_fit?.score) || 0,
-            description: analysisResult.sections?.problem_solution_fit?.analysis || ''
-          },
-          {
-            company_id: companyId,
-            title: 'Market Opportunity',
-            type: 'market_opportunity', 
-            score: Number(analysisResult.sections?.market_opportunity?.score) || 0,
-            description: analysisResult.sections?.market_opportunity?.analysis || ''
-          },
-          {
-            company_id: companyId,
-            title: 'Competitive Advantage',
-            type: 'competitive_advantage',
-            score: Number(analysisResult.sections?.competitive_advantage?.score) || 0,
-            description: analysisResult.sections?.competitive_advantage?.analysis || ''
-          },
-          {
-            company_id: companyId,
-            title: 'Team Strength',
-            type: 'team_strength',
-            score: Number(analysisResult.sections?.team_strength?.score) || 0,
-            description: analysisResult.sections?.team_strength?.analysis || ''
-          },
-          {
-            company_id: companyId,
-            title: 'Execution Plan',
-            type: 'execution_plan',
-            score: Number(analysisResult.sections?.execution_plan?.score) || 0,
-            description: analysisResult.sections?.execution_plan?.analysis || ''
-          }
-        ];
-
-        const { data: sections, error: sectionsError } = await supabase
-          .from('sections')
-          .insert(sectionsToCreate)
-          .select();
-
-        if (sectionsError) {
-          console.error('Failed to create sections:', sectionsError);
-        } else {
-          console.log('Created sections:', sections?.length || 0);
-
-          // Create section details for strengths and improvements
-          for (const section of sections || []) {
-            const sectionType = section.type;
-            const sectionData = analysisResult.sections?.[sectionType];
+          if (sectionsToDelete && sectionsToDelete.length > 0) {
+            const sectionIds = sectionsToDelete.map(s => s.id);
             
-            if (sectionData) {
-              const detailsToCreate = [];
-              
-              // Add strengths
-              if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
-                for (const strength of sectionData.strengths) {
-                  detailsToCreate.push({
-                    section_id: section.id,
-                    detail_type: 'strength',
-                    content: strength
-                  });
-                }
-              }
-              
-              // Add improvements (now actually weaknesses)
-              if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
-                for (const improvement of sectionData.improvements) {
-                  detailsToCreate.push({
-                    section_id: section.id,
-                    detail_type: 'weakness',
-                    content: improvement
-                  });
-                }
-              }
+            // Delete section details first
+            const { error: deleteSectionDetailsError } = await supabase
+              .from('section_details')
+              .delete()
+              .in('section_id', sectionIds);
 
-              if (detailsToCreate.length > 0) {
-                const { error: detailsError } = await supabase
-                  .from('section_details')
-                  .insert(detailsToCreate);
+            if (deleteSectionDetailsError) {
+              console.error('Failed to delete old section details:', deleteSectionDetailsError);
+            }
+          }
 
-                if (detailsError) {
-                  console.error(`Failed to create details for section ${section.type}:`, detailsError);
+          // Then delete sections
+          const { error: deleteSectionsError } = await supabase
+            .from('sections')
+            .delete()
+            .eq('company_id', companyId);
+
+          if (deleteSectionsError) {
+            console.error('Failed to delete old sections:', deleteSectionsError);
+          } else {
+            console.log('Deleted old sections');
+          }
+
+          // Create new sections based on latest analysis
+          const sectionsToCreate = [
+            {
+              company_id: companyId,
+              title: 'Problem-Solution Fit',
+              type: 'problem_solution_fit',
+              score: Number(analysisResult.sections?.problem_solution_fit?.score) || 0,
+              description: analysisResult.sections?.problem_solution_fit?.analysis || ''
+            },
+            {
+              company_id: companyId,
+              title: 'Market Opportunity',
+              type: 'market_opportunity', 
+              score: Number(analysisResult.sections?.market_opportunity?.score) || 0,
+              description: analysisResult.sections?.market_opportunity?.analysis || ''
+            },
+            {
+              company_id: companyId,
+              title: 'Competitive Advantage',
+              type: 'competitive_advantage',
+              score: Number(analysisResult.sections?.competitive_advantage?.score) || 0,
+              description: analysisResult.sections?.competitive_advantage?.analysis || ''
+            },
+            {
+              company_id: companyId,
+              title: 'Team Strength',
+              type: 'team_strength',
+              score: Number(analysisResult.sections?.team_strength?.score) || 0,
+              description: analysisResult.sections?.team_strength?.analysis || ''
+            },
+            {
+              company_id: companyId,
+              title: 'Execution Plan',
+              type: 'execution_plan',
+              score: Number(analysisResult.sections?.execution_plan?.score) || 0,
+              description: analysisResult.sections?.execution_plan?.analysis || ''
+            }
+          ];
+
+          const { data: sections, error: sectionsError } = await supabase
+            .from('sections')
+            .insert(sectionsToCreate)
+            .select();
+
+          if (sectionsError) {
+            console.error('Failed to create sections:', sectionsError);
+          } else {
+            console.log('Created sections:', sections?.length || 0);
+
+            // Create section details for strengths and improvements
+            for (const section of sections || []) {
+              const sectionType = section.type;
+              const sectionData = analysisResult.sections?.[sectionType];
+              
+              if (sectionData) {
+                const detailsToCreate = [];
+                
+                // Add strengths
+                if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
+                  for (const strength of sectionData.strengths) {
+                    detailsToCreate.push({
+                      section_id: section.id,
+                      detail_type: 'strength',
+                      content: strength
+                    });
+                  }
+                }
+                
+                // Add improvements (now actually weaknesses)
+                if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
+                  for (const improvement of sectionData.improvements) {
+                    detailsToCreate.push({
+                      section_id: section.id,
+                      detail_type: 'weakness',
+                      content: improvement
+                    });
+                  }
+                }
+
+                if (detailsToCreate.length > 0) {
+                  const { error: detailsError } = await supabase
+                    .from('section_details')
+                    .insert(detailsToCreate);
+
+                  if (detailsError) {
+                    console.error(`Failed to create details for section ${section.type}:`, detailsError);
+                  }
                 }
               }
             }
           }
+        } catch (sectionError) {
+          console.error('Error handling sections (non-fatal):', sectionError);
         }
       }
     } else {
@@ -729,6 +751,7 @@ serve(async (req) => {
     
     console.log(successMessage);
 
+    // Always return success even if some parts failed
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -769,6 +792,7 @@ serve(async (req) => {
       }
     }
 
+    // Always return a proper HTTP response with CORS headers
     return new Response(
       JSON.stringify({ 
         success: false,
