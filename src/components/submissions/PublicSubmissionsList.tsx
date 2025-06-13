@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,7 +127,7 @@ export function PublicSubmissionsList() {
           console.error("Error in public form submissions fetch:", err);
         }
         
-        // Fetch BARC form submissions (filtered by RLS policies)
+        // Fetch BARC form submissions (now properly filtered by RLS policies for IIT Bombay users)
         try {
           console.log("Fetching BARC form submissions...");
           const { data: barcData, error: barcError } = await supabase

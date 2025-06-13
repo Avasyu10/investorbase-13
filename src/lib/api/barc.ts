@@ -57,7 +57,7 @@ export const submitBarcForm = async (submissionData: BarcSubmissionData) => {
       question_5: submissionData.question_5 || null,
       submitter_email: submissionData.submitter_email,
       founder_linkedin_urls: submissionData.founder_linkedin_urls || [],
-      user_id: userId
+      user_id: userId // This will be null for non-IIT Bombay users
     };
 
     console.log('Inserting BARC submission with user_id:', formattedData);

@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -102,7 +101,8 @@ serve(async (req) => {
       form_slug: existingSubmission.form_slug,
       existing_company_id: existingSubmission.company_id,
       analysis_status: existingSubmission.analysis_status,
-      founder_linkedin_urls: existingSubmission.founder_linkedin_urls
+      founder_linkedin_urls: existingSubmission.founder_linkedin_urls,
+      user_id: existingSubmission.user_id
     });
 
     // Check if analysis is already completed and company exists
@@ -162,53 +162,30 @@ serve(async (req) => {
 
     console.log('Successfully acquired lock for submission analysis');
 
-    // Get the form details to find the owner
-    let formOwnerId = null;
-    if (existingSubmission.form_slug) {
+    // Determine the effective user ID for company creation
+    // Priority: 1) User from submission (if IIT Bombay), 2) Form owner, 3) Current user
+    let effectiveUserId = existingSubmission.user_id; // This will be set for IIT Bombay users
+
+    // If no user_id in submission, try to get form owner
+    if (!effectiveUserId && existingSubmission.form_slug) {
       const { data: formData, error: formError } = await supabase
         .from('public_submission_forms')
         .select('user_id')
         .eq('form_slug', existingSubmission.form_slug)
         .single();
 
-      if (formError) {
-        console.error('Failed to fetch form data:', formError);
-      } else if (formData) {
-        formOwnerId = formData.user_id;
-        console.log('Form owner ID:', formOwnerId);
+      if (!formError && formData) {
+        effectiveUserId = formData.user_id;
+        console.log('Using form owner as effective user:', effectiveUserId);
       }
     }
 
-    // Use the form owner as the user for the company, fallback to current user
-    const effectiveUserId = formOwnerId || currentUserId;
-    console.log('Using user ID for company creation:', effectiveUserId);
-
-    // Check if a company already exists for this submission from previous attempts
-    let existingCompanyId = existingSubmission.company_id;
-    
-    // If no company_id in submission but submission has company_name, check if company exists
-    if (!existingCompanyId && existingSubmission.company_name && effectiveUserId) {
-      console.log('Checking for existing company with same name for this user...');
-      const { data: existingCompanies, error: companyCheckError } = await supabase
-        .from('companies')
-        .select('id, source, created_at')
-        .eq('name', existingSubmission.company_name)
-        .eq('user_id', effectiveUserId)
-        .eq('source', 'barc_form')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (!companyCheckError && existingCompanies && existingCompanies.length > 0) {
-        existingCompanyId = existingCompanies[0].id;
-        console.log('Found existing company with same name:', existingCompanyId);
-        
-        // Update the submission to link to this existing company
-        await supabase
-          .from('barc_form_submissions')
-          .update({ company_id: existingCompanyId })
-          .eq('id', submissionId);
-      }
+    // Fallback to current user if still no effective user
+    if (!effectiveUserId) {
+      effectiveUserId = currentUserId;
     }
+
+    console.log('Using effective user ID for company creation:', effectiveUserId);
 
     // Scrape LinkedIn profiles if provided - with improved error handling
     let linkedInContent = '';
@@ -429,7 +406,7 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT on response quality or what should have been included in the form. When LinkedIn profile data is provided, incorporate those insights into the team strength analysis. Return only valid JSON without markdown formatting.'
+              content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or what should have been included in the form. When LinkedIn profile data is provided, incorporate those insights into the team strength analysis. Return only valid JSON without markdown formatting.'
             },
             {
               role: 'user',
@@ -515,7 +492,7 @@ serve(async (req) => {
     }
 
     // COMPANY CREATION/UPDATE LOGIC - PREVENT DUPLICATES
-    let companyId = existingCompanyId; // Use the company ID we found earlier
+    let companyId = existingSubmission.company_id; // Use the company ID we found earlier
     let isNewCompany = false;
 
     if (effectiveUserId) {
