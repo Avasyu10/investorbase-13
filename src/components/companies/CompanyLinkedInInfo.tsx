@@ -29,14 +29,32 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
       const { data: scrapeData, error: scrapeError } = await supabase
         .from('company_scrapes')
         .select('*')
-        .eq('company_id', companyId)
-        .eq('status', 'completed')
+        .eq('linkedin_url', `%company%`) // We'll need to filter this differently
+        .eq('status', 'success')
         .order('created_at', { ascending: false })
         .maybeSingle();
 
       if (scrapeError) {
         console.error('Error fetching company scrape data:', scrapeError);
-        return null;
+        // Try alternative approach - fetch all company scrapes and find the one with company LinkedIn URL
+        const { data: allScrapes, error: allScrapesError } = await supabase
+          .from('company_scrapes')
+          .select('*')
+          .eq('status', 'success')
+          .order('created_at', { ascending: false });
+
+        if (allScrapesError) {
+          console.error('Error fetching all company scrapes:', allScrapesError);
+          return null;
+        }
+
+        // Find scrape that looks like a company URL (contains /company/)
+        const companyScrape = allScrapes?.find(scrape => 
+          scrape.linkedin_url && scrape.linkedin_url.includes('/company/')
+        );
+
+        console.log('Company scrape data found via alternative method:', companyScrape);
+        return companyScrape;
       }
 
       console.log('Company scrape data found:', scrapeData);
@@ -66,8 +84,20 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
   }
 
   // Safely parse the scraped_data JSON
-  const scrapedData = linkedinData.scraped_data as ScrapedData | null;
-  const content = scrapedData?.content || 'No content available';
+  const scrapedData = linkedinData.scraped_data;
+  let content = 'No content available';
+  
+  if (scrapedData) {
+    // The scraped data from scraped_company_details contains company information
+    if (typeof scrapedData === 'string') {
+      content = scrapedData;
+    } else if (scrapedData.content) {
+      content = scrapedData.content;
+    } else {
+      // Format the company data for display
+      content = JSON.stringify(scrapedData, null, 2);
+    }
+  }
 
   return (
     <Card className="mb-6">
@@ -114,7 +144,7 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
           
           {showDetails && (
             <div className="mt-4 p-4 bg-secondary/50 rounded-lg">
-              <h4 className="font-semibold mb-3">LinkedIn Profile Content:</h4>
+              <h4 className="font-semibold mb-3">LinkedIn Company Profile:</h4>
               <div className="max-h-96 overflow-y-auto">
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
                   {content}

@@ -752,25 +752,24 @@ serve(async (req) => {
       console.log('Not creating/updating company - no effective user ID');
     }
 
-    // NOW SCRAPE COMPANY LINKEDIN IF PROVIDED AND WE HAVE A COMPANY ID
+    // NOW SCRAPE COMPANY LINKEDIN IF PROVIDED AND WE HAVE A COMPANY ID - USING CORRECT EDGE FUNCTION
     if (existingSubmission.company_linkedin_url && companyId) {
       console.log('Scraping Company LinkedIn URL after company creation:', existingSubmission.company_linkedin_url);
       
       try {
-        // Call the scrape-linkedin function for company LinkedIn with actual companyId
-        const { data: companyScrapeResult, error: companyScrapeError } = await supabase.functions.invoke('scrape-linkedin', {
+        // Call the scraped_company_details function for company LinkedIn
+        const { data: companyScrapeResult, error: companyScrapeError } = await supabase.functions.invoke('scraped_company_details', {
           body: { 
-            linkedInUrls: [existingSubmission.company_linkedin_url],
-            companyId: companyId // Now we have the actual company ID
+            linkedInUrl: existingSubmission.company_linkedin_url
           }
         });
 
         if (companyScrapeError) {
           console.error('Company LinkedIn scraping error (non-fatal):', companyScrapeError);
-        } else if (companyScrapeResult?.success && companyScrapeResult?.profiles && companyScrapeResult.profiles.length > 0) {
+        } else if (companyScrapeResult?.success) {
           console.log('Company LinkedIn profile scraped and stored successfully');
         } else {
-          console.log('Company LinkedIn scraping returned no profiles');
+          console.log('Company LinkedIn scraping returned no results');
         }
       } catch (companyScrapeError) {
         console.error('Company LinkedIn scraping failed (non-fatal):', companyScrapeError);
