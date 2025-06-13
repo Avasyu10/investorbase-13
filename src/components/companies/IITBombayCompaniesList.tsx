@@ -104,15 +104,15 @@ export function IITBombayCompaniesList() {
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-green-600">{highPotential}</div>
-          <div className="text-sm text-muted-foreground">High Potential (&gt;70)</div>
+          <div className="text-sm text-muted-foreground">High Potential</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-yellow-600">{mediumPotential}</div>
-          <div className="text-sm text-muted-foreground">Medium Potential (50-70)</div>
+          <div className="text-sm text-muted-foreground">Medium Potential</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-red-600">{badPotential}</div>
-          <div className="text-sm text-muted-foreground">Bad Potential (&lt;50)</div>
+          <div className="text-sm text-muted-foreground">Bad Potential</div>
         </div>
       </div>
 
