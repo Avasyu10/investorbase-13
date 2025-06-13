@@ -10,7 +10,7 @@ export interface LinkedInScrapingResult {
   error?: string;
 }
 
-export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): Promise<LinkedInScrapingResult | null> => {
+export const scrapeLinkedInProfiles = async (urls: string[], companyId: string): Promise<LinkedInScrapingResult | null> => {
   if (!urls || urls.length === 0 || !urls[0].trim()) {
     return null;
   }
@@ -35,7 +35,7 @@ export const scrapeLinkedInProfiles = async (urls: string[], reportId: string): 
     console.log(`Scraping LinkedIn profiles: ${validUrls.join(', ')}`);
     
     const { data, error } = await supabase.functions.invoke('scrape-linkedin', {
-      body: { linkedInUrls: validUrls, reportId }
+      body: { linkedInUrls: validUrls, companyId }
     });
     
     if (error) {

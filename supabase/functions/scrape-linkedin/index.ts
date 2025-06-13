@@ -37,7 +37,7 @@ serve(async (req) => {
       );
     }
 
-    const { linkedInUrls, reportId } = reqData;
+    const { linkedInUrls, companyId } = reqData;
     
     if (!linkedInUrls || !Array.isArray(linkedInUrls) || linkedInUrls.length === 0) {
       console.error("Missing or invalid linkedInUrls in request");
@@ -57,7 +57,7 @@ serve(async (req) => {
     
     // Initialize Supabase client for database operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     let supabase = null;
     
     if (supabaseUrl && supabaseKey) {
@@ -100,26 +100,26 @@ serve(async (req) => {
             console.log(`Profile appears to be private: ${trimmedUrl}`);
             privateProfileCount++;
             
-            if (supabase && reportId) {
+            if (supabase && companyId) {
               await supabase
-                .from('linkedin_profile_scrapes')
+                .from('company_scrapes')
                 .insert({
-                  report_id: reportId,
-                  url: trimmedUrl,
-                  content: null,
+                  company_id: companyId,
+                  linkedin_url: trimmedUrl,
+                  scraped_data: null,
                   status: 'private',
                   error_message: 'Profile is private or access denied'
                 });
             }
           } else {
             errorCount++;
-            if (supabase && reportId) {
+            if (supabase && companyId) {
               await supabase
-                .from('linkedin_profile_scrapes')
+                .from('company_scrapes')
                 .insert({
-                  report_id: reportId,
-                  url: trimmedUrl,
-                  content: null,
+                  company_id: companyId,
+                  linkedin_url: trimmedUrl,
+                  scraped_data: null,
                   status: 'error',
                   error_message: `API error: ${response.status} - ${errorText}`
                 });
@@ -135,13 +135,13 @@ serve(async (req) => {
           console.log(`Profile is private: ${trimmedUrl}`);
           privateProfileCount++;
           
-          if (supabase && reportId) {
+          if (supabase && companyId) {
             await supabase
-              .from('linkedin_profile_scrapes')
+              .from('company_scrapes')
               .insert({
-                report_id: reportId,
-                url: trimmedUrl,
-                content: null,
+                company_id: companyId,
+                linkedin_url: trimmedUrl,
+                scraped_data: null,
                 status: 'private',
                 error_message: 'Profile is private'
               });
@@ -233,15 +233,15 @@ serve(async (req) => {
         
         successCount++;
         
-        // Store the scraped profile in the database
-        if (supabase && reportId) {
+        // Store the scraped profile in the company_scrapes table
+        if (supabase && companyId) {
           const { error: insertError } = await supabase
-            .from('linkedin_profile_scrapes')
+            .from('company_scrapes')
             .insert({
-              report_id: reportId,
-              url: trimmedUrl,
-              content,
-              status: 'success'
+              company_id: companyId,
+              linkedin_url: trimmedUrl,
+              scraped_data: { content, profileData: data },
+              status: 'completed'
             });
             
           if (insertError) {
@@ -254,13 +254,13 @@ serve(async (req) => {
         errorCount++;
         
         // Store error in database
-        if (supabase && reportId) {
+        if (supabase && companyId) {
           await supabase
-            .from('linkedin_profile_scrapes')
+            .from('company_scrapes')
             .insert({
-              report_id: reportId,
-              url: trimmedUrl,
-              content: null,
+              company_id: companyId,
+              linkedin_url: trimmedUrl,
+              scraped_data: null,
               status: 'error',
               error_message: error instanceof Error ? error.message : 'Unknown error'
             });

@@ -14,9 +14,9 @@ interface CompanyLinkedInInfoProps {
 export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInInfoProps) => {
   const [showDetails, setShowDetails] = useState(false);
 
-  // Fetch company LinkedIn scrape data
+  // Fetch company LinkedIn scrape data from company_scrapes table
   const { data: linkedinData, isLoading } = useQuery({
-    queryKey: ['company-linkedin-scrape', companyId],
+    queryKey: ['company-scrapes', companyId],
     queryFn: async () => {
       // First, get the BARC submission to find the company LinkedIn URL
       const { data: submission, error: submissionError } = await supabase
@@ -29,16 +29,17 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
         return null;
       }
 
-      // Then fetch the LinkedIn scrape data for that URL
+      // Then fetch the LinkedIn scrape data from company_scrapes table
       const { data: scrapeData, error: scrapeError } = await supabase
-        .from('linkedin_profile_scrapes')
+        .from('company_scrapes')
         .select('*')
-        .eq('url', submission.company_linkedin_url)
+        .eq('company_id', companyId)
+        .eq('linkedin_url', submission.company_linkedin_url)
         .order('created_at', { ascending: false })
         .maybeSingle();
 
       if (scrapeError) {
-        console.error('Error fetching LinkedIn scrape data:', scrapeError);
+        console.error('Error fetching company scrape data:', scrapeError);
         return null;
       }
 
@@ -76,7 +77,7 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(linkedinData.url, '_blank')}
+              onClick={() => window.open(linkedinData.linkedin_url, '_blank')}
               className="flex items-center gap-2"
             >
               <ExternalLink className="h-4 w-4" />
@@ -115,7 +116,7 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
               <h4 className="font-semibold mb-3">LinkedIn Profile Content:</h4>
               <div className="max-h-96 overflow-y-auto">
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {linkedinData.content || 'No content available'}
+                  {linkedinData.scraped_data?.content || 'No content available'}
                 </pre>
               </div>
             </div>
