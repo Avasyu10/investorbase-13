@@ -87,12 +87,6 @@ export function IITBombayCompaniesList() {
           >
             Upload Deck
           </Button>
-          <Button 
-            onClick={() => navigate("/iit-bombay-analytics")} 
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-          >
-            Analytics Dashboard
-          </Button>
         </div>
       </div>
 

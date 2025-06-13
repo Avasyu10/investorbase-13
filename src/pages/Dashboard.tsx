@@ -1,3 +1,4 @@
+
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+
 const Dashboard = () => {
   const {
     user,
@@ -25,6 +27,7 @@ const Dashboard = () => {
   const {
     toast
   } = useToast();
+
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("User not authenticated, redirecting to home");
@@ -41,6 +44,7 @@ const Dashboard = () => {
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
   }, [user, isLoading, navigate]);
+
   const checkAdminStatus = async () => {
     if (!user) return;
     try {
@@ -66,11 +70,13 @@ const Dashboard = () => {
       console.error('Error in admin check:', err);
     }
   };
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>;
   }
+
   if (!user) return null; // Will redirect in useEffect
 
   return <div className="animate-fade-in">
@@ -86,10 +92,6 @@ const Dashboard = () => {
             {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Panel
-              </Button>}
-            {isIITBombay && <Button onClick={() => navigate("/iit-bombay-analytics")} variant="outline" className="flex items-center bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-blue-200 text-slate-950">
-                <GraduationCap className="mr-2 h-4 w-4" />
-                Analytics
               </Button>}
             <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
               <Settings className="mr-2 h-4 w-4" />
@@ -127,4 +129,5 @@ const Dashboard = () => {
       </div>
     </div>;
 };
+
 export default Dashboard;
