@@ -199,11 +199,11 @@ serve(async (req) => {
       console.log('Found Company LinkedIn URL to scrape:', existingSubmission.company_linkedin_url);
       
       try {
-        // Call the scrape-linkedin function for company LinkedIn
+        // Call the scrape-linkedin function for company LinkedIn - use reportId instead of companyId
         const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-linkedin', {
           body: { 
             linkedInUrls: [existingSubmission.company_linkedin_url],
-            reportId: submissionId 
+            reportId: submissionId // Use reportId for identification instead of companyId
           }
         });
 
@@ -248,11 +248,11 @@ serve(async (req) => {
       console.log('Found LinkedIn URLs to scrape:', existingSubmission.founder_linkedin_urls);
       
       try {
-        // Call the scrape-linkedin function with better error handling
+        // Call the scrape-linkedin function with better error handling - use reportId instead of companyId
         const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-linkedin', {
           body: { 
             linkedInUrls: existingSubmission.founder_linkedin_urls,
-            reportId: submissionId 
+            reportId: submissionId // Use reportId for identification instead of companyId
           }
         });
 

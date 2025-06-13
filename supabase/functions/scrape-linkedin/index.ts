@@ -37,7 +37,7 @@ serve(async (req) => {
       );
     }
 
-    const { linkedInUrls, companyId } = reqData;
+    const { linkedInUrls, companyId, reportId } = reqData;
     
     if (!linkedInUrls || !Array.isArray(linkedInUrls) || linkedInUrls.length === 0) {
       console.error("Missing or invalid linkedInUrls in request");
@@ -100,6 +100,7 @@ serve(async (req) => {
             console.log(`Profile appears to be private: ${trimmedUrl}`);
             privateProfileCount++;
             
+            // Only store in company_scrapes if we have a companyId
             if (supabase && companyId) {
               await supabase
                 .from('company_scrapes')
@@ -113,6 +114,7 @@ serve(async (req) => {
             }
           } else {
             errorCount++;
+            // Only store in company_scrapes if we have a companyId
             if (supabase && companyId) {
               await supabase
                 .from('company_scrapes')
@@ -135,6 +137,7 @@ serve(async (req) => {
           console.log(`Profile is private: ${trimmedUrl}`);
           privateProfileCount++;
           
+          // Only store in company_scrapes if we have a companyId
           if (supabase && companyId) {
             await supabase
               .from('company_scrapes')
@@ -233,7 +236,7 @@ serve(async (req) => {
         
         successCount++;
         
-        // Store the scraped profile in the company_scrapes table
+        // Store the scraped profile in the company_scrapes table only if we have a companyId
         if (supabase && companyId) {
           const { error: insertError } = await supabase
             .from('company_scrapes')
@@ -253,7 +256,7 @@ serve(async (req) => {
         console.error(`Error processing LinkedIn profile ${trimmedUrl}:`, error);
         errorCount++;
         
-        // Store error in database
+        // Store error in database only if we have a companyId
         if (supabase && companyId) {
           await supabase
             .from('company_scrapes')
