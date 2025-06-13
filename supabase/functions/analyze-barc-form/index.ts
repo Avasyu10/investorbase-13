@@ -123,22 +123,44 @@ serve(async (req) => {
       );
     }
 
-    // Check if analysis is currently processing
-    if (existingSubmission.analysis_status === 'processing') {
-      console.log('Submission is already being processed, returning conflict');
+    // Use timestamp-based locking to prevent concurrent processing
+    const lockTimestamp = new Date().toISOString();
+    
+    // Try to update status to processing with timestamp-based locking
+    console.log('Attempting to acquire lock for submission analysis...');
+    const { data: lockResult, error: lockError } = await supabase
+      .from('barc_form_submissions')
+      .update({ 
+        analysis_status: 'processing',
+        updated_at: lockTimestamp
+      })
+      .eq('id', submissionId)
+      .in('analysis_status', ['pending', 'failed']) // Only allow from these states
+      .select()
+      .maybeSingle();
+
+    if (lockError) {
+      console.error('Error acquiring lock:', lockError);
+      throw new Error('Failed to start analysis - please try again');
+    }
+
+    if (!lockResult) {
+      console.log('Could not acquire lock - submission is already being processed or completed');
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'This submission is already being analyzed. Please wait for it to complete.',
+          error: 'This submission is already being analyzed or has been completed. Please wait or refresh the page.',
           submissionId,
-          status: 'already_processing'
+          status: 'concurrent_processing'
         }),
         {
-          status: 409, // Conflict status
+          status: 409,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
+
+    console.log('Successfully acquired lock for submission analysis');
 
     // Get the form details to find the owner
     let formOwnerId = null;
@@ -187,41 +209,6 @@ serve(async (req) => {
           .eq('id', submissionId);
       }
     }
-
-    // Update status to processing with optimistic locking
-    console.log('Attempting to update submission status to processing...');
-    const { data: statusUpdateResult, error: statusUpdateError } = await supabase
-      .from('barc_form_submissions')
-      .update({ 
-        analysis_status: 'processing'
-      })
-      .eq('id', submissionId)
-      .eq('analysis_status', existingSubmission.analysis_status) // Optimistic locking
-      .select()
-      .maybeSingle();
-
-    if (statusUpdateError) {
-      console.error('Error updating status:', statusUpdateError);
-      throw new Error('Failed to start analysis - please try again');
-    }
-
-    if (!statusUpdateResult) {
-      console.log('Status was not updated - another process is handling this submission');
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: 'Another analysis is already in progress for this submission.',
-          submissionId,
-          status: 'concurrent_processing'
-        }),
-        {
-          status: 409,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    console.log('Successfully updated submission status to processing');
 
     // Scrape LinkedIn profiles if provided - with improved error handling
     let linkedInContent = '';
@@ -455,12 +442,26 @@ serve(async (req) => {
       });
     } catch (fetchError) {
       console.error('Failed to call OpenAI API:', fetchError);
+      
+      // Reset status on error
+      await supabase
+        .from('barc_form_submissions')
+        .update({ analysis_status: 'failed', analysis_error: `OpenAI API error: ${fetchError.message}` })
+        .eq('id', submissionId);
+      
       throw new Error(`Failed to connect to OpenAI API: ${fetchError.message}`);
     }
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
       console.error('OpenAI API error:', errorText);
+      
+      // Reset status on error
+      await supabase
+        .from('barc_form_submissions')
+        .update({ analysis_status: 'failed', analysis_error: `OpenAI API error: ${openaiResponse.status}` })
+        .eq('id', submissionId);
+      
       throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
     }
 
@@ -468,6 +469,11 @@ serve(async (req) => {
     console.log('OpenAI response received, parsing...');
 
     if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
+      await supabase
+        .from('barc_form_submissions')
+        .update({ analysis_status: 'failed', analysis_error: 'Invalid OpenAI response structure' })
+        .eq('id', submissionId);
+      
       throw new Error('Invalid response structure from OpenAI');
     }
 
@@ -493,6 +499,12 @@ serve(async (req) => {
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
       console.error('Cleaned response:', analysisText);
+      
+      await supabase
+        .from('barc_form_submissions')
+        .update({ analysis_status: 'failed', analysis_error: 'Analysis response was not valid JSON' })
+        .eq('id', submissionId);
+      
       throw new Error('Analysis response was not valid JSON');
     }
 
