@@ -149,18 +149,66 @@ serve(async (req) => {
     const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
-    // Create LinkedIn profile data section if founder profiles exist
+    // Fetch LinkedIn profile data if founder profiles exist
     const hasLinkedInData = submission.founder_linkedin_urls && submission.founder_linkedin_urls.length > 0;
     let linkedInDataSection = '';
+    let founderLinkedInData = [];
 
     if (hasLinkedInData && submission.founder_linkedin_urls.some(url => url.trim())) {
-      linkedInDataSection = `
+      console.log('Fetching LinkedIn profile data for founders...');
+      
+      // Get LinkedIn scrape data for the founders
+      const validLinkedInUrls = submission.founder_linkedin_urls.filter(url => url.trim());
+      
+      for (const url of validLinkedInUrls) {
+        try {
+          const { data: linkedinData, error: linkedinError } = await supabase
+            .from('linkedin_scrapes')
+            .select('*')
+            .eq('linkedin_url', url.trim())
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!linkedinError && linkedinData) {
+            founderLinkedInData.push({
+              url: url.trim(),
+              name: linkedinData.name || 'Founder',
+              headline: linkedinData.headline || '',
+              summary: linkedinData.summary || '',
+              experience: linkedinData.experience || [],
+              education: linkedinData.education || [],
+              skills: linkedinData.skills || []
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching LinkedIn data for ${url}:`, error);
+        }
+      }
+
+      if (founderLinkedInData.length > 0) {
+        linkedInDataSection = `
+
+    Founder LinkedIn Profile Data:
+    ${founderLinkedInData.map((founder, index) => `
+    Founder ${index + 1} - ${founder.name}:
+    - LinkedIn URL: ${founder.url}
+    - Current Role: ${founder.headline}
+    - Professional Summary: ${founder.summary}
+    - Recent Experience: ${founder.experience.slice(0, 3).map(exp => `${exp.title} at ${exp.company} (${exp.duration})`).join(', ')}
+    - Education: ${founder.education.slice(0, 2).map(edu => `${edu.degree} from ${edu.institution}`).join(', ')}
+    - Key Skills: ${founder.skills.slice(0, 10).join(', ')}
+    `).join('\n')}
+    `;
+      } else {
+        linkedInDataSection = `
 
     Founder LinkedIn Profile Data:
     ${submission.founder_linkedin_urls.filter(url => url.trim()).map((url, index) => `
     Profile ${index + 1}: ${url}
     - Analysis: Based on the LinkedIn URL provided, this appears to be a founder/co-founder profile that should be analyzed for relevant experience and background in relation to the startup.`).join('\n')}
     `;
+      }
     }
 
     // Call OpenAI for analysis
@@ -255,7 +303,7 @@ serve(async (req) => {
 
     For STRENGTHS (exactly 4-5 each per section):
     - STRENGTHS: Highlight what they did well, supported by market validation and data
-    - FOR TEAM SECTION: If LinkedIn data was provided, include founder-specific insights as described above
+    - FOR TEAM SECTION SPECIFICALLY: ${founderLinkedInData.length > 0 ? 'Start with founder LinkedIn insights in this exact format: "Founder Name: his/her relevant experience or achievement" for each founder with LinkedIn data available, then follow with 3-4 additional strengths related to the answer and market data.' : 'If LinkedIn data was provided, include founder-specific insights as described above'}
 
     Provide analysis in this JSON format with ALL scores on 1-100 scale:
 
@@ -289,7 +337,7 @@ serve(async (req) => {
         "team_strength": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration - include LinkedIn founder insights if available"],
+          "strengths": [${founderLinkedInData.length > 0 ? `"CRITICAL: Start with founder LinkedIn insights in this EXACT format for each founder: 'Founder Name: his/her relevant experience or achievement', then add 3-4 additional strengths with market data integration"` : `"exactly 4-5 strengths with market data integration - include LinkedIn founder insights if available"`}],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "execution_plan": {
@@ -326,7 +374,7 @@ serve(async (req) => {
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. Return only valid JSON without markdown formatting
-    8. FOR TEAM SECTION: Include LinkedIn founder insights in strengths when available
+    8. FOR TEAM SECTION: ${founderLinkedInData.length > 0 ? 'MUST start strengths with founder LinkedIn insights in exact format: "Founder Name: his/her relevant experience or achievement" for each founder, then add 3-4 market-related strengths' : 'Include LinkedIn founder insights in strengths when available'}
     9. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
     `;
 
