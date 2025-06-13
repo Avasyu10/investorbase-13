@@ -10,7 +10,6 @@ import { Loader2, Eye, FileText, Building, Star, Calendar } from "lucide-react";
 import { BarcAnalysisModal } from "@/components/submissions/BarcAnalysisModal";
 import { toast } from "sonner";
 import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
-import { analyzeBarcSubmission } from "@/lib/api/barc";
 
 const BarcSubmissions = () => {
   const { user } = useAuth();
@@ -74,18 +73,24 @@ const BarcSubmissions = () => {
         .update({ analysis_status: 'processing' })
         .eq('id', submissionId);
 
-      // Trigger the analysis
-      const result = await analyzeBarcSubmission(submissionId);
-      
-      if (result?.success) {
+      // Trigger the analysis using direct function invocation
+      const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
+        body: { submissionId }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success) {
         toast.success("Analysis completed successfully!");
       } else {
         // If the API says it failed but we got a response, check if it was a lock error
-        if (result?.error?.includes('already being analyzed')) {
+        if (data?.error?.includes('already being analyzed')) {
           console.log('Analysis was already in progress, checking status...');
           toast.info("Analysis is already in progress for this submission.");
         } else {
-          throw new Error(result?.error || 'Analysis failed');
+          throw new Error(data?.error || 'Analysis failed');
         }
       }
 

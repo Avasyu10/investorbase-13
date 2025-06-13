@@ -99,13 +99,6 @@ Company: ${submission.company_name || 'Not provided'}
 Industry: ${submission.industry || 'Not provided'}
 Summary: ${submission.executive_summary || 'Not provided'}
 
-Responses:
-1. Problem & Timing: ${submission.question_1 || 'Not provided'}
-2. Customer Discovery: ${submission.question_2 || 'Not provided'}
-3. Competitive Advantage: ${submission.question_3 || 'Not provided'}
-4. Team Strength: ${submission.question_4 || 'Not provided'}
-5. Execution Plan: ${submission.question_5 || 'Not provided'}
-
 Provide analysis in this JSON format:
 {
   "overall_score": 75,
@@ -134,7 +127,7 @@ Return only valid JSON.`;
           }
         ],
         temperature: 0.3,
-        max_tokens: 1000,
+        max_tokens: 500,
       }),
     });
 
@@ -165,7 +158,7 @@ Return only valid JSON.`;
 
     console.log('Analysis completed:', analysisResult.overall_score);
 
-    // Create or find company
+    // Create company with minimal data
     let companyId = submission.company_id;
     let isNewCompany = false;
 
