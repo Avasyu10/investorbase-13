@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,18 +35,38 @@ const BarcSubmit = () => {
 
       setLoading(true);
       try {
+        console.log("Checking form with slug:", formSlug);
+        
+        // First try to find the specific form
         const { data, error } = await supabase
           .from('public_submission_forms')
-          .select('id, form_name, is_active')
+          .select('id, form_name, is_active, form_type')
           .eq('form_slug', formSlug)
           .eq('form_type', 'barc')
-          .eq('is_active', true)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) {
-          toast.error("Form not found or inactive");
+        console.log("Form query result:", { data, error });
+
+        if (error) {
+          console.error("Error querying form:", error);
+          toast.error("Error loading form");
+          setFormExists(false);
+        } else if (!data) {
+          console.log("No form found with slug:", formSlug);
+          // Let's also check what forms exist
+          const { data: allForms } = await supabase
+            .from('public_submission_forms')
+            .select('form_slug, form_name, form_type, is_active');
+          console.log("All available forms:", allForms);
+          
+          toast.error("Form not found");
+          setFormExists(false);
+        } else if (!data.is_active) {
+          console.log("Form found but inactive:", data);
+          toast.error("Form is not active");
           setFormExists(false);
         } else {
+          console.log("Form found and active:", data);
           setFormExists(true);
         }
       } catch (error) {
@@ -130,7 +149,7 @@ const BarcSubmit = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -138,12 +157,16 @@ const BarcSubmit = () => {
 
   if (!formExists) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center">
             <CardTitle className="text-destructive">Form Not Found</CardTitle>
             <CardDescription>
               The BARC application form you're looking for doesn't exist or is no longer active.
+              <br />
+              <span className="text-xs text-muted-foreground mt-2 block">
+                Form slug: {formSlug}
+              </span>
             </CardDescription>
           </CardHeader>
         </Card>
@@ -152,7 +175,7 @@ const BarcSubmit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
