@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,19 +23,7 @@ const BarcSubmissions = () => {
 
       console.log('Fetching BARC submissions for user:', user.id);
 
-      // Check if user is IIT Bombay user
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_iitbombay')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.is_iitbombay) {
-        console.log('User is not IIT Bombay user, returning empty array');
-        return [];
-      }
-
-      // Fetch submissions - RLS policies will automatically filter to relevant submissions
+      // Fetch submissions - RLS policies will automatically filter to only submissions for forms owned by this user
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .select('*')
