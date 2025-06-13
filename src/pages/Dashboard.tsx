@@ -93,10 +93,12 @@ const Dashboard = () => {
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Panel
               </Button>}
-            <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
-              <Settings className="mr-2 h-4 w-4" />
-              Public Forms
-            </Button>
+            {!isIITBombay && (
+              <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
+                <Settings className="mr-2 h-4 w-4" />
+                Public Forms
+              </Button>
+            )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
               <Newspaper className="mr-2 h-4 w-4" />
               News Feed
