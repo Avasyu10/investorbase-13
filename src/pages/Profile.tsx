@@ -19,10 +19,11 @@ const Profile = () => {
   const { profile, isLoading: profileLoading, isIITBombay } = useProfile();
   const [activeTab, setActiveTab] = useState("email");
   const [iitBombayFormSlug, setIitBombayFormSlug] = useState<string | null>(null);
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
 
   // Fetch the IIT Bombay form belonging to the current user
   useEffect(() => {
-    const fetchIITBombayForm = async () => {
+    const fetchOrCreateIITBombayForm = async () => {
       if (!user || !isIITBombay) return;
 
       try {
@@ -45,15 +46,65 @@ const Profile = () => {
           setIitBombayFormSlug(forms[0].form_slug);
           console.log('Found IIT Bombay form slug:', forms[0].form_slug);
         } else {
-          console.log('No IIT Bombay form found for user');
+          console.log('No IIT Bombay form found for user, creating one automatically...');
+          await createBarcFormAutomatically();
         }
       } catch (error) {
-        console.error('Error in fetchIITBombayForm:', error);
+        console.error('Error in fetchOrCreateIITBombayForm:', error);
       }
     };
 
-    fetchIITBombayForm();
+    fetchOrCreateIITBombayForm();
   }, [user, isIITBombay]);
+
+  const createBarcFormAutomatically = async () => {
+    if (!user || isCreatingForm) return;
+
+    setIsCreatingForm(true);
+    try {
+      const formName = "IIT Bombay BARC Applications";
+      const formSlug = "iit-bombay-barc-applications";
+
+      console.log('Creating BARC form automatically for user:', user.id);
+
+      // Check if a form with this slug already exists
+      const { data: existingForm } = await supabase
+        .from('public_submission_forms')
+        .select('id')
+        .eq('form_slug', formSlug)
+        .maybeSingle();
+
+      let finalSlug = formSlug;
+      if (existingForm) {
+        // If the slug exists, append user ID to make it unique
+        finalSlug = `${formSlug}-${user.id.substring(0, 8)}`;
+      }
+
+      const { data, error } = await supabase
+        .from('public_submission_forms')
+        .insert({
+          form_name: formName,
+          form_slug: finalSlug,
+          form_type: 'barc',
+          auto_analyze: true,
+          user_id: user.id,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setIitBombayFormSlug(finalSlug);
+      console.log('BARC form created automatically with slug:', finalSlug);
+      toast.success("Your IIT Bombay BARC form has been created automatically!");
+    } catch (error: any) {
+      console.error('Error creating BARC form automatically:', error);
+      toast.error(`Failed to create form: ${error.message}`);
+    } finally {
+      setIsCreatingForm(false);
+    }
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -115,7 +166,12 @@ const Profile = () => {
             <p className="text-muted-foreground mb-4">
               Share this URL with applicants who want to submit their BARC applications to IIT Bombay.
             </p>
-            {iitBombayFormUrl ? (
+            {isCreatingForm ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Creating your BARC form...</span>
+              </div>
+            ) : iitBombayFormUrl ? (
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Input
