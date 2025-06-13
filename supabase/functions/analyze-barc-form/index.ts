@@ -123,7 +123,7 @@ serve(async (req) => {
       );
     }
 
-    // Use timestamp-based locking to prevent concurrent processing
+    // Improved locking mechanism with better error responses
     const lockTimestamp = new Date().toISOString();
     
     // Try to update status to processing with timestamp-based locking
@@ -146,15 +146,18 @@ serve(async (req) => {
 
     if (!lockResult) {
       console.log('Could not acquire lock - submission is already being processed or completed');
+      
+      // Return a more specific response for concurrent processing
       return new Response(
         JSON.stringify({ 
           success: false,
           error: 'This submission is already being analyzed or has been completed. Please wait or refresh the page.',
           submissionId,
-          status: 'concurrent_processing'
+          status: 'concurrent_processing',
+          code: 'ALREADY_PROCESSING'
         }),
         {
-          status: 409,
+          status: 409, // Conflict status code
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -757,27 +760,20 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-barc-form function:', error);
 
-    // Try to update the submission with error status if we have a submissionId
-    if (submissionId) {
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-        
-        if (supabaseUrl && supabaseServiceKey) {
-          const supabase = createClient(supabaseUrl, supabaseServiceKey);
-          
-          await supabase
-            .from('barc_form_submissions')
-            .update({
-              analysis_status: 'failed',
-              analysis_error: error instanceof Error ? error.message : 'Unknown error'
-            })
-            .eq('id', submissionId);
-          
-          console.log('Updated submission status to failed');
-        }
-      } catch (updateError) {
-        console.error('Failed to update error status:', updateError);
+    // Determine appropriate status code
+    let statusCode = 500;
+    let errorCode = 'INTERNAL_ERROR';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Submission ID is required')) {
+        statusCode = 400;
+        errorCode = 'MISSING_SUBMISSION_ID';
+      } else if (error.message.includes('Failed to fetch submission')) {
+        statusCode = 404;
+        errorCode = 'SUBMISSION_NOT_FOUND';
+      } else if (error.message.includes('OpenAI API key not configured')) {
+        statusCode = 503;
+        errorCode = 'SERVICE_UNAVAILABLE';
       }
     }
 
@@ -786,10 +782,11 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        submissionId
+        submissionId,
+        code: errorCode
       }),
       {
-        status: 500,
+        status: statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

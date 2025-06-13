@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -287,13 +288,49 @@ export function PublicSubmissionsList() {
         
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
         
-        // Check if it's a duplicate analysis error
-        if (errorMessage.includes('already being analyzed') || errorMessage.includes('already being processed')) {
+        // Handle concurrent processing more gracefully
+        if (errorMessage.includes('already being analyzed') || 
+            errorMessage.includes('already being processed') ||
+            errorMessage.includes('concurrent_processing')) {
+          
+          console.log('Concurrent processing detected, will retry...');
+          
+          // Show a more user-friendly message
           toast({
-            title: "Analysis in progress",
-            description: "This submission is already being analyzed. Please wait for it to complete.",
-            variant: "destructive",
+            title: "Processing in progress",
+            description: "The analysis is being processed. We'll check the status shortly...",
           });
+          
+          // Wait a moment and then check if the analysis completed
+          setTimeout(async () => {
+            try {
+              // Check if the submission was analyzed
+              const { data: updatedSubmission, error: fetchError } = await supabase
+                .from('barc_form_submissions')
+                .select('analysis_status, company_id')
+                .eq('id', submission.id)
+                .single();
+              
+              if (!fetchError && updatedSubmission) {
+                if (updatedSubmission.analysis_status === 'completed' && updatedSubmission.company_id) {
+                  toast({
+                    title: "Analysis completed",
+                    description: "The analysis has finished successfully!",
+                  });
+                  
+                  navigate(`/company/${updatedSubmission.company_id}`);
+                } else if (updatedSubmission.analysis_status === 'processing') {
+                  toast({
+                    title: "Still processing",
+                    description: "The analysis is still in progress. Please check back in a moment.",
+                  });
+                }
+              }
+            } catch (statusError) {
+              console.error('Error checking submission status:', statusError);
+            }
+          }, 3000); // Wait 3 seconds before checking status
+          
         } else {
           toast({
             title: "Analysis failed",
