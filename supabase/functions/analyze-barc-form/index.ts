@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -192,6 +193,9 @@ serve(async (req) => {
 
     // Scrape LinkedIn profiles if provided - with improved error handling
     let linkedInContent = '';
+    let hasLinkedInData = false;
+    let founderProfiles = [];
+    
     if (existingSubmission.founder_linkedin_urls && existingSubmission.founder_linkedin_urls.length > 0) {
       console.log('Found LinkedIn URLs to scrape:', existingSubmission.founder_linkedin_urls);
       
@@ -210,6 +214,8 @@ serve(async (req) => {
           linkedInContent += `Scraping error: ${scrapeError.message || 'Unknown error'}\n`;
         } else if (scrapeResult?.success && scrapeResult?.profiles) {
           console.log('LinkedIn profiles scraped successfully:', scrapeResult.profiles.length);
+          hasLinkedInData = true;
+          founderProfiles = scrapeResult.profiles;
           
           linkedInContent = '\n\nFOUNDER LINKEDIN PROFILES ANALYSIS:\n\n';
           scrapeResult.profiles.forEach((profile: any, index: number) => {
@@ -236,6 +242,41 @@ serve(async (req) => {
         linkedInContent += `Error details: ${scrapeError.message || 'Unknown error'}\n`;
       }
     }
+
+    // Create team section instructions based on LinkedIn data availability
+    const teamSectionInstructions = hasLinkedInData ? `
+    4. TEAM STRENGTH: "${existingSubmission.question_4 || 'Not provided'}"
+    ${linkedInContent}
+    
+    SPECIAL INSTRUCTIONS FOR TEAM SECTION WHEN LINKEDIN DATA IS AVAILABLE:
+    - In the STRENGTHS section, format founder information as: "Founder/Co-founder [Name]: [2-3 most important points about their background, experience, and relevance to the business]"
+    - Extract founder names from the LinkedIn profiles and highlight their most relevant experience
+    - Include additional market-validated strengths beyond founder profiles
+    - Focus on domain expertise, track record, and complementary skills
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
+    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
+    - Execution History (30-35 points): Track record of building, selling, or scaling?
+    
+    IMPORTANT: Use the LinkedIn profile data above to assess team strength more accurately. Consider the professional backgrounds, experience, education, and achievements shown in the LinkedIn profiles when evaluating founder-problem fit and execution history.
+    
+    Score harshly if: No domain experience, skill gaps, no execution track record
+    Score highly if: Deep domain expertise, complementary skills, proven execution` : `
+    4. TEAM STRENGTH: "${existingSubmission.question_4 || 'Not provided'}"
+    
+    SPECIAL INSTRUCTIONS FOR TEAM SECTION WHEN NO LINKEDIN DATA IS AVAILABLE:
+    - Focus on analyzing the written response about team background
+    - Include market data and industry benchmarks related to team composition
+    - Evaluate based on the information provided in the application response
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
+    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
+    - Execution History (30-35 points): Track record of building, selling, or scaling?
+    
+    Score harshly if: No domain experience, skill gaps, no execution track record
+    Score highly if: Deep domain expertise, complementary skills, proven execution`;
 
     // Enhanced analysis prompt with specific metrics-based scoring and market-focused weaknesses
     const analysisPrompt = `
@@ -282,18 +323,7 @@ serve(async (req) => {
     Score harshly if: No clear differentiation, easily replicable, unaware of competition
     Score highly if: Strong unique value prop, defensible moats, competitive intelligence
 
-    4. TEAM STRENGTH: "${existingSubmission.question_4 || 'Not provided'}"
-    ${linkedInContent}
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
-    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
-    - Execution History (30-35 points): Track record of building, selling, or scaling?
-    
-    IMPORTANT: Use the LinkedIn profile data above to assess team strength more accurately. Consider the professional backgrounds, experience, education, and achievements shown in the LinkedIn profiles when evaluating founder-problem fit and execution history.
-    
-    Score harshly if: No domain experience, skill gaps, no execution track record
-    Score highly if: Deep domain expertise, complementary skills, proven execution
+    ${teamSectionInstructions}
 
     5. EXECUTION PLAN: "${existingSubmission.question_5 || 'Not provided'}"
     
@@ -364,8 +394,8 @@ serve(async (req) => {
         },
         "team_strength": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context, SPECIFICALLY incorporating insights from the LinkedIn profile data provided above",
-          "strengths": ["exactly 4-5 strengths with market data integration, incorporating LinkedIn profile insights when available"],
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context, ${hasLinkedInData ? 'SPECIFICALLY incorporating insights from the LinkedIn profile data provided above' : 'based on the written response provided'}",
+          "strengths": ["exactly 4-5 strengths with market data integration${hasLinkedInData ? ', starting with founder profiles in the format: Founder/Co-founder [Name]: [key points], then additional market-validated strengths' : ', incorporating analysis of the written team response and market benchmarks'}"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "execution_plan": {
@@ -390,7 +420,7 @@ serve(async (req) => {
     4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
-    7. INCORPORATE LinkedIn profile insights into team strength analysis when available
+    7. ${hasLinkedInData ? 'INCORPORATE LinkedIn profile insights into team strength analysis and format founder information in strengths as specified' : 'Analyze team strength based on written response and market data'}
     8. Return only valid JSON without markdown formatting
     `;
 
@@ -409,7 +439,7 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: 'You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or what should have been included in the form. When LinkedIn profile data is provided, incorporate those insights into the team strength analysis. Return only valid JSON without markdown formatting.'
+              content: `You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or what should have been included in the form. ${hasLinkedInData ? 'When LinkedIn profile data is provided, incorporate those insights into the team strength analysis and format founder information in strengths as: "Founder/Co-founder [Name]: [key points]"' : 'When no LinkedIn data is available, analyze team strength based on written response and market data.'} Return only valid JSON without markdown formatting.`
             },
             {
               role: 'user',
