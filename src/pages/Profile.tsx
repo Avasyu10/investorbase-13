@@ -4,14 +4,26 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { ConditionalAlertsSection } from "@/components/profile/ConditionalAlertsSection";
-import { Loader2, GraduationCap } from "lucide-react";
+import { Loader2, GraduationCap, Copy, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 
 const Profile = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { profile, isLoading: profileLoading, isIITBombay } = useProfile();
   const [activeTab, setActiveTab] = useState("email");
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard!");
+  };
+
+  // IIT Bombay public form URL - you may need to update this with the actual form slug
+  const iitBombayFormUrl = `${window.location.origin}/barc-submit/iit-bombay-applications`;
 
   if (authLoading || profileLoading) {
     return (
@@ -44,6 +56,43 @@ const Profile = () => {
             You have access to enhanced features and alumni network insights.
           </p>
         </div>
+      )}
+
+      {isIITBombay && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              IIT Bombay Public Form
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Share this URL with applicants who want to submit their BARC applications to IIT Bombay.
+            </p>
+            <div className="flex items-center space-x-2">
+              <Input
+                value={iitBombayFormUrl}
+                readOnly
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(iitBombayFormUrl)}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(iitBombayFormUrl, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
