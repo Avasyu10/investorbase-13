@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -339,7 +338,6 @@ const BarcSubmit = () => {
                   />
                 </div>
 
-                {/* Founder LinkedIn Profiles */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Founder Information</h3>
                   
@@ -387,7 +385,6 @@ const BarcSubmit = () => {
                   </div>
                 </div>
 
-                {/* Application Questions */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Application Questions</h3>
                   
@@ -477,7 +474,6 @@ const BarcSubmit = () => {
                   />
                 </div>
 
-                {/* Contact Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Contact Information</h3>
                   
