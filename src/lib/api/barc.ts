@@ -40,7 +40,7 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       question_5: data.question_5,
       submitter_email: data.submitter_email,
       founder_linkedin_urls: data.founder_linkedin_urls,
-      user_id: userId, // Set user_id if user is authenticated
+      user_id: userId,
       analysis_status: 'pending'
     })
     .select()
@@ -52,9 +52,6 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
   }
 
   console.log('BARC form submitted successfully:', submission);
-
-  // Return the submission without automatically triggering analysis
-  // Analysis can be triggered manually later if needed
   return submission;
 };
 
@@ -64,19 +61,17 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   try {
     console.log('Invoking analyze-barc-form function with submissionId:', submissionId);
     
-    // Use the working analyze-barc-form function instead
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
       body: { submissionId },
     });
 
+    console.log('Function invocation response:', { data, error });
+
     if (error) {
       console.error('Error invoking BARC analysis function:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
     }
 
-    console.log('BARC analysis function response:', data);
-    
     if (!data) {
       throw new Error('No response data from analysis function');
     }
@@ -85,11 +80,10 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       throw new Error(data.error || 'Analysis failed');
     }
 
+    console.log('BARC analysis completed successfully:', data);
     return data;
   } catch (error) {
     console.error('Failed to analyze BARC submission:', error);
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
     throw error;
   }
 };

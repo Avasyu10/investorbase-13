@@ -60,17 +60,25 @@ serve(async (req) => {
     console.log('Supabase client created');
 
     // Fetch submission data
-    console.log('Fetching submission data');
+    console.log('Fetching submission data for ID:', submissionId);
     const { data: submission, error: fetchError } = await supabase
       .from('barc_form_submissions')
       .select('*')
       .eq('id', submissionId)
       .single();
 
-    if (fetchError || !submission) {
+    if (fetchError) {
       console.error('Database fetch error:', fetchError);
       return new Response(
-        JSON.stringify({ success: false, error: `Submission not found: ${fetchError?.message || 'Unknown error'}` }),
+        JSON.stringify({ success: false, error: `Database error: ${fetchError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!submission) {
+      console.error('Submission not found');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Submission not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -92,10 +100,14 @@ serve(async (req) => {
 
     // Update to processing
     console.log('Updating status to processing');
-    await supabase
+    const { error: updateError } = await supabase
       .from('barc_form_submissions')
       .update({ analysis_status: 'processing' })
       .eq('id', submissionId);
+
+    if (updateError) {
+      console.error('Error updating status:', updateError);
+    }
 
     // Create analysis prompt
     const prompt = `Analyze this BARC application and provide a JSON response with scores and recommendation:
@@ -168,8 +180,22 @@ Provide a comprehensive analysis in this JSON format:
     });
 
     if (!openaiResponse.ok) {
-      console.error('OpenAI API error:', openaiResponse.status, await openaiResponse.text());
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      const errorText = await openaiResponse.text();
+      console.error('OpenAI API error:', openaiResponse.status, errorText);
+      
+      // Update status to error
+      await supabase
+        .from('barc_form_submissions')
+        .update({ 
+          analysis_status: 'error',
+          analysis_error: `OpenAI API error: ${openaiResponse.status}`
+        })
+        .eq('id', submissionId);
+
+      return new Response(
+        JSON.stringify({ success: false, error: `OpenAI API error: ${openaiResponse.status}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const openaiData = await openaiResponse.json();
@@ -178,7 +204,19 @@ Provide a comprehensive analysis in this JSON format:
     const content = openaiData.choices?.[0]?.message?.content;
     
     if (!content) {
-      throw new Error('No content from OpenAI');
+      console.error('No content from OpenAI');
+      await supabase
+        .from('barc_form_submissions')
+        .update({ 
+          analysis_status: 'error',
+          analysis_error: 'No content from OpenAI'
+        })
+        .eq('id', submissionId);
+
+      return new Response(
+        JSON.stringify({ success: false, error: 'No content from OpenAI' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Parse JSON response
@@ -190,12 +228,24 @@ Provide a comprehensive analysis in this JSON format:
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', parseError);
       console.error('Raw content:', content);
-      throw new Error('Invalid JSON from OpenAI');
+      
+      await supabase
+        .from('barc_form_submissions')
+        .update({ 
+          analysis_status: 'error',
+          analysis_error: 'Invalid JSON from OpenAI'
+        })
+        .eq('id', submissionId);
+
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid JSON from OpenAI' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Update submission with results
     console.log('Updating submission with results');
-    const { error: updateError } = await supabase
+    const { error: finalUpdateError } = await supabase
       .from('barc_form_submissions')
       .update({
         analysis_status: 'completed',
@@ -204,9 +254,12 @@ Provide a comprehensive analysis in this JSON format:
       })
       .eq('id', submissionId);
 
-    if (updateError) {
-      console.error('Error updating submission:', updateError);
-      throw new Error(`Failed to update submission: ${updateError.message}`);
+    if (finalUpdateError) {
+      console.error('Error updating submission:', finalUpdateError);
+      return new Response(
+        JSON.stringify({ success: false, error: `Failed to update submission: ${finalUpdateError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Analysis completed successfully');
@@ -223,11 +276,11 @@ Provide a comprehensive analysis in this JSON format:
     console.error('Error in analysis function:', error);
 
     // Try to update status to error if we have submissionId
-    const requestBody = await req.json().catch(() => ({}));
-    const submissionId = requestBody?.submissionId;
-    
-    if (submissionId) {
-      try {
+    try {
+      const requestBody = await req.clone().json();
+      const submissionId = requestBody?.submissionId;
+      
+      if (submissionId) {
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL')!,
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -240,9 +293,9 @@ Provide a comprehensive analysis in this JSON format:
             analysis_error: error instanceof Error ? error.message : 'Unknown error'
           })
           .eq('id', submissionId);
-      } catch (updateError) {
-        console.error('Failed to update error status:', updateError);
       }
+    } catch (updateError) {
+      console.error('Failed to update error status:', updateError);
     }
 
     return new Response(
