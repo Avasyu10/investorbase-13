@@ -162,68 +162,144 @@ serve(async (req) => {
     - Company Type: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses:
-    1. Problem and Solution: ${submission.question_1 || 'Not provided'}
-    2. Target Market: ${submission.question_2 || 'Not provided'}
-    3. Competitive Advantage: ${submission.question_3 || 'Not provided'}
-    4. Team Background: ${submission.question_4 || 'Not provided'}
-    5. Growth Strategy: ${submission.question_5 || 'Not provided'}
+    Application Responses and Specific Metrics for Evaluation:
 
-    Please provide a detailed analysis covering:
+    1. PROBLEM & TIMING: "${submission.question_1 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Clarity of Problem Definition (20-30 points): Is it a real, urgent pain point with clear articulation?
+    - Market Timing Justification (20-30 points): Evidence of market shift, tech readiness, policy changes, etc.
+    - Insight Depth (20-30 points): Customer anecdotes, data, firsthand experience provided
+    
+    Score harshly if: Vague problem description, no timing evidence, lacks personal insight
+    Score highly if: Crystal clear pain point, strong timing evidence, rich customer insights
 
-    1. **Problem-Solution Fit Assessment** (Score: 1-100)
-    2. **Market Opportunity Analysis** (Score: 1-100)
-    3. **Competitive Positioning** (Score: 1-100)
-    4. **Team Capability Evaluation** (Score: 1-100)
-    5. **Execution Readiness** (Score: 1-100)
+    2. CUSTOMER DISCOVERY: "${submission.question_2 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Customer Clarity (25-35 points): Can they describe personas/segments with precision?
+    - Validation Effort (25-35 points): Have they spoken to customers, secured pilots, gathered feedback?
+    - GTMP Realism (25-35 points): Is acquisition strategy practical and scalable?
+    
+    Score harshly if: Generic customer descriptions, no validation efforts, unrealistic GTM
+    Score highly if: Detailed customer personas, extensive validation, practical GTM strategy
 
-    For each section, provide:
-    - A detailed analysis of strengths and areas for improvement
-    - Specific actionable recommendations
-    - Key insights that would be valuable for investment decisions
+    3. COMPETITIVE ADVANTAGE: "${submission.question_3 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Differentiation (30-35 points): Clearly stated advantages vs existing solutions?
+    - Defensibility (30-35 points): Hard to replicate—tech IP, data, partnerships, network effects?
+    - Strategic Awareness (30-35 points): Aware of and positioned against incumbents?
+    
+    Score harshly if: No clear differentiation, easily replicable, unaware of competition
+    Score highly if: Strong unique value prop, defensible moats, competitive intelligence
 
-    Format your response as valid JSON WITHOUT any markdown formatting or code blocks:
+    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
+    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
+    - Execution History (30-35 points): Track record of building, selling, or scaling?
+    
+    Score harshly if: No domain experience, skill gaps, no execution track record
+    Score highly if: Deep domain expertise, complementary skills, proven execution
+
+    5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
+    
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
+    - Goal Specificity (30-35 points): Clear KPIs like MVP, first customer, funding targets?
+    - Feasibility (30-35 points): Are goals realistic for 3-6 month timeframe?
+    - Support Clarity (30-35 points): Do they know what they need—mentorship, infrastructure, access?
+    
+    Score harshly if: Vague goals, unrealistic timelines, unclear support needs
+    Score highly if: Specific measurable goals, realistic timelines, clear support requirements
+
+    SCORING GUIDELINES - BE HIGHLY DISCRIMINATIVE:
+    - 90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding
+    - 80-89: Strong responses with good evidence and understanding, minor gaps
+    - 70-79: Adequate responses with some evidence, moderate understanding
+    - 60-69: Weak responses with limited evidence, significant gaps
+    - 40-59: Poor responses with minimal substance, major deficiencies
+    - 20-39: Very poor responses, largely inadequate or missing key elements
+    - 1-19: Extremely poor or non-responses
+
+    MARKET INTEGRATION REQUIREMENT:
+    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context.
+
+    For ASSESSMENT POINTS (6-7 points required):
+    Each point MUST contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation.
+
+    CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
+    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
+    - Market saturation concerns (X% of market already captured by incumbents)
+    - High customer acquisition costs in this sector ($X CAC vs industry average)
+    - Regulatory challenges affecting X% of similar companies
+    - Economic headwinds impacting sector growth (X% decline in funding)
+    - Technology adoption barriers affecting X% of target market
+    - Competitive pressure from well-funded players with $X backing
+    - Market timing risks based on industry cycles
+
+    For STRENGTHS (exactly 4-5 each per section):
+    - STRENGTHS: Highlight what they did well, supported by market validation and data
+
+    Provide analysis in this JSON format with ALL scores on 1-100 scale:
+
     {
       "overall_score": number (1-100),
       "recommendation": "Accept" | "Consider" | "Reject",
+      "company_info": {
+        "industry": "string (infer from application)",
+        "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
+        "introduction": "string (2-3 sentence description)"
+      },
       "sections": {
         "problem_solution_fit": {
           "score": number (1-100),
-          "analysis": "detailed analysis",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement 1", "improvement 2"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "market_opportunity": {
           "score": number (1-100),
-          "analysis": "detailed analysis", 
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement 1", "improvement 2"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "competitive_advantage": {
           "score": number (1-100),
-          "analysis": "detailed analysis",
-          "strengths": ["strength 1", "strength 2"], 
-          "improvements": ["improvement 1", "improvement 2"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "team_strength": {
           "score": number (1-100),
-          "analysis": "detailed analysis",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement 1", "improvement 2"] 
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "execution_plan": {
           "score": number (1-100),
-          "analysis": "detailed analysis",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement 1", "improvement 2"]
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
       },
       "summary": {
-        "key_factors": ["factor 1", "factor 2"],
-        "next_steps": ["step 1", "step 2"],
-        "overall_feedback": "comprehensive feedback"
+        "overall_feedback": "comprehensive feedback integrating response quality with market context",
+        "key_factors": ["key decision factors with market validation"],
+        "next_steps": ["specific recommendations with market-informed guidance"],
+        "assessment_points": ["EXACTLY 6-7 points, each containing multiple specific market numbers (market size, growth rates, CAC, competitive data, success rates) seamlessly integrated with response evaluation"]
       }
     }
+
+    CRITICAL REQUIREMENTS:
+    1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
+    2. Use the exact metrics provided for each question in your evaluation
+    3. Each assessment point must contain at least 4-5 specific market numbers/percentages
+    4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
+    5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
+    6. All scores must be 1-100 scale
+    7. Return only valid JSON without markdown formatting
     `;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
