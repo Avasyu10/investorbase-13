@@ -1,65 +1,58 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from './useAuth';
 
-interface Profile {
-  id: string;
-  username: string | null;
-  email: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-  is_admin: boolean;
-  is_iitbombay: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export function useProfile() {
+export const useProfile = () => {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      if (!user) {
-        setProfile(null);
-        setIsLoading(false);
-        return;
+  return useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) {
+        throw new Error('No user ID available');
       }
 
-      try {
-        setIsLoading(true);
-        setError(null);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
-        const { data, error: fetchError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (fetchError) {
-          throw fetchError;
-        }
-
-        setProfile(data);
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
-      } finally {
-        setIsLoading(false);
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
       }
-    }
 
-    fetchProfile();
-  }, [user]);
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+};
 
-  return {
-    profile,
-    isLoading,
-    error,
-    isIITBombay: profile?.is_iitbombay || false,
-    isAdmin: profile?.is_admin || false
-  };
-}
+export const useVCProfile = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['vc-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) {
+        throw new Error('No user ID available');
+      }
+
+      const { data, error } = await supabase
+        .from('vc_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching VC profile:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+};
