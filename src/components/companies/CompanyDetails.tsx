@@ -32,6 +32,7 @@ const CompanyDetails = () => {
   const [messages, setMessages] = useState<Array<{content: string, role: 'user' | 'assistant'}>>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isFromBarcForm, setIsFromBarcForm] = useState(false);
 
   // Memoize sorted sections for better performance
   const sortedSections = useMemo(() => {
@@ -51,6 +52,29 @@ const CompanyDetails = () => {
       return 0;
     });
   }, [company?.sections]);
+
+  // Check if this company is from a BARC form submission
+  useEffect(() => {
+    const checkBarcFormOrigin = async () => {
+      if (!id) return;
+      
+      try {
+        const { data: barcSubmission, error } = await supabase
+          .from('barc_form_submissions')
+          .select('id')
+          .eq('company_id', id)
+          .maybeSingle();
+
+        if (!error && barcSubmission) {
+          setIsFromBarcForm(true);
+        }
+      } catch (error) {
+        console.error('Error checking BARC form origin:', error);
+      }
+    };
+
+    checkBarcFormOrigin();
+  }, [id]);
 
   // Use company data directly from useCompanyDetails if available
   useEffect(() => {
@@ -295,7 +319,7 @@ const CompanyDetails = () => {
               </div>
 
               {/* Add Company LinkedIn Information component */}
-              {company?.source === 'barc_form' && (
+              {isFromBarcForm && (
                 <CompanyLinkedInInfo 
                   companyId={id || ""} 
                   companyName={company?.name || ""} 

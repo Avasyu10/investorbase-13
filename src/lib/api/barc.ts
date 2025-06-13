@@ -69,3 +69,24 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
 
   return submission;
 };
+
+export const analyzeBarcSubmission = async (submissionId: string) => {
+  console.log('Analyzing BARC submission:', submissionId);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('analyze-barc-submission', {
+      body: { submissionId }
+    });
+
+    if (error) {
+      console.error('Error invoking BARC analysis function:', error);
+      throw error;
+    }
+
+    console.log('BARC analysis completed:', data);
+    return data;
+  } catch (error) {
+    console.error('Failed to analyze BARC submission:', error);
+    throw error;
+  }
+};
