@@ -62,19 +62,36 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   console.log('Analyzing BARC submission:', submissionId);
 
   try {
+    console.log('Invoking analyze-barc-form function with submissionId:', submissionId);
+    
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
-      body: { submissionId }
+      body: JSON.stringify({ submissionId }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     if (error) {
       console.error('Error invoking BARC analysis function:', error);
-      throw error;
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
     }
 
-    console.log('BARC analysis completed:', data);
+    console.log('BARC analysis function response:', data);
+    
+    if (!data) {
+      throw new Error('No response data from analysis function');
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Analysis failed');
+    }
+
     return data;
   } catch (error) {
     console.error('Failed to analyze BARC submission:', error);
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
     throw error;
   }
 };
