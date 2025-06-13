@@ -29,8 +29,17 @@ serve(async (req) => {
   try {
     console.log('Processing POST request');
     
-    const requestBody = await req.json();
-    console.log('Request body received:', requestBody);
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body received:', requestBody);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const { submissionId } = requestBody;
     
@@ -109,12 +118,12 @@ serve(async (req) => {
       console.error('Error updating status:', updateError);
     }
 
-    // Create analysis prompt
+    // Create analysis prompt with proper handling of industry field
     const prompt = `Analyze this BARC application and provide a JSON response with scores and recommendation:
 
 Company: ${submission.company_name || 'Not provided'}
 Registration Type: ${submission.company_registration_type || 'Not provided'}
-Industry: ${submission.industry || 'Not provided'}
+Industry: ${submission.industry || submission.company_type || 'Not provided'}
 Executive Summary: ${submission.executive_summary || 'Not provided'}
 
 Application Questions:
@@ -274,30 +283,6 @@ Provide a comprehensive analysis in this JSON format:
 
   } catch (error) {
     console.error('Error in analysis function:', error);
-
-    // Try to update status to error if we have submissionId
-    try {
-      const requestBody = await req.clone().json();
-      const submissionId = requestBody?.submissionId;
-      
-      if (submissionId) {
-        const supabase = createClient(
-          Deno.env.get('SUPABASE_URL')!,
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-        );
-        
-        await supabase
-          .from('barc_form_submissions')
-          .update({ 
-            analysis_status: 'error',
-            analysis_error: error instanceof Error ? error.message : 'Unknown error'
-          })
-          .eq('id', submissionId);
-      }
-    } catch (updateError) {
-      console.error('Failed to update error status:', updateError);
-    }
-
     return new Response(
       JSON.stringify({ 
         success: false,
