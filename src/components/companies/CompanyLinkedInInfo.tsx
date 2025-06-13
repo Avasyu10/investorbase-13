@@ -23,23 +23,14 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
   const { data: linkedinData, isLoading } = useQuery({
     queryKey: ['company-scrapes', companyId],
     queryFn: async () => {
-      // First, get the BARC submission to find the company LinkedIn URL
-      const { data: submission, error: submissionError } = await supabase
-        .from('barc_form_submissions')
-        .select('company_linkedin_url')
-        .eq('company_id', companyId)
-        .maybeSingle();
-
-      if (submissionError || !submission?.company_linkedin_url) {
-        return null;
-      }
-
-      // Then fetch the LinkedIn scrape data from company_scrapes table
+      console.log('Fetching company scrapes for company ID:', companyId);
+      
+      // Fetch the LinkedIn scrape data from company_scrapes table
       const { data: scrapeData, error: scrapeError } = await supabase
         .from('company_scrapes')
         .select('*')
         .eq('company_id', companyId)
-        .eq('linkedin_url', submission.company_linkedin_url)
+        .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .maybeSingle();
 
@@ -48,6 +39,7 @@ export const CompanyLinkedInInfo = ({ companyId, companyName }: CompanyLinkedInI
         return null;
       }
 
+      console.log('Company scrape data found:', scrapeData);
       return scrapeData;
     },
     enabled: !!companyId,

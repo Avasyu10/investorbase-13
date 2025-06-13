@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -191,54 +192,6 @@ serve(async (req) => {
 
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
-    // Scrape Company LinkedIn URL if provided
-    let companyLinkedInContent = '';
-    let hasCompanyLinkedInData = false;
-    
-    if (existingSubmission.company_linkedin_url) {
-      console.log('Found Company LinkedIn URL to scrape:', existingSubmission.company_linkedin_url);
-      
-      try {
-        // Call the scrape-linkedin function for company LinkedIn - use reportId instead of companyId
-        const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-linkedin', {
-          body: { 
-            linkedInUrls: [existingSubmission.company_linkedin_url],
-            reportId: submissionId // Use reportId for identification instead of companyId
-          }
-        });
-
-        if (scrapeError) {
-          console.error('Company LinkedIn scraping error (non-fatal):', scrapeError);
-          companyLinkedInContent = '\n\nNote: Company LinkedIn profile scraping encountered issues, but continuing with analysis.\n';
-          companyLinkedInContent += `Scraping error: ${scrapeError.message || 'Unknown error'}\n`;
-        } else if (scrapeResult?.success && scrapeResult?.profiles && scrapeResult.profiles.length > 0) {
-          console.log('Company LinkedIn profile scraped successfully');
-          hasCompanyLinkedInData = true;
-          
-          const companyProfile = scrapeResult.profiles[0];
-          companyLinkedInContent = '\n\nCOMPANY LINKEDIN PROFILE ANALYSIS:\n\n';
-          companyLinkedInContent += `Company LinkedIn URL: ${companyProfile.url}\n\n`;
-          companyLinkedInContent += `Company Information:\n${companyProfile.content}\n\n`;
-          companyLinkedInContent += "--- End of Company Profile ---\n\n";
-          
-          companyLinkedInContent += "\nThis Company LinkedIn profile data should be analyzed for:\n";
-          companyLinkedInContent += "- Company size and growth trajectory\n";
-          companyLinkedInContent += "- Business model and value proposition\n";
-          companyLinkedInContent += "- Market presence and credibility\n";
-          companyLinkedInContent += "- Industry positioning and competitive advantages\n";
-          companyLinkedInContent += "- Recent company updates and milestones\n";
-          companyLinkedInContent += "- Employee count and team growth\n\n";
-        } else {
-          console.log('Company LinkedIn scraping returned no profiles');
-          companyLinkedInContent = '\n\nNote: Company LinkedIn profile data was not available for analysis.\n';
-        }
-      } catch (scrapeError) {
-        console.error('Company LinkedIn scraping failed (non-fatal):', scrapeError);
-        companyLinkedInContent = '\n\nNote: Company LinkedIn profile scraping failed, but continuing with analysis.\n';
-        companyLinkedInContent += `Error details: ${scrapeError.message || 'Unknown error'}\n`;
-      }
-    }
-
     // Scrape LinkedIn profiles if provided - with improved error handling
     let linkedInContent = '';
     let hasLinkedInData = false;
@@ -340,8 +293,6 @@ serve(async (req) => {
     - Company LinkedIn URL: ${existingSubmission.company_linkedin_url || 'Not provided'}
     - Submitter Email: ${existingSubmission.submitter_email || 'Not provided'}
 
-    ${hasCompanyLinkedInData ? companyLinkedInContent : ''}
-
     Application Responses and Specific Metrics for Evaluation:
 
     1. PROBLEM & TIMING: "${existingSubmission.question_1 || 'Not provided'}"
@@ -397,7 +348,6 @@ serve(async (req) => {
 
     MARKET INTEGRATION REQUIREMENT:
     For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context.
-    ${hasCompanyLinkedInData ? '\n\nIMPORTANT: Use the Company LinkedIn profile data provided above to enhance your analysis with additional company context, market positioning, and credibility assessment.\n' : ''}
 
     For ASSESSMENT POINTS (6-7 points required):
     Each point MUST contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation.
@@ -473,8 +423,7 @@ serve(async (req) => {
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. ${hasLinkedInData ? 'INCORPORATE LinkedIn profile insights into team strength analysis and format founder information in strengths as specified' : 'Analyze team strength based on written response and market data'}
-    8. ${hasCompanyLinkedInData ? 'INCORPORATE Company LinkedIn profile insights throughout the analysis for enhanced company context and market positioning assessment' : 'Continue with analysis based on available information'}
-    9. Return only valid JSON without markdown formatting
+    8. Return only valid JSON without markdown formatting
     `;
 
     // Call OpenAI API with better error handling
@@ -492,7 +441,7 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: `You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or what should have been included in the form. ${hasLinkedInData ? 'When LinkedIn profile data is provided, incorporate those insights into the team strength analysis and format founder information in strengths as: "Founder/Co-founder [Name]: [key points]"' : 'When no LinkedIn data is available, analyze team strength based on written response and market data.'} ${hasCompanyLinkedInData ? 'When Company LinkedIn data is provided, incorporate those insights throughout the analysis for enhanced company context and market positioning.' : ''} Return only valid JSON without markdown formatting.`
+              content: `You are an expert startup evaluator for IIT Bombay who uses specific metrics for highly discriminative scoring. You MUST create significant score differences between good and poor responses (excellent: 80-100, poor: 10-40). Use the exact metrics provided for each question. Generate exactly 6-7 assessment points with multiple market numbers in each. Provide exactly 4-5 strengths and 4-5 weaknesses per section. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or what should have been included in the form. ${hasLinkedInData ? 'When LinkedIn profile data is provided, incorporate those insights into the team strength analysis and format founder information in strengths as: "Founder/Co-founder [Name]: [key points]"' : 'When no LinkedIn data is available, analyze team strength based on written response and market data.'} Return only valid JSON without markdown formatting.`
             },
             {
               role: 'user',
@@ -801,6 +750,31 @@ serve(async (req) => {
       }
     } else {
       console.log('Not creating/updating company - no effective user ID');
+    }
+
+    // NOW SCRAPE COMPANY LINKEDIN IF PROVIDED AND WE HAVE A COMPANY ID
+    if (existingSubmission.company_linkedin_url && companyId) {
+      console.log('Scraping Company LinkedIn URL after company creation:', existingSubmission.company_linkedin_url);
+      
+      try {
+        // Call the scrape-linkedin function for company LinkedIn with actual companyId
+        const { data: companyScrapeResult, error: companyScrapeError } = await supabase.functions.invoke('scrape-linkedin', {
+          body: { 
+            linkedInUrls: [existingSubmission.company_linkedin_url],
+            companyId: companyId // Now we have the actual company ID
+          }
+        });
+
+        if (companyScrapeError) {
+          console.error('Company LinkedIn scraping error (non-fatal):', companyScrapeError);
+        } else if (companyScrapeResult?.success && companyScrapeResult?.profiles && companyScrapeResult.profiles.length > 0) {
+          console.log('Company LinkedIn profile scraped and stored successfully');
+        } else {
+          console.log('Company LinkedIn scraping returned no profiles');
+        }
+      } catch (companyScrapeError) {
+        console.error('Company LinkedIn scraping failed (non-fatal):', companyScrapeError);
+      }
     }
 
     // FINAL: Update the submission with analysis results and company_id

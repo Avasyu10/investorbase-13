@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
 import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
+import { CompanyLinkedInInfo } from "@/components/companies/CompanyLinkedInInfo";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -86,6 +87,9 @@ function CompanyDetails() {
               <ScoreAssessment company={company} />
             </div>
           </div>
+
+          {/* Company LinkedIn Information */}
+          <CompanyLinkedInInfo companyId={company.id} companyName={company.name} />
 
           {/* Overall Assessment */}
           <OverallAssessment
