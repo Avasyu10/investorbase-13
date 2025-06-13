@@ -11,7 +11,8 @@ import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { GraduationCap, Send, Loader2 } from "lucide-react";
 
 const BarcSubmit = () => {
-  const { formSlug } = useParams();
+  const params = useParams();
+  const formSlug = params.formSlug || params['*']; // Try both ways to capture the slug
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formExists, setFormExists] = useState(false);
@@ -31,7 +32,16 @@ const BarcSubmit = () => {
   // Verify form exists
   useEffect(() => {
     const verifyForm = async () => {
-      if (!formSlug) return;
+      console.log("URL params:", params);
+      console.log("Form slug extracted:", formSlug);
+      
+      if (!formSlug) {
+        console.log("No form slug found in URL");
+        toast.error("No form identifier found in URL");
+        setFormExists(false);
+        setLoading(false);
+        return;
+      }
 
       setLoading(true);
       try {
@@ -79,7 +89,7 @@ const BarcSubmit = () => {
     };
 
     verifyForm();
-  }, [formSlug]);
+  }, [formSlug, params]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -165,7 +175,10 @@ const BarcSubmit = () => {
               The BARC application form you're looking for doesn't exist or is no longer active.
               <br />
               <span className="text-xs text-muted-foreground mt-2 block">
-                Form slug: {formSlug}
+                Form slug: {formSlug || 'No slug found'}
+              </span>
+              <span className="text-xs text-muted-foreground mt-1 block">
+                URL params: {JSON.stringify(params)}
               </span>
             </CardDescription>
           </CardHeader>
