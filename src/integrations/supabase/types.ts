@@ -49,7 +49,6 @@ export type Database = {
           form_slug: string
           founder_linkedin_urls: string[] | null
           id: string
-          industry: string | null
           question_1: string | null
           question_2: string | null
           question_3: string | null
@@ -75,7 +74,6 @@ export type Database = {
           form_slug: string
           founder_linkedin_urls?: string[] | null
           id?: string
-          industry?: string | null
           question_1?: string | null
           question_2?: string | null
           question_3?: string | null
@@ -101,7 +99,6 @@ export type Database = {
           form_slug?: string
           founder_linkedin_urls?: string[] | null
           id?: string
-          industry?: string | null
           question_1?: string | null
           question_2?: string | null
           question_3?: string | null
