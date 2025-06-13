@@ -59,17 +59,28 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   console.log('Analyzing BARC submission:', submissionId);
 
   try {
+    console.log('Getting current user session...');
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.warn('No active session found, proceeding without authentication');
+    }
+
     console.log('Invoking analyze-barc-form function with submissionId:', submissionId);
     
+    // Use the correct function invocation with proper headers
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
       body: { submissionId },
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     console.log('Function invocation response:', { data, error });
 
     if (error) {
       console.error('Error invoking BARC analysis function:', error);
-      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      throw new Error(`Function invocation failed: ${error.message || JSON.stringify(error)}`);
     }
 
     if (!data) {
@@ -84,6 +95,12 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     return data;
   } catch (error) {
     console.error('Failed to analyze BARC submission:', error);
-    throw error;
+    
+    // Provide more detailed error information
+    if (error instanceof Error) {
+      throw new Error(`Analysis failed: ${error.message}`);
+    } else {
+      throw new Error(`Analysis failed: ${JSON.stringify(error)}`);
+    }
   }
 };
