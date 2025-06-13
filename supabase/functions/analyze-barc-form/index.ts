@@ -1,5 +1,4 @@
 
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -152,10 +151,10 @@ serve(async (req) => {
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
     // Call OpenAI for analysis
-    console.log('Calling OpenAI API for enhanced metrics-based analysis...');
+    console.log('Calling OpenAI API for startup analysis...');
     
     const analysisPrompt = `
-    You are an expert startup evaluator for IIT Bombay's incubation program. Analyze the following startup application and provide a comprehensive assessment with specific metrics and market insights.
+    You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -170,35 +169,23 @@ serve(async (req) => {
     4. Team Background: ${submission.question_4 || 'Not provided'}
     5. Growth Strategy: ${submission.question_5 || 'Not provided'}
 
-    Please provide a detailed analysis with specific market metrics and assessment points covering:
+    Please provide a detailed analysis covering:
 
     1. **Problem-Solution Fit Assessment** (Score: 1-100)
     2. **Market Opportunity Analysis** (Score: 1-100)
     3. **Competitive Positioning** (Score: 1-100)
     4. **Team Capability Evaluation** (Score: 1-100)
     5. **Execution Readiness** (Score: 1-100)
-    6. **Overall Investment Potential** (Score: 1-100)
 
-    For the overall assessment, provide 6 specific market metrics or assessment points that include:
-    - Market size data with specific figures
-    - Customer acquisition cost estimates
-    - Competitive landscape insights
-    - Regulatory or compliance considerations
-    - Growth trajectory expectations
-    - Risk factors with quantified impact
+    For each section, provide:
+    - A detailed analysis of strengths and areas for improvement
+    - Specific actionable recommendations
+    - Key insights that would be valuable for investment decisions
 
     Format your response as valid JSON WITHOUT any markdown formatting or code blocks:
     {
       "overall_score": number (1-100),
       "recommendation": "Accept" | "Consider" | "Reject",
-      "assessment_points": [
-        "Market metric or insight with specific data point",
-        "Customer acquisition insight with cost estimates",
-        "Competitive analysis with market share data",
-        "Regulatory consideration with compliance costs",
-        "Growth projection with timeline",
-        "Risk assessment with impact quantification"
-      ],
       "sections": {
         "problem_solution_fit": {
           "score": number (1-100),
@@ -212,30 +199,29 @@ serve(async (req) => {
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement 1", "improvement 2"]
         },
-        "competitive_positioning": {
+        "competitive_advantage": {
           "score": number (1-100),
           "analysis": "detailed analysis",
           "strengths": ["strength 1", "strength 2"], 
           "improvements": ["improvement 1", "improvement 2"]
         },
-        "team_capability": {
+        "team_strength": {
           "score": number (1-100),
           "analysis": "detailed analysis",
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement 1", "improvement 2"] 
         },
-        "execution_readiness": {
-          "score": number (1-100),
-          "analysis": "detailed analysis",
-          "strengths": ["strength 1", "strength 2"],
-          "improvements": ["improvement 1", "improvement 2"]
-        },
-        "overall_assessment": {
+        "execution_plan": {
           "score": number (1-100),
           "analysis": "detailed analysis",
           "strengths": ["strength 1", "strength 2"],
           "improvements": ["improvement 1", "improvement 2"]
         }
+      },
+      "summary": {
+        "key_factors": ["factor 1", "factor 2"],
+        "next_steps": ["step 1", "step 2"],
+        "overall_feedback": "comprehensive feedback"
       }
     }
     `;
@@ -251,7 +237,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator for IIT Bombay. Provide thorough, constructive analysis in valid JSON format with specific market metrics and data points. IMPORTANT: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.'
+            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. IMPORTANT: Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.'
           },
           {
             role: 'user',
@@ -318,7 +304,14 @@ serve(async (req) => {
         .insert({
           name: submission.company_name,
           overall_score: analysisResult.overall_score,
-          assessment_points: analysisResult.assessment_points || [],
+          assessment_points: [
+            `Overall recommendation: ${analysisResult.recommendation}`,
+            `Problem-solution fit score: ${analysisResult.sections?.problem_solution_fit?.score || 'N/A'}/100`,
+            `Market opportunity score: ${analysisResult.sections?.market_opportunity?.score || 'N/A'}/100`,
+            `Competitive advantage score: ${analysisResult.sections?.competitive_advantage?.score || 'N/A'}/100`,
+            `Team strength score: ${analysisResult.sections?.team_strength?.score || 'N/A'}/100`,
+            `Execution plan score: ${analysisResult.sections?.execution_plan?.score || 'N/A'}/100`
+          ],
           user_id: effectiveUserId,
           source: 'barc_form'
         })
@@ -334,7 +327,7 @@ serve(async (req) => {
       console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
     }
 
-    // Create sections
+    // Create sections with proper section details
     console.log('Deleting old sections for company:', companyId);
     const { error: deleteError } = await supabase
       .from('sections')
@@ -351,15 +344,16 @@ serve(async (req) => {
       company_id: companyId,
       score: sectionData.score || 0,
       section_type: sectionName,
-      type: 'analysis',
+      type: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       description: sectionData.analysis || ''
     }));
 
     if (sectionsToCreate.length > 0) {
-      const { error: sectionsError } = await supabase
+      const { data: createdSections, error: sectionsError } = await supabase
         .from('sections')
-        .insert(sectionsToCreate);
+        .insert(sectionsToCreate)
+        .select();
 
       if (sectionsError) {
         console.error('Error creating sections:', sectionsError);
@@ -367,6 +361,50 @@ serve(async (req) => {
       }
 
       console.log('Created sections:', sectionsToCreate.length);
+
+      // Now create section details (strengths and weaknesses)
+      const sectionDetailsToCreate = [];
+      
+      for (const section of createdSections) {
+        const sectionName = section.section_type;
+        const sectionData = analysisResult.sections[sectionName];
+        
+        if (sectionData) {
+          // Add strengths
+          if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
+            for (const strength of sectionData.strengths) {
+              sectionDetailsToCreate.push({
+                section_id: section.id,
+                detail_type: 'strength',
+                content: strength
+              });
+            }
+          }
+          
+          // Add improvements (as weaknesses)
+          if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
+            for (const improvement of sectionData.improvements) {
+              sectionDetailsToCreate.push({
+                section_id: section.id,
+                detail_type: 'weakness',
+                content: improvement
+              });
+            }
+          }
+        }
+      }
+
+      if (sectionDetailsToCreate.length > 0) {
+        const { error: detailsError } = await supabase
+          .from('section_details')
+          .insert(sectionDetailsToCreate);
+
+        if (detailsError) {
+          console.error('Error creating section details:', detailsError);
+        } else {
+          console.log('Created section details:', sectionDetailsToCreate.length);
+        }
+      }
     }
 
     // Update submission with final results
@@ -441,4 +479,3 @@ serve(async (req) => {
     );
   }
 });
-
