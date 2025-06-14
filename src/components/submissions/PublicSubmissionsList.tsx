@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,7 +75,7 @@ export function PublicSubmissionsList() {
   const [retryCount, setRetryCount] = useState(0);
   const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -310,9 +311,10 @@ export function PublicSubmissionsList() {
       if (submission.source === "barc_form") {
         console.log('Handling BARC form submission analysis');
         
-        toast.loading("Analyzing submission...", { 
+        const loadingToast = toast({
+          title: "Analyzing submission...",
+          description: "This may take a few moments. Please wait...",
           id: `analysis-${submission.id}`,
-          description: "This may take a few moments. Please wait..." 
         });
         
         console.log(`Calling BARC analysis for submission: ${submission.id}`);
@@ -322,11 +324,12 @@ export function PublicSubmissionsList() {
         console.log('BARC analysis result:', result);
         
         // Dismiss loading toast
-        toast.dismiss(`analysis-${submission.id}`);
+        dismiss(`analysis-${submission.id}`);
         
         if (result && result.success && result.companyId) {
-          toast.success("Analysis completed successfully!", {
-            description: "Company has been created and analyzed."
+          toast({
+            title: "Analysis completed successfully!",
+            description: "Company has been created and analyzed.",
           });
           
           // Navigate directly to the company page
@@ -386,7 +389,7 @@ export function PublicSubmissionsList() {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
       // Dismiss any loading toasts
-      toast.dismiss(`analysis-${submission.id}`);
+      dismiss(`analysis-${submission.id}`);
       
       toast({
         title: "Analysis failed",
