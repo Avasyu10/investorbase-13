@@ -1,4 +1,3 @@
-
 import { 
   Table, 
   TableBody, 
@@ -29,6 +28,7 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
+  submitter_email?: string | null;
 }
 
 interface PublicSubmissionsTableProps {
