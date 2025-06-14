@@ -42,9 +42,9 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       question_5: data.question_5,
       submitter_email: data.submitter_email,
       founder_linkedin_urls: data.founder_linkedin_urls,
-      poc_name: data.poc_name,
-      phoneno: data.phoneno,
-      user_id: userId,
+      poc_name: data.poc_name, // Map to new poc_name column
+      phoneno: data.phoneno, // Map to new phoneno column
+      user_id: userId, // Set user_id if user is authenticated
       analysis_status: 'pending'
     })
     .select()
@@ -57,43 +57,8 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
 
   console.log('BARC form submitted successfully:', submission);
 
-  // Create a company record for this BARC submission
-  try {
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .insert({
-        name: data.company_name,
-        source: 'barc',
-        overall_score: 0, // Default score, will be updated after analysis
-        assessment_points: [
-          `BARC Application: ${data.company_type}`,
-          `Executive Summary: ${data.executive_summary.substring(0, 100)}...`
-        ],
-        industry: data.company_type,
-        poc_name: data.poc_name,
-        phonenumber: data.phoneno,
-        user_id: userId
-      })
-      .select()
-      .single();
-
-    if (companyError) {
-      console.error('Error creating company record:', companyError);
-      // Don't throw here - the submission was successful even if company creation failed
-    } else {
-      console.log('Company record created successfully:', company);
-      
-      // Update the submission with the company_id
-      await supabase
-        .from('barc_form_submissions')
-        .update({ company_id: company.id })
-        .eq('id', submission.id);
-    }
-  } catch (companyCreationError) {
-    console.error('Failed to create company record:', companyCreationError);
-    // Continue - the submission itself was successful
-  }
-
+  // Return the submission without automatically triggering analysis
+  // Analysis can be triggered manually later if needed
   return submission;
 };
 
