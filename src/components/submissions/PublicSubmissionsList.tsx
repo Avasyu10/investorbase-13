@@ -515,6 +515,7 @@ export function PublicSubmissionsList() {
 
       <AnalysisModal
         isOpen={showModal}
+        isAnalyzing={isAnalyzing}
         onClose={() => {
           setShowModal(false);
           setCurrentSubmission(null);
