@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -110,8 +111,8 @@ const BarcSubmit = () => {
         question_5: formData.question5,
         submitter_email: formData.submitterEmail,
         founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()), // Filter out empty URLs
-        founder_names: formData.pocName ? [formData.pocName] : [], // Convert single POC name to array
-        phone_number: formData.phoneNumber || "" // Make phone number optional
+        poc_name: formData.pocName, // Map to new poc_name column
+        phoneno: formData.phoneNumber // Map to new phoneno column
       };
 
       console.log('Calling submitBarcForm API:', submissionData);
@@ -521,6 +522,28 @@ const BarcSubmit = () => {
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Contact Information</h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="pocName"
+                    rules={{ required: "POC name is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>POC Name *</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter point of contact name"
+                            {...field}
+                            disabled={submitMutation.isPending}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-sm text-muted-foreground">
+                          Enter the name of the primary point of contact for your company.
+                        </p>
+                      </FormItem>
+                    )}
+                  />
                   
                   <FormField
                     control={form.control}

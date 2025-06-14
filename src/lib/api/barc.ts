@@ -15,6 +15,8 @@ export interface BarcSubmissionData {
   question_5: string;
   submitter_email: string;
   founder_linkedin_urls: string[];
+  poc_name: string;
+  phoneno: string;
 }
 
 export const submitBarcForm = async (data: BarcSubmissionData) => {
@@ -40,6 +42,8 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       question_5: data.question_5,
       submitter_email: data.submitter_email,
       founder_linkedin_urls: data.founder_linkedin_urls,
+      poc_name: data.poc_name, // Map to new poc_name column
+      phoneno: data.phoneno, // Map to new phoneno column
       user_id: userId, // Set user_id if user is authenticated
       analysis_status: 'pending'
     })
