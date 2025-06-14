@@ -1,7 +1,8 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import useCompanyDetails from './companyHooks/useCompanyDetails';
+import { useCompanyDetails } from './companyHooks/useCompanyDetails';
 import { useAuth } from '@/hooks/useAuth';
 
 // Map Supabase DB types to API contract types
@@ -164,5 +165,5 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
   }
 }
 
-export { default as useCompanyDetails } from './companyHooks/useCompanyDetails';
+export { useCompanyDetails } from './companyHooks/useCompanyDetails';
 export { useSectionDetails } from './companyHooks/useSectionDetails';

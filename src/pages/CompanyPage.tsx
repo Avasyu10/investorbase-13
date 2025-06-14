@@ -3,7 +3,7 @@ import CompanyDetails from "@/components/companies/CompanyDetails";
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import useCompanyDetails from "@/hooks/companyHooks/useCompanyDetails";
+import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { InvestorResearch } from "@/components/companies/InvestorResearch";
 import { supabase } from "@/integrations/supabase/client";
 
