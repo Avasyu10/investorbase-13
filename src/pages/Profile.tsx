@@ -169,6 +169,11 @@ const Profile = () => {
         if (forms && forms.length > 0) {
           setIitBombayFormSlug(forms[0].form_slug);
           console.log('Found IIT Bombay form slug:', forms[0].form_slug);
+          
+          // If the current slug contains "barc", update it to remove "barc"
+          if (forms[0].form_slug.includes('barc')) {
+            await updateFormSlugToRemoveBarc(forms[0].form_slug);
+          }
         } else {
           console.log('No IIT Bombay form found for user, creating one automatically...');
           await createFormAutomatically();
@@ -180,6 +185,46 @@ const Profile = () => {
 
     fetchOrCreateIITBombayForm();
   }, [user, isIITBombay]);
+
+  const updateFormSlugToRemoveBarc = async (currentSlug: string) => {
+    if (!user) return;
+
+    try {
+      // Create new slug without "barc"
+      const newSlug = currentSlug.replace(/barc-?/gi, '').replace(/^-+|-+$/g, '');
+      
+      // Check if a form with the new slug already exists
+      const { data: existingForm } = await supabase
+        .from('public_submission_forms')
+        .select('id')
+        .eq('form_slug', newSlug)
+        .neq('user_id', user.id) // Exclude current user's forms
+        .maybeSingle();
+
+      let finalSlug = newSlug;
+      if (existingForm) {
+        // If the slug exists, make it unique
+        finalSlug = `${newSlug}-${user.id.substring(0, 8)}`;
+      }
+
+      // Update the form slug
+      const { error } = await supabase
+        .from('public_submission_forms')
+        .update({ form_slug: finalSlug })
+        .eq('user_id', user.id)
+        .eq('form_type', 'barc')
+        .eq('form_slug', currentSlug);
+
+      if (error) throw error;
+
+      setIitBombayFormSlug(finalSlug);
+      console.log('Updated IIT Bombay form slug from', currentSlug, 'to', finalSlug);
+      toast.success("Your IIT Bombay form URL has been updated!");
+    } catch (error: any) {
+      console.error('Error updating form slug:', error);
+      toast.error(`Failed to update form URL: ${error.message}`);
+    }
+  };
 
   const createFormAutomatically = async () => {
     if (!user || isCreatingForm) return;
