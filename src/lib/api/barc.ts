@@ -42,9 +42,9 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       question_5: data.question_5,
       submitter_email: data.submitter_email,
       founder_linkedin_urls: data.founder_linkedin_urls,
-      poc_name: data.poc_name, // Map to new poc_name column
-      phoneno: data.phoneno, // Map to new phoneno column
-      user_id: userId, // Set user_id if user is authenticated
+      poc_name: data.poc_name,
+      phoneno: data.phoneno,
+      user_id: userId,
       analysis_status: 'pending'
     })
     .select()
@@ -56,9 +56,6 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
   }
 
   console.log('BARC form submitted successfully:', submission);
-
-  // Return the submission without automatically triggering analysis
-  // Analysis can be triggered manually later if needed
   return submission;
 };
 
@@ -66,7 +63,8 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   console.log('Analyzing BARC submission:', submissionId);
 
   try {
-    const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
+    // Use the correct edge function name
+    const { data, error } = await supabase.functions.invoke('analyze-barc-submission', {
       body: { submissionId }
     });
 
