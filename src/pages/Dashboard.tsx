@@ -103,10 +103,12 @@ const Dashboard = () => {
               <Newspaper className="mr-2 h-4 w-4" />
               News Feed
             </Button>
-            <Button onClick={() => navigate("/upload")}>
-              <FileUp className="mr-2 h-4 w-4" />
-              Upload New Deck
-            </Button>
+            {!isIITBombay && (
+              <Button onClick={() => navigate("/upload")}>
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload New Deck
+              </Button>
+            )}
           </div>
         </div>
 
