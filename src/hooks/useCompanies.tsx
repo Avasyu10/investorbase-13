@@ -27,16 +27,16 @@ function mapDbCompanyToApi(company: any) {
   return {
     id: company.id,
     name: company.name,
-    overall_score: overallScore,
-    created_at: company.created_at,
-    updated_at: company.updated_at || company.created_at,
-    assessment_points: company.assessment_points || [],
-    report_id: company.report_id,
-    reportId: company.report_id, // Keep both for compatibility
-    perplexity_response: company.perplexity_response,
-    perplexity_prompt: company.perplexity_prompt,
-    perplexity_requested_at: company.perplexity_requested_at,
-    source: source
+    overallScore: overallScore,
+    createdAt: company.created_at,
+    updatedAt: company.updated_at || company.created_at,
+    score: overallScore, // For backward compatibility
+    assessmentPoints: company.assessment_points || [],
+    reportId: company.report_id,
+    perplexityResponse: company.perplexity_response,
+    perplexityPrompt: company.perplexity_prompt,
+    perplexityRequestedAt: company.perplexity_requested_at,
+    source: source // Set source based on our determination
   };
 }
 
@@ -69,8 +69,8 @@ export function useCompanies(
         
         // Convert UI sort field to database column name
         let dbSortField = sortBy;
-        if (sortBy === 'name' || sortBy === 'overall_score') {
-          dbSortField = sortBy === 'overall_score' ? 'overall_score' : 'name';
+        if (sortBy === 'name' || sortBy === 'overallScore') {
+          dbSortField = sortBy === 'overallScore' ? 'overall_score' : 'name';
         }
         
         console.log('Fetching companies for user:', user.id);

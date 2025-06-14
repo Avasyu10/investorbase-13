@@ -8,7 +8,7 @@ import { Star } from "lucide-react";
 
 interface CompaniesTableProps {
   companies: Company[];
-  onCompanyClick: (companyId: string) => void;
+  onCompanyClick: (companyId: number) => void;
 }
 
 export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
@@ -53,8 +53,8 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
-              const formattedScore = Math.round(company.overall_score);
-              const summaryPoints = getSummaryPoints(company.assessment_points);
+              const formattedScore = Math.round(company.overallScore);
+              const summaryPoints = getSummaryPoints(company.assessmentPoints);
               
               return (
                 <TableRow 
@@ -83,7 +83,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                     </Badge>
                   </TableCell>
                   <TableCell className="w-[120px] text-muted-foreground">
-                    {format(new Date(company.created_at!), 'MMM dd, yyyy')}
+                    {format(new Date(company.createdAt), 'MMM dd, yyyy')}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
