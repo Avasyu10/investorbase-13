@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,9 +10,11 @@ import { BarcAnalysisModal } from "@/components/submissions/BarcAnalysisModal";
 import { toast } from "sonner";
 import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
+import { useNavigate } from "react-router-dom";
 
 const BarcSubmissions = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedSubmission, setSelectedSubmission] = useState<BarcSubmission | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
@@ -65,20 +66,17 @@ const BarcSubmissions = () => {
     try {
       console.log('Triggering analysis for submission:', submissionId);
       
-      // Add to analyzing set to prevent duplicate requests
+      // Add to analyzing set to show loading state
       setAnalyzingSubmissions(prev => new Set(prev).add(submissionId));
       
-      // First update the status locally to prevent multiple clicks
-      await supabase
-        .from('barc_form_submissions')
-        .update({ analysis_status: 'processing' })
-        .eq('id', submissionId);
-
-      // Trigger the analysis
+      // Trigger the analysis and wait for completion
       const result = await analyzeBarcSubmission(submissionId);
       
-      if (result?.success) {
+      if (result?.success && result?.companyId) {
         toast.success("Analysis completed successfully!");
+        
+        // Navigate directly to the company details page
+        navigate(`/company/${result.companyId}`);
       } else {
         // If the API says it failed but we got a response, check if it was a lock error
         if (result?.error?.includes('already being analyzed')) {
@@ -249,7 +247,7 @@ const BarcSubmissions = () => {
                           <Button
                             variant="default"
                             size="sm"
-                            onClick={() => window.open(`/company/${submission.company_id}`, '_blank')}
+                            onClick={() => navigate(`/company/${submission.company_id}`)}
                           >
                             <Building className="h-4 w-4 mr-2" />
                             View Company

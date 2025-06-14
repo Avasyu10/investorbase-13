@@ -1,4 +1,3 @@
-
 import { 
   Table, 
   TableBody, 
@@ -12,6 +11,8 @@ import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucide-react";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface PublicSubmission {
   id: string;
@@ -35,6 +36,8 @@ interface PublicSubmissionsTableProps {
 }
 
 export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set() }: PublicSubmissionsTableProps) {
+  const navigate = useNavigate();
+
   if (!submissions) {
     return (
       <div className="text-center py-8">
@@ -62,15 +65,24 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   const handleAnalyze = async (submission: PublicSubmission) => {
     console.log('PublicSubmissionsTable handleAnalyze called with:', submission);
     
-    // For BARC submissions, trigger the analysis directly
+    // For BARC submissions, trigger the analysis directly and wait for completion
     if (submission.source === "barc_form") {
       console.log('Handling BARC submission analysis for:', submission.id);
       try {
         // Call the passed onAnalyze callback to handle loading state
         onAnalyze(submission);
         
-        // Call the BARC analysis function
-        await analyzeBarcSubmission(submission.id);
+        // Call the BARC analysis function and wait for completion
+        const result = await analyzeBarcSubmission(submission.id);
+        
+        if (result?.success && result?.companyId) {
+          toast.success("Analysis completed successfully!");
+          
+          // Navigate directly to the company details page
+          navigate(`/company/${result.companyId}`);
+        } else {
+          throw new Error(result?.error || 'Analysis failed');
+        }
         
         console.log('BARC analysis completed successfully');
       } catch (error) {

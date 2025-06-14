@@ -76,6 +76,8 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     }
 
     console.log('BARC analysis completed:', data);
+    
+    // Return the result which should include success, companyId, and other details
     return data;
   } catch (error) {
     console.error('Failed to analyze BARC submission:', error);
