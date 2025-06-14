@@ -88,7 +88,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
             <h1 className="text-3xl font-bold tracking-tight">
-              {isIITBombay ? "IIT Bombay Dashboard" : "Dashboard"}
+              {isIITBombay ? "Eureka Dashboard" : "Dashboard"}
             </h1>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
@@ -118,7 +118,7 @@ const Dashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="companies">
-              {isIITBombay ? "IIT Bombay Prospects" : "Prospects"}
+              {isIITBombay ? "Eureka Prospects" : "Prospects"}
             </TabsTrigger>
             <TabsTrigger value="submissions">New Applications</TabsTrigger>
             {!isIITBombay && (

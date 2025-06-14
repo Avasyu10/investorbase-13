@@ -80,7 +80,7 @@ export function IITBombayCompaniesList() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <GraduationCap className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">IIT Bombay Prospects</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Eureka Prospects</h1>
           </div>
           <p className="text-muted-foreground">
             Application tracking, analysis and Management for Eureka
