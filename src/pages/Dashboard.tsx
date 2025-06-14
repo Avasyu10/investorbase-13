@@ -121,7 +121,9 @@ const Dashboard = () => {
               {isIITBombay ? "IIT Bombay Prospects" : "Prospects"}
             </TabsTrigger>
             <TabsTrigger value="submissions">New Applications</TabsTrigger>
-            <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
+            {!isIITBombay && (
+              <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
+            )}
           </TabsList>
           <TabsContent value="companies">
             <ConditionalCompaniesList />
@@ -129,9 +131,11 @@ const Dashboard = () => {
           <TabsContent value="submissions">
             <PublicSubmissionsList />
           </TabsContent>
-          <TabsContent value="reports">
-            <ReportsList />
-          </TabsContent>
+          {!isIITBombay && (
+            <TabsContent value="reports">
+              <ReportsList />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>;
