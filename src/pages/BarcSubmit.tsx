@@ -16,7 +16,6 @@ import { submitBarcForm } from "@/lib/api/barc";
 
 interface BarcFormData {
   companyName: string;
-  companyRegistrationType: string;
   executiveSummary: string;
   companyType: string;
   companyLinkedInUrl: string;
@@ -25,19 +24,21 @@ interface BarcFormData {
   question3: string;
   question4: string;
   question5: string;
+  phoneNumber: string;
   submitterEmail: string;
   founderLinkedInUrls: string[];
+  founderNames: string[];
 }
 
 const BarcSubmit = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
+  const [founderNames, setFounderNames] = useState<string[]>([""]);
 
   const form = useForm<BarcFormData>({
     defaultValues: {
       companyName: "",
-      companyRegistrationType: "",
       executiveSummary: "",
       companyType: "",
       companyLinkedInUrl: "",
@@ -46,8 +47,10 @@ const BarcSubmit = () => {
       question3: "",
       question4: "",
       question5: "",
+      phoneNumber: "",
       submitterEmail: "",
       founderLinkedInUrls: [""],
+      founderNames: [""],
     },
   });
 
@@ -61,7 +64,7 @@ const BarcSubmit = () => {
       // Return a virtual form for BARC submissions
       return {
         id: `barc-${slug}`,
-        form_name: "IIT Bombay Application Form",
+        form_name: "Eureka Application Form",
         form_slug: slug,
         form_type: 'barc',
         is_active: true,
@@ -88,6 +91,20 @@ const BarcSubmit = () => {
     );
   };
 
+  const addFounderName = () => {
+    setFounderNames(prev => [...prev, ""]);
+  };
+
+  const removeFounderName = (index: number) => {
+    setFounderNames(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateFounderName = (index: number, value: string) => {
+    setFounderNames(prev => 
+      prev.map((name, i) => i === index ? value : name)
+    );
+  };
+
   // Submit form mutation using the API function
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
@@ -98,7 +115,7 @@ const BarcSubmit = () => {
       const submissionData = {
         form_slug: slug,
         company_name: formData.companyName,
-        company_registration_type: formData.companyRegistrationType,
+        company_registration_type: "Not Specified", // Default value since field is removed
         executive_summary: formData.executiveSummary,
         company_type: formData.companyType,
         company_linkedin_url: formData.companyLinkedInUrl,
@@ -108,7 +125,9 @@ const BarcSubmit = () => {
         question_4: formData.question4,
         question_5: formData.question5,
         submitter_email: formData.submitterEmail,
-        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()) // Filter out empty URLs
+        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()), // Filter out empty URLs
+        founder_names: founderNames.filter(name => name.trim()), // Filter out empty names
+        phone_number: formData.phoneNumber
       };
 
       console.log('Calling submitBarcForm API:', submissionData);
@@ -122,6 +141,7 @@ const BarcSubmit = () => {
       
       form.reset();
       setFounderLinkedIns([""]);
+      setFounderNames([""]);
       
       // Navigate to thank you page instead of home
       setTimeout(() => {
@@ -159,6 +179,10 @@ const BarcSubmit = () => {
     }
     if (!data.submitterEmail.trim()) {
       toast.error("Email is required");
+      return;
+    }
+    if (!data.phoneNumber.trim()) {
+      toast.error("Phone number is required");
       return;
     }
 
@@ -226,7 +250,7 @@ const BarcSubmit = () => {
           <CardHeader className="text-center border-b">
             <div className="flex items-center justify-center mb-4">
               <Building className="h-8 w-8 text-primary mr-2" />
-              <CardTitle className="text-2xl">IIT Bombay Application Form</CardTitle>
+              <CardTitle className="text-2xl">Eureka Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
               Submit your application for the incubation program
@@ -249,30 +273,6 @@ const BarcSubmit = () => {
                         <FormControl>
                           <Input placeholder="Enter your company name" {...field} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="companyRegistrationType"
-                    rules={{ required: "Registration type is required" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Company Registered as *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select registration type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="sole-proprietorship">Sole Proprietorship</SelectItem>
-                            <SelectItem value="private-limited">Private Limited Company</SelectItem>
-                            <SelectItem value="partnership">Partnership</SelectItem>
-                          </SelectContent>
-                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -347,6 +347,50 @@ const BarcSubmit = () => {
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Founder Information</h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-sm font-medium">Founder/POC Names *</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addFounderName}
+                        disabled={submitMutation.isPending}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Name
+                      </Button>
+                    </div>
+                    
+                    {founderNames.map((name, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          placeholder="Enter founder/POC name"
+                          value={name}
+                          onChange={(e) => updateFounderName(index, e.target.value)}
+                          disabled={submitMutation.isPending}
+                          className="flex-1"
+                          required={index === 0}
+                        />
+                        {founderNames.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeFounderName(index)}
+                            disabled={submitMutation.isPending}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <p className="text-sm text-muted-foreground">
+                      Add names of founders or points of contact for your company.
+                    </p>
+                  </div>
                   
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
@@ -483,6 +527,25 @@ const BarcSubmit = () => {
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Contact Information</h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="phoneNumber"
+                    rules={{ required: "Phone number is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="tel" 
+                            placeholder="Enter your phone number" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   <FormField
                     control={form.control}
