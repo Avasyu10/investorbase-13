@@ -63,26 +63,26 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   console.log('Starting BARC submission analysis:', submissionId);
 
   try {
-    // First, trigger the analysis
+    // First, trigger the analysis function
+    console.log('Invoking analyze-barc-form function...');
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
       body: { submissionId }
     });
 
     if (error) {
       console.error('Error invoking BARC analysis function:', error);
-      throw error;
+      throw new Error(`Analysis failed: ${error.message}`);
     }
 
-    console.log('BARC analysis function response:', data);
+    console.log('Analysis function invoked, response:', data);
     
-    // If the function returns immediately with success, poll for completion
-    if (data?.success) {
-      return data;
-    }
+    // Start polling immediately regardless of the initial response
+    console.log('Starting to poll for completion...');
+    const result = await pollForAnalysisCompletion(submissionId);
     
-    // If the analysis is still processing, poll for completion
-    console.log('Analysis started, polling for completion...');
-    return await pollForAnalysisCompletion(submissionId);
+    console.log('Final polling result:', result);
+    return result;
+    
   } catch (error) {
     console.error('Failed to analyze BARC submission:', error);
     throw error;
@@ -90,12 +90,14 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
 };
 
 // Helper function to poll for analysis completion
-const pollForAnalysisCompletion = async (submissionId: string, maxAttempts: number = 60): Promise<any> => {
+const pollForAnalysisCompletion = async (submissionId: string, maxAttempts: number = 120): Promise<any> => {
   let attempts = 0;
+  
+  console.log(`Starting to poll for submission ${submissionId} completion...`);
   
   while (attempts < maxAttempts) {
     try {
-      console.log(`Polling attempt ${attempts + 1} for submission ${submissionId}`);
+      console.log(`Polling attempt ${attempts + 1}/${maxAttempts} for submission ${submissionId}`);
       
       const { data: submission, error } = await supabase
         .from('barc_form_submissions')
@@ -105,31 +107,54 @@ const pollForAnalysisCompletion = async (submissionId: string, maxAttempts: numb
 
       if (error) {
         console.error('Error polling submission status:', error);
-        throw error;
+        throw new Error(`Failed to check analysis status: ${error.message}`);
       }
 
-      console.log('Current submission status:', submission);
+      console.log(`Current submission status: ${submission.analysis_status}, company_id: ${submission.company_id}`);
 
+      // Check for completion
       if (submission.analysis_status === 'completed' && submission.company_id) {
-        console.log('Analysis completed successfully!');
+        console.log('Analysis completed successfully! Company ID:', submission.company_id);
         return {
           success: true,
-          companyId: submission.company_id
+          companyId: submission.company_id,
+          message: 'Analysis completed successfully'
         };
       }
       
-      if (submission.analysis_status === 'error') {
-        throw new Error(submission.analysis_error || 'Analysis failed');
+      // Check for error
+      if (submission.analysis_status === 'error' || submission.analysis_status === 'failed') {
+        const errorMessage = submission.analysis_error || 'Analysis failed with unknown error';
+        console.error('Analysis failed with error:', errorMessage);
+        throw new Error(errorMessage);
       }
       
-      // Wait 2 seconds before next poll
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Still processing, wait before next poll
+      console.log(`Analysis still in progress (status: ${submission.analysis_status}), waiting 3 seconds...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
       attempts++;
+      
     } catch (error) {
-      console.error('Error during polling:', error);
-      throw error;
+      console.error('Error during polling attempt:', error);
+      
+      // If it's a known error, throw it immediately
+      if (error instanceof Error && (
+        error.message.includes('Analysis failed') || 
+        error.message.includes('failed with unknown error')
+      )) {
+        throw error;
+      }
+      
+      // For other errors, continue polling unless we've exceeded max attempts
+      attempts++;
+      if (attempts >= maxAttempts) {
+        throw new Error(`Analysis polling failed after ${maxAttempts} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      console.log(`Polling error, retrying in 3 seconds... (attempt ${attempts}/${maxAttempts})`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
   
-  throw new Error('Analysis timed out after maximum attempts');
+  throw new Error(`Analysis timed out after ${maxAttempts} attempts (${maxAttempts * 3} seconds)`);
 };

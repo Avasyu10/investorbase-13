@@ -302,131 +302,56 @@ export function PublicSubmissionsList() {
       return;
     }
     
-    // Handle BARC form submissions
-    if (submission.source === "barc_form") {
-      console.log('Handling BARC form submission analysis');
-      
-      // Add to analyzing set to show loading state
-      setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
-      
-      try {
-        console.log(`Calling BARC analysis for submission: ${submission.id}`);
+    // Add to analyzing set immediately
+    setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
+    
+    try {
+      // Handle BARC form submissions
+      if (submission.source === "barc_form") {
+        console.log('Handling BARC form submission analysis');
         
-        toast({
-          title: "Analysis started",
-          description: "Analyzing the application. This may take a few moments...",
+        toast.loading("Analyzing submission...", { 
+          id: `analysis-${submission.id}`,
+          description: "This may take a few moments. Please wait..." 
         });
+        
+        console.log(`Calling BARC analysis for submission: ${submission.id}`);
         
         const result = await analyzeBarcSubmission(submission.id);
         
         console.log('BARC analysis result:', result);
         
-        if (result && result.success) {
-          toast({
-            title: "Analysis complete",
-            description: "The application has been successfully analyzed and company created",
-          });
-          
-          // Directly navigate to the company page
-          if (result.companyId) {
-            console.log(`Navigating to company: ${result.companyId}`);
-            navigate(`/company/${result.companyId}`);
-          } else {
-            // Fallback: refresh the current page to show updated status
-            window.location.reload();
-          }
-        } else {
-          throw new Error(result?.error || "Analysis completed but no result was returned");
-        }
-      } catch (error) {
-        console.error("BARC analysis error:", error);
+        // Dismiss loading toast
+        toast.dismiss(`analysis-${submission.id}`);
         
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-        
-        // Handle concurrent processing more gracefully
-        if (errorMessage.includes('already being analyzed') || 
-            errorMessage.includes('already being processed') ||
-            errorMessage.includes('concurrent_processing')) {
-          
-          console.log('Concurrent processing detected, checking status...');
-          
-          toast({
-            title: "Processing in progress",
-            description: "The analysis is being processed. Please wait...",
+        if (result && result.success && result.companyId) {
+          toast.success("Analysis completed successfully!", {
+            description: "Company has been created and analyzed."
           });
           
-          // Poll for completion every 5 seconds
-          const pollInterval = setInterval(async () => {
-            try {
-              const { data: updatedSubmission, error: fetchError } = await supabase
-                .from('barc_form_submissions')
-                .select('analysis_status, company_id')
-                .eq('id', submission.id)
-                .single();
-              
-              if (!fetchError && updatedSubmission) {
-                if (updatedSubmission.analysis_status === 'completed' && updatedSubmission.company_id) {
-                  clearInterval(pollInterval);
-                  toast({
-                    title: "Analysis completed",
-                    description: "The analysis has finished successfully!",
-                  });
-                  
-                  navigate(`/company/${updatedSubmission.company_id}`);
-                } else if (updatedSubmission.analysis_status === 'error') {
-                  clearInterval(pollInterval);
-                  toast({
-                    title: "Analysis failed",
-                    description: "The analysis encountered an error. Please try again.",
-                    variant: "destructive",
-                  });
-                }
-              }
-            } catch (err) {
-              console.error('Error polling for status:', err);
-            }
-          }, 5000);
-          
-          // Stop polling after 5 minutes
-          setTimeout(() => {
-            clearInterval(pollInterval);
-          }, 300000);
-          
+          // Navigate directly to the company page
+          console.log(`Navigating to company: ${result.companyId}`);
+          navigate(`/company/${result.companyId}`);
         } else {
-          toast({
-            title: "Analysis failed",
-            description: errorMessage,
-            variant: "destructive",
-          });
+          throw new Error(result?.message || "Analysis completed but no result was returned");
         }
-      } finally {
-        // Remove from analyzing set after a delay to prevent rapid re-clicks
-        setTimeout(() => {
-          setAnalyzingSubmissions(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(submission.id);
-            return newSet;
-          });
-        }, 3000);
+        
+        return;
       }
-      return;
-    }
 
-    // Handle other submission types (existing logic)
-    if (!submission.report_id) {
-      toast({
-        title: "No report to analyze",
-        description: "This submission doesn't have an associated report",
-        variant: "destructive",
-      });
-      return;
-    }
+      // Handle other submission types (existing logic)
+      if (!submission.report_id) {
+        toast({
+          title: "No report to analyze",
+          description: "This submission doesn't have an associated report",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
-    setIsAnalyzing(true);
-    setCurrentSubmission(submission);
+      setIsAnalyzing(true);
+      setCurrentSubmission(submission);
 
-    try {
       console.log(`Starting analysis for report: ${submission.report_id}`);
       
       toast({
@@ -460,6 +385,9 @@ export function PublicSubmissionsList() {
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
+      // Dismiss any loading toasts
+      toast.dismiss(`analysis-${submission.id}`);
+      
       toast({
         title: "Analysis failed",
         description: errorMessage,
@@ -468,13 +396,15 @@ export function PublicSubmissionsList() {
     } finally {
       setIsAnalyzing(false);
       setCurrentSubmission(null);
+      
+      // Remove from analyzing set after a delay to prevent rapid re-clicks
       setTimeout(() => {
         setAnalyzingSubmissions(prev => {
           const newSet = new Set(prev);
           newSet.delete(submission.id);
           return newSet;
         });
-      }, 3000);
+      }, 2000);
     }
   };
 

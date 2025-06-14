@@ -65,24 +65,20 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   const handleAnalyze = async (submission: PublicSubmission) => {
     console.log('PublicSubmissionsTable handleAnalyze called with:', submission);
     
-    // For BARC submissions, trigger the analysis directly and wait for completion
+    // For BARC submissions, handle the complete analysis flow
     if (submission.source === "barc_form") {
       console.log('Handling BARC submission analysis for:', submission.id);
+      
       try {
-        // Show loading toast
-        toast.loading("Analyzing submission...", { 
-          id: `analysis-${submission.id}`,
-          description: "This may take a few moments. Please wait..." 
-        });
-        
         // Call the passed onAnalyze callback to handle loading state
         onAnalyze(submission);
+        
+        console.log('Starting BARC analysis and waiting for completion...');
         
         // Call the BARC analysis function and wait for completion
         const result = await analyzeBarcSubmission(submission.id);
         
-        // Dismiss loading toast
-        toast.dismiss(`analysis-${submission.id}`);
+        console.log('BARC analysis result:', result);
         
         if (result?.success && result?.companyId) {
           toast.success("Analysis completed successfully!", {
@@ -90,19 +86,22 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
           });
           
           // Navigate directly to the company details page
+          console.log('Navigating to company:', result.companyId);
           navigate(`/company/${result.companyId}`);
         } else {
-          throw new Error(result?.error || 'Analysis failed');
+          throw new Error(result?.message || 'Analysis failed - no company created');
         }
         
-        console.log('BARC analysis completed successfully');
       } catch (error) {
         console.error('BARC analysis failed:', error);
         
-        // Dismiss loading toast
-        toast.dismiss(`analysis-${submission.id}`);
+        const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+        toast.error("Analysis failed", {
+          description: errorMessage
+        });
         
-        throw error; // Let the parent component handle the error
+        // Re-throw to let parent component handle cleanup
+        throw error;
       }
       return;
     }
