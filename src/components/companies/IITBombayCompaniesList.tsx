@@ -6,28 +6,25 @@ import { Loader2, Building2, GraduationCap } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies } from "@/hooks/useCompanies";
-import { Company } from "@/lib/api/apiContract";
+import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 
 export function IITBombayCompaniesList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [deletedCompanies, setDeletedCompanies] = useState<Set<string>>(new Set());
+  const deleteCompanyMutation = useDeleteCompany();
 
-  const { companies: allCompanies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
-
-  // Filter out deleted companies from the frontend view
-  const companies = allCompanies.filter(company => !deletedCompanies.has(company.id));
+  const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
   const handleCompanyClick = (companyId: string) => {
     navigate(`/company/${companyId}`);
   };
 
   const handleDeleteCompany = (companyId: string) => {
-    setDeletedCompanies(prev => new Set(prev).add(companyId));
+    deleteCompanyMutation.mutate(companyId);
   };
 
-  // Calculate rating-based stats using filtered companies
+  // Calculate rating-based stats
   const totalProspects = companies.length;
   const highPotential = companies.filter(c => c.overall_score > 70).length;
   const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
