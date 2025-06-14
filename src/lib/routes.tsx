@@ -1,5 +1,5 @@
 
-import { Routes, Route } from "react-router-dom";
+import { RouteObject } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
@@ -27,7 +27,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 
-export const routes = [
+export const routes: RouteObject[] = [
   { path: "/", element: <Index /> },
   { path: "/signup", element: <Signup /> },
   { path: "/forgot-password", element: <ForgotPassword /> },

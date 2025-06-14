@@ -13,13 +13,21 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    // Ensure proper storage configuration for build environments
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   },
   // Remove any restrictions on database and storage
   db: {
     schema: 'public',
   },
   global: {
-    fetch: (url, options) => fetch(url, options),
+    fetch: (url, options) => {
+      // Ensure fetch is available in all environments
+      if (typeof fetch === 'undefined') {
+        throw new Error('Fetch is not available in this environment');
+      }
+      return fetch(url, options);
+    },
     headers: { 
       'x-app-version': '1.0.0',
       // Don't set Access-Control-Allow-Origin here as it causes CORS issues
