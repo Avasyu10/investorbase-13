@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -181,7 +180,6 @@ const BarcSubmit = () => {
       toast.error("Email is required");
       return;
     }
-    // Removed phone number validation requirement
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -376,7 +374,7 @@ const BarcSubmit = () => {
                   
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <Label className="text-sm font-medium">Founder/POC Names *</Label>
+                      <Label className="text-sm font-medium">Founder/POC Names (Optional)</Label>
                       <Button
                         type="button"
                         variant="outline"
@@ -397,7 +395,6 @@ const BarcSubmit = () => {
                           onChange={(e) => updateFounderName(index, e.target.value)}
                           disabled={submitMutation.isPending}
                           className="flex-1"
-                          required={index === 0}
                         />
                         {founderNames.length > 1 && (
                           <Button
