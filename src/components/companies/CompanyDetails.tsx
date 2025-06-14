@@ -392,16 +392,59 @@ const CompanyDetails = () => {
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div 
-                      className={`max-w-[80%] rounded-lg p-3 ${
+                      className={`max-w-[80%] rounded-lg p-4 ${
                         message.role === 'user' 
                           ? 'bg-primary text-primary-foreground ml-4' 
                           : 'bg-muted text-foreground mr-4'
                       }`}
                     >
                       {message.role === 'user' ? (
-                        message.content
+                        <p className="text-sm leading-relaxed">{message.content}</p>
                       ) : (
-                        <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown 
+                          className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                          components={{
+                            // Enhanced paragraph styling with proper spacing
+                            p: ({ children }) => (
+                              <p className="mb-3 last:mb-0 leading-relaxed text-sm">{children}</p>
+                            ),
+                            // Enhanced bullet points with better spacing and indentation
+                            ul: ({ children }) => (
+                              <ul className="mb-4 last:mb-0 space-y-1 pl-4">{children}</ul>
+                            ),
+                            li: ({ children }) => (
+                              <li className="text-sm leading-relaxed list-disc ml-1 pl-1">{children}</li>
+                            ),
+                            // Enhanced numbered lists
+                            ol: ({ children }) => (
+                              <ol className="mb-4 last:mb-0 space-y-1 pl-4 list-decimal">{children}</ol>
+                            ),
+                            // Enhanced headers with better spacing
+                            h1: ({ children }) => (
+                              <h1 className="text-base font-semibold mb-3 mt-4 first:mt-0">{children}</h1>
+                            ),
+                            h2: ({ children }) => (
+                              <h2 className="text-sm font-semibold mb-2 mt-3 first:mt-0">{children}</h2>
+                            ),
+                            h3: ({ children }) => (
+                              <h3 className="text-sm font-medium mb-2 mt-3 first:mt-0">{children}</h3>
+                            ),
+                            // Enhanced strong text
+                            strong: ({ children }) => (
+                              <strong className="font-semibold text-foreground">{children}</strong>
+                            ),
+                            // Enhanced code blocks
+                            code: ({ children }) => (
+                              <code className="bg-secondary/50 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                            ),
+                            // Enhanced blockquotes
+                            blockquote: ({ children }) => (
+                              <blockquote className="border-l-2 border-border pl-3 ml-2 italic text-muted-foreground my-3">
+                                {children}
+                              </blockquote>
+                            ),
+                          }}
+                        >
                           {message.content}
                         </ReactMarkdown>
                       )}
@@ -410,7 +453,7 @@ const CompanyDetails = () => {
                 ))}
                 {isSendingMessage && (
                   <div className="flex justify-start">
-                    <div className="bg-muted text-foreground max-w-[80%] rounded-lg p-3 mr-4">
+                    <div className="bg-muted text-foreground max-w-[80%] rounded-lg p-4 mr-4">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
                         <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-75"></div>
