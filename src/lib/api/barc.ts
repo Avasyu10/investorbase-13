@@ -42,9 +42,9 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
       question_5: data.question_5,
       submitter_email: data.submitter_email,
       founder_linkedin_urls: data.founder_linkedin_urls,
-      poc_name: data.poc_name, // Map to new poc_name column
-      phoneno: data.phoneno, // Map to new phoneno column
-      user_id: userId, // Set user_id if user is authenticated
+      poc_name: data.poc_name,
+      phoneno: data.phoneno,
+      user_id: userId,
       analysis_status: 'pending'
     })
     .select()
@@ -56,16 +56,14 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
   }
 
   console.log('BARC form submitted successfully:', submission);
-
-  // Return the submission without automatically triggering analysis
-  // Analysis can be triggered manually later if needed
   return submission;
 };
 
 export const analyzeBarcSubmission = async (submissionId: string) => {
-  console.log('Analyzing BARC submission:', submissionId);
+  console.log('Starting BARC submission analysis:', submissionId);
 
   try {
+    // First, trigger the analysis
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
       body: { submissionId }
     });
@@ -75,12 +73,63 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
       throw error;
     }
 
-    console.log('BARC analysis completed:', data);
+    console.log('BARC analysis function response:', data);
     
-    // Return the result which should include success, companyId, and other details
-    return data;
+    // If the function returns immediately with success, poll for completion
+    if (data?.success) {
+      return data;
+    }
+    
+    // If the analysis is still processing, poll for completion
+    console.log('Analysis started, polling for completion...');
+    return await pollForAnalysisCompletion(submissionId);
   } catch (error) {
     console.error('Failed to analyze BARC submission:', error);
     throw error;
   }
+};
+
+// Helper function to poll for analysis completion
+const pollForAnalysisCompletion = async (submissionId: string, maxAttempts: number = 60): Promise<any> => {
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    try {
+      console.log(`Polling attempt ${attempts + 1} for submission ${submissionId}`);
+      
+      const { data: submission, error } = await supabase
+        .from('barc_form_submissions')
+        .select('analysis_status, company_id, analysis_error')
+        .eq('id', submissionId)
+        .single();
+
+      if (error) {
+        console.error('Error polling submission status:', error);
+        throw error;
+      }
+
+      console.log('Current submission status:', submission);
+
+      if (submission.analysis_status === 'completed' && submission.company_id) {
+        console.log('Analysis completed successfully!');
+        return {
+          success: true,
+          companyId: submission.company_id
+        };
+      }
+      
+      if (submission.analysis_status === 'error') {
+        throw new Error(submission.analysis_error || 'Analysis failed');
+      }
+      
+      // Wait 2 seconds before next poll
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      attempts++;
+    } catch (error) {
+      console.error('Error during polling:', error);
+      throw error;
+    }
+  }
+  
+  throw new Error('Analysis timed out after maximum attempts');
 };

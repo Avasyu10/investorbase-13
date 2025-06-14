@@ -26,7 +26,6 @@ const BarcSubmissions = () => {
 
       console.log('Fetching BARC submissions for user:', user.id);
 
-      // Fetch submissions - RLS policies will automatically filter to only submissions for forms owned by this user
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .select('*')
@@ -39,24 +38,21 @@ const BarcSubmissions = () => {
       
       console.log('BARC submissions fetched:', data?.length || 0);
       
-      // Transform the data to match our BarcSubmission interface
       return (data || []).map(item => ({
         ...item,
         analysis_result: item.analysis_result ? item.analysis_result as unknown as BarcAnalysisResult : null
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    refetchInterval: 5000, // Poll every 5 seconds to check for status updates
+    refetchInterval: 5000,
   });
 
   const triggerAnalysis = async (submissionId: string) => {
-    // Prevent duplicate analysis requests
     if (analyzingSubmissions.has(submissionId)) {
       console.log('Analysis already in progress for submission:', submissionId);
       return;
     }
 
-    // Check if submission is already being processed or completed
     const submission = submissions?.find(s => s.id === submissionId);
     if (submission?.analysis_status === 'processing' || submission?.analysis_status === 'completed') {
       console.log('Submission already processed or in progress:', submissionId);
@@ -69,22 +65,27 @@ const BarcSubmissions = () => {
       // Add to analyzing set to show loading state
       setAnalyzingSubmissions(prev => new Set(prev).add(submissionId));
       
+      // Show initial loading message
+      toast.loading("Starting analysis...", { 
+        id: `analysis-${submissionId}`,
+        description: "This may take a few moments. Please wait..." 
+      });
+      
       // Trigger the analysis and wait for completion
       const result = await analyzeBarcSubmission(submissionId);
       
+      // Dismiss loading toast
+      toast.dismiss(`analysis-${submissionId}`);
+      
       if (result?.success && result?.companyId) {
-        toast.success("Analysis completed successfully!");
+        toast.success("Analysis completed successfully!", {
+          description: "Company has been created and analyzed."
+        });
         
         // Navigate directly to the company details page
         navigate(`/company/${result.companyId}`);
       } else {
-        // If the API says it failed but we got a response, check if it was a lock error
-        if (result?.error?.includes('already being analyzed')) {
-          console.log('Analysis was already in progress, checking status...');
-          toast.info("Analysis is already in progress for this submission.");
-        } else {
-          throw new Error(result?.error || 'Analysis failed');
-        }
+        throw new Error(result?.error || 'Analysis failed');
       }
 
       // Refetch to get updated data
@@ -92,12 +93,14 @@ const BarcSubmissions = () => {
     } catch (error: any) {
       console.error('Analysis trigger error:', error);
       
-      // Check if this is a "already analyzing" error - if so, don't show error toast
+      // Dismiss loading toast
+      toast.dismiss(`analysis-${submissionId}`);
+      
       if (error.message?.includes('already being analyzed') || error.message?.includes('already being processed')) {
         console.log('Submission is already being analyzed, this is expected');
         toast.info("Analysis is already in progress for this submission.");
       } else {
-        toast.error(`Failed to start analysis: ${error.message}`);
+        toast.error(`Failed to complete analysis: ${error.message}`);
         
         // Reset status back to pending if there was a real error
         await supabase
@@ -106,14 +109,12 @@ const BarcSubmissions = () => {
           .eq('id', submissionId);
       }
     } finally {
-      // Remove from analyzing set after a delay to prevent rapid re-clicks
-      setTimeout(() => {
-        setAnalyzingSubmissions(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(submissionId);
-          return newSet;
-        });
-      }, 3000);
+      // Remove from analyzing set
+      setAnalyzingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(submissionId);
+        return newSet;
+      });
     }
   };
 
@@ -143,7 +144,6 @@ const BarcSubmissions = () => {
     }
   };
 
-  // Helper function to safely get analysis result
   const getAnalysisResult = (submission: BarcSubmission): BarcAnalysisResult | null => {
     return submission.analysis_result || null;
   };

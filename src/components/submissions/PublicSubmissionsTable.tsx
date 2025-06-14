@@ -69,14 +69,25 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
     if (submission.source === "barc_form") {
       console.log('Handling BARC submission analysis for:', submission.id);
       try {
+        // Show loading toast
+        toast.loading("Analyzing submission...", { 
+          id: `analysis-${submission.id}`,
+          description: "This may take a few moments. Please wait..." 
+        });
+        
         // Call the passed onAnalyze callback to handle loading state
         onAnalyze(submission);
         
         // Call the BARC analysis function and wait for completion
         const result = await analyzeBarcSubmission(submission.id);
         
+        // Dismiss loading toast
+        toast.dismiss(`analysis-${submission.id}`);
+        
         if (result?.success && result?.companyId) {
-          toast.success("Analysis completed successfully!");
+          toast.success("Analysis completed successfully!", {
+            description: "Company has been created and analyzed."
+          });
           
           // Navigate directly to the company details page
           navigate(`/company/${result.companyId}`);
@@ -87,6 +98,10 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
         console.log('BARC analysis completed successfully');
       } catch (error) {
         console.error('BARC analysis failed:', error);
+        
+        // Dismiss loading toast
+        toast.dismiss(`analysis-${submission.id}`);
+        
         throw error; // Let the parent component handle the error
       }
       return;
@@ -235,7 +250,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
                 </TableRow>
               );
             } catch (error) {
-              return null; // Skip rendering this row if there's an error
+              return null;
             }
           })}
         </TableBody>
