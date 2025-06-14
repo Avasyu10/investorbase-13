@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -83,14 +84,6 @@ serve(async (req) => {
       submitter_email: submission.submitter_email,
       current_status: submission.analysis_status,
       company_type: submission.company_type,
-      poc_name: submission.poc_name,
-      phoneno: submission.phoneno
-    });
-
-    // DEBUG: Log the specific fields we're trying to map
-    console.log('BARC submission fields to map:', {
-      company_type: submission.company_type,
-      submitter_email: submission.submitter_email,
       poc_name: submission.poc_name,
       phoneno: submission.phoneno
     });
@@ -289,18 +282,12 @@ serve(async (req) => {
         phonenumber: submission.phoneno || null
       };
 
-      console.log('DEBUG: Company data being inserted:', companyData);
-      console.log('DEBUG: Specific field values:', {
-        industry: companyData.industry,
-        email: companyData.email,
-        poc_name: companyData.poc_name,
-        phonenumber: companyData.phonenumber
-      });
+      console.log('Company data to insert:', companyData);
 
       const { data: newCompany, error: companyError } = await supabase
         .from('companies')
         .insert(companyData)
-        .select('*')
+        .select()
         .single();
 
       if (companyError) {
@@ -311,7 +298,6 @@ serve(async (req) => {
       companyId = newCompany.id;
       isNewCompany = true;
       console.log('Successfully created new company with ID:', companyId);
-      console.log('DEBUG: Created company data:', newCompany);
     } else {
       // Update existing company with complete BARC submission data
       console.log('Updating existing company with BARC submission data...');
@@ -323,14 +309,12 @@ serve(async (req) => {
         phonenumber: submission.phoneno || null
       };
 
-      console.log('DEBUG: Company update data:', updateData);
+      console.log('Company update data:', updateData);
 
-      const { data: updatedCompany, error: updateCompanyError } = await supabase
+      const { error: updateCompanyError } = await supabase
         .from('companies')
         .update(updateData)
-        .eq('id', companyId)
-        .select('*')
-        .single();
+        .eq('id', companyId);
 
       if (updateCompanyError) {
         console.error('Error updating company:', updateCompanyError);
@@ -338,7 +322,6 @@ serve(async (req) => {
       }
 
       console.log('Successfully updated existing company with ID:', companyId);
-      console.log('DEBUG: Updated company data:', updatedCompany);
     }
 
     // Update the submission with analysis results and company ID
