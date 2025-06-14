@@ -2,26 +2,16 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
-import { ArrowUpRight, Lightbulb, BarChart2, HelpCircle, Download } from "lucide-react";
+import { ArrowUpRight, Lightbulb, BarChart2, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { MarketResearch } from "./MarketResearch";
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FundThesisAlignment } from "./FundThesisAlignment";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
 
 interface ScoreAssessmentProps {
   company: CompanyDetailed;
 }
 
 export function ScoreAssessment({ company }: ScoreAssessmentProps) {
-  const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [hasFundThesis, setHasFundThesis] = useState(false);
-  
   // Format overall score to whole number
   const formattedScore = Math.round(company.overall_score);
   
@@ -37,15 +27,6 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
     return "text-red-600";
   };
   
-  // Get progress bar color class
-  const getProgressColor = (score: number) => {
-    if (score >= 90) return "score-excellent";
-    if (score >= 70) return "score-good"; 
-    if (score >= 50) return "score-average";
-    if (score >= 30) return "score-poor";
-    return "score-critical";
-  };
-  
   // Get score description
   const getScoreDescription = (score: number): string => {
     if (score >= 90) return `Outstanding Investment Opportunity (${score}/100): This company demonstrates exceptional market position, business model, and growth metrics. Clear competitive advantages with minimal risk factors. Recommended for immediate investment consideration.`;
@@ -59,54 +40,6 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   const highlightNumbers = (text: string) => {
     return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
       (match) => `<span class="font-medium text-primary">${match}</span>`);
-  };
-  
-  // Check if user has a fund thesis
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUserId(user.id);
-          
-          // Check if user has a fund thesis by looking for a non-null thesis URL
-          const { data, error } = await supabase
-            .from('vc_profiles')
-            .select('fund_thesis_url')
-            .eq('id', user.id)
-            .single();
-            
-          if (!error && data && data.fund_thesis_url) {
-            setHasFundThesis(true);
-          } else {
-            // If first query fails, the profile might be using a different ID structure
-            // Try to get the profile directly without filtering
-            console.log("Trying alternative method to find fund thesis...");
-            const { data: profileData, error: profileError } = await supabase
-              .from('vc_profiles')
-              .select('fund_thesis_url')
-              .single();
-              
-            if (!profileError && profileData && profileData.fund_thesis_url) {
-              setHasFundThesis(true);
-              console.log("Found fund thesis with alternative method");
-            } else {
-              console.log("No fund thesis found:", profileError);
-              setHasFundThesis(false);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error checking fund thesis:', error);
-      }
-    };
-    
-    checkUser();
-  }, []);
-  
-  const handleOpenFundThesisModal = () => {
-    if (!company || !userId) return;
-    setIsFundThesisModalOpen(true);
   };
 
   return (
@@ -134,17 +67,6 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              
-              {hasFundThesis && userId && (
-                <Button 
-                  variant="outline"
-                  className="ml-4 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
-                  onClick={handleOpenFundThesisModal}
-                >
-                  <Lightbulb className="mr-2 h-4 w-4 text-white" />
-                  Fund Thesis Alignment
-                </Button>
-              )}
             </div>
           </div>
         </CardHeader>
@@ -181,30 +103,6 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
           </Link>
         </CardFooter>
       </Card>
-      
-      {/* Fund Thesis Alignment Modal */}
-      <Dialog open={isFundThesisModalOpen} onOpenChange={setIsFundThesisModalOpen}>
-        <DialogContent className="max-w-4xl w-[95vw]">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-emerald-600" />
-              Fund Thesis Alignment
-            </DialogTitle>
-            <DialogDescription>
-              Analysis of how well this company aligns with your investment thesis
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            {company && userId && (
-              <FundThesisAlignment 
-                companyId={company.id.toString()}
-                companyName={company.name}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
       
       {/* Add Market Research component */}
       <MarketResearch 
