@@ -579,10 +579,15 @@ const Profile = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="profile">Profile Details</TabsTrigger>
-          <TabsTrigger value="email">Investor Pitch Email</TabsTrigger>
-          <TabsTrigger value="alerts">
-            {isIITBombay ? "Alumni Alerts" : "Alerts"}
-          </TabsTrigger>
+          {!isIITBombay && (
+            <>
+              <TabsTrigger value="email">Investor Pitch Email</TabsTrigger>
+              <TabsTrigger value="alerts">Alerts</TabsTrigger>
+            </>
+          )}
+          {isIITBombay && (
+            <TabsTrigger value="alerts">Alumni Alerts</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -915,15 +920,18 @@ const Profile = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <div className="flex items-center mb-3">
-                    <Mail className="h-5 w-5 text-primary mr-2" />
-                    <h3 className="text-base font-semibold text-foreground/80">InvestorBase Pitch Email</h3>
+                {/* Only show InvestorBase Pitch Email section for non-IIT Bombay users */}
+                {!isIITBombay && (
+                  <div>
+                    <div className="flex items-center mb-3">
+                      <Mail className="h-5 w-5 text-primary mr-2" />
+                      <h3 className="text-base font-semibold text-foreground/80">InvestorBase Pitch Email</h3>
+                    </div>
+                    <Separator className="mb-4" />
+                    
+                    <InvestorPitchEmail />
                   </div>
-                  <Separator className="mb-4" />
-                  
-                  <InvestorPitchEmail />
-                </div>
+                )}
               </CardContent>
               
               <CardFooter className="flex justify-end border-t border-border/30 pt-6 pb-6">
@@ -949,12 +957,22 @@ const Profile = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="email">
-          <InvestorPitchEmail />
-        </TabsContent>
-        <TabsContent value="alerts">
-          <ConditionalAlertsSection />
-        </TabsContent>
+        {!isIITBombay && (
+          <>
+            <TabsContent value="email">
+              <InvestorPitchEmail />
+            </TabsContent>
+            <TabsContent value="alerts">
+              <ConditionalAlertsSection />
+            </TabsContent>
+          </>
+        )}
+        
+        {isIITBombay && (
+          <TabsContent value="alerts">
+            <ConditionalAlertsSection />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
