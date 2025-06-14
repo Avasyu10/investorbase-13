@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
@@ -33,7 +34,6 @@ export const routes = [
   { path: "/reset-password", element: <ResetPassword /> },
   { path: "/public-upload/:slug", element: <PublicUpload /> },
   { path: "/public-upload", element: <PublicUpload /> },
-  { path: "/barc-submit/:slug", element: <BarcSubmit /> },
   { path: "/iitbombay-submit/:slug", element: <BarcSubmit /> },
   { 
     path: "/dashboard", 
