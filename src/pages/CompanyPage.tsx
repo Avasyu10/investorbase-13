@@ -78,7 +78,7 @@ const CompanyPage = () => {
             {company && userId && (
               <InvestorResearch 
                 companyId={company.id.toString()}
-                assessmentPoints={company.assessmentPoints || []}
+                assessmentPoints={company.assessment_points || []}
                 userId={userId}
               />
             )}

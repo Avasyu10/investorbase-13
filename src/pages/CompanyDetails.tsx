@@ -84,7 +84,7 @@ function CompanyDetails() {
               />
             </div>
             <div>
-              <ScoreAssessment company={company} />
+              <ScoreAssessment company={{...company, sections: company.sections || []}} />
             </div>
           </div>
 
@@ -93,8 +93,8 @@ function CompanyDetails() {
 
           {/* Overall Assessment */}
           <OverallAssessment
-            score={company.overallScore || 0}
-            assessmentPoints={company.assessmentPoints || []}
+            score={company.overall_score || 0}
+            assessmentPoints={company.assessment_points || []}
           />
 
           {/* Sections */}

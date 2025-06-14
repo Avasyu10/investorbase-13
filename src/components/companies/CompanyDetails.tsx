@@ -113,8 +113,8 @@ const CompanyDetails = () => {
   }, [navigate, id]);
 
   const navigateToReport = useCallback(() => {
-    if (company?.reportId) {
-      navigate(`/reports/${company.reportId}`);
+    if (company?.report_id) {
+      navigate(`/reports/${company.report_id}`);
     } else {
       toast({
         title: "No report available",
@@ -122,7 +122,7 @@ const CompanyDetails = () => {
         variant: "destructive"
       });
     }
-  }, [company?.reportId, navigate]);
+  }, [company?.report_id, navigate]);
 
   const handleBack = useCallback(() => {
     navigate("/dashboard");
@@ -159,7 +159,7 @@ const CompanyDetails = () => {
           companyIntroduction: companyInfo.introduction,
           companyIndustry: companyInfo.industry,
           companyStage: companyInfo.stage,
-          assessmentPoints: company?.assessmentPoints || [],
+          assessmentPoints: company?.assessment_points || [],
           messages: conversationHistory
         }
       });
@@ -248,7 +248,7 @@ const CompanyDetails = () => {
     );
   }
 
-  const formattedScore = company ? parseFloat(company.overallScore.toFixed(1)) : 0;
+  const formattedScore = company ? parseFloat(company.overall_score.toFixed(1)) : 0;
   
   const progressPercentage = formattedScore * 20;
 
@@ -279,7 +279,7 @@ const CompanyDetails = () => {
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company?.name}</h1>
                 </div>
                 <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                  {company?.reportId && (
+                  {company?.report_id && (
                     <Button 
                       onClick={navigateToReport} 
                       variant="outline" 
@@ -329,11 +329,11 @@ const CompanyDetails = () => {
               <div className="mb-5">
                 <Progress 
                   value={progressPercentage} 
-                  className={`h-2 ${getScoreColor(company.overallScore)}`} 
+                  className={`h-2 ${getScoreColor(company.overall_score)}`} 
                 />
               </div>
 
-              <ScoreAssessment company={company} />
+              <ScoreAssessment company={{...company, sections: company.sections || []}} />
             </div>
             
             <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
