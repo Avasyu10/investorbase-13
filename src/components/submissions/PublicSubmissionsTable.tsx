@@ -27,15 +27,17 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
+  submitter_email?: string | null;
 }
 
 interface PublicSubmissionsTableProps {
   submissions: PublicSubmission[];
   onAnalyze: (submission: PublicSubmission) => void;
   analyzingSubmissions?: Set<string>;
+  isIITBombay?: boolean;
 }
 
-export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set() }: PublicSubmissionsTableProps) {
+export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set(), isIITBombay = false }: PublicSubmissionsTableProps) {
   const navigate = useNavigate();
 
   if (!submissions) {
@@ -173,17 +175,22 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
         );
     }
   };
+
+  const getSubmissionEmail = (submission: PublicSubmission) => {
+    return submission.submitter_email || submission.from_email || "—";
+  };
   
   return (
     <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-1/6">Source</TableHead>
+            {!isIITBombay && <TableHead className="w-1/6">Source</TableHead>}
             <TableHead className="w-1/5">Title</TableHead>
-            <TableHead className="w-1/6">Industry</TableHead>
-            <TableHead className="w-1/6">Stage</TableHead>
-            <TableHead className="w-1/6">Website</TableHead>
+            {isIITBombay && <TableHead className="w-1/6">Email</TableHead>}
+            {!isIITBombay && <TableHead className="w-1/6">Industry</TableHead>}
+            {!isIITBombay && <TableHead className="w-1/6">Stage</TableHead>}
+            {!isIITBombay && <TableHead className="w-1/6">Website</TableHead>}
             <TableHead className="w-1/6">Submitted</TableHead>
             <TableHead className="w-1/6 text-right">Action</TableHead>
           </TableRow>
@@ -195,33 +202,46 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
             try {
               return (
                 <TableRow key={submission.id}>
-                  <TableCell>
-                    {getSourceBadge(submission.source)}
-                  </TableCell>
+                  {!isIITBombay && (
+                    <TableCell>
+                      {getSourceBadge(submission.source)}
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium">
                     {truncateText(submission.title, 30)}
                   </TableCell>
-                  <TableCell>
-                    {submission.industry || "—"}
-                  </TableCell>
-                  <TableCell>
-                    {submission.company_stage || "—"}
-                  </TableCell>
-                  <TableCell>
-                    {submission.website_url ? (
-                      <a 
-                        href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline flex items-center gap-1"
-                      >
-                        {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
+                  {isIITBombay && (
+                    <TableCell>
+                      {getSubmissionEmail(submission)}
+                    </TableCell>
+                  )}
+                  {!isIITBombay && (
+                    <TableCell>
+                      {submission.industry || "—"}
+                    </TableCell>
+                  )}
+                  {!isIITBombay && (
+                    <TableCell>
+                      {submission.company_stage || "—"}
+                    </TableCell>
+                  )}
+                  {!isIITBombay && (
+                    <TableCell>
+                      {submission.website_url ? (
+                        <a 
+                          href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline flex items-center gap-1"
+                        >
+                          {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     {formatDate(submission.created_at)}
                   </TableCell>
