@@ -134,7 +134,7 @@ const PublicForms = () => {
 
   const getFormUrl = (slug: string, formType: string) => {
     if (formType === 'barc') {
-      return `${window.location.origin}/iitbombay-submit/${slug}`;
+      return `${window.location.origin}/barc-submit/${slug}`;
     }
     return `${window.location.origin}/public-upload/${slug}`;
   };
@@ -142,7 +142,7 @@ const PublicForms = () => {
   const getFormTypeLabel = (formType: string) => {
     switch (formType) {
       case 'barc':
-        return 'IIT Bombay Application';
+        return 'BARC Application';
       case 'general':
       default:
         return 'General Submission';
