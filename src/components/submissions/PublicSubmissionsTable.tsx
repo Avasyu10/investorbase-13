@@ -1,10 +1,18 @@
-
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucide-react";
+import { analyzeBarcSubmission } from "@/lib/api/barc";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface PublicSubmission {
   id: string;
@@ -24,132 +32,228 @@ interface PublicSubmission {
 interface PublicSubmissionsTableProps {
   submissions: PublicSubmission[];
   onAnalyze: (submission: PublicSubmission) => void;
-  analyzingSubmissions: Set<string>;
-  isIITBombay?: boolean;
+  analyzingSubmissions?: Set<string>;
 }
 
-export function PublicSubmissionsTable({ 
-  submissions, 
-  onAnalyze, 
-  analyzingSubmissions,
-  isIITBombay = false 
-}: PublicSubmissionsTableProps) {
-  const getSourceBadgeColor = (source: string): string => {
-    switch (source) {
-      case "email":
-        return "bg-blue-100 text-blue-800";
-      case "email_pitch":
-        return "bg-purple-100 text-purple-800";
-      case "public_form":
-        return "bg-green-100 text-green-800";
-      case "barc_form":
-        return "bg-orange-100 text-orange-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set() }: PublicSubmissionsTableProps) {
+  const navigate = useNavigate();
 
-  const getSourceLabel = (source: string): string => {
-    switch (source) {
-      case "email":
-        return "Email";
-      case "email_pitch":
-        return "Email Pitch";
-      case "public_form":
-        return "Public Form";
-      case "barc_form":
-        return "BARC Form";
-      default:
-        return source;
-    }
-  };
-
-  if (submissions.length === 0) {
+  if (!submissions) {
     return (
-      <div className="text-center py-12 border rounded-lg bg-card/50">
-        <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-medium">No applications found</h3>
-        <p className="mt-2 text-muted-foreground">
-          New applications will appear here when they are submitted.
-        </p>
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No submissions provided</p>
       </div>
     );
   }
 
+  if (!Array.isArray(submissions)) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Invalid submissions data</p>
+      </div>
+    );
+  }
+  
+  if (submissions.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No submissions found</p>
+      </div>
+    );
+  }
+
+  const handleAnalyze = async (submission: PublicSubmission) => {
+    console.log('PublicSubmissionsTable handleAnalyze called with:', submission);
+    
+    // For BARC submissions, handle the complete analysis flow
+    if (submission.source === "barc_form") {
+      console.log('Handling BARC submission analysis for:', submission.id);
+      
+      try {
+        // Call the passed onAnalyze callback to handle loading state
+        onAnalyze(submission);
+        
+        console.log('Starting BARC analysis and waiting for completion...');
+        
+        // Call the BARC analysis function and wait for completion
+        const result = await analyzeBarcSubmission(submission.id);
+        
+        console.log('BARC analysis result:', result);
+        
+        if (result?.success && result?.companyId) {
+          toast.success("Analysis completed successfully!", {
+            description: "Company has been created and analyzed."
+          });
+          
+          // Navigate directly to the company details page
+          console.log('Navigating to company:', result.companyId);
+          navigate(`/company/${result.companyId}`);
+        } else {
+          throw new Error(result?.message || 'Analysis failed - no company created');
+        }
+        
+      } catch (error) {
+        console.error('BARC analysis failed:', error);
+        
+        const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+        toast.error("Analysis failed", {
+          description: errorMessage
+        });
+        
+        // Re-throw to let parent component handle cleanup
+        throw error;
+      }
+      return;
+    }
+
+    // Handle other submission types
+    if (!submission.report_id) {
+      throw new Error("No report ID found for this submission");
+    }
+
+    // Call the original onAnalyze callback for other submission types
+    onAnalyze(submission);
+  };
+
+  const truncateText = (text: string | null, maxLength: number) => {
+    if (!text) return "—";
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const getSourceBadge = (source: string) => {
+    switch (source) {
+      case 'email':
+        return (
+          <Badge 
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-blue-50 text-blue-700 border-blue-200"
+          >
+            <Mail className="h-3 w-3" />
+            <span>Email</span>
+          </Badge>
+        );
+      case 'email_pitch':
+        return (
+          <Badge 
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-blue-50 text-blue-700 border-blue-200"
+          >
+            <Mail className="h-3 w-3" />
+            <span>Email Pitch</span>
+          </Badge>
+        );
+      case 'barc_form':
+        return (
+          <Badge 
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-purple-50 text-purple-700 border-purple-200"
+          >
+            <Building className="h-3 w-3" />
+            <span>BARC Form</span>
+          </Badge>
+        );
+      case 'public_form':
+      default:
+        return (
+          <Badge 
+            variant="outline"
+            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-green-50 text-green-700 border-green-200"
+          >
+            <FileText className="h-3 w-3" />
+            <span>Public Form</span>
+          </Badge>
+        );
+    }
+  };
+  
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-semibold">Title</TableHead>
-              <TableHead className="font-semibold">Description</TableHead>
-              {!isIITBombay && <TableHead className="font-semibold">Source</TableHead>}
-              <TableHead className="font-semibold">Date Submitted</TableHead>
-              <TableHead className="font-semibold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {submissions.map((submission) => (
-              <TableRow key={submission.id} className="hover:bg-muted/50">
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <span>{submission.title}</span>
-                    {submission.pdf_url && (
-                      <a
-                        href={submission.pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:text-primary/80"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="max-w-md">
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {submission.description || "No description available"}
-                    </p>
-                    {submission.from_email && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        From: {submission.from_email}
-                      </p>
-                    )}
-                  </div>
-                </TableCell>
-                {!isIITBombay && (
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-1/6">Source</TableHead>
+            <TableHead className="w-1/5">Title</TableHead>
+            <TableHead className="w-1/6">Industry</TableHead>
+            <TableHead className="w-1/6">Stage</TableHead>
+            <TableHead className="w-1/6">Website</TableHead>
+            <TableHead className="w-1/6">Submitted</TableHead>
+            <TableHead className="w-1/6 text-right">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {submissions.map((submission) => {
+            const isAnalyzing = analyzingSubmissions.has(submission.id);
+            
+            try {
+              return (
+                <TableRow key={submission.id}>
                   <TableCell>
-                    <Badge className={getSourceBadgeColor(submission.source)}>
-                      {getSourceLabel(submission.source)}
-                    </Badge>
+                    {getSourceBadge(submission.source)}
                   </TableCell>
-                )}
-                <TableCell className="text-muted-foreground">
-                  {format(new Date(submission.created_at), 'MMM dd, yyyy')}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    onClick={() => onAnalyze(submission)}
-                    disabled={analyzingSubmissions.has(submission.id)}
-                    size="sm"
-                  >
-                    {analyzingSubmissions.has(submission.id) ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyzing...
-                      </>
+                  <TableCell className="font-medium">
+                    {truncateText(submission.title, 30)}
+                  </TableCell>
+                  <TableCell>
+                    {submission.industry || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {submission.company_stage || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {submission.website_url ? (
+                      <a 
+                        href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline flex items-center gap-1"
+                      >
+                        {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
                     ) : (
-                      "Analyze"
+                      "—"
                     )}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                  </TableCell>
+                  <TableCell>
+                    {formatDate(submission.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleAnalyze(submission)}
+                      disabled={isAnalyzing || (submission.source !== "barc_form" && !submission.report_id)}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-1 h-3 w-3" />
+                          Analyze
+                        </>
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            } catch (error) {
+              return null;
+            }
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
