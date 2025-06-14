@@ -26,6 +26,7 @@ import Signup from "@/pages/Signup";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
+import ThankYou from "@/pages/ThankYou";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -35,6 +36,7 @@ export const routes = [
   { path: "/public-upload/:slug", element: <PublicUpload /> },
   { path: "/public-upload", element: <PublicUpload /> },
   { path: "/submit/:slug", element: <BarcSubmit /> },
+  { path: "/thank-you", element: <ThankYou /> },
   { 
     path: "/dashboard", 
     element: (

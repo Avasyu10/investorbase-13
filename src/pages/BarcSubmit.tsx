@@ -123,9 +123,9 @@ const BarcSubmit = () => {
       form.reset();
       setFounderLinkedIns([""]);
       
-      // Navigate to home after a short delay
+      // Navigate to thank you page instead of home
       setTimeout(() => {
-        navigate('/', { replace: true });
+        navigate('/thank-you', { replace: true });
       }, 2000);
     },
     onError: (error: any) => {
