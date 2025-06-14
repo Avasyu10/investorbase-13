@@ -11,7 +11,7 @@ import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { ConditionalAlertsSection } from "@/components/profile/ConditionalAlertsSection";
 import { CreateBarcFormButton } from "@/components/profile/CreateBarcFormButton";
 import { ProfileNavigation } from "@/components/profile/ProfileNavigation";
-import { Loader2, GraduationCap, Copy, ExternalLink, Building, Tag, Layers, Globe, Mail, Save, Plus, X, FileText, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, GraduationCap, Copy, ExternalLink, Building, Tag, Layers, Globe, Mail, Save, Plus, X, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
@@ -585,9 +585,6 @@ const Profile = () => {
               <TabsTrigger value="alerts">Alerts</TabsTrigger>
             </>
           )}
-          {isIITBombay && (
-            <TabsTrigger value="alerts">Alumni Alerts</TabsTrigger>
-          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -966,12 +963,6 @@ const Profile = () => {
               <ConditionalAlertsSection />
             </TabsContent>
           </>
-        )}
-        
-        {isIITBombay && (
-          <TabsContent value="alerts">
-            <ConditionalAlertsSection />
-          </TabsContent>
         )}
       </Tabs>
     </div>
