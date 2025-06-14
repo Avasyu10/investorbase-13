@@ -9,9 +9,10 @@ import { Star } from "lucide-react";
 interface CompaniesTableProps {
   companies: Company[];
   onCompanyClick: (companyId: string) => void;
+  isIITBombay?: boolean;
 }
 
-export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
+export function CompaniesTable({ companies, onCompanyClick, isIITBombay = false }: CompaniesTableProps) {
   const getScoreColor = (score: number): string => {
     if (score >= 90) return "text-emerald-600";
     if (score >= 70) return "text-blue-600";
@@ -38,6 +39,79 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     return assessmentPoints.slice(0, 2);
   };
 
+  if (isIITBombay) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-semibold">Company Name</TableHead>
+                <TableHead className="font-semibold">Name</TableHead>
+                <TableHead className="font-semibold">Phone Number</TableHead>
+                <TableHead className="font-semibold">Email</TableHead>
+                <TableHead className="font-semibold">Industry</TableHead>
+                <TableHead className="font-semibold">Score</TableHead>
+                <TableHead className="font-semibold">Summary</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {companies.map((company) => {
+                const formattedScore = Math.round(company.overall_score);
+                const summaryPoints = getSummaryPoints(company.assessment_points);
+                
+                return (
+                  <TableRow 
+                    key={company.id} 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => onCompanyClick(company.id)}
+                  >
+                    <TableCell className="font-medium">
+                      {company.name}
+                    </TableCell>
+                    <TableCell>
+                      {(company as any).poc_name || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {(company as any).phonenumber || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {(company as any).email || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {(company as any).industry || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <Badge className={getScoreBadgeColor(formattedScore)}>
+                          <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
+                            {formattedScore}/100
+                          </span>
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {summaryPoints.map((point, index) => (
+                          <div key={index} className="flex items-start gap-2 text-sm">
+                            <span className="text-primary mt-1">•</span>
+                            <span className="text-muted-foreground line-clamp-2">{point}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Original table for non-IIT Bombay users
   return (
     <Card>
       <CardContent className="p-0">

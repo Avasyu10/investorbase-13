@@ -32,7 +32,12 @@ function mapDbCompanyToApi(company: any) {
     updated_at: company.updated_at || company.created_at,
     assessment_points: company.assessment_points || [],
     report_id: company.report_id,
-    source: source
+    source: source,
+    // Include additional fields for IIT Bombay users
+    poc_name: company.poc_name,
+    phonenumber: company.phonenumber,
+    email: company.email,
+    industry: company.industry
   };
 }
 
@@ -76,6 +81,7 @@ export function useCompanies(
           .select(`
             id, name, overall_score, created_at, updated_at, 
             assessment_points, report_id, user_id, source,
+            poc_name, phonenumber, email, industry,
             report:report_id (pdf_url, is_public_submission)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);

@@ -109,7 +109,7 @@ export function IITBombayCompaniesList() {
       </div>
 
       {companies.length > 0 ? (
-        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} />
+        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} isIITBombay={true} />
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
