@@ -42,6 +42,12 @@ export interface SectionDetail {
   created_at?: string;
 }
 
+export interface SectionDetailed extends Section {
+  detailedContent: string;
+  strengths: string[];
+  weaknesses: string[];
+}
+
 export interface Report {
   id: string;
   title: string;
@@ -57,39 +63,24 @@ export interface Report {
   submission_form_id?: string;
 }
 
-// Additional types that were missing
-export interface CompanyListItem extends Company {}
-
-export interface SectionDetailed extends Section {
-  details?: SectionDetail[];
-}
-
-export interface BaseEntity {
-  id: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
+// Additional types for API client
 export interface ApiResponse<T> {
   data: T;
+  status: number;
   message?: string;
-  success: boolean;
 }
 
 export interface ApiError {
-  message: string;
   status: number;
-  code?: string;
+  message: string;
+  details?: any;
 }
 
 export interface PaginatedResponse<T> {
   data: T[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
 }
 
 export interface PaginationParams {
@@ -101,61 +92,61 @@ export interface PaginationParams {
 
 export interface CompanyFilterParams {
   search?: string;
-  industry?: string;
-  stage?: string;
   minScore?: number;
   maxScore?: number;
+  source?: string;
+}
+
+export interface CompanyListItem extends Company {}
+
+export interface BaseEntity {
+  id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SectionBase {
+  id: string;
+  title: string;
+  type: string;
+  score: number;
 }
 
 export interface CompanyCreateRequest {
   name: string;
   source?: string;
-  assessment_points?: string[];
-  overall_score?: number;
 }
 
-export interface CompanyUpdateRequest extends Partial<CompanyCreateRequest> {
-  id: string;
+export interface CompanyUpdateRequest {
+  name?: string;
+  overall_score?: number;
+  assessment_points?: string[];
 }
 
 export interface SectionCreateRequest {
   title: string;
-  description?: string;
-  score: number;
-  type?: string;
+  type: string;
   company_id: string;
 }
 
-export interface SectionUpdateRequest extends Partial<SectionCreateRequest> {
-  id: string;
+export interface SectionUpdateRequest {
+  title?: string;
+  score?: number;
+  description?: string;
 }
+
+export const API_ENDPOINTS = {
+  COMPANIES: '/companies',
+  SECTIONS: '/sections',
+  REPORTS: '/reports',
+} as const;
 
 export enum HttpMethod {
   GET = 'GET',
   POST = 'POST',
   PUT = 'PUT',
-  PATCH = 'PATCH',
-  DELETE = 'DELETE'
+  DELETE = 'DELETE',
+  PATCH = 'PATCH'
 }
 
-export enum SectionType {
-  BUSINESS_MODEL = 'business_model',
-  MARKET_ANALYSIS = 'market_analysis',
-  TEAM = 'team',
-  FINANCIALS = 'financials',
-  PRODUCT = 'product',
-  COMPETITIVE_ANALYSIS = 'competitive_analysis'
-}
-
-export const API_ENDPOINTS = {
-  COMPANIES: '/api/companies',
-  SECTIONS: '/api/sections',
-  REPORTS: '/api/reports'
-} as const;
-
-export interface SectionBase extends BaseEntity {
-  title: string;
-  description?: string;
-  score: number;
-  type?: string;
-}
+export type SectionType = 'problem' | 'solution' | 'market' | 'team' | 'financials' | 'traction' | 'ask';

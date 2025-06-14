@@ -32,10 +32,6 @@ function mapDbCompanyToApi(company: any) {
     updated_at: company.updated_at || company.created_at,
     assessment_points: company.assessment_points || [],
     report_id: company.report_id,
-    reportId: company.report_id, // Keep both for compatibility
-    perplexity_response: company.perplexity_response,
-    perplexity_prompt: company.perplexity_prompt,
-    perplexity_requested_at: company.perplexity_requested_at,
     source: source
   };
 }
@@ -45,7 +41,7 @@ export function useCompanies(
   pageSize: number = 20, 
   sortBy: string = 'created_at', 
   sortOrder: 'asc' | 'desc' = 'desc',
-  search: string = '' // Add search parameter
+  search: string = ''
 ) {
   const { user } = useAuth();
 
@@ -55,7 +51,7 @@ export function useCompanies(
     error,
     refetch,
   } = useQuery({
-    queryKey: ['companies', page, pageSize, sortBy, sortOrder, search, user?.id], // Add user.id to queryKey
+    queryKey: ['companies', page, pageSize, sortBy, sortOrder, search, user?.id],
     queryFn: async () => {
       try {
         if (!user) {
@@ -75,14 +71,11 @@ export function useCompanies(
         
         console.log('Fetching companies for user:', user.id);
         
-        // Since RLS was removed, we'll fetch all companies that belong to this user
-        // or are from reports they have access to
         let query = supabase
           .from('companies')
           .select(`
             id, name, overall_score, created_at, updated_at, 
-            assessment_points, report_id, perplexity_requested_at, 
-            perplexity_response, perplexity_prompt, user_id, source,
+            assessment_points, report_id, user_id, source,
             report:report_id (pdf_url, is_public_submission)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
@@ -104,16 +97,6 @@ export function useCompanies(
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total`);
         
-        // Log the companies by source for debugging
-        if (data && data.length > 0) {
-          console.log('Sample company data:', data[0]);
-          const sourceBreakdown = data.reduce((acc, company) => {
-            acc[company.source || 'unknown'] = (acc[company.source || 'unknown'] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          console.log('Companies by source:', sourceBreakdown);
-        }
-
         return {
           companies: (data || []).map(mapDbCompanyToApi),
           totalCount: count || 0
@@ -123,7 +106,7 @@ export function useCompanies(
         throw err;
       }
     },
-    enabled: !!user, // Only run query when user is available
+    enabled: !!user,
     meta: {
       onError: (err: any) => {
         console.error("useCompanies query error:", err);

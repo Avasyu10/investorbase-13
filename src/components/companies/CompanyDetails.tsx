@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -14,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import ReactMarkdown from 'react-markdown';
+import { CompanyDetailed } from "@/lib/api/apiContract";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +35,15 @@ const CompanyDetails = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isFromBarcForm, setIsFromBarcForm] = useState(false);
+
+  // Convert Company to CompanyDetailed for components that need it
+  const companyDetailed: CompanyDetailed | null = useMemo(() => {
+    if (!company) return null;
+    return {
+      ...company,
+      sections: company.sections || []
+    };
+  }, [company]);
 
   // Memoize sorted sections for better performance
   const sortedSections = useMemo(() => {
@@ -333,7 +344,7 @@ const CompanyDetails = () => {
                 />
               </div>
 
-              <ScoreAssessment company={{...company, sections: company.sections || []}} />
+              {companyDetailed && <ScoreAssessment company={companyDetailed} />}
             </div>
             
             <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">

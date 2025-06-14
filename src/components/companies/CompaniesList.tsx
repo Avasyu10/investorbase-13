@@ -15,7 +15,7 @@ export function CompaniesList() {
   // Use the useCompanies hook which has proper RLS handling
   const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
-  const handleCompanyClick = (companyId: number) => {
+  const handleCompanyClick = (companyId: string) => {
     navigate(`/company/${companyId}`);
   };
 

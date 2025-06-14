@@ -118,7 +118,6 @@ export function useCompanyDetails(companyId: string) {
         updated_at: companyData.updated_at,
         source: companyData.source,
         report_id: companyData.report_id,
-        reportId: companyData.report_id, // Keep both for compatibility
         website: companyDetailsData?.website || '',
         stage: companyDetailsData?.stage || '',
         industry: companyDetailsData?.industry || '',
