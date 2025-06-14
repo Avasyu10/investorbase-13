@@ -25,7 +25,7 @@ const ThankYou = () => {
             </CardTitle>
             <div className="flex items-center justify-center gap-2 text-lg text-primary font-medium">
               <GraduationCap className="h-6 w-6" />
-              <span>IIT Bombay Incubation Program</span>
+              <span>Eureka Incubation Program</span>
             </div>
           </CardHeader>
           
@@ -66,7 +66,7 @@ const ThankYou = () => {
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-6 border border-amber-100">
                 <Building className="h-8 w-8 text-amber-600 mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Thank you for choosing IIT Bombay
+                  Thank you for choosing Eureka
                 </h3>
                 <p className="text-gray-700">
                   We're excited to learn about your innovative idea and look forward to potentially supporting your entrepreneurial journey.
