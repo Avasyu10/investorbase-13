@@ -19,7 +19,8 @@ const Dashboard = () => {
   } = useAuth();
   const {
     profile,
-    isIITBombay
+    isIITBombay,
+    isLoading: profileLoading
   } = useProfile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
@@ -38,12 +39,14 @@ const Dashboard = () => {
       });
     } else if (user) {
       console.log("Dashboard loaded for user:", user.id);
+      console.log("Profile data:", profile);
+      console.log("Is IIT Bombay user:", isIITBombay);
       checkAdminStatus();
     }
 
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, profile, isIITBombay]);
 
   const checkAdminStatus = async () => {
     if (!user) return;
@@ -71,7 +74,7 @@ const Dashboard = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || profileLoading) {
     return <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>;
