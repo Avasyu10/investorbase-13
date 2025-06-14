@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -110,7 +109,7 @@ export const CreateBarcFormButton = ({ onFormCreated }: CreateBarcFormButtonProp
               placeholder="e.g., iit-bombay-barc-applications"
             />
             <p className="text-sm text-muted-foreground">
-              This will be used in the URL: /barc-submit/{formSlug}
+              This will be used in the URL: /iitbombay-submit/{formSlug}
             </p>
           </div>
           <Button 
