@@ -86,14 +86,6 @@ export function IITBombayCompaniesList() {
             Enhanced prospect tracking and management for IIT Bombay alumni network
           </p>
         </div>
-        <div className="flex gap-2 mt-4 sm:mt-0">
-          <Button 
-            onClick={() => navigate("/upload")} 
-            variant="outline"
-          >
-            Upload Deck
-          </Button>
-        </div>
       </div>
 
       {/* Enhanced stats section for IIT Bombay users */}
@@ -123,14 +115,8 @@ export function IITBombayCompaniesList() {
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">No prospects found</h3>
           <p className="mt-2 text-muted-foreground">
-            Upload your first pitch deck to start analyzing prospects.
+            No prospects available at the moment.
           </p>
-          <Button 
-            onClick={() => navigate("/upload")} 
-            className="mt-6"
-          >
-            Upload Your First Deck
-          </Button>
         </div>
       )}
     </div>
