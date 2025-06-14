@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +23,7 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
+  submitter_email?: string | null;
 }
 
 // Helper function to get form slugs that the user owns
@@ -210,7 +210,8 @@ export function PublicSubmissionsList() {
                   pdf_url: null,
                   report_id: null,
                   source: "barc_form" as const,
-                  from_email: submission.submitter_email
+                  from_email: submission.submitter_email,
+                  submitter_email: submission.submitter_email
                 }));
                 
                 allSubmissions.push(...transformedBarc);

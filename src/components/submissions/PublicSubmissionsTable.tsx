@@ -1,3 +1,4 @@
+
 import { 
   Table, 
   TableBody, 
@@ -183,13 +184,13 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
         <TableHeader>
           <TableRow>
             {!isIITBombay && <TableHead className="w-1/6">Source</TableHead>}
-            <TableHead className={isIITBombay ? "w-1/4" : "w-1/5"}>Title</TableHead>
-            {isIITBombay && <TableHead className="w-1/4">Email</TableHead>}
+            <TableHead className={isIITBombay ? "w-1/3" : "w-1/5"}>Title</TableHead>
+            {isIITBombay && <TableHead className="w-1/3">Email</TableHead>}
             {!isIITBombay && <TableHead className="w-1/6">Industry</TableHead>}
             {!isIITBombay && <TableHead className="w-1/6">Stage</TableHead>}
             {!isIITBombay && <TableHead className="w-1/6">Website</TableHead>}
-            <TableHead className={isIITBombay ? "w-1/4" : "w-1/6"}>Submitted</TableHead>
-            <TableHead className={isIITBombay ? "w-1/4 text-right" : "w-1/6 text-right"}>Action</TableHead>
+            <TableHead className={isIITBombay ? "w-1/6" : "w-1/6"}>Submitted</TableHead>
+            <TableHead className={isIITBombay ? "w-1/6 text-right" : "w-1/6 text-right"}>Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -209,7 +210,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
                   </TableCell>
                   {isIITBombay && (
                     <TableCell>
-                      {submission.from_email || "—"}
+                      {submission.from_email || submission.submitter_email || "—"}
                     </TableCell>
                   )}
                   {!isIITBombay && (
