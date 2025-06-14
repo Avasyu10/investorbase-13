@@ -12,6 +12,7 @@ import { ChevronLeft, Loader2, BarChart2 } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CompanyDetailed } from "@/lib/api/apiContract";
 
 function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,12 @@ function CompanyDetails() {
   const { isLoading: authLoading, user } = useAuth();
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
+
+  // Convert Company to CompanyDetailed for components that need it
+  const companyDetailed: CompanyDetailed | null = company ? {
+    ...company,
+    sections: company.sections || []
+  } : null;
 
   useEffect(() => {
     if (!company && !isLoading) {
@@ -84,7 +91,7 @@ function CompanyDetails() {
               />
             </div>
             <div>
-              <ScoreAssessment company={company} />
+              {companyDetailed && <ScoreAssessment company={companyDetailed} />}
             </div>
           </div>
 
@@ -93,8 +100,8 @@ function CompanyDetails() {
 
           {/* Overall Assessment */}
           <OverallAssessment
-            score={company.overallScore || 0}
-            assessmentPoints={company.assessmentPoints || []}
+            score={company.overall_score || 0}
+            assessmentPoints={company.assessment_points || []}
           />
 
           {/* Sections */}

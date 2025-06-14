@@ -23,7 +23,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   const [hasFundThesis, setHasFundThesis] = useState(false);
   
   // Format overall score to whole number
-  const formattedScore = Math.round(company.overallScore);
+  const formattedScore = Math.round(company.overall_score);
   
   // Calculate progress percentage (already 0-100 scale)
   const progressPercentage = formattedScore;
@@ -149,9 +149,9 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
           </div>
         </CardHeader>
         <CardContent className="pt-5">
-          {company.assessmentPoints && company.assessmentPoints.length > 0 ? (
+          {company.assessment_points && company.assessment_points.length > 0 ? (
             <div className="space-y-3">
-              {company.assessmentPoints.map((point, index) => (
+              {company.assessment_points.map((point, index) => (
                 <div key={index} className="flex gap-3 items-start">
                   <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <p 
@@ -209,7 +209,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
       {/* Add Market Research component */}
       <MarketResearch 
         companyId={company.id.toString()} 
-        assessmentPoints={company.assessmentPoints || []} 
+        assessmentPoints={company.assessment_points || []} 
       />
     </>
   );

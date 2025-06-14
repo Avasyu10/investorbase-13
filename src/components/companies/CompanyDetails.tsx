@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -14,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import ReactMarkdown from 'react-markdown';
+import { CompanyDetailed } from "@/lib/api/apiContract";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +35,15 @@ const CompanyDetails = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isFromBarcForm, setIsFromBarcForm] = useState(false);
+
+  // Convert Company to CompanyDetailed for components that need it
+  const companyDetailed: CompanyDetailed | null = useMemo(() => {
+    if (!company) return null;
+    return {
+      ...company,
+      sections: company.sections || []
+    };
+  }, [company]);
 
   // Memoize sorted sections for better performance
   const sortedSections = useMemo(() => {
@@ -113,8 +124,8 @@ const CompanyDetails = () => {
   }, [navigate, id]);
 
   const navigateToReport = useCallback(() => {
-    if (company?.reportId) {
-      navigate(`/reports/${company.reportId}`);
+    if (company?.report_id) {
+      navigate(`/reports/${company.report_id}`);
     } else {
       toast({
         title: "No report available",
@@ -122,7 +133,7 @@ const CompanyDetails = () => {
         variant: "destructive"
       });
     }
-  }, [company?.reportId, navigate]);
+  }, [company?.report_id, navigate]);
 
   const handleBack = useCallback(() => {
     navigate("/dashboard");
@@ -159,7 +170,7 @@ const CompanyDetails = () => {
           companyIntroduction: companyInfo.introduction,
           companyIndustry: companyInfo.industry,
           companyStage: companyInfo.stage,
-          assessmentPoints: company?.assessmentPoints || [],
+          assessmentPoints: company?.assessment_points || [],
           messages: conversationHistory
         }
       });
@@ -248,7 +259,7 @@ const CompanyDetails = () => {
     );
   }
 
-  const formattedScore = company ? parseFloat(company.overallScore.toFixed(1)) : 0;
+  const formattedScore = company ? parseFloat(company.overall_score.toFixed(1)) : 0;
   
   const progressPercentage = formattedScore * 20;
 
@@ -279,7 +290,7 @@ const CompanyDetails = () => {
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{company?.name}</h1>
                 </div>
                 <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                  {company?.reportId && (
+                  {company?.report_id && (
                     <Button 
                       onClick={navigateToReport} 
                       variant="outline" 
@@ -329,11 +340,11 @@ const CompanyDetails = () => {
               <div className="mb-5">
                 <Progress 
                   value={progressPercentage} 
-                  className={`h-2 ${getScoreColor(company.overallScore)}`} 
+                  className={`h-2 ${getScoreColor(company.overall_score)}`} 
                 />
               </div>
 
-              <ScoreAssessment company={company} />
+              {companyDetailed && <ScoreAssessment company={companyDetailed} />}
             </div>
             
             <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">

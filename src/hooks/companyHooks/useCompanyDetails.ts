@@ -101,8 +101,8 @@ export function useCompanyDetails(companyId: string) {
           description: section.description || 'No detailed content available.',
           strengths,
           weaknesses,
-          createdAt: section.created_at,
-          updatedAt: section.updated_at || section.created_at,
+          created_at: section.created_at,
+          updated_at: section.updated_at || section.created_at,
         };
       });
       
@@ -111,13 +111,13 @@ export function useCompanyDetails(companyId: string) {
       return {
         id: companyData.id,
         name: companyData.name,
-        overallScore: Number(companyData.overall_score),
-        assessmentPoints: companyData.assessment_points || [],
+        overall_score: Number(companyData.overall_score),
+        assessment_points: companyData.assessment_points || [],
         sections: sectionsWithDetails,
-        createdAt: companyData.created_at,
-        updatedAt: companyData.updated_at,
+        created_at: companyData.created_at,
+        updated_at: companyData.updated_at,
         source: companyData.source,
-        reportId: companyData.report_id,
+        report_id: companyData.report_id,
         website: companyDetailsData?.website || '',
         stage: companyDetailsData?.stage || '',
         industry: companyDetailsData?.industry || '',
