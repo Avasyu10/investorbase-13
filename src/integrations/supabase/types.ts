@@ -129,12 +129,16 @@ export type Database = {
         Row: {
           assessment_points: string[] | null
           created_at: string
+          email: string | null
           id: string
+          industry: string | null
           name: string
           overall_score: number
           perplexity_prompt: string | null
           perplexity_requested_at: string | null
           perplexity_response: string | null
+          phonenumber: string | null
+          poc_name: string | null
           prompt_sent: string | null
           report_id: string | null
           response_received: string | null
@@ -145,12 +149,16 @@ export type Database = {
         Insert: {
           assessment_points?: string[] | null
           created_at?: string
+          email?: string | null
           id?: string
+          industry?: string | null
           name: string
           overall_score?: number
           perplexity_prompt?: string | null
           perplexity_requested_at?: string | null
           perplexity_response?: string | null
+          phonenumber?: string | null
+          poc_name?: string | null
           prompt_sent?: string | null
           report_id?: string | null
           response_received?: string | null
@@ -161,12 +169,16 @@ export type Database = {
         Update: {
           assessment_points?: string[] | null
           created_at?: string
+          email?: string | null
           id?: string
+          industry?: string | null
           name?: string
           overall_score?: number
           perplexity_prompt?: string | null
           perplexity_requested_at?: string | null
           perplexity_response?: string | null
+          phonenumber?: string | null
+          poc_name?: string | null
           prompt_sent?: string | null
           report_id?: string | null
           response_received?: string | null
@@ -1177,12 +1189,16 @@ export type Database = {
         Returns: {
           assessment_points: string[] | null
           created_at: string
+          email: string | null
           id: string
+          industry: string | null
           name: string
           overall_score: number
           perplexity_prompt: string | null
           perplexity_requested_at: string | null
           perplexity_response: string | null
+          phonenumber: string | null
+          poc_name: string | null
           prompt_sent: string | null
           report_id: string | null
           response_received: string | null

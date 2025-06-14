@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -260,14 +259,68 @@ serve(async (req) => {
       throw new Error('Analysis response was not valid JSON');
     }
 
-    // Update the submission with analysis results
+    // Check if company already exists
+    let companyId = submission.company_id;
+    let isNewCompany = false;
+
+    if (!companyId) {
+      // Create new company with additional fields from BARC submission
+      console.log('Creating new company with BARC submission data...');
+      const { data: newCompany, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: submission.company_name,
+          overall_score: analysisResult.overall_score,
+          assessment_points: [],
+          user_id: submission.user_id || null,
+          source: 'barc_form',
+          industry: submission.company_type || null,
+          email: submission.submitter_email || null,
+          poc_name: submission.poc_name || null,
+          phonenumber: submission.phoneno || null
+        })
+        .select()
+        .single();
+
+      if (companyError) {
+        console.error('Error creating company:', companyError);
+        throw new Error(`Failed to create company: ${companyError.message}`);
+      }
+
+      companyId = newCompany.id;
+      isNewCompany = true;
+      console.log('Successfully created new company with ID:', companyId);
+    } else {
+      // Update existing company with additional fields from BARC submission
+      console.log('Updating existing company with BARC submission data...');
+      const { error: updateCompanyError } = await supabase
+        .from('companies')
+        .update({
+          overall_score: analysisResult.overall_score,
+          industry: submission.company_type || null,
+          email: submission.submitter_email || null,
+          poc_name: submission.poc_name || null,
+          phonenumber: submission.phoneno || null
+        })
+        .eq('id', companyId);
+
+      if (updateCompanyError) {
+        console.error('Error updating company:', updateCompanyError);
+        throw new Error(`Failed to update company: ${updateCompanyError.message}`);
+      }
+
+      console.log('Successfully updated existing company with ID:', companyId);
+    }
+
+    // Update the submission with analysis results and company ID
     console.log('Updating submission with analysis results...');
     const { error: updateError } = await supabase
       .from('barc_form_submissions')
       .update({
         analysis_status: 'completed',
         analysis_result: analysisResult,
-        analyzed_at: new Date().toISOString()
+        analyzed_at: new Date().toISOString(),
+        company_id: companyId
       })
       .eq('id', submissionId);
 
@@ -276,12 +329,14 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log(`Successfully analyzed BARC submission ${submissionId}`);
+    console.log(`Successfully analyzed BARC submission ${submissionId} and ${isNewCompany ? 'created' : 'updated'} company ${companyId}`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         submissionId,
+        companyId,
+        isNewCompany,
         analysisResult
       }),
       {
