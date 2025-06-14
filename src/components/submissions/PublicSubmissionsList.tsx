@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +7,7 @@ import { Loader2, FileText } from "lucide-react";
 import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { AnalysisModal } from "./AnalysisModal";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { analyzeReport } from "@/lib/supabase/analysis";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 
@@ -77,6 +77,7 @@ export function PublicSubmissionsList() {
   const navigate = useNavigate();
   const { toast, dismiss } = useToast();
   const { user } = useAuth();
+  const { isIITBombay } = useProfile();
 
   useEffect(() => {
     async function fetchSubmissions() {
@@ -443,6 +444,7 @@ export function PublicSubmissionsList() {
           submissions={submissions} 
           onAnalyze={handleAnalyze}
           analyzingSubmissions={analyzingSubmissions}
+          isIITBombay={isIITBombay}
         />
       )}
 
