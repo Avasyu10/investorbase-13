@@ -13,7 +13,6 @@ import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucid
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 
 interface PublicSubmission {
   id: string;
@@ -28,7 +27,6 @@ interface PublicSubmission {
   report_id: string | null;
   source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
-  submitter_email?: string | null;
 }
 
 interface PublicSubmissionsTableProps {
@@ -39,8 +37,6 @@ interface PublicSubmissionsTableProps {
 
 export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set() }: PublicSubmissionsTableProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isIITBombay = user?.user_metadata?.is_iitbombay || false;
 
   if (!submissions) {
     return (
@@ -183,14 +179,13 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
       <Table>
         <TableHeader>
           <TableRow>
-            {!isIITBombay && <TableHead className="w-1/6">Source</TableHead>}
-            <TableHead className={isIITBombay ? "w-1/3" : "w-1/5"}>Title</TableHead>
-            {isIITBombay && <TableHead className="w-1/3">Email</TableHead>}
-            {!isIITBombay && <TableHead className="w-1/6">Industry</TableHead>}
-            {!isIITBombay && <TableHead className="w-1/6">Stage</TableHead>}
-            {!isIITBombay && <TableHead className="w-1/6">Website</TableHead>}
-            <TableHead className={isIITBombay ? "w-1/6" : "w-1/6"}>Submitted</TableHead>
-            <TableHead className={isIITBombay ? "w-1/6 text-right" : "w-1/6 text-right"}>Action</TableHead>
+            <TableHead className="w-1/6">Source</TableHead>
+            <TableHead className="w-1/5">Title</TableHead>
+            <TableHead className="w-1/6">Industry</TableHead>
+            <TableHead className="w-1/6">Stage</TableHead>
+            <TableHead className="w-1/6">Website</TableHead>
+            <TableHead className="w-1/6">Submitted</TableHead>
+            <TableHead className="w-1/6 text-right">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -200,46 +195,33 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
             try {
               return (
                 <TableRow key={submission.id}>
-                  {!isIITBombay && (
-                    <TableCell>
-                      {getSourceBadge(submission.source)}
-                    </TableCell>
-                  )}
+                  <TableCell>
+                    {getSourceBadge(submission.source)}
+                  </TableCell>
                   <TableCell className="font-medium">
                     {truncateText(submission.title, 30)}
                   </TableCell>
-                  {isIITBombay && (
-                    <TableCell>
-                      {submission.from_email || submission.submitter_email || "—"}
-                    </TableCell>
-                  )}
-                  {!isIITBombay && (
-                    <TableCell>
-                      {submission.industry || "—"}
-                    </TableCell>
-                  )}
-                  {!isIITBombay && (
-                    <TableCell>
-                      {submission.company_stage || "—"}
-                    </TableCell>
-                  )}
-                  {!isIITBombay && (
-                    <TableCell>
-                      {submission.website_url ? (
-                        <a 
-                          href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline flex items-center gap-1"
-                        >
-                          {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                  )}
+                  <TableCell>
+                    {submission.industry || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {submission.company_stage || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {submission.website_url ? (
+                      <a 
+                        href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline flex items-center gap-1"
+                      >
+                        {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell>
                     {formatDate(submission.created_at)}
                   </TableCell>
