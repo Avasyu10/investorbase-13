@@ -276,6 +276,35 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
+    // Update the associated company record with the analysis results
+    if (submission.company_id) {
+      console.log('Updating associated company record...');
+      
+      // Generate assessment points from the analysis
+      const assessmentPoints = [
+        `Overall Score: ${analysisResult.overall_score}/100`,
+        `Recommendation: ${analysisResult.recommendation}`,
+        `Problem-Solution Fit: ${analysisResult.sections.problem_solution_fit.score}/100`,
+        `Market Opportunity: ${analysisResult.sections.market_opportunity.score}/100`,
+        `Competitive Advantage: ${analysisResult.sections.competitive_advantage.score}/100`
+      ];
+
+      const { error: companyUpdateError } = await supabase
+        .from('companies')
+        .update({
+          overall_score: analysisResult.overall_score,
+          assessment_points: assessmentPoints,
+        })
+        .eq('id', submission.company_id);
+
+      if (companyUpdateError) {
+        console.error('Failed to update company record:', companyUpdateError);
+        // Don't throw here - the analysis was successful even if company update failed
+      } else {
+        console.log('Company record updated successfully');
+      }
+    }
+
     console.log(`Successfully analyzed BARC submission ${submissionId}`);
 
     return new Response(

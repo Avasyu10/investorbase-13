@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Company } from "@/lib/api/apiContract";
 import { format } from "date-fns";
-import { Star } from "lucide-react";
+import { Star, Phone, User } from "lucide-react";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -44,9 +44,10 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold w-[120px]">Company</TableHead>
+              <TableHead className="font-semibold w-[200px]">Company</TableHead>
               <TableHead className="font-semibold w-[120px]">Core Score</TableHead>
               <TableHead className="font-semibold w-[100px]">Source</TableHead>
+              <TableHead className="font-semibold w-[150px]">Contact Info</TableHead>
               <TableHead className="font-semibold w-[120px]">Date Added</TableHead>
               <TableHead className="font-semibold">Summary</TableHead>
             </TableRow>
@@ -65,6 +66,9 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                   <TableCell className="w-[200px]">
                     <div>
                       <div className="font-medium text-foreground">{company.name}</div>
+                      {(company as any).industry && (
+                        <div className="text-sm text-muted-foreground">{(company as any).industry}</div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="w-[120px]">
@@ -81,6 +85,22 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                     <Badge variant="outline" className="capitalize">
                       {company.source || 'Dashboard'}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="w-[150px]">
+                    <div className="space-y-1">
+                      {(company as any).poc_name && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">{(company as any).poc_name}</span>
+                        </div>
+                      )}
+                      {(company as any).phonenumber && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">{(company as any).phonenumber}</span>
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="w-[120px] text-muted-foreground">
                     {format(new Date(company.created_at || ''), 'MMM dd, yyyy')}
