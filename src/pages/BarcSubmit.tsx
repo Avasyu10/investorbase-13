@@ -26,14 +26,13 @@ interface BarcFormData {
   phoneNumber: string;
   submitterEmail: string;
   founderLinkedInUrls: string[];
-  founderNames: string[];
+  pocName: string;
 }
 
 const BarcSubmit = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
-  const [founderNames, setFounderNames] = useState<string[]>([""]);
 
   const form = useForm<BarcFormData>({
     defaultValues: {
@@ -49,7 +48,7 @@ const BarcSubmit = () => {
       phoneNumber: "",
       submitterEmail: "",
       founderLinkedInUrls: [""],
-      founderNames: [""],
+      pocName: "",
     },
   });
 
@@ -90,20 +89,6 @@ const BarcSubmit = () => {
     );
   };
 
-  const addFounderName = () => {
-    setFounderNames(prev => [...prev, ""]);
-  };
-
-  const removeFounderName = (index: number) => {
-    setFounderNames(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const updateFounderName = (index: number, value: string) => {
-    setFounderNames(prev => 
-      prev.map((name, i) => i === index ? value : name)
-    );
-  };
-
   // Submit form mutation using the API function
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
@@ -125,7 +110,7 @@ const BarcSubmit = () => {
         question_5: formData.question5,
         submitter_email: formData.submitterEmail,
         founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()), // Filter out empty URLs
-        founder_names: founderNames.filter(name => name.trim()), // Filter out empty names
+        founder_names: formData.pocName ? [formData.pocName] : [], // Convert single POC name to array
         phone_number: formData.phoneNumber || "" // Make phone number optional
       };
 
@@ -140,7 +125,6 @@ const BarcSubmit = () => {
       
       form.reset();
       setFounderLinkedIns([""]);
-      setFounderNames([""]);
       
       // Navigate to thank you page instead of home
       setTimeout(() => {
@@ -178,6 +162,10 @@ const BarcSubmit = () => {
     }
     if (!data.submitterEmail.trim()) {
       toast.error("Email is required");
+      return;
+    }
+    if (!data.pocName.trim()) {
+      toast.error("POC name is required");
       return;
     }
 
@@ -372,48 +360,27 @@ const BarcSubmit = () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Founder Information</h3>
                   
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm font-medium">Founder/POC Names (Optional)</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addFounderName}
-                        disabled={submitMutation.isPending}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Name
-                      </Button>
-                    </div>
-                    
-                    {founderNames.map((name, index) => (
-                      <div key={index} className="flex gap-2">
-                        <Input
-                          placeholder="Enter founder/POC name"
-                          value={name}
-                          onChange={(e) => updateFounderName(index, e.target.value)}
-                          disabled={submitMutation.isPending}
-                          className="flex-1"
-                        />
-                        {founderNames.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeFounderName(index)}
+                  <FormField
+                    control={form.control}
+                    name="pocName"
+                    rules={{ required: "POC name is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>POC Name *</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter point of contact name"
+                            {...field}
                             disabled={submitMutation.isPending}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <p className="text-sm text-muted-foreground">
-                      Add names of founders or points of contact for your company.
-                    </p>
-                  </div>
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-sm text-muted-foreground">
+                          Enter the name of the primary point of contact for your company.
+                        </p>
+                      </FormItem>
+                    )}
+                  />
                   
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
