@@ -83,7 +83,7 @@ export function IITBombayCompaniesList() {
             <h1 className="text-2xl font-bold tracking-tight">IIT Bombay Prospects</h1>
           </div>
           <p className="text-muted-foreground">
-            Enhanced prospect tracking and management for IIT Bombay alumni network
+            Application tracking, analysis and Management for Eureka
           </p>
         </div>
       </div>
