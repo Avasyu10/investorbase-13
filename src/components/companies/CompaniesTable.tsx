@@ -62,7 +62,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold">Industry</TableHead>
                 <TableHead className="font-semibold">Score</TableHead>
                 <TableHead className="font-semibold">Summary</TableHead>
-                <TableHead className="font-semibold w-[100px]">Actions</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
