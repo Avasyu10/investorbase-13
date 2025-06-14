@@ -79,15 +79,15 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
           
           {section.weaknesses && section.weaknesses.length > 0 && (
             <div className="flex items-start gap-2">
-              <TrendingDown className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <TrendingDown className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
               <div className="text-xs flex-1 min-w-0">
-                <span className="font-medium text-amber-700">Improvements:</span>
-                <div className="text-amber-600 mt-1 space-y-0.5">
+                <span className="font-medium text-red-700">Weaknesses:</span>
+                <div className="text-red-600 mt-1 space-y-0.5">
                   {section.weaknesses.slice(0, 2).map((weakness, idx) => (
                     <div key={idx} className="line-clamp-1 break-words">• {weakness}</div>
                   ))}
                   {section.weaknesses.length > 2 && (
-                    <div className="text-amber-500 text-xs">+{section.weaknesses.length - 2} more</div>
+                    <div className="text-red-500 text-xs">+{section.weaknesses.length - 2} more</div>
                   )}
                 </div>
               </div>
