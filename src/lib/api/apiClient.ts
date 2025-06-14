@@ -17,23 +17,11 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// Build-safe API base URL configuration
-const getApiBaseUrl = (): string => {
-  // In build environment, we might not have access to import.meta.env
-  if (typeof window === 'undefined') {
-    return 'http://localhost:3000'; // Safe fallback for SSR/build
-  }
-  
-  try {
-    return import.meta.env?.VITE_API_BASE_URL || 'http://localhost:3000';
-  } catch (error) {
-    console.warn('Error accessing environment variables:', error);
-    return 'http://localhost:3000';
-  }
-};
+// API base URL - this should be configured based on environment
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 /**
- * Generic fetch function with comprehensive error handling
+ * Generic fetch function with error handling
  */
 async function fetchApi<T>(
   endpoint: string, 
@@ -41,24 +29,13 @@ async function fetchApi<T>(
   data?: any, 
   params?: Record<string, any>
 ): Promise<ApiResponse<T>> {
-  // Build-time safety check
-  if (typeof window === 'undefined' || typeof fetch === 'undefined') {
-    console.warn('fetchApi called in non-browser environment');
-    throw {
-      status: 0,
-      message: 'API not available in current environment',
-    } as ApiError;
-  }
-
   try {
-    const API_BASE_URL = getApiBaseUrl();
-    
     // Build URL with query parameters if provided
     let url = `${API_BASE_URL}${endpoint}`;
-    if (params && typeof params === 'object') {
+    if (params) {
       const queryParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null) {
           queryParams.append(key, String(value));
         }
       });
@@ -84,21 +61,14 @@ async function fetchApi<T>(
     }
 
     const response = await fetch(url, options);
-    
-    let responseData;
-    try {
-      responseData = await response.json();
-    } catch (jsonError) {
-      console.warn('Failed to parse response as JSON:', jsonError);
-      responseData = {};
-    }
+    const responseData = await response.json();
 
     if (!response.ok) {
       // Handle error responses
       const error: ApiError = {
         status: response.status,
-        message: responseData?.message || `HTTP ${response.status}: ${response.statusText}`,
-        details: responseData?.details,
+        message: responseData.message || 'An unknown error occurred',
+        details: responseData.details,
       };
       
       throw error;
@@ -115,7 +85,6 @@ async function fetchApi<T>(
     }
     
     // Handle network errors
-    console.error('Network error in fetchApi:', error);
     throw {
       status: 0,
       message: 'Network error. Please check your connection.',
@@ -135,12 +104,6 @@ export const apiClient = {
   },
 
   getCompany: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    if (!companyId || typeof companyId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`);
   },
 
@@ -152,43 +115,19 @@ export const apiClient = {
     companyId: string, 
     data: CompanyUpdateRequest
   ): Promise<ApiResponse<CompanyDetailed>> => {
-    if (!companyId || typeof companyId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`, HttpMethod.PUT, data);
   },
 
   deleteCompany: async (companyId: string): Promise<ApiResponse<void>> => {
-    if (!companyId || typeof companyId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`, HttpMethod.DELETE);
   },
 
   // Sections
   getSections: async (companyId: string): Promise<ApiResponse<SectionBase[]>> => {
-    if (!companyId || typeof companyId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}`);
   },
 
   getSection: async (companyId: string, sectionId: string): Promise<ApiResponse<SectionDetailed>> => {
-    if (!companyId || !sectionId || typeof companyId !== 'string' || typeof sectionId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID or section ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`);
   },
 
@@ -196,12 +135,6 @@ export const apiClient = {
     companyId: string, 
     data: SectionCreateRequest
   ): Promise<ApiResponse<SectionDetailed>> => {
-    if (!companyId || typeof companyId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}`, HttpMethod.POST, data);
   },
 
@@ -210,33 +143,15 @@ export const apiClient = {
     sectionId: string, 
     data: SectionUpdateRequest
   ): Promise<ApiResponse<SectionDetailed>> => {
-    if (!companyId || !sectionId || typeof companyId !== 'string' || typeof sectionId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID or section ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`, HttpMethod.PUT, data);
   },
 
   deleteSection: async (companyId: string, sectionId: string): Promise<ApiResponse<void>> => {
-    if (!companyId || !sectionId || typeof companyId !== 'string' || typeof sectionId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID or section ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`, HttpMethod.DELETE);
   },
 
   // Analysis
   getCompanyAnalysis: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    if (!companyId || typeof companyId !== 'string') {
-      throw {
-        status: 400,
-        message: 'Invalid company ID provided',
-      } as ApiError;
-    }
     return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}/analysis`);
   },
 };

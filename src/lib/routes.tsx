@@ -1,4 +1,5 @@
 
+import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
@@ -27,180 +28,156 @@ import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 
 export const routes = [
-  {
-    path: "/",
-    element: <Index />
-  },
-  {
-    path: "/signup",
-    element: <Signup />
-  },
-  {
-    path: "/forgot-password",
-    element: <ForgotPassword />
-  },
-  {
-    path: "/reset-password",
-    element: <ResetPassword />
-  },
-  {
-    path: "/public-upload/:slug",
-    element: <PublicUpload />
-  },
-  {
-    path: "/public-upload",
-    element: <PublicUpload />
-  },
-  {
-    path: "/submit/:slug",
-    element: <BarcSubmit />
-  },
-  {
-    path: "/dashboard",
+  { path: "/", element: <Index /> },
+  { path: "/signup", element: <Signup /> },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/reset-password", element: <ResetPassword /> },
+  { path: "/public-upload/:slug", element: <PublicUpload /> },
+  { path: "/public-upload", element: <PublicUpload /> },
+  { path: "/submit/:slug", element: <BarcSubmit /> },
+  { 
+    path: "/dashboard", 
     element: (
       <ProtectedRoute>
         <Dashboard />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/upload",
+  { 
+    path: "/upload", 
     element: (
       <ProtectedRoute>
         <UploadReport />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/report/:id",
+  { 
+    path: "/report/:id", 
     element: (
       <ProtectedRoute>
         <Report />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/company/:id",
+  { 
+    path: "/company/:id", 
     element: (
       <ProtectedRoute>
         <CompanyPage />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/company/:companyId/section/:sectionId",
+  { 
+    path: "/company/:companyId/section/:sectionId", 
     element: (
       <ProtectedRoute>
         <SectionPage />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/company-detail/:id",
+  { 
+    path: "/company-detail/:id", 
     element: (
       <ProtectedRoute>
         <CompanyDetailPage />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/company-overview/:id",
+  { 
+    path: "/company-overview/:id", 
     element: (
       <ProtectedRoute>
         <CompanyOverviewPage />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/analysis-summary/:id",
+  { 
+    path: "/analysis-summary/:id", 
     element: (
       <ProtectedRoute>
         <AnalysisSummary />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/profile",
+  { 
+    path: "/profile", 
     element: (
       <ProtectedRoute>
         <Profile />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/profile/edit",
+  { 
+    path: "/profile/edit", 
     element: (
       <ProtectedRoute>
         <ProfileEdit />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/profile/setup",
+  { 
+    path: "/profile/setup", 
     element: (
       <ProtectedRoute>
         <ProfileSetup />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/feedback",
+  { 
+    path: "/feedback", 
     element: (
       <ProtectedRoute>
         <Feedback />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/admin",
+  { 
+    path: "/admin", 
     element: (
       <ProtectedRoute>
         <Admin />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/public-forms",
+  { 
+    path: "/public-forms", 
     element: (
       <ProtectedRoute>
         <PublicForms />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/barc-submissions",
+  { 
+    path: "/barc-submissions", 
     element: (
       <ProtectedRoute>
         <BarcSubmissions />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/news-feed",
+  { 
+    path: "/news-feed", 
     element: (
       <ProtectedRoute>
         <NewsFeed />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/email-test",
+  { 
+    path: "/email-test", 
     element: (
       <ProtectedRoute>
         <EmailTest />
       </ProtectedRoute>
     )
   },
-  {
-    path: "/supplementary-materials/:companyId",
+  { 
+    path: "/supplementary-materials/:companyId", 
     element: (
       <ProtectedRoute>
         <SupplementaryMaterials />
       </ProtectedRoute>
     )
   },
-  {
-    path: "*",
-    element: <NotFound />
-  }
+  { path: "*", element: <NotFound /> }
 ];

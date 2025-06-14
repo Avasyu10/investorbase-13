@@ -6,55 +6,23 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://jhtnruktmtjqrfoiyrep.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY";
 
-// Build-safe fetch implementation
-const getBuildSafeFetch = () => {
-  if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
-    return fetch;
-  }
-  // For build-time or SSR environments, return a no-op function
-  return undefined;
-};
+// Import the supabase client like this:
+// import { supabase } from "@/integrations/supabase/client";
 
-// Build-safe configuration
-const getClientConfig = () => {
-  const config: any = {
-    auth: {
-      persistSession: typeof window !== 'undefined',
-      autoRefreshToken: typeof window !== 'undefined',
-      detectSessionInUrl: typeof window !== 'undefined',
-      flowType: 'pkce'
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  // Remove any restrictions on database and storage
+  db: {
+    schema: 'public',
+  },
+  global: {
+    fetch: (url, options) => fetch(url, options),
+    headers: { 
+      'x-app-version': '1.0.0',
+      // Don't set Access-Control-Allow-Origin here as it causes CORS issues
     },
-    db: {
-      schema: 'public',
-    },
-    global: {
-      headers: { 
-        'x-app-version': '1.0.0'
-      },
-    }
-  };
-
-  // Only add fetch if we're in a browser environment
-  const safeFetch = getBuildSafeFetch();
-  if (safeFetch) {
-    config.global.fetch = safeFetch;
-  }
-
-  // Only add realtime config in browser environment
-  if (typeof window !== 'undefined') {
-    config.realtime = {
-      params: {
-        eventsPerSecond: 10
-      }
-    };
-  }
-
-  return config;
-};
-
-// Create the supabase client with build-safe configuration
-export const supabase = createClient<Database>(
-  SUPABASE_URL, 
-  SUPABASE_PUBLISHABLE_KEY, 
-  getClientConfig()
-);
+  },
+});

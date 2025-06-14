@@ -3,7 +3,6 @@ import { CompaniesList } from "./CompaniesList";
 import { IITBombayCompaniesList } from "./IITBombayCompaniesList";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2, Building2 } from "lucide-react";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export function ConditionalCompaniesList() {
   const { profile, isLoading, error, isIITBombay } = useProfile();
@@ -34,17 +33,9 @@ export function ConditionalCompaniesList() {
 
   // Show IIT Bombay specific UI if user has is_iitbombay: true
   if (isIITBombay) {
-    return (
-      <ErrorBoundary fallback={<CompaniesList />}>
-        <IITBombayCompaniesList />
-      </ErrorBoundary>
-    );
+    return <IITBombayCompaniesList />;
   }
 
   // Show default UI for all other users
-  return (
-    <ErrorBoundary>
-      <CompaniesList />
-    </ErrorBoundary>
-  );
+  return <CompaniesList />;
 }

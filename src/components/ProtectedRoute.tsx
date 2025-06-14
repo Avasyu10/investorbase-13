@@ -20,9 +20,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    // Get current path for redirect after login
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-    return <Navigate to="/" replace state={{ from: currentPath }} />;
+    return <Navigate to="/" replace state={{ from: window.location.pathname }} />;
   }
 
   return <>{children}</>;

@@ -1,68 +1,37 @@
 
-import { Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { routes } from "@/lib/routes";
-import { Loader2 } from "lucide-react";
-import "./App.css";
+import React from 'react';
+import { Toaster } from '@/components/ui/toaster';
+import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
+import { RealtimeEmailListener } from '@/components/RealtimeEmailListener';
+import { BrowserRouter, useRoutes } from 'react-router-dom';
+import { AuthProvider } from '@/hooks/useAuth';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Navbar } from '@/components/layout/Navbar';
+import { routes } from '@/lib/routes';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      retry: (failureCount, error) => {
-        // Don't retry on 4xx errors
-        if (error && typeof error === 'object' && 'status' in error) {
-          const status = (error as any).status;
-          if (status >= 400 && status < 500) {
-            return false;
-          }
-        }
-        return failureCount < 2;
-      },
-    },
-  },
-});
+// Create a client
+const queryClient = new QueryClient();
+
+// Routes component that uses the routes configuration
+const AppRoutes = () => {
+  return useRoutes(routes);
+};
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <Suspense 
-                  fallback={
-                    <div className="flex justify-center items-center h-screen">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  }
-                >
-                  <Routes>
-                    {routes.map((route, index) => (
-                      <Route
-                        key={index}
-                        path={route.path}
-                        element={route.element}
-                      />
-                    ))}
-                  </Routes>
-                </Suspense>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <RealtimeSubscriptions />
+          <RealtimeEmailListener />
+          <Navbar />
+          <div className="pt-16">
+            <AppRoutes />
+          </div>
+          <Toaster />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

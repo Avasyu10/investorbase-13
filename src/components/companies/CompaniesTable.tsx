@@ -38,19 +38,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
     return assessmentPoints.slice(0, 2);
   };
 
-  const formatDate = (dateString?: string): string => {
-    try {
-      if (!dateString) return 'N/A';
-      return format(new Date(dateString), 'MMM dd, yyyy');
-    } catch (error) {
-      console.error('Date formatting error:', error);
-      return 'N/A';
-    }
-  };
-
-  // Ensure companies is an array
-  const companiesList = Array.isArray(companies) ? companies : [];
-
   return (
     <Card>
       <CardContent className="p-0">
@@ -65,8 +52,8 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companiesList.map((company) => {
-              const formattedScore = Math.round(company.overall_score || 0);
+            {companies.map((company) => {
+              const formattedScore = Math.round(company.overall_score);
               const summaryPoints = getSummaryPoints(company.assessment_points);
               
               return (
@@ -77,7 +64,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                 >
                   <TableCell className="w-[200px]">
                     <div>
-                      <div className="font-medium text-foreground">{company.name || 'Unnamed Company'}</div>
+                      <div className="font-medium text-foreground">{company.name}</div>
                     </div>
                   </TableCell>
                   <TableCell className="w-[120px]">
@@ -96,7 +83,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                     </Badge>
                   </TableCell>
                   <TableCell className="w-[120px] text-muted-foreground">
-                    {formatDate(company.created_at)}
+                    {format(new Date(company.created_at || ''), 'MMM dd, yyyy')}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
