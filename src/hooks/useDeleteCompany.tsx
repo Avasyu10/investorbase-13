@@ -45,6 +45,39 @@ export function useDeleteCompany() {
         }
       }
 
+      // Delete market_research records for this company
+      const { error: marketResearchError } = await supabase
+        .from('market_research')
+        .delete()
+        .eq('company_id', companyId);
+
+      if (marketResearchError) {
+        console.error('Error deleting market research:', marketResearchError);
+        throw marketResearchError;
+      }
+
+      // Delete investor_research records for this company
+      const { error: investorResearchError } = await supabase
+        .from('investor_research')
+        .delete()
+        .eq('company_id', companyId);
+
+      if (investorResearchError) {
+        console.error('Error deleting investor research:', investorResearchError);
+        throw investorResearchError;
+      }
+
+      // Delete fund_thesis_analysis records for this company
+      const { error: fundThesisError } = await supabase
+        .from('fund_thesis_analysis')
+        .delete()
+        .eq('company_id', companyId);
+
+      if (fundThesisError) {
+        console.error('Error deleting fund thesis analysis:', fundThesisError);
+        throw fundThesisError;
+      }
+
       // Delete company_details if they exist
       const { error: companyDetailsError } = await supabase
         .from('company_details')
