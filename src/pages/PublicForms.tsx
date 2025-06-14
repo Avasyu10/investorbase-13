@@ -134,7 +134,7 @@ const PublicForms = () => {
 
   const getFormUrl = (slug: string, formType: string) => {
     if (formType === 'barc') {
-      return `${window.location.origin}/barc-submit/${slug}`;
+      return `${window.location.origin}/submit/${slug}`;
     }
     return `${window.location.origin}/public-upload/${slug}`;
   };
@@ -142,7 +142,7 @@ const PublicForms = () => {
   const getFormTypeLabel = (formType: string) => {
     switch (formType) {
       case 'barc':
-        return 'BARC Application';
+        return 'IIT Bombay Application';
       case 'general':
       default:
         return 'General Submission';
@@ -213,7 +213,7 @@ const PublicForms = () => {
                   placeholder="e.g., investment-submissions"
                 />
                 <p className="text-sm text-muted-foreground">
-                  This will be used in the URL: {newFormType === 'barc' ? '/barc-submit/' : '/public-upload/'}{newFormSlug}
+                  This will be used in the URL: {newFormType === 'barc' ? '/submit/' : '/public-upload/'}{newFormSlug}
                 </p>
               </div>
               <div className="flex items-center space-x-2">

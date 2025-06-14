@@ -35,7 +35,6 @@ export const routes = [
   { path: "/public-upload/:slug", element: <PublicUpload /> },
   { path: "/public-upload", element: <PublicUpload /> },
   { path: "/submit/:slug", element: <BarcSubmit /> },
-  { path: "/barc-submit/:slug", element: <BarcSubmit /> },
   { 
     path: "/dashboard", 
     element: (

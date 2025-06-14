@@ -171,7 +171,7 @@ const Profile = () => {
           console.log('Found IIT Bombay form slug:', forms[0].form_slug);
         } else {
           console.log('No IIT Bombay form found for user, creating one automatically...');
-          await createBarcFormAutomatically();
+          await createFormAutomatically();
         }
       } catch (error) {
         console.error('Error in fetchOrCreateIITBombayForm:', error);
@@ -181,7 +181,7 @@ const Profile = () => {
     fetchOrCreateIITBombayForm();
   }, [user, isIITBombay]);
 
-  const createBarcFormAutomatically = async () => {
+  const createFormAutomatically = async () => {
     if (!user || isCreatingForm) return;
 
     setIsCreatingForm(true);
