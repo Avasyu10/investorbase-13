@@ -71,14 +71,24 @@ export function useCompanies(
         
         console.log('Fetching companies for user:', user.id);
         
+        // Build the query with proper error handling
         let query = supabase
           .from('companies')
           .select(`
             id, name, overall_score, created_at, updated_at, 
             assessment_points, report_id, user_id, source,
             report:report_id (pdf_url, is_public_submission)
-          `, { count: 'exact' })
-          .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
+          `, { count: 'exact' });
+
+        // Add user filter with proper fallback
+        try {
+          const accessibleReports = await getUserAccessibleReports(user.id);
+          query = query.or(`user_id.eq.${user.id},report_id.in.(${accessibleReports})`);
+        } catch (reportError) {
+          console.error('Error getting accessible reports:', reportError);
+          // Fallback to only user's own companies
+          query = query.eq('user_id', user.id);
+        }
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
@@ -103,10 +113,13 @@ export function useCompanies(
         };
       } catch (err) {
         console.error("Error in useCompanies:", err);
-        throw err;
+        // Return empty results instead of throwing to prevent crashes
+        return { companies: [], totalCount: 0 };
       }
     },
     enabled: !!user,
+    retry: 1,
+    staleTime: 30000, // 30 seconds
     meta: {
       onError: (err: any) => {
         console.error("useCompanies query error:", err);
@@ -128,7 +141,7 @@ export function useCompanies(
   };
 }
 
-// Helper function to get report IDs the user has access to
+// Helper function to get report IDs the user has access to with error handling
 async function getUserAccessibleReports(userId: string): Promise<string> {
   try {
     const { data: reports, error } = await supabase

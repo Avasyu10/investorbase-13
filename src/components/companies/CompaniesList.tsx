@@ -12,11 +12,15 @@ export function CompaniesList() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Use the useCompanies hook which has proper RLS handling
+  // Use the useCompanies hook with proper error handling
   const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
   const handleCompanyClick = (companyId: string) => {
-    navigate(`/company/${companyId}`);
+    try {
+      navigate(`/company/${companyId}`);
+    } catch (err) {
+      console.error('Navigation error:', err);
+    }
   };
 
   if (isLoading) {
@@ -56,7 +60,7 @@ export function CompaniesList() {
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">Failed to Load Companies</h3>
           <p className="mt-2 text-muted-foreground">
-            {error.message || 'There was an error loading your prospects. Please try again.'}
+            {error instanceof Error ? error.message : 'There was an error loading your prospects. Please try again.'}
           </p>
           <Button 
             onClick={() => window.location.reload()} 
@@ -69,6 +73,9 @@ export function CompaniesList() {
     );
   }
 
+  // Ensure companies is always an array
+  const companiesList = Array.isArray(companies) ? companies : [];
+
   return (
     <div className="container mx-auto px-4 py-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -80,8 +87,8 @@ export function CompaniesList() {
         </div>
       </div>
 
-      {companies.length > 0 ? (
-        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} />
+      {companiesList.length > 0 ? (
+        <CompaniesTable companies={companiesList} onCompanyClick={handleCompanyClick} />
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />

@@ -6,23 +6,26 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://jhtnruktmtjqrfoiyrep.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
+// Create the supabase client with build-safe configuration
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   },
-  // Remove any restrictions on database and storage
   db: {
     schema: 'public',
   },
   global: {
-    fetch: (url, options) => fetch(url, options),
+    fetch: typeof fetch !== 'undefined' ? fetch : undefined,
     headers: { 
-      'x-app-version': '1.0.0',
-      // Don't set Access-Control-Allow-Origin here as it causes CORS issues
+      'x-app-version': '1.0.0'
     },
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
 });

@@ -15,14 +15,19 @@ export function IITBombayCompaniesList() {
   const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
   const handleCompanyClick = (companyId: string) => {
-    navigate(`/company/${companyId}`);
+    try {
+      navigate(`/company/${companyId}`);
+    } catch (err) {
+      console.error('Navigation error:', err);
+    }
   };
 
-  // Calculate rating-based stats
-  const totalProspects = companies.length;
-  const highPotential = companies.filter(c => c.overall_score > 70).length;
-  const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
-  const badPotential = companies.filter(c => c.overall_score < 50).length;
+  // Ensure companies is always an array and calculate stats safely
+  const companiesList = Array.isArray(companies) ? companies : [];
+  const totalProspects = companiesList.length;
+  const highPotential = companiesList.filter(c => c.overall_score > 70).length;
+  const mediumPotential = companiesList.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
+  const badPotential = companiesList.filter(c => c.overall_score < 50).length;
 
   if (isLoading) {
     return (
@@ -61,7 +66,7 @@ export function IITBombayCompaniesList() {
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">Failed to Load Companies</h3>
           <p className="mt-2 text-muted-foreground">
-            {error.message || 'There was an error loading your prospects. Please try again.'}
+            {error instanceof Error ? error.message : 'There was an error loading your prospects. Please try again.'}
           </p>
           <Button 
             onClick={() => window.location.reload()} 
@@ -116,8 +121,8 @@ export function IITBombayCompaniesList() {
         </div>
       </div>
 
-      {companies.length > 0 ? (
-        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} />
+      {companiesList.length > 0 ? (
+        <CompaniesTable companies={companiesList} onCompanyClick={handleCompanyClick} />
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
