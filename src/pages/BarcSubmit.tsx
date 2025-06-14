@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -296,25 +297,54 @@ const BarcSubmit = () => {
                   <FormField
                     control={form.control}
                     name="companyType"
-                    rules={{ required: "Company type is required" }}
+                    rules={{ required: "Industry is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Type *</FormLabel>
+                        <FormLabel>Industry *</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select company type" />
+                              <SelectValue placeholder="Select your industry" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Product Based">Product Based</SelectItem>
-                            <SelectItem value="Service Based">Service Based</SelectItem>
-                            <SelectItem value="Product & Service Based">Product & Service Based</SelectItem>
+                            <SelectItem value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</SelectItem>
+                            <SelectItem value="Software as a Service (SaaS)">Software as a Service (SaaS)</SelectItem>
+                            <SelectItem value="Financial Technology (Fintech)">Financial Technology (Fintech)</SelectItem>
+                            <SelectItem value="Healthcare & Medical Technology">Healthcare & Medical Technology</SelectItem>
+                            <SelectItem value="Biotechnology & Life Sciences">Biotechnology & Life Sciences</SelectItem>
+                            <SelectItem value="Education Technology (EdTech)">Education Technology (EdTech)</SelectItem>
+                            <SelectItem value="Clean Technology & Sustainability">Clean Technology & Sustainability</SelectItem>
+                            <SelectItem value="E-commerce & Retail">E-commerce & Retail</SelectItem>
+                            <SelectItem value="Enterprise Software">Enterprise Software</SelectItem>
+                            <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                            <SelectItem value="Gaming & Entertainment">Gaming & Entertainment</SelectItem>
+                            <SelectItem value="Augmented Reality & Virtual Reality">Augmented Reality & Virtual Reality</SelectItem>
+                            <SelectItem value="Blockchain & Cryptocurrency">Blockchain & Cryptocurrency</SelectItem>
+                            <SelectItem value="Agriculture Technology (AgTech)">Agriculture Technology (AgTech)</SelectItem>
+                            <SelectItem value="Real Estate Technology">Real Estate Technology</SelectItem>
+                            <SelectItem value="Robotics & Automation">Robotics & Automation</SelectItem>
+                            <SelectItem value="Hardware & IoT">Hardware & IoT</SelectItem>
+                            <SelectItem value="Social Media & Communication">Social Media & Communication</SelectItem>
+                            <SelectItem value="Media & Content Creation">Media & Content Creation</SelectItem>
+                            <SelectItem value="Travel & Hospitality">Travel & Hospitality</SelectItem>
+                            <SelectItem value="Space Technology">Space Technology</SelectItem>
+                            <SelectItem value="Logistics & Supply Chain">Logistics & Supply Chain</SelectItem>
+                            <SelectItem value="Energy & Utilities">Energy & Utilities</SelectItem>
+                            <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                            <SelectItem value="Food & Beverage">Food & Beverage</SelectItem>
+                            <SelectItem value="Fashion & Lifestyle">Fashion & Lifestyle</SelectItem>
+                            <SelectItem value="Sports & Fitness">Sports & Fitness</SelectItem>
+                            <SelectItem value="Automotive">Automotive</SelectItem>
+                            <SelectItem value="Telecommunications">Telecommunications</SelectItem>
+                            <SelectItem value="Marketplace & Platform">Marketplace & Platform</SelectItem>
+                            <SelectItem value="Consulting & Professional Services">Consulting & Professional Services</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                         <p className="text-sm text-muted-foreground">
-                          Please specify whether your company is product-based, service-based, or both
+                          Please select the industry that best describes your company's primary focus
                         </p>
                       </FormItem>
                     )}
