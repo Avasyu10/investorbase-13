@@ -314,7 +314,7 @@ export function PublicSubmissionsList() {
         
         toast({
           title: "Analysis started",
-          description: "Analyzing the BARC application. This may take a few moments...",
+          description: "Analyzing the application. This may take a few moments...",
         });
         
         const result = await analyzeBarcSubmission(submission.id);
@@ -322,24 +322,21 @@ export function PublicSubmissionsList() {
         console.log('BARC analysis result:', result);
         
         if (result && result.success) {
-          const isNewCompany = result.isNewCompany;
-          const actionText = isNewCompany ? "created" : "updated";
-          
           toast({
             title: "Analysis complete",
-            description: `The BARC application has been successfully analyzed and company ${actionText}`,
+            description: "The application has been successfully analyzed and company created",
           });
           
-          // Automatically navigate to the company page
+          // Directly navigate to the company page
           if (result.companyId) {
             console.log(`Navigating to company: ${result.companyId}`);
             navigate(`/company/${result.companyId}`);
           } else {
-            // Fallback to BARC submissions page if no company ID
-            navigate('/barc-submissions');
+            // Fallback: refresh the current page to show updated status
+            window.location.reload();
           }
         } else {
-          throw new Error("Analysis completed but no result was returned");
+          throw new Error(result?.error || "Analysis completed but no result was returned");
         }
       } catch (error) {
         console.error("BARC analysis error:", error);
@@ -351,15 +348,15 @@ export function PublicSubmissionsList() {
             errorMessage.includes('already being processed') ||
             errorMessage.includes('concurrent_processing')) {
           
-          console.log('Concurrent processing detected, will check status...');
+          console.log('Concurrent processing detected, checking status...');
           
           toast({
             title: "Processing in progress",
-            description: "The analysis is being processed. Checking status...",
+            description: "The analysis is being processed. Please wait...",
           });
           
-          // Wait and check if the analysis completed
-          setTimeout(async () => {
+          // Poll for completion every 5 seconds
+          const pollInterval = setInterval(async () => {
             try {
               const { data: updatedSubmission, error: fetchError } = await supabase
                 .from('barc_form_submissions')
@@ -369,23 +366,31 @@ export function PublicSubmissionsList() {
               
               if (!fetchError && updatedSubmission) {
                 if (updatedSubmission.analysis_status === 'completed' && updatedSubmission.company_id) {
+                  clearInterval(pollInterval);
                   toast({
                     title: "Analysis completed",
                     description: "The analysis has finished successfully!",
                   });
                   
                   navigate(`/company/${updatedSubmission.company_id}`);
-                } else if (updatedSubmission.analysis_status === 'processing') {
+                } else if (updatedSubmission.analysis_status === 'error') {
+                  clearInterval(pollInterval);
                   toast({
-                    title: "Still processing",
-                    description: "The analysis is still in progress. Please check back in a moment.",
+                    title: "Analysis failed",
+                    description: "The analysis encountered an error. Please try again.",
+                    variant: "destructive",
                   });
                 }
               }
-            } catch (statusError) {
-              console.error('Error checking submission status:', statusError);
+            } catch (err) {
+              console.error('Error polling for status:', err);
             }
-          }, 3000);
+          }, 5000);
+          
+          // Stop polling after 5 minutes
+          setTimeout(() => {
+            clearInterval(pollInterval);
+          }, 300000);
           
         } else {
           toast({
@@ -395,172 +400,81 @@ export function PublicSubmissionsList() {
           });
         }
       } finally {
-        setAnalyzingSubmissions(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(submission.id);
-          return newSet;
-        });
+        // Remove from analyzing set after a delay to prevent rapid re-clicks
+        setTimeout(() => {
+          setAnalyzingSubmissions(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(submission.id);
+            return newSet;
+          });
+        }, 3000);
       }
-      
       return;
     }
 
+    // Handle other submission types (existing logic)
     if (!submission.report_id) {
-      if (submission.source === "email_pitch") {
-        setCurrentSubmission(submission);
-        setShowModal(true);
-        setIsAnalyzing(true);
-        
-        try {
-          console.log(`Initiating auto-analyze for email pitch submission: ${submission.id}`);
-          
-          const response = await supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
-            body: { id: submission.id }
-          });
-          
-          console.log('Auto-analyze function response:', response);
-          
-          if (response.error) {
-            throw new Error(`Auto-analyze failed: ${response.error.message || JSON.stringify(response.error)}`);
-          }
-          
-          if (!response.data || !response.data.reportId) {
-            throw new Error("No report ID returned from auto-analyze function");
-          }
-          
-          const reportId = response.data.reportId;
-          console.log(`Report created with ID: ${reportId}`);
-          
-          // Wait for analysis to complete
-          let analysisComplete = false;
-          let retries = 0;
-          let companyId = null;
-          
-          while (!analysisComplete && retries < 30) {
-            const { data: reportData, error: reportError } = await supabase
-              .from('reports')
-              .select('*')
-              .eq('id', reportId)
-              .single();
-              
-            if (reportError) {
-              console.error("Error fetching report:", reportError);
-              retries++;
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              continue;
-            }
-            
-            if (reportData.analysis_status === 'completed' && reportData.company_id) {
-              analysisComplete = true;
-              companyId = reportData.company_id;
-              break;
-            } else if (reportData.analysis_status === 'failed') {
-              throw new Error(`Analysis failed: ${reportData.analysis_error || "Unknown error"}`);
-            }
-            
-            retries++;
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-          
-          if (companyId) {
-            toast({
-              title: "Analysis complete",
-              description: "The submission has been successfully analyzed",
-            });
-            
-            navigate(`/company/${companyId}`);
-          } else {
-            throw new Error("Analysis timed out. Please check the report status later.");
-          }
-          
-        } catch (error) {
-          console.error("Error during auto-analyze:", error);
-          
-          toast({
-            title: "Analysis failed",
-            description: error instanceof Error ? error.message : "An unknown error occurred",
-            variant: "destructive",
-          });
-        } finally {
-          setIsAnalyzing(false);
-          setShowModal(false);
-        }
-        
-        return;
-      }
-      
       toast({
-        title: "Cannot analyze submission",
-        description: "No report ID associated with this submission",
+        title: "No report to analyze",
+        description: "This submission doesn't have an associated report",
         variant: "destructive",
       });
       return;
     }
-    
-    setCurrentSubmission(submission);
-    setShowModal(true);
+
+    setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
     setIsAnalyzing(true);
-    
+    setCurrentSubmission(submission);
+
     try {
-      console.log(`Calling analyze function with report ID: ${submission.report_id}`);
+      console.log(`Starting analysis for report: ${submission.report_id}`);
       
+      toast({
+        title: "Analysis started",
+        description: "This may take a few minutes depending on the size of the document",
+      });
+
       const result = await analyzeReport(submission.report_id);
       
+      console.log('Analysis result:', result);
+
       if (result && result.companyId) {
         toast({
           title: "Analysis complete",
-          description: "The submission has been successfully analyzed",
+          description: "The document has been analyzed successfully!",
         });
         
+        // Navigate to the company page
         navigate(`/company/${result.companyId}`);
       } else {
-        throw new Error("Analysis completed but no company ID was returned");
+        toast({
+          title: "Analysis complete",
+          description: "The document has been analyzed but no company was created",
+        });
+        
+        // Refresh the page to show updated status
+        window.location.reload();
       }
     } catch (error) {
       console.error("Analysis error:", error);
       
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       
-      if (errorMessage.includes("Storage") || 
-          errorMessage.includes("downloading") || 
-          errorMessage.includes("PDF")) {
-        toast({
-          title: "File storage error",
-          description: "There was an error accessing the PDF file. Please check that the file exists in storage.",
-          variant: "destructive",
-        });
-      } else if ((errorMessage.includes("Network error") || 
-           errorMessage.includes("Failed to fetch") ||
-           errorMessage.includes("Failed to send") ||
-           errorMessage.includes("CORS") ||
-           errorMessage.includes("Origin") ||
-           errorMessage.includes("network") ||
-           errorMessage.includes("Connection")) && 
-          retryCount < 2) {
-        
-        setRetryCount(prevCount => prevCount + 1);
-        
-        toast({
-          title: "Connection issue",
-          description: "Network connection issue detected. Please try again.",
-          variant: "destructive",
-        });
-      } else if (retryCount >= 2) {
-        toast({
-          title: "Persistent connection issue",
-          description: "We're having trouble connecting to the analysis service. Please try again later or contact support.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Analysis failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsAnalyzing(false);
-      setShowModal(false);
+      setCurrentSubmission(null);
+      setTimeout(() => {
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submission.id);
+          return newSet;
+        });
+      }, 3000);
     }
   };
 
@@ -574,62 +488,38 @@ export function PublicSubmissionsList() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-6">
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">New Applications</h1>
+        <p className="text-muted-foreground">
+          Review and analyze new applications from your submission forms
+        </p>
+      </div>
+
+      {submissions.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-medium">Authentication Required</h3>
+          <h3 className="mt-4 text-lg font-medium">No new applications</h3>
           <p className="mt-2 text-muted-foreground">
-            Please sign in to view new applications
-          </p>
-          <Button 
-            onClick={() => navigate("/")} 
-            className="mt-6"
-          >
-            Go to Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight mb-2">New Applications</h1>
-          <p className="text-muted-foreground">
-            Submissions from public forms, BARC applications, and emails waiting to be analyzed
+            New applications will appear here when they are submitted through your forms.
           </p>
         </div>
-      </div>
-
-      {submissions.length > 0 ? (
+      ) : (
         <PublicSubmissionsTable 
           submissions={submissions} 
           onAnalyze={handleAnalyze}
           analyzingSubmissions={analyzingSubmissions}
         />
-      ) : (
-        <div className="text-center py-12 border rounded-lg bg-card/50">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-medium">No applications found</h3>
-          <p className="mt-2 text-muted-foreground">
-            You don't have any new applications waiting to be analyzed.
-          </p>
-        </div>
       )}
 
       <AnalysisModal
         isOpen={showModal}
-        isAnalyzing={isAnalyzing}
-        submission={currentSubmission}
         onClose={() => {
-          if (!isAnalyzing) {
-            setShowModal(false);
-          }
+          setShowModal(false);
+          setCurrentSubmission(null);
         }}
+        submission={currentSubmission}
       />
     </div>
   );
