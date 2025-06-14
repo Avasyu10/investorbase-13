@@ -15,15 +15,26 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// Check if we should use mock data or real API
-const USE_MOCK_API = true;  // Set to true to use mock data
+// Environment-safe way to check for mock mode
+const getUseMockApi = (): boolean => {
+  if (typeof window === 'undefined') {
+    // Server-side rendering or build time - default to false
+    return false;
+  }
+  
+  // Check for environment variable or default to false for production builds
+  const envVar = import.meta.env?.VITE_USE_MOCK_API;
+  return envVar === 'true' || envVar === true;
+};
 
 // API Client that decides whether to use real or mock API
 const api = {
   // Companies
   getCompanies: async (params?: PaginationParams & CompanyFilterParams): Promise<ApiResponse<CompanyListItem[]>> => {
     try {
-      if (USE_MOCK_API) {
+      const useMockApi = getUseMockApi();
+      
+      if (useMockApi) {
         // Use mock data
         const response = await getMockCompanies(params);
         return {
@@ -31,12 +42,21 @@ const api = {
           status: 200,
         };
       }
+      
       // Use real API
-      const response = await apiClient.getCompanies(params);
-      return response as ApiResponse<CompanyListItem[]>;
+      try {
+        const response = await apiClient.getCompanies(params);
+        return response as ApiResponse<CompanyListItem[]>;
+      } catch (apiError) {
+        console.warn('API client failed, falling back to empty response:', apiError);
+        return {
+          data: [],
+          status: 500,
+          message: 'API temporarily unavailable'
+        };
+      }
     } catch (error) {
       console.error('Error in getCompanies:', error);
-      // Return empty array on error to prevent crashes
       return {
         data: [],
         status: 500,
@@ -47,7 +67,9 @@ const api = {
 
   getCompany: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
     try {
-      if (USE_MOCK_API) {
+      const useMockApi = getUseMockApi();
+      
+      if (useMockApi) {
         // Use mock data
         const company = mockCompanyDetails[companyId];
         if (!company) {
@@ -61,6 +83,7 @@ const api = {
           status: 200,
         };
       }
+      
       // Use real API
       return apiClient.getCompany(companyId);
     } catch (error) {
@@ -72,7 +95,9 @@ const api = {
   // Sections
   getSection: async (companyId: string, sectionId: string): Promise<ApiResponse<SectionDetailed>> => {
     try {
-      if (USE_MOCK_API) {
+      const useMockApi = getUseMockApi();
+      
+      if (useMockApi) {
         // Use mock data
         const section = await getMockSectionDetails(companyId, sectionId);
         if (!section) {
@@ -86,6 +111,7 @@ const api = {
           status: 200,
         };
       }
+      
       // Use real API
       return apiClient.getSection(companyId, sectionId);
     } catch (error) {
@@ -97,7 +123,9 @@ const api = {
   // Analysis
   getCompanyAnalysis: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
     try {
-      if (USE_MOCK_API) {
+      const useMockApi = getUseMockApi();
+      
+      if (useMockApi) {
         // For mock data, analysis is the same as company details
         const company = mockCompanyDetails[companyId];
         if (!company) {
@@ -111,6 +139,7 @@ const api = {
           status: 200,
         };
       }
+      
       // Use real API
       return apiClient.getCompanyAnalysis(companyId);
     } catch (error) {
