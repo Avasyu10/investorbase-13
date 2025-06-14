@@ -3,7 +3,7 @@ import React from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { RealtimeSubscriptions } from '@/components/RealtimeSubscriptions';
 import { RealtimeEmailListener } from '@/components/RealtimeEmailListener';
-import { BrowserRouter, useRoutes } from 'react-router-dom';
+import { BrowserRouter, useRoutes, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from '@/components/layout/Navbar';
@@ -17,6 +17,23 @@ const AppRoutes = () => {
   return useRoutes(routes);
 };
 
+// Component to conditionally render Navbar and padding
+const ConditionalLayout = () => {
+  const location = useLocation();
+  
+  // Don't show navbar on thank you page
+  const showNavbar = location.pathname !== '/thank-you';
+  
+  return (
+    <>
+      {showNavbar && <Navbar />}
+      <div className={showNavbar ? "pt-16" : ""}>
+        <AppRoutes />
+      </div>
+    </>
+  );
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -24,10 +41,7 @@ function App() {
         <AuthProvider>
           <RealtimeSubscriptions />
           <RealtimeEmailListener />
-          <Navbar />
-          <div className="pt-16">
-            <AppRoutes />
-          </div>
+          <ConditionalLayout />
           <Toaster />
         </AuthProvider>
       </BrowserRouter>
