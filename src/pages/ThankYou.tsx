@@ -1,13 +1,9 @@
 
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Building, GraduationCap, ArrowRight } from "lucide-react";
+import { CheckCircle, Building, GraduationCap } from "lucide-react";
 
 const ThankYou = () => {
-  const navigate = useNavigate();
-
   useEffect(() => {
     // Scroll to top when page loads
     window.scrollTo(0, 0);
@@ -74,29 +70,6 @@ const ThankYou = () => {
                 </h3>
                 <p className="text-gray-700">
                   We're excited to learn about your innovative idea and look forward to potentially supporting your entrepreneurial journey.
-                </p>
-              </div>
-
-              <div className="pt-6">
-                <Button
-                  onClick={() => navigate('/')}
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  Back to Home
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="pt-4 text-sm text-gray-500">
-                <p>
-                  Questions? Contact us at{" "}
-                  <a 
-                    href="mailto:incubation@iitb.ac.in" 
-                    className="text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    incubation@iitb.ac.in
-                  </a>
                 </p>
               </div>
             </div>
