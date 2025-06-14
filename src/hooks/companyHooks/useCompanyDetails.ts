@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { CompanyDetailed } from '@/components/types';
@@ -39,6 +40,12 @@ const fetchCompanyDetails = async (companyId: string): Promise<CompanyDetailed |
       *,
       sections (
         *
+      ),
+      company_details (
+        website,
+        stage,
+        industry,
+        introduction
       )
     `)
     .eq('id', companyId)
@@ -50,25 +57,35 @@ const fetchCompanyDetails = async (companyId: string): Promise<CompanyDetailed |
   }
 
   if (data) {
+    // Get company details from the related table if available
+    const companyDetails = data.company_details?.[0] || {};
+    
     // Ensure all required properties exist
     const companyData: CompanyDetailed = {
       id: data.id,
       name: data.name,
-      description: data.description || '',
-      website: data.website || '',
-      stage: data.stage || '',
-      industry: data.industry || '',
-      introduction: data.introduction || '',
+      description: companyDetails.introduction || '',
+      website: companyDetails.website || '',
+      stage: companyDetails.stage || '',
+      industry: companyDetails.industry || '',
+      introduction: companyDetails.introduction || '',
       reportId: data.report_id || '',
       report_id: data.report_id || '',
       created_at: data.created_at,
       updated_at: data.updated_at,
-      sections: data.sections || [],
+      sections: (data.sections || []).map((section: any) => ({
+        ...section,
+        content: section.description || '',
+        strengths: [],
+        weaknesses: []
+      })),
       overall_score: data.overall_score || 0,
-      analysis_status: data.analysis_status || 'pending',
-      linkedin_url: data.linkedin_url || '',
-      linkedin_data: data.linkedin_data || null,
-      user_id: data.user_id || ''
+      overallScore: data.overall_score || 0,
+      analysis_status: 'completed',
+      linkedin_url: '',
+      linkedin_data: null,
+      user_id: data.user_id || '',
+      assessmentPoints: data.assessment_points || []
     };
 
     return companyData;

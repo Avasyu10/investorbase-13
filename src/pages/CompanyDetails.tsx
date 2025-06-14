@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Loader2, BarChart2 } from "lucide-react";
-import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
+import useCompanyDetails from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

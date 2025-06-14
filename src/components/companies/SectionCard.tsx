@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Star, TrendingUp, TrendingDown } from "lucide-react";
-import { Section } from "@/lib/api/apiContract";
+import { Section } from "@/components/types";
 
 interface SectionCardProps {
   section: Section;
@@ -11,7 +11,7 @@ interface SectionCardProps {
 }
 
 export const SectionCard = ({ section, onClick }: SectionCardProps) => {
-  const score = parseFloat(section.score.toString());
+  const score = parseFloat(section.score?.toString() || '0');
   const progressValue = score * 20; // Convert 1-5 scale to 0-100
 
   const getScoreColor = (score: number) => {

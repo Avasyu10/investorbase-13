@@ -17,6 +17,8 @@ export interface Company {
   linkedin_url?: string;
   linkedin_data?: any;
   user_id?: string;
+  overallScore?: number;
+  assessmentPoints?: string[];
 }
 
 export interface CompanyDetailed extends Company {
@@ -33,6 +35,8 @@ export interface Section {
   company_id: string;
   created_at: string;
   updated_at?: string;
+  type?: string;
+  description?: string;
 }
 
 export interface Report {
@@ -62,4 +66,18 @@ export interface PublicSubmission {
   report_id: string | null;
   source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
+}
+
+export interface MarketInsight {
+  headline: string;
+  content: string;
+  url?: string;
+  source?: string;
+}
+
+export interface NewsItem {
+  headline: string;
+  content: string;
+  url?: string;
+  source?: string;
 }
