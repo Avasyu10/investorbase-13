@@ -2,17 +2,19 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { format } from "date-fns";
-import { Star } from "lucide-react";
+import { Star, Trash } from "lucide-react";
 
 interface CompaniesTableProps {
   companies: Company[];
   onCompanyClick: (companyId: string) => void;
+  onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
 }
 
-export function CompaniesTable({ companies, onCompanyClick, isIITBombay = false }: CompaniesTableProps) {
+export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false }: CompaniesTableProps) {
   const getScoreColor = (score: number): string => {
     if (score >= 90) return "text-emerald-600";
     if (score >= 70) return "text-blue-600";
@@ -39,6 +41,13 @@ export function CompaniesTable({ companies, onCompanyClick, isIITBombay = false 
     return assessmentPoints.slice(0, 2);
   };
 
+  const handleDeleteClick = (e: React.MouseEvent, companyId: string) => {
+    e.stopPropagation(); // Prevent row click event
+    if (onDeleteCompany) {
+      onDeleteCompany(companyId);
+    }
+  };
+
   if (isIITBombay) {
     return (
       <Card>
@@ -53,6 +62,7 @@ export function CompaniesTable({ companies, onCompanyClick, isIITBombay = false 
                 <TableHead className="font-semibold">Industry</TableHead>
                 <TableHead className="font-semibold">Score</TableHead>
                 <TableHead className="font-semibold">Summary</TableHead>
+                <TableHead className="font-semibold w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -100,6 +110,16 @@ export function CompaniesTable({ companies, onCompanyClick, isIITBombay = false 
                           </div>
                         ))}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteClick(e, company.id)}
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );

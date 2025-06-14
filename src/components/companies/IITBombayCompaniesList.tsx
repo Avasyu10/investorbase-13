@@ -6,19 +6,28 @@ import { Loader2, Building2, GraduationCap } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies } from "@/hooks/useCompanies";
+import { Company } from "@/lib/api/apiContract";
 
 export function IITBombayCompaniesList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [deletedCompanies, setDeletedCompanies] = useState<Set<string>>(new Set());
 
-  const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
+  const { companies: allCompanies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
+
+  // Filter out deleted companies from the frontend view
+  const companies = allCompanies.filter(company => !deletedCompanies.has(company.id));
 
   const handleCompanyClick = (companyId: string) => {
     navigate(`/company/${companyId}`);
   };
 
-  // Calculate rating-based stats
+  const handleDeleteCompany = (companyId: string) => {
+    setDeletedCompanies(prev => new Set(prev).add(companyId));
+  };
+
+  // Calculate rating-based stats using filtered companies
   const totalProspects = companies.length;
   const highPotential = companies.filter(c => c.overall_score > 70).length;
   const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
@@ -109,7 +118,12 @@ export function IITBombayCompaniesList() {
       </div>
 
       {companies.length > 0 ? (
-        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} isIITBombay={true} />
+        <CompaniesTable 
+          companies={companies} 
+          onCompanyClick={handleCompanyClick} 
+          onDeleteCompany={handleDeleteCompany}
+          isIITBombay={true} 
+        />
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
