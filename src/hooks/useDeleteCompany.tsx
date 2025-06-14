@@ -8,99 +8,126 @@ export function useDeleteCompany() {
 
   return useMutation({
     mutationFn: async (companyId: string) => {
-      // First, get all sections for this company
-      const { data: sections, error: sectionsError } = await supabase
-        .from('sections')
-        .select('id')
-        .eq('company_id', companyId);
+      console.log('Starting company deletion process for:', companyId);
+      
+      try {
+        // First, get all sections for this company
+        const { data: sections, error: sectionsError } = await supabase
+          .from('sections')
+          .select('id')
+          .eq('company_id', companyId);
 
-      if (sectionsError) {
-        console.error('Error fetching sections:', sectionsError);
-        throw sectionsError;
-      }
-
-      // Delete section_details for each section
-      if (sections && sections.length > 0) {
-        const sectionIds = sections.map(section => section.id);
-        
-        const { error: sectionDetailsError } = await supabase
-          .from('section_details')
-          .delete()
-          .in('section_id', sectionIds);
-
-        if (sectionDetailsError) {
-          console.error('Error deleting section details:', sectionDetailsError);
-          throw sectionDetailsError;
+        if (sectionsError) {
+          console.error('Error fetching sections:', sectionsError);
+          throw sectionsError;
         }
 
-        // Delete sections
-        const { error: deleteSectionsError } = await supabase
-          .from('sections')
+        console.log('Found sections:', sections?.length || 0);
+
+        // Delete section_details for each section
+        if (sections && sections.length > 0) {
+          const sectionIds = sections.map(section => section.id);
+          
+          console.log('Deleting section_details for sections:', sectionIds);
+          const { error: sectionDetailsError } = await supabase
+            .from('section_details')
+            .delete()
+            .in('section_id', sectionIds);
+
+          if (sectionDetailsError) {
+            console.error('Error deleting section details:', sectionDetailsError);
+            throw sectionDetailsError;
+          }
+
+          // Delete sections
+          console.log('Deleting sections for company:', companyId);
+          const { error: deleteSectionsError } = await supabase
+            .from('sections')
+            .delete()
+            .eq('company_id', companyId);
+
+          if (deleteSectionsError) {
+            console.error('Error deleting sections:', deleteSectionsError);
+            throw deleteSectionsError;
+          }
+        }
+
+        // Delete all related research and analysis records
+        console.log('Deleting market_research records for company:', companyId);
+        const { error: marketResearchError } = await supabase
+          .from('market_research')
           .delete()
           .eq('company_id', companyId);
 
-        if (deleteSectionsError) {
-          console.error('Error deleting sections:', deleteSectionsError);
-          throw deleteSectionsError;
+        if (marketResearchError) {
+          console.error('Error deleting market research:', marketResearchError);
+          throw marketResearchError;
         }
-      }
 
-      // Delete market_research records for this company
-      const { error: marketResearchError } = await supabase
-        .from('market_research')
-        .delete()
-        .eq('company_id', companyId);
+        console.log('Deleting investor_research records for company:', companyId);
+        const { error: investorResearchError } = await supabase
+          .from('investor_research')
+          .delete()
+          .eq('company_id', companyId);
 
-      if (marketResearchError) {
-        console.error('Error deleting market research:', marketResearchError);
-        throw marketResearchError;
-      }
+        if (investorResearchError) {
+          console.error('Error deleting investor research:', investorResearchError);
+          throw investorResearchError;
+        }
 
-      // Delete investor_research records for this company
-      const { error: investorResearchError } = await supabase
-        .from('investor_research')
-        .delete()
-        .eq('company_id', companyId);
+        console.log('Deleting fund_thesis_analysis records for company:', companyId);
+        const { error: fundThesisError } = await supabase
+          .from('fund_thesis_analysis')
+          .delete()
+          .eq('company_id', companyId);
 
-      if (investorResearchError) {
-        console.error('Error deleting investor research:', investorResearchError);
-        throw investorResearchError;
-      }
+        if (fundThesisError) {
+          console.error('Error deleting fund thesis analysis:', fundThesisError);
+          throw fundThesisError;
+        }
 
-      // Delete fund_thesis_analysis records for this company
-      const { error: fundThesisError } = await supabase
-        .from('fund_thesis_analysis')
-        .delete()
-        .eq('company_id', companyId);
+        // Delete company_details if they exist
+        console.log('Deleting company_details for company:', companyId);
+        const { error: companyDetailsError } = await supabase
+          .from('company_details')
+          .delete()
+          .eq('company_id', companyId);
 
-      if (fundThesisError) {
-        console.error('Error deleting fund thesis analysis:', fundThesisError);
-        throw fundThesisError;
-      }
+        if (companyDetailsError) {
+          console.error('Error deleting company details:', companyDetailsError);
+          // Don't throw here as company_details might not exist
+        }
 
-      // Delete company_details if they exist
-      const { error: companyDetailsError } = await supabase
-        .from('company_details')
-        .delete()
-        .eq('company_id', companyId);
+        // Check if there are any reports linked to this company and update them
+        console.log('Updating reports to remove company reference:', companyId);
+        const { error: reportsUpdateError } = await supabase
+          .from('reports')
+          .update({ company_id: null })
+          .eq('company_id', companyId);
 
-      if (companyDetailsError) {
-        console.error('Error deleting company details:', companyDetailsError);
-        // Don't throw here as company_details might not exist
-      }
+        if (reportsUpdateError) {
+          console.error('Error updating reports:', reportsUpdateError);
+          // Don't throw here as this is not critical for deletion
+        }
 
-      // Finally, delete the company
-      const { error } = await supabase
-        .from('companies')
-        .delete()
-        .eq('id', companyId);
+        // Finally, delete the company
+        console.log('Deleting company:', companyId);
+        const { error } = await supabase
+          .from('companies')
+          .delete()
+          .eq('id', companyId);
 
-      if (error) {
-        console.error('Error deleting company:', error);
+        if (error) {
+          console.error('Error deleting company:', error);
+          throw error;
+        }
+
+        console.log('Company deletion completed successfully');
+        return companyId;
+      } catch (error) {
+        console.error('Company deletion failed:', error);
         throw error;
       }
-
-      return companyId;
     },
     onSuccess: () => {
       // Invalidate and refetch companies query
