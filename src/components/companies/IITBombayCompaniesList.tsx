@@ -14,15 +14,15 @@ export function IITBombayCompaniesList() {
 
   const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
-  const handleCompanyClick = (companyId: string) => {
+  const handleCompanyClick = (companyId: number) => {
     navigate(`/company/${companyId}`);
   };
 
   // Calculate rating-based stats
   const totalProspects = companies.length;
-  const highPotential = companies.filter(c => c.overall_score > 70).length;
-  const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
-  const badPotential = companies.filter(c => c.overall_score < 50).length;
+  const highPotential = companies.filter(c => c.overallScore > 70).length;
+  const mediumPotential = companies.filter(c => c.overallScore >= 50 && c.overallScore <= 70).length;
+  const badPotential = companies.filter(c => c.overallScore < 50).length;
 
   if (isLoading) {
     return (

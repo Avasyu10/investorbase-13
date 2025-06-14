@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -45,7 +46,7 @@ interface CrmData {
 
 interface CompanyCrmTableProps {
   companies: CompanyListItem[];
-  onCompanyClick: (companyId: string) => void;
+  onCompanyClick: (companyId: number) => void;
 }
 
 const INDUSTRY_OPTIONS = [
@@ -568,3 +569,4 @@ function CompanyCrmField({
 
   return <span className="truncate">{value}</span>;
 }
+

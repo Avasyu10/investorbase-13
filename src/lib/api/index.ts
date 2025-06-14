@@ -36,7 +36,7 @@ const api = {
     return response as ApiResponse<CompanyListItem[]>;
   },
 
-  getCompany: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
+  getCompany: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
     if (USE_MOCK_API) {
       // Use mock data
       const company = mockCompanyDetails[companyId];
@@ -56,7 +56,7 @@ const api = {
   },
 
   // Sections
-  getSection: async (companyId: string, sectionId: string): Promise<ApiResponse<SectionDetailed>> => {
+  getSection: async (companyId: number, sectionId: string | number): Promise<ApiResponse<SectionDetailed>> => {
     if (USE_MOCK_API) {
       // Use mock data
       const section = await getMockSectionDetails(companyId, sectionId);
@@ -76,7 +76,7 @@ const api = {
   },
 
   // Analysis
-  getCompanyAnalysis: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
+  getCompanyAnalysis: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
     if (USE_MOCK_API) {
       // For mock data, analysis is the same as company details
       const company = mockCompanyDetails[companyId];

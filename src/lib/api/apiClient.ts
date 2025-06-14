@@ -68,7 +68,8 @@ async function fetchApi<T>(
       const error: ApiError = {
         status: response.status,
         message: responseData.message || 'An unknown error occurred',
-        details: responseData.details,
+        errors: responseData.errors,
+        code: responseData.code,
       };
       
       throw error;
@@ -100,59 +101,59 @@ export const apiClient = {
   getCompanies: async (
     params?: PaginationParams & CompanyFilterParams
   ): Promise<ApiResponse<PaginatedResponse<CompanyListItem> | CompanyListItem[]>> => {
-    return fetchApi(API_ENDPOINTS.COMPANIES, HttpMethod.GET, undefined, params);
+    return fetchApi(API_ENDPOINTS.GET_COMPANIES, HttpMethod.GET, undefined, params);
   },
 
-  getCompany: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`);
+  getCompany: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
+    return fetchApi(API_ENDPOINTS.GET_COMPANY(companyId));
   },
 
   createCompany: async (data: CompanyCreateRequest): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(API_ENDPOINTS.COMPANIES, HttpMethod.POST, data);
+    return fetchApi(API_ENDPOINTS.CREATE_COMPANY, HttpMethod.POST, data);
   },
 
   updateCompany: async (
-    companyId: string, 
+    companyId: number, 
     data: CompanyUpdateRequest
   ): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`, HttpMethod.PUT, data);
+    return fetchApi(API_ENDPOINTS.UPDATE_COMPANY(companyId), HttpMethod.PUT, data);
   },
 
-  deleteCompany: async (companyId: string): Promise<ApiResponse<void>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`, HttpMethod.DELETE);
+  deleteCompany: async (companyId: number): Promise<ApiResponse<void>> => {
+    return fetchApi(API_ENDPOINTS.DELETE_COMPANY(companyId), HttpMethod.DELETE);
   },
 
   // Sections
-  getSections: async (companyId: string): Promise<ApiResponse<SectionBase[]>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}`);
+  getSections: async (companyId: number): Promise<ApiResponse<SectionBase[]>> => {
+    return fetchApi(API_ENDPOINTS.GET_SECTIONS(companyId));
   },
 
-  getSection: async (companyId: string, sectionId: string): Promise<ApiResponse<SectionDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`);
+  getSection: async (companyId: number, sectionId: number | string): Promise<ApiResponse<SectionDetailed>> => {
+    return fetchApi(API_ENDPOINTS.GET_SECTION(companyId, sectionId));
   },
 
   createSection: async (
-    companyId: string, 
+    companyId: number, 
     data: SectionCreateRequest
   ): Promise<ApiResponse<SectionDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}`, HttpMethod.POST, data);
+    return fetchApi(API_ENDPOINTS.CREATE_SECTION(companyId), HttpMethod.POST, data);
   },
 
   updateSection: async (
-    companyId: string, 
-    sectionId: string, 
+    companyId: number, 
+    sectionId: number | string, 
     data: SectionUpdateRequest
   ): Promise<ApiResponse<SectionDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`, HttpMethod.PUT, data);
+    return fetchApi(API_ENDPOINTS.UPDATE_SECTION(companyId, sectionId), HttpMethod.PUT, data);
   },
 
-  deleteSection: async (companyId: string, sectionId: string): Promise<ApiResponse<void>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`, HttpMethod.DELETE);
+  deleteSection: async (companyId: number, sectionId: number | string): Promise<ApiResponse<void>> => {
+    return fetchApi(API_ENDPOINTS.DELETE_SECTION(companyId, sectionId), HttpMethod.DELETE);
   },
 
   // Analysis
-  getCompanyAnalysis: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}/analysis`);
+  getCompanyAnalysis: async (companyId: number): Promise<ApiResponse<CompanyDetailed>> => {
+    return fetchApi(API_ENDPOINTS.GET_COMPANY_ANALYSIS(companyId));
   },
 };
 

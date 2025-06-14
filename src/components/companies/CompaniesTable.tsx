@@ -83,7 +83,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                     </Badge>
                   </TableCell>
                   <TableCell className="w-[120px] text-muted-foreground">
-                    {format(new Date(company.created_at || ''), 'MMM dd, yyyy')}
+                    {format(new Date(company.created_at!), 'MMM dd, yyyy')}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">

@@ -23,32 +23,33 @@ const NOW = new Date().toISOString();
 
 // Transform the existing dummy data to match the API contract with BaseEntity properties
 export const mockCompanies: CompanyListItem[] = Object.values(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT).map(company => ({
-  id: String(company.id),
+  id: company.id,
   name: company.name,
-  overall_score: company.overallScore,
-  created_at: NOW,
-  updated_at: NOW,
+  overallScore: company.overallScore,
+  score: company.overallScore, // For UI compatibility
+  createdAt: NOW,
+  updatedAt: NOW,
 }));
 
 // Transform sections to include BaseEntity properties
 const transformSections = (companies: typeof COMPANIES_DETAILED_DATA_WITH_ASSESSMENT) => {
-  const result: Record<string, CompanyDetailed> = {};
+  const result: Record<number, CompanyDetailed> = {};
   
   Object.entries(companies).forEach(([id, company]) => {
-    const stringId = String(id);
-    result[stringId] = {
-      id: stringId,
+    const numId = Number(id);
+    result[numId] = {
+      id: numId,
       name: company.name,
-      overall_score: company.overallScore,
-      created_at: NOW,
-      updated_at: NOW,
+      overallScore: company.overallScore,
+      createdAt: NOW,
+      updatedAt: NOW,
       sections: company.sections.map(section => ({
         ...section,
-        id: String(section.id.replace('sec', '')), // Convert string IDs like 'sec1' to string numbers
-        created_at: NOW,
-        updated_at: NOW,
+        id: Number(section.id.replace('sec', '')), // Convert string IDs like 'sec1' to numbers
+        createdAt: NOW,
+        updatedAt: NOW,
       })),
-      assessment_points: company.assessmentPoints || [],
+      assessmentPoints: company.assessmentPoints || [],
     };
   });
   
@@ -56,7 +57,7 @@ const transformSections = (companies: typeof COMPANIES_DETAILED_DATA_WITH_ASSESS
 };
 
 // Transform the detailed company data
-export const mockCompanyDetails: Record<string, CompanyDetailed> = transformSections(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT);
+export const mockCompanyDetails: Record<number, CompanyDetailed> = transformSections(COMPANIES_DETAILED_DATA_WITH_ASSESSMENT);
 
 // Mock API function for getting companies with pagination and filtering
 export async function getMockCompanies(
@@ -80,13 +81,13 @@ export async function getMockCompanies(
     // Score filters
     if (params.minScore !== undefined) {
       filteredCompanies = filteredCompanies.filter(
-        company => company.overall_score >= params.minScore!
+        company => company.overallScore >= params.minScore!
       );
     }
     
     if (params.maxScore !== undefined) {
       filteredCompanies = filteredCompanies.filter(
-        company => company.overall_score <= params.maxScore!
+        company => company.overallScore <= params.maxScore!
       );
     }
     
@@ -110,29 +111,36 @@ export async function getMockCompanies(
   
   // Apply pagination
   const page = params?.page || 1;
-  const pageSize = params?.pageSize || filteredCompanies.length;
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = page * pageSize;
+  const limit = params?.limit || filteredCompanies.length;
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
   const paginatedCompanies = filteredCompanies.slice(startIndex, endIndex);
   
   // Return paginated result
   return {
     data: paginatedCompanies,
-    totalCount: filteredCompanies.length,
-    currentPage: page,
-    totalPages: Math.ceil(filteredCompanies.length / pageSize),
+    pagination: {
+      total: filteredCompanies.length,
+      page,
+      limit,
+      totalPages: Math.ceil(filteredCompanies.length / limit),
+    },
   };
 }
 
 // Mock section detailed data generator
-export async function getMockSectionDetails(companyId: string, sectionId: string): Promise<SectionDetailed | null> {
+export async function getMockSectionDetails(companyId: number, sectionId: number | string): Promise<SectionDetailed | null> {
   // Add a small delay to simulate network latency
   await delay(300);
   
   const company = mockCompanyDetails[companyId];
   if (!company) return null;
 
-  const section = company.sections.find(s => s.id === sectionId);
+  const numericSectionId = typeof sectionId === 'string' 
+    ? Number(sectionId.replace('sec', '')) 
+    : sectionId;
+    
+  const section = company.sections.find(s => s.id === numericSectionId);
   if (!section) return null;
 
   return getSectionWithDetails(section);
