@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Loader2, AlertCircle, RefreshCw, Download } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisModal } from '@/components/submissions/AnalysisModal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface FundThesisAlignmentProps {
   companyId: string;
@@ -18,8 +18,8 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [isFundThesisModalOpen, setIsFundThesisModalOpen] = useState(false);
-  const [fundThesisUrl, setFundThesisUrl] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [hasFundThesis, setHasFundThesis] = useState(false);
 
   const analyzeThesisAlignment = async (forceRefresh = false) => {
     try {
@@ -89,6 +89,49 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     }
   };
   
+  // Check if user has a fund thesis
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+          
+          // Check if user has a fund thesis by looking for a non-null thesis URL
+          const { data, error } = await supabase
+            .from('vc_profiles')
+            .select('fund_thesis_url')
+            .eq('id', user.id)
+            .single();
+            
+          if (!error && data && data.fund_thesis_url) {
+            setHasFundThesis(true);
+          } else {
+            // If first query fails, the profile might be using a different ID structure
+            // Try to get the profile directly without filtering
+            console.log("Trying alternative method to find fund thesis...");
+            const { data: profileData, error: profileError } = await supabase
+              .from('vc_profiles')
+              .select('fund_thesis_url')
+              .single();
+              
+            if (!profileError && profileData && profileData.fund_thesis_url) {
+              setHasFundThesis(true);
+              console.log("Found fund thesis with alternative method");
+            } else {
+              console.log("No fund thesis found:", profileError);
+              setHasFundThesis(false);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking fund thesis:', error);
+      }
+    };
+    
+    checkUser();
+  }, []);
+  
   useEffect(() => {
     analyzeThesisAlignment();
   }, [companyId]);
@@ -97,77 +140,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     analyzeThesisAlignment(true);
   };
 
-  const handleViewThesis = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error("You need to be logged in to view your fund thesis");
-        return;
-      }
-      
-      // Check if user has fund thesis in vc_profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('vc_profiles')
-        .select('fund_thesis_url')
-        .eq('id', user.id)
-        .single();
-      
-      // Use either the stored URL from the profile or construct one using the user ID
-      if (profileData?.fund_thesis_url) {
-        // Get the file path from the stored URL
-        const filePath = profileData.fund_thesis_url.includes('/') 
-          ? profileData.fund_thesis_url 
-          : `${user.id}/${profileData.fund_thesis_url}`;
-        
-        // Get the URL of the fund thesis document
-        const { data, error } = await supabase.storage
-          .from('vc-documents')
-          .createSignedUrl(filePath, 60);
-        
-        if (error || !data?.signedUrl) {
-          console.error("Error getting fund thesis URL:", error);
-          toast.error("Failed to retrieve fund thesis document");
-          return;
-        }
-        
-        // Set the URL and open the modal
-        setFundThesisUrl(data.signedUrl);
-        setIsFundThesisModalOpen(true);
-      } else {
-        // Try direct access using user ID
-        console.log("No URL in profile, trying direct access with user ID:", user.id);
-        
-        // Get the URL of the fund thesis document using Edge Function
-        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('handle-vc-document-upload', {
-          body: { 
-            action: 'download',
-            userId: user.id,
-            documentType: 'fund_thesis'
-          }
-        });
-        
-        if (edgeError) {
-          console.error("Error invoking edge function:", edgeError);
-          toast.error("Failed to retrieve fund thesis document");
-          return;
-        }
-        
-        if (edgeData?.url) {
-          // Set the URL and open the modal
-          setFundThesisUrl(edgeData.url);
-          setIsFundThesisModalOpen(true);
-        } else {
-          toast.error("Fund thesis document URL not found");
-        }
-      }
-    } catch (error) {
-      console.error("Error viewing fund thesis:", error);
-      toast.error("Failed to retrieve fund thesis document");
-    }
-  };
-
-  // If there's an error loading, show an error message with a button to view thesis
+  // If there's an error loading, show an error message
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -188,13 +161,14 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
               Please make sure you have uploaded a fund thesis document in your profile.
             </p>
             <div className="mt-4">
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50"
-                onClick={handleViewThesis}
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
+                onClick={handleRefreshAnalysis}
+                disabled={refreshing}
               >
-                <span>View Fund Thesis</span>
-                <ExternalLink className="h-4 w-4" />
+                <span>Refresh Analysis</span>
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </div>
@@ -206,15 +180,6 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
   return (
     <>
       <div className="flex gap-4">
-        <Button 
-          variant="outline" 
-          className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 mt-4"
-          onClick={handleViewThesis}
-        >
-          <span>View Your Fund Thesis</span>
-          <ExternalLink className="h-4 w-4" />
-        </Button>
-        
         <Button
           variant="outline"
           className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 mt-4"
@@ -225,28 +190,6 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         </Button>
       </div>
-
-      {/* Fund Thesis PDF Modal */}
-      <Dialog open={isFundThesisModalOpen} onOpenChange={setIsFundThesisModalOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Your Fund Thesis</DialogTitle>
-            <DialogDescription>
-              Review your investment thesis document
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-2 flex-grow overflow-hidden">
-            {fundThesisUrl && (
-              <iframe 
-                src={`${fundThesisUrl}#toolbar=0`} 
-                className="w-full h-[70vh] border-none"
-                title="Fund Thesis PDF"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <AnalysisModal
         isOpen={isAnalysisModalOpen}

@@ -1,8 +1,7 @@
 
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp, Briefcase, ExternalLink } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Globe, TrendingUp, Briefcase } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -32,7 +31,6 @@ export function CompanyInfoCard({
   companyName = "this company",
   companyLinkedInUrl
 }: CompanyInfoProps) {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
   // Use introduction or description (for backward compatibility)
@@ -69,41 +67,6 @@ export function CompanyInfoCard({
     },
     enabled: !!id,
   });
-
-  const handleMoreInformation = async () => {
-    if (!id) {
-      navigate('/company-detail-page');
-      return;
-    }
-
-    // If we have a company LinkedIn URL and no existing scrape, trigger scraping
-    if (companyLinkedInUrl && !existingScrape) {
-      console.log('Triggering LinkedIn scraping for company:', id);
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-          body: { 
-            linkedInUrl: companyLinkedInUrl,
-            companyId: id 
-          }
-        });
-
-        if (error) {
-          console.error('LinkedIn scraping error:', error);
-          toast.error('Failed to fetch LinkedIn data, but you can still view company details');
-        } else {
-          console.log('LinkedIn scraping initiated successfully:', data);
-          toast.success('LinkedIn data is being processed');
-        }
-      } catch (error) {
-        console.error('LinkedIn scraping failed:', error);
-        toast.error('Failed to fetch LinkedIn data, but you can still view company details');
-      }
-    }
-
-    // Navigate to company overview page
-    navigate(`/company/${id}/overview`);
-  };
 
   return (
     <div className="mb-7">
@@ -160,17 +123,6 @@ export function CompanyInfoCard({
             </div>
           </div>
         </CardContent>
-        <CardFooter className="justify-end">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleMoreInformation}
-            className="flex items-center gap-2 text-primary"
-          >
-            <ExternalLink className="h-4 w-4" />
-            More Information
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

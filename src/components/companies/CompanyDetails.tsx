@@ -8,7 +8,7 @@ import { CompanyLinkedInInfo } from "./CompanyLinkedInInfo";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, Files, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink } from "lucide-react";
+import { FileText, BarChart2, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -138,10 +138,6 @@ const CompanyDetails = () => {
   const handleBack = useCallback(() => {
     navigate("/dashboard");
   }, [navigate]);
-
-  const navigateToSupplementaryMaterials = useCallback(() => {
-    navigate(`/company/${id}/supplementary`);
-  }, [navigate, id]);
   
   const handleChatbotClick = useCallback(() => {
     setShowChat(!showChat);
@@ -300,14 +296,6 @@ const CompanyDetails = () => {
                       View Deck
                     </Button>
                   )}
-                  <Button 
-                    onClick={navigateToSupplementaryMaterials} 
-                    variant="outline" 
-                    className="flex items-center gap-2"
-                  >
-                    <Files className="h-4 w-4" />
-                    Supplementary Material
-                  </Button>
                   <Button
                     onClick={handleChatbotClick}
                     variant={showChat ? "secondary" : "default"}
