@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Company } from "@/lib/api/apiContract";
 import { format } from "date-fns";
 import { Star } from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -13,8 +12,6 @@ interface CompaniesTableProps {
 }
 
 export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProps) {
-  const { isIITBombay } = useProfile();
-
   const getScoreColor = (score: number): string => {
     if (score >= 90) return "text-emerald-600";
     if (score >= 70) return "text-blue-600";
@@ -39,13 +36,6 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
       ];
     }
     return assessmentPoints.slice(0, 2);
-  };
-
-  const getSourceLabel = (source: string): string => {
-    if (source === 'barc_form' && isIITBombay) {
-      return 'eureka_form';
-    }
-    return source;
   };
 
   return (
@@ -89,7 +79,7 @@ export function CompaniesTable({ companies, onCompanyClick }: CompaniesTableProp
                   </TableCell>
                   <TableCell className="w-[100px]">
                     <Badge variant="outline" className="capitalize">
-                      {getSourceLabel(company.source || 'Dashboard')}
+                      {company.source || 'Dashboard'}
                     </Badge>
                   </TableCell>
                   <TableCell className="w-[120px] text-muted-foreground">

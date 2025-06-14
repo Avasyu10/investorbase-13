@@ -12,7 +12,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucide-react";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
-import { useProfile } from "@/hooks/useProfile";
 
 interface PublicSubmission {
   id: string;
@@ -36,8 +35,6 @@ interface PublicSubmissionsTableProps {
 }
 
 export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set() }: PublicSubmissionsTableProps) {
-  const { isIITBombay } = useProfile();
-
   if (!submissions) {
     return (
       <div className="text-center py-8">
@@ -134,7 +131,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
             className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-purple-50 text-purple-700 border-purple-200"
           >
             <Building className="h-3 w-3" />
-            <span>{isIITBombay ? 'Eureka Form' : 'BARC Form'}</span>
+            <span>BARC Form</span>
           </Badge>
         );
       case 'public_form':
