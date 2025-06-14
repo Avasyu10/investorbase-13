@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -560,7 +561,7 @@ const Profile = () => {
       <div className="flex items-center gap-3 mb-6">
         {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
         <h1 className="text-3xl font-bold tracking-tight">
-          {isIITBombay ? "IIT Bombay Profile" : "Profile"}
+          {isIITBombay ? "Eureka Profile" : "Profile"}
         </h1>
       </div>
       
@@ -568,7 +569,7 @@ const Profile = () => {
         <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg">
           <div className="flex items-center gap-2 text-blue-800">
             <GraduationCap className="h-5 w-5" />
-            <span className="font-medium">IIT Bombay Alumni Access</span>
+            <span className="font-medium">Eureka Alumni Access</span>
           </div>
           <p className="text-blue-700 text-sm mt-1">
             You have access to enhanced features and alumni network insights.
