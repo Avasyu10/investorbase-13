@@ -17,10 +17,8 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// API base URL - fallback to localhost for development
-const API_BASE_URL = typeof window !== 'undefined' 
-  ? window.location.origin + '/api'
-  : 'http://localhost:3000/api';
+// API base URL - this should be configured based on environment
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 /**
  * Generic fetch function with error handling
@@ -52,6 +50,8 @@ async function fetchApi<T>(
       method,
       headers: {
         'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${getToken()}`,
       },
     };
 
@@ -61,20 +61,13 @@ async function fetchApi<T>(
     }
 
     const response = await fetch(url, options);
-    
-    // Handle non-JSON responses gracefully
-    let responseData;
-    try {
-      responseData = await response.json();
-    } catch {
-      responseData = { message: 'Invalid response format' };
-    }
+    const responseData = await response.json();
 
     if (!response.ok) {
       // Handle error responses
       const error: ApiError = {
         status: response.status,
-        message: responseData.message || `HTTP ${response.status}: ${response.statusText}`,
+        message: responseData.message || 'An unknown error occurred',
         details: responseData.details,
       };
       
