@@ -168,6 +168,10 @@ const BarcSubmit = () => {
       toast.error("POC name is required");
       return;
     }
+    if (!data.phoneNumber.trim()) {
+      toast.error("Phone number is required");
+      return;
+    }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -521,9 +525,10 @@ const BarcSubmit = () => {
                   <FormField
                     control={form.control}
                     name="phoneNumber"
+                    rules={{ required: "Phone number is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number (Optional)</FormLabel>
+                        <FormLabel>Phone Number *</FormLabel>
                         <FormControl>
                           <Input 
                             type="tel" 
