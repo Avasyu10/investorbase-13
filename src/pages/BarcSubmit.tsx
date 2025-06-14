@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -127,7 +126,7 @@ const BarcSubmit = () => {
         submitter_email: formData.submitterEmail,
         founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()), // Filter out empty URLs
         founder_names: founderNames.filter(name => name.trim()), // Filter out empty names
-        phone_number: formData.phoneNumber
+        phone_number: formData.phoneNumber || "" // Make phone number optional
       };
 
       console.log('Calling submitBarcForm API:', submissionData);
@@ -181,10 +180,7 @@ const BarcSubmit = () => {
       toast.error("Email is required");
       return;
     }
-    if (!data.phoneNumber.trim()) {
-      toast.error("Phone number is required");
-      return;
-    }
+    // Removed phone number validation requirement
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -531,10 +527,9 @@ const BarcSubmit = () => {
                   <FormField
                     control={form.control}
                     name="phoneNumber"
-                    rules={{ required: "Phone number is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number *</FormLabel>
+                        <FormLabel>Phone Number (Optional)</FormLabel>
                         <FormControl>
                           <Input 
                             type="tel" 
