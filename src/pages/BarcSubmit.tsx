@@ -250,7 +250,7 @@ const BarcSubmit = () => {
               <CardTitle className="text-2xl">Eureka Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
-              Submit your application for the incubation program
+              Submit your application
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
