@@ -16,8 +16,8 @@ interface CreateBarcFormButtonProps {
 export const CreateBarcFormButton = ({ onFormCreated }: CreateBarcFormButtonProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [formName, setFormName] = useState("IIT Bombay BARC Applications");
-  const [formSlug, setFormSlug] = useState("iit-bombay-barc-applications");
+  const [formName, setFormName] = useState("IIT Bombay Applications");
+  const [formSlug, setFormSlug] = useState("iit-bombay-applications");
   const [isCreating, setIsCreating] = useState(false);
 
   const generateSlug = (name: string) => {
@@ -65,11 +65,11 @@ export const CreateBarcFormButton = ({ onFormCreated }: CreateBarcFormButtonProp
 
       if (error) throw error;
 
-      toast.success("BARC form created successfully!");
+      toast.success("IIT Bombay form created successfully!");
       onFormCreated(formSlug);
       setIsOpen(false);
     } catch (error: any) {
-      console.error('Error creating BARC form:', error);
+      console.error('Error creating IIT Bombay form:', error);
       toast.error(`Failed to create form: ${error.message}`);
     } finally {
       setIsCreating(false);
@@ -81,14 +81,14 @@ export const CreateBarcFormButton = ({ onFormCreated }: CreateBarcFormButtonProp
       <DialogTrigger asChild>
         <Button className="w-full">
           <Plus className="h-4 w-4 mr-2" />
-          Create BARC Form
+          Create IIT Bombay Form
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create IIT Bombay BARC Form</DialogTitle>
+          <DialogTitle>Create IIT Bombay Form</DialogTitle>
           <DialogDescription>
-            Create a dedicated BARC application form for IIT Bombay submissions.
+            Create a dedicated submission form for IIT Bombay applications.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -98,7 +98,7 @@ export const CreateBarcFormButton = ({ onFormCreated }: CreateBarcFormButtonProp
               id="formName"
               value={formName}
               onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="e.g., IIT Bombay BARC Applications"
+              placeholder="e.g., IIT Bombay Applications"
             />
           </div>
           <div className="space-y-2">
@@ -107,10 +107,10 @@ export const CreateBarcFormButton = ({ onFormCreated }: CreateBarcFormButtonProp
               id="formSlug"
               value={formSlug}
               onChange={(e) => setFormSlug(e.target.value)}
-              placeholder="e.g., iit-bombay-barc-applications"
+              placeholder="e.g., iit-bombay-applications"
             />
             <p className="text-sm text-muted-foreground">
-              This will be used in the URL: /barc-submit/{formSlug}
+              This will be used in the URL: /submit/{formSlug}
             </p>
           </div>
           <Button 

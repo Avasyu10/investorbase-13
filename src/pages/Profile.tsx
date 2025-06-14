@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -187,10 +186,10 @@ const Profile = () => {
 
     setIsCreatingForm(true);
     try {
-      const formName = "IIT Bombay BARC Applications";
-      const formSlug = "iit-bombay-barc-applications";
+      const formName = "IIT Bombay Applications";
+      const formSlug = "iit-bombay-applications";
 
-      console.log('Creating BARC form automatically for user:', user.id);
+      console.log('Creating IIT Bombay form automatically for user:', user.id);
 
       // Check if a form with this slug already exists
       const { data: existingForm } = await supabase
@@ -221,10 +220,10 @@ const Profile = () => {
       if (error) throw error;
 
       setIitBombayFormSlug(finalSlug);
-      console.log('BARC form created automatically with slug:', finalSlug);
-      toast.success("Your IIT Bombay BARC form has been created automatically!");
+      console.log('IIT Bombay form created automatically with slug:', finalSlug);
+      toast.success("Your IIT Bombay form has been created automatically!");
     } catch (error: any) {
-      console.error('Error creating BARC form automatically:', error);
+      console.error('Error creating IIT Bombay form automatically:', error);
       toast.error(`Failed to create form: ${error.message}`);
     } finally {
       setIsCreatingForm(false);
@@ -238,7 +237,7 @@ const Profile = () => {
 
   const handleFormCreated = (formSlug: string) => {
     setIitBombayFormSlug(formSlug);
-    toast.success("Your new IIT Bombay BARC form has been created!");
+    toast.success("Your new IIT Bombay form has been created!");
   };
 
   const toggleAutoAnalyze = async () => {
@@ -491,7 +490,7 @@ const Profile = () => {
 
   // Generate the IIT Bombay form URL using the user's actual form slug
   const iitBombayFormUrl = iitBombayFormSlug 
-    ? `${window.location.origin}/barc-submit/${iitBombayFormSlug}`
+    ? `${window.location.origin}/submit/${iitBombayFormSlug}`
     : null;
 
   // Generate the public submission URL for the VC profile
@@ -756,17 +755,17 @@ const Profile = () => {
                       Share this link with your network to streamline the submission process and maintain all potential investments in one organized location.
                     </p>
                     
-                    {/* IIT Bombay BARC Form URL - only for IIT Bombay users */}
+                    {/* IIT Bombay Form URL - only for IIT Bombay users */}
                     {isIITBombay && (
                       <div className="space-y-2 mb-4">
-                        <Label className="text-sm font-medium">IIT Bombay BARC Form</Label>
+                        <Label className="text-sm font-medium">IIT Bombay Form</Label>
                         <p className="text-xs text-muted-foreground">
-                          For IIT Bombay BARC applications
+                          For IIT Bombay applications
                         </p>
                         {isCreatingForm ? (
                           <div className="flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Creating your BARC form...</span>
+                            <span>Creating your IIT Bombay form...</span>
                           </div>
                         ) : iitBombayFormUrl ? (
                           <div className="flex items-center space-x-2">
@@ -794,7 +793,7 @@ const Profile = () => {
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">No BARC form found.</p>
+                            <p className="text-sm text-muted-foreground">No IIT Bombay form found.</p>
                             <CreateBarcFormButton onFormCreated={handleFormCreated} />
                           </div>
                         )}
