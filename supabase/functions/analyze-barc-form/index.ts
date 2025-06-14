@@ -79,7 +79,10 @@ serve(async (req) => {
       submitter_email: submission.submitter_email,
       form_slug: submission.form_slug,
       analysis_status: submission.analysis_status,
-      user_id: submission.user_id
+      user_id: submission.user_id,
+      company_type: submission.company_type,
+      poc_name: submission.poc_name,
+      phoneno: submission.phoneno
     });
 
     // Check if already processing or completed using an atomic update
@@ -443,23 +446,33 @@ serve(async (req) => {
     console.log('Analysis overall score:', analysisResult.overall_score);
     console.log('Analysis recommendation:', analysisResult.recommendation);
 
-    // Create or update company
+    // Create or update company with BARC-specific data
     let companyId = submission.company_id;
     let isNewCompany = false;
 
     if (!companyId) {
-      console.log('Creating NEW company for analyzed submission...');
+      console.log('Creating NEW company for analyzed submission with BARC data...');
       isNewCompany = true;
+      
+      // Prepare company data with BARC-specific fields
+      const companyData = {
+        name: submission.company_name,
+        overall_score: analysisResult.overall_score,
+        assessment_points: analysisResult.summary?.assessment_points || [],
+        user_id: effectiveUserId,
+        source: 'barc_form',
+        // BARC-specific fields
+        industry: submission.company_type || null,
+        email: submission.submitter_email || null,
+        poc_name: submission.poc_name || null,
+        phonenumber: submission.phoneno || null
+      };
+
+      console.log('Company data to insert:', companyData);
       
       const { data: newCompany, error: companyError } = await supabase
         .from('companies')
-        .insert({
-          name: submission.company_name,
-          overall_score: analysisResult.overall_score,
-          assessment_points: analysisResult.summary?.assessment_points || [],
-          user_id: effectiveUserId,
-          source: 'barc_form'
-        })
+        .insert(companyData)
         .select()
         .single();
 
@@ -470,6 +483,33 @@ serve(async (req) => {
 
       companyId = newCompany.id;
       console.log('Successfully created NEW company with ID:', companyId, 'for user:', effectiveUserId);
+    } else {
+      console.log('Updating existing company with BARC data...');
+      
+      // Update existing company with BARC-specific data
+      const updateData = {
+        overall_score: analysisResult.overall_score,
+        assessment_points: analysisResult.summary?.assessment_points || [],
+        // BARC-specific fields
+        industry: submission.company_type || null,
+        email: submission.submitter_email || null,
+        poc_name: submission.poc_name || null,
+        phonenumber: submission.phoneno || null
+      };
+
+      console.log('Company update data:', updateData);
+
+      const { error: updateCompanyError } = await supabase
+        .from('companies')
+        .update(updateData)
+        .eq('id', companyId);
+
+      if (updateCompanyError) {
+        console.error('Error updating company:', updateCompanyError);
+        throw new Error(`Failed to update company: ${updateCompanyError.message}`);
+      }
+
+      console.log('Successfully updated existing company with ID:', companyId);
     }
 
     // Create sections with proper data structure
@@ -576,7 +616,7 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log('Successfully analyzed BARC submission', submissionId, 'and created company', companyId);
+    console.log('Successfully analyzed BARC submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
 
     return new Response(
       JSON.stringify({ 
