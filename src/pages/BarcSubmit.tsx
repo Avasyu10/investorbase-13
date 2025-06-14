@@ -360,28 +360,6 @@ const BarcSubmit = () => {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="pocName"
-                    rules={{ required: "POC name is required" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>POC Name *</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter point of contact name"
-                            {...field}
-                            disabled={submitMutation.isPending}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                        <p className="text-sm text-muted-foreground">
-                          Enter the name of the primary point of contact for your company.
-                        </p>
-                      </FormItem>
-                    )}
-                  />
                 </div>
 
                 <div className="space-y-4">
