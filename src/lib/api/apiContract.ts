@@ -141,6 +141,12 @@ export const API_ENDPOINTS = {
   REPORTS: '/reports',
 } as const;
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export enum HttpMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+  PATCH = 'PATCH'
+}
 
 export type SectionType = 'problem' | 'solution' | 'market' | 'team' | 'financials' | 'traction' | 'ask';
