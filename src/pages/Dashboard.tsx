@@ -103,7 +103,7 @@ const Dashboard = () => {
             {isIITBombay && (
               <Button onClick={handleIITBombayFormClick} variant="outline" className="flex items-center">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                IIT Bombay Form
+                Eureka Form
               </Button>
             )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
