@@ -86,6 +86,18 @@ export function useDeleteCompany() {
           throw fundThesisError;
         }
 
+        // Delete BARC form submissions linked to this company
+        console.log('Deleting barc_form_submissions for company:', companyId);
+        const { error: barcSubmissionsError } = await supabase
+          .from('barc_form_submissions')
+          .delete()
+          .eq('company_id', companyId);
+
+        if (barcSubmissionsError) {
+          console.error('Error deleting BARC form submissions:', barcSubmissionsError);
+          throw barcSubmissionsError;
+        }
+
         // Delete company_details if they exist
         console.log('Deleting company_details for company:', companyId);
         const { error: companyDetailsError } = await supabase
