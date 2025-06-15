@@ -105,7 +105,7 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Subscribe to BARC form submissions for auto-analysis notifications
+    // Subscribe to BARC form submissions for auto-analysis
     const barcChannel = supabase
       .channel('barc_form_submissions_realtime')
       .on(
@@ -118,9 +118,54 @@ export function RealtimeSubscriptions() {
         (payload) => {
           console.log('New BARC form submission detected:', payload);
           
+          const submissionId = payload.new.id;
+          console.log(`BARC Submission ID: ${submissionId}`);
+          
+          // Show toast notification
           toast({
             title: 'New BARC Application',
             description: `New application received from ${payload.new.company_name || 'unknown company'}. Analysis will begin automatically.`,
+          });
+          
+          // Auto-trigger analysis for BARC submission
+          console.log(`Auto-triggering BARC analysis for submission ID: ${submissionId}`);
+          
+          supabase.functions.invoke('analyze-barc-form', {
+            body: { 
+              submissionId: submissionId
+            }
+          })
+          .then(response => {
+            console.log('BARC auto-analyze function response received:', response);
+            
+            if (response.error) {
+              console.error('Error from BARC auto-analyze function:', response.error);
+              
+              toast({
+                title: 'Analysis Error',
+                description: `Failed to start analysis: ${response.error.message || 'Unknown error'}`,
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            if (response.data) {
+              console.log('BARC analysis response data:', response.data);
+              
+              toast({
+                title: 'Analysis Started',
+                description: `Analysis has started for ${payload.new.company_name}. You will be notified when complete.`,
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Error calling BARC auto-analyze function:', error);
+            
+            toast({
+              title: 'Analysis Error',
+              description: `Failed to start analysis: ${error.message || 'Unknown error'}`,
+              variant: "destructive"
+            });
           });
         }
       )
