@@ -60,3 +60,56 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
 
   return submission;
 };
+
+export const analyzeBarcSubmission = async (submissionId: string) => {
+  console.log('Starting BARC submission analysis for:', submissionId);
+
+  try {
+    // Update status to processing
+    await supabase
+      .from('barc_form_submissions')
+      .update({ analysis_status: 'processing' })
+      .eq('id', submissionId);
+
+    // Call the analyze-barc-form edge function
+    const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
+      body: { submissionId }
+    });
+
+    if (error) {
+      console.error('Error calling analyze-barc-form function:', error);
+      
+      // Update status to failed
+      await supabase
+        .from('barc_form_submissions')
+        .update({ 
+          analysis_status: 'failed',
+          analysis_error: error.message 
+        })
+        .eq('id', submissionId);
+      
+      throw error;
+    }
+
+    console.log('BARC analysis completed successfully:', data);
+    
+    return {
+      success: true,
+      companyId: data?.companyId,
+      message: data?.message || 'Analysis completed successfully'
+    };
+  } catch (error) {
+    console.error('Error in analyzeBarcSubmission:', error);
+    
+    // Update status to failed
+    await supabase
+      .from('barc_form_submissions')
+      .update({ 
+        analysis_status: 'failed',
+        analysis_error: error instanceof Error ? error.message : 'Unknown error'
+      })
+      .eq('id', submissionId);
+    
+    throw error;
+  }
+};
