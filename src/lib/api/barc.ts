@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface BarcSubmissionData {
@@ -57,24 +56,9 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
 
   console.log('BARC form submitted successfully:', submission);
 
-  // Auto-trigger analysis immediately after submission
-  console.log('Auto-triggering analysis for submission:', submission.id);
-  try {
-    const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-barc-form', {
-      body: { submissionId: submission.id }
-    });
-
-    if (analysisError) {
-      console.error('Error auto-triggering analysis:', analysisError);
-      // Don't throw here as the submission was successful, just log the error
-    } else {
-      console.log('Auto-analysis triggered successfully:', analysisData);
-    }
-  } catch (autoAnalysisError) {
-    console.error('Failed to auto-trigger analysis:', autoAnalysisError);
-    // Don't throw here as the submission was successful
-  }
-
+  // The realtime subscription will handle triggering the analysis automatically
+  // We don't need to manually trigger it here anymore
+  
   return submission;
 };
 
