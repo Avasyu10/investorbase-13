@@ -87,12 +87,12 @@ const BarcSubmit = () => {
     );
   };
 
-  // Submit form mutation - immediate redirect with immediate analysis trigger
+  // Submit form mutation - clean submission with realtime analysis
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('🚀 Starting BARC form submission with immediate analysis trigger:', { slug, formData });
+      console.log('🚀 Starting BARC form submission:', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -114,33 +114,20 @@ const BarcSubmit = () => {
 
       console.log('📋 Submitting BARC form data:', submissionData);
       
-      // Submit the form first
+      // Submit the form - realtime subscription will handle analysis trigger
       const submission = await submitBarcForm(submissionData);
       console.log('✅ Form submitted successfully:', submission);
-
-      // Immediately trigger analysis without waiting
-      console.log('🔬 Triggering immediate analysis for submission:', submission.id);
-      
-      // Start analysis in the background - don't await it
-      analyzeBarcSubmission(submission.id)
-        .then(result => {
-          console.log('✅ Analysis completed successfully:', result);
-        })
-        .catch(error => {
-          console.error('❌ Analysis failed:', error);
-          // Don't show error to user since they're already on thank you page
-        });
 
       return submission;
     },
     onSuccess: (data) => {
-      console.log('✅ BARC form submitted successfully - redirecting immediately:', data);
-      toast.success("🎉 Application submitted successfully! Analysis is starting automatically.");
+      console.log('✅ BARC form submitted successfully - redirecting:', data);
+      toast.success("🎉 Application submitted successfully! Analysis will start automatically.");
       
       form.reset();
       setFounderLinkedIns([""]);
       
-      // Navigate to thank you page IMMEDIATELY after successful submission
+      // Navigate to thank you page immediately
       navigate('/thank-you', { replace: true });
     },
     onError: (error: any) => {
@@ -165,7 +152,7 @@ const BarcSubmit = () => {
   });
 
   const onSubmit = (data: BarcFormData) => {
-    console.log('📝 BARC form submit triggered (immediate redirect + immediate analysis):', data);
+    console.log('📝 BARC form submit triggered:', data);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -203,7 +190,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('✅ Validation passed, submitting with immediate analysis trigger...');
+    console.log('✅ Validation passed, submitting...');
     submitMutation.mutate(data);
   };
 
@@ -246,7 +233,7 @@ const BarcSubmit = () => {
               <CardTitle className="text-2xl">Eureka Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
-              Submit your application - analysis will start immediately and you'll be redirected to confirmation
+              Submit your application - analysis will start automatically and you'll be redirected to confirmation
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
