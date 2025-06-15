@@ -87,7 +87,7 @@ const BarcSubmit = () => {
     );
   };
 
-  // Submit form mutation using the API function
+  // Submit form mutation - modified to navigate immediately after submission
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
@@ -114,7 +114,7 @@ const BarcSubmit = () => {
 
       console.log('Calling submitBarcForm API:', submissionData);
       
-      // Use the API function which only handles submission (no automatic analysis)
+      // Use the API function which handles submission and triggers analysis in background
       return await submitBarcForm(submissionData);
     },
     onSuccess: (data) => {
@@ -124,10 +124,9 @@ const BarcSubmit = () => {
       form.reset();
       setFounderLinkedIns([""]);
       
-      // Navigate to thank you page instead of home
-      setTimeout(() => {
-        navigate('/thank-you', { replace: true });
-      }, 2000);
+      // Navigate to thank you page immediately after successful submission
+      // Don't wait for analysis to complete
+      navigate('/thank-you', { replace: true });
     },
     onError: (error: any) => {
       console.error('BARC form submission error:', error);
