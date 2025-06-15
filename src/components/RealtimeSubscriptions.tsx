@@ -105,9 +105,11 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Subscribe to BARC form submissions - AUTOMATIC ANALYSIS TRIGGER
+    // Subscribe to BARC form submissions - ENHANCED AUTOMATIC ANALYSIS TRIGGER
+    console.log('🎯 Setting up BARC form submissions realtime subscription for AUTOMATIC ANALYSIS...');
+    
     const barcChannel = supabase
-      .channel('barc_form_submissions_realtime')
+      .channel('barc_form_submissions_realtime_auto_analyze')
       .on(
         'postgres_changes',
         {
@@ -116,40 +118,63 @@ export function RealtimeSubscriptions() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED - STARTING AUTOMATIC ANALYSIS:', payload);
+          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED - TRIGGERING AUTOMATIC ANALYSIS:', payload);
           
           const submissionId = payload.new.id;
           const companyName = payload.new.company_name;
+          const submitterEmail = payload.new.submitter_email;
           
-          console.log(`📋 Submission details:`, {
+          console.log(`📋 Submission details for automatic analysis:`, {
             id: submissionId,
             company: companyName,
-            email: payload.new.submitter_email,
-            status: payload.new.analysis_status
+            email: submitterEmail,
+            status: payload.new.analysis_status,
+            timestamp: new Date().toISOString()
           });
           
-          // Show notification for new submission
+          // Show immediate notification for new submission
           toast({
             title: '🎯 New BARC Application Received',
-            description: `Application from ${companyName || 'unknown company'} is being analyzed automatically...`,
+            description: `Application from ${companyName || 'unknown company'} - starting automatic analysis...`,
           });
           
-          // Trigger analysis immediately with detailed logging
-          console.log(`🔬 TRIGGERING AUTOMATIC ANALYSIS for submission: ${submissionId}`);
+          // IMMEDIATE ANALYSIS TRIGGER with retry logic
+          console.log(`🔬 STARTING AUTOMATIC ANALYSIS for submission: ${submissionId}`);
           
-          // Use a small delay to ensure the database transaction is fully committed
-          setTimeout(async () => {
+          const triggerAnalysis = async (retryCount = 0) => {
             try {
-              console.log('🚀 Invoking analyze-barc-form function for automatic analysis...');
+              console.log(`🚀 Attempt ${retryCount + 1}: Invoking analyze-barc-form function for automatic analysis...`);
               
               const response = await supabase.functions.invoke('analyze-barc-form', {
-                body: { submissionId }
+                body: { 
+                  submissionId,
+                  autoTrigger: true,
+                  timestamp: new Date().toISOString()
+                }
               });
               
               console.log('✅ BARC analysis function response:', response);
               
               if (response.error) {
                 console.error('❌ Error from BARC analysis function:', response.error);
+                
+                // Check if it's a lock/processing error (not a real error)
+                if (response.error.message?.includes('already being analyzed') || 
+                    response.error.message?.includes('already being processed')) {
+                  console.log('ℹ️ Submission already being processed (this is expected)');
+                  toast({
+                    title: '⚡ Analysis Already Started',
+                    description: `Analysis for ${companyName} is already in progress.`,
+                  });
+                  return;
+                }
+                
+                // Retry logic for temporary failures
+                if (retryCount < 2) {
+                  console.log(`🔄 Retrying analysis trigger in 2 seconds... (attempt ${retryCount + 2})`);
+                  setTimeout(() => triggerAnalysis(retryCount + 1), 2000);
+                  return;
+                }
                 
                 toast({
                   title: '⚠️ Analysis Failed to Start',
@@ -167,13 +192,23 @@ export function RealtimeSubscriptions() {
             } catch (error) {
               console.error('💥 Error starting automatic BARC analysis:', error);
               
+              // Retry logic for network errors
+              if (retryCount < 2) {
+                console.log(`🔄 Retrying analysis trigger due to error in 3 seconds... (attempt ${retryCount + 2})`);
+                setTimeout(() => triggerAnalysis(retryCount + 1), 3000);
+                return;
+              }
+              
               toast({
                 title: '❌ Automatic Analysis Failed',
                 description: `Failed to start analysis for ${companyName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 variant: "destructive",
               });
             }
-          }, 1000); // 1 second delay to ensure DB commit
+          };
+          
+          // Start analysis with a small delay to ensure database transaction is committed
+          setTimeout(() => triggerAnalysis(), 1000);
         }
       )
       .on(
@@ -215,6 +250,14 @@ export function RealtimeSubscriptions() {
       )
       .subscribe((status) => {
         console.log('📡 BARC submissions realtime subscription status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ BARC realtime subscription is ACTIVE and ready to trigger automatic analysis');
+        } else if (status === 'CLOSED') {
+          console.log('❌ BARC realtime subscription CLOSED - automatic analysis will not work');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('💥 BARC realtime subscription ERROR - automatic analysis may not work');
+        }
       });
     
     // Return cleanup function
