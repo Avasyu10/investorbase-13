@@ -87,12 +87,12 @@ const BarcSubmit = () => {
     );
   };
 
-  // Submit form mutation - modified to navigate immediately after submission
+  // Submit form mutation - modified to show better feedback
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission:', { slug, formData });
+      console.log('Starting BARC form submission with immediate analysis trigger:', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -112,20 +112,19 @@ const BarcSubmit = () => {
         phoneno: formData.phoneNumber // Map to new phoneno column
       };
 
-      console.log('Calling submitBarcForm API:', submissionData);
+      console.log('Calling submitBarcForm API with immediate analysis trigger:', submissionData);
       
-      // Use the API function which handles submission and triggers analysis in background
+      // Use the API function which now handles submission and immediately triggers analysis
       return await submitBarcForm(submissionData);
     },
     onSuccess: (data) => {
-      console.log('BARC form submitted successfully:', data);
-      toast.success("Application submitted successfully! You will be notified when analysis is complete.");
+      console.log('BARC form submitted successfully with analysis started:', data);
+      toast.success("Application submitted successfully! Analysis has been started and you will be notified when it's complete.");
       
       form.reset();
       setFounderLinkedIns([""]);
       
       // Navigate to thank you page immediately after successful submission
-      // Don't wait for analysis to complete
       navigate('/thank-you', { replace: true });
     },
     onError: (error: any) => {
@@ -150,7 +149,7 @@ const BarcSubmit = () => {
   });
 
   const onSubmit = (data: BarcFormData) => {
-    console.log('BARC form submit triggered:', data);
+    console.log('BARC form submit triggered with immediate analysis:', data);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -188,7 +187,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting...');
+    console.log('Validation passed, submitting with immediate analysis trigger...');
     submitMutation.mutate(data);
   };
 
@@ -534,7 +533,7 @@ const BarcSubmit = () => {
                   {submitMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
+                      Submitting & Starting Analysis...
                     </>
                   ) : (
                     "Submit Application"
