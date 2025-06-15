@@ -105,7 +105,7 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Subscribe to BARC form submissions - NOW trigger analysis automatically
+    // Subscribe to BARC form submissions - AUTOMATIC ANALYSIS TRIGGER
     const barcChannel = supabase
       .channel('barc_form_submissions_realtime')
       .on(
@@ -116,90 +116,64 @@ export function RealtimeSubscriptions() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('New BARC form submission detected:', payload);
+          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED - STARTING AUTOMATIC ANALYSIS:', payload);
           
           const submissionId = payload.new.id;
           const companyName = payload.new.company_name;
           
-          // Show notification for new submission
-          toast({
-            title: 'New BARC Application',
-            description: `New application received from ${companyName || 'unknown company'}. Starting analysis...`,
+          console.log(`📋 Submission details:`, {
+            id: submissionId,
+            company: companyName,
+            email: payload.new.submitter_email,
+            status: payload.new.analysis_status
           });
           
-          // Immediately trigger analysis
-          console.log(`Triggering analysis for BARC submission: ${submissionId}`);
+          // Show notification for new submission
+          toast({
+            title: '🎯 New BARC Application Received',
+            description: `Application from ${companyName || 'unknown company'} is being analyzed automatically...`,
+          });
           
-          // Update status to processing first - wrap in async function to handle properly
-          const processAnalysis = async () => {
+          // Trigger analysis immediately with detailed logging
+          console.log(`🔬 TRIGGERING AUTOMATIC ANALYSIS for submission: ${submissionId}`);
+          
+          // Use a small delay to ensure the database transaction is fully committed
+          setTimeout(async () => {
             try {
-              console.log('Updating BARC submission status to processing');
+              console.log('🚀 Invoking analyze-barc-form function for automatic analysis...');
               
-              await supabase
-                .from('barc_form_submissions')
-                .update({ analysis_status: 'processing' })
-                .eq('id', submissionId);
-              
-              console.log('Updated BARC submission status to processing');
-              
-              // Then invoke the analysis function
               const response = await supabase.functions.invoke('analyze-barc-form', {
                 body: { submissionId }
               });
               
-              console.log('BARC analysis function response:', response);
+              console.log('✅ BARC analysis function response:', response);
               
               if (response.error) {
-                console.error('Error from BARC analysis function:', response.error);
-                
-                // Update status to failed
-                await supabase
-                  .from('barc_form_submissions')
-                  .update({ 
-                    analysis_status: 'failed',
-                    analysis_error: response.error.message || 'Analysis failed to start'
-                  })
-                  .eq('id', submissionId);
+                console.error('❌ Error from BARC analysis function:', response.error);
                 
                 toast({
-                  title: 'Analysis Failed',
-                  description: `Failed to start analysis for ${companyName}`,
+                  title: '⚠️ Analysis Failed to Start',
+                  description: `Failed to start automatic analysis for ${companyName}: ${response.error.message}`,
                   variant: "destructive",
                 });
               } else {
-                console.log('BARC analysis started successfully');
+                console.log('🎉 BARC analysis started successfully via automatic trigger');
                 
                 toast({
-                  title: 'Analysis Started',
-                  description: `Analysis is now in progress for ${companyName}`,
+                  title: '⚡ Analysis Started Automatically',
+                  description: `Analysis is now running for ${companyName}. You'll be notified when complete.`,
                 });
               }
             } catch (error) {
-              console.error('Error starting BARC analysis:', error);
-              
-              // Update status to failed
-              try {
-                await supabase
-                  .from('barc_form_submissions')
-                  .update({ 
-                    analysis_status: 'failed',
-                    analysis_error: error instanceof Error ? error.message : 'Analysis failed to start'
-                  })
-                  .eq('id', submissionId);
-              } catch (updateError) {
-                console.error('Failed to update error status:', updateError);
-              }
+              console.error('💥 Error starting automatic BARC analysis:', error);
               
               toast({
-                title: 'Analysis Failed',
+                title: '❌ Automatic Analysis Failed',
                 description: `Failed to start analysis for ${companyName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 variant: "destructive",
               });
             }
-          };
-          
-          // Execute the async process
-          processAnalysis();
+          }, 1000); // 1 second delay to ensure DB commit
         }
       )
       .on(
@@ -210,26 +184,28 @@ export function RealtimeSubscriptions() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('BARC submission status updated:', payload);
+          console.log('📊 BARC submission status updated:', payload);
           
           const oldStatus = payload.old.analysis_status;
           const newStatus = payload.new.analysis_status;
           
           // Show toast notifications for status changes
           if (oldStatus !== newStatus) {
+            console.log(`📈 Status change: ${oldStatus} → ${newStatus} for ${payload.new.company_name}`);
+            
             if (newStatus === 'processing') {
               toast({
-                title: 'Analysis Started',
-                description: `Analysis is now in progress for ${payload.new.company_name}`,
+                title: '🔄 Analysis In Progress',
+                description: `Analysis is now running for ${payload.new.company_name}`,
               });
             } else if (newStatus === 'completed') {
               toast({
-                title: 'Analysis Completed',
+                title: '✅ Analysis Completed',
                 description: `Analysis successfully completed for ${payload.new.company_name}`,
               });
             } else if (newStatus === 'failed' || newStatus === 'error') {
               toast({
-                title: 'Analysis Failed',
+                title: '❌ Analysis Failed',
                 description: `Analysis failed for ${payload.new.company_name}`,
                 variant: "destructive",
               });
@@ -238,12 +214,12 @@ export function RealtimeSubscriptions() {
         }
       )
       .subscribe((status) => {
-        console.log('BARC submissions realtime subscription status:', status);
+        console.log('📡 BARC submissions realtime subscription status:', status);
       });
     
     // Return cleanup function
     return () => {
-      console.log('Cleaning up realtime subscriptions');
+      console.log('🧹 Cleaning up realtime subscriptions');
       supabase.removeChannel(emailChannel);
       supabase.removeChannel(barcChannel);
     };

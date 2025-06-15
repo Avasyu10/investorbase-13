@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface BarcSubmissionData {
@@ -55,41 +56,7 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
   }
 
   console.log('BARC form submitted successfully:', submission);
-
-  // Immediately trigger analysis after successful submission
-  console.log('Starting analysis immediately after submission...');
-  try {
-    // Invoke the analysis function immediately
-    const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-barc-form', {
-      body: { submissionId: submission.id }
-    });
-
-    if (analysisError) {
-      console.error('Error invoking analysis function:', analysisError);
-      
-      // Update status to failed if function call fails
-      await supabase
-        .from('barc_form_submissions')
-        .update({ 
-          analysis_status: 'failed',
-          analysis_error: analysisError.message || 'Failed to start analysis'
-        })
-        .eq('id', submission.id);
-    } else {
-      console.log('Analysis function invoked successfully:', analysisData);
-    }
-  } catch (error) {
-    console.error('Error during immediate analysis trigger:', error);
-    
-    // Update status to failed
-    await supabase
-      .from('barc_form_submissions')
-      .update({ 
-        analysis_status: 'failed',
-        analysis_error: error instanceof Error ? error.message : 'Failed to start analysis'
-      })
-      .eq('id', submission.id);
-  }
+  console.log('Analysis will be triggered automatically by realtime subscription');
 
   return submission;
 };

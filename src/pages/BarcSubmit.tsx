@@ -87,12 +87,12 @@ const BarcSubmit = () => {
     );
   };
 
-  // Submit form mutation - modified to show better feedback
+  // Submit form mutation - streamlined for automatic analysis
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('Starting BARC form submission with immediate analysis trigger:', { slug, formData });
+      console.log('🚀 Starting BARC form submission (automatic analysis will be triggered):', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -112,14 +112,14 @@ const BarcSubmit = () => {
         phoneno: formData.phoneNumber // Map to new phoneno column
       };
 
-      console.log('Calling submitBarcForm API with immediate analysis trigger:', submissionData);
+      console.log('📋 Calling submitBarcForm API (automatic analysis enabled):', submissionData);
       
-      // Use the API function which now handles submission and immediately triggers analysis
+      // Submit the form - analysis will be triggered automatically by realtime subscription
       return await submitBarcForm(submissionData);
     },
     onSuccess: (data) => {
-      console.log('BARC form submitted successfully with analysis started:', data);
-      toast.success("Application submitted successfully! Analysis has been started and you will be notified when it's complete.");
+      console.log('✅ BARC form submitted successfully - automatic analysis will start:', data);
+      toast.success("🎉 Application submitted successfully! Analysis will start automatically and you'll be notified when complete.");
       
       form.reset();
       setFounderLinkedIns([""]);
@@ -128,7 +128,7 @@ const BarcSubmit = () => {
       navigate('/thank-you', { replace: true });
     },
     onError: (error: any) => {
-      console.error('BARC form submission error:', error);
+      console.error('❌ BARC form submission error:', error);
       
       // Provide more helpful error messages
       let errorMessage = 'Unknown error occurred';
@@ -149,7 +149,7 @@ const BarcSubmit = () => {
   });
 
   const onSubmit = (data: BarcFormData) => {
-    console.log('BARC form submit triggered with immediate analysis:', data);
+    console.log('📝 BARC form submit triggered (automatic analysis enabled):', data);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -187,7 +187,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('Validation passed, submitting with immediate analysis trigger...');
+    console.log('✅ Validation passed, submitting with automatic analysis...');
     submitMutation.mutate(data);
   };
 
@@ -230,7 +230,7 @@ const BarcSubmit = () => {
               <CardTitle className="text-2xl">Eureka Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
-              Submit your application
+              Submit your application - analysis will start automatically
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -533,10 +533,10 @@ const BarcSubmit = () => {
                   {submitMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting & Starting Analysis...
+                      Submitting Application...
                     </>
                   ) : (
-                    "Submit Application"
+                    "Submit Application (Analysis Will Start Automatically)"
                   )}
                 </Button>
               </form>
