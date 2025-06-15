@@ -2,6 +2,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { LogOut, Building, User, MessageCircle, ShieldCheck } from "lucide-react";
 import { 
   DropdownMenu,
@@ -14,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
+  const { isIITBombay } = useProfile();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -89,17 +91,19 @@ export function Navbar() {
                 </Button>
               )}
               
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                asChild
-                className="transition-colors hidden sm:flex"
-              >
-                <Link to="/profile">
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
-                </Link>
-              </Button>
+              {!isIITBombay && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  asChild
+                  className="transition-colors hidden sm:flex"
+                >
+                  <Link to="/profile">
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Link>
+                </Button>
+              )}
               
               <Button 
                 variant="ghost" 
@@ -137,12 +141,14 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
+                  {!isIITBombay && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link to="/feedback" className="flex items-center">
                       <MessageCircle className="h-4 w-4 mr-2" />

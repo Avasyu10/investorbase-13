@@ -25,14 +25,6 @@ export const ProfileNavigation = () => {
             Manage Public Forms
           </Link>
         </Button>
-        {isIITBombay && (
-          <Button asChild variant="outline" className="w-full justify-start">
-            <Link to="/barc-submissions">
-              <Building className="h-4 w-4 mr-2" />
-              BARC Submissions
-            </Link>
-          </Button>
-        )}
         <Button asChild variant="outline" className="w-full justify-start">
           <Link to="/profile/edit">
             <FileText className="h-4 w-4 mr-2" />

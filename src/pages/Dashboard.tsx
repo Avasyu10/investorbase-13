@@ -8,35 +8,22 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
-  const {
-    user,
-    isLoading
-  } = useAuth();
-  const {
-    profile,
-    isIITBombay,
-    isLoading: profileLoading
-  } = useProfile();
+  const { user, isLoading } = useAuth();
+  const { profile, isIITBombay, isLoading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("User not authenticated, redirecting to home");
-      navigate('/', {
-        state: {
-          from: '/dashboard'
-        }
-      });
+      navigate('/', { state: { from: '/dashboard' } });
     } else if (user) {
       console.log("Dashboard loaded for user:", user.id);
       console.log("Profile data:", profile);
@@ -58,10 +45,11 @@ const Dashboard = () => {
         return;
       }
       console.log("Checking admin status for user:", user.id);
-      const {
-        data,
-        error
-      } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle(); // Use maybeSingle to avoid errors if no profile exists
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .maybeSingle(); // Use maybeSingle to avoid errors if no profile exists
 
       if (error) {
         console.error('Error checking admin status:', error);
@@ -74,15 +62,23 @@ const Dashboard = () => {
     }
   };
 
+  const handleIITBombayFormClick = () => {
+    // Navigate to the IIT Bombay form
+    window.open('/submit/iit-bombay-applications', '_blank');
+  };
+
   if (isLoading || profileLoading) {
-    return <div className="flex justify-center items-center h-64">
+    return (
+      <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>;
+      </div>
+    );
   }
 
   if (!user) return null; // Will redirect in useEffect
 
-  return <div className="animate-fade-in">
+  return (
+    <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -92,14 +88,22 @@ const Dashboard = () => {
             </h1>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-            {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
+            {isAdmin && (
+              <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Panel
-              </Button>}
+              </Button>
+            )}
             {!isIITBombay && (
               <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
                 <Settings className="mr-2 h-4 w-4" />
                 Public Forms
+              </Button>
+            )}
+            {isIITBombay && (
+              <Button onClick={handleIITBombayFormClick} variant="outline" className="flex items-center">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                IIT Bombay Form
               </Button>
             )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
@@ -138,7 +142,8 @@ const Dashboard = () => {
           )}
         </Tabs>
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default Dashboard;
