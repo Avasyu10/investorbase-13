@@ -1,3 +1,4 @@
+
 import { 
   Table, 
   TableBody, 
@@ -9,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building } from "lucide-react";
+import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building, CheckCircle, XCircle } from "lucide-react";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ interface PublicSubmission {
   source: "email" | "email_pitch" | "public_form" | "barc_form";
   from_email?: string | null;
   submitter_email?: string | null;
+  analysis_status?: string;
 }
 
 interface PublicSubmissionsTableProps {
@@ -179,6 +181,43 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   const getSubmissionEmail = (submission: PublicSubmission) => {
     return submission.submitter_email || submission.from_email || "—";
   };
+
+  const getAnalysisStatus = (submission: PublicSubmission) => {
+    const status = submission.analysis_status;
+    
+    switch (status) {
+      case 'completed':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
+            <CheckCircle className="h-3 w-3" />
+            Successful
+          </Badge>
+        );
+      case 'failed':
+      case 'error':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 bg-red-50 text-red-700 border-red-200">
+            <XCircle className="h-3 w-3" />
+            Failed
+          </Badge>
+        );
+      case 'processing':
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 bg-yellow-50 text-yellow-700 border-yellow-200">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Processing
+          </Badge>
+        );
+      case 'pending':
+      default:
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 bg-gray-50 text-gray-700 border-gray-200">
+            <Loader2 className="h-3 w-3" />
+            Pending
+          </Badge>
+        );
+    }
+  };
   
   return (
     <div className="border rounded-md">
@@ -192,7 +231,9 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
             {!isIITBombay && <TableHead className="w-1/6">Stage</TableHead>}
             {!isIITBombay && <TableHead className="w-1/6">Website</TableHead>}
             <TableHead className="w-1/6">Submitted</TableHead>
-            <TableHead className="w-1/6 text-right">Action</TableHead>
+            <TableHead className="w-1/6 text-right">
+              {isIITBombay ? "Analysis" : "Action"}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -246,25 +287,29 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
                     {formatDate(submission.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleAnalyze(submission)}
-                      disabled={isAnalyzing || (submission.source !== "barc_form" && !submission.report_id)}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-1 h-3 w-3" />
-                          Analyze
-                        </>
-                      )}
-                    </Button>
+                    {isIITBombay ? (
+                      getAnalysisStatus(submission)
+                    ) : (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleAnalyze(submission)}
+                        disabled={isAnalyzing || (submission.source !== "barc_form" && !submission.report_id)}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
+                      >
+                        {isAnalyzing ? (
+                          <>
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-1 h-3 w-3" />
+                            Analyze
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
