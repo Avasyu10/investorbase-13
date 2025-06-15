@@ -87,12 +87,12 @@ const BarcSubmit = () => {
     );
   };
 
-  // Submit form mutation - streamlined for automatic analysis
+  // Submit form mutation - immediate redirect with background analysis
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('🚀 Starting BARC form submission (automatic analysis will be triggered):', { slug, formData });
+      console.log('🚀 Starting BARC form submission (will redirect immediately):', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -112,19 +112,19 @@ const BarcSubmit = () => {
         phoneno: formData.phoneNumber // Map to new phoneno column
       };
 
-      console.log('📋 Calling submitBarcForm API (automatic analysis enabled):', submissionData);
+      console.log('📋 Calling submitBarcForm API (immediate return, analysis via realtime):', submissionData);
       
-      // Submit the form - analysis will be triggered automatically by realtime subscription
+      // Submit the form - NO analysis trigger here, realtime subscription will handle it
       return await submitBarcForm(submissionData);
     },
     onSuccess: (data) => {
-      console.log('✅ BARC form submitted successfully - automatic analysis will start:', data);
+      console.log('✅ BARC form submitted successfully - redirecting immediately:', data);
       toast.success("🎉 Application submitted successfully! Analysis will start automatically and you'll be notified when complete.");
       
       form.reset();
       setFounderLinkedIns([""]);
       
-      // Navigate to thank you page immediately after successful submission
+      // Navigate to thank you page IMMEDIATELY after successful submission
       navigate('/thank-you', { replace: true });
     },
     onError: (error: any) => {
@@ -149,7 +149,7 @@ const BarcSubmit = () => {
   });
 
   const onSubmit = (data: BarcFormData) => {
-    console.log('📝 BARC form submit triggered (automatic analysis enabled):', data);
+    console.log('📝 BARC form submit triggered (immediate redirect after submission):', data);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -187,7 +187,7 @@ const BarcSubmit = () => {
       return;
     }
 
-    console.log('✅ Validation passed, submitting with automatic analysis...');
+    console.log('✅ Validation passed, submitting (will redirect immediately)...');
     submitMutation.mutate(data);
   };
 
@@ -230,7 +230,7 @@ const BarcSubmit = () => {
               <CardTitle className="text-2xl">Eureka Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
-              Submit your application - analysis will start automatically
+              Submit your application - you'll be redirected immediately while analysis runs in the background
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -536,7 +536,7 @@ const BarcSubmit = () => {
                       Submitting Application...
                     </>
                   ) : (
-                    "Submit Application (Analysis Will Start Automatically)"
+                    "Submit Application"
                   )}
                 </Button>
               </form>
