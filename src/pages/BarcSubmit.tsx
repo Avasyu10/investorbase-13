@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -18,7 +17,6 @@ interface BarcFormData {
   companyName: string;
   executiveSummary: string;
   companyType: string;
-  companyLinkedInUrl: string;
   question1: string;
   question2: string;
   question3: string;
@@ -40,7 +38,6 @@ const BarcSubmit = () => {
       companyName: "",
       executiveSummary: "",
       companyType: "",
-      companyLinkedInUrl: "",
       question1: "",
       question2: "",
       question3: "",
@@ -103,7 +100,7 @@ const BarcSubmit = () => {
         company_registration_type: "Not Specified", // Default value since field is removed
         executive_summary: formData.executiveSummary,
         company_type: formData.companyType,
-        company_linkedin_url: formData.companyLinkedInUrl,
+        company_linkedin_url: "", // Empty string since field is removed
         question_1: formData.question1,
         question_2: formData.question2,
         question_3: formData.question3,
@@ -178,12 +175,6 @@ const BarcSubmit = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.submitterEmail)) {
       toast.error("Please enter a valid email address");
-      return;
-    }
-
-    // Validate Company LinkedIn URL if provided
-    if (data.companyLinkedInUrl.trim() && !data.companyLinkedInUrl.includes('linkedin.com/company/')) {
-      toast.error("Please enter a valid Company LinkedIn URL (e.g., https://linkedin.com/company/company-name)");
       return;
     }
 
@@ -340,26 +331,6 @@ const BarcSubmit = () => {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="companyLinkedInUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Company LinkedIn URL (Optional)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="https://linkedin.com/company/your-company-name" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                        <p className="text-sm text-muted-foreground">
-                          Enter your company's LinkedIn page URL for additional company insights and analysis.
-                        </p>
-                      </FormItem>
-                    )}
-                  />
                 </div>
 
                 <div className="space-y-4">
@@ -507,18 +478,35 @@ const BarcSubmit = () => {
                     rules={{ required: "POC name is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>POC Name *</FormLabel>
+                        <FormLabel>Point of Contact Name *</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Enter point of contact name"
-                            {...field}
-                            disabled={submitMutation.isPending}
-                          />
+                          <Input placeholder="Enter the primary contact person's name" {...field} />
                         </FormControl>
                         <FormMessage />
                         <p className="text-sm text-muted-foreground">
                           Enter the name of the primary point of contact for your company.
                         </p>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="submitterEmail"
+                    rules={{ 
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: "Please enter a valid email address"
+                      }
+                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email *</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Enter your email address" {...field} />
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -531,36 +519,7 @@ const BarcSubmit = () => {
                       <FormItem>
                         <FormLabel>Phone Number *</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="tel" 
-                            placeholder="Enter your phone number" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="submitterEmail"
-                    rules={{ 
-                      required: "Email is required",
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address"
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contact Email *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="email" 
-                            placeholder="Enter your email address" 
-                            {...field} 
-                          />
+                          <Input placeholder="Enter your phone number" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -568,18 +527,20 @@ const BarcSubmit = () => {
                   />
                 </div>
 
-                <div className="flex justify-end pt-6">
-                  <Button 
-                    type="submit" 
-                    disabled={submitMutation.isPending}
-                    size="lg"
-                  >
-                    {submitMutation.isPending && (
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={submitMutation.isPending}
+                >
+                  {submitMutation.isPending ? (
+                    <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Submit Application
-                  </Button>
-                </div>
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Application"
+                  )}
+                </Button>
               </form>
             </Form>
           </CardContent>
