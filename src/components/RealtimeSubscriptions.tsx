@@ -130,27 +130,30 @@ export function RealtimeSubscriptions() {
           // Immediately trigger analysis
           console.log(`Triggering analysis for BARC submission: ${submissionId}`);
           
-          // Update status to processing first
-          supabase
-            .from('barc_form_submissions')
-            .update({ analysis_status: 'processing' })
-            .eq('id', submissionId)
-            .then(() => {
+          // Update status to processing first - wrap in async function to handle properly
+          const processAnalysis = async () => {
+            try {
+              console.log('Updating BARC submission status to processing');
+              
+              await supabase
+                .from('barc_form_submissions')
+                .update({ analysis_status: 'processing' })
+                .eq('id', submissionId);
+              
               console.log('Updated BARC submission status to processing');
               
               // Then invoke the analysis function
-              return supabase.functions.invoke('analyze-barc-form', {
+              const response = await supabase.functions.invoke('analyze-barc-form', {
                 body: { submissionId }
               });
-            })
-            .then(response => {
+              
               console.log('BARC analysis function response:', response);
               
               if (response.error) {
                 console.error('Error from BARC analysis function:', response.error);
                 
                 // Update status to failed
-                supabase
+                await supabase
                   .from('barc_form_submissions')
                   .update({ 
                     analysis_status: 'failed',
@@ -171,25 +174,32 @@ export function RealtimeSubscriptions() {
                   description: `Analysis is now in progress for ${companyName}`,
                 });
               }
-            })
-            .catch(error => {
+            } catch (error) {
               console.error('Error starting BARC analysis:', error);
               
               // Update status to failed
-              supabase
-                .from('barc_form_submissions')
-                .update({ 
-                  analysis_status: 'failed',
-                  analysis_error: error.message || 'Analysis failed to start'
-                })
-                .eq('id', submissionId);
+              try {
+                await supabase
+                  .from('barc_form_submissions')
+                  .update({ 
+                    analysis_status: 'failed',
+                    analysis_error: error instanceof Error ? error.message : 'Analysis failed to start'
+                  })
+                  .eq('id', submissionId);
+              } catch (updateError) {
+                console.error('Failed to update error status:', updateError);
+              }
               
               toast({
                 title: 'Analysis Failed',
-                description: `Failed to start analysis for ${companyName}: ${error.message}`,
+                description: `Failed to start analysis for ${companyName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 variant: "destructive",
               });
-            });
+            }
+          };
+          
+          // Execute the async process
+          processAnalysis();
         }
       )
       .on(
