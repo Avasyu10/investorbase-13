@@ -87,12 +87,12 @@ const BarcSubmit = () => {
     );
   };
 
-  // Submit form mutation - clean submission with realtime analysis
+  // Submit form mutation - immediate analysis trigger
   const submitMutation = useMutation({
     mutationFn: async (formData: BarcFormData) => {
       if (!slug) throw new Error("Form slug is required");
 
-      console.log('🚀 Starting BARC form submission:', { slug, formData });
+      console.log('🚀 Starting BARC form submission and analysis:', { slug, formData });
 
       const submissionData = {
         form_slug: slug,
@@ -114,15 +114,24 @@ const BarcSubmit = () => {
 
       console.log('📋 Submitting BARC form data:', submissionData);
       
-      // Submit the form - realtime subscription will handle analysis trigger
+      // Step 1: Submit the form
       const submission = await submitBarcForm(submissionData);
       console.log('✅ Form submitted successfully:', submission);
+
+      // Step 2: Immediately trigger analysis
+      console.log('🔬 Starting immediate analysis for submission:', submission.id);
+      
+      // Trigger analysis without waiting for it to complete
+      analyzeBarcSubmission(submission.id).catch(error => {
+        console.error('❌ Analysis failed:', error);
+        // Don't throw here as we still want to redirect user
+      });
 
       return submission;
     },
     onSuccess: (data) => {
       console.log('✅ BARC form submitted successfully - redirecting:', data);
-      toast.success("🎉 Application submitted successfully! Analysis will start automatically.");
+      toast.success("🎉 Application submitted successfully! Analysis is starting automatically.");
       
       form.reset();
       setFounderLinkedIns([""]);

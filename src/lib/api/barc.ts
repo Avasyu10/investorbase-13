@@ -69,35 +69,7 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
   console.log('🔧 Starting BARC submission analysis for:', submissionId);
 
   try {
-    // First, check if submission is stuck in processing and reset if needed
-    const { data: currentSubmission } = await supabase
-      .from('barc_form_submissions')
-      .select('analysis_status, created_at')
-      .eq('id', submissionId)
-      .single();
-
-    if (currentSubmission?.analysis_status === 'processing') {
-      const createdAt = new Date(currentSubmission.created_at);
-      const now = new Date();
-      const minutesDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60);
-      
-      // If it's been processing for more than 5 minutes, reset to pending
-      if (minutesDiff > 5) {
-        console.log('🔄 Resetting stuck submission from processing to pending');
-        await supabase
-          .from('barc_form_submissions')
-          .update({ 
-            analysis_status: 'pending',
-            analysis_error: null
-          })
-          .eq('id', submissionId);
-      }
-    }
-
-    // Add a small delay to ensure any resets are committed
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Call the analyze-barc-form edge function
+    // Call the analyze-barc-form edge function directly
     console.log('🚀 Invoking analyze-barc-form edge function...');
     const { data, error } = await supabase.functions.invoke('analyze-barc-form', {
       body: { submissionId }
@@ -117,19 +89,6 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     };
   } catch (error) {
     console.error('💥 Error in analyzeBarcSubmission:', error);
-    
-    // Update status to failed only if it's a real error, not a lock issue
-    if (!error.message?.includes('already being analyzed') && 
-        !error.message?.includes('already being processed')) {
-      await supabase
-        .from('barc_form_submissions')
-        .update({ 
-          analysis_status: 'failed',
-          analysis_error: error instanceof Error ? error.message : 'Unknown error'
-        })
-        .eq('id', submissionId);
-    }
-    
     throw error;
   }
 };

@@ -105,11 +105,11 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Subscribe to BARC form submissions - ENHANCED AUTOMATIC ANALYSIS TRIGGER
-    console.log('🎯 Setting up BARC form submissions realtime subscription for AUTOMATIC ANALYSIS...');
+    // Subscribe to BARC form submissions - STATUS UPDATES ONLY (NO ANALYSIS TRIGGER)
+    console.log('🎯 Setting up BARC form submissions realtime subscription for STATUS UPDATES...');
     
     const barcChannel = supabase
-      .channel('barc_form_submissions_realtime_auto_analyze')
+      .channel('barc_form_submissions_status_updates')
       .on(
         'postgres_changes',
         {
@@ -118,13 +118,13 @@ export function RealtimeSubscriptions() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED - TRIGGERING AUTOMATIC ANALYSIS:', payload);
+          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED - SHOWING NOTIFICATION ONLY:', payload);
           
           const submissionId = payload.new.id;
           const companyName = payload.new.company_name;
           const submitterEmail = payload.new.submitter_email;
           
-          console.log(`📋 Submission details for automatic analysis:`, {
+          console.log(`📋 Submission details for notification:`, {
             id: submissionId,
             company: companyName,
             email: submitterEmail,
@@ -132,83 +132,11 @@ export function RealtimeSubscriptions() {
             timestamp: new Date().toISOString()
           });
           
-          // Show immediate notification for new submission
+          // Show notification only - analysis is triggered from form submission
           toast({
             title: '🎯 New BARC Application Received',
-            description: `Application from ${companyName || 'unknown company'} - starting automatic analysis...`,
+            description: `Application from ${companyName || 'unknown company'} received successfully.`,
           });
-          
-          // IMMEDIATE ANALYSIS TRIGGER with retry logic
-          console.log(`🔬 STARTING AUTOMATIC ANALYSIS for submission: ${submissionId}`);
-          
-          const triggerAnalysis = async (retryCount = 0) => {
-            try {
-              console.log(`🚀 Attempt ${retryCount + 1}: Invoking analyze-barc-form function for automatic analysis...`);
-              
-              const response = await supabase.functions.invoke('analyze-barc-form', {
-                body: { 
-                  submissionId,
-                  autoTrigger: true,
-                  timestamp: new Date().toISOString()
-                }
-              });
-              
-              console.log('✅ BARC analysis function response:', response);
-              
-              if (response.error) {
-                console.error('❌ Error from BARC analysis function:', response.error);
-                
-                // Check if it's a lock/processing error (not a real error)
-                if (response.error.message?.includes('already being analyzed') || 
-                    response.error.message?.includes('already being processed')) {
-                  console.log('ℹ️ Submission already being processed (this is expected)');
-                  toast({
-                    title: '⚡ Analysis Already Started',
-                    description: `Analysis for ${companyName} is already in progress.`,
-                  });
-                  return;
-                }
-                
-                // Retry logic for temporary failures
-                if (retryCount < 2) {
-                  console.log(`🔄 Retrying analysis trigger in 2 seconds... (attempt ${retryCount + 2})`);
-                  setTimeout(() => triggerAnalysis(retryCount + 1), 2000);
-                  return;
-                }
-                
-                toast({
-                  title: '⚠️ Analysis Failed to Start',
-                  description: `Failed to start automatic analysis for ${companyName}: ${response.error.message}`,
-                  variant: "destructive",
-                });
-              } else {
-                console.log('🎉 BARC analysis started successfully via automatic trigger');
-                
-                toast({
-                  title: '⚡ Analysis Started Automatically',
-                  description: `Analysis is now running for ${companyName}. You'll be notified when complete.`,
-                });
-              }
-            } catch (error) {
-              console.error('💥 Error starting automatic BARC analysis:', error);
-              
-              // Retry logic for network errors
-              if (retryCount < 2) {
-                console.log(`🔄 Retrying analysis trigger due to error in 3 seconds... (attempt ${retryCount + 2})`);
-                setTimeout(() => triggerAnalysis(retryCount + 1), 3000);
-                return;
-              }
-              
-              toast({
-                title: '❌ Automatic Analysis Failed',
-                description: `Failed to start analysis for ${companyName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                variant: "destructive",
-              });
-            }
-          };
-          
-          // Start analysis with a small delay to ensure database transaction is committed
-          setTimeout(() => triggerAnalysis(), 1000);
         }
       )
       .on(
@@ -252,11 +180,11 @@ export function RealtimeSubscriptions() {
         console.log('📡 BARC submissions realtime subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('✅ BARC realtime subscription is ACTIVE and ready to trigger automatic analysis');
+          console.log('✅ BARC realtime subscription is ACTIVE for status updates');
         } else if (status === 'CLOSED') {
-          console.log('❌ BARC realtime subscription CLOSED - automatic analysis will not work');
+          console.log('❌ BARC realtime subscription CLOSED');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('💥 BARC realtime subscription ERROR - automatic analysis may not work');
+          console.error('💥 BARC realtime subscription ERROR');
         }
       });
     
