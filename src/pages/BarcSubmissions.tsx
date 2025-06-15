@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -290,36 +289,6 @@ const BarcSubmissions = () => {
       />
     </div>
   );
-
-  function getStatusBadge(status: string) {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Analyzed</Badge>;
-      case 'processing':
-        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
-      case 'error':
-        return <Badge className="bg-red-100 text-red-800">Error</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Pending</Badge>;
-    }
-  }
-
-  function getRecommendationBadge(recommendation: string) {
-    switch (recommendation) {
-      case 'Accept':
-        return <Badge className="bg-green-100 text-green-800">Accept</Badge>;
-      case 'Consider':
-        return <Badge className="bg-yellow-100 text-yellow-800">Consider</Badge>;
-      case 'Reject':
-        return <Badge className="bg-red-100 text-red-800">Reject</Badge>;
-      default:
-        return null;
-    }
-  }
-
-  function getAnalysisResult(submission: BarcSubmission): BarcAnalysisResult | null {
-    return submission.analysis_result || null;
-  }
 };
 
 export default BarcSubmissions;
