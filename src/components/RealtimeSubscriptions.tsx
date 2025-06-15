@@ -105,7 +105,7 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Subscribe to BARC form submissions - just for notifications, not triggering analysis
+    // Subscribe to BARC form submissions - NOW trigger analysis automatically
     const barcChannel = supabase
       .channel('barc_form_submissions_realtime')
       .on(
@@ -118,11 +118,78 @@ export function RealtimeSubscriptions() {
         (payload) => {
           console.log('New BARC form submission detected:', payload);
           
-          // Just show notification - analysis is triggered from the form submission itself
+          const submissionId = payload.new.id;
+          const companyName = payload.new.company_name;
+          
+          // Show notification for new submission
           toast({
             title: 'New BARC Application',
-            description: `New application received from ${payload.new.company_name || 'unknown company'}. Analysis is starting automatically.`,
+            description: `New application received from ${companyName || 'unknown company'}. Starting analysis...`,
           });
+          
+          // Immediately trigger analysis
+          console.log(`Triggering analysis for BARC submission: ${submissionId}`);
+          
+          // Update status to processing first
+          supabase
+            .from('barc_form_submissions')
+            .update({ analysis_status: 'processing' })
+            .eq('id', submissionId)
+            .then(() => {
+              console.log('Updated BARC submission status to processing');
+              
+              // Then invoke the analysis function
+              return supabase.functions.invoke('analyze-barc-form', {
+                body: { submissionId }
+              });
+            })
+            .then(response => {
+              console.log('BARC analysis function response:', response);
+              
+              if (response.error) {
+                console.error('Error from BARC analysis function:', response.error);
+                
+                // Update status to failed
+                supabase
+                  .from('barc_form_submissions')
+                  .update({ 
+                    analysis_status: 'failed',
+                    analysis_error: response.error.message || 'Analysis failed to start'
+                  })
+                  .eq('id', submissionId);
+                
+                toast({
+                  title: 'Analysis Failed',
+                  description: `Failed to start analysis for ${companyName}`,
+                  variant: "destructive",
+                });
+              } else {
+                console.log('BARC analysis started successfully');
+                
+                toast({
+                  title: 'Analysis Started',
+                  description: `Analysis is now in progress for ${companyName}`,
+                });
+              }
+            })
+            .catch(error => {
+              console.error('Error starting BARC analysis:', error);
+              
+              // Update status to failed
+              supabase
+                .from('barc_form_submissions')
+                .update({ 
+                  analysis_status: 'failed',
+                  analysis_error: error.message || 'Analysis failed to start'
+                })
+                .eq('id', submissionId);
+              
+              toast({
+                title: 'Analysis Failed',
+                description: `Failed to start analysis for ${companyName}: ${error.message}`,
+                variant: "destructive",
+              });
+            });
         }
       )
       .on(
