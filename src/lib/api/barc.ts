@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface BarcSubmissionData {
@@ -56,8 +57,53 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
 
   console.log('BARC form submitted successfully:', submission);
 
-  // The realtime subscription will handle triggering the analysis automatically
-  // We don't need to manually trigger it here anymore
+  // Immediately trigger auto-analysis after successful submission
+  console.log('Triggering auto-analysis for submission:', submission.id);
+  
+  try {
+    // Update status to 'processing' first
+    await supabase
+      .from('barc_form_submissions')
+      .update({ analysis_status: 'processing' })
+      .eq('id', submission.id);
+
+    console.log('Updated status to processing, now invoking analysis function...');
+
+    // Trigger the analysis function - don't await to avoid blocking the form submission
+    supabase.functions.invoke('analyze-barc-form', {
+      body: { 
+        submissionId: submission.id
+      }
+    }).then(response => {
+      console.log('Auto-analysis function response:', response);
+      
+      if (response.error) {
+        console.error('Error from auto-analysis function:', response.error);
+        // Update status to failed if there's an error
+        supabase
+          .from('barc_form_submissions')
+          .update({ 
+            analysis_status: 'failed',
+            analysis_error: response.error.message || 'Analysis failed to start'
+          })
+          .eq('id', submission.id);
+      }
+    }).catch(error => {
+      console.error('Error calling auto-analysis function:', error);
+      // Update status to failed if there's an error
+      supabase
+        .from('barc_form_submissions')
+        .update({ 
+          analysis_status: 'failed',
+          analysis_error: error.message || 'Analysis failed to start'
+        })
+        .eq('id', submission.id);
+    });
+
+  } catch (error) {
+    console.error('Error triggering auto-analysis:', error);
+    // Don't throw here - the submission was successful, analysis can be retried
+  }
   
   return submission;
 };
