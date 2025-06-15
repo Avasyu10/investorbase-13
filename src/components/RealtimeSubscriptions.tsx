@@ -8,7 +8,7 @@ export function RealtimeSubscriptions() {
     console.log('Setting up realtime subscription for email_pitch_submissions');
     
     // Subscribe to email pitch submissions with detailed logging
-    const channel = supabase
+    const emailChannel = supabase
       .channel('email_pitch_submissions_channel')
       .on(
         'postgres_changes',
@@ -102,13 +102,37 @@ export function RealtimeSubscriptions() {
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
+        console.log('Email pitch realtime subscription status:', status);
+      });
+
+    // Subscribe to BARC form submissions for auto-analysis notifications
+    const barcChannel = supabase
+      .channel('barc_form_submissions_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'barc_form_submissions'
+        },
+        (payload) => {
+          console.log('New BARC form submission detected:', payload);
+          
+          toast({
+            title: 'New BARC Application',
+            description: `New application received from ${payload.new.company_name || 'unknown company'}. Analysis will begin automatically.`,
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('BARC submissions realtime subscription status:', status);
       });
     
     // Return cleanup function
     return () => {
-      console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
+      console.log('Cleaning up realtime subscriptions');
+      supabase.removeChannel(emailChannel);
+      supabase.removeChannel(barcChannel);
     };
   }, []);
 

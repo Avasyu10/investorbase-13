@@ -82,6 +82,66 @@ export function PublicSubmissionsList() {
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
 
+  // Real-time subscription for BARC form submission updates
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up real-time subscription for BARC form submissions');
+    
+    const channel = supabase
+      .channel('barc_submissions_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'barc_form_submissions',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Real-time BARC submission update:', payload);
+          
+          const updatedSubmission = payload.new;
+          
+          // Update the submissions state with the new analysis_status
+          setSubmissions(prev => prev.map(submission => {
+            if (submission.id === updatedSubmission.id && submission.source === 'barc_form') {
+              return {
+                ...submission,
+                analysis_status: updatedSubmission.analysis_status
+              };
+            }
+            return submission;
+          }));
+
+          // Show toast notifications for status changes
+          if (updatedSubmission.analysis_status === 'processing') {
+            toast({
+              title: "Analysis started",
+              description: `Analysis is now in progress for ${updatedSubmission.company_name}`,
+            });
+          } else if (updatedSubmission.analysis_status === 'completed') {
+            toast({
+              title: "Analysis completed",
+              description: `Analysis successfully completed for ${updatedSubmission.company_name}`,
+            });
+          } else if (updatedSubmission.analysis_status === 'failed' || updatedSubmission.analysis_status === 'error') {
+            toast({
+              title: "Analysis failed",
+              description: `Analysis failed for ${updatedSubmission.company_name}`,
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast]);
+
   useEffect(() => {
     async function fetchSubmissions() {
       try {

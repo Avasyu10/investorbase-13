@@ -190,7 +190,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
         return (
           <Badge variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
             <CheckCircle className="h-3 w-3" />
-            Successful
+            Completed
           </Badge>
         );
       case 'failed':
@@ -203,9 +203,9 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
         );
       case 'processing':
         return (
-          <Badge variant="outline" className="flex items-center gap-1 bg-yellow-50 text-yellow-700 border-yellow-200">
+          <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Processing
+            In Progress
           </Badge>
         );
       case 'pending':
@@ -217,6 +217,21 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
           </Badge>
         );
     }
+  };
+
+  // Helper function to determine if analysis button should be shown
+  const shouldShowAnalyzeButton = (submission: PublicSubmission) => {
+    // For IIT Bombay users, never show analyze button - only show status
+    if (isIITBombay) {
+      return false;
+    }
+    
+    // For non-IIT Bombay users, show button based on submission type and status
+    if (submission.source === "barc_form") {
+      return submission.analysis_status === 'pending' || submission.analysis_status === 'failed';
+    }
+    
+    return submission.report_id !== null;
   };
   
   return (
@@ -232,13 +247,14 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
             {!isIITBombay && <TableHead className="w-1/6">Website</TableHead>}
             <TableHead className="w-1/6">Submitted</TableHead>
             <TableHead className="w-1/6 text-right">
-              {isIITBombay ? "Analysis" : "Action"}
+              {isIITBombay ? "Analysis Status" : "Action"}
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {submissions.map((submission) => {
             const isAnalyzing = analyzingSubmissions.has(submission.id);
+            const showAnalyzeButton = shouldShowAnalyzeButton(submission);
             
             try {
               return (
@@ -287,14 +303,14 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
                     {formatDate(submission.created_at)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {isIITBombay ? (
+                    {isIITBombay || !showAnalyzeButton ? (
                       getAnalysisStatus(submission)
                     ) : (
                       <Button
                         variant="default"
                         size="sm"
                         onClick={() => handleAnalyze(submission)}
-                        disabled={isAnalyzing || (submission.source !== "barc_form" && !submission.report_id)}
+                        disabled={isAnalyzing}
                         className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
                       >
                         {isAnalyzing ? (
