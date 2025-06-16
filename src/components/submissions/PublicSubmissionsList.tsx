@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { analyzeBarcSubmission } from "@/lib/api/barc";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBarcRealtimeUpdates } from "@/hooks/useBarcRealtimeUpdates";
 import { useSubmissionPolling } from "@/hooks/useSubmissionPolling";
+import { useBarcAnalysisManager } from "@/hooks/useBarcAnalysisManager";
 import { toast } from "sonner";
 
 interface PublicSubmission {
@@ -84,6 +86,9 @@ export function PublicSubmissionsList() {
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
   const queryClient = useQueryClient();
+  
+  // Import the analysis manager
+  const { getAnalysisStatus, activeAnalyses } = useBarcAnalysisManager();
 
   // Get BARC submissions that are being analyzed
   const barcAnalyzingIds = submissions
@@ -397,7 +402,7 @@ export function PublicSubmissionsList() {
       setSubmissions(uniqueSubmissions);
     } catch (error) {
       console.error("Error fetching submissions:", error);
-      toast({
+      legacyToast({
         title: "Failed to load submissions",
         description: "Please try again later or contact support",
         variant: "destructive",
@@ -452,7 +457,7 @@ export function PublicSubmissionsList() {
 
       // Handle other submission types
       if (!submission.report_id) {
-        toast({
+        legacyToast({
           title: "No report to analyze",
           description: "This submission doesn't have an associated report",
           variant: "destructive",
@@ -467,7 +472,7 @@ export function PublicSubmissionsList() {
 
       console.log(`Starting analysis for report: ${submission.report_id}`);
       
-      toast({
+      legacyToast({
         title: "Analysis started",
         description: "This may take a few minutes depending on the size of the document",
       });
@@ -477,14 +482,14 @@ export function PublicSubmissionsList() {
       console.log('Analysis result:', result);
 
       if (result && result.companyId) {
-        toast({
+        legacyToast({
           title: "Analysis complete",
           description: "The document has been analyzed successfully!",
         });
         
         navigate(`/company/${result.companyId}`);
       } else {
-        toast({
+        legacyToast({
           title: "Analysis complete",
           description: "The document has been analyzed but no company was created",
         });
