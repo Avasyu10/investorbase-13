@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Users, Calendar, MapPin, Globe, ExternalLink, X, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrapedCompanyData } from "@/types/company-scrape";
 
 interface CompanyScrapingDialogProps {
   companyId: string;
@@ -45,7 +46,8 @@ export function CompanyScrapingDialog({
   const renderScrapedData = () => {
     if (!scrapeData?.scraped_data) return null;
 
-    const data = scrapeData.scraped_data;
+    // Type assertion to properly type the scraped data
+    const data = scrapeData.scraped_data as ScrapedCompanyData;
 
     return (
       <div className="space-y-6 max-h-[70vh] overflow-y-auto">
@@ -97,7 +99,7 @@ export function CompanyScrapingDialog({
               <CardContent className="pt-0">
                 <p className="text-2xl font-bold text-primary">{data.founded_year}</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date().getFullYear() - parseInt(data.founded_year)} years ago
+                  {new Date().getFullYear() - parseInt(String(data.founded_year))} years ago
                 </p>
               </CardContent>
             </Card>
