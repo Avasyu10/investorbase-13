@@ -62,16 +62,6 @@ export const useCompanyScraping = (companyId: string) => {
       return data as CompanyScrapeData | null;
     },
     enabled: !!companyId,
-    // Add polling when scraping is in progress
-    refetchInterval: (query) => {
-      // Poll every 2 seconds if scraping is in progress
-      if (query.data?.status === 'processing') {
-        return 2000;
-      }
-      // Stop polling once complete or failed
-      return false;
-    },
-    refetchIntervalInBackground: true,
   });
 
   // Mutation to trigger scraping using scraped_company_details edge function
@@ -107,7 +97,7 @@ export const useCompanyScraping = (companyId: string) => {
         description: "Company LinkedIn scraping has been started successfully.",
       });
       
-      // Invalidate and refetch the scrape data immediately
+      // Invalidate and refetch the scrape data
       queryClient.invalidateQueries({ queryKey: ['company-scrape', companyId] });
     },
     onError: (error: any) => {
