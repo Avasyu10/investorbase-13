@@ -32,6 +32,7 @@ export function CompanyScrapingDialog({
         title: "Information Retrieved",
         description: "Company information has been successfully extracted from LinkedIn.",
       });
+      setHasTriggeredScraping(false); // Reset after showing toast
     }
   }, [scrapeData?.status, hasTriggeredScraping]);
 
@@ -43,7 +44,8 @@ export function CompanyScrapingDialog({
       scrapeData,
       isScrapingInProgress,
       hasTriggeredScraping,
-      dialogOpen: open
+      dialogOpen: open,
+      scrapedDataExists: !!scrapeData?.scraped_data
     });
   }, [companyId, hasLinkedInUrl, scrapeData, isScrapingInProgress, hasTriggeredScraping, open]);
 
@@ -279,6 +281,7 @@ export function CompanyScrapingDialog({
       scrapeDataStatus: scrapeData?.status,
       isScrapingInProgress,
       hasScrapeData: !!scrapeData,
+      hasScrapedData: !!scrapeData?.scraped_data,
       hasTriggeredScraping
     });
 
@@ -294,9 +297,9 @@ export function CompanyScrapingDialog({
       return renderLoadingState();
     }
 
-    // Scraping completed successfully
-    if (scrapeData?.status === 'completed') {
-      console.log("Showing scraped data - scraping completed");
+    // Check if we have completed scraped data first
+    if (scrapeData?.status === 'completed' && scrapeData?.scraped_data) {
+      console.log("Showing scraped data - scraping completed with data");
       return renderScrapedData();
     }
 
@@ -304,6 +307,12 @@ export function CompanyScrapingDialog({
     if (scrapeData?.status === 'failed') {
       console.log("Showing error state - scraping failed");
       return renderErrorState();
+    }
+
+    // If we have any existing scraped data (regardless of status), show it
+    if (scrapeData?.scraped_data) {
+      console.log("Showing existing scraped data");
+      return renderScrapedData();
     }
 
     // Initial state - no scraping has been done yet

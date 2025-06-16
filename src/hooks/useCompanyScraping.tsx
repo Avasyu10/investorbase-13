@@ -74,6 +74,8 @@ export const useCompanyScraping = (companyId: string) => {
       return isProcessing ? 2000 : false;
     },
     refetchIntervalInBackground: true,
+    staleTime: 0, // Always refetch to get the latest data
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
   // Mutation to trigger scraping using scraped_company_details edge function
@@ -109,6 +111,9 @@ export const useCompanyScraping = (companyId: string) => {
       
       // Immediately start polling by invalidating queries
       queryClient.invalidateQueries({ queryKey: ['company-scrape', companyId] });
+      
+      // Also refetch to get immediate updates
+      queryClient.refetchQueries({ queryKey: ['company-scrape', companyId] });
     },
     onError: (error: any) => {
       console.error('Company scraping error:', error);
@@ -130,7 +135,8 @@ export const useCompanyScraping = (companyId: string) => {
     hasLinkedInUrl: !!barcSubmission?.company_linkedin_url,
     scrapeData,
     isScrapingInProgress,
-    mutationPending: scrapeMutation.isPending
+    mutationPending: scrapeMutation.isPending,
+    hasScrapedData: !!scrapeData?.scraped_data
   });
 
   return {
