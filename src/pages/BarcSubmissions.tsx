@@ -44,34 +44,61 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    refetchInterval: 3000, // Increased polling frequency for better real-time feel
+    refetchInterval: 2000, // More frequent polling for real-time feel
   });
 
-  // Enhanced realtime subscription with automatic refetching
+  // Enhanced realtime subscription with immediate state updates
   useEffect(() => {
     if (!user) return;
 
-    console.log('Setting up enhanced realtime subscription for BARC submissions page');
+    console.log('🔥 Setting up ENHANCED realtime subscription for BARC submissions page');
 
     // Listen for custom events from the global realtime subscription
     const handleSubmissionAdded = (event: CustomEvent) => {
-      console.log('🎯 Received barcSubmissionAdded event:', event.detail);
+      console.log('🎯 Received barcSubmissionAdded event in BARC page:', event.detail);
       refetch(); // Refresh the submissions list
     };
 
     const handleSubmissionUpdated = (event: CustomEvent) => {
-      console.log('📊 Received barcSubmissionUpdated event:', event.detail);
-      refetch(); // Refresh the submissions list
+      console.log('📊 Received barcSubmissionUpdated event in BARC page:', event.detail);
       
+      const { submissionId, newStatus, oldStatus, companyId, submission } = event.detail;
+      
+      console.log(`🔄 BARC Page - Processing status update for ${submissionId}: ${oldStatus} → ${newStatus}`);
+      
+      // IMMEDIATE STATE UPDATE - Update submissions state directly for instant UI feedback
+      setSubmissions(prev => {
+        if (!prev) return prev;
+        
+        return prev.map(sub => {
+          if (sub.id === submissionId) {
+            console.log(`✨ BARC Page - Updating submission ${submissionId} to status: ${newStatus}`);
+            return {
+              ...sub,
+              analysis_status: newStatus,
+              company_id: companyId || sub.company_id,
+              analysis_result: submission.analysis_result || sub.analysis_result
+            };
+          }
+          return sub;
+        });
+      });
+
       // Remove from analyzing set if analysis completed
-      const { submissionId, newStatus } = event.detail;
       if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
+        console.log(`🧹 BARC Page - Removing ${submissionId} from analyzing set`);
         setAnalyzingSubmissions(prev => {
           const newSet = new Set(prev);
           newSet.delete(submissionId);
           return newSet;
         });
       }
+      
+      // Trigger a refetch to ensure consistency
+      setTimeout(() => {
+        console.log('🔄 BARC Page - Refetching data after status update');
+        refetch();
+      }, 500);
     };
 
     // Add event listeners for custom events
@@ -80,7 +107,7 @@ const BarcSubmissions = () => {
 
     // Also set up direct realtime subscription for this page
     const channel = supabase
-      .channel('barc_submissions_page_realtime')
+      .channel('barc_submissions_page_direct')
       .on(
         'postgres_changes',
         {
@@ -89,13 +116,31 @@ const BarcSubmissions = () => {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('📊 Direct realtime BARC submission update:', payload);
-          
-          // Auto-refresh data
-          refetch();
+          console.log('📊 BARC Page - Direct realtime update:', payload);
           
           const newStatus = payload.new.analysis_status;
+          const oldStatus = payload.old.analysis_status;
           const submissionId = payload.new.id;
+          
+          console.log(`🔄 BARC Page - Direct update: ${submissionId} changed from ${oldStatus} to ${newStatus}`);
+          
+          // Immediate state update
+          setSubmissions(prev => {
+            if (!prev) return prev;
+            
+            return prev.map(sub => {
+              if (sub.id === submissionId) {
+                console.log(`✨ BARC Page - Direct updating submission ${submissionId}`);
+                return {
+                  ...sub,
+                  analysis_status: newStatus,
+                  company_id: payload.new.company_id || sub.company_id,
+                  analysis_result: payload.new.analysis_result || sub.analysis_result
+                };
+              }
+              return sub;
+            });
+          });
           
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
@@ -107,10 +152,12 @@ const BarcSubmissions = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 BARC Page - Direct subscription status:', status);
+      });
 
     return () => {
-      console.log('🧹 Cleaning up BARC submissions page subscriptions');
+      console.log('🧹 BARC Page - Cleaning up realtime subscriptions');
       window.removeEventListener('barcSubmissionAdded', handleSubmissionAdded as EventListener);
       window.removeEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
       supabase.removeChannel(channel);
@@ -327,7 +374,7 @@ const BarcSubmissions = () => {
                     ) : submission.analysis_status === 'processing' || isAnalyzing ? (
                       <Button variant="outline" size="sm" disabled>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing...
+                        Analyzing... (Auto-redirect when complete)
                       </Button>
                     ) : (
                       <Button

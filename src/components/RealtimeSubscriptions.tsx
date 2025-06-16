@@ -2,8 +2,11 @@
 import { useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 export function RealtimeSubscriptions() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     console.log('Setting up realtime subscription for email_pitch_submissions');
     
@@ -105,11 +108,11 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Enhanced BARC form submissions realtime subscription - GLOBAL STATUS UPDATES
-    console.log('🎯 Setting up ENHANCED BARC form submissions realtime subscription...');
+    // Enhanced BARC form submissions realtime subscription with automatic navigation
+    console.log('🎯 Setting up ENHANCED BARC form submissions realtime subscription with auto-navigation...');
     
     const barcChannel = supabase
-      .channel('barc_form_submissions_enhanced')
+      .channel('barc_form_submissions_enhanced_global')
       .on(
         'postgres_changes',
         {
@@ -152,30 +155,50 @@ export function RealtimeSubscriptions() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('📊 BARC submission status updated:', payload);
+          console.log('📊 BARC SUBMISSION STATUS UPDATE DETECTED:', payload);
           
           const oldStatus = payload.old.analysis_status;
           const newStatus = payload.new.analysis_status;
           const companyName = payload.new.company_name;
           const submissionId = payload.new.id;
+          const companyId = payload.new.company_id;
           
-          // Show toast notifications for status changes
+          console.log(`🔄 Status transition: ${oldStatus} → ${newStatus} for ${companyName} (ID: ${submissionId})`);
+          
+          // Show toast notifications for ALL status changes
           if (oldStatus !== newStatus) {
-            console.log(`📈 Status change: ${oldStatus} → ${newStatus} for ${companyName}`);
+            console.log(`📈 Broadcasting status change event for submission ${submissionId}`);
             
             if (newStatus === 'processing') {
               toast({
-                title: '🔄 Analysis In Progress',
+                title: '🔄 Analysis Started',
                 description: `Analysis is now running for ${companyName}`,
               });
             } else if (newStatus === 'completed') {
+              console.log(`✅ ANALYSIS COMPLETED for ${companyName}! Company ID: ${companyId}`);
+              
               toast({
                 title: '✅ Analysis Completed',
                 description: `Analysis successfully completed for ${companyName}`,
               });
               
+              // AUTO-NAVIGATION: Redirect to company page after a short delay
+              if (companyId) {
+                console.log(`🚀 AUTO-NAVIGATING to company page: ${companyId}`);
+                
+                setTimeout(() => {
+                  toast({
+                    title: '🏢 Redirecting to Company Page',
+                    description: `Taking you to ${companyName}'s detailed analysis...`,
+                  });
+                  
+                  // Navigate to the company page
+                  navigate(`/company/${companyId}`);
+                }, 2000); // 2 second delay to show completion message
+              }
+              
               // Show additional info if company was created
-              if (payload.new.company_id) {
+              if (companyId) {
                 setTimeout(() => {
                   toast({
                     title: '🏢 Company Profile Created',
@@ -184,20 +207,24 @@ export function RealtimeSubscriptions() {
                 }, 1000);
               }
             } else if (newStatus === 'failed' || newStatus === 'error') {
+              console.log(`❌ ANALYSIS FAILED for ${companyName}`);
+              
               toast({
                 title: '❌ Analysis Failed',
-                description: `Analysis failed for ${companyName}`,
+                description: `Analysis failed for ${companyName}. Please try again.`,
                 variant: "destructive",
               });
             }
           }
 
-          // Trigger custom events for listening components to refresh data
+          // ALWAYS trigger custom events for listening components to refresh data
+          console.log(`📡 Broadcasting barcSubmissionUpdated event for submission ${submissionId}`);
           window.dispatchEvent(new CustomEvent('barcSubmissionUpdated', {
             detail: { 
               submissionId,
               oldStatus,
               newStatus,
+              companyId,
               submission: payload.new 
             }
           }));
@@ -207,7 +234,7 @@ export function RealtimeSubscriptions() {
         console.log('📡 Enhanced BARC submissions realtime subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Enhanced BARC realtime subscription is ACTIVE');
+          console.log('✅ Enhanced BARC realtime subscription with auto-navigation is ACTIVE');
         } else if (status === 'CLOSED') {
           console.log('❌ Enhanced BARC realtime subscription CLOSED');
         } else if (status === 'CHANNEL_ERROR') {
@@ -221,7 +248,7 @@ export function RealtimeSubscriptions() {
       supabase.removeChannel(emailChannel);
       supabase.removeChannel(barcChannel);
     };
-  }, []);
+  }, [navigate]);
 
   // This component doesn't render anything
   return null;

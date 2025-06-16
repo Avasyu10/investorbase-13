@@ -85,7 +85,7 @@ export function PublicSubmissionsList() {
   useEffect(() => {
     if (!user) return;
 
-    console.log('Setting up enhanced real-time subscription for BARC form submissions in submissions list');
+    console.log('🔥 Setting up enhanced real-time subscription for BARC in submissions list');
     
     // Listen for custom events from the global realtime subscription
     const handleSubmissionAdded = (event: CustomEvent) => {
@@ -95,13 +95,15 @@ export function PublicSubmissionsList() {
 
     const handleSubmissionUpdated = (event: CustomEvent) => {
       console.log('📊 Received barcSubmissionUpdated event in submissions list:', event.detail);
-      fetchSubmissions(); // Refresh the submissions list
       
-      // Update local state immediately for smooth transitions
-      const { submissionId, newStatus, submission } = event.detail;
+      const { submissionId, newStatus, oldStatus, companyId, submission } = event.detail;
       
+      console.log(`🔄 Submissions List - Processing status update for ${submissionId}: ${oldStatus} → ${newStatus}`);
+      
+      // IMMEDIATE STATE UPDATE for smooth transitions
       setSubmissions(prev => prev.map(sub => {
         if (sub.id === submissionId && sub.source === 'barc_form') {
+          console.log(`✨ Submissions List - Updating submission ${submissionId} to status: ${newStatus}`);
           return {
             ...sub,
             analysis_status: newStatus
@@ -112,12 +114,19 @@ export function PublicSubmissionsList() {
 
       // Remove from analyzing set if analysis completed
       if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
+        console.log(`🧹 Submissions List - Removing ${submissionId} from analyzing set`);
         setAnalyzingSubmissions(prev => {
           const newSet = new Set(prev);
           newSet.delete(submissionId);
           return newSet;
         });
       }
+      
+      // Refresh data after a short delay
+      setTimeout(() => {
+        console.log('🔄 Submissions List - Refreshing data after status update');
+        fetchSubmissions();
+      }, 1000);
     };
 
     // Add event listeners for custom events
@@ -126,7 +135,7 @@ export function PublicSubmissionsList() {
 
     // Also set up direct realtime subscription
     const channel = supabase
-      .channel('barc_submissions_list_realtime')
+      .channel('barc_submissions_list_direct')
       .on(
         'postgres_changes',
         {
@@ -136,15 +145,18 @@ export function PublicSubmissionsList() {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('📊 Direct realtime BARC submission update in submissions list:', payload);
+          console.log('📊 Submissions List - Direct realtime update:', payload);
           
           const updatedSubmission = payload.new;
           const newStatus = updatedSubmission.analysis_status;
           const submissionId = updatedSubmission.id;
           
+          console.log(`🔄 Submissions List - Direct update: ${submissionId} to ${newStatus}`);
+          
           // Update the submissions state immediately
           setSubmissions(prev => prev.map(submission => {
             if (submission.id === submissionId && submission.source === 'barc_form') {
+              console.log(`✨ Submissions List - Direct updating submission ${submissionId}`);
               return {
                 ...submission,
                 analysis_status: newStatus
@@ -182,10 +194,12 @@ export function PublicSubmissionsList() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Submissions List - Direct subscription status:', status);
+      });
 
     return () => {
-      console.log('🧹 Cleaning up submissions list real-time subscriptions');
+      console.log('🧹 Submissions List - Cleaning up real-time subscriptions');
       window.removeEventListener('barcSubmissionAdded', handleSubmissionAdded as EventListener);
       window.removeEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
       supabase.removeChannel(channel);
