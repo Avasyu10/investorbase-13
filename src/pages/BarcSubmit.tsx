@@ -15,6 +15,7 @@ import { submitBarcForm, analyzeBarcSubmission } from "@/lib/api/barc";
 
 interface BarcFormData {
   companyName: string;
+  companyLinkedInUrl: string;
   executiveSummary: string;
   companyType: string;
   question1: string;
@@ -36,6 +37,7 @@ const BarcSubmit = () => {
   const form = useForm<BarcFormData>({
     defaultValues: {
       companyName: "",
+      companyLinkedInUrl: "",
       executiveSummary: "",
       companyType: "",
       question1: "",
@@ -100,7 +102,7 @@ const BarcSubmit = () => {
         company_registration_type: "Not Specified",
         executive_summary: formData.executiveSummary,
         company_type: formData.companyType,
-        company_linkedin_url: "",
+        company_linkedin_url: formData.companyLinkedInUrl,
         question_1: formData.question1,
         question_2: formData.question2,
         question_3: formData.question3,
@@ -188,14 +190,19 @@ const BarcSubmit = () => {
       return;
     }
 
-    // Validate LinkedIn URLs format
-    const invalidLinkedInUrls = founderLinkedIns.filter(url => {
+    // Validate LinkedIn URLs format (including company LinkedIn URL)
+    const allLinkedInUrls = [...founderLinkedIns];
+    if (data.companyLinkedInUrl.trim()) {
+      allLinkedInUrls.push(data.companyLinkedInUrl);
+    }
+    
+    const invalidLinkedInUrls = allLinkedInUrls.filter(url => {
       if (!url.trim()) return false; // Empty URLs are allowed
-      return !url.includes('linkedin.com/in/') && !url.includes('linkedin.com/pub/');
+      return !url.includes('linkedin.com/');
     });
 
     if (invalidLinkedInUrls.length > 0) {
-      toast.error("Please enter valid LinkedIn profile URLs (e.g., https://linkedin.com/in/username)");
+      toast.error("Please enter valid LinkedIn URLs (e.g., https://linkedin.com/company/your-company-name or https://linkedin.com/in/username)");
       return;
     }
 
@@ -263,6 +270,26 @@ const BarcSubmit = () => {
                           <Input placeholder="Enter your company name" {...field} />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="companyLinkedInUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company LinkedIn URL (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://linkedin.com/company/your-company-name" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-sm text-muted-foreground">
+                          Enter your company's LinkedIn page URL for additional company analysis
+                        </p>
                       </FormItem>
                     )}
                   />
