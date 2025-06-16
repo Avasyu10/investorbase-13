@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -63,20 +62,30 @@ export function CompanyScrapingDialog({
     try {
       console.log("Starting scraping process for URL:", linkedInUrl);
       
-      const { data, error } = await supabase.functions.invoke('scrape-company-direct', {
-        body: { linkedInUrl: linkedInUrl.trim() }
+      // Use the supabase client to invoke the edge function
+      const { data, error: functionError } = await supabase.functions.invoke('scrape-company-direct', {
+        body: JSON.stringify({ linkedInUrl: linkedInUrl.trim() }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (error) {
-        console.error("Function error:", error);
-        throw new Error(error.message || "Failed to scrape company data");
+      console.log("Function response:", { data, error: functionError });
+
+      if (functionError) {
+        console.error("Function invocation error:", functionError);
+        throw new Error(`Failed to invoke function: ${functionError.message}`);
       }
 
-      if (data?.error) {
+      if (!data) {
+        throw new Error("No response data received from the scraping service");
+      }
+
+      if (data.error) {
         throw new Error(data.error);
       }
 
-      if (data?.success && data?.data) {
+      if (data.success && data.data) {
         console.log("Scraping completed successfully:", data.data);
         setScrapedData(data.data);
         setHasScraped(true);
@@ -90,10 +99,11 @@ export function CompanyScrapingDialog({
 
     } catch (error: any) {
       console.error('Company scraping error:', error);
-      setError(error.message || 'Failed to scrape company data');
+      const errorMessage = error.message || 'Failed to scrape company data';
+      setError(errorMessage);
       toast({
         title: "Scraping failed",
-        description: `Failed to scrape company data: ${error.message}`,
+        description: `Failed to scrape company data: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
