@@ -42,7 +42,7 @@ export const useCompanyScraping = (companyId: string) => {
     enabled: !!companyId,
   });
 
-  // Fetch existing scrape data for the company
+  // Fetch existing scrape data for the company with aggressive polling when scraping
   const { data: scrapeData, isLoading } = useQuery({
     queryKey: ['company-scrape', companyId],
     queryFn: async () => {
@@ -62,6 +62,12 @@ export const useCompanyScraping = (companyId: string) => {
       return data as CompanyScrapeData | null;
     },
     enabled: !!companyId,
+    refetchInterval: (data) => {
+      // Poll every 2 seconds if scraping is in progress
+      const isProcessing = data?.status === 'processing';
+      return isProcessing ? 2000 : false;
+    },
+    refetchIntervalInBackground: true,
   });
 
   // Mutation to trigger scraping using scraped_company_details edge function
@@ -97,7 +103,7 @@ export const useCompanyScraping = (companyId: string) => {
         description: "Company LinkedIn scraping has been started successfully.",
       });
       
-      // Invalidate and refetch the scrape data
+      // Immediately start polling by invalidating queries
       queryClient.invalidateQueries({ queryKey: ['company-scrape', companyId] });
     },
     onError: (error: any) => {

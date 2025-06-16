@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Building2, Users, Calendar, MapPin, Globe, ExternalLink, X } from "lucide-react";
+import { Loader2, Building2, Users, Calendar, MapPin, Globe, ExternalLink, X, CheckCircle } from "lucide-react";
 import { useCompanyScraping } from "@/hooks/useCompanyScraping";
+import { toast } from "@/hooks/use-toast";
 
 interface CompanyScrapingDialogProps {
   companyId: string;
@@ -21,6 +22,18 @@ export function CompanyScrapingDialog({
   onOpenChange 
 }: CompanyScrapingDialogProps) {
   const { scrapeData, scrapeMutation, hasLinkedInUrl, isScrapingInProgress } = useCompanyScraping(companyId);
+  const [previousStatus, setPreviousStatus] = useState<string | null>(null);
+
+  // Show success toast when scraping completes
+  useEffect(() => {
+    if (scrapeData?.status === 'completed' && previousStatus === 'processing') {
+      toast({
+        title: "Information Retrieved",
+        description: "Company information has been successfully extracted from LinkedIn.",
+      });
+    }
+    setPreviousStatus(scrapeData?.status || null);
+  }, [scrapeData?.status, previousStatus]);
 
   const handleStartScraping = () => {
     if (hasLinkedInUrl && !scrapeData && !isScrapingInProgress) {
@@ -60,6 +73,12 @@ export function CompanyScrapingDialog({
     return (
       <div className="space-y-6">
         <div className="text-center pb-4 border-b">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <CheckCircle className="h-6 w-6 text-green-500" />
+            <Badge variant="green" className="text-sm">
+              Information Retrieved
+            </Badge>
+          </div>
           <Building2 className="h-12 w-12 mx-auto mb-3 text-primary" />
           <h3 className="text-2xl font-bold">{data.name || companyName}</h3>
           {data.industry && (
