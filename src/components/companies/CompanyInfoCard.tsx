@@ -101,7 +101,9 @@ export function CompanyInfoCard({
     enabled: !!companyData?.id,
   });
 
-  const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
+  // Show the "More Information" button for all analyzed companies
+  // (companies that exist in the database and have been analyzed)
+  const shouldShowMoreInfoButton = !!companyData?.id;
 
   const handleMoreInformation = () => {
     setDialogOpen(true);
@@ -120,7 +122,7 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyData?.name || companyName}</h4>
-              {hasLinkedInUrl && (
+              {shouldShowMoreInfoButton && (
                 <Button
                   variant="outline"
                   onClick={handleMoreInformation}
