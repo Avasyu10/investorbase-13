@@ -105,11 +105,11 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Subscribe to BARC form submissions - STATUS UPDATES ONLY (NO ANALYSIS TRIGGER)
-    console.log('🎯 Setting up BARC form submissions realtime subscription for STATUS UPDATES...');
+    // Enhanced BARC form submissions realtime subscription - GLOBAL STATUS UPDATES
+    console.log('🎯 Setting up ENHANCED BARC form submissions realtime subscription...');
     
     const barcChannel = supabase
-      .channel('barc_form_submissions_status_updates')
+      .channel('barc_form_submissions_enhanced')
       .on(
         'postgres_changes',
         {
@@ -118,13 +118,13 @@ export function RealtimeSubscriptions() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED - SHOWING NOTIFICATION ONLY:', payload);
+          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED:', payload);
           
           const submissionId = payload.new.id;
           const companyName = payload.new.company_name;
           const submitterEmail = payload.new.submitter_email;
           
-          console.log(`📋 Submission details for notification:`, {
+          console.log(`📋 Submission details:`, {
             id: submissionId,
             company: companyName,
             email: submitterEmail,
@@ -132,11 +132,16 @@ export function RealtimeSubscriptions() {
             timestamp: new Date().toISOString()
           });
           
-          // Show notification only - analysis is triggered from form submission
+          // Show notification for new submission
           toast({
             title: '🎯 New BARC Application Received',
             description: `Application from ${companyName || 'unknown company'} received successfully.`,
           });
+
+          // Trigger a custom event for any listening components
+          window.dispatchEvent(new CustomEvent('barcSubmissionAdded', {
+            detail: { submission: payload.new }
+          }));
         }
       )
       .on(
@@ -151,40 +156,62 @@ export function RealtimeSubscriptions() {
           
           const oldStatus = payload.old.analysis_status;
           const newStatus = payload.new.analysis_status;
+          const companyName = payload.new.company_name;
+          const submissionId = payload.new.id;
           
           // Show toast notifications for status changes
           if (oldStatus !== newStatus) {
-            console.log(`📈 Status change: ${oldStatus} → ${newStatus} for ${payload.new.company_name}`);
+            console.log(`📈 Status change: ${oldStatus} → ${newStatus} for ${companyName}`);
             
             if (newStatus === 'processing') {
               toast({
                 title: '🔄 Analysis In Progress',
-                description: `Analysis is now running for ${payload.new.company_name}`,
+                description: `Analysis is now running for ${companyName}`,
               });
             } else if (newStatus === 'completed') {
               toast({
                 title: '✅ Analysis Completed',
-                description: `Analysis successfully completed for ${payload.new.company_name}`,
+                description: `Analysis successfully completed for ${companyName}`,
               });
+              
+              // Show additional info if company was created
+              if (payload.new.company_id) {
+                setTimeout(() => {
+                  toast({
+                    title: '🏢 Company Profile Created',
+                    description: `${companyName} has been added to your prospects.`,
+                  });
+                }, 1000);
+              }
             } else if (newStatus === 'failed' || newStatus === 'error') {
               toast({
                 title: '❌ Analysis Failed',
-                description: `Analysis failed for ${payload.new.company_name}`,
+                description: `Analysis failed for ${companyName}`,
                 variant: "destructive",
               });
             }
           }
+
+          // Trigger custom events for listening components to refresh data
+          window.dispatchEvent(new CustomEvent('barcSubmissionUpdated', {
+            detail: { 
+              submissionId,
+              oldStatus,
+              newStatus,
+              submission: payload.new 
+            }
+          }));
         }
       )
       .subscribe((status) => {
-        console.log('📡 BARC submissions realtime subscription status:', status);
+        console.log('📡 Enhanced BARC submissions realtime subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('✅ BARC realtime subscription is ACTIVE for status updates');
+          console.log('✅ Enhanced BARC realtime subscription is ACTIVE');
         } else if (status === 'CLOSED') {
-          console.log('❌ BARC realtime subscription CLOSED');
+          console.log('❌ Enhanced BARC realtime subscription CLOSED');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('💥 BARC realtime subscription ERROR');
+          console.error('💥 Enhanced BARC realtime subscription ERROR');
         }
       });
     

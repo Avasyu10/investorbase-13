@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,8 +44,78 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    refetchInterval: 5000,
+    refetchInterval: 3000, // Increased polling frequency for better real-time feel
   });
+
+  // Enhanced realtime subscription with automatic refetching
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up enhanced realtime subscription for BARC submissions page');
+
+    // Listen for custom events from the global realtime subscription
+    const handleSubmissionAdded = (event: CustomEvent) => {
+      console.log('🎯 Received barcSubmissionAdded event:', event.detail);
+      refetch(); // Refresh the submissions list
+    };
+
+    const handleSubmissionUpdated = (event: CustomEvent) => {
+      console.log('📊 Received barcSubmissionUpdated event:', event.detail);
+      refetch(); // Refresh the submissions list
+      
+      // Remove from analyzing set if analysis completed
+      const { submissionId, newStatus } = event.detail;
+      if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submissionId);
+          return newSet;
+        });
+      }
+    };
+
+    // Add event listeners for custom events
+    window.addEventListener('barcSubmissionAdded', handleSubmissionAdded as EventListener);
+    window.addEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
+
+    // Also set up direct realtime subscription for this page
+    const channel = supabase
+      .channel('barc_submissions_page_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'barc_form_submissions'
+        },
+        (payload) => {
+          console.log('📊 Direct realtime BARC submission update:', payload);
+          
+          // Auto-refresh data
+          refetch();
+          
+          const newStatus = payload.new.analysis_status;
+          const submissionId = payload.new.id;
+          
+          // Remove from analyzing set when analysis completes
+          if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
+            setAnalyzingSubmissions(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(submissionId);
+              return newSet;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🧹 Cleaning up BARC submissions page subscriptions');
+      window.removeEventListener('barcSubmissionAdded', handleSubmissionAdded as EventListener);
+      window.removeEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
+      supabase.removeChannel(channel);
+    };
+  }, [user, refetch]);
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {
