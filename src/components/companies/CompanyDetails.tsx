@@ -1,9 +1,9 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
 import { ScoreAssessment } from "./ScoreAssessment";
 import { CompanyInfoCard } from "./CompanyInfoCard";
-import { CompanyLinkedInInfo } from "./CompanyLinkedInInfo";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -315,14 +315,6 @@ const CompanyDetails = () => {
                   companyName={company?.name}
                 />
               </div>
-
-              {/* Add Company LinkedIn Information component */}
-              {isFromBarcForm && (
-                <CompanyLinkedInInfo 
-                  companyId={id || ""} 
-                  companyName={company?.name || ""} 
-                />
-              )}
               
               <div className="mb-5">
                 <Progress 
