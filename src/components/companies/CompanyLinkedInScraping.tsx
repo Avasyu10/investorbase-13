@@ -1,10 +1,7 @@
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, ExternalLink, Building, Calendar, MapPin, Users, Globe } from 'lucide-react';
+import { Loader2, ExternalLink, Building, Calendar, MapPin, Users, Globe, Info } from 'lucide-react';
 import { useCompanyScraping } from '@/hooks/useCompanyScraping';
 
 interface CompanyLinkedInScrapingProps {
@@ -13,20 +10,10 @@ interface CompanyLinkedInScrapingProps {
 }
 
 export const CompanyLinkedInScraping = ({ companyId, companyName }: CompanyLinkedInScrapingProps) => {
-  const [linkedInUrl, setLinkedInUrl] = useState('');
-  const { scrapeData, isLoading, scrapeMutation, isScrapingInProgress } = useCompanyScraping(companyId);
+  const { scrapeData, isLoading, scrapeMutation, hasLinkedInUrl, linkedInUrl, isScrapingInProgress } = useCompanyScraping(companyId);
 
   const handleScrape = () => {
-    if (!linkedInUrl.trim()) {
-      return;
-    }
-
-    // Validate LinkedIn URL format
-    if (!linkedInUrl.includes('linkedin.com/company/')) {
-      return;
-    }
-
-    scrapeMutation.mutate({ linkedInUrl });
+    scrapeMutation.mutate();
   };
 
   const formatScrapedData = (data: any) => {
@@ -106,15 +93,16 @@ export const CompanyLinkedInScraping = ({ companyId, companyName }: CompanyLinke
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading company data...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Loading...</span>
+      </div>
     );
+  }
+
+  // Don't render anything if there's no LinkedIn URL
+  if (!hasLinkedInUrl) {
+    return null;
   }
 
   return (
@@ -128,34 +116,24 @@ export const CompanyLinkedInScraping = ({ companyId, companyName }: CompanyLinke
       <CardContent className="space-y-4">
         {!scrapeData && (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="linkedin-url">Company LinkedIn URL</Label>
-              <Input
-                id="linkedin-url"
-                placeholder="https://linkedin.com/company/your-company-name"
-                value={linkedInUrl}
-                onChange={(e) => setLinkedInUrl(e.target.value)}
-                disabled={isScrapingInProgress}
-              />
-              <p className="text-sm text-muted-foreground">
-                Enter the company's LinkedIn page URL to extract additional information
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Get additional company information from LinkedIn
+            </p>
             
             <Button 
               onClick={handleScrape}
-              disabled={!linkedInUrl.trim() || !linkedInUrl.includes('linkedin.com/company/') || isScrapingInProgress}
+              disabled={isScrapingInProgress}
               className="w-full"
             >
               {isScrapingInProgress ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Extracting Company Data...
+                  Getting More Information...
                 </>
               ) : (
                 <>
-                  <Building className="mr-2 h-4 w-4" />
-                  Extract Company Information
+                  <Info className="mr-2 h-4 w-4" />
+                  More Information
                 </>
               )}
             </Button>
@@ -165,7 +143,7 @@ export const CompanyLinkedInScraping = ({ companyId, companyName }: CompanyLinke
         {scrapeData && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">Scraped Company Information</h4>
+              <h4 className="font-medium">Additional Company Information</h4>
               <span className="text-xs text-muted-foreground">
                 Last updated: {new Date(scrapeData.updated_at).toLocaleDateString()}
               </span>
@@ -174,7 +152,7 @@ export const CompanyLinkedInScraping = ({ companyId, companyName }: CompanyLinke
             {scrapeData.status === 'processing' && (
               <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg">
                 <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                <span className="text-blue-800">Processing company data...</span>
+                <span className="text-blue-800">Getting more information...</span>
               </div>
             )}
 
@@ -187,15 +165,15 @@ export const CompanyLinkedInScraping = ({ companyId, companyName }: CompanyLinke
             {scrapeData.status === 'failed' && (
               <div className="p-4 bg-red-50 rounded-lg">
                 <p className="text-red-800">
-                  Failed to extract company data: {scrapeData.error_message || 'Unknown error'}
+                  Failed to get additional information: {scrapeData.error_message || 'Unknown error'}
                 </p>
               </div>
             )}
 
-            {scrapeData.linkedin_url && (
+            {linkedInUrl && (
               <div className="pt-2 border-t">
                 <a 
-                  href={scrapeData.linkedin_url} 
+                  href={linkedInUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-primary hover:underline flex items-center gap-1 text-sm"
@@ -209,19 +187,16 @@ export const CompanyLinkedInScraping = ({ companyId, companyName }: CompanyLinke
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => {
-                setLinkedInUrl(scrapeData.linkedin_url);
-                scrapeMutation.mutate({ linkedInUrl: scrapeData.linkedin_url });
-              }}
+              onClick={handleScrape}
               disabled={isScrapingInProgress}
             >
               {isScrapingInProgress ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Re-extracting...
+                  Updating...
                 </>
               ) : (
-                'Re-extract Data'
+                'Update Information'
               )}
             </Button>
           </div>

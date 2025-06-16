@@ -16,8 +16,33 @@ interface CompanyScrapeData {
   updated_at: string;
 }
 
+interface BarcSubmission {
+  id: string;
+  company_linkedin_url: string | null;
+}
+
 export const useCompanyScraping = (companyId: string) => {
   const queryClient = useQueryClient();
+
+  // Fetch BARC submission to get the LinkedIn URL
+  const { data: barcSubmission } = useQuery({
+    queryKey: ['barc-submission', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('barc_form_submissions')
+        .select('id, company_linkedin_url')
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching BARC submission:', error);
+        return null;
+      }
+
+      return data as BarcSubmission | null;
+    },
+    enabled: !!companyId,
+  });
 
   // Fetch existing scrape data for the company
   const { data: scrapeData, isLoading } = useQuery({
@@ -43,8 +68,11 @@ export const useCompanyScraping = (companyId: string) => {
 
   // Mutation to trigger scraping
   const scrapeMutation = useMutation({
-    mutationFn: async ({ linkedInUrl }: { linkedInUrl: string }) => {
-      return scrapeCompanyLinkedIn(linkedInUrl, companyId);
+    mutationFn: async () => {
+      if (!barcSubmission?.company_linkedin_url) {
+        throw new Error('No LinkedIn URL found in BARC submission');
+      }
+      return scrapeCompanyLinkedIn(barcSubmission.company_linkedin_url, companyId);
     },
     onSuccess: () => {
       toast({
@@ -69,6 +97,8 @@ export const useCompanyScraping = (companyId: string) => {
     scrapeData,
     isLoading,
     scrapeMutation,
+    linkedInUrl: barcSubmission?.company_linkedin_url || null,
+    hasLinkedInUrl: !!barcSubmission?.company_linkedin_url,
     isScrapingInProgress: scrapeMutation.isPending || (scrapeData?.status === 'processing'),
   };
 };
