@@ -24,7 +24,7 @@ interface BarcSubmission {
 export const useCompanyScraping = (companyId: string) => {
   const queryClient = useQueryClient();
 
-  // Fetch BARC submission to get the LinkedIn URL and check if company is linked
+  // Fetch BARC submission to get the LinkedIn URL
   const { data: barcSubmission } = useQuery({
     queryKey: ['barc-submission', companyId],
     queryFn: async () => {
@@ -44,16 +44,16 @@ export const useCompanyScraping = (companyId: string) => {
     enabled: !!companyId,
   });
 
-  // Fetch existing scrape data for the company
+  // Fetch existing scrape data for the company using the actual company ID
   const { data: scrapeData, isLoading } = useQuery({
     queryKey: ['company-scrape', companyId],
     queryFn: async () => {
-      if (!barcSubmission?.id) return null;
+      if (!companyId) return null;
 
       const { data, error } = await supabase
         .from('company_scrapes')
         .select('*')
-        .eq('company_id', barcSubmission.id)
+        .eq('company_id', companyId) // Use the actual company ID from companies table
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -65,7 +65,7 @@ export const useCompanyScraping = (companyId: string) => {
 
       return data as CompanyScrapeData | null;
     },
-    enabled: !!barcSubmission?.id,
+    enabled: !!companyId,
     refetchInterval: (query) => {
       // Poll every 2 seconds if scraping is in progress
       const isProcessing = query.state.data?.status === 'processing';
@@ -86,7 +86,7 @@ export const useCompanyScraping = (companyId: string) => {
       const { data, error } = await supabase.functions.invoke('scraped_company_details', {
         body: { 
           linkedInUrl: barcSubmission.company_linkedin_url,
-          companyId: barcSubmission.id // Use BARC submission ID, not company ID
+          companyId: companyId // Use the actual company ID from companies table
         }
       });
 
@@ -117,17 +117,21 @@ export const useCompanyScraping = (companyId: string) => {
     }
   });
 
-  // Auto-trigger scraping when company is created and linked to BARC submission
+  // Auto-trigger scraping only when:
+  // 1. Company exists (companyId is available)
+  // 2. LinkedIn URL is available in BARC submission
+  // 3. No existing scrape data
+  // 4. Not already scraping
   useEffect(() => {
-    if (barcSubmission?.company_linkedin_url && 
-        barcSubmission?.company_id && 
+    if (companyId && 
+        barcSubmission?.company_linkedin_url && 
         !scrapeData && 
         !scrapeMutation.isPending && 
         !isLoading) {
-      console.log("Auto-triggering scraping for newly created company:", companyId);
+      console.log("Auto-triggering scraping for company:", companyId);
       scrapeMutation.mutate();
     }
-  }, [barcSubmission?.company_linkedin_url, barcSubmission?.company_id, scrapeData, scrapeMutation.isPending, isLoading]);
+  }, [companyId, barcSubmission?.company_linkedin_url, scrapeData, scrapeMutation.isPending, isLoading]);
 
   // Determine if scraping is in progress (either mutation pending or status is processing)
   const isScrapingInProgress = scrapeMutation.isPending || (scrapeData?.status === 'processing');
