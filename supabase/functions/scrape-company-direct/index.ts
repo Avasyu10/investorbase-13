@@ -10,8 +10,9 @@ const corsHeaders = {
 };
 
 // CoreSignal API configuration
-const CORESIGNAL_JWT_TOKEN = Deno.env.get('CORESIGNAL_JWT_TOKEN');
-const CORESIGNAL_API_KEY = Deno.env.get('CORESIGNAL_API_KEY');
+const CORESIGNAL_SEARCH_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/search/es_dsl";
+const CORESIGNAL_COLLECT_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/collect";
+const CORESIGNAL_API_KEY = "xm2kAqJbIZDVjE877BKO72AO00XNBaEk";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -71,23 +72,6 @@ serve(async (req) => {
 
     console.log(`Processing LinkedIn URL: ${linkedInUrl}`);
     
-    // Check for CoreSignal credentials
-    if (!CORESIGNAL_JWT_TOKEN || !CORESIGNAL_API_KEY) {
-      console.error("Missing CoreSignal credentials");
-      console.log("JWT Token present:", !!CORESIGNAL_JWT_TOKEN);
-      console.log("API Key present:", !!CORESIGNAL_API_KEY);
-      return new Response(
-        JSON.stringify({ 
-          error: "CoreSignal API credentials not configured. Please contact administrator.",
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-
     // Clean and validate the LinkedIn URL
     let cleanUrl = linkedInUrl.trim();
     if (!cleanUrl.startsWith('http')) {
@@ -101,39 +85,199 @@ serve(async (req) => {
     
     console.log(`Clean URL: ${cleanUrl}`);
 
-    // For now, return mock data since CoreSignal API seems to have issues
-    console.log("Returning mock data due to CoreSignal API issues");
+    // Validate that it's a company URL
+    const isCompanyUrl = cleanUrl.includes('/company/');
     
-    // Extract company name from LinkedIn URL for mock data
-    const urlParts = cleanUrl.split('/');
-    const companySlug = urlParts[urlParts.length - 2] || urlParts[urlParts.length - 1];
-    const companyName = companySlug.charAt(0).toUpperCase() + companySlug.slice(1);
+    if (!isCompanyUrl) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid LinkedIn company URL format",
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
 
-    const mockData = {
-      name: companyName,
-      description: "Company information retrieved from LinkedIn profile. This is mock data due to API limitations.",
-      founded_year: "2000",
-      employees_count: "1000-5000",
-      industry: "Technology",
-      location: "United States",
-      website: `https://www.${companySlug}.com`,
-      linkedin_url: cleanUrl
-    };
+    try {
+      console.log("Step 1: Making POST request to CoreSignal search API");
+      
+      // Step 1: POST request to search for the company
+      const searchPayload = {
+        query: {
+          bool: {
+            must: [
+              {
+                query_string: {
+                  default_field: "linkedin_url",
+                  query: `"${cleanUrl}"`
+                }
+              }
+            ]
+          }
+        }
+      };
 
-    console.log("Mock company data generated:", JSON.stringify(mockData, null, 2));
+      console.log("CoreSignal search payload:", JSON.stringify(searchPayload, null, 2));
+      
+      // Make the first request to CoreSignal API
+      const searchResponse = await fetch(CORESIGNAL_SEARCH_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CORESIGNAL_API_KEY
+        },
+        body: JSON.stringify(searchPayload)
+      });
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        data: mockData,
-        message: "Company information retrieved (mock data)",
-        note: "This is demonstration data. Real data integration requires valid CoreSignal API credentials."
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+      console.log("CoreSignal search response status:", searchResponse.status);
+      
+      if (!searchResponse.ok) {
+        const errorText = await searchResponse.text();
+        console.error(`CoreSignal search API error (${searchResponse.status}): ${errorText}`);
+        throw new Error(`CoreSignal search API error: ${searchResponse.status} - ${errorText}`);
       }
-    );
+
+      const searchData = await searchResponse.json();
+      console.log("CoreSignal search response:", JSON.stringify(searchData, null, 2));
+
+      // Extract the ID from the search response
+      let collectId = null;
+      if (Array.isArray(searchData) && searchData.length > 0) {
+        collectId = searchData[0];
+      } else if (searchData && searchData.hits && searchData.hits.hits && searchData.hits.hits.length > 0) {
+        // Handle different response format if needed
+        collectId = searchData.hits.hits[0]._id || searchData.hits.hits[0].id;
+      }
+
+      if (!collectId) {
+        console.log("No ID found in search response");
+        throw new Error("No company ID found in CoreSignal search response");
+      }
+
+      console.log("Step 2: Making GET request to collect company data with ID:", collectId);
+
+      // Step 2: GET request to collect the actual company data
+      const collectUrl = `${CORESIGNAL_COLLECT_URL}/${collectId}`;
+      const collectResponse = await fetch(collectUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CORESIGNAL_API_KEY
+        }
+      });
+
+      console.log("CoreSignal collect response status:", collectResponse.status);
+
+      if (!collectResponse.ok) {
+        const errorText = await collectResponse.text();
+        console.error(`CoreSignal collect API error (${collectResponse.status}): ${errorText}`);
+        throw new Error(`CoreSignal collect API error: ${collectResponse.status} - ${errorText}`);
+      }
+
+      const companyData = await collectResponse.json();
+      console.log("CoreSignal collect response:", JSON.stringify(companyData, null, 2));
+
+      // Extract and format the company information
+      if (companyData && companyData.id) {
+        console.log("Successfully retrieved company data from CoreSignal");
+        
+        // Parse employee count - handle ranges like "10001-50000"
+        let employeeCount = null;
+        if (companyData.employee_count) {
+          if (typeof companyData.employee_count === 'string' && companyData.employee_count.includes('-')) {
+            employeeCount = companyData.employee_count; // Keep the range as string
+          } else {
+            employeeCount = parseInt(companyData.employee_count) || companyData.employee_count;
+          }
+        }
+
+        // Parse founded year
+        let foundedYear = null;
+        if (companyData.founded_year) {
+          foundedYear = companyData.founded_year.toString();
+        } else if (companyData.founded_date) {
+          foundedYear = new Date(companyData.founded_date).getFullYear().toString();
+        }
+
+        // Extract location
+        let location = null;
+        if (companyData.location) {
+          location = companyData.location;
+        } else if (companyData.headquarters) {
+          location = companyData.headquarters;
+        } else if (companyData.address) {
+          location = companyData.address;
+        }
+
+        // Format the scraped data
+        const scrapedData = {
+          name: companyData.company_name || companyData.company_legal_name || companyData.name || "Company Name Not Available",
+          description: companyData.description || companyData.about || "No description available",
+          founded_year: foundedYear,
+          employees_count: employeeCount,
+          industry: companyData.industry || (companyData.industries && companyData.industries[0]) || null,
+          location: location,
+          website: companyData.website || companyData.website_url || null,
+          linkedin_url: cleanUrl
+        };
+        
+        console.log("Company data extracted successfully:", JSON.stringify(scrapedData, null, 2));
+
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            data: scrapedData,
+            message: "Company information retrieved successfully"
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        );
+
+      } else {
+        console.log("No valid company data found in CoreSignal response");
+        throw new Error("No valid company data found in response");
+      }
+
+    } catch (error) {
+      console.error("CoreSignal API error:", error.message);
+      
+      // Create fallback data on API error
+      const urlParts = linkedInUrl.split('/');
+      let companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+      
+      if (companySlug === '') {
+        companySlug = urlParts[urlParts.length - 2];
+      }
+      
+      const fallbackData = {
+        name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
+        description: `Unable to retrieve detailed information. Error: ${error.message}`,
+        founded_year: null,
+        employees_count: null,
+        industry: null,
+        location: null,
+        website: null,
+        linkedin_url: cleanUrl
+      };
+
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          data: fallbackData,
+          error: error.message,
+          message: "Failed to retrieve company data from CoreSignal API"
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 // Return 200 but with success: false
+        }
+      );
+    }
 
   } catch (error) {
     console.error("Error in scrape-company-direct function:", error);
