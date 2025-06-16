@@ -62,12 +62,9 @@ export function CompanyScrapingDialog({
     try {
       console.log("Starting scraping process for URL:", linkedInUrl);
       
-      // Use the supabase client to invoke the edge function
+      // Use the supabase client to invoke the edge function with plain object body
       const { data, error: functionError } = await supabase.functions.invoke('scrape-company-direct', {
-        body: JSON.stringify({ linkedInUrl: linkedInUrl.trim() }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: { linkedInUrl: linkedInUrl.trim() }
       });
 
       console.log("Function response:", { data, error: functionError });
