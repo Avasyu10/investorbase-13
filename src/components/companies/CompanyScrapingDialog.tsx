@@ -21,21 +21,12 @@ export function CompanyScrapingDialog({
   onOpenChange 
 }: CompanyScrapingDialogProps) {
   const { scrapeData, scrapeMutation, hasLinkedInUrl, isScrapingInProgress } = useCompanyScraping(companyId);
-  const [hasTriggeredScraping, setHasTriggeredScraping] = useState(false);
 
   const handleStartScraping = () => {
-    if (!hasTriggeredScraping && hasLinkedInUrl) {
-      setHasTriggeredScraping(true);
+    if (hasLinkedInUrl && !scrapeData && !isScrapingInProgress) {
       scrapeMutation.mutate();
     }
   };
-
-  // Auto-trigger scraping when dialog opens if we haven't scraped yet
-  useState(() => {
-    if (open && !scrapeData && !hasTriggeredScraping && hasLinkedInUrl) {
-      handleStartScraping();
-    }
-  });
 
   const renderLoadingState = () => (
     <div className="text-center py-12">
@@ -184,6 +175,35 @@ export function CompanyScrapingDialog({
     );
   };
 
+  const renderInitialState = () => (
+    <div className="text-center py-12">
+      <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+      <h3 className="text-xl font-semibold mb-2">Get Detailed Company Information</h3>
+      <p className="text-muted-foreground mb-6">
+        Click the button below to gather additional information about {companyName} from LinkedIn.
+      </p>
+      <Button 
+        onClick={handleStartScraping}
+        disabled={isScrapingInProgress || !hasLinkedInUrl}
+        className="min-w-[120px]"
+      >
+        {isScrapingInProgress ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Analyzing...
+          </>
+        ) : (
+          'Get Information'
+        )}
+      </Button>
+      {!hasLinkedInUrl && (
+        <p className="text-sm text-muted-foreground mt-4">
+          No LinkedIn URL available for this company.
+        </p>
+      )}
+    </div>
+  );
+
   const renderNoDataState = () => (
     <div className="text-center py-12">
       <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -225,6 +245,7 @@ export function CompanyScrapingDialog({
         
         <div className="mt-4">
           {!hasLinkedInUrl && renderNoDataState()}
+          {hasLinkedInUrl && !scrapeData && !isScrapingInProgress && renderInitialState()}
           {hasLinkedInUrl && isScrapingInProgress && renderLoadingState()}
           {hasLinkedInUrl && scrapeData?.status === 'completed' && renderScrapedData()}
           {hasLinkedInUrl && scrapeData?.status === 'failed' && renderErrorState()}
