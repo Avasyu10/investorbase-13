@@ -108,11 +108,11 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // SIMPLIFIED BARC form submissions realtime subscription - GLOBAL ONLY
-    console.log('🎯 Setting up SIMPLIFIED GLOBAL BARC form submissions realtime subscription...');
+    // GLOBAL BARC notifications only - no longer handling status updates here
+    console.log('🎯 Setting up GLOBAL BARC form submissions notifications...');
     
     const barcChannel = supabase
-      .channel('barc_form_submissions_global')
+      .channel('barc_form_submissions_global_notifications')
       .on(
         'postgres_changes',
         {
@@ -141,80 +141,13 @@ export function RealtimeSubscriptions() {
           });
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        (payload) => {
-          console.log('📊 BARC SUBMISSION STATUS UPDATE DETECTED:', payload);
-          
-          const oldStatus = payload.old.analysis_status;
-          const newStatus = payload.new.analysis_status;
-          const companyName = payload.new.company_name;
-          const submissionId = payload.new.id;
-          const companyId = payload.new.company_id;
-          
-          console.log(`🔄 Status transition: ${oldStatus} → ${newStatus} for ${companyName} (ID: ${submissionId})`);
-          
-          // Show toast notifications for status changes
-          if (oldStatus !== newStatus) {
-            if (newStatus === 'processing') {
-              toast({
-                title: '🔄 Analysis Started',
-                description: `Analysis is now running for ${companyName}`,
-              });
-            } else if (newStatus === 'completed') {
-              console.log(`✅ ANALYSIS COMPLETED for ${companyName}! Company ID: ${companyId}`);
-              
-              toast({
-                title: '✅ Analysis Completed',
-                description: `Analysis successfully completed for ${companyName}`,
-              });
-              
-              // AUTO-NAVIGATION: Redirect to company page after a short delay
-              if (companyId) {
-                console.log(`🚀 AUTO-NAVIGATING to company page: ${companyId}`);
-                
-                setTimeout(() => {
-                  toast({
-                    title: '🏢 Redirecting to Company Page',
-                    description: `Taking you to ${companyName}'s detailed analysis...`,
-                  });
-                  
-                  // Navigate to the company page
-                  navigate(`/company/${companyId}`);
-                }, 2000); // 2 second delay to show completion message
-              }
-            } else if (newStatus === 'failed' || newStatus === 'error') {
-              console.log(`❌ ANALYSIS FAILED for ${companyName}`);
-              
-              toast({
-                title: '❌ Analysis Failed',
-                description: `Analysis failed for ${companyName}. Please try again.`,
-                variant: "destructive",
-              });
-            }
-          }
-        }
-      )
       .subscribe((status) => {
-        console.log('📡 BARC submissions realtime subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ BARC realtime subscription is ACTIVE');
-        } else if (status === 'CLOSED') {
-          console.log('❌ BARC realtime subscription CLOSED');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('💥 BARC realtime subscription ERROR');
-        }
+        console.log('📡 BARC notifications subscription status:', status);
       });
     
     // Return cleanup function
     return () => {
-      console.log('🧹 Cleaning up realtime subscriptions');
+      console.log('🧹 Cleaning up global realtime subscriptions');
       supabase.removeChannel(emailChannel);
       supabase.removeChannel(barcChannel);
     };

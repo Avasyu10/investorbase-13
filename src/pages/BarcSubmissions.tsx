@@ -20,7 +20,7 @@ const BarcSubmissions = () => {
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
 
-  const { data: submissions, isLoading } = useQuery({
+  const { data: submissions, isLoading, refetch } = useQuery({
     queryKey: ['barc-submissions', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -45,18 +45,18 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    staleTime: 0, // Always consider data stale so invalidation works properly
-    refetchInterval: 5000, // Backup polling - less frequent since realtime should handle it
+    staleTime: 0,
+    refetchInterval: 2000, // Faster polling as backup
   });
 
-  // FOCUSED realtime subscription for BARC status updates
+  // Simplified and more reliable realtime subscription
   useEffect(() => {
     if (!user) return;
 
-    console.log('🔥 Setting up FOCUSED realtime subscription for BARC submissions status updates');
+    console.log('🔥 Setting up BARC submissions realtime subscription');
 
     const channel = supabase
-      .channel('barc_submissions_status_updates')
+      .channel('barc_submissions_updates')
       .on(
         'postgres_changes',
         {
@@ -65,7 +65,7 @@ const BarcSubmissions = () => {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('📊 BARC Status Update - Direct realtime update:', payload);
+          console.log('📊 BARC Update received:', payload);
           
           const newStatus = payload.new.analysis_status;
           const oldStatus = payload.old?.analysis_status;
@@ -75,18 +75,15 @@ const BarcSubmissions = () => {
           
           console.log(`🔄 Status change: ${submissionId} from ${oldStatus} to ${newStatus}`);
           
-          // FORCE CACHE INVALIDATION - this is the key fix
-          queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions', user.id],
-            exact: true 
-          });
+          // IMMEDIATE REFETCH - this ensures fresh data
+          console.log('💥 Triggering immediate refetch...');
+          refetch();
           
-          // Also invalidate any related queries
+          // Also invalidate cache as backup
           queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'] 
+            queryKey: ['barc-submissions'],
+            refetchType: 'active'
           });
-          
-          console.log('💥 Cache invalidated for BARC submissions');
           
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
@@ -137,13 +134,10 @@ const BarcSubmissions = () => {
         (payload) => {
           console.log('🆕 New BARC submission:', payload);
           
-          // Invalidate cache for new submissions too
-          queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions', user.id],
-            exact: true 
-          });
+          // Immediate refetch for new submissions
+          refetch();
           
-          console.log('💥 Cache invalidated for new BARC submission');
+          console.log('💥 Refetched for new BARC submission');
         }
       )
       .subscribe((status) => {
@@ -162,7 +156,7 @@ const BarcSubmissions = () => {
       console.log('🧹 Cleaning up BARC submissions realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient, navigate]);
+  }, [user, queryClient, navigate, refetch]);
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {
@@ -206,10 +200,7 @@ const BarcSubmissions = () => {
       }
 
       // Force cache refresh after analysis
-      queryClient.invalidateQueries({ 
-        queryKey: ['barc-submissions', user?.id],
-        exact: true 
-      });
+      refetch();
     } catch (error: any) {
       console.error('Analysis trigger error:', error);
       
@@ -405,7 +396,7 @@ const BarcSubmissions = () => {
           setSelectedSubmission(null);
         }}
         submission={selectedSubmission}
-        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['barc-submissions', user?.id] })}
+        onRefresh={() => refetch()}
       />
     </div>
   );

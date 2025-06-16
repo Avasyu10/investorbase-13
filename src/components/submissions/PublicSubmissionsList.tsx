@@ -107,7 +107,7 @@ export function PublicSubmissionsList() {
           
           console.log(`🔄 Submissions List - Status update: ${submissionId} to ${newStatus}`);
           
-          // Update the submissions state immediately with proper state management
+          // Update the submissions state immediately
           setSubmissions(prev => prev.map(submission => {
             if (submission.id === submissionId && submission.source === 'barc_form') {
               console.log(`✨ Submissions List - Updating submission ${submissionId} to status ${newStatus}`);
