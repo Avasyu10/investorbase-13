@@ -1,11 +1,12 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp, Briefcase, Info, Loader2 } from "lucide-react";
+import { Globe, TrendingUp, Briefcase, Info } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 
 type CompanyInfoProps = {
   website?: string;
@@ -19,17 +20,6 @@ type CompanyInfoProps = {
   companyName?: string; // Added to display company name in description
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
 };
-
-interface CompanyScrapeData {
-  id: string;
-  linkedin_url: string;
-  company_id: string;
-  status: string;
-  scraped_data: any;
-  error_message: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 interface BarcSubmission {
   id: string;
@@ -49,7 +39,7 @@ export function CompanyInfoCard({
   companyLinkedInUrl
 }: CompanyInfoProps) {
   const { id } = useParams<{ id: string }>();
-  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Use introduction or description (for backward compatibility)
   const displayIntroduction = introduction || description || "No detailed information available for this company.";
@@ -85,73 +75,11 @@ export function CompanyInfoCard({
     enabled: !!id,
   });
 
-  // Fetch existing scrape data for the company
-  const { data: scrapeData, isLoading } = useQuery({
-    queryKey: ['company-scrape', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('company_scrapes')
-        .select('*')
-        .eq('company_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching company scrape data:', error);
-        throw error;
-      }
-
-      return data as CompanyScrapeData | null;
-    },
-    enabled: !!id,
-  });
-
-  // Mutation to trigger scraping using scraped_company_details edge function
-  const scrapeMutation = useMutation({
-    mutationFn: async () => {
-      if (!barcSubmission?.company_linkedin_url) {
-        throw new Error('No LinkedIn URL found in BARC submission');
-      }
-
-      console.log("Calling scraped_company_details function with URL:", barcSubmission.company_linkedin_url);
-      
-      const { data, error } = await supabase.functions.invoke('scraped_company_details', {
-        body: { 
-          linkedInUrl: barcSubmission.company_linkedin_url,
-          companyId: id
-        }
-      });
-
-      if (error) {
-        console.error("Function error:", error);
-        throw new Error(error.message || "Failed to scrape company data");
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Company data scraping initiated successfully!");
-      
-      // Invalidate and refetch the scrape data
-      queryClient.invalidateQueries({ queryKey: ['company-scrape', id] });
-    },
-    onError: (error: any) => {
-      console.error('Company scraping error:', error);
-      toast.error(`Failed to scrape company data: ${error.message}`);
-    }
-  });
+  const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
 
   const handleMoreInformation = () => {
-    scrapeMutation.mutate();
+    setDialogOpen(true);
   };
-
-  const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
-  const isScrapingInProgress = scrapeMutation.isPending || (scrapeData?.status === 'processing');
 
   return (
     <div className="mb-7">
@@ -166,24 +94,14 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyName}</h4>
-              {hasLinkedInUrl && !scrapeData && (
+              {hasLinkedInUrl && (
                 <Button
                   variant="outline"
                   onClick={handleMoreInformation}
-                  disabled={isScrapingInProgress}
                   className="h-8 px-4"
                 >
-                  {isScrapingInProgress ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Info className="mr-2 h-4 w-4" />
-                      More Information
-                    </>
-                  )}
+                  <Info className="mr-2 h-4 w-4" />
+                  More Information
                 </Button>
               )}
             </div>
@@ -191,36 +109,6 @@ export function CompanyInfoCard({
               {displayIntroduction}
             </p>
           </div>
-          
-          {/* Show scraped LinkedIn data if available */}
-          {scrapeData?.status === 'completed' && scrapeData.scraped_data && (
-            <div className="mb-6 p-4 bg-green-50 rounded-lg">
-              <h4 className="font-medium mb-3">Additional Company Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                {scrapeData.scraped_data.employees_count && (
-                  <div>
-                    <span className="font-medium">Employees:</span> {scrapeData.scraped_data.employees_count}
-                  </div>
-                )}
-                {scrapeData.scraped_data.location && (
-                  <div>
-                    <span className="font-medium">Location:</span> {scrapeData.scraped_data.location}
-                  </div>
-                )}
-                {scrapeData.scraped_data.founded_year && (
-                  <div>
-                    <span className="font-medium">Founded:</span> {scrapeData.scraped_data.founded_year}
-                  </div>
-                )}
-                {scrapeData.scraped_data.description && (
-                  <div className="md:col-span-2">
-                    <span className="font-medium">Description:</span>
-                    <p className="mt-1 text-muted-foreground">{scrapeData.scraped_data.description}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
           
           {/* Company Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -261,6 +149,16 @@ export function CompanyInfoCard({
           </div>
         </CardContent>
       </Card>
+
+      {/* Company Scraping Dialog */}
+      {id && (
+        <CompanyScrapingDialog
+          companyId={id}
+          companyName={companyName}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+        />
+      )}
     </div>
   );
 }
