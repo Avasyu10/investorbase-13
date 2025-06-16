@@ -4,8 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Users, Calendar, MapPin, Globe, ExternalLink, X, CheckCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useCompanyScraping } from "@/hooks/useCompanyScraping";
 import { ScrapedCompanyData } from "@/types/company-scrape";
 
 interface CompanyScrapingDialogProps {
@@ -21,45 +20,8 @@ export function CompanyScrapingDialog({
   open, 
   onOpenChange 
 }: CompanyScrapingDialogProps) {
-  // Fetch existing scrape data for the company
-  const { data: scrapeData, isLoading } = useQuery({
-    queryKey: ['company-scrape', companyId],
-    queryFn: async () => {
-      // First, find the BARC submission for this company
-      const { data: barcSubmission, error: barcError } = await supabase
-        .from('barc_form_submissions')
-        .select('id')
-        .eq('company_id', companyId)
-        .maybeSingle();
-
-      if (barcError) {
-        console.error('Error fetching BARC submission:', barcError);
-        return null;
-      }
-
-      if (!barcSubmission) {
-        console.log('No BARC submission found for company:', companyId);
-        return null;
-      }
-
-      // Now get the scrape data using the BARC submission ID
-      const { data, error } = await supabase
-        .from('company_scrapes')
-        .select('*')
-        .eq('company_id', barcSubmission.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching company scrape data:', error);
-        return null;
-      }
-
-      return data;
-    },
-    enabled: !!companyId && open,
-  });
+  // Use the scraping hook to get scrape data
+  const { scrapeData, isLoading } = useCompanyScraping(companyId);
 
   const renderScrapedData = () => {
     if (!scrapeData?.scraped_data) return null;

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
+import { useCompanyScraping } from "@/hooks/useCompanyScraping";
 
 type CompanyInfoProps = {
   website?: string;
@@ -36,6 +37,9 @@ export function CompanyInfoCard({
   const { id } = useParams<{ id: string }>();
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // Use the scraping hook to get scrape data and handle automatic scraping
+  const { scrapeData, isLoading: isLoadingScrapeData } = useCompanyScraping(id || "");
+
   // Use introduction or description (for backward compatibility)
   const displayIntroduction = introduction || description || "No detailed information available for this company.";
 
@@ -47,51 +51,6 @@ export function CompanyInfoCard({
   const websiteUrl = website && website !== "https://example.com" 
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
-
-  // Check if we have scraped data available - need to join through barc_form_submissions
-  const { data: scrapeData, isLoading: isLoadingScrapeData } = useQuery({
-    queryKey: ['company-scrape', id],
-    queryFn: async () => {
-      if (!id) return null;
-      
-      // First, find the BARC submission for this company
-      const { data: barcSubmission, error: barcError } = await supabase
-        .from('barc_form_submissions')
-        .select('id')
-        .eq('company_id', id)
-        .maybeSingle();
-
-      if (barcError) {
-        console.error('Error fetching BARC submission:', barcError);
-        return null;
-      }
-
-      if (!barcSubmission) {
-        console.log('No BARC submission found for company:', id);
-        return null;
-      }
-
-      console.log('Found BARC submission:', barcSubmission.id, 'for company:', id);
-
-      // Now get the scrape data using the BARC submission ID
-      const { data, error } = await supabase
-        .from('company_scrapes')
-        .select('*')
-        .eq('company_id', barcSubmission.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching company scrape data:', error);
-        return null;
-      }
-
-      console.log('Scrape data fetched:', data);
-      return data;
-    },
-    enabled: !!id,
-  });
 
   // Check if scraped data exists and has actual content
   const hasScrapedData = scrapeData?.scraped_data && 

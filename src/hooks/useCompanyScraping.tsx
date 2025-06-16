@@ -18,18 +18,19 @@ interface CompanyScrapeData {
 interface BarcSubmission {
   id: string;
   company_linkedin_url: string | null;
+  company_id: string | null;
 }
 
 export const useCompanyScraping = (companyId: string) => {
   const queryClient = useQueryClient();
 
-  // Fetch BARC submission to get the LinkedIn URL
+  // Fetch BARC submission to get the LinkedIn URL and check if company is linked
   const { data: barcSubmission } = useQuery({
     queryKey: ['barc-submission', companyId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('barc_form_submissions')
-        .select('id, company_linkedin_url')
+        .select('id, company_linkedin_url, company_id')
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -43,14 +44,16 @@ export const useCompanyScraping = (companyId: string) => {
     enabled: !!companyId,
   });
 
-  // Fetch existing scrape data for the company with aggressive polling when scraping
+  // Fetch existing scrape data for the company
   const { data: scrapeData, isLoading } = useQuery({
     queryKey: ['company-scrape', companyId],
     queryFn: async () => {
+      if (!barcSubmission?.id) return null;
+
       const { data, error } = await supabase
         .from('company_scrapes')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', barcSubmission.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -62,7 +65,7 @@ export const useCompanyScraping = (companyId: string) => {
 
       return data as CompanyScrapeData | null;
     },
-    enabled: !!companyId,
+    enabled: !!barcSubmission?.id,
     refetchInterval: (query) => {
       // Poll every 2 seconds if scraping is in progress
       const isProcessing = query.state.data?.status === 'processing';
@@ -83,7 +86,7 @@ export const useCompanyScraping = (companyId: string) => {
       const { data, error } = await supabase.functions.invoke('scraped_company_details', {
         body: { 
           linkedInUrl: barcSubmission.company_linkedin_url,
-          companyId: companyId
+          companyId: barcSubmission.id // Use BARC submission ID, not company ID
         }
       });
 
@@ -114,13 +117,17 @@ export const useCompanyScraping = (companyId: string) => {
     }
   });
 
-  // Auto-trigger scraping when LinkedIn URL is available but no scrape data exists
+  // Auto-trigger scraping when company is created and linked to BARC submission
   useEffect(() => {
-    if (barcSubmission?.company_linkedin_url && !scrapeData && !scrapeMutation.isPending && !isLoading) {
-      console.log("Auto-triggering scraping for company:", companyId);
+    if (barcSubmission?.company_linkedin_url && 
+        barcSubmission?.company_id && 
+        !scrapeData && 
+        !scrapeMutation.isPending && 
+        !isLoading) {
+      console.log("Auto-triggering scraping for newly created company:", companyId);
       scrapeMutation.mutate();
     }
-  }, [barcSubmission?.company_linkedin_url, scrapeData, scrapeMutation.isPending, isLoading]);
+  }, [barcSubmission?.company_linkedin_url, barcSubmission?.company_id, scrapeData, scrapeMutation.isPending, isLoading]);
 
   // Determine if scraping is in progress (either mutation pending or status is processing)
   const isScrapingInProgress = scrapeMutation.isPending || (scrapeData?.status === 'processing');
@@ -132,5 +139,6 @@ export const useCompanyScraping = (companyId: string) => {
     linkedInUrl: barcSubmission?.company_linkedin_url || null,
     hasLinkedInUrl: !!barcSubmission?.company_linkedin_url,
     isScrapingInProgress,
+    isCompanyLinked: !!barcSubmission?.company_id,
   };
 };
