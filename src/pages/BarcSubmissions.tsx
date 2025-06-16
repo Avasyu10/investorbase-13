@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 const BarcSubmissions = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedSubmission, setSelectedSubmission] = useState<BarcSubmission | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
@@ -45,10 +45,10 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    refetchInterval: 2000, // More frequent polling for real-time feel
+    refetchInterval: 2000, // Keep as fallback
   });
 
-  // Enhanced realtime subscription with immediate state updates
+  // Enhanced realtime subscription with immediate cache updates
   useEffect(() => {
     if (!user) return;
 
@@ -67,6 +67,24 @@ const BarcSubmissions = () => {
       
       console.log(`🔄 BARC Page - Processing status update for ${submissionId}: ${oldStatus} → ${newStatus}`);
       
+      // IMMEDIATE CACHE UPDATE - Update the query cache instantly
+      queryClient.setQueryData(['barc-submissions', user.id], (oldData: BarcSubmission[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map(sub => {
+          if (sub.id === submissionId) {
+            console.log(`✨ BARC Page - Instantly updating submission ${submissionId} to status: ${newStatus}`);
+            return {
+              ...sub,
+              analysis_status: newStatus,
+              company_id: companyId || sub.company_id,
+              analysis_result: submission.analysis_result || sub.analysis_result
+            };
+          }
+          return sub;
+        });
+      });
+
       // Remove from analyzing set if analysis completed
       if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
         console.log(`🧹 BARC Page - Removing ${submissionId} from analyzing set`);
@@ -77,11 +95,8 @@ const BarcSubmissions = () => {
         });
       }
       
-      // Trigger a refetch to ensure consistency
-      setTimeout(() => {
-        console.log('🔄 BARC Page - Refetching data after status update');
-        refetch();
-      }, 500);
+      // Trigger a refetch to ensure consistency (no delay needed since cache is already updated)
+      refetch();
     };
 
     // Add event listeners for custom events
@@ -107,6 +122,24 @@ const BarcSubmissions = () => {
           
           console.log(`🔄 BARC Page - Direct update: ${submissionId} changed from ${oldStatus} to ${newStatus}`);
           
+          // IMMEDIATE CACHE UPDATE - Update the query cache instantly
+          queryClient.setQueryData(['barc-submissions', user.id], (oldData: BarcSubmission[] | undefined) => {
+            if (!oldData) return oldData;
+            
+            return oldData.map(sub => {
+              if (sub.id === submissionId) {
+                console.log(`✨ BARC Page - Direct cache update for submission ${submissionId}`);
+                return {
+                  ...sub,
+                  analysis_status: newStatus,
+                  company_id: payload.new.company_id || sub.company_id,
+                  analysis_result: payload.new.analysis_result || sub.analysis_result
+                };
+              }
+              return sub;
+            });
+          });
+
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
             setAnalyzingSubmissions(prev => {
@@ -116,10 +149,8 @@ const BarcSubmissions = () => {
             });
           }
           
-          // Trigger refetch after a short delay
-          setTimeout(() => {
-            refetch();
-          }, 1000);
+          // No delay needed for refetch since cache is already updated
+          refetch();
         }
       )
       .subscribe((status) => {
@@ -132,7 +163,7 @@ const BarcSubmissions = () => {
       window.removeEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
       supabase.removeChannel(channel);
     };
-  }, [user, refetch]);
+  }, [user, refetch, queryClient]);
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {
