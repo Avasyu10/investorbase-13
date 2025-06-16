@@ -170,28 +170,54 @@ serve(async (req) => {
       console.log("CoreSignal collect response:", JSON.stringify(companyData, null, 2));
 
       // Extract company information from the CoreSignal API response
-      if (companyData) {
-        console.log("Company data from CoreSignal:", JSON.stringify(companyData, null, 2));
+      if (companyData && companyData.id) {
+        console.log("Successfully retrieved company data from CoreSignal:", companyData.company_name || companyData.company_legal_name);
         
+        // Parse employee count if it's a string like "10001-50000"
+        let employeeCount = null;
+        if (companyData.employee_count) {
+          if (typeof companyData.employee_count === 'string' && companyData.employee_count.includes('-')) {
+            // Handle ranges like "10001-50000" by taking the lower bound
+            employeeCount = parseInt(companyData.employee_count.split('-')[0]);
+          } else if (typeof companyData.employee_count === 'number') {
+            employeeCount = companyData.employee_count;
+          } else if (typeof companyData.employee_count === 'string') {
+            employeeCount = parseInt(companyData.employee_count);
+          }
+        }
+
+        // Parse founded year
+        let foundedYear = null;
+        if (companyData.founded_year) {
+          foundedYear = parseInt(companyData.founded_year);
+        } else if (companyData.founded_date) {
+          foundedYear = new Date(companyData.founded_date).getFullYear();
+        }
+
         scrapedData = {
-          name: companyData.name || companyData.company_name || companyData.title || "Unknown Company",
+          name: companyData.company_name || companyData.company_legal_name || "Unknown Company",
           linkedin_url: cleanUrl,
           description: companyData.description || companyData.about || companyData.company_description || companyData.tagline || "No description available",
-          employees_count: companyData.employee_count || companyData.employees_count || companyData.staff_count || companyData.company_size || companyData.size || null,
-          industry: companyData.industry || companyData.industries?.[0] || companyData.sector || null,
-          location: companyData.location || companyData.headquarters || companyData.address || companyData.locations?.[0] || companyData.hq_location || null,
-          founded_year: companyData.founded_year || companyData.founded || companyData.year_founded || companyData.founded_on || null,
+          employees_count: employeeCount,
+          industry: companyData.industry || (companyData.industries && companyData.industries[0]) || companyData.sector || null,
+          location: companyData.location || companyData.headquarters || companyData.address || (companyData.locations && companyData.locations[0]) || companyData.hq_location || null,
+          founded_year: foundedYear,
           website: companyData.website || companyData.website_url || companyData.company_website || companyData.external_url || null,
           followers_count: companyData.followers_count || companyData.followers || companyData.follower_count || null,
           company_type: companyData.company_type || companyData.type || companyData.organization_type || null,
           logo_url: companyData.logo_url || companyData.profile_pic_url || companyData.image_url || null,
           specialties: companyData.specialties || companyData.company_specialties || null,
-          phone: companyData.phone || companyData.phone_number || null
+          phone: companyData.phone || companyData.phone_number || null,
+          facebook_url: Array.isArray(companyData.facebook_url) ? companyData.facebook_url[0] : companyData.facebook_url,
+          twitter_url: Array.isArray(companyData.twitter_url) ? companyData.twitter_url[0] : companyData.twitter_url,
+          instagram_url: Array.isArray(companyData.instagram_url) ? companyData.instagram_url[0] : companyData.instagram_url,
+          youtube_url: Array.isArray(companyData.youtube_url) ? companyData.youtube_url[0] : companyData.youtube_url,
+          crunchbase_url: companyData.crunchbase_url || null
         };
         
         console.log("Successfully extracted company data:", scrapedData);
       } else {
-        console.log("No company data found in CoreSignal collect response");
+        console.log("No valid company data found in CoreSignal collect response");
         
         // Create fallback data when no results found
         const urlParts = linkedInUrl.split('/');
