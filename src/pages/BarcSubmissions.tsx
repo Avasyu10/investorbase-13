@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +49,7 @@ const BarcSubmissions = () => {
     refetchInterval: 2000, // Keep as fallback
   });
 
-  // Enhanced realtime subscription with immediate cache updates
+  // Enhanced realtime subscription with immediate cache updates and query invalidation
   useEffect(() => {
     if (!user) return;
 
@@ -71,7 +72,7 @@ const BarcSubmissions = () => {
       queryClient.setQueryData(['barc-submissions', user.id], (oldData: BarcSubmission[] | undefined) => {
         if (!oldData) return oldData;
         
-        return oldData.map(sub => {
+        const updatedData = oldData.map(sub => {
           if (sub.id === submissionId) {
             console.log(`✨ BARC Page - Instantly updating submission ${submissionId} to status: ${newStatus}`);
             return {
@@ -83,6 +84,15 @@ const BarcSubmissions = () => {
           }
           return sub;
         });
+        
+        console.log('🔄 BARC Page - Cache updated, invalidating query to trigger re-render');
+        return updatedData;
+      });
+
+      // FORCE IMMEDIATE RE-RENDER by invalidating the query
+      queryClient.invalidateQueries({
+        queryKey: ['barc-submissions', user.id],
+        exact: true
       });
 
       // Remove from analyzing set if analysis completed
@@ -94,9 +104,6 @@ const BarcSubmissions = () => {
           return newSet;
         });
       }
-      
-      // Trigger a refetch to ensure consistency (no delay needed since cache is already updated)
-      refetch();
     };
 
     // Add event listeners for custom events
@@ -126,7 +133,7 @@ const BarcSubmissions = () => {
           queryClient.setQueryData(['barc-submissions', user.id], (oldData: BarcSubmission[] | undefined) => {
             if (!oldData) return oldData;
             
-            return oldData.map(sub => {
+            const updatedData = oldData.map(sub => {
               if (sub.id === submissionId) {
                 console.log(`✨ BARC Page - Direct cache update for submission ${submissionId}`);
                 return {
@@ -138,6 +145,15 @@ const BarcSubmissions = () => {
               }
               return sub;
             });
+            
+            console.log('🔄 BARC Page - Direct cache updated, invalidating query to trigger re-render');
+            return updatedData;
+          });
+
+          // FORCE IMMEDIATE RE-RENDER by invalidating the query
+          queryClient.invalidateQueries({
+            queryKey: ['barc-submissions', user.id],
+            exact: true
           });
 
           // Remove from analyzing set when analysis completes
@@ -148,9 +164,6 @@ const BarcSubmissions = () => {
               return newSet;
             });
           }
-          
-          // No delay needed for refetch since cache is already updated
-          refetch();
         }
       )
       .subscribe((status) => {
