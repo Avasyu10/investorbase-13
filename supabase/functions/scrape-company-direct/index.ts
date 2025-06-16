@@ -267,6 +267,24 @@ serve(async (req) => {
           location = companyData.address;
         }
 
+        // Extract social media URLs - handle array format
+        let facebookUrl = null;
+        let instagramUrl = null;
+        
+        if (companyData.facebook_url && Array.isArray(companyData.facebook_url) && companyData.facebook_url.length > 0) {
+          facebookUrl = companyData.facebook_url;
+        }
+        
+        if (companyData.instagram_url && Array.isArray(companyData.instagram_url) && companyData.instagram_url.length > 0) {
+          instagramUrl = companyData.instagram_url;
+        }
+
+        console.log("Extracted social media data:", {
+          facebook_url: facebookUrl,
+          instagram_url: instagramUrl,
+          hq_full_address: hqFullAddress
+        });
+
         // Format the scraped data
         const scrapedData = {
           name: companyData.company_name || companyData.company_legal_name || companyData.name || "Company Name Not Available",
@@ -277,8 +295,8 @@ serve(async (req) => {
           location: location,
           website: companyData.website || companyData.website_url || null,
           linkedin_url: cleanUrl,
-          facebook_url: companyData.facebook_url || null,
-          instagram_url: companyData.instagram_url || null,
+          facebook_url: facebookUrl,
+          instagram_url: instagramUrl,
           hq_full_address: hqFullAddress
         };
         
