@@ -25,6 +25,9 @@ interface ScrapedData {
   location: string | null;
   website: string | null;
   linkedin_url: string | null;
+  facebook_url?: string[] | null;
+  instagram_url?: string[] | null;
+  hq_full_address?: string | null;
 }
 
 export function CompanyScrapingDialog({ 
@@ -241,7 +244,7 @@ export function CompanyScrapingDialog({
             </Card>
           )}
 
-          {scrapedData.location && (
+          {(scrapedData.location || scrapedData.hq_full_address) && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -250,7 +253,9 @@ export function CompanyScrapingDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="font-semibold">{scrapedData.location}</p>
+                <p className="font-semibold">
+                  {scrapedData.hq_full_address || scrapedData.location}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -291,20 +296,50 @@ export function CompanyScrapingDialog({
           </Card>
         )}
 
-        {scrapedData.linkedin_url && (
-          <div className="pt-4 border-t">
-            <a 
-              href={scrapedData.linkedin_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-            >
-              <Building2 className="h-4 w-4" />
-              View LinkedIn Profile
-              <ExternalLink className="h-3 w-3" />
-            </a>
+        {/* Social Media Links */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-sm">Social Media & Links</h4>
+          <div className="flex flex-wrap gap-2">
+            {scrapedData.linkedin_url && (
+              <a 
+                href={scrapedData.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <Building2 className="h-4 w-4" />
+                LinkedIn Profile
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            
+            {scrapedData.facebook_url && scrapedData.facebook_url.length > 0 && (
+              <a 
+                href={scrapedData.facebook_url[0]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <Globe className="h-4 w-4" />
+                Facebook Page
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            
+            {scrapedData.instagram_url && scrapedData.instagram_url.length > 0 && (
+              <a 
+                href={scrapedData.instagram_url[0]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <Globe className="h-4 w-4" />
+                Instagram Profile
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="pt-4 border-t">
           <Button 
