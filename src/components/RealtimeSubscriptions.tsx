@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -91,117 +90,9 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // BARC form submissions channel - FIXED subscription
-    const barcChannel = supabase
-      .channel('barc_form_submissions_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        async (payload) => {
-          console.log('🚀 BARC Update received:', payload);
-          
-          const newStatus = payload.new.analysis_status;
-          const oldStatus = payload.old?.analysis_status;
-          const submissionId = payload.new.id;
-          const companyName = payload.new.company_name;
-          const companyId = payload.new.company_id;
-          
-          console.log(`📊 Status change: ${submissionId} from ${oldStatus} to ${newStatus}`);
-          console.log(`📊 Company ID: ${companyId}`);
-          
-          // Immediately invalidate queries FIRST
-          console.log('🔄 Invalidating queries...');
-          await queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'],
-            refetchType: 'all'
-          });
-          
-          await queryClient.invalidateQueries({ 
-            queryKey: ['public-submissions'],
-            refetchType: 'all'
-          });
-          console.log('✅ Queries invalidated');
-          
-          // Dispatch custom event for immediate UI updates
-          const customEvent = new CustomEvent('barcStatusChange', {
-            detail: {
-              submissionId,
-              status: newStatus,
-              companyId,
-              companyName
-            }
-          });
-          
-          console.log('📡 Dispatching barcStatusChange event:', customEvent.detail);
-          window.dispatchEvent(customEvent);
-          
-          // Show notifications and handle navigation
-          if (newStatus === 'completed' && oldStatus !== 'completed') {
-            console.log('🎉 Analysis completed - showing notification and navigating');
-            
-            toast({
-              title: "✅ Analysis completed!",
-              description: `Analysis successfully completed for ${companyName}. Redirecting to company page...`,
-            });
-            
-            // Navigate to company page after a short delay
-            if (companyId) {
-              setTimeout(() => {
-                console.log(`🚀 Navigating to company: ${companyId}`);
-                navigate(`/company/${companyId}`);
-              }, 2000);
-            }
-          } else if (newStatus === 'failed' || newStatus === 'error') {
-            console.log('❌ Analysis failed');
-            toast({
-              title: "❌ Analysis failed",
-              description: `Analysis failed for ${companyName}. Please try again.`,
-              variant: "destructive",
-            });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        async (payload) => {
-          console.log('🆕 New BARC submission detected:', payload);
-          
-          // Broadcast new submission event
-          window.dispatchEvent(new CustomEvent('barcNewSubmission', {
-            detail: payload.new
-          }));
-          
-          // Invalidate cache immediately
-          await queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'],
-            refetchType: 'all'
-          });
-          await queryClient.invalidateQueries({ 
-            queryKey: ['public-submissions'],
-            refetchType: 'all'
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 BARC realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ BARC realtime subscription active');
-        }
-      });
-
     return () => {
-      console.log('🧹 Cleaning up realtime subscriptions');
+      console.log('🧹 Cleaning up email realtime subscriptions');
       supabase.removeChannel(emailChannel);
-      supabase.removeChannel(barcChannel);
     };
   }, [navigate, queryClient]);
 

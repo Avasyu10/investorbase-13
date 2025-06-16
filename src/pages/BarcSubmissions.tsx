@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 import { useNavigate } from "react-router-dom";
-import { useBarcAnalysisManager } from "@/hooks/useBarcAnalysisManager";
+import { useBarcRealtimeUpdates } from "@/hooks/useBarcRealtimeUpdates";
+import { useSubmissionPolling } from "@/hooks/useSubmissionPolling";
 
 const BarcSubmissions = () => {
   const { user } = useAuth();
@@ -20,8 +21,7 @@ const BarcSubmissions = () => {
   const queryClient = useQueryClient();
   const [selectedSubmission, setSelectedSubmission] = useState<BarcSubmission | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
-  
-  const { startAnalysis, isAnalyzing, getAnalysisStatus } = useBarcAnalysisManager();
+  const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
 
   const { data: submissions, isLoading, refetch } = useQuery({
     queryKey: ['barc-submissions', user?.id],
@@ -52,33 +52,44 @@ const BarcSubmissions = () => {
     refetchInterval: false,
   });
 
-  // Listen to realtime events for UI updates
-  useEffect(() => {
-    console.log('📡 Setting up BARC realtime listeners');
-    
-    const handleBarcStatusChange = async () => {
-      console.log('🔄 Realtime event - refreshing submissions');
+  // Get submissions that are currently being analyzed
+  const analyzingIds = submissions?.filter(s => s.analysis_status === 'processing').map(s => s.id) || [];
+
+  // Enhanced realtime updates
+  useBarcRealtimeUpdates({
+    onStatusChange: async (submissionId, status, companyId) => {
+      console.log(`🔄 BarcSubmissions - Status update: ${submissionId} -> ${status}`);
+      
+      // Remove from local analyzing set
+      setAnalyzingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(submissionId);
+        return newSet;
+      });
+
+      // Refetch to get latest data
       await refetch();
-    };
-
-    const handleBarcNewSubmission = async () => {
-      console.log('🆕 Realtime event - new BARC submission');
+    },
+    onNewSubmission: async () => {
+      console.log('🆕 BarcSubmissions - New submission');
       await refetch();
-    };
+    }
+  });
 
-    window.addEventListener('barcStatusChange', handleBarcStatusChange as EventListener);
-    window.addEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
-
-    return () => {
-      window.removeEventListener('barcStatusChange', handleBarcStatusChange as EventListener);
-      window.removeEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
-    };
-  }, [refetch]);
+  // Fallback polling for analyzing submissions
+  useSubmissionPolling({
+    submissionIds: analyzingIds,
+    config: { enabled: analyzingIds.length > 0 },
+    onStatusChange: async () => {
+      console.log('🔍 BarcSubmissions - Polling detected change');
+      await refetch();
+    }
+  });
 
   const triggerAnalysis = async (submissionId: string) => {
     const submission = submissions?.find(s => s.id === submissionId);
     
-    if (isAnalyzing(submissionId)) {
+    if (analyzingSubmissions.has(submissionId)) {
       console.log('Analysis already in progress for:', submissionId);
       return;
     }
@@ -91,12 +102,12 @@ const BarcSubmissions = () => {
     try {
       console.log('🚀 Triggering analysis for submission:', submissionId);
       
-      // Start tracking the analysis
-      startAnalysis(submissionId);
+      // Add to local analyzing set
+      setAnalyzingSubmissions(prev => new Set(prev).add(submissionId));
       
-      toast.loading("Starting analysis...", { 
+      toast.loading("🔄 Starting Analysis", { 
         id: `analysis-${submissionId}`,
-        description: "This may take a few moments. You'll be automatically redirected when complete." 
+        description: "Processing submission. You'll see live updates and be redirected when complete." 
       });
       
       // Trigger the analysis
@@ -105,10 +116,17 @@ const BarcSubmissions = () => {
       // Dismiss loading toast
       toast.dismiss(`analysis-${submissionId}`);
       
-      console.log('🎯 Analysis triggered successfully, manager will handle completion');
+      console.log('🎯 Analysis triggered successfully');
 
     } catch (error: any) {
       console.error('❌ Analysis trigger error:', error);
+      
+      // Remove from analyzing set on error
+      setAnalyzingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(submissionId);
+        return newSet;
+      });
       
       toast.dismiss(`analysis-${submissionId}`);
       
@@ -122,9 +140,9 @@ const BarcSubmissions = () => {
 
   const getStatusBadge = (submission: BarcSubmission) => {
     const status = submission.analysis_status;
-    const currentlyAnalyzing = isAnalyzing(submission.id);
+    const isAnalyzing = analyzingSubmissions.has(submission.id);
     
-    if (currentlyAnalyzing || status === 'processing') {
+    if (isAnalyzing || status === 'processing') {
       return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
     }
     
@@ -192,7 +210,7 @@ const BarcSubmissions = () => {
         <div className="grid gap-6">
           {submissions?.map((submission) => {
             const analysisResult = getAnalysisResult(submission);
-            const currentlyAnalyzing = isAnalyzing(submission.id);
+            const isAnalyzing = analyzingSubmissions.has(submission.id) || submission.analysis_status === 'processing';
             
             return (
               <Card key={submission.id} className="hover:shadow-md transition-shadow">
@@ -262,17 +280,17 @@ const BarcSubmissions = () => {
                           </Button>
                         )}
                       </div>
-                    ) : submission.analysis_status === 'processing' || currentlyAnalyzing ? (
+                    ) : isAnalyzing ? (
                       <Button variant="outline" size="sm" disabled>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing... (Auto-redirect when complete)
+                        Analyzing... (Live updates enabled)
                       </Button>
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => triggerAnalysis(submission.id)}
-                        disabled={currentlyAnalyzing}
+                        disabled={isAnalyzing}
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Start Analysis
