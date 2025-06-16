@@ -27,7 +27,7 @@ const BarcSubmissions = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      console.log('Fetching BARC submissions for user:', user.id);
+      console.log('📥 Fetching BARC submissions for user:', user.id);
 
       const { data, error } = await supabase
         .from('barc_form_submissions')
@@ -35,11 +35,11 @@ const BarcSubmissions = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching BARC submissions:', error);
+        console.error('❌ Error fetching BARC submissions:', error);
         throw error;
       }
       
-      console.log('BARC submissions fetched:', data?.length || 0);
+      console.log('✅ BARC submissions fetched:', data?.length || 0);
       
       return (data || []).map(item => ({
         ...item,
@@ -48,13 +48,14 @@ const BarcSubmissions = () => {
     },
     enabled: !!user,
     staleTime: 0,
+    refetchInterval: false, // Disable automatic refetching since we handle it manually
   });
 
-  // Handle polling status updates
-  const handlePollingStatusChange = (status: string, companyId?: string) => {
-    console.log(`📈 Polling detected status change: ${status}, companyId: ${companyId}`);
+  // Handle polling status updates with immediate state sync
+  const handlePollingStatusChange = async (status: string, companyId?: string) => {
+    console.log(`📈 Status change detected: ${status}, companyId: ${companyId}`);
     
-    // Remove from analyzing set
+    // Remove from analyzing set immediately
     if (currentlyAnalyzingId) {
       setAnalyzingSubmissions(prev => {
         const newSet = new Set(prev);
@@ -64,6 +65,16 @@ const BarcSubmissions = () => {
       setCurrentlyAnalyzingId(null);
     }
 
+    // Force immediate cache invalidation and refetch
+    console.log('🔄 Force invalidating cache and refetching...');
+    await queryClient.invalidateQueries({ 
+      queryKey: ['barc-submissions'],
+      refetchType: 'all'
+    });
+    
+    // Also force a manual refetch to ensure UI updates
+    await refetch();
+
     // Show completion message and navigate if successful
     if (status === 'completed' && companyId) {
       toast.success("Analysis completed successfully!", {
@@ -72,15 +83,12 @@ const BarcSubmissions = () => {
       
       setTimeout(() => {
         navigate(`/company/${companyId}`);
-      }, 1000);
+      }, 1500);
     } else if (status === 'failed' || status === 'error') {
       toast.error("Analysis failed", {
         description: "There was an error processing the submission."
       });
     }
-
-    // Force refetch to update UI
-    refetch();
   };
 
   // Use polling hook for the currently analyzing submission
@@ -90,33 +98,32 @@ const BarcSubmissions = () => {
     onStatusChange: handlePollingStatusChange
   });
 
-  // Listen to centralized custom events as backup
+  // Enhanced realtime subscription handling
   useEffect(() => {
-    console.log('📡 BarcSubmissions: Setting up custom event listeners as backup');
+    console.log('📡 Setting up BARC realtime listeners');
     
-    const handleBarcStatusUpdate = (event: CustomEvent) => {
+    const handleBarcStatusUpdate = async (event: CustomEvent) => {
       const { submissionId, newStatus, companyId } = event.detail;
-      console.log(`🔄 BarcSubmissions: Backup event received - updating submission ${submissionId} to ${newStatus}`);
+      console.log(`🔄 Realtime event - updating submission ${submissionId} to ${newStatus}`);
       
-      // If this is the submission we're tracking, handle the update
+      // Force immediate refetch when realtime event received
+      await refetch();
+      
+      // If this is our tracked submission, handle the update
       if (submissionId === currentlyAnalyzingId) {
-        handlePollingStatusChange(newStatus, companyId);
+        await handlePollingStatusChange(newStatus, companyId);
       }
-
-      // Always refetch to ensure UI is up to date
-      refetch();
     };
 
-    const handleBarcNewSubmission = (event: CustomEvent) => {
-      console.log('🆕 BarcSubmissions: Backup event received - new BARC submission');
-      refetch();
+    const handleBarcNewSubmission = async (event: CustomEvent) => {
+      console.log('🆕 Realtime event - new BARC submission');
+      await refetch();
     };
 
     window.addEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
     window.addEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
 
     return () => {
-      console.log('🧹 BarcSubmissions: Cleaning up custom event listeners');
       window.removeEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
       window.removeEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
     };
@@ -124,13 +131,13 @@ const BarcSubmissions = () => {
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {
-      console.log('Analysis already in progress for submission:', submissionId);
+      console.log('❌ Analysis already in progress for submission:', submissionId);
       return;
     }
 
     const submission = submissions?.find(s => s.id === submissionId);
     if (submission?.analysis_status === 'processing' || submission?.analysis_status === 'completed') {
-      console.log('Submission already processed or in progress:', submissionId);
+      console.log('❌ Submission already processed or in progress:', submissionId);
       return;
     }
 
@@ -148,7 +155,7 @@ const BarcSubmissions = () => {
       });
       
       // Trigger the analysis
-      const result = await analyzeBarcSubmission(submissionId);
+      await analyzeBarcSubmission(submissionId);
       
       // Dismiss loading toast
       toast.dismiss(`analysis-${submissionId}`);
@@ -156,7 +163,7 @@ const BarcSubmissions = () => {
       console.log('🎯 Analysis API call completed, polling will handle status updates');
 
     } catch (error: any) {
-      console.error('Analysis trigger error:', error);
+      console.error('❌ Analysis trigger error:', error);
       
       // Dismiss loading toast
       toast.dismiss(`analysis-${submissionId}`);
@@ -171,7 +178,7 @@ const BarcSubmissions = () => {
       stopPolling();
       
       if (error.message?.includes('already being analyzed') || error.message?.includes('already being processed')) {
-        console.log('Submission is already being analyzed, this is expected');
+        console.log('ℹ️ Submission is already being analyzed, this is expected');
         toast.info("Analysis is already in progress for this submission.");
       } else {
         toast.error(`Failed to start analysis: ${error.message}`);

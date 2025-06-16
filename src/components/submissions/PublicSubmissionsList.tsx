@@ -84,14 +84,15 @@ export function PublicSubmissionsList() {
   const { isIITBombay } = useProfile();
   const queryClient = useQueryClient();
 
-  // Handle BARC polling status updates
-  const handleBarcPollingStatusChange = (status: string, companyId?: string) => {
-    console.log(`📈 BARC Polling detected status change: ${status}, companyId: ${companyId}`);
+  // Handle BARC polling status updates with immediate UI sync
+  const handleBarcPollingStatusChange = async (status: string, companyId?: string) => {
+    console.log(`📈 PublicSubmissions - BARC status change: ${status}, companyId: ${companyId}`);
     
     // Update the submissions state immediately
     setSubmissions(prev => {
-      return prev.map(submission => {
+      const updated = prev.map(submission => {
         if (submission.id === currentlyAnalyzingBarcId && submission.source === 'barc_form') {
+          console.log(`✨ Updating submission ${submission.id} status to ${status}`);
           return {
             ...submission,
             analysis_status: status
@@ -99,6 +100,7 @@ export function PublicSubmissionsList() {
         }
         return submission;
       });
+      return updated;
     });
 
     // Remove from analyzing set
@@ -120,7 +122,7 @@ export function PublicSubmissionsList() {
       
       setTimeout(() => {
         navigate(`/company/${companyId}`);
-      }, 1000);
+      }, 1500);
     } else if (status === 'failed' || status === 'error') {
       toast({
         title: "Analysis failed",
@@ -130,7 +132,7 @@ export function PublicSubmissionsList() {
     }
   };
 
-  // Use polling hook for BARC submissions
+  // Use polling hook for BARC submissions only when this component is the one analyzing
   const { stopPolling } = useBarcSubmissionPolling({
     submissionId: currentlyAnalyzingBarcId || '',
     isAnalyzing: !!currentlyAnalyzingBarcId,
@@ -139,17 +141,17 @@ export function PublicSubmissionsList() {
 
   // Listen to centralized custom events for immediate UI updates
   useEffect(() => {
-    console.log('📡 Setting up custom event listeners for BARC updates');
+    console.log('📡 PublicSubmissions - Setting up realtime listeners');
     
     const handleBarcStatusUpdate = (event: CustomEvent) => {
       const { submissionId, newStatus, companyId } = event.detail;
-      console.log(`🔄 Custom event received - updating submission ${submissionId} to ${newStatus}`);
+      console.log(`🔄 PublicSubmissions - Realtime update ${submissionId} to ${newStatus}`);
       
-      // IMMEDIATE STATE UPDATE
+      // IMMEDIATE STATE UPDATE for all BARC submissions
       setSubmissions(prev => {
         const updated = prev.map(submission => {
           if (submission.id === submissionId && submission.source === 'barc_form') {
-            console.log(`✨ Updating submission ${submissionId} status from ${submission.analysis_status} to ${newStatus}`);
+            console.log(`✨ Realtime updating submission ${submissionId} to ${newStatus}`);
             return {
               ...submission,
               analysis_status: newStatus
@@ -160,14 +162,14 @@ export function PublicSubmissionsList() {
         return updated;
       });
 
-      // If this is the submission we're tracking, handle the update
-      if (submissionId === currentlyAnalyzingBarcId) {
+      // If this is the submission we're tracking, handle completion
+      if (submissionId === currentlyAnalyzingBarcId && (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error')) {
         handleBarcPollingStatusChange(newStatus, companyId);
       }
     };
 
     const handleBarcNewSubmission = (event: CustomEvent) => {
-      console.log('🆕 Custom event received - new BARC submission');
+      console.log('🆕 PublicSubmissions - New BARC submission via realtime');
       fetchSubmissions();
     };
 
@@ -175,7 +177,6 @@ export function PublicSubmissionsList() {
     window.addEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
 
     return () => {
-      console.log('🧹 Cleaning up custom event listeners');
       window.removeEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
       window.removeEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
     };
