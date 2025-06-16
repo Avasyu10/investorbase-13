@@ -62,9 +62,9 @@ export const useCompanyScraping = (companyId: string) => {
       return data as CompanyScrapeData | null;
     },
     enabled: !!companyId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll every 2 seconds if scraping is in progress
-      const isProcessing = data?.status === 'processing';
+      const isProcessing = query.state.data?.status === 'processing';
       return isProcessing ? 2000 : false;
     },
     refetchIntervalInBackground: true,
