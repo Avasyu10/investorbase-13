@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { scrapeCompanyLinkedIn } from '@/lib/api/barc';
 import { toast } from '@/hooks/use-toast';
 
 interface CompanyScrapeData {
@@ -66,13 +65,32 @@ export const useCompanyScraping = (companyId: string) => {
     enabled: !!companyId,
   });
 
-  // Mutation to trigger scraping
+  // Mutation to trigger scraping using scraped_company_details edge function
   const scrapeMutation = useMutation({
     mutationFn: async () => {
       if (!barcSubmission?.company_linkedin_url) {
         throw new Error('No LinkedIn URL found in BARC submission');
       }
-      return scrapeCompanyLinkedIn(barcSubmission.company_linkedin_url, companyId);
+
+      console.log("Calling scraped_company_details function with URL:", barcSubmission.company_linkedin_url);
+      
+      const { data, error } = await supabase.functions.invoke('scraped_company_details', {
+        body: { 
+          linkedInUrl: barcSubmission.company_linkedin_url,
+          companyId: companyId
+        }
+      });
+
+      if (error) {
+        console.error("Function error:", error);
+        throw new Error(error.message || "Failed to scrape company data");
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
     },
     onSuccess: () => {
       toast({

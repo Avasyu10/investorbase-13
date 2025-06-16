@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Globe, TrendingUp, Briefcase, Info, Loader2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useCompanyScraping } from "@/hooks/useCompanyScraping";
 
 type CompanyInfoProps = {
   website?: string;
@@ -21,6 +20,22 @@ type CompanyInfoProps = {
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
 };
 
+interface CompanyScrapeData {
+  id: string;
+  linkedin_url: string;
+  company_id: string;
+  status: string;
+  scraped_data: any;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BarcSubmission {
+  id: string;
+  company_linkedin_url: string | null;
+}
+
 export function CompanyInfoCard({
   website = "https://example.com",
   stage = "Not specified",
@@ -34,7 +49,7 @@ export function CompanyInfoCard({
   companyLinkedInUrl
 }: CompanyInfoProps) {
   const { id } = useParams<{ id: string }>();
-  const { scrapeData, scrapeMutation, hasLinkedInUrl, isScrapingInProgress } = useCompanyScraping(id || "");
+  const queryClient = useQueryClient();
 
   // Use introduction or description (for backward compatibility)
   const displayIntroduction = introduction || description || "No detailed information available for this company.";
@@ -48,32 +63,95 @@ export function CompanyInfoCard({
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
 
-  const handleMoreInformation = () => {
-    scrapeMutation.mutate();
-  };
-
-  // Check if LinkedIn scraping already exists for this company
-  const { data: existingScrape } = useQuery({
-    queryKey: ['company-linkedin-scrape', id],
+  // Fetch BARC submission to get the LinkedIn URL
+  const { data: barcSubmission } = useQuery({
+    queryKey: ['barc-submission', id],
     queryFn: async () => {
       if (!id) return null;
       
       const { data, error } = await supabase
-        .from('company_scrapes')
-        .select('*')
+        .from('barc_form_submissions')
+        .select('id, company_linkedin_url')
         .eq('company_id', id)
-        .eq('status', 'completed')
         .maybeSingle();
 
       if (error) {
-        console.error('Error checking existing scrape:', error);
+        console.error('Error fetching BARC submission:', error);
         return null;
+      }
+
+      return data as BarcSubmission | null;
+    },
+    enabled: !!id,
+  });
+
+  // Fetch existing scrape data for the company
+  const { data: scrapeData, isLoading } = useQuery({
+    queryKey: ['company-scrape', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_scrapes')
+        .select('*')
+        .eq('company_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching company scrape data:', error);
+        throw error;
+      }
+
+      return data as CompanyScrapeData | null;
+    },
+    enabled: !!id,
+  });
+
+  // Mutation to trigger scraping using scraped_company_details edge function
+  const scrapeMutation = useMutation({
+    mutationFn: async () => {
+      if (!barcSubmission?.company_linkedin_url) {
+        throw new Error('No LinkedIn URL found in BARC submission');
+      }
+
+      console.log("Calling scraped_company_details function with URL:", barcSubmission.company_linkedin_url);
+      
+      const { data, error } = await supabase.functions.invoke('scraped_company_details', {
+        body: { 
+          linkedInUrl: barcSubmission.company_linkedin_url,
+          companyId: id
+        }
+      });
+
+      if (error) {
+        console.error("Function error:", error);
+        throw new Error(error.message || "Failed to scrape company data");
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       return data;
     },
-    enabled: !!id,
+    onSuccess: () => {
+      toast.success("Company data scraping initiated successfully!");
+      
+      // Invalidate and refetch the scrape data
+      queryClient.invalidateQueries({ queryKey: ['company-scrape', id] });
+    },
+    onError: (error: any) => {
+      console.error('Company scraping error:', error);
+      toast.error(`Failed to scrape company data: ${error.message}`);
+    }
   });
+
+  const handleMoreInformation = () => {
+    scrapeMutation.mutate();
+  };
+
+  const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
+  const isScrapingInProgress = scrapeMutation.isPending || (scrapeData?.status === 'processing');
 
   return (
     <div className="mb-7">
