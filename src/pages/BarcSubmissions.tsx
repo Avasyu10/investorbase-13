@@ -46,71 +46,15 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    refetchInterval: 2000, // Keep as fallback
+    refetchInterval: 1000, // More frequent polling as backup
   });
 
-  // Enhanced realtime subscription with immediate cache updates and query invalidation
+  // Simplified and more direct realtime subscription
   useEffect(() => {
     if (!user) return;
 
-    console.log('🔥 Setting up ENHANCED realtime subscription for BARC submissions page');
+    console.log('🔥 Setting up DIRECT realtime subscription for BARC submissions');
 
-    // Listen for custom events from the global realtime subscription
-    const handleSubmissionAdded = (event: CustomEvent) => {
-      console.log('🎯 Received barcSubmissionAdded event in BARC page:', event.detail);
-      refetch(); // Refresh the submissions list
-    };
-
-    const handleSubmissionUpdated = (event: CustomEvent) => {
-      console.log('📊 Received barcSubmissionUpdated event in BARC page:', event.detail);
-      
-      const { submissionId, newStatus, oldStatus, companyId, submission } = event.detail;
-      
-      console.log(`🔄 BARC Page - Processing status update for ${submissionId}: ${oldStatus} → ${newStatus}`);
-      
-      // IMMEDIATE CACHE UPDATE - Update the query cache instantly
-      queryClient.setQueryData(['barc-submissions', user.id], (oldData: BarcSubmission[] | undefined) => {
-        if (!oldData) return oldData;
-        
-        const updatedData = oldData.map(sub => {
-          if (sub.id === submissionId) {
-            console.log(`✨ BARC Page - Instantly updating submission ${submissionId} to status: ${newStatus}`);
-            return {
-              ...sub,
-              analysis_status: newStatus,
-              company_id: companyId || sub.company_id,
-              analysis_result: submission.analysis_result || sub.analysis_result
-            };
-          }
-          return sub;
-        });
-        
-        console.log('🔄 BARC Page - Cache updated, invalidating query to trigger re-render');
-        return updatedData;
-      });
-
-      // FORCE IMMEDIATE RE-RENDER by invalidating the query
-      queryClient.invalidateQueries({
-        queryKey: ['barc-submissions', user.id],
-        exact: true
-      });
-
-      // Remove from analyzing set if analysis completed
-      if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
-        console.log(`🧹 BARC Page - Removing ${submissionId} from analyzing set`);
-        setAnalyzingSubmissions(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(submissionId);
-          return newSet;
-        });
-      }
-    };
-
-    // Add event listeners for custom events
-    window.addEventListener('barcSubmissionAdded', handleSubmissionAdded as EventListener);
-    window.addEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
-
-    // Also set up direct realtime subscription for this page
     const channel = supabase
       .channel('barc_submissions_page_direct')
       .on(
@@ -121,62 +65,64 @@ const BarcSubmissions = () => {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('📊 BARC Page - Direct realtime update:', payload);
+          console.log('📊 DIRECT realtime update received:', payload);
           
           const newStatus = payload.new.analysis_status;
-          const oldStatus = payload.old.analysis_status;
+          const oldStatus = payload.old?.analysis_status;
           const submissionId = payload.new.id;
           
-          console.log(`🔄 BARC Page - Direct update: ${submissionId} changed from ${oldStatus} to ${newStatus}`);
+          console.log(`🔄 Status change: ${submissionId} from ${oldStatus} to ${newStatus}`);
           
-          // IMMEDIATE CACHE UPDATE - Update the query cache instantly
-          queryClient.setQueryData(['barc-submissions', user.id], (oldData: BarcSubmission[] | undefined) => {
-            if (!oldData) return oldData;
-            
-            const updatedData = oldData.map(sub => {
-              if (sub.id === submissionId) {
-                console.log(`✨ BARC Page - Direct cache update for submission ${submissionId}`);
-                return {
-                  ...sub,
-                  analysis_status: newStatus,
-                  company_id: payload.new.company_id || sub.company_id,
-                  analysis_result: payload.new.analysis_result || sub.analysis_result
-                };
-              }
-              return sub;
-            });
-            
-            console.log('🔄 BARC Page - Direct cache updated, invalidating query to trigger re-render');
-            return updatedData;
-          });
-
-          // FORCE IMMEDIATE RE-RENDER by invalidating the query
-          queryClient.invalidateQueries({
-            queryKey: ['barc-submissions', user.id],
-            exact: true
-          });
-
+          // FORCE IMMEDIATE REFETCH - this ensures fresh data
+          refetch();
+          
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
+            console.log(`🧹 Removing ${submissionId} from analyzing set`);
             setAnalyzingSubmissions(prev => {
               const newSet = new Set(prev);
               newSet.delete(submissionId);
               return newSet;
             });
           }
+
+          // Show status notifications
+          if (newStatus === 'processing' && oldStatus !== 'processing') {
+            toast.success("Analysis started", {
+              description: "Your submission is now being analyzed."
+            });
+          } else if (newStatus === 'completed' && oldStatus !== 'completed') {
+            toast.success("Analysis completed!", {
+              description: "Your submission has been successfully analyzed."
+            });
+          } else if (newStatus === 'failed' || newStatus === 'error') {
+            toast.error("Analysis failed", {
+              description: "There was an error analyzing your submission."
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'barc_form_submissions'
+        },
+        (payload) => {
+          console.log('🆕 New BARC submission:', payload);
+          refetch(); // Refresh to show new submission
         }
       )
       .subscribe((status) => {
-        console.log('📡 BARC Page - Direct subscription status:', status);
+        console.log('📡 BARC submissions realtime status:', status);
       });
 
     return () => {
-      console.log('🧹 BARC Page - Cleaning up realtime subscriptions');
-      window.removeEventListener('barcSubmissionAdded', handleSubmissionAdded as EventListener);
-      window.removeEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
+      console.log('🧹 Cleaning up BARC submissions realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [user, refetch, queryClient]);
+  }, [user, refetch]);
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {

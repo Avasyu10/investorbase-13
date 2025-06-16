@@ -108,11 +108,11 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Enhanced BARC form submissions realtime subscription with automatic navigation
-    console.log('🎯 Setting up ENHANCED BARC form submissions realtime subscription with auto-navigation...');
+    // SIMPLIFIED BARC form submissions realtime subscription - GLOBAL ONLY
+    console.log('🎯 Setting up SIMPLIFIED GLOBAL BARC form submissions realtime subscription...');
     
     const barcChannel = supabase
-      .channel('barc_form_submissions_enhanced_global')
+      .channel('barc_form_submissions_global')
       .on(
         'postgres_changes',
         {
@@ -127,11 +127,10 @@ export function RealtimeSubscriptions() {
           const companyName = payload.new.company_name;
           const submitterEmail = payload.new.submitter_email;
           
-          console.log(`📋 Submission details:`, {
+          console.log(`📋 New submission:`, {
             id: submissionId,
             company: companyName,
             email: submitterEmail,
-            status: payload.new.analysis_status,
             timestamp: new Date().toISOString()
           });
           
@@ -140,11 +139,6 @@ export function RealtimeSubscriptions() {
             title: '🎯 New BARC Application Received',
             description: `Application from ${companyName || 'unknown company'} received successfully.`,
           });
-
-          // Trigger a custom event for any listening components
-          window.dispatchEvent(new CustomEvent('barcSubmissionAdded', {
-            detail: { submission: payload.new }
-          }));
         }
       )
       .on(
@@ -165,10 +159,8 @@ export function RealtimeSubscriptions() {
           
           console.log(`🔄 Status transition: ${oldStatus} → ${newStatus} for ${companyName} (ID: ${submissionId})`);
           
-          // Show toast notifications for ALL status changes
+          // Show toast notifications for status changes
           if (oldStatus !== newStatus) {
-            console.log(`📈 Broadcasting status change event for submission ${submissionId}`);
-            
             if (newStatus === 'processing') {
               toast({
                 title: '🔄 Analysis Started',
@@ -196,16 +188,6 @@ export function RealtimeSubscriptions() {
                   navigate(`/company/${companyId}`);
                 }, 2000); // 2 second delay to show completion message
               }
-              
-              // Show additional info if company was created
-              if (companyId) {
-                setTimeout(() => {
-                  toast({
-                    title: '🏢 Company Profile Created',
-                    description: `${companyName} has been added to your prospects.`,
-                  });
-                }, 1000);
-              }
             } else if (newStatus === 'failed' || newStatus === 'error') {
               console.log(`❌ ANALYSIS FAILED for ${companyName}`);
               
@@ -216,29 +198,17 @@ export function RealtimeSubscriptions() {
               });
             }
           }
-
-          // ALWAYS trigger custom events for listening components to refresh data
-          console.log(`📡 Broadcasting barcSubmissionUpdated event for submission ${submissionId}`);
-          window.dispatchEvent(new CustomEvent('barcSubmissionUpdated', {
-            detail: { 
-              submissionId,
-              oldStatus,
-              newStatus,
-              companyId,
-              submission: payload.new 
-            }
-          }));
         }
       )
       .subscribe((status) => {
-        console.log('📡 Enhanced BARC submissions realtime subscription status:', status);
+        console.log('📡 BARC submissions realtime subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Enhanced BARC realtime subscription with auto-navigation is ACTIVE');
+          console.log('✅ BARC realtime subscription is ACTIVE');
         } else if (status === 'CLOSED') {
-          console.log('❌ Enhanced BARC realtime subscription CLOSED');
+          console.log('❌ BARC realtime subscription CLOSED');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('💥 Enhanced BARC realtime subscription ERROR');
+          console.error('💥 BARC realtime subscription ERROR');
         }
       });
     
