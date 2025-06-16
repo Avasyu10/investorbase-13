@@ -1,12 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Building2, Users, Calendar, MapPin, Globe, ExternalLink, X, CheckCircle } from "lucide-react";
-import { useCompanyScraping } from "@/hooks/useCompanyScraping";
-import { toast } from "@/hooks/use-toast";
+import { Building2, Users, Calendar, MapPin, Globe, ExternalLink, X, CheckCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CompanyScrapingDialogProps {
   companyId: string;
@@ -21,31 +20,27 @@ export function CompanyScrapingDialog({
   open, 
   onOpenChange 
 }: CompanyScrapingDialogProps) {
-  const { scrapeData, isScrapingInProgress } = useCompanyScraping(companyId);
+  // Fetch existing scrape data for the company
+  const { data: scrapeData, isLoading } = useQuery({
+    queryKey: ['company-scrape', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_scrapes')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  const renderLoadingState = () => (
-    <div className="text-center py-12">
-      <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-      <h3 className="text-xl font-semibold mb-2">Gathering Company Information</h3>
-      <p className="text-muted-foreground">
-        We're extracting detailed information about {companyName} from LinkedIn...
-      </p>
-      <div className="mt-6 space-y-2">
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
-          Connecting to LinkedIn
-        </div>
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-75"></div>
-          Extracting company data
-        </div>
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-150"></div>
-          Processing information
-        </div>
-      </div>
-    </div>
-  );
+      if (error) {
+        console.error('Error fetching company scrape data:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!companyId && open,
+  });
 
   const renderScrapedData = () => {
     if (!scrapeData?.scraped_data) return null;
@@ -58,7 +53,7 @@ export function CompanyScrapingDialog({
           <div className="flex items-center justify-center gap-2 mb-3">
             <CheckCircle className="h-6 w-6 text-green-500" />
             <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
-              Information Retrieved
+              Information Available
             </Badge>
           </div>
           <Building2 className="h-12 w-12 mx-auto mb-3 text-primary" />
@@ -176,30 +171,20 @@ export function CompanyScrapingDialog({
     );
   };
 
-  const renderErrorState = () => (
-    <div className="text-center py-12">
-      <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
-        <X className="h-6 w-6 text-destructive" />
-      </div>
-      <h3 className="text-xl font-semibold mb-2">Unable to Gather Information</h3>
-      <p className="text-muted-foreground mb-4">
-        We encountered an issue while gathering information about {companyName}.
-      </p>
-      {scrapeData?.error_message && (
-        <p className="text-sm text-destructive mb-4">
-          Error: {scrapeData.error_message}
-        </p>
-      )}
-    </div>
-  );
-
   const renderNoDataState = () => (
     <div className="text-center py-12">
       <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
       <h3 className="text-xl font-semibold mb-2">No Information Available</h3>
       <p className="text-muted-foreground">
-        No company information has been extracted yet for {companyName}.
+        No additional company information has been extracted yet for {companyName}.
       </p>
+    </div>
+  );
+
+  const renderLoadingState = () => (
+    <div className="text-center py-12">
+      <div className="h-8 w-8 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-muted-foreground">Loading company information...</p>
     </div>
   );
 
@@ -214,10 +199,9 @@ export function CompanyScrapingDialog({
         </DialogHeader>
         
         <div className="mt-4">
-          {isScrapingInProgress && renderLoadingState()}
-          {!isScrapingInProgress && scrapeData?.status === 'completed' && renderScrapedData()}
-          {!isScrapingInProgress && scrapeData?.status === 'failed' && renderErrorState()}
-          {!isScrapingInProgress && !scrapeData && renderNoDataState()}
+          {isLoading && renderLoadingState()}
+          {!isLoading && scrapeData?.scraped_data && renderScrapedData()}
+          {!isLoading && !scrapeData?.scraped_data && renderNoDataState()}
         </div>
       </DialogContent>
     </Dialog>

@@ -21,11 +21,6 @@ type CompanyInfoProps = {
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
 };
 
-interface BarcSubmission {
-  id: string;
-  company_linkedin_url: string | null;
-}
-
 export function CompanyInfoCard({
   website = "https://example.com",
   stage = "Not specified",
@@ -53,28 +48,6 @@ export function CompanyInfoCard({
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
 
-  // Fetch BARC submission to get the LinkedIn URL
-  const { data: barcSubmission } = useQuery({
-    queryKey: ['barc-submission', id],
-    queryFn: async () => {
-      if (!id) return null;
-      
-      const { data, error } = await supabase
-        .from('barc_form_submissions')
-        .select('id, company_linkedin_url')
-        .eq('company_id', id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching BARC submission:', error);
-        return null;
-      }
-
-      return data as BarcSubmission | null;
-    },
-    enabled: !!id,
-  });
-
   // Check if we have scraped data available
   const { data: scrapeData } = useQuery({
     queryKey: ['company-scrape', id],
@@ -99,7 +72,6 @@ export function CompanyInfoCard({
     enabled: !!id,
   });
 
-  const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
   const hasScrapedData = scrapeData?.scraped_data;
 
   const handleMoreInformation = () => {
@@ -119,7 +91,7 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyName}</h4>
-              {(hasLinkedInUrl || hasScrapedData) && (
+              {hasScrapedData && (
                 <Button
                   variant="outline"
                   onClick={handleMoreInformation}
