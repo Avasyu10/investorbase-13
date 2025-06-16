@@ -62,6 +62,31 @@ export const submitBarcForm = async (data: BarcSubmissionData) => {
   }
 
   console.log('✅ BARC form submitted successfully:', submission);
+  
+  // If there's a company LinkedIn URL, trigger the scraping
+  if (data.company_linkedin_url && data.company_linkedin_url.trim()) {
+    try {
+      console.log('🔍 Triggering company LinkedIn scraping for:', data.company_linkedin_url);
+      
+      const { data: scrapeResponse, error: scrapeError } = await supabase.functions.invoke('scraped_company_details', {
+        body: { 
+          linkedInUrl: data.company_linkedin_url,
+          companyId: submission.id // Use submission ID as company reference
+        }
+      });
+
+      if (scrapeError) {
+        console.error('❌ Error during company scraping:', scrapeError);
+        // Don't throw here as we still want the form submission to succeed
+      } else {
+        console.log('✅ Company scraping initiated successfully:', scrapeResponse);
+      }
+    } catch (error) {
+      console.error('💥 Error invoking company scraping function:', error);
+      // Don't throw here as we still want the form submission to succeed
+    }
+  }
+
   return submission;
 };
 
@@ -89,6 +114,35 @@ export const analyzeBarcSubmission = async (submissionId: string) => {
     };
   } catch (error) {
     console.error('💥 Error in analyzeBarcSubmission:', error);
+    throw error;
+  }
+};
+
+export const scrapeCompanyLinkedIn = async (linkedInUrl: string, companyId: string) => {
+  console.log('🔍 Starting company LinkedIn scraping for:', { linkedInUrl, companyId });
+
+  try {
+    const { data, error } = await supabase.functions.invoke('scraped_company_details', {
+      body: { 
+        linkedInUrl: linkedInUrl,
+        companyId: companyId
+      }
+    });
+
+    if (error) {
+      console.error('❌ Error calling scraped_company_details function:', error);
+      throw error;
+    }
+
+    console.log('✅ Company scraping completed successfully:', data);
+    
+    return {
+      success: true,
+      data: data,
+      message: data?.message || 'Company scraping completed successfully'
+    };
+  } catch (error) {
+    console.error('💥 Error in scrapeCompanyLinkedIn:', error);
     throw error;
   }
 };
