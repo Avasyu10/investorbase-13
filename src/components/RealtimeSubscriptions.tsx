@@ -108,48 +108,10 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // GLOBAL BARC notifications only - no longer handling status updates here
-    console.log('🎯 Setting up GLOBAL BARC form submissions notifications...');
-    
-    const barcChannel = supabase
-      .channel('barc_form_submissions_global_notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        (payload) => {
-          console.log('🚀 NEW BARC FORM SUBMISSION DETECTED:', payload);
-          
-          const submissionId = payload.new.id;
-          const companyName = payload.new.company_name;
-          const submitterEmail = payload.new.submitter_email;
-          
-          console.log(`📋 New submission:`, {
-            id: submissionId,
-            company: companyName,
-            email: submitterEmail,
-            timestamp: new Date().toISOString()
-          });
-          
-          // Show notification for new submission
-          toast({
-            title: '🎯 New BARC Application Received',
-            description: `Application from ${companyName || 'unknown company'} received successfully.`,
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 BARC notifications subscription status:', status);
-      });
-    
     // Return cleanup function
     return () => {
-      console.log('🧹 Cleaning up global realtime subscriptions');
+      console.log('🧹 Cleaning up realtime subscriptions');
       supabase.removeChannel(emailChannel);
-      supabase.removeChannel(barcChannel);
     };
   }, [navigate]);
 
