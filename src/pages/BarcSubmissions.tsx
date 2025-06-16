@@ -47,11 +47,11 @@ const BarcSubmissions = () => {
     refetchInterval: 3000, // Increased polling frequency for better real-time feel
   });
 
-  // Enhanced realtime subscription with automatic navigation
+  // Enhanced realtime subscription with automatic refetching
   useEffect(() => {
     if (!user) return;
 
-    console.log('Setting up enhanced realtime subscription for BARC submissions page with auto-navigation');
+    console.log('Setting up enhanced realtime subscription for BARC submissions page');
 
     // Listen for custom events from the global realtime subscription
     const handleSubmissionAdded = (event: CustomEvent) => {
@@ -63,19 +63,8 @@ const BarcSubmissions = () => {
       console.log('📊 Received barcSubmissionUpdated event:', event.detail);
       refetch(); // Refresh the submissions list
       
-      // Handle auto-navigation when analysis completes
-      const { submissionId, newStatus, companyId } = event.detail;
-      
-      if (newStatus === 'completed' && companyId) {
-        console.log('🎉 Analysis completed in BARC submissions page, navigating to company...');
-        
-        // Navigate to company page after a short delay
-        setTimeout(() => {
-          navigate(`/company/${companyId}`);
-        }, 2500); // Slightly longer delay to allow toast to be seen
-      }
-      
       // Remove from analyzing set if analysis completed
+      const { submissionId, newStatus } = event.detail;
       if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
         setAnalyzingSubmissions(prev => {
           const newSet = new Set(prev);
@@ -107,15 +96,6 @@ const BarcSubmissions = () => {
           
           const newStatus = payload.new.analysis_status;
           const submissionId = payload.new.id;
-          const companyId = payload.new.company_id;
-          
-          // Handle auto-navigation for direct realtime updates too
-          if (newStatus === 'completed' && companyId) {
-            console.log('🎉 Analysis completed via direct realtime, navigating to company...');
-            setTimeout(() => {
-              navigate(`/company/${companyId}`);
-            }, 2500);
-          }
           
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
@@ -135,7 +115,7 @@ const BarcSubmissions = () => {
       window.removeEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
       supabase.removeChannel(channel);
     };
-  }, [user, refetch, navigate]);
+  }, [user, refetch]);
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {
@@ -158,7 +138,7 @@ const BarcSubmissions = () => {
       // Show initial loading message
       toast.loading("Starting analysis...", { 
         id: `analysis-${submissionId}`,
-        description: "This may take a few moments. You will be automatically redirected when complete." 
+        description: "This may take a few moments. Please wait..." 
       });
       
       // Trigger the analysis and wait for completion
@@ -169,13 +149,11 @@ const BarcSubmissions = () => {
       
       if (result?.success && result?.companyId) {
         toast.success("Analysis completed successfully!", {
-          description: "Redirecting to company page..."
+          description: "Company has been created and analyzed."
         });
         
         // Navigate directly to the company details page
-        setTimeout(() => {
-          navigate(`/company/${result.companyId}`);
-        }, 2000);
+        navigate(`/company/${result.companyId}`);
       } else {
         throw new Error('Analysis failed - no company created');
       }
@@ -258,7 +236,7 @@ const BarcSubmissions = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">BARC Form Submissions</h1>
         <p className="text-muted-foreground">
-          Manage and analyze applications from your BARC forms. Analysis results will automatically open when complete.
+          Manage and analyze applications from your BARC forms
         </p>
       </div>
 
@@ -349,7 +327,7 @@ const BarcSubmissions = () => {
                     ) : submission.analysis_status === 'processing' || isAnalyzing ? (
                       <Button variant="outline" size="sm" disabled>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing... (Auto-redirect when complete)
+                        Analyzing...
                       </Button>
                     ) : (
                       <Button
