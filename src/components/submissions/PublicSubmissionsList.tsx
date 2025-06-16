@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { analyzeReport } from "@/lib/supabase/analysis";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PublicSubmission {
   id: string;
@@ -80,15 +81,16 @@ export function PublicSubmissionsList() {
   const { toast, dismiss } = useToast();
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
+  const queryClient = useQueryClient();
 
   // Simplified realtime subscription for BARC form submission updates
   useEffect(() => {
     if (!user) return;
 
-    console.log('🔥 Setting up simplified real-time subscription for BARC in submissions list');
+    console.log('🔥 Setting up submissions list realtime subscription for BARC updates');
     
     const channel = supabase
-      .channel('barc_submissions_list_direct')
+      .channel('submissions_list_barc_updates')
       .on(
         'postgres_changes',
         {
@@ -97,7 +99,7 @@ export function PublicSubmissionsList() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('📊 Submissions List - Direct realtime update:', payload);
+          console.log('📊 Submissions List - BARC realtime update:', payload);
           
           const updatedSubmission = payload.new;
           const newStatus = updatedSubmission.analysis_status;
@@ -105,10 +107,10 @@ export function PublicSubmissionsList() {
           
           console.log(`🔄 Submissions List - Status update: ${submissionId} to ${newStatus}`);
           
-          // Update the submissions state immediately
+          // Update the submissions state immediately with proper state management
           setSubmissions(prev => prev.map(submission => {
             if (submission.id === submissionId && submission.source === 'barc_form') {
-              console.log(`✨ Submissions List - Updating submission ${submissionId}`);
+              console.log(`✨ Submissions List - Updating submission ${submissionId} to status ${newStatus}`);
               return {
                 ...submission,
                 analysis_status: newStatus
@@ -154,7 +156,7 @@ export function PublicSubmissionsList() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('🆕 New BARC submission in list:', payload);
+          console.log('🆕 New BARC submission in submissions list:', payload);
           fetchSubmissions(); // Refresh to show new submission
         }
       )

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +20,7 @@ const BarcSubmissions = () => {
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
 
-  const { data: submissions, isLoading, refetch } = useQuery({
+  const { data: submissions, isLoading } = useQuery({
     queryKey: ['barc-submissions', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -46,17 +45,18 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    refetchInterval: 1000, // More frequent polling as backup
+    staleTime: 0, // Always consider data stale so invalidation works properly
+    refetchInterval: 5000, // Backup polling - less frequent since realtime should handle it
   });
 
-  // Simplified and more direct realtime subscription
+  // FOCUSED realtime subscription for BARC status updates
   useEffect(() => {
     if (!user) return;
 
-    console.log('🔥 Setting up DIRECT realtime subscription for BARC submissions');
+    console.log('🔥 Setting up FOCUSED realtime subscription for BARC submissions status updates');
 
     const channel = supabase
-      .channel('barc_submissions_page_direct')
+      .channel('barc_submissions_status_updates')
       .on(
         'postgres_changes',
         {
@@ -65,16 +65,28 @@ const BarcSubmissions = () => {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('📊 DIRECT realtime update received:', payload);
+          console.log('📊 BARC Status Update - Direct realtime update:', payload);
           
           const newStatus = payload.new.analysis_status;
           const oldStatus = payload.old?.analysis_status;
           const submissionId = payload.new.id;
+          const companyName = payload.new.company_name;
+          const companyId = payload.new.company_id;
           
           console.log(`🔄 Status change: ${submissionId} from ${oldStatus} to ${newStatus}`);
           
-          // FORCE IMMEDIATE REFETCH - this ensures fresh data
-          refetch();
+          // FORCE CACHE INVALIDATION - this is the key fix
+          queryClient.invalidateQueries({ 
+            queryKey: ['barc-submissions', user.id],
+            exact: true 
+          });
+          
+          // Also invalidate any related queries
+          queryClient.invalidateQueries({ 
+            queryKey: ['barc-submissions'] 
+          });
+          
+          console.log('💥 Cache invalidated for BARC submissions');
           
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
@@ -89,15 +101,28 @@ const BarcSubmissions = () => {
           // Show status notifications
           if (newStatus === 'processing' && oldStatus !== 'processing') {
             toast.success("Analysis started", {
-              description: "Your submission is now being analyzed."
+              description: `Analysis is now running for ${companyName}`,
             });
           } else if (newStatus === 'completed' && oldStatus !== 'completed') {
             toast.success("Analysis completed!", {
-              description: "Your submission has been successfully analyzed."
+              description: `Analysis successfully completed for ${companyName}`,
             });
+            
+            // Auto-navigation to company page
+            if (companyId) {
+              console.log(`🚀 AUTO-NAVIGATING to company page: ${companyId}`);
+              
+              setTimeout(() => {
+                toast.success("Redirecting to Company Page", {
+                  description: `Taking you to ${companyName}'s detailed analysis...`,
+                });
+                
+                navigate(`/company/${companyId}`);
+              }, 2000);
+            }
           } else if (newStatus === 'failed' || newStatus === 'error') {
             toast.error("Analysis failed", {
-              description: "There was an error analyzing your submission."
+              description: `Analysis failed for ${companyName}. Please try again.`,
             });
           }
         }
@@ -111,18 +136,33 @@ const BarcSubmissions = () => {
         },
         (payload) => {
           console.log('🆕 New BARC submission:', payload);
-          refetch(); // Refresh to show new submission
+          
+          // Invalidate cache for new submissions too
+          queryClient.invalidateQueries({ 
+            queryKey: ['barc-submissions', user.id],
+            exact: true 
+          });
+          
+          console.log('💥 Cache invalidated for new BARC submission');
         }
       )
       .subscribe((status) => {
         console.log('📡 BARC submissions realtime status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ BARC realtime subscription is ACTIVE');
+        } else if (status === 'CLOSED') {
+          console.log('❌ BARC realtime subscription CLOSED');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('💥 BARC realtime subscription ERROR');
+        }
       });
 
     return () => {
       console.log('🧹 Cleaning up BARC submissions realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [user, refetch]);
+  }, [user, queryClient, navigate]);
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {
@@ -165,8 +205,11 @@ const BarcSubmissions = () => {
         throw new Error('Analysis failed - no company created');
       }
 
-      // Refetch to get updated data
-      refetch();
+      // Force cache refresh after analysis
+      queryClient.invalidateQueries({ 
+        queryKey: ['barc-submissions', user?.id],
+        exact: true 
+      });
     } catch (error: any) {
       console.error('Analysis trigger error:', error);
       
@@ -362,7 +405,7 @@ const BarcSubmissions = () => {
           setSelectedSubmission(null);
         }}
         submission={selectedSubmission}
-        onRefresh={refetch}
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['barc-submissions', user?.id] })}
       />
     </div>
   );
