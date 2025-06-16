@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 import { useNavigate } from "react-router-dom";
-import { useBarcSubmissionPolling } from "@/hooks/useBarcSubmissionPolling";
+import { useBarcAnalysisManager } from "@/hooks/useBarcAnalysisManager";
 
 const BarcSubmissions = () => {
   const { user } = useAuth();
@@ -20,8 +20,8 @@ const BarcSubmissions = () => {
   const queryClient = useQueryClient();
   const [selectedSubmission, setSelectedSubmission] = useState<BarcSubmission | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
-  const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
-  const [currentlyAnalyzingId, setCurrentlyAnalyzingId] = useState<string | null>(null);
+  
+  const { startAnalysis, isAnalyzing, getAnalysisStatus } = useBarcAnalysisManager();
 
   const { data: submissions, isLoading, refetch } = useQuery({
     queryKey: ['barc-submissions', user?.id],
@@ -48,59 +48,16 @@ const BarcSubmissions = () => {
       })) as BarcSubmission[];
     },
     enabled: !!user,
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
     refetchInterval: false,
   });
 
-  // Handle analysis completion
-  const handlePollingStatusChange = async (status: string, companyId?: string) => {
-    console.log(`📈 Analysis completed with status: ${status}`);
-    
-    // Clean up state
-    if (currentlyAnalyzingId) {
-      setAnalyzingSubmissions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(currentlyAnalyzingId);
-        return newSet;
-      });
-      setCurrentlyAnalyzingId(null);
-    }
-
-    // Force refetch to get latest data
-    await refetch();
-
-    // Handle completion
-    if (status === 'completed' && companyId) {
-      toast.success("Analysis completed successfully!", {
-        description: "Company has been created and analyzed."
-      });
-      
-      setTimeout(() => {
-        navigate(`/company/${companyId}`);
-      }, 1500);
-    } else if (status === 'failed' || status === 'error') {
-      toast.error("Analysis failed", {
-        description: "There was an error processing the submission."
-      });
-    }
-  };
-
-  // Use polling hook for the currently analyzing submission
-  const { stopPolling } = useBarcSubmissionPolling({
-    submissionId: currentlyAnalyzingId || '',
-    isAnalyzing: !!currentlyAnalyzingId,
-    onStatusChange: handlePollingStatusChange
-  });
-
-  // Listen to realtime events
+  // Listen to realtime events for UI updates
   useEffect(() => {
     console.log('📡 Setting up BARC realtime listeners');
     
-    const handleBarcStatusChange = async (event: CustomEvent) => {
-      const { submissionId, status } = event.detail;
-      console.log(`🔄 Realtime event - submission ${submissionId} -> ${status}`);
-      
-      // Refresh data
+    const handleBarcStatusChange = async () => {
+      console.log('🔄 Realtime event - refreshing submissions');
       await refetch();
     };
 
@@ -119,21 +76,23 @@ const BarcSubmissions = () => {
   }, [refetch]);
 
   const triggerAnalysis = async (submissionId: string) => {
-    if (analyzingSubmissions.has(submissionId)) {
+    const submission = submissions?.find(s => s.id === submissionId);
+    
+    if (isAnalyzing(submissionId)) {
+      console.log('Analysis already in progress for:', submissionId);
       return;
     }
 
-    const submission = submissions?.find(s => s.id === submissionId);
     if (submission?.analysis_status === 'processing' || submission?.analysis_status === 'completed') {
+      console.log('Submission already processed or processing:', submissionId);
       return;
     }
 
     try {
       console.log('🚀 Triggering analysis for submission:', submissionId);
       
-      // Add to analyzing set and set as currently analyzing
-      setAnalyzingSubmissions(prev => new Set(prev).add(submissionId));
-      setCurrentlyAnalyzingId(submissionId);
+      // Start tracking the analysis
+      startAnalysis(submissionId);
       
       toast.loading("Starting analysis...", { 
         id: `analysis-${submissionId}`,
@@ -146,22 +105,12 @@ const BarcSubmissions = () => {
       // Dismiss loading toast
       toast.dismiss(`analysis-${submissionId}`);
       
-      console.log('🎯 Analysis triggered successfully');
+      console.log('🎯 Analysis triggered successfully, manager will handle completion');
 
     } catch (error: any) {
       console.error('❌ Analysis trigger error:', error);
       
-      // Dismiss loading toast
       toast.dismiss(`analysis-${submissionId}`);
-      
-      // Reset state
-      setAnalyzingSubmissions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(submissionId);
-        return newSet;
-      });
-      setCurrentlyAnalyzingId(null);
-      stopPolling();
       
       if (error.message?.includes('already being analyzed')) {
         toast.info("Analysis is already in progress for this submission.");
@@ -171,13 +120,19 @@ const BarcSubmissions = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (submission: BarcSubmission) => {
+    const status = submission.analysis_status;
+    const currentlyAnalyzing = isAnalyzing(submission.id);
+    
+    if (currentlyAnalyzing || status === 'processing') {
+      return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
+    }
+    
     switch (status) {
       case 'completed':
         return <Badge className="bg-green-100 text-green-800">Analyzed</Badge>;
-      case 'processing':
-        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
       case 'error':
+      case 'failed':
         return <Badge className="bg-red-100 text-red-800">Error</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">Pending</Badge>;
@@ -237,7 +192,7 @@ const BarcSubmissions = () => {
         <div className="grid gap-6">
           {submissions?.map((submission) => {
             const analysisResult = getAnalysisResult(submission);
-            const isAnalyzing = analyzingSubmissions.has(submission.id);
+            const currentlyAnalyzing = isAnalyzing(submission.id);
             
             return (
               <Card key={submission.id} className="hover:shadow-md transition-shadow">
@@ -253,7 +208,7 @@ const BarcSubmissions = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {getStatusBadge(submission.analysis_status || 'pending')}
+                      {getStatusBadge(submission)}
                       {analysisResult?.recommendation && 
                         getRecommendationBadge(analysisResult.recommendation)
                       }
@@ -307,7 +262,7 @@ const BarcSubmissions = () => {
                           </Button>
                         )}
                       </div>
-                    ) : submission.analysis_status === 'processing' || isAnalyzing ? (
+                    ) : submission.analysis_status === 'processing' || currentlyAnalyzing ? (
                       <Button variant="outline" size="sm" disabled>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Analyzing... (Auto-redirect when complete)
@@ -317,7 +272,7 @@ const BarcSubmissions = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => triggerAnalysis(submission.id)}
-                        disabled={isAnalyzing}
+                        disabled={currentlyAnalyzing}
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Start Analysis
