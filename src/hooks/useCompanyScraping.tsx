@@ -98,10 +98,7 @@ export const useCompanyScraping = (companyId: string) => {
       return data;
     },
     onSuccess: () => {
-      toast({
-        title: "Scraping initiated",
-        description: "Company LinkedIn scraping has been started successfully.",
-      });
+      console.log("Scraping initiated successfully, starting to poll for results");
       
       // Immediately start polling by invalidating queries
       queryClient.invalidateQueries({ queryKey: ['company-scrape', companyId] });
@@ -116,12 +113,15 @@ export const useCompanyScraping = (companyId: string) => {
     }
   });
 
+  // Determine if scraping is in progress (either mutation pending or status is processing)
+  const isScrapingInProgress = scrapeMutation.isPending || (scrapeData?.status === 'processing');
+
   return {
     scrapeData,
     isLoading,
     scrapeMutation,
     linkedInUrl: barcSubmission?.company_linkedin_url || null,
     hasLinkedInUrl: !!barcSubmission?.company_linkedin_url,
-    isScrapingInProgress: scrapeMutation.isPending || (scrapeData?.status === 'processing'),
+    isScrapingInProgress,
   };
 };

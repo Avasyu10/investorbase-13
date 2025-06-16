@@ -36,7 +36,8 @@ export function CompanyScrapingDialog({
   }, [scrapeData?.status, previousStatus]);
 
   const handleStartScraping = () => {
-    if (hasLinkedInUrl && !scrapeData && !isScrapingInProgress) {
+    console.log("Starting scraping process for company:", companyId);
+    if (hasLinkedInUrl) {
       scrapeMutation.mutate();
     }
   };
