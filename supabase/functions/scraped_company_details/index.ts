@@ -15,9 +15,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// RapidAPI configuration for LinkedIn scraping
-const RAPIDAPI_HOST = "fresh-linkedin-profile-data.p.rapidapi.com";
-const RAPIDAPI_KEY = "2ccd2d34c2msh7cc3d6fb000aae8p1349bbjsn62fea1629a93";
+// CoreSignal API configuration
+const CORESIGNAL_API_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/search/es_dsl";
+const CORESIGNAL_API_KEY = "xm2kAqJbIZDVjE877BKO72AO00XNBaEk";
 
 serve(async (req) => {
   // Handle preflight CORS request
@@ -72,106 +72,117 @@ serve(async (req) => {
       console.log("Database insert issue:", insertError.message);
     }
 
-    // Try to scrape LinkedIn using RapidAPI
+    // Try to scrape LinkedIn using CoreSignal API
     let scrapedData = null;
     let errorMessage = null;
 
     try {
       console.log("Attempting to scrape LinkedIn URL:", linkedInUrl);
       
-      // Clean and encode the LinkedIn URL
+      // Clean the LinkedIn URL
       const cleanUrl = linkedInUrl.trim();
       console.log("Clean URL:", cleanUrl);
       
-      // For company pages, we need to use the company profile endpoint
+      // Validate that it's a company URL
       const isCompanyUrl = cleanUrl.includes('/company/');
       
       if (!isCompanyUrl) {
         throw new Error("Invalid LinkedIn company URL format");
       }
 
-      // Extract company slug from URL
-      const urlParts = cleanUrl.split('/company/')[1];
-      const companySlug = urlParts ? urlParts.split('/')[0] : null;
+      console.log("Preparing CoreSignal API request for:", cleanUrl);
       
-      if (!companySlug) {
-        throw new Error("Could not extract company identifier from LinkedIn URL");
-      }
-
-      console.log("Extracted company slug:", companySlug);
-      
-      // Use the correct RapidAPI endpoint for company data
-      const apiUrl = `https://${RAPIDAPI_HOST}/get-company-profile?company_username=${companySlug}`;
-      console.log("API URL:", apiUrl);
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'X-RapidAPI-Key': RAPIDAPI_KEY,
-          'X-RapidAPI-Host': RAPIDAPI_HOST,
-          'Accept': 'application/json'
+      // Prepare the CoreSignal API request payload
+      const payload = {
+        query: {
+          bool: {
+            must: [
+              {
+                query_string: {
+                  default_field: "linkedin_url",
+                  query: `"${cleanUrl}"`
+                }
+              }
+            ]
+          }
         }
+      };
+
+      console.log("CoreSignal API payload:", JSON.stringify(payload, null, 2));
+      
+      // Make the request to CoreSignal API
+      const response = await fetch(CORESIGNAL_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CORESIGNAL_API_KEY
+        },
+        body: JSON.stringify(payload)
       });
 
-      console.log("RapidAPI response status:", response.status);
+      console.log("CoreSignal API response status:", response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.log(`RapidAPI error (${response.status}): ${errorText}`);
-        throw new Error(`RapidAPI error: ${response.status} - ${errorText}`);
+        console.log(`CoreSignal API error (${response.status}): ${errorText}`);
+        throw new Error(`CoreSignal API error: ${response.status} - ${errorText}`);
       }
 
       const apiData = await response.json();
-      console.log("LinkedIn scraping response:", JSON.stringify(apiData, null, 2));
+      console.log("CoreSignal API response:", JSON.stringify(apiData, null, 2));
 
-      // Extract company information from the API response
-      if (apiData && apiData.data) {
-        const data = apiData.data;
+      // Extract company information from the CoreSignal API response
+      if (apiData && apiData.hits && apiData.hits.hits && apiData.hits.hits.length > 0) {
+        const companyData = apiData.hits.hits[0]._source;
+        console.log("Company data from CoreSignal:", JSON.stringify(companyData, null, 2));
+        
         scrapedData = {
-          name: data.name || data.company_name || data.title || "Unknown Company",
+          name: companyData.name || companyData.company_name || companyData.title || "Unknown Company",
           linkedin_url: cleanUrl,
-          description: data.description || data.about || data.company_description || data.tagline || "No description available",
-          employees_count: data.employee_count || data.employees_count || data.staff_count || data.company_size || null,
-          industry: data.industry || data.industries?.[0] || data.sector || null,
-          location: data.location || data.headquarters || data.address || data.locations?.[0] || null,
-          founded_year: data.founded_year || data.founded || data.year_founded || data.founded_on || null,
-          website: data.website || data.website_url || data.company_website || data.external_url || null,
-          followers_count: data.followers_count || data.followers || data.follower_count || null,
-          company_type: data.company_type || data.type || data.organization_type || null,
-          logo_url: data.logo_url || data.profile_pic_url || data.image_url || null,
-          specialties: data.specialties || data.company_specialties || null,
-          phone: data.phone || data.phone_number || null
+          description: companyData.description || companyData.about || companyData.company_description || companyData.tagline || "No description available",
+          employees_count: companyData.employee_count || companyData.employees_count || companyData.staff_count || companyData.company_size || companyData.size || null,
+          industry: companyData.industry || companyData.industries?.[0] || companyData.sector || null,
+          location: companyData.location || companyData.headquarters || companyData.address || companyData.locations?.[0] || companyData.hq_location || null,
+          founded_year: companyData.founded_year || companyData.founded || companyData.year_founded || companyData.founded_on || null,
+          website: companyData.website || companyData.website_url || companyData.company_website || companyData.external_url || null,
+          followers_count: companyData.followers_count || companyData.followers || companyData.follower_count || null,
+          company_type: companyData.company_type || companyData.type || companyData.organization_type || null,
+          logo_url: companyData.logo_url || companyData.profile_pic_url || companyData.image_url || null,
+          specialties: companyData.specialties || companyData.company_specialties || null,
+          phone: companyData.phone || companyData.phone_number || null
         };
         
         console.log("Successfully extracted company data:", scrapedData);
       } else {
-        console.log("No data in API response, checking for alternative structure");
+        console.log("No company data found in CoreSignal response");
         
-        // Try alternative data structures
-        if (apiData.name || apiData.company_name) {
-          scrapedData = {
-            name: apiData.name || apiData.company_name || "Unknown Company",
-            linkedin_url: cleanUrl,
-            description: apiData.description || apiData.about || "No description available",
-            employees_count: apiData.employee_count || apiData.employees_count || null,
-            industry: apiData.industry || null,
-            location: apiData.location || apiData.headquarters || null,
-            founded_year: apiData.founded_year || apiData.founded || null,
-            website: apiData.website || apiData.website_url || null,
-            followers_count: apiData.followers_count || apiData.followers || null,
-            company_type: apiData.company_type || apiData.type || null
-          };
-          console.log("Extracted from alternative structure:", scrapedData);
-        } else {
-          throw new Error("No valid company data returned from LinkedIn scraping API");
+        // Create fallback data when no results found
+        const urlParts = linkedInUrl.split('/');
+        let companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+        
+        // Remove trailing slash if present
+        if (companySlug === '') {
+          companySlug = urlParts[urlParts.length - 2];
         }
+        
+        scrapedData = {
+          name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
+          linkedin_url: linkedInUrl,
+          description: "LinkedIn company profile - no detailed data found in CoreSignal",
+          employees_count: null,
+          industry: null,
+          location: null,
+          founded_year: null,
+          website: null,
+          note: "Limited data - no match found in CoreSignal database"
+        };
       }
 
     } catch (error) {
       console.log("LinkedIn scraping failed:", error.message);
       errorMessage = error.message;
       
-      // Try alternative approach or use basic extracted data
+      // Create fallback data on error
       const urlParts = linkedInUrl.split('/');
       let companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
       
@@ -183,13 +194,13 @@ serve(async (req) => {
       scrapedData = {
         name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
         linkedin_url: linkedInUrl,
-        description: "LinkedIn company profile - scraping service temporarily unavailable",
+        description: "LinkedIn company profile - CoreSignal API temporarily unavailable",
         employees_count: null,
         industry: null,
         location: null,
         founded_year: null,
         website: null,
-        note: "Limited data - scraping service error: " + errorMessage
+        note: "Limited data - CoreSignal API error: " + errorMessage
       };
     }
 
@@ -216,7 +227,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: errorMessage ? "LinkedIn URL processed with limited data" : "LinkedIn company data scraped successfully",
+        message: errorMessage ? "LinkedIn URL processed with limited data" : "LinkedIn company data scraped successfully using CoreSignal",
         companyData: scrapedData,
         hasError: !!errorMessage,
         errorMessage: errorMessage
