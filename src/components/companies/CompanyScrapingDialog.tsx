@@ -22,21 +22,34 @@ export function CompanyScrapingDialog({
   onOpenChange 
 }: CompanyScrapingDialogProps) {
   const { scrapeData, scrapeMutation, hasLinkedInUrl, isScrapingInProgress } = useCompanyScraping(companyId);
-  const [previousStatus, setPreviousStatus] = useState<string | null>(null);
+  const [hasTriggeredScraping, setHasTriggeredScraping] = useState(false);
 
   // Show success toast when scraping completes
   useEffect(() => {
-    if (scrapeData?.status === 'completed' && previousStatus === 'processing') {
+    if (scrapeData?.status === 'completed' && hasTriggeredScraping) {
+      console.log("Scraping completed successfully, showing toast");
       toast({
         title: "Information Retrieved",
         description: "Company information has been successfully extracted from LinkedIn.",
       });
     }
-    setPreviousStatus(scrapeData?.status || null);
-  }, [scrapeData?.status, previousStatus]);
+  }, [scrapeData?.status, hasTriggeredScraping]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("CompanyScrapingDialog state:", {
+      companyId,
+      hasLinkedInUrl,
+      scrapeData,
+      isScrapingInProgress,
+      hasTriggeredScraping,
+      dialogOpen: open
+    });
+  }, [companyId, hasLinkedInUrl, scrapeData, isScrapingInProgress, hasTriggeredScraping, open]);
 
   const handleStartScraping = () => {
     console.log("Starting scraping process for company:", companyId);
+    setHasTriggeredScraping(true);
     if (hasLinkedInUrl) {
       scrapeMutation.mutate();
     }
@@ -67,9 +80,15 @@ export function CompanyScrapingDialog({
   );
 
   const renderScrapedData = () => {
-    if (!scrapeData?.scraped_data) return null;
+    console.log("Rendering scraped data:", scrapeData?.scraped_data);
+    
+    if (!scrapeData?.scraped_data) {
+      console.log("No scraped data available");
+      return null;
+    }
 
     const data = scrapeData.scraped_data;
+    console.log("Extracted data:", data);
 
     return (
       <div className="space-y-6">
@@ -255,34 +274,40 @@ export function CompanyScrapingDialog({
 
   // Determine what content to show based on current state
   const getDialogContent = () => {
-    console.log("Dialog state check:", {
+    console.log("Dialog state determination:", {
       hasLinkedInUrl,
-      scrapeData: scrapeData?.status,
+      scrapeDataStatus: scrapeData?.status,
       isScrapingInProgress,
-      hasScrapeData: !!scrapeData
+      hasScrapeData: !!scrapeData,
+      hasTriggeredScraping
     });
 
     // No LinkedIn URL available
     if (!hasLinkedInUrl) {
+      console.log("Showing no data state - no LinkedIn URL");
       return renderNoDataState();
     }
 
     // Currently scraping
     if (isScrapingInProgress) {
+      console.log("Showing loading state - scraping in progress");
       return renderLoadingState();
     }
 
     // Scraping completed successfully
     if (scrapeData?.status === 'completed') {
+      console.log("Showing scraped data - scraping completed");
       return renderScrapedData();
     }
 
     // Scraping failed
     if (scrapeData?.status === 'failed') {
+      console.log("Showing error state - scraping failed");
       return renderErrorState();
     }
 
     // Initial state - no scraping has been done yet
+    console.log("Showing initial state - no scraping done yet");
     return renderInitialState();
   };
 
