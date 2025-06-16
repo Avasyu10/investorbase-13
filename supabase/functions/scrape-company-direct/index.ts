@@ -85,13 +85,14 @@ serve(async (req) => {
     
     console.log(`Clean URL: ${cleanUrl}`);
 
-    // Validate that it's a company URL
-    const isCompanyUrl = cleanUrl.includes('/company/');
+    // Validate that it's a LinkedIn company URL (not a CoreSignal API URL)
+    const isLinkedInCompanyUrl = cleanUrl.includes('linkedin.com/company/');
     
-    if (!isCompanyUrl) {
+    if (!isLinkedInCompanyUrl) {
+      console.error("Invalid LinkedIn company URL format:", cleanUrl);
       return new Response(
         JSON.stringify({ 
-          error: "Invalid LinkedIn company URL format",
+          error: "Invalid LinkedIn company URL format. Please provide a valid LinkedIn company URL like: https://www.linkedin.com/company/example-company/",
           success: false
         }),
         { 
@@ -133,6 +134,7 @@ serve(async (req) => {
       });
 
       console.log("CoreSignal search response status:", searchResponse.status);
+      console.log("CoreSignal search response headers:", Object.fromEntries(searchResponse.headers.entries()));
       
       if (!searchResponse.ok) {
         const errorText = await searchResponse.text();
@@ -153,8 +155,50 @@ serve(async (req) => {
       }
 
       if (!collectId) {
-        console.log("No ID found in search response");
-        throw new Error("No company ID found in CoreSignal search response");
+        console.log("No ID found in search response, trying alternative search strategies");
+        
+        // Try searching without quotes
+        const alternativeSearchPayload = {
+          query: {
+            bool: {
+              must: [
+                {
+                  query_string: {
+                    default_field: "linkedin_url",
+                    query: cleanUrl
+                  }
+                }
+              ]
+            }
+          }
+        };
+
+        console.log("Trying alternative search:", JSON.stringify(alternativeSearchPayload, null, 2));
+        
+        const alternativeResponse = await fetch(CORESIGNAL_SEARCH_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': CORESIGNAL_API_KEY
+          },
+          body: JSON.stringify(alternativeSearchPayload)
+        });
+
+        if (alternativeResponse.ok) {
+          const alternativeData = await alternativeResponse.json();
+          console.log("Alternative search response:", JSON.stringify(alternativeData, null, 2));
+          
+          if (Array.isArray(alternativeData) && alternativeData.length > 0) {
+            collectId = alternativeData[0];
+          } else if (alternativeData && alternativeData.hits && alternativeData.hits.hits && alternativeData.hits.hits.length > 0) {
+            collectId = alternativeData.hits.hits[0]._id || alternativeData.hits.hits[0].id;
+          }
+        }
+      }
+
+      if (!collectId) {
+        console.log("No company ID found in CoreSignal search response");
+        throw new Error("Company not found in CoreSignal database. The LinkedIn URL may not be indexed yet.");
       }
 
       console.log("Step 2: Making GET request to collect company data with ID:", collectId);
@@ -247,16 +291,20 @@ serve(async (req) => {
       console.error("CoreSignal API error:", error.message);
       
       // Create fallback data on API error
-      const urlParts = linkedInUrl.split('/');
-      let companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+      const urlParts = cleanUrl.split('/');
+      let companySlug = "";
       
-      if (companySlug === '') {
-        companySlug = urlParts[urlParts.length - 2];
+      // Extract company slug from LinkedIn URL
+      for (let i = 0; i < urlParts.length; i++) {
+        if (urlParts[i] === 'company' && i + 1 < urlParts.length) {
+          companySlug = urlParts[i + 1];
+          break;
+        }
       }
       
       const fallbackData = {
         name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
-        description: `Unable to retrieve detailed information. Error: ${error.message}`,
+        description: `Unable to retrieve detailed information from CoreSignal API. Error: ${error.message}`,
         founded_year: null,
         employees_count: null,
         industry: null,
