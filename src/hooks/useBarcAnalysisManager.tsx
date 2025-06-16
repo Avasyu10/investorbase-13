@@ -18,9 +18,65 @@ export const useBarcAnalysisManager = () => {
   const navigate = useNavigate();
   const pollIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  // Start tracking an analysis
+  // Enhanced realtime listener with immediate state updates
+  useEffect(() => {
+    console.log('📡 Setting up enhanced BARC analysis manager realtime listeners');
+    
+    const handleBarcStatusChange = (event: CustomEvent) => {
+      const { submissionId, status, companyId } = event.detail;
+      console.log(`🔄 Real-time status update received: ${submissionId} -> ${status}`);
+      
+      // Update local state immediately
+      setActiveAnalyses(prev => {
+        const newMap = new Map(prev);
+        const current = newMap.get(submissionId);
+        if (current) {
+          newMap.set(submissionId, {
+            ...current,
+            status,
+            companyId
+          });
+        }
+        return newMap;
+      });
+
+      // Stop polling if analysis is complete
+      if (status === 'completed' || status === 'failed') {
+        console.log(`✅ Analysis ${status} - stopping polling for ${submissionId}`);
+        stopAnalysis(submissionId);
+        
+        // Invalidate queries immediately
+        queryClient.invalidateQueries({ 
+          queryKey: ['barc-submissions'],
+          refetchType: 'all'
+        });
+        
+        queryClient.invalidateQueries({ 
+          queryKey: ['public-submissions'],
+          refetchType: 'all'
+        });
+
+        if (status === 'completed' && companyId) {
+          handleAnalysisComplete(submissionId, companyId);
+        } else if (status === 'failed') {
+          handleAnalysisFailed(submissionId);
+        }
+      }
+    };
+
+    window.addEventListener('barcStatusChange', handleBarcStatusChange as EventListener);
+
+    return () => {
+      window.removeEventListener('barcStatusChange', handleBarcStatusChange as EventListener);
+      // Cleanup all intervals
+      pollIntervals.current.forEach(interval => clearInterval(interval));
+      pollIntervals.current.clear();
+    };
+  }, [queryClient, navigate]);
+
+  // Start tracking an analysis with enhanced polling
   const startAnalysis = useCallback((submissionId: string) => {
-    console.log('🚀 Starting analysis tracking for:', submissionId);
+    console.log('🚀 Starting enhanced analysis tracking for:', submissionId);
     
     setActiveAnalyses(prev => {
       const newMap = new Map(prev);
@@ -32,9 +88,11 @@ export const useBarcAnalysisManager = () => {
       return newMap;
     });
 
-    // Start aggressive polling for this submission
+    // Enhanced polling with shorter intervals
     const pollInterval = setInterval(async () => {
       try {
+        console.log(`🔍 Polling status for ${submissionId}`);
+        
         const { data, error } = await supabase
           .from('barc_form_submissions')
           .select('analysis_status, company_id')
@@ -50,10 +108,12 @@ export const useBarcAnalysisManager = () => {
           const newStatus = data.analysis_status as 'pending' | 'processing' | 'completed' | 'failed';
           console.log(`📊 Polled status for ${submissionId}: ${newStatus}, company_id: ${data.company_id}`);
           
+          // Update state immediately
           setActiveAnalyses(prev => {
             const newMap = new Map(prev);
             const current = newMap.get(submissionId);
-            if (current) {
+            if (current && current.status !== newStatus) {
+              console.log(`🔄 Status changed from ${current.status} to ${newStatus}`);
               newMap.set(submissionId, {
                 ...current,
                 status: newStatus,
@@ -65,8 +125,19 @@ export const useBarcAnalysisManager = () => {
 
           // If analysis is complete, handle completion
           if (newStatus === 'completed' || newStatus === 'failed') {
-            console.log(`✅ Analysis ${newStatus} for ${submissionId}`);
+            console.log(`✅ Analysis ${newStatus} for ${submissionId} - stopping polling`);
             stopAnalysis(submissionId);
+            
+            // Force query invalidation
+            await queryClient.invalidateQueries({ 
+              queryKey: ['barc-submissions'],
+              refetchType: 'all'
+            });
+            
+            await queryClient.invalidateQueries({ 
+              queryKey: ['public-submissions'],
+              refetchType: 'all'
+            });
             
             if (newStatus === 'completed' && data.company_id) {
               await handleAnalysisComplete(submissionId, data.company_id);
@@ -78,7 +149,7 @@ export const useBarcAnalysisManager = () => {
       } catch (error) {
         console.error('❌ Polling error:', error);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 1000); // Poll every 1 second for faster updates
 
     pollIntervals.current.set(submissionId, pollInterval);
 
@@ -89,7 +160,7 @@ export const useBarcAnalysisManager = () => {
         stopAnalysis(submissionId);
       }
     }, 600000);
-  }, []);
+  }, [queryClient]);
 
   // Stop tracking an analysis
   const stopAnalysis = useCallback((submissionId: string) => {
@@ -112,17 +183,6 @@ export const useBarcAnalysisManager = () => {
   const handleAnalysisComplete = useCallback(async (submissionId: string, companyId: string) => {
     console.log('🎉 Analysis completed successfully:', submissionId, 'Company:', companyId);
     
-    // Invalidate all relevant queries
-    await queryClient.invalidateQueries({ 
-      queryKey: ['barc-submissions'],
-      refetchType: 'all'
-    });
-    
-    await queryClient.invalidateQueries({ 
-      queryKey: ['public-submissions'],
-      refetchType: 'all'
-    });
-
     // Show success notification
     toast.success("Analysis completed successfully!", {
       description: "Redirecting to company page...",
@@ -133,7 +193,7 @@ export const useBarcAnalysisManager = () => {
     setTimeout(() => {
       navigate(`/company/${companyId}`);
     }, 1500);
-  }, [queryClient, navigate]);
+  }, [navigate]);
 
   // Handle failed analysis
   const handleAnalysisFailed = useCallback((submissionId: string) => {
@@ -144,45 +204,6 @@ export const useBarcAnalysisManager = () => {
       duration: 5000
     });
   }, []);
-
-  // Listen to realtime updates
-  useEffect(() => {
-    console.log('📡 Setting up BARC analysis manager realtime listeners');
-    
-    const handleBarcStatusChange = (event: CustomEvent) => {
-      const { submissionId, status, companyId } = event.detail;
-      console.log(`🔄 Realtime update: ${submissionId} -> ${status}`);
-      
-      setActiveAnalyses(prev => {
-        const newMap = new Map(prev);
-        const current = newMap.get(submissionId);
-        if (current) {
-          newMap.set(submissionId, {
-            ...current,
-            status,
-            companyId
-          });
-
-          // Handle completion via realtime
-          if (status === 'completed' && companyId) {
-            setTimeout(() => handleAnalysisComplete(submissionId, companyId), 500);
-          } else if (status === 'failed') {
-            setTimeout(() => handleAnalysisFailed(submissionId), 500);
-          }
-        }
-        return newMap;
-      });
-    };
-
-    window.addEventListener('barcStatusChange', handleBarcStatusChange as EventListener);
-
-    return () => {
-      window.removeEventListener('barcStatusChange', handleBarcStatusChange as EventListener);
-      // Cleanup all intervals
-      pollIntervals.current.forEach(interval => clearInterval(interval));
-      pollIntervals.current.clear();
-    };
-  }, [handleAnalysisComplete, handleAnalysisFailed]);
 
   // Get current status of a submission
   const getAnalysisStatus = useCallback((submissionId: string) => {

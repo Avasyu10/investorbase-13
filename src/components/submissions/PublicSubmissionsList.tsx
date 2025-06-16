@@ -83,22 +83,33 @@ export function PublicSubmissionsList() {
   const { isIITBombay } = useProfile();
   const queryClient = useQueryClient();
 
-  const { startAnalysis, isAnalyzing: isBarcAnalyzing, getAnalysisStatus } = useBarcAnalysisManager();
+  const { startAnalysis, isAnalyzing: isBarcAnalyzing, getAnalysisStatus, activeAnalyses } = useBarcAnalysisManager();
 
-  // Listen to realtime events for immediate UI updates
+  // Enhanced realtime listener with immediate UI updates
   useEffect(() => {
-    console.log('📡 Setting up realtime listeners for PublicSubmissionsList');
+    console.log('📡 Setting up enhanced realtime listeners for PublicSubmissionsList');
     
     const handleBarcStatusChange = (event: CustomEvent) => {
       const { submissionId, status } = event.detail;
-      console.log(`🔄 Realtime status update: ${submissionId} -> ${status}`);
+      console.log(`🔄 PublicSubmissionsList - Real-time status update: ${submissionId} -> ${status}`);
       
-      // Update submissions state immediately
-      setSubmissions(prev => prev.map(sub => 
-        sub.id === submissionId && sub.source === 'barc_form'
-          ? { ...sub, analysis_status: status }
-          : sub
-      ));
+      // Update submissions state immediately for instant UI feedback
+      setSubmissions(prev => prev.map(sub => {
+        if (sub.id === submissionId && sub.source === 'barc_form') {
+          console.log(`🔄 Updating submission ${submissionId} status from ${sub.analysis_status} to ${status}`);
+          return { ...sub, analysis_status: status };
+        }
+        return sub;
+      }));
+      
+      // Remove from analyzing set if completed
+      if (status === 'completed' || status === 'failed') {
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submissionId);
+          return newSet;
+        });
+      }
     };
 
     const handleBarcNewSubmission = () => {
@@ -114,6 +125,21 @@ export function PublicSubmissionsList() {
       window.removeEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
     };
   }, []);
+
+  // Sync with analysis manager state
+  useEffect(() => {
+    // Update submissions based on analysis manager state
+    setSubmissions(prev => prev.map(sub => {
+      if (sub.source === 'barc_form') {
+        const analysisState = getAnalysisStatus(sub.id);
+        if (analysisState && analysisState.status !== sub.analysis_status) {
+          console.log(`🔄 Syncing submission ${sub.id} status to ${analysisState.status}`);
+          return { ...sub, analysis_status: analysisState.status };
+        }
+      }
+      return sub;
+    }));
+  }, [activeAnalyses, getAnalysisStatus]);
 
   const fetchSubmissions = async () => {
     try {
@@ -324,7 +350,7 @@ export function PublicSubmissionsList() {
   }, [toast, user]);
 
   const handleAnalyze = async (submission: PublicSubmission) => {
-    console.log('Analyzing submission:', submission.id, 'Source:', submission.source);
+    console.log('🚀 Starting analysis for submission:', submission.id, 'Source:', submission.source);
     
     // Prevent multiple simultaneous analyses
     if (analyzingSubmissions.has(submission.id) || isBarcAnalyzing(submission.id)) {
@@ -337,9 +363,12 @@ export function PublicSubmissionsList() {
     }
     
     try {
-      // Handle BARC form submissions
+      // Handle BARC form submissions with enhanced tracking
       if (submission.source === "barc_form") {
-        console.log('🚀 Starting BARC analysis for:', submission.id);
+        console.log('🚀 Starting enhanced BARC analysis for:', submission.id);
+        
+        // Add to analyzing set immediately
+        setAnalyzingSubmissions(prev => new Set(prev).add(submission.id));
         
         // Update UI immediately to show processing
         setSubmissions(prev => prev.map(sub => 
@@ -360,7 +389,7 @@ export function PublicSubmissionsList() {
         // Trigger analysis
         await analyzeBarcSubmission(submission.id);
         
-        console.log('🎯 BARC analysis triggered, manager will handle completion');
+        console.log('🎯 BARC analysis triggered successfully');
         return;
       }
 
@@ -412,7 +441,6 @@ export function PublicSubmissionsList() {
       
       // Clean up state on error
       if (submission.source === "barc_form") {
-        // Reset status to failed
         setSubmissions(prev => prev.map(sub => 
           sub.id === submission.id 
             ? { ...sub, analysis_status: 'failed' }
@@ -420,33 +448,27 @@ export function PublicSubmissionsList() {
         ));
       }
       
+      setAnalyzingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(submission.id);
+        return newSet;
+      });
+      
       toast({
         title: "Analysis failed",
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsAnalyzing(false);
-      setCurrentSubmission(null);
-      
-      // Remove from analyzing set after delay
-      setTimeout(() => {
-        setAnalyzingSubmissions(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(submission.id);
-          return newSet;
-        });
-      }, 2000);
     }
   };
 
-  // Combine both analyzing states for the table
+  // Enhanced combined analyzing state
   const getCombinedAnalyzingSubmissions = () => {
     const combined = new Set(analyzingSubmissions);
     
-    // Add BARC submissions that are being analyzed
+    // Add BARC submissions that are being analyzed by the manager
     submissions.forEach(sub => {
-      if (sub.source === 'barc_form' && isBarcAnalyzing(sub.id)) {
+      if (sub.source === 'barc_form' && (isBarcAnalyzing(sub.id) || sub.analysis_status === 'processing')) {
         combined.add(sub.id);
       }
     });
