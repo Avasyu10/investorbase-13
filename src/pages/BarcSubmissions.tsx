@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,24 +67,6 @@ const BarcSubmissions = () => {
       
       console.log(`🔄 BARC Page - Processing status update for ${submissionId}: ${oldStatus} → ${newStatus}`);
       
-      // IMMEDIATE STATE UPDATE - Update submissions state directly for instant UI feedback
-      setSubmissions(prev => {
-        if (!prev) return prev;
-        
-        return prev.map(sub => {
-          if (sub.id === submissionId) {
-            console.log(`✨ BARC Page - Updating submission ${submissionId} to status: ${newStatus}`);
-            return {
-              ...sub,
-              analysis_status: newStatus,
-              company_id: companyId || sub.company_id,
-              analysis_result: submission.analysis_result || sub.analysis_result
-            };
-          }
-          return sub;
-        });
-      });
-
       // Remove from analyzing set if analysis completed
       if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
         console.log(`🧹 BARC Page - Removing ${submissionId} from analyzing set`);
@@ -124,24 +107,6 @@ const BarcSubmissions = () => {
           
           console.log(`🔄 BARC Page - Direct update: ${submissionId} changed from ${oldStatus} to ${newStatus}`);
           
-          // Immediate state update
-          setSubmissions(prev => {
-            if (!prev) return prev;
-            
-            return prev.map(sub => {
-              if (sub.id === submissionId) {
-                console.log(`✨ BARC Page - Direct updating submission ${submissionId}`);
-                return {
-                  ...sub,
-                  analysis_status: newStatus,
-                  company_id: payload.new.company_id || sub.company_id,
-                  analysis_result: payload.new.analysis_result || sub.analysis_result
-                };
-              }
-              return sub;
-            });
-          });
-          
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
             setAnalyzingSubmissions(prev => {
@@ -150,6 +115,11 @@ const BarcSubmissions = () => {
               return newSet;
             });
           }
+          
+          // Trigger refetch after a short delay
+          setTimeout(() => {
+            refetch();
+          }, 1000);
         }
       )
       .subscribe((status) => {
