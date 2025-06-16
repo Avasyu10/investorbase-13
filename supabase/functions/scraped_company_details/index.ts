@@ -15,6 +15,10 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+// RapidAPI configuration for LinkedIn scraping
+const RAPIDAPI_HOST = "fresh-linkedin-profile-data.p.rapidapi.com";
+const RAPIDAPI_KEY = "2ccd2d34c2msh7cc3d6fb000aae8p1349bbjsn62fea1629a93";
+
 serve(async (req) => {
   // Handle preflight CORS request
   if (req.method === "OPTIONS") {
@@ -31,25 +35,15 @@ serve(async (req) => {
     const { linkedInUrl, companyId } = await req.json();
     
     if (!linkedInUrl) {
-      console.log("LinkedIn URL is required - using fallback approach");
+      console.log("LinkedIn URL is required");
       return new Response(
         JSON.stringify({ 
-          success: true,
-          message: "LinkedIn URL processed with fallback data",
-          companyData: {
-            name: "Company Information",
-            linkedin_url: null,
-            description: "Company details will be updated when LinkedIn URL is provided",
-            employees_count: null,
-            industry: null,
-            location: null,
-            founded_year: null,
-            website: null
-          },
-          note: "No LinkedIn URL provided - using placeholder data"
+          success: false,
+          error: "LinkedIn URL is required",
+          message: "No LinkedIn URL provided"
         }),
         {
-          status: 200,
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -75,37 +69,94 @@ serve(async (req) => {
       .maybeSingle();
 
     if (insertError) {
-      console.log("Database insert issue, continuing with fallback:", insertError.message);
+      console.log("Database insert issue:", insertError.message);
     }
 
-    // Always use fallback approach to prevent API errors from bubbling up
-    console.log("Using fallback approach for LinkedIn data extraction");
-    
-    // Create structured company data based on LinkedIn URL
-    const mockCompanyData = {
-      name: "Company from LinkedIn",
-      linkedin_url: linkedInUrl,
-      description: "Company information extracted from LinkedIn profile",
-      employees_count: null,
-      industry: null,
-      location: null,
-      founded_year: null,
-      website: null
-    };
+    // Try to scrape LinkedIn using RapidAPI
+    let scrapedData = null;
+    let errorMessage = null;
 
-    // Update the database record with success status and fallback data
+    try {
+      console.log("Attempting to scrape LinkedIn URL:", linkedInUrl);
+      
+      // Clean and encode the LinkedIn URL
+      const cleanUrl = linkedInUrl.trim();
+      const encodedUrl = encodeURIComponent(cleanUrl);
+      
+      const response = await fetch(`https://${RAPIDAPI_HOST}/get-linkedin-profile?linkedin_url=${encodedUrl}`, {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
+          'X-RapidAPI-Host': RAPIDAPI_HOST
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`RapidAPI error (${response.status}): ${errorText}`);
+        throw new Error(`RapidAPI error: ${response.status} - ${errorText}`);
+      }
+
+      const apiData = await response.json();
+      console.log("LinkedIn scraping response:", JSON.stringify(apiData, null, 2));
+
+      // Extract company information from the API response
+      if (apiData && apiData.data) {
+        const data = apiData.data;
+        scrapedData = {
+          name: data.name || data.company_name || "Unknown Company",
+          linkedin_url: cleanUrl,
+          description: data.description || data.about || data.company_description || "No description available",
+          employees_count: data.employees_count || data.staff_count || data.company_size || null,
+          industry: data.industry || data.sector || null,
+          location: data.location || data.headquarters || data.address || null,
+          founded_year: data.founded_year || data.founded || data.year_founded || null,
+          website: data.website || data.website_url || data.company_website || null,
+          followers_count: data.followers_count || data.followers || null,
+          company_type: data.company_type || data.type || null
+        };
+        
+        console.log("Successfully extracted company data:", scrapedData);
+      } else {
+        throw new Error("No valid data returned from LinkedIn scraping API");
+      }
+
+    } catch (error) {
+      console.log("LinkedIn scraping failed:", error.message);
+      errorMessage = error.message;
+      
+      // Try alternative approach or use basic extracted data
+      const urlParts = linkedInUrl.split('/');
+      const companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+      
+      scrapedData = {
+        name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
+        linkedin_url: linkedInUrl,
+        description: "LinkedIn company profile - full details require manual verification",
+        employees_count: null,
+        industry: null,
+        location: null,
+        founded_year: null,
+        website: null,
+        note: "Limited data - scraping service unavailable"
+      };
+    }
+
+    // Update the database record with the scraped data
     if (dbEntry?.id) {
+      const updateData = {
+        scraped_data: scrapedData,
+        status: errorMessage ? 'failed' : 'completed',
+        error_message: errorMessage
+      };
+
       const { error: updateError } = await supabase
         .from('company_scrapes')
-        .update({
-          scraped_data: mockCompanyData,
-          status: 'completed',
-          error_message: null
-        })
+        .update(updateData)
         .eq('id', dbEntry.id);
 
       if (updateError) {
-        console.log("Database update issue, but continuing:", updateError.message);
+        console.log("Database update issue:", updateError.message);
       } else {
         console.log("Company scrape data saved to database successfully");
       }
@@ -114,9 +165,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "LinkedIn URL processed successfully",
-        companyData: mockCompanyData,
-        note: "Company data extracted using optimized processing"
+        message: errorMessage ? "LinkedIn URL processed with limited data" : "LinkedIn company data scraped successfully",
+        companyData: scrapedData,
+        hasError: !!errorMessage,
+        errorMessage: errorMessage
       }),
       {
         status: 200,
@@ -125,27 +177,16 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.log("Function completed with fallback data due to:", error.message || String(error));
+    console.log("Function error:", error.message || String(error));
     
-    // Always return success with fallback data to prevent frontend errors
     return new Response(
       JSON.stringify({ 
-        success: true,
-        message: "LinkedIn URL processed with fallback approach",
-        companyData: {
-          name: "Company Information",
-          linkedin_url: null,
-          description: "Company details processed successfully",
-          employees_count: null,
-          industry: null,
-          location: null,
-          founded_year: null,
-          website: null
-        },
-        note: "Processing completed using fallback method"
+        success: false,
+        error: error.message || "Unknown error occurred",
+        message: "Failed to process LinkedIn URL"
       }),
       {
-        status: 200,
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
