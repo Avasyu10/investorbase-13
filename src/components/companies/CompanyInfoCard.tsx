@@ -1,10 +1,12 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Globe, TrendingUp, Briefcase } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Globe, TrendingUp, Briefcase, Info, Loader2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useCompanyScraping } from "@/hooks/useCompanyScraping";
 
 type CompanyInfoProps = {
   website?: string;
@@ -32,6 +34,7 @@ export function CompanyInfoCard({
   companyLinkedInUrl
 }: CompanyInfoProps) {
   const { id } = useParams<{ id: string }>();
+  const { scrapeData, scrapeMutation, hasLinkedInUrl, isScrapingInProgress } = useCompanyScraping(id || "");
 
   // Use introduction or description (for backward compatibility)
   const displayIntroduction = introduction || description || "No detailed information available for this company.";
@@ -44,6 +47,10 @@ export function CompanyInfoCard({
   const websiteUrl = website && website !== "https://example.com" 
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
+
+  const handleMoreInformation = () => {
+    scrapeMutation.mutate();
+  };
 
   // Check if LinkedIn scraping already exists for this company
   const { data: existingScrape } = useQuery({
@@ -85,6 +92,36 @@ export function CompanyInfoCard({
             </p>
           </div>
           
+          {/* Show scraped LinkedIn data if available */}
+          {scrapeData?.status === 'completed' && scrapeData.scraped_data && (
+            <div className="mb-6 p-4 bg-green-50 rounded-lg">
+              <h4 className="font-medium mb-3">Additional Company Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                {scrapeData.scraped_data.employees_count && (
+                  <div>
+                    <span className="font-medium">Employees:</span> {scrapeData.scraped_data.employees_count}
+                  </div>
+                )}
+                {scrapeData.scraped_data.location && (
+                  <div>
+                    <span className="font-medium">Location:</span> {scrapeData.scraped_data.location}
+                  </div>
+                )}
+                {scrapeData.scraped_data.founded_year && (
+                  <div>
+                    <span className="font-medium">Founded:</span> {scrapeData.scraped_data.founded_year}
+                  </div>
+                )}
+                {scrapeData.scraped_data.description && (
+                  <div className="md:col-span-2">
+                    <span className="font-medium">Description:</span>
+                    <p className="mt-1 text-muted-foreground">{scrapeData.scraped_data.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           {/* Company Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
@@ -116,9 +153,32 @@ export function CompanyInfoCard({
             
             <div className="flex items-center gap-2">
               <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium">Industry</p>
-                <p className="text-sm text-muted-foreground">{industry}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">{industry}</p>
+                  {hasLinkedInUrl && !scrapeData && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleMoreInformation}
+                      disabled={isScrapingInProgress}
+                      className="h-6 px-2 text-xs"
+                    >
+                      {isScrapingInProgress ? (
+                        <>
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Info className="mr-1 h-3 w-3" />
+                          More Information
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
