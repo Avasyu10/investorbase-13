@@ -49,7 +49,7 @@ export function CompanyInfoCard({
     : null;
 
   // Check if we have scraped data available
-  const { data: scrapeData } = useQuery({
+  const { data: scrapeData, isLoading: isLoadingScrapeData } = useQuery({
     queryKey: ['company-scrape', id],
     queryFn: async () => {
       if (!id) return null;
@@ -67,12 +67,18 @@ export function CompanyInfoCard({
         return null;
       }
 
+      console.log('Scrape data fetched:', data);
       return data;
     },
     enabled: !!id,
   });
 
-  const hasScrapedData = scrapeData?.scraped_data;
+  // Check if scraped data exists and has actual content
+  const hasScrapedData = scrapeData?.scraped_data && 
+    typeof scrapeData.scraped_data === 'object' && 
+    Object.keys(scrapeData.scraped_data).length > 0;
+
+  console.log('hasScrapedData:', hasScrapedData, 'scrapeData:', scrapeData);
 
   const handleMoreInformation = () => {
     setDialogOpen(true);
@@ -91,7 +97,7 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyName}</h4>
-              {hasScrapedData && (
+              {!isLoadingScrapeData && hasScrapedData && (
                 <Button
                   variant="outline"
                   onClick={handleMoreInformation}
@@ -100,6 +106,11 @@ export function CompanyInfoCard({
                   <Info className="mr-2 h-4 w-4" />
                   More Information
                 </Button>
+              )}
+              {!isLoadingScrapeData && !hasScrapedData && (
+                <div className="text-xs text-muted-foreground">
+                  No additional information available
+                </div>
               )}
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
