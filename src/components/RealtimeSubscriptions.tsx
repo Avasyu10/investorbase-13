@@ -1,9 +1,12 @@
 
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export function RealtimeSubscriptions() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     console.log('Setting up realtime subscription for email_pitch_submissions');
     
@@ -105,8 +108,8 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // Enhanced BARC form submissions realtime subscription - GLOBAL STATUS UPDATES
-    console.log('🎯 Setting up ENHANCED BARC form submissions realtime subscription...');
+    // Enhanced BARC form submissions realtime subscription - WITH AUTO-NAVIGATION
+    console.log('🎯 Setting up ENHANCED BARC form submissions realtime subscription with auto-navigation...');
     
     const barcChannel = supabase
       .channel('barc_form_submissions_enhanced')
@@ -158,6 +161,7 @@ export function RealtimeSubscriptions() {
           const newStatus = payload.new.analysis_status;
           const companyName = payload.new.company_name;
           const submissionId = payload.new.id;
+          const companyId = payload.new.company_id;
           
           // Show toast notifications for status changes
           if (oldStatus !== newStatus) {
@@ -169,17 +173,29 @@ export function RealtimeSubscriptions() {
                 description: `Analysis is now running for ${companyName}`,
               });
             } else if (newStatus === 'completed') {
+              console.log('🎉 Analysis completed! Auto-navigating to company page...');
+              
               toast({
                 title: '✅ Analysis Completed',
-                description: `Analysis successfully completed for ${companyName}`,
+                description: `Analysis successfully completed for ${companyName}. Redirecting to company page...`,
               });
               
-              // Show additional info if company was created
-              if (payload.new.company_id) {
+              // AUTO-NAVIGATE TO COMPANY PAGE WHEN ANALYSIS COMPLETES
+              if (companyId) {
+                console.log(`🔗 Navigating to company page: /company/${companyId}`);
+                
+                // Add a small delay to allow the toast to be seen
+                setTimeout(() => {
+                  navigate(`/company/${companyId}`);
+                }, 2000);
+              } else {
+                console.warn('⚠️ Analysis completed but no company_id found. Cannot navigate.');
+                
+                // Show additional info that company was created but we need to refresh
                 setTimeout(() => {
                   toast({
                     title: '🏢 Company Profile Created',
-                    description: `${companyName} has been added to your prospects.`,
+                    description: `${companyName} has been added to your prospects. Please check the Prospects tab.`,
                   });
                 }, 1000);
               }
@@ -198,6 +214,7 @@ export function RealtimeSubscriptions() {
               submissionId,
               oldStatus,
               newStatus,
+              companyId,
               submission: payload.new 
             }
           }));
@@ -207,7 +224,7 @@ export function RealtimeSubscriptions() {
         console.log('📡 Enhanced BARC submissions realtime subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Enhanced BARC realtime subscription is ACTIVE');
+          console.log('✅ Enhanced BARC realtime subscription with auto-navigation is ACTIVE');
         } else if (status === 'CLOSED') {
           console.log('❌ Enhanced BARC realtime subscription CLOSED');
         } else if (status === 'CHANNEL_ERROR') {
@@ -221,7 +238,7 @@ export function RealtimeSubscriptions() {
       supabase.removeChannel(emailChannel);
       supabase.removeChannel(barcChannel);
     };
-  }, []);
+  }, [navigate]);
 
   // This component doesn't render anything
   return null;

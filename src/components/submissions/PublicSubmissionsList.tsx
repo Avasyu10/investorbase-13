@@ -81,11 +81,11 @@ export function PublicSubmissionsList() {
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
 
-  // Enhanced realtime subscription for BARC form submission updates
+  // Enhanced realtime subscription for BARC form submission updates with auto-navigation
   useEffect(() => {
     if (!user) return;
 
-    console.log('Setting up enhanced real-time subscription for BARC form submissions in submissions list');
+    console.log('Setting up enhanced real-time subscription for BARC form submissions in submissions list with auto-navigation');
     
     // Listen for custom events from the global realtime subscription
     const handleSubmissionAdded = (event: CustomEvent) => {
@@ -98,7 +98,7 @@ export function PublicSubmissionsList() {
       fetchSubmissions(); // Refresh the submissions list
       
       // Update local state immediately for smooth transitions
-      const { submissionId, newStatus, submission } = event.detail;
+      const { submissionId, newStatus, companyId, submission } = event.detail;
       
       setSubmissions(prev => prev.map(sub => {
         if (sub.id === submissionId && sub.source === 'barc_form') {
@@ -109,6 +109,16 @@ export function PublicSubmissionsList() {
         }
         return sub;
       }));
+
+      // Handle auto-navigation when analysis completes
+      if (newStatus === 'completed' && companyId) {
+        console.log('🎉 Analysis completed in submissions list, navigating to company...');
+        
+        // Navigate to company page after a short delay
+        setTimeout(() => {
+          navigate(`/company/${companyId}`);
+        }, 2500);
+      }
 
       // Remove from analyzing set if analysis completed
       if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
@@ -141,6 +151,7 @@ export function PublicSubmissionsList() {
           const updatedSubmission = payload.new;
           const newStatus = updatedSubmission.analysis_status;
           const submissionId = updatedSubmission.id;
+          const companyId = updatedSubmission.company_id;
           
           // Update the submissions state immediately
           setSubmissions(prev => prev.map(submission => {
@@ -152,6 +163,14 @@ export function PublicSubmissionsList() {
             }
             return submission;
           }));
+
+          // Handle auto-navigation for direct realtime updates too
+          if (newStatus === 'completed' && companyId) {
+            console.log('🎉 Analysis completed via direct realtime in submissions list, navigating to company...');
+            setTimeout(() => {
+              navigate(`/company/${companyId}`);
+            }, 2500);
+          }
 
           // Remove from analyzing set when analysis completes
           if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
@@ -171,7 +190,7 @@ export function PublicSubmissionsList() {
           } else if (newStatus === 'completed') {
             toast({
               title: "Analysis completed",
-              description: `Analysis successfully completed for ${updatedSubmission.company_name}`,
+              description: `Analysis successfully completed for ${updatedSubmission.company_name}. Redirecting to company page...`,
             });
           } else if (newStatus === 'failed' || newStatus === 'error') {
             toast({
@@ -190,7 +209,7 @@ export function PublicSubmissionsList() {
       window.removeEventListener('barcSubmissionUpdated', handleSubmissionUpdated as EventListener);
       supabase.removeChannel(channel);
     };
-  }, [user, toast]);
+  }, [user, toast, navigate]);
 
   const fetchSubmissions = async () => {
     try {
@@ -428,7 +447,7 @@ export function PublicSubmissionsList() {
         
         const loadingToast = toast({
           title: "Analyzing submission...",
-          description: "This may take a few moments. Please wait...",
+          description: "This may take a few moments. You will be automatically redirected when complete.",
           id: `analysis-${submission.id}`,
         });
         
@@ -444,12 +463,14 @@ export function PublicSubmissionsList() {
         if (result && result.success && result.companyId) {
           toast({
             title: "Analysis completed successfully!",
-            description: "Company has been created and analyzed.",
+            description: "Redirecting to company page...",
           });
           
           // Navigate directly to the company page
           console.log(`Navigating to company: ${result.companyId}`);
-          navigate(`/company/${result.companyId}`);
+          setTimeout(() => {
+            navigate(`/company/${result.companyId}`);
+          }, 2000);
         } else {
           throw new Error(result?.message || "Analysis completed but no result was returned");
         }
@@ -541,7 +562,7 @@ export function PublicSubmissionsList() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">New Applications</h1>
         <p className="text-muted-foreground">
-          Review and analyze new applications from your submission forms
+          Review and analyze new applications from your submission forms. Analysis results will automatically open when complete.
         </p>
       </div>
 
