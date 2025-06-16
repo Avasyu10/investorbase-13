@@ -1,10 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// CORS headers for cross-origin requests - updated to include x-app-version
+// CORS headers for cross-origin requests - comprehensive header allowlist
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, accept, accept-language, cache-control, pragma',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 // CoreSignal API configuration
@@ -14,7 +16,11 @@ const CORESIGNAL_API_KEY = Deno.env.get('CORESIGNAL_API_KEY');
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Handling CORS preflight request");
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200 
+    });
   }
 
   try {
