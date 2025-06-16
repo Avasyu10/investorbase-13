@@ -81,16 +81,40 @@ serve(async (req) => {
       
       // Clean and encode the LinkedIn URL
       const cleanUrl = linkedInUrl.trim();
-      const encodedUrl = encodeURIComponent(cleanUrl);
+      console.log("Clean URL:", cleanUrl);
       
-      const response = await fetch(`https://${RAPIDAPI_HOST}/get-linkedin-profile?linkedin_url=${encodedUrl}`, {
+      // For company pages, we need to use the company profile endpoint
+      const isCompanyUrl = cleanUrl.includes('/company/');
+      
+      if (!isCompanyUrl) {
+        throw new Error("Invalid LinkedIn company URL format");
+      }
+
+      // Extract company slug from URL
+      const urlParts = cleanUrl.split('/company/')[1];
+      const companySlug = urlParts ? urlParts.split('/')[0] : null;
+      
+      if (!companySlug) {
+        throw new Error("Could not extract company identifier from LinkedIn URL");
+      }
+
+      console.log("Extracted company slug:", companySlug);
+      
+      // Use the correct RapidAPI endpoint for company data
+      const apiUrl = `https://${RAPIDAPI_HOST}/get-company-profile?company_username=${companySlug}`;
+      console.log("API URL:", apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
-          'X-RapidAPI-Host': RAPIDAPI_HOST
+          'X-RapidAPI-Host': RAPIDAPI_HOST,
+          'Accept': 'application/json'
         }
       });
 
+      console.log("RapidAPI response status:", response.status);
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.log(`RapidAPI error (${response.status}): ${errorText}`);
@@ -104,21 +128,43 @@ serve(async (req) => {
       if (apiData && apiData.data) {
         const data = apiData.data;
         scrapedData = {
-          name: data.name || data.company_name || "Unknown Company",
+          name: data.name || data.company_name || data.title || "Unknown Company",
           linkedin_url: cleanUrl,
-          description: data.description || data.about || data.company_description || "No description available",
-          employees_count: data.employees_count || data.staff_count || data.company_size || null,
-          industry: data.industry || data.sector || null,
-          location: data.location || data.headquarters || data.address || null,
-          founded_year: data.founded_year || data.founded || data.year_founded || null,
-          website: data.website || data.website_url || data.company_website || null,
-          followers_count: data.followers_count || data.followers || null,
-          company_type: data.company_type || data.type || null
+          description: data.description || data.about || data.company_description || data.tagline || "No description available",
+          employees_count: data.employee_count || data.employees_count || data.staff_count || data.company_size || null,
+          industry: data.industry || data.industries?.[0] || data.sector || null,
+          location: data.location || data.headquarters || data.address || data.locations?.[0] || null,
+          founded_year: data.founded_year || data.founded || data.year_founded || data.founded_on || null,
+          website: data.website || data.website_url || data.company_website || data.external_url || null,
+          followers_count: data.followers_count || data.followers || data.follower_count || null,
+          company_type: data.company_type || data.type || data.organization_type || null,
+          logo_url: data.logo_url || data.profile_pic_url || data.image_url || null,
+          specialties: data.specialties || data.company_specialties || null,
+          phone: data.phone || data.phone_number || null
         };
         
         console.log("Successfully extracted company data:", scrapedData);
       } else {
-        throw new Error("No valid data returned from LinkedIn scraping API");
+        console.log("No data in API response, checking for alternative structure");
+        
+        // Try alternative data structures
+        if (apiData.name || apiData.company_name) {
+          scrapedData = {
+            name: apiData.name || apiData.company_name || "Unknown Company",
+            linkedin_url: cleanUrl,
+            description: apiData.description || apiData.about || "No description available",
+            employees_count: apiData.employee_count || apiData.employees_count || null,
+            industry: apiData.industry || null,
+            location: apiData.location || apiData.headquarters || null,
+            founded_year: apiData.founded_year || apiData.founded || null,
+            website: apiData.website || apiData.website_url || null,
+            followers_count: apiData.followers_count || apiData.followers || null,
+            company_type: apiData.company_type || apiData.type || null
+          };
+          console.log("Extracted from alternative structure:", scrapedData);
+        } else {
+          throw new Error("No valid company data returned from LinkedIn scraping API");
+        }
       }
 
     } catch (error) {
@@ -127,18 +173,23 @@ serve(async (req) => {
       
       // Try alternative approach or use basic extracted data
       const urlParts = linkedInUrl.split('/');
-      const companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+      let companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+      
+      // Remove trailing slash if present
+      if (companySlug === '') {
+        companySlug = urlParts[urlParts.length - 2];
+      }
       
       scrapedData = {
         name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
         linkedin_url: linkedInUrl,
-        description: "LinkedIn company profile - full details require manual verification",
+        description: "LinkedIn company profile - scraping service temporarily unavailable",
         employees_count: null,
         industry: null,
         location: null,
         founded_year: null,
         website: null,
-        note: "Limited data - scraping service unavailable"
+        note: "Limited data - scraping service error: " + errorMessage
       };
     }
 
