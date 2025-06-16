@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ export function RealtimeSubscriptions() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔥 Setting up CENTRALIZED realtime subscriptions with IMMEDIATE updates');
+    console.log('🔥 Setting up streamlined realtime subscriptions');
     
     // Email pitch submissions channel
     const emailChannel = supabase
@@ -25,7 +26,6 @@ export function RealtimeSubscriptions() {
           console.log('New email pitch submission detected:', payload);
           
           const submissionId = payload.new.id;
-          console.log(`Submission ID: ${submissionId}`);
           
           supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
             body: { 
@@ -40,12 +40,8 @@ export function RealtimeSubscriptions() {
               console.error('Error from auto-analyze function:', response.error);
               
               let errorMsg = response.error.message || 'Unknown error';
-              let errorDetails = '';
               
               try {
-                if (typeof response.error === 'object' && response.error.context) {
-                  errorDetails = ` - ${JSON.stringify(response.error.context)}`;
-                }
                 if (typeof response.error.message === 'string' && response.error.message.includes('{')) {
                   const jsonPart = response.error.message.substring(response.error.message.indexOf('{'));
                   const parsedError = JSON.parse(jsonPart);
@@ -59,7 +55,7 @@ export function RealtimeSubscriptions() {
               
               toast({
                 title: 'Error processing submission',
-                description: `Failed to analyze submission: ${errorMsg}${errorDetails}`,
+                description: `Failed to analyze submission: ${errorMsg}`,
                 variant: "destructive"
               });
               return;
@@ -79,10 +75,6 @@ export function RealtimeSubscriptions() {
             
             let errorMessage = error.message || 'Unknown error';
             
-            if (typeof error === 'object' && error.context) {
-              console.error('Error context:', error.context);
-            }
-            
             if (errorMessage.includes('blocked by CORS policy')) {
               errorMessage = 'Access blocked by CORS policy. Please check your server configuration.';
             }
@@ -99,9 +91,9 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // BARC form submissions channel - ENHANCED for immediate updates
+    // BARC form submissions channel - simplified and focused
     const barcChannel = supabase
-      .channel('barc_submissions_central_updates')
+      .channel('barc_submissions_realtime')
       .on(
         'postgres_changes',
         {
@@ -110,7 +102,7 @@ export function RealtimeSubscriptions() {
           table: 'barc_form_submissions'
         },
         (payload) => {
-          console.log('🚀 CENTRAL BARC Update received:', payload);
+          console.log('🚀 BARC Update received:', payload);
           
           const newStatus = payload.new.analysis_status;
           const oldStatus = payload.old?.analysis_status;
@@ -118,78 +110,44 @@ export function RealtimeSubscriptions() {
           const companyName = payload.new.company_name;
           const companyId = payload.new.company_id;
           
-          console.log(`📊 Status change detected: ${submissionId} from ${oldStatus} to ${newStatus}`);
+          console.log(`📊 Status change: ${submissionId} from ${oldStatus} to ${newStatus}`);
           
-          // IMMEDIATE broadcast custom event FIRST - this is critical for UI updates
-          console.log('📢 Broadcasting IMMEDIATE custom event');
-          window.dispatchEvent(new CustomEvent('barcStatusUpdate', {
+          // Broadcast focused custom event for immediate UI updates
+          window.dispatchEvent(new CustomEvent('barcStatusChange', {
             detail: {
               submissionId,
-              oldStatus,
-              newStatus,
-              companyName,
-              companyId
+              status: newStatus,
+              companyId,
+              companyName
             }
           }));
           
-          // THEN handle cache invalidation (don't wait for it)
-          console.log('💥 Scheduling cache invalidation...');
-          
-          // Use a small timeout to let UI update first, then invalidate cache
+          // Invalidate cache after a small delay to let UI update first
           setTimeout(async () => {
-            try {
-              // Invalidate all related queries
-              await Promise.all([
-                queryClient.invalidateQueries({ 
-                  queryKey: ['barc-submissions'],
-                  refetchType: 'all'
-                }),
-                queryClient.invalidateQueries({ 
-                  queryKey: ['public-submissions'],
-                  refetchType: 'all'
-                })
-              ]);
-              
-              // Force refetch for active queries
-              await Promise.all([
-                queryClient.refetchQueries({ 
-                  queryKey: ['barc-submissions'],
-                  type: 'active'
-                }),
-                queryClient.refetchQueries({ 
-                  queryKey: ['public-submissions'],
-                  type: 'active'
-                })
-              ]);
-              
-              console.log('✅ Cache invalidation completed');
-            } catch (error) {
-              console.error('❌ Cache invalidation error:', error);
-            }
-          }, 100); // Small delay to prioritize UI update
-          
-          // Show status notifications
-          if (newStatus === 'processing' && oldStatus !== 'processing') {
-            toast({
-              title: "Analysis started",
-              description: `Analysis is now running for ${companyName}`,
+            await queryClient.invalidateQueries({ 
+              queryKey: ['barc-submissions'],
+              refetchType: 'all'
             });
-          } else if (newStatus === 'completed' && oldStatus !== 'completed') {
+            
+            await queryClient.invalidateQueries({ 
+              queryKey: ['public-submissions'],
+              refetchType: 'all'
+            });
+          }, 100);
+          
+          // Show notifications for status changes
+          if (newStatus === 'completed' && oldStatus !== 'completed') {
             toast({
               title: "✅ Analysis completed!",
               description: `Analysis successfully completed for ${companyName}`,
             });
             
-            // Auto-navigation to company page
             if (companyId) {
-              console.log(`🚀 AUTO-NAVIGATING to company page: ${companyId}`);
-              
               setTimeout(() => {
                 toast({
                   title: "Redirecting to Company Page",
                   description: `Taking you to ${companyName}'s detailed analysis...`,
                 });
-                
                 navigate(`/company/${companyId}`);
               }, 2000);
             }
@@ -212,50 +170,34 @@ export function RealtimeSubscriptions() {
         (payload) => {
           console.log('🆕 New BARC submission detected:', payload);
           
-          // Immediate custom event broadcast
+          // Broadcast new submission event
           window.dispatchEvent(new CustomEvent('barcNewSubmission', {
             detail: payload.new
           }));
           
-          // Then handle cache invalidation
+          // Invalidate cache
           setTimeout(async () => {
-            try {
-              await Promise.all([
-                queryClient.invalidateQueries({ 
-                  queryKey: ['barc-submissions'],
-                  refetchType: 'all'
-                }),
-                queryClient.invalidateQueries({ 
-                  queryKey: ['public-submissions'],
-                  refetchType: 'all'
-                })
-              ]);
-            } catch (error) {
-              console.error('❌ New submission cache invalidation error:', error);
-            }
+            await queryClient.invalidateQueries({ 
+              queryKey: ['barc-submissions'],
+              refetchType: 'all'
+            });
+            await queryClient.invalidateQueries({ 
+              queryKey: ['public-submissions'],
+              refetchType: 'all'
+            });
           }, 100);
         }
       )
       .subscribe((status) => {
-        console.log('📡 Central BARC realtime status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Central BARC realtime subscription is ACTIVE');
-        } else if (status === 'CLOSED') {
-          console.log('❌ Central BARC realtime subscription CLOSED');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('💥 Central BARC realtime subscription ERROR');
-        }
+        console.log('📡 BARC realtime status:', status);
       });
 
-    // Return cleanup function
     return () => {
-      console.log('🧹 Cleaning up CENTRALIZED realtime subscriptions');
+      console.log('🧹 Cleaning up realtime subscriptions');
       supabase.removeChannel(emailChannel);
       supabase.removeChannel(barcChannel);
     };
   }, [navigate, queryClient]);
 
-  // This component doesn't render anything
   return null;
 }

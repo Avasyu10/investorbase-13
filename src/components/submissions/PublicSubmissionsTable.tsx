@@ -67,55 +67,7 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   }
 
   const handleAnalyze = async (submission: PublicSubmission) => {
-    console.log('PublicSubmissionsTable handleAnalyze called with:', submission);
-    
-    // For BARC submissions, handle the complete analysis flow
-    if (submission.source === "barc_form") {
-      console.log('Handling BARC submission analysis for:', submission.id);
-      
-      try {
-        // Call the passed onAnalyze callback to handle loading state
-        onAnalyze(submission);
-        
-        console.log('Starting BARC analysis and waiting for completion...');
-        
-        // Call the BARC analysis function and wait for completion
-        const result = await analyzeBarcSubmission(submission.id);
-        
-        console.log('BARC analysis result:', result);
-        
-        if (result?.success && result?.companyId) {
-          toast.success("Analysis completed successfully!", {
-            description: "Company has been created and analyzed."
-          });
-          
-          // Navigate directly to the company details page
-          console.log('Navigating to company:', result.companyId);
-          navigate(`/company/${result.companyId}`);
-        } else {
-          throw new Error(result?.message || 'Analysis failed - no company created');
-        }
-        
-      } catch (error) {
-        console.error('BARC analysis failed:', error);
-        
-        const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-        toast.error("Analysis failed", {
-          description: errorMessage
-        });
-        
-        // Re-throw to let parent component handle cleanup
-        throw error;
-      }
-      return;
-    }
-
-    // Handle other submission types
-    if (!submission.report_id) {
-      throw new Error("No report ID found for this submission");
-    }
-
-    // Call the original onAnalyze callback for other submission types
+    console.log('Table handleAnalyze called for:', submission.id, 'Source:', submission.source);
     onAnalyze(submission);
   };
 
@@ -185,6 +137,18 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
   const getAnalysisStatus = (submission: PublicSubmission) => {
     const status = submission.analysis_status;
     
+    // Check if currently being analyzed
+    const isCurrentlyAnalyzing = analyzingSubmissions.has(submission.id);
+    
+    if (isCurrentlyAnalyzing || status === 'processing') {
+      return (
+        <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Processing
+        </Badge>
+      );
+    }
+    
     switch (status) {
       case 'completed':
         return (
@@ -199,13 +163,6 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
           <Badge variant="outline" className="flex items-center gap-1 bg-red-50 text-red-700 border-red-200">
             <XCircle className="h-3 w-3" />
             Failed
-          </Badge>
-        );
-      case 'processing':
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            In Progress
           </Badge>
         );
       case 'pending':
@@ -228,7 +185,8 @@ export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmis
     
     // For non-IIT Bombay users, show button based on submission type and status
     if (submission.source === "barc_form") {
-      return submission.analysis_status === 'pending' || submission.analysis_status === 'failed';
+      const isAnalyzing = analyzingSubmissions.has(submission.id);
+      return !isAnalyzing && (submission.analysis_status === 'pending' || submission.analysis_status === 'failed');
     }
     
     return submission.report_id !== null;
