@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
-import { useCompanyScraping } from "@/hooks/useCompanyScraping";
 
 type CompanyInfoProps = {
   website?: string;
@@ -21,6 +20,11 @@ type CompanyInfoProps = {
   companyName?: string; // Added to display company name in description
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
 };
+
+interface BarcSubmission {
+  id: string;
+  company_linkedin_url: string | null;
+}
 
 export function CompanyInfoCard({
   website = "https://example.com",
@@ -37,9 +41,6 @@ export function CompanyInfoCard({
   const { id } = useParams<{ id: string }>();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Use the scraping hook to get scrape data and handle automatic scraping
-  const { scrapeData, isLoading: isLoadingScrapeData } = useCompanyScraping(id || "");
-
   // Use introduction or description (for backward compatibility)
   const displayIntroduction = introduction || description || "No detailed information available for this company.";
 
@@ -52,12 +53,29 @@ export function CompanyInfoCard({
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
 
-  // Check if scraped data exists and has actual content
-  const hasScrapedData = scrapeData?.scraped_data && 
-    typeof scrapeData.scraped_data === 'object' && 
-    Object.keys(scrapeData.scraped_data).length > 0;
+  // Fetch BARC submission to get the LinkedIn URL
+  const { data: barcSubmission } = useQuery({
+    queryKey: ['barc-submission', id],
+    queryFn: async () => {
+      if (!id) return null;
+      
+      const { data, error } = await supabase
+        .from('barc_form_submissions')
+        .select('id, company_linkedin_url')
+        .eq('company_id', id)
+        .maybeSingle();
 
-  console.log('hasScrapedData:', hasScrapedData, 'scrapeData:', scrapeData);
+      if (error) {
+        console.error('Error fetching BARC submission:', error);
+        return null;
+      }
+
+      return data as BarcSubmission | null;
+    },
+    enabled: !!id,
+  });
+
+  const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
 
   const handleMoreInformation = () => {
     setDialogOpen(true);
@@ -76,7 +94,7 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyName}</h4>
-              {!isLoadingScrapeData && hasScrapedData && (
+              {hasLinkedInUrl && (
                 <Button
                   variant="outline"
                   onClick={handleMoreInformation}
@@ -85,11 +103,6 @@ export function CompanyInfoCard({
                   <Info className="mr-2 h-4 w-4" />
                   More Information
                 </Button>
-              )}
-              {!isLoadingScrapeData && !hasScrapedData && (
-                <div className="text-xs text-muted-foreground">
-                  No additional information available
-                </div>
               )}
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">

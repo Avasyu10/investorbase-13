@@ -2,7 +2,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
 
 interface CompanyScrapeData {
   id: string;
@@ -18,7 +17,6 @@ interface CompanyScrapeData {
 interface BarcSubmission {
   id: string;
   company_linkedin_url: string | null;
-  company_id: string | null;
 }
 
 export const useCompanyScraping = (companyId: string) => {
@@ -28,9 +26,10 @@ export const useCompanyScraping = (companyId: string) => {
   const { data: barcSubmission } = useQuery({
     queryKey: ['barc-submission', companyId],
     queryFn: async () => {
+      console.log("Fetching BARC submission for company:", companyId);
       const { data, error } = await supabase
         .from('barc_form_submissions')
-        .select('id, company_linkedin_url, company_id')
+        .select('id, company_linkedin_url')
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -39,21 +38,21 @@ export const useCompanyScraping = (companyId: string) => {
         return null;
       }
 
+      console.log("BARC submission data:", data);
       return data as BarcSubmission | null;
     },
     enabled: !!companyId,
   });
 
-  // Fetch existing scrape data for the company using the actual company ID
+  // Fetch existing scrape data for the company with aggressive polling when scraping
   const { data: scrapeData, isLoading } = useQuery({
     queryKey: ['company-scrape', companyId],
     queryFn: async () => {
-      if (!companyId) return null;
-
+      console.log("Fetching scrape data for company:", companyId);
       const { data, error } = await supabase
         .from('company_scrapes')
         .select('*')
-        .eq('company_id', companyId) // Use the actual company ID from companies table
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -63,12 +62,15 @@ export const useCompanyScraping = (companyId: string) => {
         throw error;
       }
 
+      console.log("Scrape data fetched:", data);
       return data as CompanyScrapeData | null;
     },
     enabled: !!companyId,
     refetchInterval: (query) => {
-      // Poll every 2 seconds if scraping is in progress
-      const isProcessing = query.state.data?.status === 'processing';
+      // Poll every 2 seconds if scraping is in progress or pending
+      const data = query.state.data as CompanyScrapeData | null;
+      const isProcessing = data?.status === 'processing' || data?.status === 'pending';
+      console.log("Refetch interval check:", { status: data?.status, isProcessing });
       return isProcessing ? 2000 : false;
     },
     refetchIntervalInBackground: true,
@@ -86,7 +88,7 @@ export const useCompanyScraping = (companyId: string) => {
       const { data, error } = await supabase.functions.invoke('scraped_company_details', {
         body: { 
           linkedInUrl: barcSubmission.company_linkedin_url,
-          companyId: companyId // Use the actual company ID from companies table
+          companyId: companyId
         }
       });
 
@@ -99,6 +101,7 @@ export const useCompanyScraping = (companyId: string) => {
         throw new Error(data.error);
       }
 
+      console.log("Function response:", data);
       return data;
     },
     onSuccess: () => {
@@ -117,24 +120,18 @@ export const useCompanyScraping = (companyId: string) => {
     }
   });
 
-  // Auto-trigger scraping only when:
-  // 1. Company exists (companyId is available)
-  // 2. LinkedIn URL is available in BARC submission
-  // 3. No existing scrape data
-  // 4. Not already scraping
-  useEffect(() => {
-    if (companyId && 
-        barcSubmission?.company_linkedin_url && 
-        !scrapeData && 
-        !scrapeMutation.isPending && 
-        !isLoading) {
-      console.log("Auto-triggering scraping for company:", companyId);
-      scrapeMutation.mutate();
-    }
-  }, [companyId, barcSubmission?.company_linkedin_url, scrapeData, scrapeMutation.isPending, isLoading]);
+  // Determine if scraping is in progress (either mutation pending or status is processing/pending)
+  const isScrapingInProgress = scrapeMutation.isPending || 
+    (scrapeData?.status === 'processing') || 
+    (scrapeData?.status === 'pending');
 
-  // Determine if scraping is in progress (either mutation pending or status is processing)
-  const isScrapingInProgress = scrapeMutation.isPending || (scrapeData?.status === 'processing');
+  console.log("useCompanyScraping hook state:", {
+    companyId,
+    hasLinkedInUrl: !!barcSubmission?.company_linkedin_url,
+    scrapeData,
+    isScrapingInProgress,
+    mutationPending: scrapeMutation.isPending
+  });
 
   return {
     scrapeData,
@@ -143,6 +140,5 @@ export const useCompanyScraping = (companyId: string) => {
     linkedInUrl: barcSubmission?.company_linkedin_url || null,
     hasLinkedInUrl: !!barcSubmission?.company_linkedin_url,
     isScrapingInProgress,
-    isCompanyLinked: !!barcSubmission?.company_id,
   };
 };

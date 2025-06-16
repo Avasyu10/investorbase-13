@@ -91,7 +91,7 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // BARC form submissions channel - Listen for analysis completion
+    // BARC form submissions channel - FIXED subscription
     const barcChannel = supabase
       .channel('barc_form_submissions_realtime')
       .on(
@@ -198,54 +198,10 @@ export function RealtimeSubscriptions() {
         }
       });
 
-    // Listen for new companies being created (after analysis completion)
-    const companiesChannel = supabase
-      .channel('companies_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'companies'
-        },
-        async (payload) => {
-          console.log('🏢 New company created:', payload);
-          
-          const companyId = payload.new.id;
-          const companyName = payload.new.name;
-          
-          console.log(`🎯 Company created with ID: ${companyId}, triggering scraping if LinkedIn URL available`);
-          
-          // Invalidate company-related queries
-          await queryClient.invalidateQueries({ 
-            queryKey: ['companies'],
-            refetchType: 'all'
-          });
-          
-          // Trigger scraping hook refresh for this company
-          await queryClient.invalidateQueries({ 
-            queryKey: ['barc-submission', companyId],
-            refetchType: 'all'
-          });
-          
-          toast({
-            title: "✅ Company created!",
-            description: `Company "${companyName}" has been created and additional data scraping is starting...`,
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Companies realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Companies realtime subscription active');
-        }
-      });
-
     return () => {
       console.log('🧹 Cleaning up realtime subscriptions');
       supabase.removeChannel(emailChannel);
       supabase.removeChannel(barcChannel);
-      supabase.removeChannel(companiesChannel);
     };
   }, [navigate, queryClient]);
 

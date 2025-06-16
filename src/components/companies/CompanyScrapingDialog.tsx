@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Users, Calendar, MapPin, Globe, ExternalLink, X, CheckCircle } from "lucide-react";
+import { Loader2, Building2, Users, Calendar, MapPin, Globe, ExternalLink, X, CheckCircle } from "lucide-react";
 import { useCompanyScraping } from "@/hooks/useCompanyScraping";
-import { ScrapedCompanyData } from "@/types/company-scrape";
+import { toast } from "@/hooks/use-toast";
 
 interface CompanyScrapingDialogProps {
   companyId: string;
@@ -20,22 +21,82 @@ export function CompanyScrapingDialog({
   open, 
   onOpenChange 
 }: CompanyScrapingDialogProps) {
-  // Use the scraping hook to get scrape data
-  const { scrapeData, isLoading } = useCompanyScraping(companyId);
+  const { scrapeData, scrapeMutation, hasLinkedInUrl, isScrapingInProgress } = useCompanyScraping(companyId);
+  const [hasTriggeredScraping, setHasTriggeredScraping] = useState(false);
+
+  // Show success toast when scraping completes
+  useEffect(() => {
+    if (scrapeData?.status === 'completed' && hasTriggeredScraping) {
+      console.log("Scraping completed successfully, showing toast");
+      toast({
+        title: "Information Retrieved",
+        description: "Company information has been successfully extracted from LinkedIn.",
+      });
+    }
+  }, [scrapeData?.status, hasTriggeredScraping]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("CompanyScrapingDialog state:", {
+      companyId,
+      hasLinkedInUrl,
+      scrapeData,
+      isScrapingInProgress,
+      hasTriggeredScraping,
+      dialogOpen: open
+    });
+  }, [companyId, hasLinkedInUrl, scrapeData, isScrapingInProgress, hasTriggeredScraping, open]);
+
+  const handleStartScraping = () => {
+    console.log("Starting scraping process for company:", companyId);
+    setHasTriggeredScraping(true);
+    if (hasLinkedInUrl) {
+      scrapeMutation.mutate();
+    }
+  };
+
+  const renderLoadingState = () => (
+    <div className="text-center py-12">
+      <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+      <h3 className="text-xl font-semibold mb-2">Analyzing Company Information</h3>
+      <p className="text-muted-foreground">
+        We're gathering detailed information about {companyName} from LinkedIn...
+      </p>
+      <div className="mt-6 space-y-2">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
+          Connecting to LinkedIn
+        </div>
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-75"></div>
+          Extracting company data
+        </div>
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-150"></div>
+          Processing information
+        </div>
+      </div>
+    </div>
+  );
 
   const renderScrapedData = () => {
-    if (!scrapeData?.scraped_data) return null;
+    console.log("Rendering scraped data:", scrapeData?.scraped_data);
+    
+    if (!scrapeData?.scraped_data) {
+      console.log("No scraped data available");
+      return null;
+    }
 
-    // Type assertion to properly type the scraped data
-    const data = scrapeData.scraped_data as ScrapedCompanyData;
+    const data = scrapeData.scraped_data;
+    console.log("Extracted data:", data);
 
     return (
-      <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+      <div className="space-y-6">
         <div className="text-center pb-4 border-b">
           <div className="flex items-center justify-center gap-2 mb-3">
             <CheckCircle className="h-6 w-6 text-green-500" />
-            <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
-              Information Available
+            <Badge variant="secondary" className="text-sm bg-green-100 text-green-800">
+              Information Retrieved
             </Badge>
           </div>
           <Building2 className="h-12 w-12 mx-auto mb-3 text-primary" />
@@ -79,7 +140,7 @@ export function CompanyScrapingDialog({
               <CardContent className="pt-0">
                 <p className="text-2xl font-bold text-primary">{data.founded_year}</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date().getFullYear() - parseInt(String(data.founded_year))} years ago
+                  {new Date().getFullYear() - parseInt(data.founded_year)} years ago
                 </p>
               </CardContent>
             </Card>
@@ -153,26 +214,106 @@ export function CompanyScrapingDialog({
     );
   };
 
+  const renderInitialState = () => (
+    <div className="text-center py-12">
+      <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+      <h3 className="text-xl font-semibold mb-2">Get Detailed Company Information</h3>
+      <p className="text-muted-foreground mb-6">
+        Click the button below to gather additional information about {companyName} from LinkedIn.
+      </p>
+      <Button 
+        onClick={handleStartScraping}
+        disabled={isScrapingInProgress || !hasLinkedInUrl}
+        className="min-w-[120px]"
+      >
+        {isScrapingInProgress ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Analyzing...
+          </>
+        ) : (
+          'Get Information'
+        )}
+      </Button>
+      {!hasLinkedInUrl && (
+        <p className="text-sm text-muted-foreground mt-4">
+          No LinkedIn URL available for this company.
+        </p>
+      )}
+    </div>
+  );
+
   const renderNoDataState = () => (
     <div className="text-center py-12">
       <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-      <h3 className="text-xl font-semibold mb-2">No Information Available</h3>
+      <h3 className="text-xl font-semibold mb-2">No LinkedIn URL Available</h3>
       <p className="text-muted-foreground">
-        No additional company information has been extracted yet for {companyName}.
+        We need a LinkedIn company URL to gather additional information about {companyName}.
       </p>
     </div>
   );
 
-  const renderLoadingState = () => (
+  const renderErrorState = () => (
     <div className="text-center py-12">
-      <div className="h-8 w-8 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      <p className="text-muted-foreground">Loading company information...</p>
+      <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+        <X className="h-6 w-6 text-destructive" />
+      </div>
+      <h3 className="text-xl font-semibold mb-2">Unable to Gather Information</h3>
+      <p className="text-muted-foreground mb-4">
+        We encountered an issue while gathering information about {companyName}.
+      </p>
+      <Button 
+        variant="outline" 
+        onClick={handleStartScraping}
+        disabled={isScrapingInProgress}
+      >
+        Try Again
+      </Button>
     </div>
   );
 
+  // Determine what content to show based on current state
+  const getDialogContent = () => {
+    console.log("Dialog state determination:", {
+      hasLinkedInUrl,
+      scrapeDataStatus: scrapeData?.status,
+      isScrapingInProgress,
+      hasScrapeData: !!scrapeData,
+      hasTriggeredScraping
+    });
+
+    // No LinkedIn URL available
+    if (!hasLinkedInUrl) {
+      console.log("Showing no data state - no LinkedIn URL");
+      return renderNoDataState();
+    }
+
+    // Currently scraping
+    if (isScrapingInProgress) {
+      console.log("Showing loading state - scraping in progress");
+      return renderLoadingState();
+    }
+
+    // Scraping completed successfully
+    if (scrapeData?.status === 'completed') {
+      console.log("Showing scraped data - scraping completed");
+      return renderScrapedData();
+    }
+
+    // Scraping failed
+    if (scrapeData?.status === 'failed') {
+      console.log("Showing error state - scraping failed");
+      return renderErrorState();
+    }
+
+    // Initial state - no scraping has been done yet
+    console.log("Showing initial state - no scraping done yet");
+    return renderInitialState();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -181,9 +322,7 @@ export function CompanyScrapingDialog({
         </DialogHeader>
         
         <div className="mt-4">
-          {isLoading && renderLoadingState()}
-          {!isLoading && scrapeData?.scraped_data && renderScrapedData()}
-          {!isLoading && !scrapeData?.scraped_data && renderNoDataState()}
+          {getDialogContent()}
         </div>
       </DialogContent>
     </Dialog>
