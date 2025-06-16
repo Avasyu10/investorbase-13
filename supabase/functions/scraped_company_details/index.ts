@@ -169,20 +169,17 @@ serve(async (req) => {
       const companyData = await collectResponse.json();
       console.log("CoreSignal collect response:", JSON.stringify(companyData, null, 2));
 
-      // Extract company information from the CoreSignal API response
+      // Extract only the most important company information
       if (companyData && companyData.id) {
-        console.log("Successfully retrieved company data from CoreSignal:", companyData.company_name || companyData.company_legal_name);
+        console.log("Successfully retrieved company data from CoreSignal");
         
-        // Parse employee count if it's a string like "10001-50000"
+        // Parse employee count - handle ranges like "10001-50000"
         let employeeCount = null;
         if (companyData.employee_count) {
           if (typeof companyData.employee_count === 'string' && companyData.employee_count.includes('-')) {
-            // Handle ranges like "10001-50000" by taking the lower bound
             employeeCount = parseInt(companyData.employee_count.split('-')[0]);
-          } else if (typeof companyData.employee_count === 'number') {
-            employeeCount = companyData.employee_count;
-          } else if (typeof companyData.employee_count === 'string') {
-            employeeCount = parseInt(companyData.employee_count);
+          } else {
+            employeeCount = parseInt(companyData.employee_count) || null;
           }
         }
 
@@ -194,50 +191,37 @@ serve(async (req) => {
           foundedYear = new Date(companyData.founded_date).getFullYear();
         }
 
+        // Extract only essential details
         scrapedData = {
           name: companyData.company_name || companyData.company_legal_name || "Unknown Company",
-          linkedin_url: cleanUrl,
-          description: companyData.description || companyData.about || companyData.company_description || companyData.tagline || "No description available",
-          employees_count: employeeCount,
-          industry: companyData.industry || (companyData.industries && companyData.industries[0]) || companyData.sector || null,
-          location: companyData.location || companyData.headquarters || companyData.address || (companyData.locations && companyData.locations[0]) || companyData.hq_location || null,
+          description: companyData.description || companyData.about || "No description available",
           founded_year: foundedYear,
-          website: companyData.website || companyData.website_url || companyData.company_website || companyData.external_url || null,
-          followers_count: companyData.followers_count || companyData.followers || companyData.follower_count || null,
-          company_type: companyData.company_type || companyData.type || companyData.organization_type || null,
-          logo_url: companyData.logo_url || companyData.profile_pic_url || companyData.image_url || null,
-          specialties: companyData.specialties || companyData.company_specialties || null,
-          phone: companyData.phone || companyData.phone_number || null,
-          facebook_url: Array.isArray(companyData.facebook_url) ? companyData.facebook_url[0] : companyData.facebook_url,
-          twitter_url: Array.isArray(companyData.twitter_url) ? companyData.twitter_url[0] : companyData.twitter_url,
-          instagram_url: Array.isArray(companyData.instagram_url) ? companyData.instagram_url[0] : companyData.instagram_url,
-          youtube_url: Array.isArray(companyData.youtube_url) ? companyData.youtube_url[0] : companyData.youtube_url,
-          crunchbase_url: companyData.crunchbase_url || null
+          employees_count: employeeCount,
+          industry: companyData.industry || (companyData.industries && companyData.industries[0]) || null,
+          website: companyData.website || companyData.website_url || null,
+          linkedin_url: cleanUrl
         };
         
-        console.log("Successfully extracted company data:", scrapedData);
+        console.log("Essential company data extracted:", scrapedData);
       } else {
-        console.log("No valid company data found in CoreSignal collect response");
+        console.log("No valid company data found in CoreSignal response");
         
         // Create fallback data when no results found
         const urlParts = linkedInUrl.split('/');
         let companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
         
-        // Remove trailing slash if present
         if (companySlug === '') {
           companySlug = urlParts[urlParts.length - 2];
         }
         
         scrapedData = {
           name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
-          linkedin_url: linkedInUrl,
-          description: "LinkedIn company profile - no detailed data found in CoreSignal",
+          description: "No detailed information available",
+          founded_year: null,
           employees_count: null,
           industry: null,
-          location: null,
-          founded_year: null,
           website: null,
-          note: "Limited data - no match found in CoreSignal database"
+          linkedin_url: linkedInUrl
         };
       }
 
@@ -249,21 +233,18 @@ serve(async (req) => {
       const urlParts = linkedInUrl.split('/');
       let companySlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
       
-      // Remove trailing slash if present
       if (companySlug === '') {
         companySlug = urlParts[urlParts.length - 2];
       }
       
       scrapedData = {
         name: companySlug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Company",
-        linkedin_url: linkedInUrl,
-        description: "LinkedIn company profile - CoreSignal API temporarily unavailable",
+        description: "CoreSignal API temporarily unavailable",
+        founded_year: null,
         employees_count: null,
         industry: null,
-        location: null,
-        founded_year: null,
         website: null,
-        note: "Limited data - CoreSignal API error: " + errorMessage
+        linkedin_url: linkedInUrl
       };
     }
 
@@ -290,7 +271,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: errorMessage ? "LinkedIn URL processed with limited data" : "LinkedIn company data scraped successfully using CoreSignal",
+        message: errorMessage ? "LinkedIn URL processed with limited data" : "Essential company data scraped successfully",
         companyData: scrapedData,
         hasError: !!errorMessage,
         errorMessage: errorMessage
