@@ -21,9 +21,9 @@ type CompanyInfoProps = {
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
 };
 
-interface BarcSubmission {
+interface Company {
   id: string;
-  company_linkedin_url: string | null;
+  name: string;
 }
 
 export function CompanyInfoCard({
@@ -53,16 +53,41 @@ export function CompanyInfoCard({
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
 
-  // Fetch BARC submission to get the LinkedIn URL
-  const { data: barcSubmission } = useQuery({
-    queryKey: ['barc-submission', id],
+  // First, get the company data from the companies table to ensure we have the correct company ID
+  const { data: companyData } = useQuery({
+    queryKey: ['company-data', id],
     queryFn: async () => {
       if (!id) return null;
       
+      console.log("Fetching company data for ID:", id);
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching company data:', error);
+        return null;
+      }
+
+      console.log("Company data fetched:", data);
+      return data as Company;
+    },
+    enabled: !!id,
+  });
+
+  // Now fetch BARC submission using the company ID from the companies table
+  const { data: barcSubmission } = useQuery({
+    queryKey: ['barc-submission', companyData?.id],
+    queryFn: async () => {
+      if (!companyData?.id) return null;
+      
+      console.log("Fetching BARC submission for company ID:", companyData.id);
       const { data, error } = await supabase
         .from('barc_form_submissions')
         .select('id, company_linkedin_url')
-        .eq('company_id', id)
+        .eq('company_id', companyData.id)
         .maybeSingle();
 
       if (error) {
@@ -70,9 +95,10 @@ export function CompanyInfoCard({
         return null;
       }
 
-      return data as BarcSubmission | null;
+      console.log("BARC submission data:", data);
+      return data;
     },
-    enabled: !!id,
+    enabled: !!companyData?.id,
   });
 
   const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
@@ -93,7 +119,7 @@ export function CompanyInfoCard({
           {/* Company Description with More Information Button */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium">About {companyName}</h4>
+              <h4 className="font-medium">About {companyData?.name || companyName}</h4>
               {hasLinkedInUrl && (
                 <Button
                   variant="outline"
@@ -151,10 +177,10 @@ export function CompanyInfoCard({
       </Card>
 
       {/* Company Scraping Dialog */}
-      {id && (
+      {companyData?.id && (
         <CompanyScrapingDialog
-          companyId={id}
-          companyName={companyName}
+          companyId={companyData.id}
+          companyName={companyData.name || companyName}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
         />

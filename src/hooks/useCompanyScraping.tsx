@@ -22,7 +22,7 @@ interface BarcSubmission {
 export const useCompanyScraping = (companyId: string) => {
   const queryClient = useQueryClient();
 
-  // Fetch BARC submission to get the LinkedIn URL
+  // Fetch BARC submission to get the LinkedIn URL using the companies table ID
   const { data: barcSubmission } = useQuery({
     queryKey: ['barc-submission', companyId],
     queryFn: async () => {
