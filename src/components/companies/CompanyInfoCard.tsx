@@ -84,9 +84,31 @@ export function CompanyInfoCard({
       
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
-          {/* Company Description */}
+          {/* Company Description with More Information Button */}
           <div className="mb-6">
-            <h4 className="font-medium mb-2">About {companyName}</h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium">About {companyName}</h4>
+              {hasLinkedInUrl && !scrapeData && (
+                <Button
+                  variant="outline"
+                  onClick={handleMoreInformation}
+                  disabled={isScrapingInProgress}
+                  className="h-8 px-4"
+                >
+                  {isScrapingInProgress ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Info className="mr-2 h-4 w-4" />
+                      More Information
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
               {displayIntroduction}
             </p>
@@ -155,30 +177,7 @@ export function CompanyInfoCard({
               <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium">Industry</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">{industry}</p>
-                  {hasLinkedInUrl && !scrapeData && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleMoreInformation}
-                      disabled={isScrapingInProgress}
-                      className="h-6 px-2 text-xs"
-                    >
-                      {isScrapingInProgress ? (
-                        <>
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          <Info className="mr-1 h-3 w-3" />
-                          More Information
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
+                <p className="text-sm text-muted-foreground">{industry}</p>
               </div>
             </div>
           </div>
