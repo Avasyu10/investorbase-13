@@ -228,14 +228,18 @@ serve(async (req) => {
       if (companyData && companyData.id) {
         console.log("Successfully retrieved company data from CoreSignal");
         
-        // Parse employee count - handle ranges like "10001-50000"
+        // Parse employee count - handle ranges like "10001-50000" and actual numbers
         let employeeCount = null;
-        if (companyData.employee_count) {
-          if (typeof companyData.employee_count === 'string' && companyData.employee_count.includes('-')) {
-            employeeCount = companyData.employee_count; // Keep the range as string
+        if (companyData.employees_count) {
+          if (typeof companyData.employees_count === 'number') {
+            employeeCount = companyData.employees_count;
+          } else if (typeof companyData.employees_count === 'string' && companyData.employees_count.includes('-')) {
+            employeeCount = companyData.employees_count; // Keep the range as string
           } else {
-            employeeCount = parseInt(companyData.employee_count) || companyData.employee_count;
+            employeeCount = parseInt(companyData.employees_count) || companyData.employees_count;
           }
+        } else if (companyData.size_range) {
+          employeeCount = companyData.size_range;
         }
 
         // Parse founded year
@@ -246,9 +250,16 @@ serve(async (req) => {
           foundedYear = new Date(companyData.founded_date).getFullYear().toString();
         }
 
-        // Extract location
+        // Extract location - prioritize hq_full_address over other location fields
         let location = null;
-        if (companyData.location) {
+        let hqFullAddress = null;
+        
+        if (companyData.hq_full_address) {
+          hqFullAddress = companyData.hq_full_address;
+          location = companyData.hq_location || companyData.hq_city;
+        } else if (companyData.hq_location) {
+          location = companyData.hq_location;
+        } else if (companyData.location) {
           location = companyData.location;
         } else if (companyData.headquarters) {
           location = companyData.headquarters;
@@ -265,7 +276,10 @@ serve(async (req) => {
           industry: companyData.industry || (companyData.industries && companyData.industries[0]) || null,
           location: location,
           website: companyData.website || companyData.website_url || null,
-          linkedin_url: cleanUrl
+          linkedin_url: cleanUrl,
+          facebook_url: companyData.facebook_url || null,
+          instagram_url: companyData.instagram_url || null,
+          hq_full_address: hqFullAddress
         };
         
         console.log("Company data extracted successfully:", JSON.stringify(scrapedData, null, 2));
@@ -310,7 +324,10 @@ serve(async (req) => {
         industry: null,
         location: null,
         website: null,
-        linkedin_url: cleanUrl
+        linkedin_url: cleanUrl,
+        facebook_url: null,
+        instagram_url: null,
+        hq_full_address: null
       };
 
       return new Response(
