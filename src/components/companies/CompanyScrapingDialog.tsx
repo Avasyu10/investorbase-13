@@ -21,33 +21,14 @@ export function CompanyScrapingDialog({
   open, 
   onOpenChange 
 }: CompanyScrapingDialogProps) {
-  const { scrapeData, scrapeMutation, hasLinkedInUrl, isScrapingInProgress } = useCompanyScraping(companyId);
-  const [previousStatus, setPreviousStatus] = useState<string | null>(null);
-
-  // Show success toast when scraping completes
-  useEffect(() => {
-    if (scrapeData?.status === 'completed' && previousStatus === 'processing') {
-      toast({
-        title: "Information Retrieved",
-        description: "Company information has been successfully extracted from LinkedIn.",
-      });
-    }
-    setPreviousStatus(scrapeData?.status || null);
-  }, [scrapeData?.status, previousStatus]);
-
-  const handleStartScraping = () => {
-    console.log("Starting scraping process for company:", companyId);
-    if (hasLinkedInUrl) {
-      scrapeMutation.mutate();
-    }
-  };
+  const { scrapeData, isScrapingInProgress } = useCompanyScraping(companyId);
 
   const renderLoadingState = () => (
     <div className="text-center py-12">
       <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-      <h3 className="text-xl font-semibold mb-2">Analyzing Company Information</h3>
+      <h3 className="text-xl font-semibold mb-2">Gathering Company Information</h3>
       <p className="text-muted-foreground">
-        We're gathering detailed information about {companyName} from LinkedIn...
+        We're extracting detailed information about {companyName} from LinkedIn...
       </p>
       <div className="mt-6 space-y-2">
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -72,11 +53,11 @@ export function CompanyScrapingDialog({
     const data = scrapeData.scraped_data;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 max-h-[70vh] overflow-y-auto">
         <div className="text-center pb-4 border-b">
           <div className="flex items-center justify-center gap-2 mb-3">
             <CheckCircle className="h-6 w-6 text-green-500" />
-            <Badge variant="green" className="text-sm">
+            <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
               Information Retrieved
             </Badge>
           </div>
@@ -195,45 +176,6 @@ export function CompanyScrapingDialog({
     );
   };
 
-  const renderInitialState = () => (
-    <div className="text-center py-12">
-      <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-      <h3 className="text-xl font-semibold mb-2">Get Detailed Company Information</h3>
-      <p className="text-muted-foreground mb-6">
-        Click the button below to gather additional information about {companyName} from LinkedIn.
-      </p>
-      <Button 
-        onClick={handleStartScraping}
-        disabled={isScrapingInProgress || !hasLinkedInUrl}
-        className="min-w-[120px]"
-      >
-        {isScrapingInProgress ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Analyzing...
-          </>
-        ) : (
-          'Get Information'
-        )}
-      </Button>
-      {!hasLinkedInUrl && (
-        <p className="text-sm text-muted-foreground mt-4">
-          No LinkedIn URL available for this company.
-        </p>
-      )}
-    </div>
-  );
-
-  const renderNoDataState = () => (
-    <div className="text-center py-12">
-      <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-      <h3 className="text-xl font-semibold mb-2">No LinkedIn URL Available</h3>
-      <p className="text-muted-foreground">
-        We need a LinkedIn company URL to gather additional information about {companyName}.
-      </p>
-    </div>
-  );
-
   const renderErrorState = () => (
     <div className="text-center py-12">
       <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -243,19 +185,27 @@ export function CompanyScrapingDialog({
       <p className="text-muted-foreground mb-4">
         We encountered an issue while gathering information about {companyName}.
       </p>
-      <Button 
-        variant="outline" 
-        onClick={handleStartScraping}
-        disabled={isScrapingInProgress}
-      >
-        Try Again
-      </Button>
+      {scrapeData?.error_message && (
+        <p className="text-sm text-destructive mb-4">
+          Error: {scrapeData.error_message}
+        </p>
+      )}
+    </div>
+  );
+
+  const renderNoDataState = () => (
+    <div className="text-center py-12">
+      <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+      <h3 className="text-xl font-semibold mb-2">No Information Available</h3>
+      <p className="text-muted-foreground">
+        No company information has been extracted yet for {companyName}.
+      </p>
     </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -264,11 +214,10 @@ export function CompanyScrapingDialog({
         </DialogHeader>
         
         <div className="mt-4">
-          {!hasLinkedInUrl && renderNoDataState()}
-          {hasLinkedInUrl && !scrapeData && !isScrapingInProgress && renderInitialState()}
-          {hasLinkedInUrl && isScrapingInProgress && renderLoadingState()}
-          {hasLinkedInUrl && scrapeData?.status === 'completed' && renderScrapedData()}
-          {hasLinkedInUrl && scrapeData?.status === 'failed' && renderErrorState()}
+          {isScrapingInProgress && renderLoadingState()}
+          {!isScrapingInProgress && scrapeData?.status === 'completed' && renderScrapedData()}
+          {!isScrapingInProgress && scrapeData?.status === 'failed' && renderErrorState()}
+          {!isScrapingInProgress && !scrapeData && renderNoDataState()}
         </div>
       </DialogContent>
     </Dialog>

@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useEffect } from 'react';
 
 interface CompanyScrapeData {
   id: string;
@@ -112,6 +113,14 @@ export const useCompanyScraping = (companyId: string) => {
       });
     }
   });
+
+  // Auto-trigger scraping when LinkedIn URL is available but no scrape data exists
+  useEffect(() => {
+    if (barcSubmission?.company_linkedin_url && !scrapeData && !scrapeMutation.isPending && !isLoading) {
+      console.log("Auto-triggering scraping for company:", companyId);
+      scrapeMutation.mutate();
+    }
+  }, [barcSubmission?.company_linkedin_url, scrapeData, scrapeMutation.isPending, isLoading]);
 
   // Determine if scraping is in progress (either mutation pending or status is processing)
   const isScrapingInProgress = scrapeMutation.isPending || (scrapeData?.status === 'processing');

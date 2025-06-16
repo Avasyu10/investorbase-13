@@ -75,7 +75,32 @@ export function CompanyInfoCard({
     enabled: !!id,
   });
 
+  // Check if we have scraped data available
+  const { data: scrapeData } = useQuery({
+    queryKey: ['company-scrape', id],
+    queryFn: async () => {
+      if (!id) return null;
+      
+      const { data, error } = await supabase
+        .from('company_scrapes')
+        .select('*')
+        .eq('company_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching company scrape data:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!id,
+  });
+
   const hasLinkedInUrl = !!barcSubmission?.company_linkedin_url;
+  const hasScrapedData = scrapeData?.scraped_data;
 
   const handleMoreInformation = () => {
     setDialogOpen(true);
@@ -94,7 +119,7 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyName}</h4>
-              {hasLinkedInUrl && (
+              {(hasLinkedInUrl || hasScrapedData) && (
                 <Button
                   variant="outline"
                   onClick={handleMoreInformation}
