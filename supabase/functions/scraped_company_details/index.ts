@@ -16,7 +16,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // CoreSignal API configuration
-const CORESIGNAL_API_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/search/es_dsl";
+const CORESIGNAL_SEARCH_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/search/es_dsl";
+const CORESIGNAL_COLLECT_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/collect";
 const CORESIGNAL_API_KEY = "xm2kAqJbIZDVjE877BKO72AO00XNBaEk";
 
 serve(async (req) => {
@@ -72,7 +73,7 @@ serve(async (req) => {
       console.log("Database insert issue:", insertError.message);
     }
 
-    // Try to scrape LinkedIn using CoreSignal API
+    // Try to scrape LinkedIn using CoreSignal API (two-step process)
     let scrapedData = null;
     let errorMessage = null;
 
@@ -90,10 +91,10 @@ serve(async (req) => {
         throw new Error("Invalid LinkedIn company URL format");
       }
 
-      console.log("Preparing CoreSignal API request for:", cleanUrl);
+      console.log("Step 1: Making POST request to CoreSignal search API");
       
-      // Prepare the CoreSignal API request payload
-      const payload = {
+      // Step 1: POST request to search for the company
+      const searchPayload = {
         query: {
           bool: {
             must: [
@@ -108,32 +109,68 @@ serve(async (req) => {
         }
       };
 
-      console.log("CoreSignal API payload:", JSON.stringify(payload, null, 2));
+      console.log("CoreSignal search payload:", JSON.stringify(searchPayload, null, 2));
       
-      // Make the request to CoreSignal API
-      const response = await fetch(CORESIGNAL_API_URL, {
+      // Make the first request to CoreSignal API
+      const searchResponse = await fetch(CORESIGNAL_SEARCH_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': CORESIGNAL_API_KEY
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(searchPayload)
       });
 
-      console.log("CoreSignal API response status:", response.status);
+      console.log("CoreSignal search response status:", searchResponse.status);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log(`CoreSignal API error (${response.status}): ${errorText}`);
-        throw new Error(`CoreSignal API error: ${response.status} - ${errorText}`);
+      if (!searchResponse.ok) {
+        const errorText = await searchResponse.text();
+        console.log(`CoreSignal search API error (${searchResponse.status}): ${errorText}`);
+        throw new Error(`CoreSignal search API error: ${searchResponse.status} - ${errorText}`);
       }
 
-      const apiData = await response.json();
-      console.log("CoreSignal API response:", JSON.stringify(apiData, null, 2));
+      const searchData = await searchResponse.json();
+      console.log("CoreSignal search response:", JSON.stringify(searchData, null, 2));
+
+      // Extract the ID from the search response
+      let collectId = null;
+      if (Array.isArray(searchData) && searchData.length > 0) {
+        collectId = searchData[0];
+      } else if (searchData && searchData.hits && searchData.hits.hits && searchData.hits.hits.length > 0) {
+        // Handle different response format if needed
+        collectId = searchData.hits.hits[0]._id || searchData.hits.hits[0].id;
+      }
+
+      if (!collectId) {
+        console.log("No ID found in search response");
+        throw new Error("No company ID found in CoreSignal search response");
+      }
+
+      console.log("Step 2: Making GET request to collect company data with ID:", collectId);
+
+      // Step 2: GET request to collect the actual company data
+      const collectUrl = `${CORESIGNAL_COLLECT_URL}/${collectId}`;
+      const collectResponse = await fetch(collectUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CORESIGNAL_API_KEY
+        }
+      });
+
+      console.log("CoreSignal collect response status:", collectResponse.status);
+
+      if (!collectResponse.ok) {
+        const errorText = await collectResponse.text();
+        console.log(`CoreSignal collect API error (${collectResponse.status}): ${errorText}`);
+        throw new Error(`CoreSignal collect API error: ${collectResponse.status} - ${errorText}`);
+      }
+
+      const companyData = await collectResponse.json();
+      console.log("CoreSignal collect response:", JSON.stringify(companyData, null, 2));
 
       // Extract company information from the CoreSignal API response
-      if (apiData && apiData.hits && apiData.hits.hits && apiData.hits.hits.length > 0) {
-        const companyData = apiData.hits.hits[0]._source;
+      if (companyData) {
         console.log("Company data from CoreSignal:", JSON.stringify(companyData, null, 2));
         
         scrapedData = {
@@ -154,7 +191,7 @@ serve(async (req) => {
         
         console.log("Successfully extracted company data:", scrapedData);
       } else {
-        console.log("No company data found in CoreSignal response");
+        console.log("No company data found in CoreSignal collect response");
         
         // Create fallback data when no results found
         const urlParts = linkedInUrl.split('/');
