@@ -11,6 +11,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { analyzeReport } from "@/lib/supabase/analysis";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBarcSubmissionPolling } from "@/hooks/useBarcSubmissionPolling";
 
 interface PublicSubmission {
   id: string;
@@ -75,20 +76,73 @@ export function PublicSubmissionsList() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState<PublicSubmission | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const [analyzingSubmissions, setAnalyzingSubmissions] = useState<Set<string>>(new Set());
+  const [currentlyAnalyzingBarcId, setCurrentlyAnalyzingBarcId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast, dismiss } = useToast();
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
   const queryClient = useQueryClient();
 
+  // Handle BARC polling status updates
+  const handleBarcPollingStatusChange = (status: string, companyId?: string) => {
+    console.log(`📈 BARC Polling detected status change: ${status}, companyId: ${companyId}`);
+    
+    // Update the submissions state immediately
+    setSubmissions(prev => {
+      return prev.map(submission => {
+        if (submission.id === currentlyAnalyzingBarcId && submission.source === 'barc_form') {
+          return {
+            ...submission,
+            analysis_status: status
+          };
+        }
+        return submission;
+      });
+    });
+
+    // Remove from analyzing set
+    if (currentlyAnalyzingBarcId) {
+      setAnalyzingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(currentlyAnalyzingBarcId);
+        return newSet;
+      });
+      setCurrentlyAnalyzingBarcId(null);
+    }
+
+    // Show completion message and navigate if successful
+    if (status === 'completed' && companyId) {
+      toast({
+        title: "Analysis completed successfully!",
+        description: "Company has been created and analyzed.",
+      });
+      
+      setTimeout(() => {
+        navigate(`/company/${companyId}`);
+      }, 1000);
+    } else if (status === 'failed' || status === 'error') {
+      toast({
+        title: "Analysis failed",
+        description: "There was an error processing the submission.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Use polling hook for BARC submissions
+  const { stopPolling } = useBarcSubmissionPolling({
+    submissionId: currentlyAnalyzingBarcId || '',
+    isAnalyzing: !!currentlyAnalyzingBarcId,
+    onStatusChange: handleBarcPollingStatusChange
+  });
+
   // Listen to centralized custom events for immediate UI updates
   useEffect(() => {
     console.log('📡 Setting up custom event listeners for BARC updates');
     
     const handleBarcStatusUpdate = (event: CustomEvent) => {
-      const { submissionId, newStatus, oldStatus, companyName } = event.detail;
+      const { submissionId, newStatus, companyId } = event.detail;
       console.log(`🔄 Custom event received - updating submission ${submissionId} to ${newStatus}`);
       
       // IMMEDIATE STATE UPDATE
@@ -106,14 +160,9 @@ export function PublicSubmissionsList() {
         return updated;
       });
 
-      // Remove from analyzing set when analysis completes
-      if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
-        console.log(`🧹 Removing ${submissionId} from analyzing set`);
-        setAnalyzingSubmissions(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(submissionId);
-          return newSet;
-        });
+      // If this is the submission we're tracking, handle the update
+      if (submissionId === currentlyAnalyzingBarcId) {
+        handleBarcPollingStatusChange(newStatus, companyId);
       }
     };
 
@@ -130,7 +179,7 @@ export function PublicSubmissionsList() {
       window.removeEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
       window.removeEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
     };
-  }, []);
+  }, [currentlyAnalyzingBarcId]);
 
   const fetchSubmissions = async () => {
     try {
@@ -364,35 +413,26 @@ export function PublicSubmissionsList() {
     try {
       // Handle BARC form submissions
       if (submission.source === "barc_form") {
-        console.log('Handling BARC form submission analysis');
+        console.log('🚀 Handling BARC form submission analysis');
+        
+        // Set as currently analyzing BARC submission for polling
+        setCurrentlyAnalyzingBarcId(submission.id);
         
         const loadingToast = toast({
           title: "Analyzing submission...",
-          description: "This may take a few moments. Please wait...",
+          description: "This may take a few moments. You'll be automatically redirected when complete.",
           id: `analysis-${submission.id}`,
         });
         
         console.log(`Calling BARC analysis for submission: ${submission.id}`);
         
-        const result = await analyzeBarcSubmission(submission.id);
-        
-        console.log('BARC analysis result:', result);
+        // Just trigger the analysis, polling will handle the rest
+        await analyzeBarcSubmission(submission.id);
         
         // Dismiss loading toast
         dismiss(`analysis-${submission.id}`);
         
-        if (result && result.success && result.companyId) {
-          toast({
-            title: "Analysis completed successfully!",
-            description: "Company has been created and analyzed.",
-          });
-          
-          // Navigate directly to the company page
-          console.log(`Navigating to company: ${result.companyId}`);
-          navigate(`/company/${result.companyId}`);
-        } else {
-          throw new Error(result?.message || "Analysis completed but no result was returned");
-        }
+        console.log('🎯 BARC analysis API call completed, polling will handle status updates');
         
         return;
       }
@@ -445,6 +485,12 @@ export function PublicSubmissionsList() {
       
       // Dismiss any loading toasts
       dismiss(`analysis-${submission.id}`);
+      
+      // Reset BARC analysis state if needed
+      if (submission.source === "barc_form") {
+        setCurrentlyAnalyzingBarcId(null);
+        stopPolling();
+      }
       
       toast({
         title: "Analysis failed",
