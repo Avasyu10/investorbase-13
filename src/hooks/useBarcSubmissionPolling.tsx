@@ -19,7 +19,7 @@ export const useBarcSubmissionPolling = ({
   const maxPollAttemptsRef = useRef(0);
   const lastStatusRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
-  const MAX_POLL_ATTEMPTS = 300; // 5 minutes of polling (1 second intervals)
+  const MAX_POLL_ATTEMPTS = 300; // 5 minutes of polling
 
   const pollSubmissionStatus = useCallback(async () => {
     if (!submissionId) {
@@ -50,21 +50,33 @@ export const useBarcSubmissionPolling = ({
         // Update last status reference
         lastStatusRef.current = currentStatus;
         
-        // Force invalidate queries immediately when status changes
+        // IMMEDIATE cache invalidation for any status change
         if (currentStatus !== previousStatus) {
-          console.log('🔥 Status changed - invalidating all caches immediately');
+          console.log('🔥 Status changed - forcing IMMEDIATE cache updates');
           
-          // Invalidate all related queries
-          await queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'],
-            refetchType: 'all'
-          });
-          
-          // Also invalidate public submissions queries
-          await queryClient.invalidateQueries({ 
-            queryKey: ['public-submissions'],
-            refetchType: 'all'
-          });
+          // Invalidate all submission-related queries immediately
+          await Promise.all([
+            queryClient.invalidateQueries({ 
+              queryKey: ['barc-submissions'],
+              refetchType: 'all'
+            }),
+            queryClient.invalidateQueries({ 
+              queryKey: ['public-submissions'],
+              refetchType: 'all'
+            })
+          ]);
+
+          // Force immediate refetch
+          await Promise.all([
+            queryClient.refetchQueries({ 
+              queryKey: ['barc-submissions'],
+              type: 'active'
+            }),
+            queryClient.refetchQueries({ 
+              queryKey: ['public-submissions'],
+              type: 'active'
+            })
+          ]);
         }
         
         // If status has changed to completed or failed, stop polling and notify
@@ -78,11 +90,17 @@ export const useBarcSubmissionPolling = ({
             pollIntervalRef.current = null;
           }
           
-          // Force one more cache invalidation
-          await queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'],
-            refetchType: 'all'
-          });
+          // Final cache update
+          await Promise.all([
+            queryClient.invalidateQueries({ 
+              queryKey: ['barc-submissions'],
+              refetchType: 'all'
+            }),
+            queryClient.invalidateQueries({ 
+              queryKey: ['public-submissions'],
+              refetchType: 'all'
+            })
+          ]);
           
           // Notify with status change
           onStatusChange(currentStatus, data.company_id);
@@ -122,8 +140,8 @@ export const useBarcSubmissionPolling = ({
     maxPollAttemptsRef.current = 0;
     lastStatusRef.current = null;
     
-    // Start immediate polling every second
-    pollIntervalRef.current = setInterval(pollSubmissionStatus, 1000);
+    // Start immediate polling every 2 seconds (faster for better responsiveness)
+    pollIntervalRef.current = setInterval(pollSubmissionStatus, 2000);
     
     // Also poll immediately
     pollSubmissionStatus();

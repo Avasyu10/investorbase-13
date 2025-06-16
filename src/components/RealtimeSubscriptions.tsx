@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,7 @@ export function RealtimeSubscriptions() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔥 Setting up CENTRALIZED realtime subscriptions');
+    console.log('🔥 Setting up CENTRALIZED realtime subscriptions with IMMEDIATE updates');
     
     // Email pitch submissions channel
     const emailChannel = supabase
@@ -100,7 +99,7 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
-    // BARC form submissions channel - CENTRALIZED
+    // BARC form submissions channel - ENHANCED for immediate updates
     const barcChannel = supabase
       .channel('barc_submissions_central_updates')
       .on(
@@ -121,22 +120,8 @@ export function RealtimeSubscriptions() {
           
           console.log(`📊 Status change detected: ${submissionId} from ${oldStatus} to ${newStatus}`);
           
-          // IMMEDIATE cache invalidation for ALL related queries
-          console.log('💥 Invalidating ALL caches immediately...');
-          
-          // Invalidate BARC submissions queries
-          queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'],
-            refetchType: 'active'
-          });
-          
-          // Trigger immediate refetch for any active queries
-          queryClient.refetchQueries({ 
-            queryKey: ['barc-submissions'],
-            type: 'active'
-          });
-          
-          // Broadcast custom event for immediate UI updates
+          // IMMEDIATE broadcast custom event FIRST - this is critical for UI updates
+          console.log('📢 Broadcasting IMMEDIATE custom event');
           window.dispatchEvent(new CustomEvent('barcStatusUpdate', {
             detail: {
               submissionId,
@@ -146,6 +131,42 @@ export function RealtimeSubscriptions() {
               companyId
             }
           }));
+          
+          // THEN handle cache invalidation (don't wait for it)
+          console.log('💥 Scheduling cache invalidation...');
+          
+          // Use a small timeout to let UI update first, then invalidate cache
+          setTimeout(async () => {
+            try {
+              // Invalidate all related queries
+              await Promise.all([
+                queryClient.invalidateQueries({ 
+                  queryKey: ['barc-submissions'],
+                  refetchType: 'all'
+                }),
+                queryClient.invalidateQueries({ 
+                  queryKey: ['public-submissions'],
+                  refetchType: 'all'
+                })
+              ]);
+              
+              // Force refetch for active queries
+              await Promise.all([
+                queryClient.refetchQueries({ 
+                  queryKey: ['barc-submissions'],
+                  type: 'active'
+                }),
+                queryClient.refetchQueries({ 
+                  queryKey: ['public-submissions'],
+                  type: 'active'
+                })
+              ]);
+              
+              console.log('✅ Cache invalidation completed');
+            } catch (error) {
+              console.error('❌ Cache invalidation error:', error);
+            }
+          }, 100); // Small delay to prioritize UI update
           
           // Show status notifications
           if (newStatus === 'processing' && oldStatus !== 'processing') {
@@ -191,16 +212,28 @@ export function RealtimeSubscriptions() {
         (payload) => {
           console.log('🆕 New BARC submission detected:', payload);
           
-          // Immediate cache invalidation for new submissions
-          queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'],
-            refetchType: 'active'
-          });
-          
-          // Broadcast custom event
+          // Immediate custom event broadcast
           window.dispatchEvent(new CustomEvent('barcNewSubmission', {
             detail: payload.new
           }));
+          
+          // Then handle cache invalidation
+          setTimeout(async () => {
+            try {
+              await Promise.all([
+                queryClient.invalidateQueries({ 
+                  queryKey: ['barc-submissions'],
+                  refetchType: 'all'
+                }),
+                queryClient.invalidateQueries({ 
+                  queryKey: ['public-submissions'],
+                  refetchType: 'all'
+                })
+              ]);
+            } catch (error) {
+              console.error('❌ New submission cache invalidation error:', error);
+            }
+          }, 100);
         }
       )
       .subscribe((status) => {
