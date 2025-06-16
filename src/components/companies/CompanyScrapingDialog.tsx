@@ -76,7 +76,7 @@ export function CompanyScrapingDialog({
         <div className="text-center pb-4 border-b">
           <div className="flex items-center justify-center gap-2 mb-3">
             <CheckCircle className="h-6 w-6 text-green-500" />
-            <Badge variant="green" className="text-sm">
+            <Badge variant="secondary" className="text-sm bg-green-100 text-green-800">
               Information Retrieved
             </Badge>
           </div>
@@ -253,6 +253,39 @@ export function CompanyScrapingDialog({
     </div>
   );
 
+  // Determine what content to show based on current state
+  const getDialogContent = () => {
+    console.log("Dialog state check:", {
+      hasLinkedInUrl,
+      scrapeData: scrapeData?.status,
+      isScrapingInProgress,
+      hasScrapeData: !!scrapeData
+    });
+
+    // No LinkedIn URL available
+    if (!hasLinkedInUrl) {
+      return renderNoDataState();
+    }
+
+    // Currently scraping
+    if (isScrapingInProgress) {
+      return renderLoadingState();
+    }
+
+    // Scraping completed successfully
+    if (scrapeData?.status === 'completed') {
+      return renderScrapedData();
+    }
+
+    // Scraping failed
+    if (scrapeData?.status === 'failed') {
+      return renderErrorState();
+    }
+
+    // Initial state - no scraping has been done yet
+    return renderInitialState();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -264,11 +297,7 @@ export function CompanyScrapingDialog({
         </DialogHeader>
         
         <div className="mt-4">
-          {!hasLinkedInUrl && renderNoDataState()}
-          {hasLinkedInUrl && !scrapeData && !isScrapingInProgress && renderInitialState()}
-          {hasLinkedInUrl && isScrapingInProgress && renderLoadingState()}
-          {hasLinkedInUrl && scrapeData?.status === 'completed' && renderScrapedData()}
-          {hasLinkedInUrl && scrapeData?.status === 'failed' && renderErrorState()}
+          {getDialogContent()}
         </div>
       </DialogContent>
     </Dialog>
