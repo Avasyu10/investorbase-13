@@ -25,10 +25,28 @@ export function CompanyScrapingDialog({
   const { data: scrapeData, isLoading } = useQuery({
     queryKey: ['company-scrape', companyId],
     queryFn: async () => {
+      // First, find the BARC submission for this company
+      const { data: barcSubmission, error: barcError } = await supabase
+        .from('barc_form_submissions')
+        .select('id')
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+      if (barcError) {
+        console.error('Error fetching BARC submission:', barcError);
+        return null;
+      }
+
+      if (!barcSubmission) {
+        console.log('No BARC submission found for company:', companyId);
+        return null;
+      }
+
+      // Now get the scrape data using the BARC submission ID
       const { data, error } = await supabase
         .from('company_scrapes')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', barcSubmission.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

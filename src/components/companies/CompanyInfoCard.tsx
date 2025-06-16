@@ -48,16 +48,36 @@ export function CompanyInfoCard({
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
 
-  // Check if we have scraped data available
+  // Check if we have scraped data available - need to join through barc_form_submissions
   const { data: scrapeData, isLoading: isLoadingScrapeData } = useQuery({
     queryKey: ['company-scrape', id],
     queryFn: async () => {
       if (!id) return null;
       
+      // First, find the BARC submission for this company
+      const { data: barcSubmission, error: barcError } = await supabase
+        .from('barc_form_submissions')
+        .select('id')
+        .eq('company_id', id)
+        .maybeSingle();
+
+      if (barcError) {
+        console.error('Error fetching BARC submission:', barcError);
+        return null;
+      }
+
+      if (!barcSubmission) {
+        console.log('No BARC submission found for company:', id);
+        return null;
+      }
+
+      console.log('Found BARC submission:', barcSubmission.id, 'for company:', id);
+
+      // Now get the scrape data using the BARC submission ID
       const { data, error } = await supabase
         .from('company_scrapes')
         .select('*')
-        .eq('company_id', id)
+        .eq('company_id', barcSubmission.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
