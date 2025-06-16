@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ export function CompanyScrapingDialog({
     try {
       console.log("Starting scraping process for URL:", linkedInUrl);
       
-      // Use the supabase client to invoke the edge function with plain object body
+      // Use the supabase client to invoke the edge function
       const { data, error: functionError } = await supabase.functions.invoke('scrape-company-direct', {
         body: { linkedInUrl: linkedInUrl.trim() }
       });

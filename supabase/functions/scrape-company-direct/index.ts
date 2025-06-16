@@ -19,11 +19,20 @@ serve(async (req) => {
 
   try {
     console.log("Request received by scrape-company-direct function");
+    console.log("Request method:", req.method);
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
     
     // Parse request data
     let reqData;
     try {
-      reqData = await req.json();
+      const bodyText = await req.text();
+      console.log("Raw request body:", bodyText);
+      
+      if (bodyText) {
+        reqData = JSON.parse(bodyText);
+      } else {
+        throw new Error("Empty request body");
+      }
     } catch (e) {
       console.error("Error parsing request JSON:", e);
       return new Response(
@@ -39,6 +48,7 @@ serve(async (req) => {
     }
 
     const { linkedInUrl } = reqData;
+    console.log("Extracted linkedInUrl:", linkedInUrl);
     
     if (!linkedInUrl) {
       console.error("Missing linkedInUrl in request");
