@@ -83,119 +83,54 @@ export function PublicSubmissionsList() {
   const { isIITBombay } = useProfile();
   const queryClient = useQueryClient();
 
-  // Enhanced realtime subscription for BARC updates
+  // Listen to centralized custom events for immediate UI updates
   useEffect(() => {
-    if (!user) return;
-
-    console.log('🔥 Setting up enhanced BARC realtime subscription in PublicSubmissionsList');
+    console.log('📡 Setting up custom event listeners for BARC updates');
     
-    const channel = supabase
-      .channel('public_submissions_barc_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        (payload) => {
-          console.log('🚀 BARC UPDATE RECEIVED in PublicSubmissionsList:', payload);
-          
-          const updatedSubmission = payload.new;
-          const oldSubmission = payload.old;
-          const newStatus = updatedSubmission.analysis_status;
-          const oldStatus = oldSubmission?.analysis_status;
-          const submissionId = updatedSubmission.id;
-          const companyName = updatedSubmission.company_name;
-          
-          console.log(`📊 Status change detected: ${submissionId} from ${oldStatus} to ${newStatus}`);
-          
-          // IMMEDIATE STATE UPDATE - this is crucial for real-time UI updates
-          setSubmissions(prev => {
-            const updated = prev.map(submission => {
-              if (submission.id === submissionId && submission.source === 'barc_form') {
-                console.log(`✨ Updating submission ${submissionId} status to ${newStatus} in state`);
-                return {
-                  ...submission,
-                  analysis_status: newStatus
-                };
-              }
-              return submission;
-            });
-            
-            console.log('📝 Updated submissions state:', updated.filter(s => s.source === 'barc_form'));
-            return updated;
-          });
-
-          // Remove from analyzing set when analysis completes
-          if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
-            console.log(`🧹 Removing ${submissionId} from analyzing set`);
-            setAnalyzingSubmissions(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(submissionId);
-              return newSet;
-            });
+    const handleBarcStatusUpdate = (event: CustomEvent) => {
+      const { submissionId, newStatus, oldStatus, companyName } = event.detail;
+      console.log(`🔄 Custom event received - updating submission ${submissionId} to ${newStatus}`);
+      
+      // IMMEDIATE STATE UPDATE
+      setSubmissions(prev => {
+        const updated = prev.map(submission => {
+          if (submission.id === submissionId && submission.source === 'barc_form') {
+            console.log(`✨ Updating submission ${submissionId} status from ${submission.analysis_status} to ${newStatus}`);
+            return {
+              ...submission,
+              analysis_status: newStatus
+            };
           }
-
-          // Show appropriate notifications
-          if (newStatus === 'processing' && oldStatus !== 'processing') {
-            toast({
-              title: "Analysis started",
-              description: `Analysis is now in progress for ${companyName}`,
-            });
-          } else if (newStatus === 'completed' && oldStatus !== 'completed') {
-            toast({
-              title: "✅ Analysis completed!",
-              description: `Analysis successfully completed for ${companyName}`,
-            });
-            
-            // Navigate to the company page if we have a company_id
-            if (updatedSubmission.company_id) {
-              console.log(`🚀 Auto-navigating to company: ${updatedSubmission.company_id}`);
-              setTimeout(() => {
-                navigate(`/company/${updatedSubmission.company_id}`);
-              }, 2000);
-            }
-          } else if (newStatus === 'failed' || newStatus === 'error') {
-            toast({
-              title: "❌ Analysis failed",
-              description: `Analysis failed for ${companyName}`,
-              variant: "destructive",
-            });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        (payload) => {
-          console.log('🆕 New BARC submission detected in PublicSubmissionsList:', payload);
-          
-          // Immediately fetch fresh data to include the new submission
-          fetchSubmissions();
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 PublicSubmissionsList BARC subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ PublicSubmissionsList BARC realtime subscription is ACTIVE');
-        } else if (status === 'CLOSED') {
-          console.log('❌ PublicSubmissionsList BARC realtime subscription CLOSED');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('💥 PublicSubmissionsList BARC realtime subscription ERROR');
-        }
+          return submission;
+        });
+        return updated;
       });
 
-    return () => {
-      console.log('🧹 PublicSubmissionsList - Cleaning up BARC realtime subscription');
-      supabase.removeChannel(channel);
+      // Remove from analyzing set when analysis completes
+      if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
+        console.log(`🧹 Removing ${submissionId} from analyzing set`);
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submissionId);
+          return newSet;
+        });
+      }
     };
-  }, [user, toast, navigate]);
+
+    const handleBarcNewSubmission = (event: CustomEvent) => {
+      console.log('🆕 Custom event received - new BARC submission');
+      fetchSubmissions();
+    };
+
+    window.addEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
+    window.addEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
+
+    return () => {
+      console.log('🧹 Cleaning up custom event listeners');
+      window.removeEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
+      window.removeEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
+    };
+  }, []);
 
   const fetchSubmissions = async () => {
     try {
@@ -219,7 +154,7 @@ export function PublicSubmissionsList() {
       
       console.log("User accessible reports:", accessibleReports.length);
       console.log("User owned form slugs:", userFormSlugs);
-      
+
       // Fetch reports that are public submissions and not completed
       try {
         console.log("Fetching reports...");

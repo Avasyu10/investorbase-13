@@ -3,14 +3,16 @@ import { useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function RealtimeSubscriptions() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('Setting up realtime subscription for email_pitch_submissions');
+    console.log('🔥 Setting up CENTRALIZED realtime subscriptions');
     
-    // Subscribe to email pitch submissions with detailed logging
+    // Email pitch submissions channel
     const emailChannel = supabase
       .channel('email_pitch_submissions_channel')
       .on(
@@ -23,33 +25,25 @@ export function RealtimeSubscriptions() {
         (payload) => {
           console.log('New email pitch submission detected:', payload);
           
-          // Get the submission ID
           const submissionId = payload.new.id;
           console.log(`Submission ID: ${submissionId}`);
           
-          // Call the auto-analyze edge function - WITH FULL LOGGING OF EACH STEP
-          console.log(`About to invoke auto-analyze-email-pitch-pdf for submission ID: ${submissionId}`);
-          
-          // Use supabase.functions.invoke instead of direct fetch to ensure proper URL construction
           supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
             body: { 
               id: submissionId,
-              debug: true // Add a debug flag to enable verbose logging
+              debug: true
             }
           })
           .then(response => {
             console.log('Auto-analyze function response received');
             
-            // Fix: Check response.error first since status may not exist on error responses
             if (response.error) {
               console.error('Error from auto-analyze function:', response.error);
               
-              // Get more detailed error information
               let errorMsg = response.error.message || 'Unknown error';
               let errorDetails = '';
               
               try {
-                // Check if the error might contain more detailed JSON info
                 if (typeof response.error === 'object' && response.error.context) {
                   errorDetails = ` - ${JSON.stringify(response.error.context)}`;
                 }
@@ -72,7 +66,6 @@ export function RealtimeSubscriptions() {
               return;
             }
             
-            // Now it's safe to check status and data (on success response only)
             if (response.data) {
               console.log('Response data:', response.data);
               
@@ -85,7 +78,6 @@ export function RealtimeSubscriptions() {
           .catch(error => {
             console.error('Error calling auto-analyze function:', error);
             
-            // Try to get more detailed error information
             let errorMessage = error.message || 'Unknown error';
             
             if (typeof error === 'object' && error.context) {
@@ -108,12 +100,128 @@ export function RealtimeSubscriptions() {
         console.log('Email pitch realtime subscription status:', status);
       });
 
+    // BARC form submissions channel - CENTRALIZED
+    const barcChannel = supabase
+      .channel('barc_submissions_central_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'barc_form_submissions'
+        },
+        (payload) => {
+          console.log('🚀 CENTRAL BARC Update received:', payload);
+          
+          const newStatus = payload.new.analysis_status;
+          const oldStatus = payload.old?.analysis_status;
+          const submissionId = payload.new.id;
+          const companyName = payload.new.company_name;
+          const companyId = payload.new.company_id;
+          
+          console.log(`📊 Status change detected: ${submissionId} from ${oldStatus} to ${newStatus}`);
+          
+          // IMMEDIATE cache invalidation for ALL related queries
+          console.log('💥 Invalidating ALL caches immediately...');
+          
+          // Invalidate BARC submissions queries
+          queryClient.invalidateQueries({ 
+            queryKey: ['barc-submissions'],
+            refetchType: 'active'
+          });
+          
+          // Trigger immediate refetch for any active queries
+          queryClient.refetchQueries({ 
+            queryKey: ['barc-submissions'],
+            type: 'active'
+          });
+          
+          // Broadcast custom event for immediate UI updates
+          window.dispatchEvent(new CustomEvent('barcStatusUpdate', {
+            detail: {
+              submissionId,
+              oldStatus,
+              newStatus,
+              companyName,
+              companyId
+            }
+          }));
+          
+          // Show status notifications
+          if (newStatus === 'processing' && oldStatus !== 'processing') {
+            toast({
+              title: "Analysis started",
+              description: `Analysis is now running for ${companyName}`,
+            });
+          } else if (newStatus === 'completed' && oldStatus !== 'completed') {
+            toast({
+              title: "✅ Analysis completed!",
+              description: `Analysis successfully completed for ${companyName}`,
+            });
+            
+            // Auto-navigation to company page
+            if (companyId) {
+              console.log(`🚀 AUTO-NAVIGATING to company page: ${companyId}`);
+              
+              setTimeout(() => {
+                toast({
+                  title: "Redirecting to Company Page",
+                  description: `Taking you to ${companyName}'s detailed analysis...`,
+                });
+                
+                navigate(`/company/${companyId}`);
+              }, 2000);
+            }
+          } else if (newStatus === 'failed' || newStatus === 'error') {
+            toast({
+              title: "❌ Analysis failed",
+              description: `Analysis failed for ${companyName}. Please try again.`,
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'barc_form_submissions'
+        },
+        (payload) => {
+          console.log('🆕 New BARC submission detected:', payload);
+          
+          // Immediate cache invalidation for new submissions
+          queryClient.invalidateQueries({ 
+            queryKey: ['barc-submissions'],
+            refetchType: 'active'
+          });
+          
+          // Broadcast custom event
+          window.dispatchEvent(new CustomEvent('barcNewSubmission', {
+            detail: payload.new
+          }));
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Central BARC realtime status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Central BARC realtime subscription is ACTIVE');
+        } else if (status === 'CLOSED') {
+          console.log('❌ Central BARC realtime subscription CLOSED');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('💥 Central BARC realtime subscription ERROR');
+        }
+      });
+
     // Return cleanup function
     return () => {
-      console.log('🧹 Cleaning up realtime subscriptions');
+      console.log('🧹 Cleaning up CENTRALIZED realtime subscriptions');
       supabase.removeChannel(emailChannel);
+      supabase.removeChannel(barcChannel);
     };
-  }, [navigate]);
+  }, [navigate, queryClient]);
 
   // This component doesn't render anything
   return null;

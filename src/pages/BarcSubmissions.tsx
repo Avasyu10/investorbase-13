@@ -49,114 +49,43 @@ const BarcSubmissions = () => {
     refetchInterval: 2000, // Faster polling as backup
   });
 
-  // Simplified and more reliable realtime subscription
+  // Listen to centralized custom events for immediate UI updates
   useEffect(() => {
-    if (!user) return;
+    console.log('📡 BarcSubmissions: Setting up custom event listeners');
+    
+    const handleBarcStatusUpdate = (event: CustomEvent) => {
+      const { submissionId, newStatus, oldStatus, companyName, companyId } = event.detail;
+      console.log(`🔄 BarcSubmissions: Custom event received - updating submission ${submissionId} to ${newStatus}`);
+      
+      // Remove from analyzing set when analysis completes
+      if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
+        console.log(`🧹 BarcSubmissions: Removing ${submissionId} from analyzing set`);
+        setAnalyzingSubmissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(submissionId);
+          return newSet;
+        });
+      }
 
-    console.log('🔥 Setting up BARC submissions realtime subscription');
+      // Immediate refetch for React Query cache
+      console.log('💥 BarcSubmissions: Triggering immediate refetch...');
+      refetch();
+    };
 
-    const channel = supabase
-      .channel('barc_submissions_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        (payload) => {
-          console.log('📊 BARC Update received:', payload);
-          
-          const newStatus = payload.new.analysis_status;
-          const oldStatus = payload.old?.analysis_status;
-          const submissionId = payload.new.id;
-          const companyName = payload.new.company_name;
-          const companyId = payload.new.company_id;
-          
-          console.log(`🔄 Status change: ${submissionId} from ${oldStatus} to ${newStatus}`);
-          
-          // IMMEDIATE REFETCH - this ensures fresh data
-          console.log('💥 Triggering immediate refetch...');
-          refetch();
-          
-          // Also invalidate cache as backup
-          queryClient.invalidateQueries({ 
-            queryKey: ['barc-submissions'],
-            refetchType: 'active'
-          });
-          
-          // Remove from analyzing set when analysis completes
-          if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'error') {
-            console.log(`🧹 Removing ${submissionId} from analyzing set`);
-            setAnalyzingSubmissions(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(submissionId);
-              return newSet;
-            });
-          }
+    const handleBarcNewSubmission = (event: CustomEvent) => {
+      console.log('🆕 BarcSubmissions: Custom event received - new BARC submission');
+      refetch();
+    };
 
-          // Show status notifications
-          if (newStatus === 'processing' && oldStatus !== 'processing') {
-            toast.success("Analysis started", {
-              description: `Analysis is now running for ${companyName}`,
-            });
-          } else if (newStatus === 'completed' && oldStatus !== 'completed') {
-            toast.success("Analysis completed!", {
-              description: `Analysis successfully completed for ${companyName}`,
-            });
-            
-            // Auto-navigation to company page
-            if (companyId) {
-              console.log(`🚀 AUTO-NAVIGATING to company page: ${companyId}`);
-              
-              setTimeout(() => {
-                toast.success("Redirecting to Company Page", {
-                  description: `Taking you to ${companyName}'s detailed analysis...`,
-                });
-                
-                navigate(`/company/${companyId}`);
-              }, 2000);
-            }
-          } else if (newStatus === 'failed' || newStatus === 'error') {
-            toast.error("Analysis failed", {
-              description: `Analysis failed for ${companyName}. Please try again.`,
-            });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'barc_form_submissions'
-        },
-        (payload) => {
-          console.log('🆕 New BARC submission:', payload);
-          
-          // Immediate refetch for new submissions
-          refetch();
-          
-          console.log('💥 Refetched for new BARC submission');
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 BARC submissions realtime status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ BARC realtime subscription is ACTIVE');
-        } else if (status === 'CLOSED') {
-          console.log('❌ BARC realtime subscription CLOSED');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('💥 BARC realtime subscription ERROR');
-        }
-      });
+    window.addEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
+    window.addEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
 
     return () => {
-      console.log('🧹 Cleaning up BARC submissions realtime subscription');
-      supabase.removeChannel(channel);
+      console.log('🧹 BarcSubmissions: Cleaning up custom event listeners');
+      window.removeEventListener('barcStatusUpdate', handleBarcStatusUpdate as EventListener);
+      window.removeEventListener('barcNewSubmission', handleBarcNewSubmission as EventListener);
     };
-  }, [user, queryClient, navigate, refetch]);
+  }, [refetch]);
 
   const triggerAnalysis = async (submissionId: string) => {
     if (analyzingSubmissions.has(submissionId)) {
