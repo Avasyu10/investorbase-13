@@ -63,9 +63,9 @@ export const useCompanyScraping = (companyId: string) => {
     },
     enabled: !!companyId,
     // Add polling when scraping is in progress
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll every 2 seconds if scraping is in progress
-      if (data?.status === 'processing') {
+      if (query.data?.status === 'processing') {
         return 2000;
       }
       // Stop polling once complete or failed
