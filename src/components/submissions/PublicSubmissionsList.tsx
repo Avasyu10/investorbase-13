@@ -89,7 +89,7 @@ export function PublicSubmissionsList() {
         } else {
           // For non-IIT Bombay users, fetch all types EXCEPT BARC forms
           
-          // 1. Fetch public form submissions (but exclude BARC forms)
+          // 1. Fetch public form submissions
           const { data: publicSubmissions, error: publicError } = await supabase
             .from('public_form_submissions')
             .select(`
@@ -209,7 +209,7 @@ export function PublicSubmissionsList() {
           }
         }
 
-        // Remove duplicates based on ID (just in case)
+        // Remove duplicates based on ID
         const uniqueSubmissions = Array.from(
           new Map(allSubmissions.map(item => [item.id, item])).values()
         );
