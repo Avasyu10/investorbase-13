@@ -64,13 +64,16 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     console.log("Company created successfully:", company.id);
 
     // Create company_details record with LinkedIn URL if available
+    // Set status to "Deck Evaluated" for public submissions, "New" for dashboard uploads
+    const statusValue = report.is_public_submission ? 'Deck Evaluated' : 'New';
+    
     if (companyLinkedInUrl && companyLinkedInUrl.trim()) {
       console.log("Creating company_details record with LinkedIn URL:", companyLinkedInUrl);
       
       const companyDetailsData = {
         company_id: company.id,
         linkedin_url: companyLinkedInUrl.trim(),
-        status: 'New',
+        status: statusValue,
         contact_email: founderEmail || null,
         point_of_contact: founderContact || null
       };
@@ -85,7 +88,30 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         console.error("Error creating company_details:", companyDetailsError);
         // Don't fail the whole process for this error
       } else {
-        console.log("Company details created successfully with LinkedIn URL");
+        console.log("Company details created successfully with LinkedIn URL and status:", statusValue);
+      }
+    } else if (report.is_public_submission) {
+      // Create company_details record even without LinkedIn URL for public submissions
+      console.log("Creating company_details record for public submission without LinkedIn URL");
+      
+      const companyDetailsData = {
+        company_id: company.id,
+        status: statusValue,
+        contact_email: founderEmail || null,
+        point_of_contact: founderContact || null
+      };
+
+      const { data: companyDetails, error: companyDetailsError } = await supabase
+        .from('company_details')
+        .insert(companyDetailsData)
+        .select()
+        .single();
+
+      if (companyDetailsError) {
+        console.error("Error creating company_details:", companyDetailsError);
+        // Don't fail the whole process for this error
+      } else {
+        console.log("Company details created successfully with status:", statusValue);
       }
     }
 
