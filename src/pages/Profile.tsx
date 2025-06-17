@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -77,9 +78,6 @@ const Profile = () => {
   const [hasExistingThesis, setHasExistingThesis] = useState(false);
   const [thesisFilename, setThesisFilename] = useState<string | null>(null);
   const [deletingThesis, setDeletingThesis] = useState(false);
-
-  // Check if user is a founder (has signup_source = 'founder_signup')
-  const isFounder = profile?.signup_source === 'founder_signup';
 
   // Fetch VC profile data
   useEffect(() => {
@@ -546,11 +544,6 @@ const Profile = () => {
     ? `${window.location.origin}/public-upload?form=${publicForm.form_slug}`
     : null;
 
-  // Founder public form URL (fixed URL as requested)
-  const founderPublicFormUrl = isFounder 
-    ? "https://adca497b-fbd1-4bcc-8352-b3c550bc9790.lovableproject.com/public-upload?form=m92a7cet-l698ke"
-    : null;
-
   if (authLoading || profileLoading || loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -603,208 +596,199 @@ const Profile = () => {
               </CardHeader>
               
               <CardContent className="space-y-8 pt-6">
-                {/* Show Fund Details section only for non-founders */}
-                {!isFounder && (
-                  <div>
-                    <div className="flex items-center mb-3">
-                      <Building className="h-5 w-5 text-primary mr-2" />
-                      <h3 className="text-base font-semibold text-foreground/80">Fund Details</h3>
-                    </div>
-                    <Separator className="mb-4" />
-                    
-                    <div className="grid gap-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="fund-name" className="text-foreground/80">Fund Name</Label>
-                        <Input
-                          id="fund-name"
-                          value={fundName}
-                          onChange={(e) => setFundName(e.target.value)}
-                          placeholder="Your Fund Name"
-                          className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="fund-size" className="text-foreground/80">Fund Size</Label>
-                        <Input
-                          id="fund-size"
-                          value={fundSize}
-                          onChange={(e) => setFundSize(e.target.value)}
-                          placeholder="e.g. $10M-$50M"
-                          className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="website-url" className="text-foreground/80">Website URL</Label>
-                        <Input
-                          id="website-url"
-                          value={websiteUrl}
-                          onChange={(e) => setWebsiteUrl(e.target.value)}
-                          placeholder="https://yourfund.com"
-                          className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label className="text-foreground/80">Fund Thesis PDF</Label>
-                        {hasExistingThesis ? (
-                          <div className="border bg-secondary/10 border-border/20 rounded-md p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <FileText className="h-5 w-5 text-primary mr-2" />
-                                <span className="text-foreground">{thesisFilename || "Fund Thesis.pdf"}</span>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button 
-                                  type="button" 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={downloadThesis}
-                                  className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
-                                >
-                                  Download
-                                </Button>
-                                <Button 
-                                  type="button" 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={handleDeleteThesis}
-                                  disabled={deletingThesis}
-                                >
-                                  {deletingThesis ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                  )}
-                                  Delete
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="mt-4">
-                              <FileUploadZone
-                                id="thesis-upload"
-                                label="Replace with a new thesis"
-                                file={thesisFile}
-                                onFileChange={handleFileChange}
-                                accept=".pdf"
-                                description="PDF files only, max 10MB"
-                                buttonText="Choose new file"
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <FileUploadZone
-                            id="thesis-upload"
-                            label="Upload Fund Thesis"
-                            file={thesisFile}
-                            onFileChange={handleFileChange}
-                            accept=".pdf"
-                            description="PDF files only, max 10MB"
-                            buttonText="Choose file"
-                          />
-                        )}
-                      </div>
-                    </div>
+                <div>
+                  <div className="flex items-center mb-3">
+                    <Building className="h-5 w-5 text-primary mr-2" />
+                    <h3 className="text-base font-semibold text-foreground/80">Fund Details</h3>
                   </div>
-                )}
-                
-                {/* Show Investment Focus section only for non-founders */}
-                {!isFounder && (
-                  <div>
-                    <div className="flex items-center mb-3">
-                      <Tag className="h-5 w-5 text-primary mr-2" />
-                      <h3 className="text-base font-semibold text-foreground/80">Investment Focus</h3>
+                  <Separator className="mb-4" />
+                  
+                  <div className="grid gap-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="fund-name" className="text-foreground/80">Fund Name</Label>
+                      <Input
+                        id="fund-name"
+                        value={fundName}
+                        onChange={(e) => setFundName(e.target.value)}
+                        placeholder="Your Fund Name"
+                        className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                      />
                     </div>
-                    <Separator className="mb-4" />
                     
-                    <div className="grid gap-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="areas" className="text-foreground/80">Areas of Interest</Label>
-                        <MultiSelect
-                          placeholder="Select areas of interest"
-                          selected={areasOfInterest}
-                          options={AreaOfInterestOptions}
-                          onChange={setAreasOfInterest}
-                          className="bg-secondary/20 border-border/20"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="stages" className="text-foreground/80">Investment Stages</Label>
-                        <MultiSelect
-                          placeholder="Select investment stages"
-                          selected={investmentStage}
-                          options={stageOptions}
-                          onChange={setInvestmentStage}
-                          className="bg-secondary/20 border-border/20"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fund-size" className="text-foreground/80">Fund Size</Label>
+                      <Input
+                        id="fund-size"
+                        value={fundSize}
+                        onChange={(e) => setFundSize(e.target.value)}
+                        placeholder="e.g. $10M-$50M"
+                        className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                      />
                     </div>
-                  </div>
-                )}
-                
-                {/* Show Portfolio section only for non-founders */}
-                {!isFounder && (
-                  <div>
-                    <div className="flex items-center mb-3">
-                      <Layers className="h-5 w-5 text-primary mr-2" />
-                      <h3 className="text-base font-semibold text-foreground/80">Portfolio</h3>
-                    </div>
-                    <Separator className="mb-4" />
                     
-                    <div className="space-y-3">
-                      <Label htmlFor="companies" className="text-foreground/80">Companies Invested</Label>
-                      
-                      <div className="flex gap-2 items-center mb-2">
-                        <Input
-                          id="new-company"
-                          value={newCompany}
-                          onChange={(e) => setNewCompany(e.target.value)}
-                          onKeyDown={handleKeyDown}
-                          placeholder="Add a company"
-                          className="flex-1 bg-secondary/20 border-border/20 focus-visible:ring-primary"
-                        />
-                        <Button 
-                          type="button" 
-                          onClick={handleAddCompany}
-                          size="sm"
-                          variant="secondary"
-                          className="hover:bg-primary hover:text-primary-foreground"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-secondary/10 rounded-md p-4 min-h-[120px]">
-                        {companiesInvested.length === 0 ? (
-                          <p className="text-muted-foreground text-sm py-2 px-3">
-                            No companies added yet. Add companies to your portfolio above.
-                          </p>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {companiesInvested.map((company, index) => (
-                              <div 
-                                key={index} 
-                                className="bg-background px-3 py-1.5 rounded-md text-sm flex items-center group border border-border/20"
+                    <div className="space-y-2">
+                      <Label htmlFor="website-url" className="text-foreground/80">Website URL</Label>
+                      <Input
+                        id="website-url"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        placeholder="https://yourfund.com"
+                        className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-foreground/80">Fund Thesis PDF</Label>
+                      {hasExistingThesis ? (
+                        <div className="border bg-secondary/10 border-border/20 rounded-md p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <FileText className="h-5 w-5 text-primary mr-2" />
+                              <span className="text-foreground">{thesisFilename || "Fund Thesis.pdf"}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm"
+                                onClick={downloadThesis}
+                                className="border-border/30 hover:bg-secondary/50 hover:text-foreground"
                               >
-                                {company}
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveCompany(index)}
-                                  className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            ))}
+                                Download
+                              </Button>
+                              <Button 
+                                type="button" 
+                                variant="destructive" 
+                                size="sm"
+                                onClick={handleDeleteThesis}
+                                disabled={deletingThesis}
+                              >
+                                {deletingThesis ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                )}
+                                Delete
+                              </Button>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                          <div className="mt-4">
+                            <FileUploadZone
+                              id="thesis-upload"
+                              label="Replace with a new thesis"
+                              file={thesisFile}
+                              onFileChange={handleFileChange}
+                              accept=".pdf"
+                              description="PDF files only, max 10MB"
+                              buttonText="Choose new file"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <FileUploadZone
+                          id="thesis-upload"
+                          label="Upload Fund Thesis"
+                          file={thesisFile}
+                          onFileChange={handleFileChange}
+                          accept=".pdf"
+                          description="PDF files only, max 10MB"
+                          buttonText="Choose file"
+                        />
+                      )}
                     </div>
                   </div>
-                )}
+                </div>
+                
+                <div>
+                  <div className="flex items-center mb-3">
+                    <Tag className="h-5 w-5 text-primary mr-2" />
+                    <h3 className="text-base font-semibold text-foreground/80">Investment Focus</h3>
+                  </div>
+                  <Separator className="mb-4" />
+                  
+                  <div className="grid gap-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="areas" className="text-foreground/80">Areas of Interest</Label>
+                      <MultiSelect
+                        placeholder="Select areas of interest"
+                        selected={areasOfInterest}
+                        options={AreaOfInterestOptions}
+                        onChange={setAreasOfInterest}
+                        className="bg-secondary/20 border-border/20"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="stages" className="text-foreground/80">Investment Stages</Label>
+                      <MultiSelect
+                        placeholder="Select investment stages"
+                        selected={investmentStage}
+                        options={stageOptions}
+                        onChange={setInvestmentStage}
+                        className="bg-secondary/20 border-border/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center mb-3">
+                    <Layers className="h-5 w-5 text-primary mr-2" />
+                    <h3 className="text-base font-semibold text-foreground/80">Portfolio</h3>
+                  </div>
+                  <Separator className="mb-4" />
+                  
+                  <div className="space-y-3">
+                    <Label htmlFor="companies" className="text-foreground/80">Companies Invested</Label>
+                    
+                    <div className="flex gap-2 items-center mb-2">
+                      <Input
+                        id="new-company"
+                        value={newCompany}
+                        onChange={(e) => setNewCompany(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Add a company"
+                        className="flex-1 bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={handleAddCompany}
+                        size="sm"
+                        variant="secondary"
+                        className="hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+                    
+                    <div className="bg-secondary/10 rounded-md p-4 min-h-[120px]">
+                      {companiesInvested.length === 0 ? (
+                        <p className="text-muted-foreground text-sm py-2 px-3">
+                          No companies added yet. Add companies to your portfolio above.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {companiesInvested.map((company, index) => (
+                            <div 
+                              key={index} 
+                              className="bg-background px-3 py-1.5 rounded-md text-sm flex items-center group border border-border/20"
+                            >
+                              {company}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCompany(index)}
+                                className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 
                 <div>
                   <div className="flex items-center mb-3">
@@ -815,49 +799,10 @@ const Profile = () => {
                   
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground mb-3">
-                      {isFounder 
-                        ? "This URL creates a public portal where you can receive pitch deck submissions and investment opportunities. Share this link with your network to streamline the submission process."
-                        : "This URL creates a public portal where founders can submit their pitch decks directly to your dashboard. Share this link with your network to streamline the submission process and maintain all potential investments in one organized location."
-                      }
+                      This URL creates a public portal where founders can submit their pitch decks directly to your dashboard. 
+                      Share this link with your network to streamline the submission process and maintain all potential investments in one organized location.
                     </p>
                     
-                    {/* Show founder public form URL for founders */}
-                    {isFounder && founderPublicFormUrl && (
-                      <div className="space-y-4 bg-secondary/10 p-4 rounded-md">
-                        <div>
-                          <Label className="text-foreground/80 mb-2 block">
-                            Your Public Submission URL
-                          </Label>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Share this URL to receive pitch deck submissions
-                          </p>
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              value={founderPublicFormUrl}
-                              readOnly
-                              className="font-mono text-sm"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(founderPublicFormUrl)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(founderPublicFormUrl, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {/* IIT Bombay Form URL - only for IIT Bombay users */}
                     {isIITBombay && (
                       <div className="space-y-2 mb-4">
@@ -903,8 +848,8 @@ const Profile = () => {
                       </div>
                     )}
                     
-                    {/* General Public Submission URL - only for non-founders */}
-                    {!isFounder && publicForm && (
+                    {/* General Public Submission URL */}
+                    {publicForm ? (
                       <div className="space-y-4 bg-secondary/10 p-4 rounded-md">
                         <div>
                           <Label className="text-foreground/80 mb-2 block">
@@ -962,9 +907,7 @@ const Profile = () => {
                           </div>
                         </div>
                       </div>
-                    )}
-                    
-                    {!isFounder && !publicForm && (
+                    ) : (
                       <div className="bg-secondary/10 p-4 rounded-md">
                         <p className="text-sm text-muted-foreground">
                           No public submission URL has been generated yet.
@@ -975,8 +918,8 @@ const Profile = () => {
                   </div>
                 </div>
                 
-                {/* Only show InvestorBase Pitch Email section for non-IIT Bombay and non-founder users */}
-                {!isIITBombay && !isFounder && (
+                {/* Only show InvestorBase Pitch Email section for non-IIT Bombay users */}
+                {!isIITBombay && (
                   <div>
                     <div className="flex items-center mb-3">
                       <Mail className="h-5 w-5 text-primary mr-2" />
@@ -989,28 +932,25 @@ const Profile = () => {
                 )}
               </CardContent>
               
-              {/* Only show save button for non-founders who have forms to save */}
-              {!isFounder && (
-                <CardFooter className="flex justify-end border-t border-border/30 pt-6 pb-6">
-                  <Button 
-                    type="submit"
-                    disabled={saving}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving Changes
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              )}
+              <CardFooter className="flex justify-end border-t border-border/30 pt-6 pb-6">
+                <Button 
+                  type="submit"
+                  disabled={saving}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving Changes
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </CardFooter>
             </form>
           </Card>
         </TabsContent>
