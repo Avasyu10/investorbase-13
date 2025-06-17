@@ -50,15 +50,38 @@ export async function getReportData(reportId: string) {
     throw new Error("No PDF URL found in report");
   }
   
-  console.log("Downloading PDF from storage:", report.pdf_url);
+  console.log("Attempting to download PDF from storage");
   
   let pdfData = null;
   let lastError = null;
   
-  // Strategy 1: Try direct path if it contains forward slash
-  if (report.pdf_url.includes('/')) {
+  // For dashboard uploads, the file is stored with user_id prefix
+  if (report.user_id && !report.is_public_submission) {
+    const userPath = `${report.user_id}/${report.pdf_url}`;
+    console.log("Trying user path for dashboard upload:", userPath);
+    
     try {
-      console.log("Trying direct path access:", report.pdf_url);
+      const { data, error } = await supabase.storage
+        .from('report_pdfs')
+        .download(userPath);
+        
+      if (error) {
+        console.log("User path failed:", error.message);
+        lastError = error;
+      } else if (data) {
+        pdfData = data;
+        console.log("Successfully downloaded from report_pdfs bucket");
+      }
+    } catch (err) {
+      console.log("Error with user path:", err);
+      lastError = err;
+    }
+  }
+  
+  // Try direct path if user path failed or this is a public submission
+  if (!pdfData) {
+    console.log("Trying direct path:", report.pdf_url);
+    try {
       const { data, error } = await supabase.storage
         .from('report_pdfs')
         .download(report.pdf_url);
@@ -76,51 +99,7 @@ export async function getReportData(reportId: string) {
     }
   }
   
-  // Strategy 2: Try with user_id prefix for authenticated uploads
-  if (!pdfData && report.user_id) {
-    try {
-      const userPath = `${report.user_id}/${report.pdf_url}`;
-      console.log("Trying user path:", userPath);
-      const { data, error } = await supabase.storage
-        .from('report_pdfs')
-        .download(userPath);
-        
-      if (error) {
-        console.log("User path failed:", error.message);
-        lastError = error;
-      } else if (data) {
-        pdfData = data;
-        console.log("Successfully downloaded with user path");
-      }
-    } catch (err) {
-      console.log("Error with user path:", err);
-      lastError = err;
-    }
-  }
-  
-  // Strategy 3: Try public-uploads prefix for public submissions
-  if (!pdfData) {
-    try {
-      const publicPath = `public-uploads/${report.pdf_url}`;
-      console.log("Trying public path:", publicPath);
-      const { data, error } = await supabase.storage
-        .from('report_pdfs')
-        .download(publicPath);
-        
-      if (error) {
-        console.log("Public path failed:", error.message);
-        lastError = error;
-      } else if (data) {
-        pdfData = data;
-        console.log("Successfully downloaded with public path");
-      }
-    } catch (err) {
-      console.log("Error with public path:", err);
-      lastError = err;
-    }
-  }
-  
-  // Strategy 4: Check email submissions table for attachment URL
+  // Check email submissions table for attachment URL
   if (!pdfData) {
     console.log("Checking email submissions table");
     const { data: emailSubmission } = await supabase
@@ -150,7 +129,7 @@ export async function getReportData(reportId: string) {
     }
   }
   
-  // Strategy 5: Check email pitch submissions table
+  // Check email pitch submissions table
   if (!pdfData) {
     console.log("Checking email pitch submissions table");
     const { data: pitchSubmission } = await supabase
@@ -180,30 +159,10 @@ export async function getReportData(reportId: string) {
     }
   }
   
-  // Strategy 6: Try simple filename in report_pdfs
   if (!pdfData) {
-    const filename = report.pdf_url.split('/').pop() || report.pdf_url;
-    try {
-      console.log("Trying simple filename:", filename);
-      const { data, error } = await supabase.storage
-        .from('report_pdfs')
-        .download(filename);
-        
-      if (error) {
-        console.log("Simple filename failed:", error.message);
-        lastError = error;
-      } else if (data) {
-        pdfData = data;
-        console.log("Successfully downloaded with simple filename");
-      }
-    } catch (err) {
-      console.log("Error with simple filename:", err);
-      lastError = err;
-    }
-  }
-  
-  if (!pdfData) {
-    const errorMessage = lastError ? (typeof lastError === 'object' ? JSON.stringify(lastError) : lastError.toString()) : "No PDF data found in any storage location";
+    const errorMessage = lastError ? 
+      (typeof lastError === 'object' ? JSON.stringify(lastError) : lastError.toString()) : 
+      "No PDF data found in any storage location";
     console.error("All PDF download strategies failed. Last error:", errorMessage);
     throw new Error(`Failed to download PDF: ${errorMessage}`);
   }

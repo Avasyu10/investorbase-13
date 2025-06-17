@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getReportById, downloadReport } from "@/lib/supabase/reports";
+import { getReportById, downloadReport, analyzeReport } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
-import { Loader, Calendar, FileText, Download, AlertCircle, ExternalLink } from "lucide-react";
+import { Loader, Calendar, FileText, Download, AlertCircle, ExternalLink, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +20,9 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [isEmailSubmission, setIsEmailSubmission] = useState(false);
   const [pdfDisplayError, setPdfDisplayError] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   
-  const { data: report, isLoading, error } = useQuery({
+  const { data: report, isLoading, error, refetch } = useQuery({
     queryKey: ["report", reportId, user?.id],
     queryFn: async () => {
       const reportData = await getReportById(reportId);
@@ -55,6 +55,37 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     },
   });
 
+  const handleAnalyze = async () => {
+    if (!report || !user) return;
+    
+    try {
+      setAnalyzing(true);
+      console.log("Starting analysis for report:", reportId);
+      
+      await analyzeReport(reportId);
+      
+      toast({
+        title: "Analysis started",
+        description: "Your report is being analyzed. This may take a few minutes.",
+      });
+      
+      // Refetch the report to get updated analysis status
+      setTimeout(() => {
+        refetch();
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast({
+        title: "Analysis failed",
+        description: error instanceof Error ? error.message : "Failed to start analysis",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (pdfUrl) {
@@ -73,63 +104,21 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
         console.log("PDF URL:", report.pdf_url);
         console.log("Is email submission:", isEmailSubmission);
         
-        let attemptsRemaining = 3;
-        let blob = null;
-        
-        while (attemptsRemaining > 0 && !blob) {
-          try {
-            // If we're on the last attempt and this is an email submission, try direct storage access
-            if (attemptsRemaining === 1 && isEmailSubmission) {
-              console.log("Final attempt: trying direct email attachment download");
-              
-              // Check for email submission details
-              const { data: emailData } = await supabase
-                .from('email_submissions')
-                .select('attachment_url')
-                .eq('report_id', reportId)
-                .single();
-              
-              if (emailData?.attachment_url) {
-                console.log("Found attachment URL:", emailData.attachment_url);
-                
-                // Direct access via storage API
-                const { data: fileData, error: storageError } = await supabase.storage
-                  .from('email_attachments')
-                  .download(emailData.attachment_url);
-                
-                if (storageError) {
-                  throw storageError;
-                }
-                
-                if (fileData) {
-                  blob = fileData;
-                  break;
-                }
-              }
-            } else {
-              // Use standard download path with appropriate fallbacks
-              blob = await downloadReport(report.pdf_url, user.id);
-              
-              if (blob) {
-                console.log("Successfully downloaded PDF");
-                break;
-              }
-            }
-          } catch (downloadError) {
-            console.error(`Download attempt ${4-attemptsRemaining} failed:`, downloadError);
-            attemptsRemaining--;
-            
-            if (attemptsRemaining === 0) {
-              throw downloadError;
-            }
-            
-            // Wait briefly before retry
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
+        let blob;
+        try {
+          blob = await downloadReport(report.pdf_url, user.id);
+        } catch (downloadError) {
+          console.error("Download error:", downloadError);
+          toast({
+            title: "Failed to load PDF",
+            description: "There was an error loading the document. Please try again later.",
+            variant: "destructive",
+          });
+          return;
         }
         
         if (!blob) {
-          throw new Error("Could not download PDF after multiple attempts");
+          throw new Error("Could not download PDF");
         }
         
         setPdfBlob(blob);
@@ -260,6 +249,16 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
                 Email
               </Badge>
             )}
+            {report.analysis_status && (
+              <Badge 
+                variant={report.analysis_status === 'completed' ? 'green' : 
+                        report.analysis_status === 'failed' ? 'destructive' : 'secondary'} 
+                className="ml-2"
+              >
+                {report.analysis_status === 'completed' ? 'Analyzed' : 
+                 report.analysis_status === 'failed' ? 'Analysis Failed' : 'Analyzing...'}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
             <Calendar className="h-4 w-4" />
@@ -267,6 +266,21 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          {(!report.analysis_status || report.analysis_status === 'failed') && (
+            <Button 
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              variant="default"
+              className="transition-all duration-200 hover:shadow-md"
+            >
+              {analyzing ? (
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
+              {analyzing ? "Analyzing..." : "Analyze PDF"}
+            </Button>
+          )}
           {pdfUrl && (
             <Button 
               onClick={openInNewTab} 
@@ -279,6 +293,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
           )}
           <Button 
             onClick={handleDownload} 
+            variant="outline"
             className="transition-all duration-200 hover:shadow-md"
           >
             <Download className="mr-2 h-4 w-4" />
