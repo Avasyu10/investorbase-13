@@ -184,9 +184,9 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               const formattedScore = Math.round(company.overall_score);
               const companyDetails = (company as any).company_details;
               const status = companyDetails?.status || 'New';
-              const notes = companyDetails?.notes || '';
               const contactInfo = companyDetails?.point_of_contact || (company as any).poc_name || '';
               const contactEmail = companyDetails?.contact_email || (company as any).email || '';
+              const assessmentPoints = getSummaryPoints(company.assessment_points);
               
               return (
                 <TableRow 
@@ -197,16 +197,18 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span className="font-semibold text-foreground">{company.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm">{contactInfo || "—"}</span>
                       {(company as any).phonenumber && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Phone className="h-3 w-3" />
                           <span>{(company as any).phonenumber}</span>
                         </div>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{contactInfo || "—"}</span>
                   </TableCell>
                   <TableCell>
                     {contactEmail ? (
@@ -248,12 +250,17 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                   </TableCell>
                   <TableCell>
                     <div className="max-w-[200px]">
-                      {notes ? (
-                        <span className="text-xs text-muted-foreground line-clamp-2">
-                          {notes}
-                        </span>
+                      {assessmentPoints.length > 0 ? (
+                        <div className="space-y-1">
+                          {assessmentPoints.map((point, index) => (
+                            <div key={index} className="flex items-start gap-1 text-xs">
+                              <span className="text-primary mt-1">•</span>
+                              <span className="text-muted-foreground line-clamp-2">{point}</span>
+                            </div>
+                          ))}
+                        </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">No notes</span>
+                        <span className="text-xs text-muted-foreground italic">No assessment points</span>
                       )}
                     </div>
                   </TableCell>
