@@ -216,6 +216,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
+              const phoneNumber = (company as any).phonenumber;
+              
               return (
                 <TableRow
                   key={company.id}
@@ -224,7 +226,18 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                 >
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell className="max-w-[120px] truncate" title="Contact Phone">
-                    <CompanyContactPhone company={company} />
+                    {phoneNumber ? (
+                      <a 
+                        href={`tel:${phoneNumber}`}
+                        className="text-blue-500 hover:underline flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone className="h-3 w-3" />
+                        <span>{phoneNumber}</span>
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground italic">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="max-w-[150px] truncate" title="Contact Email">
                     <CompanyCrmField 
