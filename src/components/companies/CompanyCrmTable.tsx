@@ -30,7 +30,7 @@ import { CompanyListItem } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { ExternalLink, Edit2 } from "lucide-react";
+import { ExternalLink, Edit2, Phone } from "lucide-react";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -204,6 +204,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
             <TableRow>
               <TableHead className="w-[150px]">Company</TableHead>
               <TableHead className="w-[120px]">Contact</TableHead>
+              <TableHead className="w-[120px]">Phone</TableHead>
               <TableHead className="w-[150px]">Email</TableHead>
               <TableHead className="w-[120px]">Source</TableHead>
               <TableHead className="w-[100px]">Industry</TableHead>
@@ -223,7 +224,14 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                 onClick={() => onCompanyClick(company.id)}
               >
                 <TableCell className="font-medium">{company.name}</TableCell>
-                <TableCell className="max-w-[120px] truncate" title="Contact Phone">
+                <TableCell className="max-w-[120px] truncate" title="Point of Contact">
+                  <CompanyCrmField 
+                    companyId={company.id.toString()} 
+                    field="point_of_contact"
+                    refreshTrigger={refreshTrigger}
+                  />
+                </TableCell>
+                <TableCell className="max-w-[120px] truncate" title="Phone Number">
                   <CompanyPhoneField 
                     companyId={company.id.toString()} 
                     refreshTrigger={refreshTrigger}
@@ -511,10 +519,11 @@ function CompanyPhoneField({
   return (
     <a 
       href={`tel:${value}`}
-      className="text-blue-500 hover:underline"
+      className="text-blue-500 hover:underline flex items-center gap-1"
       onClick={(e) => e.stopPropagation()}
     >
-      {value}
+      <Phone className="h-3 w-3" />
+      <span>{value}</span>
     </a>
   );
 }
