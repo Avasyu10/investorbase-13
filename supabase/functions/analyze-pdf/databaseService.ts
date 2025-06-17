@@ -17,7 +17,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     if (report.is_public_submission) {
       console.log("This is a public submission, fetching founder contact info and company LinkedIn");
       
-      // First try to get from public_form_submissions
+      // Get from public_form_submissions
       const { data: publicSubmission } = await supabase
         .from('public_form_submissions')
         .select('founder_email, founder_contact, company_linkedin')
@@ -33,26 +33,6 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
           founderContact, 
           companyLinkedInUrl 
         });
-      }
-      
-      // If not found, try barc_form_submissions
-      if (!founderEmail && !founderContact) {
-        const { data: barcSubmission } = await supabase
-          .from('barc_form_submissions')
-          .select('submitter_email, phoneno, company_linkedin_url')
-          .eq('report_id', report.id)
-          .maybeSingle();
-        
-        if (barcSubmission) {
-          founderEmail = barcSubmission.submitter_email;
-          founderContact = barcSubmission.phoneno;
-          companyLinkedInUrl = barcSubmission.company_linkedin_url;
-          console.log("Found founder contact info and company LinkedIn from barc_form_submissions:", { 
-            founderEmail, 
-            founderContact, 
-            companyLinkedInUrl 
-          });
-        }
       }
     }
 
@@ -83,40 +63,29 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     console.log("Company created successfully:", company.id);
 
-    // If we have a company LinkedIn URL, store it in barc_form_submissions for scraping
+    // Create company_details record with LinkedIn URL if available
     if (companyLinkedInUrl && companyLinkedInUrl.trim()) {
-      console.log("Storing company LinkedIn URL for future scraping:", companyLinkedInUrl);
+      console.log("Creating company_details record with LinkedIn URL:", companyLinkedInUrl);
       
-      // Check if there's already a barc_form_submission for this company
-      const { data: existingBarcSubmission } = await supabase
-        .from('barc_form_submissions')
-        .select('id')
-        .eq('company_id', company.id)
-        .maybeSingle();
-      
-      if (existingBarcSubmission) {
-        // Update existing record
-        await supabase
-          .from('barc_form_submissions')
-          .update({ company_linkedin_url: companyLinkedInUrl })
-          .eq('company_id', company.id);
-        
-        console.log("Updated existing barc_form_submission with company LinkedIn URL");
+      const companyDetailsData = {
+        company_id: company.id,
+        linkedin_url: companyLinkedInUrl.trim(),
+        status: 'New',
+        contact_email: founderEmail || null,
+        point_of_contact: founderContact || null
+      };
+
+      const { data: companyDetails, error: companyDetailsError } = await supabase
+        .from('company_details')
+        .insert(companyDetailsData)
+        .select()
+        .single();
+
+      if (companyDetailsError) {
+        console.error("Error creating company_details:", companyDetailsError);
+        // Don't fail the whole process for this error
       } else {
-        // Create new barc_form_submission record for LinkedIn scraping
-        await supabase
-          .from('barc_form_submissions')
-          .insert({
-            form_slug: 'public-submission',
-            company_name: company.name,
-            company_id: company.id,
-            report_id: report.id,
-            submitter_email: founderEmail || 'unknown@email.com',
-            company_linkedin_url: companyLinkedInUrl,
-            analysis_status: 'completed'
-          });
-        
-        console.log("Created new barc_form_submission record with company LinkedIn URL");
+        console.log("Company details created successfully with LinkedIn URL");
       }
     }
 
