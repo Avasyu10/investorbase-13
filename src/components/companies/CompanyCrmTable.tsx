@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -204,6 +205,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
               <TableHead className="w-[150px]">Company</TableHead>
               <TableHead className="w-[120px]">Contact</TableHead>
               <TableHead className="w-[150px]">Email</TableHead>
+              <TableHead className="w-[120px]">Phone</TableHead>
               <TableHead className="w-[120px]">Source</TableHead>
               <TableHead className="w-[100px]">Industry</TableHead>
               <TableHead className="w-[120px]">LinkedIn</TableHead>
@@ -227,6 +229,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     companyId={company.id.toString()} 
                     field="point_of_contact" 
                     refreshTrigger={refreshTrigger}
+                    fallbackValue={company.poc_name}
                   />
                 </TableCell>
                 <TableCell className="max-w-[150px] truncate" title="Contact Email">
@@ -235,7 +238,11 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     field="contact_email"
                     isEmail={true}
                     refreshTrigger={refreshTrigger}
+                    fallbackValue={company.email}
                   />
+                </TableCell>
+                <TableCell className="max-w-[120px] truncate" title="Phone Number">
+                  <span className="truncate">{company.phonenumber || "—"}</span>
                 </TableCell>
                 <TableCell className="max-w-[120px] truncate" title="Source of Introduction">
                   <CompanyCrmField 
@@ -249,6 +256,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     companyId={company.id.toString()} 
                     field="industry"
                     refreshTrigger={refreshTrigger}
+                    fallbackValue={company.industry}
                   />
                 </TableCell>
                 <TableCell title="LinkedIn URL">
@@ -470,7 +478,8 @@ function CompanyCrmField({
   isUrl = false, 
   isEmail = false,
   isDate = false,
-  refreshTrigger = 0
+  refreshTrigger = 0,
+  fallbackValue = null
 }: { 
   companyId: string; 
   field: keyof CrmData; 
@@ -478,6 +487,7 @@ function CompanyCrmField({
   isEmail?: boolean;
   isDate?: boolean;
   refreshTrigger?: number;
+  fallbackValue?: string | null;
 }) {
   const [value, setValue] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -497,16 +507,18 @@ function CompanyCrmField({
           console.error(`Error fetching ${field}:`, error);
         }
         
-        setValue(data?.[field] || null);
+        // Use the fetched value, or fall back to the fallback value if provided
+        setValue(data?.[field] || fallbackValue || null);
       } catch (err) {
         console.error(`Error in ${field} fetch:`, err);
+        setValue(fallbackValue || null);
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchData();
-  }, [companyId, field, refreshTrigger]);
+  }, [companyId, field, refreshTrigger, fallbackValue]);
 
   if (isLoading) {
     return <span className="text-muted-foreground italic">Loading...</span>;
