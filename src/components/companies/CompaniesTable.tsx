@@ -186,6 +186,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               const status = companyDetails?.status || 'New';
               const contactInfo = companyDetails?.point_of_contact || (company as any).poc_name || '';
               const contactEmail = companyDetails?.contact_email || (company as any).email || '';
+              const industry = companyDetails?.industry || '';
               const assessmentPoints = getSummaryPoints(company.assessment_points);
               
               return (
@@ -231,7 +232,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{(company as any).industry || "—"}</span>
+                    <span className="text-sm">{industry || "—"}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
