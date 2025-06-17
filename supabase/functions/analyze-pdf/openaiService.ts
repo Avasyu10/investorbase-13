@@ -117,7 +117,7 @@ function getDefaultAnalysisPrompt(): string {
   return `Analyze this PDF document and provide a comprehensive investment assessment. Please return your analysis in the following JSON format:
 
 {
-  "overallScore": <number between 1-5>,
+  "overallScore": <number between 1-100>,
   "assessmentPoints": [
     "<key insight 1>",
     "<key insight 2>",
@@ -129,7 +129,7 @@ function getDefaultAnalysisPrompt(): string {
     {
       "type": "PROBLEM",
       "title": "Problem Statement",
-      "score": <number between 1-5>,
+      "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": ["<strength 1>", "<strength 2>"],
       "weaknesses": ["<weakness 1>", "<weakness 2>"]
@@ -150,7 +150,7 @@ Please analyze these sections:
 9. FINANCIALS - Financial Overview & Projections
 10. ASK - The Ask & Next Steps
 
-Score each section from 1-5 based on quality, completeness, and investment potential.`;
+Score each section from 1-100 based on quality, completeness, and investment potential.`;
 }
 
 function getPublicAnalysisPrompt(scoringScale: number): string {
