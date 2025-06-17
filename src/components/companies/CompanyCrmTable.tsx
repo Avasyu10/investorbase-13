@@ -474,33 +474,6 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   );
 }
 
-// New simplified component that only shows phone number from companies table
-function CompanyContactPhone({ 
-  company, 
-  refreshTrigger = 0
-}: { 
-  company: CompanyListItem; 
-  refreshTrigger?: number;
-}) {
-  // Get phone number directly from the company object if available
-  const phoneNumber = (company as any).phonenumber;
-
-  if (!phoneNumber) {
-    return <span className="text-muted-foreground italic">—</span>;
-  }
-
-  return (
-    <a 
-      href={`tel:${phoneNumber}`}
-      className="text-blue-500 hover:underline flex items-center gap-1"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <Phone className="h-3 w-3" />
-      <span>{phoneNumber}</span>
-    </a>
-  );
-}
-
 // Helper component to display CRM fields with data fetched from the database
 function CompanyCrmField({ 
   companyId, 
