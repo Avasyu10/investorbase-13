@@ -258,12 +258,6 @@ export function ReportUpload({
           return;
         }
         
-        // Fix: Add company LinkedIn URL to form data with the correct field name
-        if (companyLinkedInUrl && companyLinkedInUrl.trim()) {
-          formData.append('company_linkedin', companyLinkedInUrl);
-          console.log("Adding company LinkedIn URL:", companyLinkedInUrl);
-        }
-        
         // Ensure all required fields are included
         formData.append('title', title);
         
@@ -281,6 +275,15 @@ export function ReportUpload({
           }
           formData.append('email', emailForResults);
         }
+        
+        // CRITICAL FIX: Always add company LinkedIn URL field, even if empty
+        const linkedInUrlToSubmit = companyLinkedInUrl?.trim() || '';
+        formData.append('company_linkedin', linkedInUrlToSubmit);
+        console.log("Adding company LinkedIn URL to form data:", {
+          originalValue: companyLinkedInUrl,
+          submittedValue: linkedInUrlToSubmit,
+          fieldName: 'company_linkedin'
+        });
         
         console.log("Adding form fields:", { 
           title, 
@@ -310,7 +313,7 @@ export function ReportUpload({
           founderContact,
           founderAddress,
           founderState,
-          companyLinkedInUrl
+          companyLinkedInUrl: linkedInUrlToSubmit
         });
         
         if (briefIntroduction) {
