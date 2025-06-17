@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -63,7 +62,7 @@ serve(async (req) => {
       );
     }
 
-    const { reportId } = reqData;
+    const { reportId, usePublicAnalysisPrompt = false, scoringScale = 5 } = reqData;
     
     // Enhanced reportId validation
     if (!reportId) {
@@ -105,8 +104,8 @@ serve(async (req) => {
       console.log("Successfully retrieved report data, analyzing with Gemini");
       
       try {
-        // Analyze the PDF with Gemini
-        const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY);
+        // Analyze the PDF with Gemini, passing the new parameters
+        const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY, usePublicAnalysisPrompt, scoringScale);
         
         console.log("Gemini analysis complete, saving results to database");
         
