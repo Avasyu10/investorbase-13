@@ -11,6 +11,7 @@ interface Profile {
   avatar_url: string | null;
   is_admin: boolean;
   is_iitbombay: boolean;
+  signup_source: string | null;
   created_at: string;
   updated_at: string;
 }

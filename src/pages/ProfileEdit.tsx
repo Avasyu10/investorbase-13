@@ -155,7 +155,9 @@ const ProfileEdit = () => {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    hookToast("Copied to clipboard!");
+    hookToast({
+      title: "Copied to clipboard!",
+    });
   };
 
   const toggleAutoAnalyze = async () => {
