@@ -186,7 +186,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               const status = companyDetails?.status || 'New';
               const contactInfo = companyDetails?.point_of_contact || (company as any).poc_name || '';
               const contactEmail = companyDetails?.contact_email || (company as any).email || '';
-              const industry = companyDetails?.industry || '';
+              // Use industry from company_details first, then fallback to company.industry
+              const industry = companyDetails?.industry || (company as any).industry || '';
               const assessmentPoints = getSummaryPoints(company.assessment_points);
               
               return (
