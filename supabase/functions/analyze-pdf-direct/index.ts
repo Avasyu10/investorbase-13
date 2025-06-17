@@ -129,7 +129,7 @@ async function analyzeWithOpenAI(pdfBase64: string) {
 
     For each section, provide:
     - A brief description (1-2 sentences)
-    - A score from 1-5 (where 5 is excellent)
+    - A score from 1-100 (where 5 is excellent)
     - 2-3 strengths
     - 2-3 weaknesses or areas for improvement
     
