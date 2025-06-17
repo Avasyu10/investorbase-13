@@ -203,7 +203,6 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
             <TableRow>
               <TableHead className="w-[150px]">Company</TableHead>
               <TableHead className="w-[120px]">Contact</TableHead>
-              <TableHead className="w-[120px]">Phone</TableHead>
               <TableHead className="w-[150px]">Email</TableHead>
               <TableHead className="w-[120px]">Source</TableHead>
               <TableHead className="w-[100px]">Industry</TableHead>
@@ -223,13 +222,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                 onClick={() => onCompanyClick(company.id)}
               >
                 <TableCell className="font-medium">{company.name}</TableCell>
-                <TableCell className="max-w-[120px] truncate" title="Point of Contact">
-                  <CompanyContactField 
-                    companyId={company.id.toString()} 
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell className="max-w-[120px] truncate" title="Phone Number">
+                <TableCell className="max-w-[120px] truncate" title="Contact Phone">
                   <CompanyPhoneField 
                     companyId={company.id.toString()} 
                     refreshTrigger={refreshTrigger}
@@ -467,53 +460,6 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
       </Dialog>
     </>
   );
-}
-
-// New component specifically for Contact field that only shows point_of_contact
-function CompanyContactField({ 
-  companyId, 
-  refreshTrigger = 0
-}: { 
-  companyId: string; 
-  refreshTrigger?: number;
-}) {
-  const [value, setValue] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('company_details')
-          .select('point_of_contact')
-          .eq('company_id', companyId)
-          .maybeSingle();
-        
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching point of contact:', error);
-        }
-        
-        setValue(data?.point_of_contact || null);
-      } catch (err) {
-        console.error('Error in contact fetch:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [companyId, refreshTrigger]);
-
-  if (isLoading) {
-    return <span className="text-muted-foreground italic">Loading...</span>;
-  }
-
-  if (!value) {
-    return <span className="text-muted-foreground italic">—</span>;
-  }
-
-  return <span className="truncate">{value}</span>;
 }
 
 // Helper component to display phone number from the companies table
