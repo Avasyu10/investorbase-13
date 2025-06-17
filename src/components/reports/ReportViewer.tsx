@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportById, downloadReport } from "@/lib/supabase/reports";
 import { Button } from "@/components/ui/button";
-import { Loader, Calendar, FileText, Download, AlertCircle } from "lucide-react";
+import { Loader, Calendar, FileText, Download, AlertCircle, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [isEmailSubmission, setIsEmailSubmission] = useState(false);
+  const [pdfDisplayError, setPdfDisplayError] = useState(false);
   
   const { data: report, isLoading, error } = useQuery({
     queryKey: ["report", reportId, user?.id],
@@ -191,6 +192,17 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
     }
   };
 
+  const openInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
+  const handlePdfError = () => {
+    console.log("PDF failed to load in embedded viewer");
+    setPdfDisplayError(true);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', { 
@@ -254,7 +266,17 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
             <span>{formatDate(report.created_at)}</span>
           </div>
         </div>
-        <div>
+        <div className="flex gap-2">
+          {pdfUrl && (
+            <Button 
+              onClick={openInNewTab} 
+              variant="outline"
+              className="transition-all duration-200 hover:shadow-md"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open in New Tab
+            </Button>
+          )}
           <Button 
             onClick={handleDownload} 
             className="transition-all duration-200 hover:shadow-md"
@@ -271,15 +293,52 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       <div className="w-full bg-card border rounded-lg overflow-hidden shadow-sm">
         {pdfUrl ? (
-          <object
-            data={pdfUrl}
-            type="application/pdf"
-            className="w-full h-[70vh]"
-          >
-            <p>It appears your browser doesn't support embedded PDFs. You can 
-              <a href={pdfUrl} target="_blank" rel="noopener noreferrer"> download the PDF</a> instead.
-            </p>
-          </object>
+          <>
+            {!pdfDisplayError ? (
+              <object
+                data={pdfUrl}
+                type="application/pdf"
+                className="w-full h-[70vh]"
+                onError={handlePdfError}
+              >
+                <div className="flex flex-col items-center justify-center h-[70vh] p-8 text-center">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">PDF Viewer Not Supported</p>
+                  <p className="text-muted-foreground mb-4">
+                    Your browser doesn't support embedded PDF viewing.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={openInNewTab} variant="outline">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open in New Tab
+                    </Button>
+                    <Button onClick={handleDownload}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                  </div>
+                </div>
+              </object>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[70vh] p-8 text-center">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium mb-2">PDF Display Error</p>
+                <p className="text-muted-foreground mb-4">
+                  The PDF couldn't be displayed in the browser viewer.
+                </p>
+                <div className="flex gap-2">
+                  <Button onClick={openInNewTab} variant="outline">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open in New Tab
+                  </Button>
+                  <Button onClick={handleDownload}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="flex justify-center items-center h-[70vh]">
             {loadingPdf ? (
