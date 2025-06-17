@@ -281,13 +281,6 @@ export function CompanyInfoForm({
             <SelectItem value="b2b">B2B (Business to Business)</SelectItem>
             <SelectItem value="b2c">B2C (Business to Consumer)</SelectItem>
             <SelectItem value="b2b2c">B2B2C (Business to Business to Consumer)</SelectItem>
-            <SelectItem value="marketplace">Marketplace</SelectItem>
-            <SelectItem value="saas">SaaS (Software as a Service)</SelectItem>
-            <SelectItem value="hardware">Hardware</SelectItem>
-            <SelectItem value="fintech">FinTech</SelectItem>
-            <SelectItem value="healthtech">HealthTech</SelectItem>
-            <SelectItem value="edtech">EdTech</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
       </div>
