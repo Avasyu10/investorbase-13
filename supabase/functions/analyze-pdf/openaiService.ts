@@ -13,7 +13,7 @@ export interface AnalysisResult {
   }>;
 }
 
-export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 5): Promise<any> {
+export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100): Promise<any> {
   console.log("Starting Gemini analysis with PDF data");
   
   // Choose the appropriate prompt based on the analysis type
