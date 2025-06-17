@@ -90,15 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (authError) throw authError;
 
-      // If this is a restricted signin (accelerator/vc), check user type
+      // If this is a restricted signin (accelerator/vc), check user signup source
       if (userType && (userType === 'accelerator' || userType === 'vc')) {
         const userId = authData.user?.id;
         
         if (userId) {
-          // Check if user has a profile entry (indicating they signed up as a founder)
+          // Check if user has a profile with founder_signup source
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('id')
+            .select('signup_source')
             .eq('id', userId)
             .maybeSingle();
 
@@ -107,8 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             throw new Error('Authentication verification failed');
           }
 
-          // If user has a profile, they signed up as a founder and shouldn't access institutional signin
-          if (profileData) {
+          // If user has a profile with founder_signup source, they shouldn't access institutional signin
+          if (profileData && profileData.signup_source === 'founder_signup') {
             // Sign out the user immediately
             await supabase.auth.signOut();
             throw new Error('Access denied. Founders cannot use institutional signin. Please use the founder signin option.');
