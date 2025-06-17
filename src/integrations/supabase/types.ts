@@ -847,13 +847,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "public_form_submissions_form_slug_fkey"
-            columns: ["form_slug"]
-            isOneToOne: false
-            referencedRelation: "public_submission_forms"
-            referencedColumns: ["form_slug"]
-          },
-          {
             foreignKeyName: "public_form_submissions_report_id_fkey"
             columns: ["report_id"]
             isOneToOne: false
