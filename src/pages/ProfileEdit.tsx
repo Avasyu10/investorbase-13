@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -440,6 +441,7 @@ const ProfileEdit = () => {
           <CardContent className="space-y-8 pt-6">
             {!isFounder && (
               <>
+                {/* Fund Details Section */}
                 <div>
                   <div className="flex items-center mb-3">
                     <Building className="h-5 w-5 text-primary mr-2" />
@@ -532,6 +534,7 @@ const ProfileEdit = () => {
                   </div>
                 </div>
                 
+                {/* Investment Focus Section */}
                 <div>
                   <div className="flex items-center mb-3">
                     <Tag className="h-5 w-5 text-primary mr-2" />
@@ -564,6 +567,7 @@ const ProfileEdit = () => {
                   </div>
                 </div>
                 
+                {/* Portfolio Section */}
                 <div>
                   <div className="flex items-center mb-3">
                     <Layers className="h-5 w-5 text-primary mr-2" />
@@ -625,6 +629,7 @@ const ProfileEdit = () => {
               </>
             )}
             
+            {/* Public Submission URL Section - Now shown for both founders and investors */}
             <div>
               <div className="flex items-center mb-3">
                 <Globe className="h-5 w-5 text-primary mr-2" />
