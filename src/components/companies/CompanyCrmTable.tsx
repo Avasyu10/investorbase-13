@@ -223,8 +223,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
               >
                 <TableCell className="font-medium">{company.name}</TableCell>
                 <TableCell className="max-w-[120px] truncate" title="Contact Phone">
-                  <CompanyPhoneField 
-                    companyId={company.id.toString()} 
+                  <CompanyContactPhone 
+                    company={company}
                     refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
@@ -462,59 +462,29 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   );
 }
 
-// Helper component to display phone number from the companies table
-function CompanyPhoneField({ 
-  companyId, 
+// New simplified component that only shows phone number from companies table
+function CompanyContactPhone({ 
+  company, 
   refreshTrigger = 0
 }: { 
-  companyId: string; 
+  company: CompanyListItem; 
   refreshTrigger?: number;
 }) {
-  const [value, setValue] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Get phone number directly from the company object if available
+  const phoneNumber = (company as any).phonenumber;
 
-  // Fetch the phone number from the companies table
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('companies')
-          .select('phonenumber')
-          .eq('id', companyId)
-          .maybeSingle();
-        
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-          console.error('Error fetching phone number:', error);
-        }
-        
-        setValue(data?.phonenumber || null);
-      } catch (err) {
-        console.error('Error in phone number fetch:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [companyId, refreshTrigger]);
-
-  if (isLoading) {
-    return <span className="text-muted-foreground italic">Loading...</span>;
-  }
-
-  if (!value) {
+  if (!phoneNumber) {
     return <span className="text-muted-foreground italic">—</span>;
   }
 
   return (
     <a 
-      href={`tel:${value}`}
+      href={`tel:${phoneNumber}`}
       className="text-blue-500 hover:underline flex items-center gap-1"
       onClick={(e) => e.stopPropagation()}
     >
       <Phone className="h-3 w-3" />
-      <span>{value}</span>
+      <span>{phoneNumber}</span>
     </a>
   );
 }
