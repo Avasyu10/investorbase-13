@@ -62,7 +62,7 @@ serve(async (req) => {
       );
     }
 
-    const { reportId, usePublicAnalysisPrompt = false, scoringScale = 5 } = reqData;
+    const { reportId, usePublicAnalysisPrompt = false, scoringScale = 100 } = reqData;
     
     // Enhanced reportId validation
     if (!reportId) {
