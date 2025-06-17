@@ -41,6 +41,7 @@ interface CrmData {
   status_date: string;
   account_manager: string | null;
   notes: string | null;
+  phonenumber?: string | null;
 }
 
 interface CompanyCrmTableProps {
@@ -91,7 +92,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           status: data?.status || "New",
           status_date: data?.status_date || new Date().toISOString(),
           account_manager: data?.account_manager || "",
-          notes: data?.notes || ""
+          notes: data?.notes || "",
+          phonenumber: data?.phonenumber || undefined
         }
       });
       
