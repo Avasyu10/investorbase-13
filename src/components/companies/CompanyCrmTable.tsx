@@ -226,18 +226,12 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                 >
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell className="max-w-[120px] truncate" title="Contact Phone">
-                    {phoneNumber ? (
-                      <a 
-                        href={`tel:${phoneNumber}`}
-                        className="text-blue-500 hover:underline flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Phone className="h-3 w-3" />
-                        <span>{phoneNumber}</span>
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground italic">—</span>
-                    )}
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="phonenumber"
+                      isPhone={true}
+                      refreshTrigger={refreshTrigger}
+                    />
                   </TableCell>
                   <TableCell className="max-w-[150px] truncate" title="Contact Email">
                     <CompanyCrmField 
@@ -481,6 +475,7 @@ function CompanyCrmField({
   isUrl = false, 
   isEmail = false,
   isDate = false,
+  isPhone = false,
   refreshTrigger = 0
 }: { 
   companyId: string; 
@@ -488,6 +483,7 @@ function CompanyCrmField({
   isUrl?: boolean;
   isEmail?: boolean;
   isDate?: boolean;
+  isPhone?: boolean;
   refreshTrigger?: number;
 }) {
   const [value, setValue] = useState<string | null>(null);
@@ -575,6 +571,19 @@ function CompanyCrmField({
     } catch {
       return <span>{value}</span>;
     }
+  }
+
+  if (isPhone && value) {
+    return (
+      <a 
+        href={`tel:${value}`}
+        className="text-blue-500 hover:underline flex items-center gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Phone className="h-3 w-3" />
+        <span>{value}</span>
+      </a>
+    );
   }
 
   return <span className="truncate">{value}</span>;
