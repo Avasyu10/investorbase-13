@@ -50,26 +50,6 @@ async function getUserOwnedFormSlugs(userId: string): Promise<string[]> {
   }
 }
 
-// Helper function to get report IDs the user has access to
-async function getUserAccessibleReports(userId: string): Promise<string[]> {
-  try {
-    const { data: reports, error } = await supabase
-      .from('reports')
-      .select('id')
-      .or(`user_id.eq.${userId},is_public_submission.eq.true`);
-
-    if (error) {
-      console.error('Error fetching accessible reports:', error);
-      return [];
-    }
-
-    return reports?.map(r => r.id) || [];
-  } catch (err) {
-    console.error('Error in getUserAccessibleReports:', err);
-    return [];
-  }
-}
-
 export function PublicSubmissionsList() {
   const [submissions, setSubmissions] = useState<PublicSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,56 +135,13 @@ export function PublicSubmissionsList() {
       
       const allSubmissions: PublicSubmission[] = [];
       
-      // Get user's accessible reports and form slugs
-      const [accessibleReports, userFormSlugs] = await Promise.all([
-        getUserAccessibleReports(user.id),
-        getUserOwnedFormSlugs(user.id)
-      ]);
-      
-      console.log("User accessible reports:", accessibleReports.length);
+      // Get user's owned form slugs
+      const userFormSlugs = await getUserOwnedFormSlugs(user.id);
       console.log("User owned form slugs:", userFormSlugs);
 
-      // Fetch reports that are public submissions and not completed
-      try {
-        console.log("Fetching reports...");
-        const { data: reportData, error: reportError } = await supabase
-          .from('reports')
-          .select('*')
-          .eq('is_public_submission', true)
-          .in('analysis_status', ['pending', 'failed'])
-          .in('id', accessibleReports)
-          .order('created_at', { ascending: false });
-          
-        if (reportError) {
-          console.error("Error fetching reports:", reportError);
-        } else {
-          console.log("Reports fetched:", reportData?.length || 0);
-          
-          if (reportData && reportData.length > 0) {
-            const transformedReports = reportData.map(report => ({
-              id: report.id,
-              title: report.title,
-              description: report.description,
-              company_stage: null,
-              industry: null,
-              website_url: null,
-              created_at: report.created_at,
-              form_slug: "",
-              pdf_url: report.pdf_url,
-              report_id: report.id,
-              source: "public_form" as const
-            }));
-            
-            allSubmissions.push(...transformedReports);
-            console.log("Added reports to submissions:", transformedReports.length);
-          }
-        }
-      } catch (err) {
-        console.error("Error in reports fetch:", err);
-      }
-      
-      // Fetch public form submissions - only for user's forms
+      // Only fetch submissions if user has forms
       if (userFormSlugs.length > 0) {
+        // Fetch public form submissions - only for user's forms
         try {
           console.log("Fetching public form submissions for user's forms...");
           const { data: formData, error: formError } = await supabase
@@ -240,12 +177,8 @@ export function PublicSubmissionsList() {
         } catch (err) {
           console.error("Error in public form submissions fetch:", err);
         }
-      } else {
-        console.log("No user form slugs found, skipping public form submissions");
-      }
-      
-      // Fetch BARC form submissions - only for user's forms
-      if (userFormSlugs.length > 0) {
+        
+        // Fetch BARC form submissions - only for user's forms
         try {
           console.log("Fetching BARC form submissions for user's forms...");
           const { data: barcData, error: barcError } = await supabase
@@ -284,16 +217,16 @@ export function PublicSubmissionsList() {
           console.error("Error in BARC form submissions fetch:", err);
         }
       } else {
-        console.log("No user form slugs found, skipping BARC form submissions");
+        console.log("No user form slugs found, skipping form submissions");
       }
       
-      // Fetch email submissions - only for this user
+      // Fetch email submissions - only for this user's email
       try {
         console.log("Fetching email submissions...");
         const { data: emailData, error: emailError } = await supabase
           .from('email_submissions')
           .select('*')
-          .or(`to_email.eq.${user.email}`)
+          .eq('to_email', user.email)
           .order('created_at', { ascending: false });
           
         if (emailError) {
@@ -325,12 +258,42 @@ export function PublicSubmissionsList() {
         console.error("Error in email submissions fetch:", err);
       }
       
-      // Remove duplicates and sort
-      const uniqueSubmissions = allSubmissions.filter((submission, index, self) => 
-        index === self.findIndex(s => s.id === submission.id)
-      ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      // Enhanced deduplication: remove duplicates based on multiple criteria
+      const uniqueSubmissions = allSubmissions.filter((submission, index, self) => {
+        // First, check for exact ID matches
+        const firstOccurrenceIndex = self.findIndex(s => s.id === submission.id);
+        if (firstOccurrenceIndex !== index) {
+          console.log(`Removing duplicate by ID: ${submission.id} (${submission.source})`);
+          return false;
+        }
+        
+        // Additional deduplication for potential cross-table duplicates
+        // Check if there's another submission with the same title and created_at but different ID
+        const duplicateByContent = self.find((s, idx) => 
+          idx !== index && 
+          s.title === submission.title && 
+          Math.abs(new Date(s.created_at).getTime() - new Date(submission.created_at).getTime()) < 60000 // Within 1 minute
+        );
+        
+        if (duplicateByContent) {
+          console.log(`Removing potential cross-table duplicate: ${submission.id} (${submission.source}) - matches ${duplicateByContent.id} (${duplicateByContent.source})`);
+          // Prefer BARC form submissions over others, then public form over reports
+          if (submission.source === 'barc_form') return true;
+          if (duplicateByContent.source === 'barc_form') return false;
+          if (submission.source === 'public_form') return true;
+          if (duplicateByContent.source === 'public_form') return false;
+          return index < self.findIndex(s => s.title === submission.title);
+        }
+        
+        return true;
+      }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
-      console.log("Final submissions count:", uniqueSubmissions.length);
+      console.log("Final submissions count after deduplication:", uniqueSubmissions.length);
+      console.log("Submissions by source:", {
+        public_form: uniqueSubmissions.filter(s => s.source === 'public_form').length,
+        barc_form: uniqueSubmissions.filter(s => s.source === 'barc_form').length,
+        email: uniqueSubmissions.filter(s => s.source === 'email').length
+      });
       
       setSubmissions(uniqueSubmissions);
     } catch (error) {
