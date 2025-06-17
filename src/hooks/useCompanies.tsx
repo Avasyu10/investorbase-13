@@ -37,7 +37,7 @@ function mapDbCompanyToApi(company: any) {
     poc_name: company.poc_name,
     phonenumber: company.phonenumber,
     email: company.email,
-    industry: company.industry || company.form_submission_industry,
+    industry: company.industry,
     // Include company_details fields for non-IIT Bombay users
     company_details: company.company_details ? {
       status: company.company_details.status,
@@ -93,8 +93,7 @@ export function useCompanies(
             poc_name, phonenumber, email, industry,
             report:report_id (
               pdf_url, 
-              is_public_submission,
-              public_form_submissions!reports_id_fkey(industry)
+              is_public_submission
             ),
             company_details!left (status, status_date, notes, contact_email, point_of_contact, industry)
           `, { count: 'exact' })
@@ -117,27 +116,36 @@ export function useCompanies(
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total`);
         
-        // Map the data and include form submission industry
-        const mappedCompanies = (data || []).map(company => {
-          // Handle the industry from public form submissions safely
-          let formSubmissionIndustry = null;
-          if (company.report?.public_form_submissions) {
-            // Check if it's an array and get the first item, or if it's a direct object
-            if (Array.isArray(company.report.public_form_submissions)) {
-              formSubmissionIndustry = company.report.public_form_submissions[0]?.industry;
-            } else {
-              formSubmissionIndustry = company.report.public_form_submissions.industry;
+        // For companies that have report_id, fetch additional industry data from public_form_submissions
+        const companiesWithIndustry = await Promise.all((data || []).map(async (company) => {
+          let publicFormIndustry = null;
+          
+          // If company has a report_id, try to get industry from public_form_submissions
+          if (company.report_id) {
+            try {
+              const { data: publicFormData } = await supabase
+                .from('public_form_submissions')
+                .select('industry')
+                .eq('report_id', company.report_id)
+                .maybeSingle();
+              
+              if (publicFormData) {
+                publicFormIndustry = publicFormData.industry;
+              }
+            } catch (err) {
+              console.log('Could not fetch public form industry for company:', company.id);
             }
           }
           
           return mapDbCompanyToApi({
             ...company,
-            form_submission_industry: formSubmissionIndustry
+            // Use industry from public_form_submissions if available, otherwise fallback to existing industry
+            industry: publicFormIndustry || company.industry
           });
-        });
+        }));
         
         return {
-          companies: mappedCompanies,
+          companies: companiesWithIndustry,
           totalCount: count || 0
         };
       } catch (err) {
