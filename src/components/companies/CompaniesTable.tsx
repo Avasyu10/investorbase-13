@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { format, formatDistanceToNow } from "date-fns";
-import { Star, Trash, Phone, Mail, Globe } from "lucide-react";
+import { Star, Trash2, Phone, Mail, Globe } from "lucide-react";
 import { StatusDropdown } from "./StatusDropdown";
 import { TeamMemberInput } from "./TeamMemberInput";
 import { useState, useEffect } from "react";
+import { useDeleteCompany } from "@/hooks/useDeleteCompany";
+import { toast } from "@/hooks/use-toast";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -19,6 +21,7 @@ interface CompaniesTableProps {
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
+  const deleteCompanyMutation = useDeleteCompany();
 
   // Update local state when companies prop changes
   useEffect(() => {
@@ -84,8 +87,26 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
 
   const handleDeleteClick = (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
-    if (onDeleteCompany) {
-      onDeleteCompany(companyId);
+    
+    if (window.confirm('Are you sure you want to delete this company? This action cannot be undone.')) {
+      deleteCompanyMutation.mutate(companyId, {
+        onSuccess: () => {
+          // Remove from local state immediately
+          setLocalCompanies(prev => prev.filter(company => company.id !== companyId));
+          // Call the parent callback if provided
+          if (onDeleteCompany) {
+            onDeleteCompany(companyId);
+          }
+        },
+        onError: (error: any) => {
+          console.error('Failed to delete company:', error);
+          toast({
+            title: "Error deleting company",
+            description: error.message || "Failed to delete the company. Please try again.",
+            variant: "destructive",
+          });
+        }
+      });
     }
   };
 
@@ -147,7 +168,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold">Industry</TableHead>
                 <TableHead className="font-semibold">Score</TableHead>
                 <TableHead className="font-semibold">Summary</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -201,9 +222,10 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                         variant="ghost"
                         size="sm"
                         onClick={(e) => handleDeleteClick(e, company.id)}
+                        disabled={deleteCompanyMutation.isPending}
                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -234,6 +256,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableHead className="font-semibold w-[160px]">Team Member Interacting</TableHead>
               <TableHead className="font-semibold">Notes</TableHead>
               <TableHead className="font-semibold w-[80px]">Edit Status</TableHead>
+              <TableHead className="font-semibold w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -353,6 +376,17 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                         onStatusUpdate={(newStatus) => handleStatusUpdate(company.id, newStatus)}
                       />
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleDeleteClick(e, company.id)}
+                      disabled={deleteCompanyMutation.isPending}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               );
