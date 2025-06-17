@@ -8,6 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
+import UserTypeSelection from "@/components/auth/UserTypeSelection";
+import InstitutionalWelcome from "@/components/auth/InstitutionalWelcome";
+import { ArrowLeft } from "lucide-react";
+
+type UserType = 'founder' | 'accelerator' | 'vc' | null;
 
 const Index = () => {
   const { user, isLoading, signInWithEmail, signUpWithEmail } = useAuth();
@@ -15,6 +20,7 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
+  const [selectedUserType, setSelectedUserType] = useState<UserType>(null);
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -40,9 +46,59 @@ const Index = () => {
     }
   };
 
+  const handleUserTypeSelect = (userType: UserType) => {
+    setSelectedUserType(userType);
+  };
+
+  const handleBackToUserTypeSelection = () => {
+    setSelectedUserType(null);
+    // Reset form fields when going back
+    setEmail("");
+    setPassword("");
+    setActiveTab("signin");
+  };
+
+  // Show user type selection first
+  if (!selectedUserType) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
+        <div className="flex justify-center mb-6">
+          <img 
+            src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
+            alt="InvestorBase Logo" 
+            className="h-16 w-auto" 
+          />
+        </div>
+        <UserTypeSelection onUserTypeSelect={handleUserTypeSelect} />
+      </div>
+    );
+  }
+
+  // Show institutional welcome for accelerator/vc
+  if (selectedUserType === 'accelerator' || selectedUserType === 'vc') {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
+        <InstitutionalWelcome 
+          userType={selectedUserType} 
+          onBack={handleBackToUserTypeSelection}
+        />
+      </div>
+    );
+  }
+
+  // Show founder signup/signin (original flow)
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
+        <Button 
+          variant="ghost" 
+          onClick={handleBackToUserTypeSelection}
+          className="self-start"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to user type selection
+        </Button>
+        
         <div className="flex justify-center mb-4">
           <img 
             src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
@@ -51,7 +107,7 @@ const Index = () => {
           />
         </div>
         
-        <h1 className="text-4xl font-bold tracking-tight">InvestorBase</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Welcome, Founder!</h1>
         
         <p className="text-xl text-muted-foreground mb-6">
           Deal Flow, Reimagined.
