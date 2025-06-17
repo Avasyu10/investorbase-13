@@ -119,7 +119,17 @@ export function useCompanies(
         
         // Map the data and include form submission industry
         const mappedCompanies = (data || []).map(company => {
-          const formSubmissionIndustry = company.report?.public_form_submissions?.[0]?.industry;
+          // Handle the industry from public form submissions safely
+          let formSubmissionIndustry = null;
+          if (company.report?.public_form_submissions) {
+            // Check if it's an array and get the first item, or if it's a direct object
+            if (Array.isArray(company.report.public_form_submissions)) {
+              formSubmissionIndustry = company.report.public_form_submissions[0]?.industry;
+            } else {
+              formSubmissionIndustry = company.report.public_form_submissions.industry;
+            }
+          }
+          
           return mapDbCompanyToApi({
             ...company,
             form_submission_industry: formSubmissionIndustry
