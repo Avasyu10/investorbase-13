@@ -744,6 +744,7 @@ export type Database = {
       }
       public_form_submissions: {
         Row: {
+          company_linkedin: string | null
           company_registration_type: string | null
           company_stage: string | null
           company_type: string | null
@@ -778,6 +779,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          company_linkedin?: string | null
           company_registration_type?: string | null
           company_stage?: string | null
           company_type?: string | null
@@ -812,6 +814,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          company_linkedin?: string | null
           company_registration_type?: string | null
           company_stage?: string | null
           company_type?: string | null

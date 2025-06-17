@@ -9,38 +9,49 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
   });
 
   try {
-    // Get founder contact information if this is from a public submission
+    // Get founder contact information and company LinkedIn if this is from a public submission
     let founderEmail = null;
     let founderContact = null;
+    let companyLinkedInUrl = null;
     
     if (report.is_public_submission) {
-      console.log("This is a public submission, fetching founder contact info");
+      console.log("This is a public submission, fetching founder contact info and company LinkedIn");
       
       // First try to get from public_form_submissions
       const { data: publicSubmission } = await supabase
         .from('public_form_submissions')
-        .select('founder_email, founder_contact')
+        .select('founder_email, founder_contact, company_linkedin')
         .eq('report_id', report.id)
         .maybeSingle();
       
       if (publicSubmission) {
         founderEmail = publicSubmission.founder_email;
         founderContact = publicSubmission.founder_contact;
-        console.log("Found founder contact info from public_form_submissions:", { founderEmail, founderContact });
+        companyLinkedInUrl = publicSubmission.company_linkedin;
+        console.log("Found founder contact info and company LinkedIn from public_form_submissions:", { 
+          founderEmail, 
+          founderContact, 
+          companyLinkedInUrl 
+        });
       }
       
       // If not found, try barc_form_submissions
       if (!founderEmail && !founderContact) {
         const { data: barcSubmission } = await supabase
           .from('barc_form_submissions')
-          .select('submitter_email, phoneno')
+          .select('submitter_email, phoneno, company_linkedin_url')
           .eq('report_id', report.id)
           .maybeSingle();
         
         if (barcSubmission) {
           founderEmail = barcSubmission.submitter_email;
           founderContact = barcSubmission.phoneno;
-          console.log("Found founder contact info from barc_form_submissions:", { founderEmail, founderContact });
+          companyLinkedInUrl = barcSubmission.company_linkedin_url;
+          console.log("Found founder contact info and company LinkedIn from barc_form_submissions:", { 
+            founderEmail, 
+            founderContact, 
+            companyLinkedInUrl 
+          });
         }
       }
     }
@@ -71,6 +82,43 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     }
 
     console.log("Company created successfully:", company.id);
+
+    // If we have a company LinkedIn URL, store it in barc_form_submissions for scraping
+    if (companyLinkedInUrl && companyLinkedInUrl.trim()) {
+      console.log("Storing company LinkedIn URL for future scraping:", companyLinkedInUrl);
+      
+      // Check if there's already a barc_form_submission for this company
+      const { data: existingBarcSubmission } = await supabase
+        .from('barc_form_submissions')
+        .select('id')
+        .eq('company_id', company.id)
+        .maybeSingle();
+      
+      if (existingBarcSubmission) {
+        // Update existing record
+        await supabase
+          .from('barc_form_submissions')
+          .update({ company_linkedin_url: companyLinkedInUrl })
+          .eq('company_id', company.id);
+        
+        console.log("Updated existing barc_form_submission with company LinkedIn URL");
+      } else {
+        // Create new barc_form_submission record for LinkedIn scraping
+        await supabase
+          .from('barc_form_submissions')
+          .insert({
+            form_slug: 'public-submission',
+            company_name: company.name,
+            company_id: company.id,
+            report_id: report.id,
+            submitter_email: founderEmail || 'unknown@email.com',
+            company_linkedin_url: companyLinkedInUrl,
+            analysis_status: 'completed'
+          });
+        
+        console.log("Created new barc_form_submission record with company LinkedIn URL");
+      }
+    }
 
     // Save sections if they exist
     if (analysis.sections && Array.isArray(analysis.sections)) {
