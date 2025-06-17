@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,26 +87,24 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   const handleDeleteClick = (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
     
-    if (window.confirm('Are you sure you want to delete this company? This action cannot be undone.')) {
-      deleteCompanyMutation.mutate(companyId, {
-        onSuccess: () => {
-          // Remove from local state immediately
-          setLocalCompanies(prev => prev.filter(company => company.id !== companyId));
-          // Call the parent callback if provided
-          if (onDeleteCompany) {
-            onDeleteCompany(companyId);
-          }
-        },
-        onError: (error: any) => {
-          console.error('Failed to delete company:', error);
-          toast({
-            title: "Error deleting company",
-            description: error.message || "Failed to delete the company. Please try again.",
-            variant: "destructive",
-          });
+    deleteCompanyMutation.mutate(companyId, {
+      onSuccess: () => {
+        // Remove from local state immediately
+        setLocalCompanies(prev => prev.filter(company => company.id !== companyId));
+        // Call the parent callback if provided
+        if (onDeleteCompany) {
+          onDeleteCompany(companyId);
         }
-      });
-    }
+      },
+      onError: (error: any) => {
+        console.error('Failed to delete company:', error);
+        toast({
+          title: "Error deleting company",
+          description: error.message || "Failed to delete the company. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
   };
 
   const formatStatusChanged = (statusDate?: string, createdAt?: string) => {
@@ -168,7 +165,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold">Industry</TableHead>
                 <TableHead className="font-semibold">Score</TableHead>
                 <TableHead className="font-semibold">Summary</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -245,9 +242,9 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold w-[160px]">Company</TableHead>
+              <TableHead className="font-semibold w-[120px]">Company</TableHead>
               <TableHead className="font-semibold w-[140px]">Contact</TableHead>
-              <TableHead className="font-semibold w-[160px]">Email</TableHead>
+              <TableHead className="font-semibold w-[120px]">Email</TableHead>
               <TableHead className="font-semibold w-[100px]">Source</TableHead>
               <TableHead className="font-semibold w-[120px]">Industry</TableHead>
               <TableHead className="font-semibold w-[100px]">Score</TableHead>
@@ -256,7 +253,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableHead className="font-semibold w-[160px]">Team Member Interacting</TableHead>
               <TableHead className="font-semibold">Notes</TableHead>
               <TableHead className="font-semibold w-[80px]">Edit Status</TableHead>
-              <TableHead className="font-semibold w-[80px]">Actions</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
