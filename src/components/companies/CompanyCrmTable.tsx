@@ -216,8 +216,6 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
-              const phoneNumber = (company as any).phonenumber;
-              
               return (
                 <TableRow
                   key={company.id}
