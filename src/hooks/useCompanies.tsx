@@ -37,7 +37,15 @@ function mapDbCompanyToApi(company: any) {
     poc_name: company.poc_name,
     phonenumber: company.phonenumber,
     email: company.email,
-    industry: company.industry
+    industry: company.industry,
+    // Include company_details fields for non-IIT Bombay users
+    company_details: company.company_details ? {
+      status: company.company_details.status,
+      status_date: company.company_details.status_date,
+      notes: company.company_details.notes,
+      contact_email: company.company_details.contact_email,
+      point_of_contact: company.company_details.point_of_contact
+    } : null
   };
 }
 
@@ -82,7 +90,8 @@ export function useCompanies(
             id, name, overall_score, created_at, updated_at, 
             assessment_points, report_id, user_id, source,
             poc_name, phonenumber, email, industry,
-            report:report_id (pdf_url, is_public_submission)
+            report:report_id (pdf_url, is_public_submission),
+            company_details!left (status, status_date, notes, contact_email, point_of_contact)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
 

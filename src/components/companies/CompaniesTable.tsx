@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
-import { format } from "date-fns";
-import { Star, Trash } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { Star, Trash, Phone, Mail, Globe } from "lucide-react";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -31,6 +31,25 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     return "bg-red-100 text-red-800";
   };
 
+  const getStatusBadgeColor = (status: string): string => {
+    switch (status?.toLowerCase()) {
+      case 'new':
+        return "bg-blue-100 text-blue-800";
+      case 'contacted':
+        return "bg-yellow-100 text-yellow-800";
+      case 'meeting scheduled':
+        return "bg-purple-100 text-purple-800";
+      case 'under review':
+        return "bg-orange-100 text-orange-800";
+      case 'interested':
+        return "bg-green-100 text-green-800";
+      case 'passed':
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   const getSummaryPoints = (assessmentPoints?: string[]): string[] => {
     if (!assessmentPoints || assessmentPoints.length === 0) {
       return [
@@ -45,6 +64,17 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     e.stopPropagation(); // Prevent row click event
     if (onDeleteCompany) {
       onDeleteCompany(companyId);
+    }
+  };
+
+  const formatStatusChanged = (statusDate?: string, createdAt?: string) => {
+    const dateToUse = statusDate || createdAt;
+    if (!dateToUse) return "—";
+    
+    try {
+      return formatDistanceToNow(new Date(dateToUse), { addSuffix: true });
+    } catch (error) {
+      return "—";
     }
   };
 
@@ -131,24 +161,32 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     );
   }
 
-  // Original table for non-IIT Bombay users
+  // New table format for non-IIT Bombay users
   return (
     <Card>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold w-[120px]">Company</TableHead>
-              <TableHead className="font-semibold w-[120px]">Core Score</TableHead>
+              <TableHead className="font-semibold w-[160px]">Company</TableHead>
+              <TableHead className="font-semibold w-[140px]">Contact</TableHead>
+              <TableHead className="font-semibold w-[160px]">Email</TableHead>
               <TableHead className="font-semibold w-[100px]">Source</TableHead>
-              <TableHead className="font-semibold w-[120px]">Date Added</TableHead>
-              <TableHead className="font-semibold">Summary</TableHead>
+              <TableHead className="font-semibold w-[120px]">Industry</TableHead>
+              <TableHead className="font-semibold w-[100px]">Score</TableHead>
+              <TableHead className="font-semibold w-[120px]">Status</TableHead>
+              <TableHead className="font-semibold w-[140px]">Status Changed</TableHead>
+              <TableHead className="font-semibold">Notes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
               const formattedScore = Math.round(company.overall_score);
-              const summaryPoints = getSummaryPoints(company.assessment_points);
+              const companyDetails = (company as any).company_details;
+              const status = companyDetails?.status || 'New';
+              const notes = companyDetails?.notes || '';
+              const contactInfo = companyDetails?.point_of_contact || (company as any).poc_name || '';
+              const contactEmail = companyDetails?.contact_email || (company as any).email || '';
               
               return (
                 <TableRow 
@@ -156,37 +194,67 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => onCompanyClick(company.id)}
                 >
-                  <TableCell className="w-[200px]">
-                    <div>
-                      <div className="font-medium text-foreground">{company.name}</div>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-foreground">{company.name}</span>
+                      {(company as any).phonenumber && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                          <Phone className="h-3 w-3" />
+                          <span>{(company as any).phonenumber}</span>
+                        </div>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell className="w-[120px]">
+                  <TableCell>
+                    <span className="text-sm">{contactInfo || "—"}</span>
+                  </TableCell>
+                  <TableCell>
+                    {contactEmail ? (
+                      <div className="flex items-center gap-1 text-sm">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span className="truncate">{contactEmail}</span>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize text-xs">
+                      {company.source || 'Dashboard'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{(company as any).industry || "—"}</span>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <Star className="h-4 w-4 text-yellow-500" />
                       <Badge className={getScoreBadgeColor(formattedScore)}>
-                        <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
-                          {formattedScore}/100
+                        <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                          {formattedScore}
                         </span>
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell className="w-[100px]">
-                    <Badge variant="outline" className="capitalize">
-                      {company.source || 'Dashboard'}
+                  <TableCell>
+                    <Badge className={getStatusBadgeColor(status)}>
+                      <span className="text-xs font-medium">{status}</span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="w-[120px] text-muted-foreground">
-                    {format(new Date(company.created_at || ''), 'MMM dd, yyyy')}
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground">
+                      {formatStatusChanged(companyDetails?.status_date, company.created_at)}
+                    </span>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      {summaryPoints.map((point, index) => (
-                        <div key={index} className="flex items-start gap-2 text-sm">
-                          <span className="text-primary mt-1">•</span>
-                          <span className="text-muted-foreground line-clamp-2">{point}</span>
-                        </div>
-                      ))}
+                    <div className="max-w-[200px]">
+                      {notes ? (
+                        <span className="text-xs text-muted-foreground line-clamp-2">
+                          {notes}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">No notes</span>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
