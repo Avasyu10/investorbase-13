@@ -7,7 +7,7 @@ import { Company } from "@/lib/api/apiContract";
 import { format, formatDistanceToNow } from "date-fns";
 import { Star, Trash, Phone, Mail, Globe } from "lucide-react";
 import { StatusDropdown } from "./StatusDropdown";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -20,7 +20,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   const [localCompanies, setLocalCompanies] = useState(companies);
 
   // Update local state when companies prop changes
-  useState(() => {
+  useEffect(() => {
     setLocalCompanies(companies);
   }, [companies]);
 
