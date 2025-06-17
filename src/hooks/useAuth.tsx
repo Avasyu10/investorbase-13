@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -8,7 +9,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string, userType?: 'founder' | 'accelerator' | 'vc') => Promise<void>;
   signUpWithEmail: (email: string, password: string, metadata?: Record<string, string>) => Promise<boolean>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
@@ -77,15 +78,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [toast]);
 
-  const signInWithEmail = async (email: string, password: string) => {
+  const signInWithEmail = async (email: string, password: string, userType?: 'founder' | 'accelerator' | 'vc') => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      
+      // First, authenticate the user
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+
+      // If this is a restricted signin (accelerator/vc), check user type
+      if (userType && (userType === 'accelerator' || userType === 'vc')) {
+        const userId = authData.user?.id;
+        
+        if (userId) {
+          // Check if user has a profile entry (indicating they signed up as a founder)
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error checking user profile:', profileError);
+            throw new Error('Authentication verification failed');
+          }
+
+          // If user has a profile, they signed up as a founder and shouldn't access institutional signin
+          if (profileData) {
+            // Sign out the user immediately
+            await supabase.auth.signOut();
+            throw new Error('Access denied. Founders cannot use institutional signin. Please use the founder signin option.');
+          }
+        }
+      }
       
       toast({
         title: "Successfully signed in",

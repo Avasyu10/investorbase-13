@@ -19,7 +19,7 @@ const InstitutionalWelcome = ({ userType, onBack }: InstitutionalWelcomeProps) =
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signInWithEmail(email, password);
+    await signInWithEmail(email, password, userType);
   };
 
   const config = {

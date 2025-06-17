@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +29,7 @@ const Index = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signInWithEmail(email, password);
+    await signInWithEmail(email, password, 'founder');
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
