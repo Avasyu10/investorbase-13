@@ -44,7 +44,8 @@ function mapDbCompanyToApi(company: any) {
       status_date: company.company_details.status_date,
       notes: company.company_details.notes,
       contact_email: company.company_details.contact_email,
-      point_of_contact: company.company_details.point_of_contact
+      point_of_contact: company.company_details.point_of_contact,
+      industry: company.company_details.industry
     } : null
   };
 }
