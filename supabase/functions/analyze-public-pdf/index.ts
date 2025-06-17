@@ -61,11 +61,15 @@ serve(async (req) => {
       headers.set('Origin', origin);
     }
     
-    // Call the analyze-pdf function directly with the report ID
+    // Call the analyze-pdf function directly with the report ID but with modified prompt for 100-point scale
     const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-pdf`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ reportId })
+      body: JSON.stringify({ 
+        reportId,
+        usePublicAnalysisPrompt: true,
+        scoringScale: 100
+      })
     });
     
     if (!response.ok) {
