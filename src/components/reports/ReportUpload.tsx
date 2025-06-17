@@ -78,6 +78,9 @@ export function ReportUpload({
   const [founderAddress, setFounderAddress] = useState("");
   const [founderState, setFounderState] = useState("");
   
+  // Company LinkedIn URL
+  const [companyLinkedInUrl, setCompanyLinkedInUrl] = useState("");
+  
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,6 +258,12 @@ export function ReportUpload({
           return;
         }
         
+        // Add company LinkedIn URL to form data
+        if (companyLinkedInUrl && companyLinkedInUrl.trim()) {
+          formData.append('company_linkedin', companyLinkedInUrl);
+          console.log("Adding company LinkedIn URL:", companyLinkedInUrl);
+        }
+        
         // Ensure all required fields are included
         formData.append('title', title);
         
@@ -300,7 +309,8 @@ export function ReportUpload({
           founderEmail,
           founderContact,
           founderAddress,
-          founderState
+          founderState,
+          companyLinkedInUrl
         });
         
         if (briefIntroduction) {
@@ -698,6 +708,7 @@ export function ReportUpload({
         setFounderContact("");
         setFounderAddress("");
         setFounderState("");
+        setCompanyLinkedInUrl(""); // Reset company LinkedIn URL
         
         if (onSuccess) {
           onSuccess();
@@ -797,6 +808,9 @@ export function ReportUpload({
             setFounderAddress={setFounderAddress}
             founderState={founderState}
             setFounderState={setFounderState}
+            // Company LinkedIn URL
+            companyLinkedInUrl={companyLinkedInUrl}
+            setCompanyLinkedInUrl={setCompanyLinkedInUrl}
           />
           
           {isPublic && !hideEmailField && (
