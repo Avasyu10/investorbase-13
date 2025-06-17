@@ -258,7 +258,7 @@ export function ReportUpload({
           return;
         }
         
-        // Add company LinkedIn URL to form data
+        // Fix: Add company LinkedIn URL to form data with the correct field name
         if (companyLinkedInUrl && companyLinkedInUrl.trim()) {
           formData.append('company_linkedin', companyLinkedInUrl);
           console.log("Adding company LinkedIn URL:", companyLinkedInUrl);
