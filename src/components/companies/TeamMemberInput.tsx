@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,7 +91,7 @@ export function TeamMemberInput({
       <span className="text-sm text-muted-foreground min-w-0 flex-1">
         {currentTeamMember || "—"}
       </span>
-      <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-inherit">
+      <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="h-8 w-8 p-0 transition-opacity bg-inherit">
         <Edit3 className="h-3 w-3" />
       </Button>
     </div>;
