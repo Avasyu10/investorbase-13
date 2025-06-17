@@ -9,6 +9,42 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
   });
 
   try {
+    // Get founder contact information if this is from a public submission
+    let founderEmail = null;
+    let founderContact = null;
+    
+    if (report.is_public_submission) {
+      console.log("This is a public submission, fetching founder contact info");
+      
+      // First try to get from public_form_submissions
+      const { data: publicSubmission } = await supabase
+        .from('public_form_submissions')
+        .select('founder_email, founder_contact')
+        .eq('report_id', report.id)
+        .maybeSingle();
+      
+      if (publicSubmission) {
+        founderEmail = publicSubmission.founder_email;
+        founderContact = publicSubmission.founder_contact;
+        console.log("Found founder contact info from public_form_submissions:", { founderEmail, founderContact });
+      }
+      
+      // If not found, try barc_form_submissions
+      if (!founderEmail && !founderContact) {
+        const { data: barcSubmission } = await supabase
+          .from('barc_form_submissions')
+          .select('submitter_email, phoneno')
+          .eq('report_id', report.id)
+          .maybeSingle();
+        
+        if (barcSubmission) {
+          founderEmail = barcSubmission.submitter_email;
+          founderContact = barcSubmission.phoneno;
+          console.log("Found founder contact info from barc_form_submissions:", { founderEmail, founderContact });
+        }
+      }
+    }
+
     // Create the company record
     const companyData = {
       name: analysis.companyName || report.title || 'Unknown Company',
@@ -16,7 +52,9 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       assessment_points: analysis.assessmentPoints || [],
       report_id: report.id,
       user_id: report.user_id,
-      source: report.is_public_submission ? 'public_url' : 'dashboard'
+      source: report.is_public_submission ? 'public_url' : 'dashboard',
+      email: founderEmail || null,
+      phonenumber: founderContact || null
     };
 
     console.log("Creating company with data:", companyData);
