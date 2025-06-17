@@ -7,6 +7,7 @@ import { Company } from "@/lib/api/apiContract";
 import { format, formatDistanceToNow } from "date-fns";
 import { Star, Trash, Phone, Mail, Globe } from "lucide-react";
 import { StatusDropdown } from "./StatusDropdown";
+import { TeamMemberInput } from "./TeamMemberInput";
 import { useState, useEffect } from "react";
 
 interface CompaniesTableProps {
@@ -116,6 +117,22 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }));
   };
 
+  const handleTeamMemberUpdate = (companyId: string, newTeamMember: string) => {
+    // Update local state to reflect the change immediately
+    setLocalCompanies(prev => prev.map(company => {
+      if (company.id === companyId) {
+        return {
+          ...company,
+          company_details: {
+            ...(company as any).company_details,
+            teammember_name: newTeamMember
+          }
+        };
+      }
+      return company;
+    }));
+  };
+
   if (isIITBombay) {
     return (
       <Card>
@@ -214,8 +231,9 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableHead className="font-semibold w-[100px]">Score</TableHead>
               <TableHead className="font-semibold w-[120px]">Status</TableHead>
               <TableHead className="font-semibold w-[140px]">Status Changed</TableHead>
+              <TableHead className="font-semibold w-[160px]">Team Member Interacting</TableHead>
               <TableHead className="font-semibold">Notes</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              <TableHead className="font-semibold w-[80px]">Edit Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -228,6 +246,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               // Display industry directly from public_form_submissions
               const industry = company.industry || "—";
               const assessmentPoints = getSummaryPoints(company.assessment_points);
+              const teamMemberName = companyDetails?.teammember_name || '';
               
               return (
                 <TableRow 
@@ -293,6 +312,18 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     <span className="text-xs text-muted-foreground">
                       {formatStatusChanged(companyDetails?.status_date, company.created_at)}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <div 
+                      className="w-full"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <TeamMemberInput
+                        companyId={company.id}
+                        currentTeamMember={teamMemberName}
+                        onTeamMemberUpdate={(newTeamMember) => handleTeamMemberUpdate(company.id, newTeamMember)}
+                      />
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="max-w-[200px]">

@@ -212,6 +212,7 @@ export type Database = {
           stage: string | null
           status: string
           status_date: string
+          teammember_name: string | null
           updated_at: string
           website: string | null
         }
@@ -230,6 +231,7 @@ export type Database = {
           stage?: string | null
           status?: string
           status_date?: string
+          teammember_name?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -248,6 +250,7 @@ export type Database = {
           stage?: string | null
           status?: string
           status_date?: string
+          teammember_name?: string | null
           updated_at?: string
           website?: string | null
         }
