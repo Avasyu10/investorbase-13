@@ -201,12 +201,17 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm">{contactInfo || "—"}</span>
+                      {contactInfo && (
+                        <span className="text-sm">{contactInfo}</span>
+                      )}
                       {(company as any).phonenumber && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Phone className="h-3 w-3" />
                           <span>{(company as any).phonenumber}</span>
                         </div>
+                      )}
+                      {!contactInfo && !(company as any).phonenumber && (
+                        <span className="text-sm">—</span>
                       )}
                     </div>
                   </TableCell>
