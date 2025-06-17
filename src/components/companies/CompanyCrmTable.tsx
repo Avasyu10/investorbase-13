@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -227,18 +226,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                 >
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell className="max-w-[120px] truncate" title="Contact Phone">
-                    {phoneNumber ? (
-                      <a 
-                        href={`tel:${phoneNumber}`}
-                        className="text-blue-500 hover:underline flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Phone className="h-3 w-3" />
-                        <span>{phoneNumber}</span>
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground italic">—</span>
-                    )}
+                    <CompanyContactPhone company={company} />
                   </TableCell>
                   <TableCell className="max-w-[150px] truncate" title="Contact Email">
                     <CompanyCrmField 
