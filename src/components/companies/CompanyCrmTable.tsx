@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -215,90 +216,102 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies.map((company) => (
-              <TableRow
-                key={company.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => onCompanyClick(company.id)}
-              >
-                <TableCell className="font-medium">{company.name}</TableCell>
-                <TableCell className="max-w-[120px] truncate" title="Contact Phone">
-                  <CompanyContactPhone 
-                    company={company}
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell className="max-w-[150px] truncate" title="Contact Email">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="contact_email"
-                    isEmail={true}
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell className="max-w-[120px] truncate" title="Source of Introduction">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="source_of_introduction"
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell title="Industry">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="industry"
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell title="LinkedIn URL">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="linkedin_url"
-                    isUrl={true}
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell title="Status">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="status"
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell title="Status Date">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="status_date"
-                    isDate={true}
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell className="max-w-[120px] truncate" title="Account Manager">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="account_manager"
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell className="max-w-[150px] truncate" title="Notes">
-                  <CompanyCrmField 
-                    companyId={company.id.toString()} 
-                    field="notes"
-                    refreshTrigger={refreshTrigger}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={(e) => handleEditClick(company, e)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    <span className="sr-only">Edit</span>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {companies.map((company) => {
+              const phoneNumber = (company as any).phonenumber;
+              
+              return (
+                <TableRow
+                  key={company.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => onCompanyClick(company.id)}
+                >
+                  <TableCell className="font-medium">{company.name}</TableCell>
+                  <TableCell className="max-w-[120px] truncate" title="Contact Phone">
+                    {phoneNumber ? (
+                      <a 
+                        href={`tel:${phoneNumber}`}
+                        className="text-blue-500 hover:underline flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone className="h-3 w-3" />
+                        <span>{phoneNumber}</span>
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground italic">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate" title="Contact Email">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="contact_email"
+                      isEmail={true}
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell className="max-w-[120px] truncate" title="Source of Introduction">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="source_of_introduction"
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell title="Industry">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="industry"
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell title="LinkedIn URL">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="linkedin_url"
+                      isUrl={true}
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell title="Status">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="status"
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell title="Status Date">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="status_date"
+                      isDate={true}
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell className="max-w-[120px] truncate" title="Account Manager">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="account_manager"
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate" title="Notes">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="notes"
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={(e) => handleEditClick(company, e)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      <span className="sr-only">Edit</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
