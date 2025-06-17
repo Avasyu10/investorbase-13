@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -222,10 +223,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                 onClick={() => onCompanyClick(company.id)}
               >
                 <TableCell className="font-medium">{company.name}</TableCell>
-                <TableCell className="max-w-[120px] truncate" title="Point of Contact">
-                  <CompanyCrmField 
+                <TableCell className="max-w-[120px] truncate" title="Contact Phone">
+                  <CompanyPhoneField 
                     companyId={company.id.toString()} 
-                    field="point_of_contact" 
                     refreshTrigger={refreshTrigger}
                   />
                 </TableCell>
@@ -460,6 +460,62 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// Helper component to display phone number from the companies table
+function CompanyPhoneField({ 
+  companyId, 
+  refreshTrigger = 0
+}: { 
+  companyId: string; 
+  refreshTrigger?: number;
+}) {
+  const [value, setValue] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch the phone number from the companies table
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('companies')
+          .select('phonenumber')
+          .eq('id', companyId)
+          .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          console.error('Error fetching phone number:', error);
+        }
+        
+        setValue(data?.phonenumber || null);
+      } catch (err) {
+        console.error('Error in phone number fetch:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [companyId, refreshTrigger]);
+
+  if (isLoading) {
+    return <span className="text-muted-foreground italic">Loading...</span>;
+  }
+
+  if (!value) {
+    return <span className="text-muted-foreground italic">—</span>;
+  }
+
+  return (
+    <a 
+      href={`tel:${value}`}
+      className="text-blue-500 hover:underline"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {value}
+    </a>
   );
 }
 

@@ -64,8 +64,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     console.log("Company created successfully:", company.id);
 
     // Create company_details record with LinkedIn URL if available
-    // Set status to "Deck Evaluated" for public submissions, "New" for dashboard uploads
-    const statusValue = report.is_public_submission ? 'Deck Evaluated' : 'New';
+    // Set status based on source: "Deck Evaluated" for dashboard uploads, "Deck Evaluated" for public submissions
+    const statusValue = 'Deck Evaluated';
     
     if (companyLinkedInUrl && companyLinkedInUrl.trim()) {
       console.log("Creating company_details record with LinkedIn URL:", companyLinkedInUrl);
@@ -90,9 +90,9 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       } else {
         console.log("Company details created successfully with LinkedIn URL and status:", statusValue);
       }
-    } else if (report.is_public_submission) {
-      // Create company_details record even without LinkedIn URL for public submissions
-      console.log("Creating company_details record for public submission without LinkedIn URL");
+    } else {
+      // Create company_details record even without LinkedIn URL
+      console.log("Creating company_details record without LinkedIn URL");
       
       const companyDetailsData = {
         company_id: company.id,
