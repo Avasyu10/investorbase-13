@@ -119,7 +119,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       {(company as any).email || "—"}
                     </TableCell>
                     <TableCell>
-                      {(company as any).industry || "—"}
+                      {company.industry || "—"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -186,8 +186,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               const status = companyDetails?.status || 'New';
               const contactInfo = companyDetails?.point_of_contact || (company as any).poc_name || '';
               const contactEmail = companyDetails?.contact_email || (company as any).email || '';
-              // Use industry from company_details first, then fallback to company.industry
-              const industry = companyDetails?.industry || (company as any).industry || '';
+              // Display industry directly from public_form_submissions
+              const industry = company.industry || "—";
               const assessmentPoints = getSummaryPoints(company.assessment_points);
               
               return (
@@ -233,7 +233,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{industry || "—"}</span>
+                    <span className="text-sm">{industry}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

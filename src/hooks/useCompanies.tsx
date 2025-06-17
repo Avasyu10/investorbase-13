@@ -37,7 +37,7 @@ function mapDbCompanyToApi(company: any) {
     poc_name: company.poc_name,
     phonenumber: company.phonenumber,
     email: company.email,
-    industry: company.industry,
+    industry: company.industry || company.form_submission_industry,
     // Include company_details fields for non-IIT Bombay users
     company_details: company.company_details ? {
       status: company.company_details.status,
@@ -91,8 +91,12 @@ export function useCompanies(
             id, name, overall_score, created_at, updated_at, 
             assessment_points, report_id, user_id, source,
             poc_name, phonenumber, email, industry,
-            report:report_id (pdf_url, is_public_submission),
-            company_details!left (status, status_date, notes, contact_email, point_of_contact)
+            report:report_id (
+              pdf_url, 
+              is_public_submission,
+              public_form_submissions!reports_id_fkey(industry)
+            ),
+            company_details!left (status, status_date, notes, contact_email, point_of_contact, industry)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
 
@@ -113,8 +117,17 @@ export function useCompanies(
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total`);
         
+        // Map the data and include form submission industry
+        const mappedCompanies = (data || []).map(company => {
+          const formSubmissionIndustry = company.report?.public_form_submissions?.[0]?.industry;
+          return mapDbCompanyToApi({
+            ...company,
+            form_submission_industry: formSubmissionIndustry
+          });
+        });
+        
         return {
-          companies: (data || []).map(mapDbCompanyToApi),
+          companies: mappedCompanies,
           totalCount: count || 0
         };
       } catch (err) {
