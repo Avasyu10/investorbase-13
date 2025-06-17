@@ -962,7 +962,9 @@ const Profile = () => {
                           </div>
                         </div>
                       </div>
-                    ) : (
+                    )}
+                    
+                    {!isFounder && !publicForm && (
                       <div className="bg-secondary/10 p-4 rounded-md">
                         <p className="text-sm text-muted-foreground">
                           No public submission URL has been generated yet.
