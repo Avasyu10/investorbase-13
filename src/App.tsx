@@ -21,7 +21,7 @@ const AppRoutes = () => {
 const ConditionalLayout = () => {
   const location = useLocation();
   
-  // Don't show navbar on thank you page
+  // Don't show navbar on thank you page or any public submission pages
   const showNavbar = location.pathname !== '/thank-you';
   
   return (
