@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { format, formatDistanceToNow } from "date-fns";
 import { Star, Trash, Phone, Mail, Globe } from "lucide-react";
+import { StatusDropdown } from "./StatusDropdown";
+import { useState } from "react";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -15,6 +17,13 @@ interface CompaniesTableProps {
 }
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false }: CompaniesTableProps) {
+  const [localCompanies, setLocalCompanies] = useState(companies);
+
+  // Update local state when companies prop changes
+  useState(() => {
+    setLocalCompanies(companies);
+  }, [companies]);
+
   const getScoreColor = (score: number): string => {
     if (score >= 90) return "text-emerald-600";
     if (score >= 70) return "text-blue-600";
@@ -45,6 +54,18 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         return "bg-green-100 text-green-800";
       case 'passed':
         return "bg-red-100 text-red-800";
+      case 'partner meeting':
+        return "bg-indigo-100 text-indigo-800";
+      case 'term sheet offer':
+        return "bg-cyan-100 text-cyan-800";
+      case 'due diligence':
+        return "bg-amber-100 text-amber-800";
+      case 'closing':
+        return "bg-emerald-100 text-emerald-800";
+      case 'exit':
+        return "bg-slate-100 text-slate-800";
+      case 'deck evaluated':
+        return "bg-lime-100 text-lime-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -78,6 +99,23 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
   };
 
+  const handleStatusUpdate = (companyId: string, newStatus: string) => {
+    // Update local state to reflect the change immediately
+    setLocalCompanies(prev => prev.map(company => {
+      if (company.id === companyId) {
+        return {
+          ...company,
+          company_details: {
+            ...(company as any).company_details,
+            status: newStatus,
+            status_date: new Date().toISOString()
+          }
+        };
+      }
+      return company;
+    }));
+  };
+
   if (isIITBombay) {
     return (
       <Card>
@@ -96,7 +134,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               </TableRow>
             </TableHeader>
             <TableBody>
-              {companies.map((company) => {
+              {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const summaryPoints = getSummaryPoints(company.assessment_points);
                 
@@ -177,10 +215,11 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableHead className="font-semibold w-[120px]">Status</TableHead>
               <TableHead className="font-semibold w-[140px]">Status Changed</TableHead>
               <TableHead className="font-semibold">Notes</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies.map((company) => {
+            {localCompanies.map((company) => {
               const formattedScore = Math.round(company.overall_score);
               const companyDetails = (company as any).company_details;
               const status = companyDetails?.status || 'New';
@@ -269,6 +308,18 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       ) : (
                         <span className="text-xs text-muted-foreground italic">No assessment points</span>
                       )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div 
+                      className="flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <StatusDropdown
+                        companyId={company.id}
+                        currentStatus={status}
+                        onStatusUpdate={(newStatus) => handleStatusUpdate(company.id, newStatus)}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
