@@ -39,13 +39,15 @@ function mapDbCompanyToApi(company: any) {
     email: company.email,
     industry: company.industry,
     // Include company_details fields for non-IIT Bombay users
-    company_details: company.company_details ? {
-      status: company.company_details.status,
-      status_date: company.company_details.status_date,
-      notes: company.company_details.notes,
-      contact_email: company.company_details.contact_email,
-      point_of_contact: company.company_details.point_of_contact,
-      industry: company.company_details.industry
+    // Fix: Ensure company_details is properly structured as a single object
+    company_details: company.company_details && company.company_details.length > 0 ? {
+      status: company.company_details[0].status,
+      status_date: company.company_details[0].status_date,
+      notes: company.company_details[0].notes,
+      contact_email: company.company_details[0].contact_email,
+      point_of_contact: company.company_details[0].point_of_contact,
+      industry: company.company_details[0].industry,
+      teammember_name: company.company_details[0].teammember_name
     } : null
   };
 }
@@ -95,7 +97,7 @@ export function useCompanies(
               pdf_url, 
               is_public_submission
             ),
-            company_details!left (status, status_date, notes, contact_email, point_of_contact, industry)
+            company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
 

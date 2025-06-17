@@ -240,6 +240,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
             {localCompanies.map((company) => {
               const formattedScore = Math.round(company.overall_score);
               const companyDetails = (company as any).company_details;
+              // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
               const status = companyDetails?.status || 'New';
               const contactInfo = companyDetails?.point_of_contact || (company as any).poc_name || '';
               const contactEmail = companyDetails?.contact_email || (company as any).email || '';
