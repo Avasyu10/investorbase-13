@@ -188,153 +188,92 @@ serve(async (req) => {
       );
     }
 
-    // Build analysis prompt with submission data
+    // Build analysis prompt - FIXED: Using EXACT same structure as BARC
     const analysisPrompt = `
-    You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
+You are an expert startup evaluator for an incubator program. Analyze the following Eureka startup application and provide a comprehensive assessment.
 
-    Company Information:
-    - Company Name: ${submission.company_name || 'Not provided'}
-    - Registration Type: ${submission.company_registration_type || 'Not provided'}
-    - Industry: ${submission.company_type || 'Not provided'}
-    - Executive Summary: ${submission.executive_summary || 'Not provided'}
+Company Information:
+- Company Name: ${submission.company_name || 'Not provided'}
+- Registration Type: ${submission.company_registration_type || 'Not provided'}
+- Industry: ${submission.company_type || 'Not provided'}
+- Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and Specific Metrics for Evaluation:
+Application Responses:
 
-    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Problem Clarity (30 pts): Is it real, urgent, and well-articulated?
-    - Current Alternatives (30 pts): Are existing coping methods explained clearly?
-    - Solution Fit (30 pts): Is the solution directly tackling the core pain point?
-    
-    Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution.
-    Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match.
+1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
+   
+2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
+   
+3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
+   
+4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
+   
+5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
 
-    2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Customer Definition (35 pts): Are the segments specific and realistic?
-    - Use Case Relevance (35 pts): Does the product clearly serve these users?
-    - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight?
-    
-    Score harshly if: Describes "everyone" or is overly broad.
-    Score highly if: Defined personas, nuanced insights, matched offering.
+Contact Information:
+- Point of Contact: ${submission.poc_name || 'Not provided'}
+- Email: ${submission.submitter_email}
+- Phone: ${submission.phoneno || 'Not provided'}
+- LinkedIn URLs: ${submission.founder_linkedin_urls?.join(', ') || 'Not provided'}
+- Company LinkedIn: ${submission.company_linkedin_url || 'Not provided'}
 
-    3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Competitor Awareness (35 pts): Are both direct and indirect players mentioned?
-    - Comparison Clarity (35 pts): Is differentiation from competitors clear?
-    - Strategic Positioning (30 pts): Do they show where they fit in the landscape?
-    
-    Score harshly if: Misses obvious competitors or gives vague comparisons
-    Score highly if: Deep landscape awareness and sharp positioning.
+CRITICAL: You MUST return analysis in this EXACT JSON format (no markdown, no code blocks):
 
-    4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Monetization Clarity (30 pts): Is revenue generation clearly explained?
-    - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified?
-    - Scalability & Growth (35 pts): Is there a future roadmap for expansion?
-    
-    Score harshly if: No revenue clarity or hand-wavy growth claims.
-    Score highly if: Structured, feasible model + strong growth potential.
-
-    5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - USP Clarity (30 pts): Clear, strong differentiator from others?
-    - Customer Pull Strategy (35 pts): Effective tactics to attract and retain users?
-    - IP or Moat (35 pts): Any defensibility—tech, brand, data, or network effects?
-    
-    Score harshly if: No meaningful edge, or vague marketing.
-    Score highly if: Compelling USP + solid GTM + proprietary advantage.
-
-    SCORING GUIDELINES - BE HIGHLY DISCRIMINATIVE:
-    - 90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding
-    - 80-89: Strong responses with good evidence and understanding, minor gaps
-    - 70-79: Adequate responses with some evidence, moderate understanding
-    - 60-69: Weak responses with limited evidence, significant gaps
-    - 40-59: Poor responses with minimal substance, major deficiencies
-    - 20-39: Very poor responses, largely inadequate or missing key elements
-    - 1-19: Extremely poor or non-responses
-
-    For ASSESSMENT POINTS (8-10 points required):
-    Each point MUST be detailed (3-4 sentences each) and contain specific market data: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks.
-
-    CRITICAL CHANGE - For IMPROVEMENTS (exactly 4-5 each per section):
-    IMPROVEMENTS must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
-    - Market saturation concerns (X% of market already captured by incumbents)
-    - High customer acquisition costs in this sector ($X CAC vs industry average)
-    - Regulatory challenges affecting X% of similar companies
-    - Economic headwinds impacting sector growth (X% decline in funding)
-    - Technology adoption barriers affecting X% of target market
-    - Competitive pressure from well-funded players with $X backing
-    - Market timing risks based on industry cycles
-
-    For STRENGTHS (exactly 4-5 each per section):
-    - STRENGTHS: Highlight what they did well, supported by market validation and data
-
-    CRITICAL: Return analysis in this EXACT JSON format to match BARC form structure:
-
-    {
-      "overall_score": number (1-100),
-      "recommendation": "Accept/Reject/Conditional Accept",
-      "company_info": {
-        "stage": "string",
-        "industry": "string",
-        "introduction": "string"
-      },
-      "summary": {
-        "overall_feedback": "comprehensive feedback string",
-        "assessment_points": ["exactly 8-10 detailed assessment points with market data"],
-        "key_factors": ["exactly 4-5 key factors"],
-        "next_steps": ["exactly 4-5 next steps"]
-      },
-      "sections": {
-        "problem_solution_fit": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
-        },
-        "target_customers": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
-        },
-        "competitive_advantage": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
-        },
-        "market_opportunity": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
-        },
-        "team_strength": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
-        }
-      }
+{
+  "overall_score": number (1-100),
+  "recommendation": "Accept/Reject/Conditional Accept",
+  "company_info": {
+    "stage": "Early Stage/Growth Stage/Mature",
+    "industry": "string",
+    "introduction": "Brief company overview in 2-3 sentences"
+  },
+  "summary": {
+    "overall_feedback": "Comprehensive overall assessment paragraph",
+    "assessment_points": ["8-10 detailed assessment points with specific insights"],
+    "key_factors": ["4-5 key success/risk factors"],
+    "next_steps": ["4-5 recommended next steps for evaluation"]
+  },
+  "sections": {
+    "problem_solution_fit": {
+      "score": number (1-100),
+      "analysis": "Detailed analysis of problem identification and solution fit",
+      "strengths": ["4-5 specific strengths"],
+      "improvements": ["4-5 areas for improvement"]
+    },
+    "target_customers": {
+      "score": number (1-100),
+      "analysis": "Detailed analysis of customer segmentation and validation",
+      "strengths": ["4-5 specific strengths"],
+      "improvements": ["4-5 areas for improvement"]
+    },
+    "competitive_advantage": {
+      "score": number (1-100),
+      "analysis": "Detailed analysis of competitive positioning and differentiation",
+      "strengths": ["4-5 specific strengths"],
+      "improvements": ["4-5 areas for improvement"]
+    },
+    "market_opportunity": {
+      "score": number (1-100),
+      "analysis": "Detailed analysis of market size, growth, and opportunity",
+      "strengths": ["4-5 specific strengths"],
+      "improvements": ["4-5 areas for improvement"]
+    },
+    "team_strength": {
+      "score": number (1-100),
+      "analysis": "Detailed analysis of team capabilities and execution potential",
+      "strengths": ["4-5 specific strengths"],
+      "improvements": ["4-5 areas for improvement"]
     }
+  }
+}
 
-    CRITICAL REQUIREMENTS:
-    1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
-    2. Use the exact metrics provided for each question in your evaluation
-    3. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each  
-    4. Focus improvements ONLY on market data challenges and industry risks - NOT response quality or form gaps
-    5. Provide exactly 4-5 strengths and 4-5 improvements per section
-    6. All scores must be 1-100 scale
-    7. CRITICAL: Use the EXACT JSON structure shown above to match BARC form format
-    8. Return only valid JSON without markdown formatting
-    `;
+REQUIREMENTS:
+1. All scores must be between 1-100
+2. Provide exactly 4-5 items in each strengths/improvements array
+3. Assessment points must be 8-10 detailed insights
+4. Analysis must be comprehensive and actionable
+5. Return ONLY valid JSON without markdown formatting
+`;
 
     // Call OpenAI for analysis
     console.log('Calling OpenAI API for Eureka analysis...');
@@ -350,7 +289,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Use the EXACT structure specified in the prompt to ensure compatibility with existing systems.'
+            content: 'You are an expert startup evaluator for incubator programs. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Use the EXACT structure specified in the prompt.'
           },
           {
             role: 'user',
@@ -434,7 +373,7 @@ serve(async (req) => {
     const companyId = newCompany.id;
     console.log('Successfully created NEW company with ID:', companyId);
 
-    // Create sections using the BARC-compatible structure
+    // Create sections using the EXACT same structure as BARC
     console.log('Creating sections for company:', companyId);
     
     // Delete old sections first (in case of retry)
@@ -443,12 +382,13 @@ serve(async (req) => {
       .delete()
       .eq('company_id', companyId);
 
+    // FIXED: Using exact same section mappings as BARC
     const sectionMappings = {
       'problem_solution_fit': { title: 'Problem & Solution', type: 'analysis', section_type: 'problem_solution_fit' },
       'target_customers': { title: 'Target Customers', type: 'analysis', section_type: 'target_customers' },
-      'competitive_advantage': { title: 'Competitors', type: 'analysis', section_type: 'competitors' },
-      'market_opportunity': { title: 'Revenue Model', type: 'analysis', section_type: 'revenue_model' },
-      'team_strength': { title: 'Differentiation', type: 'analysis', section_type: 'differentiation' }
+      'competitive_advantage': { title: 'Competitive Advantage', type: 'analysis', section_type: 'competitive_advantage' },
+      'market_opportunity': { title: 'Market Opportunity', type: 'analysis', section_type: 'market_opportunity' },
+      'team_strength': { title: 'Team Strength', type: 'analysis', section_type: 'team_strength' }
     };
 
     const sectionsToCreate = [];
@@ -483,7 +423,7 @@ serve(async (req) => {
 
       console.log('Created sections:', createdSections.length);
 
-      // Create section details (strengths and improvements) using BARC-compatible structure
+      // Create section details (strengths and improvements) using EXACT same structure as BARC
       const sectionDetails = [];
       
       for (const section of createdSections) {
