@@ -1,0 +1,3 @@
+
+[function.auto-analyze-eureka-submission]
+verify_jwt = false

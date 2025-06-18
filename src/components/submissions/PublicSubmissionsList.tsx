@@ -76,88 +76,100 @@ export function PublicSubmissionsList() {
         }
       }
 
-      // Fetch BARC form submissions for user's forms
-      if (userFormSlugs.length > 0) {
-        console.log('Fetching BARC form submissions for user\'s forms...');
-        const { data: barcSubmissions, error: barcError } = await supabase
-          .from('barc_form_submissions')
-          .select('*')
-          .in('form_slug', userFormSlugs)
-          .order('created_at', { ascending: false });
+      // Fetch BARC form submissions - both for user's forms AND for current user
+      console.log('Fetching BARC form submissions...');
+      const barcQuery = supabase
+        .from('barc_form_submissions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (barcError) {
-          console.error('Error fetching BARC submissions:', barcError);
-        } else {
-          console.log('BARC form submissions fetched:', barcSubmissions?.length || 0);
-          const mappedBarcSubmissions: CombinedSubmission[] = (barcSubmissions || []).map(sub => ({
-            id: sub.id,
-            company_name: sub.company_name || 'Untitled Company',
-            submitter_email: sub.submitter_email || 'No email',
-            created_at: sub.created_at,
-            source: 'barc_form' as const,
-            analysis_status: sub.analysis_status,
-            form_slug: sub.form_slug,
-            analysis_result: sub.analysis_result,
-            user_id: sub.user_id,
-            company_id: sub.company_id,
-            company_type: sub.company_type,
-            company_registration_type: sub.company_registration_type,
-            executive_summary: sub.executive_summary,
-            question_1: sub.question_1,
-            question_2: sub.question_2,
-            question_3: sub.question_3,
-            question_4: sub.question_4,
-            question_5: sub.question_5,
-            poc_name: sub.poc_name,
-            phoneno: sub.phoneno,
-            company_linkedin_url: sub.company_linkedin_url,
-            founder_linkedin_urls: sub.founder_linkedin_urls,
-            report_id: sub.report_id
-          }));
-          allSubmissions = [...allSubmissions, ...mappedBarcSubmissions];
-        }
+      // Apply filter for user's forms OR user_id matches current user
+      if (userFormSlugs.length > 0) {
+        barcQuery.or(`form_slug.in.(${userFormSlugs.join(',')}),user_id.eq.${user.id}`);
+      } else {
+        barcQuery.eq('user_id', user.id);
       }
 
-      // Fetch Eureka form submissions for user's forms
-      if (userFormSlugs.length > 0) {
-        console.log('Fetching Eureka form submissions for user\'s forms...');
-        const { data: eurekaSubmissions, error: eurekaError } = await supabase
-          .from('eureka_form_submissions')
-          .select('*')
-          .in('form_slug', userFormSlugs)
-          .order('created_at', { ascending: false });
+      const { data: barcSubmissions, error: barcError } = await barcQuery;
 
-        if (eurekaError) {
-          console.error('Error fetching Eureka submissions:', eurekaError);
-        } else {
-          console.log('Eureka form submissions fetched:', eurekaSubmissions?.length || 0);
-          const mappedEurekaSubmissions: CombinedSubmission[] = (eurekaSubmissions || []).map(sub => ({
-            id: sub.id,
-            company_name: sub.company_name || 'Untitled Company',
-            submitter_email: sub.submitter_email || 'No email',
-            created_at: sub.created_at,
-            source: 'eureka_form' as const,
-            analysis_status: sub.analysis_status,
-            form_slug: sub.form_slug,
-            analysis_result: sub.analysis_result,
-            user_id: sub.user_id,
-            company_id: sub.company_id,
-            company_type: sub.company_type,
-            company_registration_type: sub.company_registration_type,
-            executive_summary: sub.executive_summary,
-            question_1: sub.question_1,
-            question_2: sub.question_2,
-            question_3: sub.question_3,
-            question_4: sub.question_4,
-            question_5: sub.question_5,
-            poc_name: sub.poc_name,
-            phoneno: sub.phoneno,
-            company_linkedin_url: sub.company_linkedin_url,
-            founder_linkedin_urls: sub.founder_linkedin_urls,
-            report_id: sub.report_id
-          }));
-          allSubmissions = [...allSubmissions, ...mappedEurekaSubmissions];
-        }
+      if (barcError) {
+        console.error('Error fetching BARC submissions:', barcError);
+      } else {
+        console.log('BARC form submissions fetched:', barcSubmissions?.length || 0);
+        const mappedBarcSubmissions: CombinedSubmission[] = (barcSubmissions || []).map(sub => ({
+          id: sub.id,
+          company_name: sub.company_name || 'Untitled Company',
+          submitter_email: sub.submitter_email || 'No email',
+          created_at: sub.created_at,
+          source: 'barc_form' as const,
+          analysis_status: sub.analysis_status,
+          form_slug: sub.form_slug,
+          analysis_result: sub.analysis_result,
+          user_id: sub.user_id,
+          company_id: sub.company_id,
+          company_type: sub.company_type,
+          company_registration_type: sub.company_registration_type,
+          executive_summary: sub.executive_summary,
+          question_1: sub.question_1,
+          question_2: sub.question_2,
+          question_3: sub.question_3,
+          question_4: sub.question_4,
+          question_5: sub.question_5,
+          poc_name: sub.poc_name,
+          phoneno: sub.phoneno,
+          company_linkedin_url: sub.company_linkedin_url,
+          founder_linkedin_urls: sub.founder_linkedin_urls,
+          report_id: sub.report_id
+        }));
+        allSubmissions = [...allSubmissions, ...mappedBarcSubmissions];
+      }
+
+      // Fetch Eureka form submissions - both for user's forms AND for current user
+      console.log('Fetching Eureka form submissions...');
+      const eurekaQuery = supabase
+        .from('eureka_form_submissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Apply filter for user's forms OR user_id matches current user
+      if (userFormSlugs.length > 0) {
+        eurekaQuery.or(`form_slug.in.(${userFormSlugs.join(',')}),user_id.eq.${user.id}`);
+      } else {
+        eurekaQuery.eq('user_id', user.id);
+      }
+
+      const { data: eurekaSubmissions, error: eurekaError } = await eurekaQuery;
+
+      if (eurekaError) {
+        console.error('Error fetching Eureka submissions:', eurekaError);
+      } else {
+        console.log('Eureka form submissions fetched:', eurekaSubmissions?.length || 0);
+        const mappedEurekaSubmissions: CombinedSubmission[] = (eurekaSubmissions || []).map(sub => ({
+          id: sub.id,
+          company_name: sub.company_name || 'Untitled Company',
+          submitter_email: sub.submitter_email || 'No email',
+          created_at: sub.created_at,
+          source: 'eureka_form' as const,
+          analysis_status: sub.analysis_status,
+          form_slug: sub.form_slug,
+          analysis_result: sub.analysis_result,
+          user_id: sub.user_id,
+          company_id: sub.company_id,
+          company_type: sub.company_type,
+          company_registration_type: sub.company_registration_type,
+          executive_summary: sub.executive_summary,
+          question_1: sub.question_1,
+          question_2: sub.question_2,
+          question_3: sub.question_3,
+          question_4: sub.question_4,
+          question_5: sub.question_5,
+          poc_name: sub.poc_name,
+          phoneno: sub.phoneno,
+          company_linkedin_url: sub.company_linkedin_url,
+          founder_linkedin_urls: sub.founder_linkedin_urls,
+          report_id: sub.report_id
+        }));
+        allSubmissions = [...allSubmissions, ...mappedEurekaSubmissions];
       }
 
       // Fetch email submissions

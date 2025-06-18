@@ -168,24 +168,44 @@ const EurekaSample = () => {
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
-      // Trigger analysis without waiting for it to complete
-      analyzeEurekaSubmission(submission.id).catch(error => {
-        console.error('❌ Analysis failed:', error);
-        // Don't throw here as we still want to redirect user
-      });
-
+      // Show success message immediately
       toast({
         title: "Success!",
         description: "🎉 Application submitted successfully! Analysis is starting automatically.",
       });
 
+      // Trigger analysis and handle the result
+      try {
+        console.log('🚀 Starting analysis for submission:', submission.id);
+        await analyzeEurekaSubmission(submission.id);
+        console.log('✅ Analysis started successfully');
+        
+        toast({
+          title: "Analysis Started",
+          description: "Your application is now being analyzed. You'll be notified when it's complete.",
+        });
+        
+        // Emit custom events to update realtime listeners
+        window.dispatchEvent(new CustomEvent('eurekaNewSubmission'));
+        window.dispatchEvent(new CustomEvent('eurekaStatusChange'));
+        
+      } catch (analysisError: any) {
+        console.error('❌ Analysis failed to start:', analysisError);
+        toast({
+          title: "Analysis Issue",
+          description: `Your application was submitted, but analysis couldn't start automatically: ${analysisError.message || 'Unknown error'}`,
+          variant: "destructive",
+        });
+      }
+
       form.reset();
       setFounderLinkedIns([""]);
       navigate("/thank-you");
+      
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({
-        title: "Error",
+        title: "Submission Error",
         description: "There was an error submitting your application. Please try again.",
         variant: "destructive",
       });
