@@ -17,6 +17,7 @@ export interface EurekaSubmissionData {
   poc_name?: string;
   phoneno?: string;
   company_linkedin_url?: string;
+  user_id?: string | null;
 }
 
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {

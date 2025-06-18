@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -149,6 +148,7 @@ serve(async (req) => {
     console.log('Successfully acquired lock for Eureka submission analysis');
 
     // Determine the effective user ID for company creation
+    // If submission has user_id, use it; otherwise fall back to form_slug
     const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { submitEurekaForm, analyzeEurekaSubmission, type EurekaSubmissionData } from "@/lib/api/eureka";
+import { useAuth } from "@/hooks/useAuth";
 
 interface EurekaFormData {
   companyName: string;
@@ -33,6 +34,7 @@ const EurekaSample = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
@@ -151,11 +153,13 @@ const EurekaSample = () => {
         founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
-        company_linkedin_url: data.companyLinkedInUrl
+        company_linkedin_url: data.companyLinkedInUrl,
+        user_id: user?.id || null
       };
 
       // Submit the form
       const submission = await submitEurekaForm(submissionData);
+      console.log('📋 Eureka form submitted:', submission);
 
       // Trigger analysis without waiting for it to complete
       analyzeEurekaSubmission(submission.id).catch(error => {
