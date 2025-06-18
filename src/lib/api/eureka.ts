@@ -23,9 +23,15 @@ export interface EurekaSubmissionData {
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('📤 Submitting Eureka form data:', data);
   
+  // Ensure user_id is included in the submission
+  const submissionData = {
+    ...data,
+    user_id: data.user_id || null
+  };
+  
   const { data: submission, error } = await supabase
     .from('eureka_form_submissions')
-    .insert([data])
+    .insert([submissionData])
     .select()
     .single();
 

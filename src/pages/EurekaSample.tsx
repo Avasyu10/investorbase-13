@@ -38,6 +38,10 @@ const EurekaSample = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
+  // Log the current user to debug
+  console.log('🔍 Current authenticated user:', user);
+  console.log('🔍 User ID that will be submitted:', user?.id);
+
   const form = useForm<EurekaFormData>({
     defaultValues: {
       companyName: "",
@@ -73,6 +77,7 @@ const EurekaSample = () => {
 
   const onSubmit = async (data: EurekaFormData) => {
     console.log('📝 Eureka form submit triggered:', data);
+    console.log('👤 Submitting with user ID:', user?.id);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -154,12 +159,14 @@ const EurekaSample = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        user_id: user?.id || null
+        user_id: user?.id || null // Ensure user_id is properly included
       };
+
+      console.log('📋 Final submission data with user_id:', submissionData);
 
       // Submit the form
       const submission = await submitEurekaForm(submissionData);
-      console.log('📋 Eureka form submitted:', submission);
+      console.log('📋 Eureka form submitted successfully:', submission);
 
       // Trigger analysis without waiting for it to complete
       analyzeEurekaSubmission(submission.id).catch(error => {
