@@ -333,6 +333,7 @@ REQUIREMENTS:
     try {
       analysisResult = JSON.parse(analysisText);
       console.log('Successfully parsed Eureka analysis result');
+      console.log('Analysis sections structure:', Object.keys(analysisResult.sections || {}));
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
       console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
@@ -382,30 +383,44 @@ REQUIREMENTS:
       .delete()
       .eq('company_id', companyId);
 
-    // FIXED: Using exact same section mappings as BARC
-    const sectionMappings = {
-      'problem_solution_fit': { title: 'Problem & Solution', type: 'analysis', section_type: 'problem_solution_fit' },
-      'target_customers': { title: 'Target Customers', type: 'analysis', section_type: 'target_customers' },
-      'competitive_advantage': { title: 'Competitive Advantage', type: 'analysis', section_type: 'competitive_advantage' },
-      'market_opportunity': { title: 'Market Opportunity', type: 'analysis', section_type: 'market_opportunity' },
-      'team_strength': { title: 'Team Strength', type: 'analysis', section_type: 'team_strength' }
-    };
-
+    // FIXED: Create sections with proper validation and error handling
     const sectionsToCreate = [];
     if (analysisResult.sections && typeof analysisResult.sections === 'object') {
+      console.log('Processing analysis sections:', Object.keys(analysisResult.sections));
+      
+      // CRITICAL FIX: Use the exact section keys from the analysis result
+      const sectionMappings = {
+        'problem_solution_fit': { title: 'Problem & Solution', type: 'analysis', section_type: 'problem_solution_fit' },
+        'target_customers': { title: 'Target Customers', type: 'analysis', section_type: 'target_customers' },
+        'competitive_advantage': { title: 'Competitive Advantage', type: 'analysis', section_type: 'competitive_advantage' },
+        'market_opportunity': { title: 'Market Opportunity', type: 'analysis', section_type: 'market_opportunity' },
+        'team_strength': { title: 'Team Strength', type: 'analysis', section_type: 'team_strength' }
+      };
+
       for (const [sectionKey, sectionData] of Object.entries(analysisResult.sections)) {
+        console.log(`Processing section: ${sectionKey}`, {
+          hasScore: typeof sectionData.score === 'number',
+          hasAnalysis: typeof sectionData.analysis === 'string',
+          hasStrengths: Array.isArray(sectionData.strengths),
+          hasImprovements: Array.isArray(sectionData.improvements)
+        });
+
         const mapping = sectionMappings[sectionKey];
-        if (mapping && sectionData) {
+        if (mapping && sectionData && typeof sectionData === 'object') {
           sectionsToCreate.push({
             company_id: companyId,
-            score: sectionData.score || 0,
+            score: typeof sectionData.score === 'number' ? sectionData.score : 0,
             section_type: mapping.section_type,
             type: mapping.type,
             title: mapping.title,
-            description: sectionData.analysis || ''
+            description: typeof sectionData.analysis === 'string' ? sectionData.analysis : ''
           });
+        } else {
+          console.warn(`Skipping invalid section: ${sectionKey}`, { mapping: !!mapping, sectionData: typeof sectionData });
         }
       }
+    } else {
+      console.error('No valid sections found in analysis result:', analysisResult.sections);
     }
 
     console.log('Sections to create:', sectionsToCreate.length);
@@ -423,27 +438,25 @@ REQUIREMENTS:
 
       console.log('Created sections:', createdSections.length);
 
-      // FIXED: Create section details properly with proper detail_type values
+      // Create section details properly with proper detail_type values
       const sectionDetails = [];
       
       for (const section of createdSections) {
-        // Find the corresponding analysis section by mapping
-        const sectionKey = Object.keys(sectionMappings).find(key => 
-          sectionMappings[key].section_type === section.section_type
-        );
+        console.log(`Creating details for section: ${section.title} (${section.section_type})`);
         
-        const analysisSection = sectionKey ? analysisResult.sections[sectionKey] : null;
+        // Find the corresponding analysis section data
+        const analysisSection = analysisResult.sections[section.section_type];
         
         if (analysisSection) {
           console.log(`Processing section details for ${section.title}:`, {
-            strengths: analysisSection.strengths?.length || 0,
-            improvements: analysisSection.improvements?.length || 0
+            strengths: Array.isArray(analysisSection.strengths) ? analysisSection.strengths.length : 0,
+            improvements: Array.isArray(analysisSection.improvements) ? analysisSection.improvements.length : 0
           });
           
           // Add strengths with correct detail_type
-          if (analysisSection.strengths && Array.isArray(analysisSection.strengths)) {
+          if (Array.isArray(analysisSection.strengths)) {
             for (const strength of analysisSection.strengths) {
-              if (strength && strength.trim()) {
+              if (strength && typeof strength === 'string' && strength.trim()) {
                 sectionDetails.push({
                   section_id: section.id,
                   detail_type: 'strength',
@@ -454,9 +467,9 @@ REQUIREMENTS:
           }
           
           // Add improvements as weaknesses with correct detail_type
-          if (analysisSection.improvements && Array.isArray(analysisSection.improvements)) {
+          if (Array.isArray(analysisSection.improvements)) {
             for (const improvement of analysisSection.improvements) {
-              if (improvement && improvement.trim()) {
+              if (improvement && typeof improvement === 'string' && improvement.trim()) {
                 sectionDetails.push({
                   section_id: section.id,
                   detail_type: 'weakness',
@@ -465,11 +478,16 @@ REQUIREMENTS:
               }
             }
           }
+        } else {
+          console.warn(`No analysis data found for section type: ${section.section_type}`);
         }
       }
 
       console.log('Total section details to create:', sectionDetails.length);
-      console.log('Section details breakdown:', sectionDetails.map(d => ({ type: d.detail_type, section_id: d.section_id })));
+      console.log('Section details breakdown:', sectionDetails.reduce((acc, d) => {
+        acc[d.detail_type] = (acc[d.detail_type] || 0) + 1;
+        return acc;
+      }, {}));
 
       if (sectionDetails.length > 0) {
         const { data: createdDetails, error: detailsError } = await supabase
@@ -491,7 +509,11 @@ REQUIREMENTS:
         );
       } else {
         console.warn('No section details to create - check analysis result structure');
+        console.log('Analysis result sections structure:', analysisResult.sections);
       }
+    } else {
+      console.error('No sections created - this will cause UI issues');
+      console.log('Analysis result structure:', JSON.stringify(analysisResult, null, 2));
     }
 
     // Update submission with final results
