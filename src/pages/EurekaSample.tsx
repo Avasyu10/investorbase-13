@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { submitEurekaForm, analyzeEurekaSubmission, type EurekaSubmissionData } from "@/lib/api/eureka";
+import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
 import { useAuth } from "@/hooks/useAuth";
 
 interface EurekaFormData {
@@ -164,7 +164,7 @@ const EurekaSample = () => {
 
       console.log('📋 Final submission data with user_id:', submissionData);
 
-      // Submit the form - the database trigger will automatically start analysis
+      // Submit the form - the database trigger will automatically start analysis (LIKE BARC FORM)
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 

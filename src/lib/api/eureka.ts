@@ -40,32 +40,8 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     throw error;
   }
 
-  console.log('✅ Eureka form submitted successfully:', submission);
+  console.log('✅ Eureka form submitted successfully - analysis will start automatically via trigger:', submission);
   return submission;
 };
 
-export const analyzeEurekaSubmission = async (submissionId: string) => {
-  console.log('🔬 Starting Eureka submission analysis for:', submissionId);
-  
-  try {
-    // Call the correct analyze-eureka-form function (just like analyze-barc-form)
-    const response = await fetch('/functions/v1/analyze-eureka-form', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ submissionId }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Analysis request failed: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log('🎯 Eureka analysis completed successfully:', result);
-    return result;
-  } catch (error) {
-    console.error('❌ Error analyzing Eureka submission:', error);
-    throw error;
-  }
-};
+// Remove the analyzeEurekaSubmission function since analysis is now automatic via trigger
