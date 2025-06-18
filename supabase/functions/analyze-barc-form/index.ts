@@ -152,6 +152,40 @@ serve(async (req) => {
     const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
+    // Process LinkedIn data for team analysis
+    const founderLinkedInData = [];
+    if (submission.founder_linkedin_urls && Array.isArray(submission.founder_linkedin_urls)) {
+      for (const url of submission.founder_linkedin_urls) {
+        if (url && typeof url === 'string' && url.trim()) {
+          try {
+            const { data: linkedInData } = await supabase
+              .from('linkedin_profile_scrapes')
+              .select('content')
+              .eq('url', url.trim())
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (linkedInData?.content) {
+              founderLinkedInData.push({
+                url: url.trim(),
+                content: linkedInData.content
+              });
+            }
+          } catch (error) {
+            console.warn(`Error fetching LinkedIn data for ${url}:`, error);
+          }
+        }
+      }
+    }
+
+    // Build LinkedIn data section for prompt
+    const linkedInDataSection = founderLinkedInData.length > 0
+      ? `\n\nFounder LinkedIn Data:\n${founderLinkedInData.map((data, index) => 
+          `Founder ${index + 1} LinkedIn (${data.url}):\n${data.content}`
+        ).join('\n\n')}`
+      : '\n\nNo LinkedIn data available for founders.';
+
     // Build analysis prompt with submission data
     const analysisPrompt = `
     You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
@@ -159,7 +193,7 @@ serve(async (req) => {
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
-    - Industry: ${submission.industry || 'Not provided'}
+    - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
     Application Responses and Specific Metrics for Evaluation:
@@ -316,7 +350,6 @@ serve(async (req) => {
     8. FOR TEAM SECTION: ${founderLinkedInData.length > 0 ? 'MUST start strengths with founder LinkedIn insights in exact format: "Founder Name: his/her relevant experience or achievement" for each founder, then add 3-4 market-related strengths' : 'Include LinkedIn founder insights in strengths when available'}
     9. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
     `;
-
 
     // Call OpenAI for analysis
     console.log('Calling OpenAI API for analysis...');
