@@ -48,6 +48,7 @@ export const analyzeEurekaSubmission = async (submissionId: string) => {
   console.log('🔬 Starting Eureka submission analysis for:', submissionId);
   
   try {
+    // Call the correct analyze-eureka-form function (just like analyze-barc-form)
     const response = await fetch('/functions/v1/analyze-eureka-form', {
       method: 'POST',
       headers: {
@@ -61,10 +62,10 @@ export const analyzeEurekaSubmission = async (submissionId: string) => {
     }
 
     const result = await response.json();
-    console.log('🎯 Eureka analysis initiated successfully:', result);
+    console.log('🎯 Eureka analysis completed successfully:', result);
     return result;
   } catch (error) {
-    console.error('❌ Error starting Eureka analysis:', error);
+    console.error('❌ Error analyzing Eureka submission:', error);
     throw error;
   }
 };

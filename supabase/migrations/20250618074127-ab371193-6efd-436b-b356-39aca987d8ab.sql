@@ -8,21 +8,10 @@ BEGIN
   -- Log event
   RAISE LOG 'Auto-analyze triggered for Eureka submission: %', NEW.id;
 
-  -- Create a notification that can be listened to by the realtime system
-  PERFORM pg_notify(
-    'eureka_submission_added',
-    json_build_object(
-      'submissionId', NEW.id,
-      'companyName', NEW.company_name,
-      'submitterEmail', NEW.submitter_email,
-      'createdAt', NEW.created_at
-    )::text
-  );
-
-  -- Set initial status to processing
+  -- Set initial status to pending (the frontend will call analyze-eureka-form manually)
   UPDATE public.eureka_form_submissions 
   SET 
-    analysis_status = 'processing',
+    analysis_status = 'pending',
     updated_at = now()
   WHERE id = NEW.id;
 

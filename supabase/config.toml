@@ -30,5 +30,9 @@ timeout_seconds = 300
 verify_jwt = false
 timeout_seconds = 300
 
+[functions.analyze-eureka-form]
+verify_jwt = false
+timeout_seconds = 300
+
 [functions.scrape-company-direct]
 verify_jwt = false
