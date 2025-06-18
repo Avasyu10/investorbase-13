@@ -1,298 +1,170 @@
 
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Mail, ExternalLink, Sparkles, Loader2, Building, CheckCircle, XCircle } from "lucide-react";
-import { analyzeBarcSubmission } from "@/lib/api/barc";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-
-interface PublicSubmission {
-  id: string;
-  title: string;
-  description: string | null;
-  company_stage: string | null;
-  industry: string | null;
-  website_url: string | null;
-  created_at: string;
-  form_slug: string;
-  pdf_url: string | null;
-  report_id: string | null;
-  source: "email" | "email_pitch" | "public_form" | "barc_form";
-  from_email?: string | null;
-  submitter_email?: string | null;
-  analysis_status?: string;
-}
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, Mail, FileText, Calendar, GraduationCap, Building2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { AnalysisModal } from "./AnalysisModal";
+import { BarcAnalysisModal } from "./BarcAnalysisModal";
+import type { CombinedSubmission } from "./PublicSubmissionsList";
 
 interface PublicSubmissionsTableProps {
-  submissions: PublicSubmission[];
-  onAnalyze: (submission: PublicSubmission) => void;
-  analyzingSubmissions?: Set<string>;
-  isIITBombay?: boolean;
+  submissions: CombinedSubmission[];
 }
 
-export function PublicSubmissionsTable({ submissions, onAnalyze, analyzingSubmissions = new Set(), isIITBombay = false }: PublicSubmissionsTableProps) {
-  const navigate = useNavigate();
+export function PublicSubmissionsTable({ submissions }: PublicSubmissionsTableProps) {
+  const [selectedSubmission, setSelectedSubmission] = useState<CombinedSubmission | null>(null);
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
+  const [barcAnalysisModalOpen, setBarcAnalysisModalOpen] = useState(false);
 
-  if (!submissions) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No submissions provided</p>
-      </div>
-    );
-  }
-
-  if (!Array.isArray(submissions)) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">Invalid submissions data</p>
-      </div>
-    );
-  }
-  
-  if (submissions.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No submissions found</p>
-      </div>
-    );
-  }
-
-  const handleAnalyze = async (submission: PublicSubmission) => {
-    console.log('Table handleAnalyze called for:', submission.id, 'Source:', submission.source);
-    onAnalyze(submission);
-  };
-
-  const truncateText = (text: string | null, maxLength: number) => {
-    if (!text) return "—";
-    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-    } catch (error) {
-      return dateString;
-    }
-  };
-
-  const getSourceBadge = (source: string) => {
+  const getSourceIcon = (source: string) => {
     switch (source) {
       case 'email':
-        return (
-          <Badge 
-            variant="outline"
-            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-blue-50 text-blue-700 border-blue-200"
-          >
-            <Mail className="h-3 w-3" />
-            <span>Email</span>
-          </Badge>
-        );
-      case 'email_pitch':
-        return (
-          <Badge 
-            variant="outline"
-            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-blue-50 text-blue-700 border-blue-200"
-          >
-            <Mail className="h-3 w-3" />
-            <span>Email Pitch</span>
-          </Badge>
-        );
+        return <Mail className="h-4 w-4" />;
       case 'barc_form':
-        return (
-          <Badge 
-            variant="outline"
-            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-purple-50 text-purple-700 border-purple-200"
-          >
-            <Building className="h-3 w-3" />
-            <span>BARC Form</span>
-          </Badge>
-        );
+        return <Building2 className="h-4 w-4" />;
+      case 'eureka_form':
+        return <GraduationCap className="h-4 w-4" />;
       case 'public_form':
       default:
-        return (
-          <Badge 
-            variant="outline"
-            className="flex items-center gap-1 font-medium px-2 py-1 w-fit bg-green-50 text-green-700 border-green-200"
-          >
-            <FileText className="h-3 w-3" />
-            <span>Public Form</span>
-          </Badge>
-        );
+        return <FileText className="h-4 w-4" />;
     }
   };
 
-  const getSubmissionEmail = (submission: PublicSubmission) => {
-    return submission.submitter_email || submission.from_email || "—";
+  const getSourceLabel = (source: string) => {
+    switch (source) {
+      case 'email':
+        return 'Email';
+      case 'barc_form':
+        return 'BARC Form';
+      case 'eureka_form':
+        return 'Eureka Form';
+      case 'public_form':
+      default:
+        return 'Public Form';
+    }
   };
 
-  const getAnalysisStatus = (submission: PublicSubmission) => {
-    const status = submission.analysis_status;
-    
-    // Check if currently being analyzed
-    const isCurrentlyAnalyzing = analyzingSubmissions.has(submission.id);
-    
-    if (isCurrentlyAnalyzing || status === 'processing') {
-      return (
-        <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          Processing
-        </Badge>
-      );
+  const getSourceColor = (source: string) => {
+    switch (source) {
+      case 'email':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'barc_form':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'eureka_form':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'public_form':
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const getAnalysisStatusBadge = (status?: string) => {
+    if (!status) return null;
     
     switch (status) {
       case 'completed':
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
-            <CheckCircle className="h-3 w-3" />
-            Completed
-          </Badge>
-        );
+        return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">Analyzed</Badge>;
+      case 'processing':
+        return <Badge variant="default" className="bg-yellow-100 text-yellow-800 border-yellow-200">Processing</Badge>;
       case 'failed':
-      case 'error':
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 bg-red-50 text-red-700 border-red-200">
-            <XCircle className="h-3 w-3" />
-            Failed
-          </Badge>
-        );
+        return <Badge variant="destructive">Failed</Badge>;
       case 'pending':
       default:
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 bg-gray-50 text-gray-700 border-gray-200">
-            <Loader2 className="h-3 w-3" />
-            Pending
-          </Badge>
-        );
+        return <Badge variant="secondary">Pending</Badge>;
     }
   };
 
-  // Helper function to determine if analysis button should be shown
-  const shouldShowAnalyzeButton = (submission: PublicSubmission) => {
-    // For IIT Bombay users, never show analyze button - only show status
-    if (isIITBombay) {
-      return false;
-    }
+  const handleViewSubmission = (submission: CombinedSubmission) => {
+    setSelectedSubmission(submission);
     
-    // For non-IIT Bombay users, show button based on submission type and status
-    if (submission.source === "barc_form") {
-      const isAnalyzing = analyzingSubmissions.has(submission.id);
-      return !isAnalyzing && (submission.analysis_status === 'pending' || submission.analysis_status === 'failed');
+    // Open appropriate modal based on source
+    if (submission.source === 'barc_form' || submission.source === 'eureka_form') {
+      setBarcAnalysisModalOpen(true);
+    } else {
+      setAnalysisModalOpen(true);
     }
-    
-    return submission.report_id !== null;
   };
-  
+
   return (
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {!isIITBombay && <TableHead className="w-1/6">Source</TableHead>}
-            <TableHead className="w-1/5">Title</TableHead>
-            {isIITBombay && <TableHead className="w-1/6">Email</TableHead>}
-            {!isIITBombay && <TableHead className="w-1/6">Industry</TableHead>}
-            {!isIITBombay && <TableHead className="w-1/6">Stage</TableHead>}
-            {!isIITBombay && <TableHead className="w-1/6">Website</TableHead>}
-            <TableHead className="w-1/6">Submitted</TableHead>
-            <TableHead className="w-1/6 text-right">
-              {isIITBombay ? "Analysis Status" : "Action"}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {submissions.map((submission) => {
-            const isAnalyzing = analyzingSubmissions.has(submission.id);
-            const showAnalyzeButton = shouldShowAnalyzeButton(submission);
-            
-            try {
-              return (
-                <TableRow key={submission.id}>
-                  {!isIITBombay && (
-                    <TableCell>
-                      {getSourceBadge(submission.source)}
-                    </TableCell>
+    <>
+      <div className="grid gap-4">
+        {submissions.map((submission) => (
+          <Card key={submission.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1 flex-1">
+                  <CardTitle className="text-lg">{submission.company_name}</CardTitle>
+                  <CardDescription className="flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      {submission.submitter_email}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {formatDistanceToNow(new Date(submission.created_at), { addSuffix: true })}
+                    </span>
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getAnalysisStatusBadge(submission.analysis_status)}
+                  <Badge 
+                    variant="outline" 
+                    className={`flex items-center gap-1 ${getSourceColor(submission.source)}`}
+                  >
+                    {getSourceIcon(submission.source)}
+                    {getSourceLabel(submission.source)}
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  {submission.form_slug && (
+                    <span>Form: {submission.form_slug}</span>
                   )}
-                  <TableCell className="font-medium">
-                    {truncateText(submission.title, 30)}
-                  </TableCell>
-                  {isIITBombay && (
-                    <TableCell>
-                      {getSubmissionEmail(submission)}
-                    </TableCell>
+                  {submission.has_attachment && (
+                    <Badge variant="outline" className="text-xs">
+                      Has Attachment
+                    </Badge>
                   )}
-                  {!isIITBombay && (
-                    <TableCell>
-                      {submission.industry || "—"}
-                    </TableCell>
+                  {submission.user_id && (
+                    <span className="text-xs">User ID: {submission.user_id.substring(0, 8)}...</span>
                   )}
-                  {!isIITBombay && (
-                    <TableCell>
-                      {submission.company_stage || "—"}
-                    </TableCell>
+                  {submission.company_id && (
+                    <span className="text-xs">Company ID: {submission.company_id.substring(0, 8)}...</span>
                   )}
-                  {!isIITBombay && (
-                    <TableCell>
-                      {submission.website_url ? (
-                        <a 
-                          href={submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline flex items-center gap-1"
-                        >
-                          {new URL(submission.website_url.startsWith('http') ? submission.website_url : `https://${submission.website_url}`).hostname}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    {formatDate(submission.created_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isIITBombay || !showAnalyzeButton ? (
-                      getAnalysisStatus(submission)
-                    ) : (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleAnalyze(submission)}
-                        disabled={isAnalyzing}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[80px]"
-                      >
-                        {isAnalyzing ? (
-                          <>
-                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                            Analyzing...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-1 h-3 w-3" />
-                            Analyze
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            } catch (error) {
-              return null;
-            }
-          })}
-        </TableBody>
-      </Table>
-    </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewSubmission(submission)}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  View Details
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Analysis Modal for public forms and email submissions */}
+      <AnalysisModal
+        open={analysisModalOpen}
+        onOpenChange={setAnalysisModalOpen}
+        submission={selectedSubmission}
+      />
+
+      {/* BARC/Eureka Analysis Modal */}
+      <BarcAnalysisModal
+        open={barcAnalysisModalOpen}
+        onOpenChange={setBarcAnalysisModalOpen}
+        submission={selectedSubmission}
+      />
+    </>
   );
 }
