@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -164,21 +163,21 @@ const EurekaSample = () => {
 
       console.log('✅ Submission created:', submission.id);
 
-      // Call the new analyze-eureka-form edge function
-      console.log('🔍 Starting analysis...');
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-eureka-form', {
+      // Call the centralized routing function instead of direct analysis
+      console.log('🔍 Starting analysis via centralized router...');
+      const { data: routingData, error: routingError } = await supabase.functions.invoke('route-submission-analysis', {
         body: { submissionId: submission.id }
       });
 
-      if (analysisError) {
-        console.error('Analysis error:', analysisError);
+      if (routingError) {
+        console.error('Routing error:', routingError);
         toast({
           title: "Submission successful, but analysis failed",
           description: "Your application was submitted but automatic analysis encountered an error. Our team will review it manually.",
           variant: "destructive",
         });
       } else {
-        console.log('✅ Analysis completed:', analysisData);
+        console.log('✅ Analysis completed via router:', routingData);
         toast({
           title: "Success!",
           description: "🎉 Application submitted and analyzed successfully!",
