@@ -34,8 +34,26 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
     return "destructive";
   };
 
-  const formatSectionTitle = (title: string) => {
-    // Use the title from the section directly, as it's already formatted for Eureka forms
+  const formatSectionTitle = (title: string, sectionType?: string) => {
+    // Handle Eureka form specific section types
+    if (sectionType) {
+      switch (sectionType) {
+        case 'problem_solution_fit':
+          return 'Problem & Solution';
+        case 'target_customers':
+          return 'Target Customers';
+        case 'competitors':
+          return 'Competitors';
+        case 'revenue_model':
+          return 'Revenue Model';
+        case 'differentiation':
+          return 'Differentiation';
+        default:
+          break;
+      }
+    }
+    
+    // Use the title from the section directly if it's already formatted
     if (title && title.includes('&')) {
       return title; // Already formatted titles like "Problem & Solution"
     }
@@ -56,7 +74,7 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
     >
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="flex items-center justify-between text-base">
-          <span className="truncate">{formatSectionTitle(section.title)}</span>
+          <span className="truncate">{formatSectionTitle(section.title, section.section_type)}</span>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-500" />
             <Badge variant={getScoreBadgeVariant(score)} className="text-xs">
