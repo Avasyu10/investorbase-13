@@ -275,67 +275,67 @@ serve(async (req) => {
     For STRENGTHS (exactly 4-5 each per section):
     - STRENGTHS: Highlight what they did well, supported by market validation and data
 
-    Provide analysis in this JSON format with ALL scores on 1-100 scale:
+    CRITICAL: Return analysis in this EXACT JSON format to match BARC form structure:
 
     {
       "overall_score": number (1-100),
-      "recommendation": "Accept" | "Consider" | "Reject",
-      "company_info": {
-        "industry": "string (infer from application)",
-        "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description)"
-      },
-      "sections": {
-        "problem_solution_fit": {
+      "overall_assessment": "comprehensive feedback integrating response quality with market context",
+      "sections": [
+        {
+          "title": "Problem & Solution",
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "target_customers": {
+        {
+          "title": "Target Customers",
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "competitors": {
+        {
+          "title": "Competitors",
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "revenue_model": {
+        {
+          "title": "Revenue Model",
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "differentiation": {
+        {
+          "title": "Differentiation",
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
-      },
-      "summary": {
-        "overall_feedback": "comprehensive feedback integrating response quality with market context",
-        "key_factors": ["key decision factors with market validation"],
-        "next_steps": ["specific recommendations with market-informed guidance"],
-        "assessment_points": [
-          "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
-          "Each point must be 3-4 sentences long and prioritize market data and numbers above all else"
-        ]
-      }
+      ],
+      "recommendations": [
+        "Key recommendations for the startup",
+        "Areas requiring immediate attention",
+        "Suggestions for incubator support"
+      ],
+      "investment_readiness": "Assessment of investment readiness and potential",
+      "risk_factors": ["Key risks to consider"],
+      "next_steps": ["Recommended next steps for evaluation"]
     }
 
     CRITICAL REQUIREMENTS:
     1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
     2. Use the exact metrics provided for each question in your evaluation
-    3. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
+    3. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each  
     4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
-    7. Return only valid JSON without markdown formatting
+    7. CRITICAL: Use the EXACT JSON structure shown above to match BARC form format
+    8. Return only valid JSON without markdown formatting
     `;
 
     // Call OpenAI for analysis
@@ -352,7 +352,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.'
+            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Use the EXACT structure specified in the prompt to ensure compatibility with existing systems.'
           },
           {
             role: 'user',
@@ -403,7 +403,7 @@ serve(async (req) => {
     }
 
     console.log('Eureka analysis overall score:', analysisResult.overall_score);
-    console.log('Eureka analysis recommendation:', analysisResult.recommendation);
+    console.log('Eureka analysis sections:', analysisResult.sections?.length || 0);
 
     // Create company
     console.log('Creating NEW company for analyzed Eureka submission...');
@@ -411,7 +411,7 @@ serve(async (req) => {
     const companyData = {
       name: submission.company_name,
       overall_score: analysisResult.overall_score,
-      assessment_points: analysisResult.summary?.assessment_points || [],
+      assessment_points: analysisResult.recommendations || [],
       user_id: effectiveUserId,
       source: 'eureka_form',
       industry: submission.company_type || null,
@@ -436,7 +436,7 @@ serve(async (req) => {
     const companyId = newCompany.id;
     console.log('Successfully created NEW company with ID:', companyId);
 
-    // Create sections
+    // Create sections using the BARC-compatible structure
     console.log('Creating sections for company:', companyId);
     
     // Delete old sections first (in case of retry)
@@ -446,24 +446,29 @@ serve(async (req) => {
       .eq('company_id', companyId);
 
     const sectionMappings = {
-      'problem_solution_fit': { title: 'Problem & Solution', type: 'problem_solution_fit' },
-      'target_customers': { title: 'Target Customers', type: 'target_customers' },
-      'competitors': { title: 'Competitors', type: 'competitors' },
-      'revenue_model': { title: 'Revenue Model', type: 'revenue_model' },
-      'differentiation': { title: 'Differentiation', type: 'differentiation' }
+      'Problem & Solution': { title: 'Problem & Solution', type: 'problem_solution_fit', section_type: 'problem_solution_fit' },
+      'Target Customers': { title: 'Target Customers', type: 'target_customers', section_type: 'target_customers' },
+      'Competitors': { title: 'Competitors', type: 'competitors', section_type: 'competitors' },
+      'Revenue Model': { title: 'Revenue Model', type: 'revenue_model', section_type: 'revenue_model' },
+      'Differentiation': { title: 'Differentiation', type: 'differentiation', section_type: 'differentiation' }
     };
 
-    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => {
-      const mapping = sectionMappings[sectionName as keyof typeof sectionMappings];
-      return {
-        company_id: companyId,
-        score: sectionData.score || 0,
-        section_type: mapping?.type || sectionName,
-        type: 'analysis',
-        title: mapping?.title || sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        description: sectionData.analysis || ''
-      };
-    });
+    const sectionsToCreate = [];
+    if (analysisResult.sections && Array.isArray(analysisResult.sections)) {
+      for (const sectionData of analysisResult.sections) {
+        const mapping = sectionMappings[sectionData.title];
+        if (mapping) {
+          sectionsToCreate.push({
+            company_id: companyId,
+            score: sectionData.score || 0,
+            section_type: mapping.section_type,
+            type: 'analysis',
+            title: mapping.title,
+            description: sectionData.assessment || ''
+          });
+        }
+      }
+    }
 
     console.log('Sections to create:', sectionsToCreate.length);
 
@@ -480,22 +485,22 @@ serve(async (req) => {
 
       console.log('Created sections:', createdSections.length);
 
-      // Create section details (strengths and weaknesses) - THIS IS THE CRITICAL FIX
+      // Create section details (strengths and weaknesses) using BARC-compatible structure
       const sectionDetails = [];
       
       for (const section of createdSections) {
-        const sectionKey = section.section_type;
-        const sectionData = analysisResult.sections[sectionKey];
+        // Find the corresponding analysis section by title
+        const analysisSection = analysisResult.sections?.find(s => s.title === section.title);
         
-        if (sectionData) {
-          console.log(`Processing section details for ${sectionKey}:`, {
-            strengths: sectionData.strengths?.length || 0,
-            improvements: sectionData.improvements?.length || 0
+        if (analysisSection) {
+          console.log(`Processing section details for ${section.title}:`, {
+            strengths: analysisSection.strengths?.length || 0,
+            weaknesses: analysisSection.weaknesses?.length || 0
           });
           
           // Add strengths
-          if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
-            for (const strength of sectionData.strengths) {
+          if (analysisSection.strengths && Array.isArray(analysisSection.strengths)) {
+            for (const strength of analysisSection.strengths) {
               sectionDetails.push({
                 section_id: section.id,
                 detail_type: 'strength',
@@ -504,13 +509,13 @@ serve(async (req) => {
             }
           }
           
-          // Add improvements (weaknesses)
-          if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
-            for (const improvement of sectionData.improvements) {
+          // Add weaknesses
+          if (analysisSection.weaknesses && Array.isArray(analysisSection.weaknesses)) {
+            for (const weakness of analysisSection.weaknesses) {
               sectionDetails.push({
                 section_id: section.id,
                 detail_type: 'weakness',
-                content: improvement
+                content: weakness
               });
             }
           }
