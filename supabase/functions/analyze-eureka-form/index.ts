@@ -260,10 +260,10 @@ serve(async (req) => {
     - 1-19: Extremely poor or non-responses
 
     For ASSESSMENT POINTS (8-10 points required):
-    Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation.
+    Each point MUST be detailed (3-4 sentences each) and contain specific market data: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks.
 
-    CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
-    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
+    CRITICAL CHANGE - For IMPROVEMENTS (exactly 4-5 each per section):
+    IMPROVEMENTS must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
     - Market saturation concerns (X% of market already captured by incumbents)
     - High customer acquisition costs in this sector ($X CAC vs industry average)
     - Regulatory challenges affecting X% of similar companies
@@ -279,60 +279,58 @@ serve(async (req) => {
 
     {
       "overall_score": number (1-100),
-      "overall_assessment": "comprehensive feedback integrating response quality with market context",
-      "sections": [
-        {
-          "title": "Problem & Solution",
+      "recommendation": "Accept/Reject/Conditional Accept",
+      "company_info": {
+        "stage": "string",
+        "industry": "string",
+        "introduction": "string"
+      },
+      "summary": {
+        "overall_feedback": "comprehensive feedback string",
+        "assessment_points": ["exactly 8-10 detailed assessment points with market data"],
+        "key_factors": ["exactly 4-5 key factors"],
+        "next_steps": ["exactly 4-5 next steps"]
+      },
+      "sections": {
+        "problem_solution_fit": {
           "score": number (1-100),
-          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
         },
-        {
-          "title": "Target Customers",
+        "target_customers": {
           "score": number (1-100),
-          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
         },
-        {
-          "title": "Competitors",
+        "competitive_advantage": {
           "score": number (1-100),
-          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
         },
-        {
-          "title": "Revenue Model",
+        "market_opportunity": {
           "score": number (1-100),
-          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
         },
-        {
-          "title": "Differentiation",
+        "team_strength": {
           "score": number (1-100),
-          "assessment": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
-          "weaknesses": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "improvements": ["exactly 4-5 market data challenges/risks the company faces in this industry - NOT response quality issues"]
         }
-      ],
-      "recommendations": [
-        "Key recommendations for the startup",
-        "Areas requiring immediate attention",
-        "Suggestions for incubator support"
-      ],
-      "investment_readiness": "Assessment of investment readiness and potential",
-      "risk_factors": ["Key risks to consider"],
-      "next_steps": ["Recommended next steps for evaluation"]
+      }
     }
 
     CRITICAL REQUIREMENTS:
     1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
     2. Use the exact metrics provided for each question in your evaluation
     3. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each  
-    4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
-    5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
+    4. Focus improvements ONLY on market data challenges and industry risks - NOT response quality or form gaps
+    5. Provide exactly 4-5 strengths and 4-5 improvements per section
     6. All scores must be 1-100 scale
     7. CRITICAL: Use the EXACT JSON structure shown above to match BARC form format
     8. Return only valid JSON without markdown formatting
@@ -403,7 +401,7 @@ serve(async (req) => {
     }
 
     console.log('Eureka analysis overall score:', analysisResult.overall_score);
-    console.log('Eureka analysis sections:', analysisResult.sections?.length || 0);
+    console.log('Eureka analysis sections:', Object.keys(analysisResult.sections || {}).length);
 
     // Create company
     console.log('Creating NEW company for analyzed Eureka submission...');
@@ -411,7 +409,7 @@ serve(async (req) => {
     const companyData = {
       name: submission.company_name,
       overall_score: analysisResult.overall_score,
-      assessment_points: analysisResult.recommendations || [],
+      assessment_points: analysisResult.summary?.assessment_points || [],
       user_id: effectiveUserId,
       source: 'eureka_form',
       industry: submission.company_type || null,
@@ -446,25 +444,25 @@ serve(async (req) => {
       .eq('company_id', companyId);
 
     const sectionMappings = {
-      'Problem & Solution': { title: 'Problem & Solution', type: 'problem_solution_fit', section_type: 'problem_solution_fit' },
-      'Target Customers': { title: 'Target Customers', type: 'target_customers', section_type: 'target_customers' },
-      'Competitors': { title: 'Competitors', type: 'competitors', section_type: 'competitors' },
-      'Revenue Model': { title: 'Revenue Model', type: 'revenue_model', section_type: 'revenue_model' },
-      'Differentiation': { title: 'Differentiation', type: 'differentiation', section_type: 'differentiation' }
+      'problem_solution_fit': { title: 'Problem & Solution', type: 'analysis', section_type: 'problem_solution_fit' },
+      'target_customers': { title: 'Target Customers', type: 'analysis', section_type: 'target_customers' },
+      'competitive_advantage': { title: 'Competitors', type: 'analysis', section_type: 'competitors' },
+      'market_opportunity': { title: 'Revenue Model', type: 'analysis', section_type: 'revenue_model' },
+      'team_strength': { title: 'Differentiation', type: 'analysis', section_type: 'differentiation' }
     };
 
     const sectionsToCreate = [];
-    if (analysisResult.sections && Array.isArray(analysisResult.sections)) {
-      for (const sectionData of analysisResult.sections) {
-        const mapping = sectionMappings[sectionData.title];
-        if (mapping) {
+    if (analysisResult.sections && typeof analysisResult.sections === 'object') {
+      for (const [sectionKey, sectionData] of Object.entries(analysisResult.sections)) {
+        const mapping = sectionMappings[sectionKey];
+        if (mapping && sectionData) {
           sectionsToCreate.push({
             company_id: companyId,
             score: sectionData.score || 0,
             section_type: mapping.section_type,
-            type: 'analysis',
+            type: mapping.type,
             title: mapping.title,
-            description: sectionData.assessment || ''
+            description: sectionData.analysis || ''
           });
         }
       }
@@ -485,17 +483,21 @@ serve(async (req) => {
 
       console.log('Created sections:', createdSections.length);
 
-      // Create section details (strengths and weaknesses) using BARC-compatible structure
+      // Create section details (strengths and improvements) using BARC-compatible structure
       const sectionDetails = [];
       
       for (const section of createdSections) {
-        // Find the corresponding analysis section by title
-        const analysisSection = analysisResult.sections?.find(s => s.title === section.title);
+        // Find the corresponding analysis section by mapping
+        const sectionKey = Object.keys(sectionMappings).find(key => 
+          sectionMappings[key].section_type === section.section_type
+        );
+        
+        const analysisSection = sectionKey ? analysisResult.sections[sectionKey] : null;
         
         if (analysisSection) {
           console.log(`Processing section details for ${section.title}:`, {
             strengths: analysisSection.strengths?.length || 0,
-            weaknesses: analysisSection.weaknesses?.length || 0
+            improvements: analysisSection.improvements?.length || 0
           });
           
           // Add strengths
@@ -509,13 +511,13 @@ serve(async (req) => {
             }
           }
           
-          // Add weaknesses
-          if (analysisSection.weaknesses && Array.isArray(analysisSection.weaknesses)) {
-            for (const weakness of analysisSection.weaknesses) {
+          // Add improvements (mapped as weaknesses for compatibility)
+          if (analysisSection.improvements && Array.isArray(analysisSection.improvements)) {
+            for (const improvement of analysisSection.improvements) {
               sectionDetails.push({
                 section_id: section.id,
                 detail_type: 'weakness',
-                content: weakness
+                content: improvement
               });
             }
           }
