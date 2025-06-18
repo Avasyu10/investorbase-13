@@ -188,7 +188,7 @@ serve(async (req) => {
       );
     }
 
-    // Build analysis prompt - FIXED: Using EXACT same structure as BARC
+    // Build analysis prompt - Using EXACT same structure as BARC
     const analysisPrompt = `
 You are an expert startup evaluator for an incubator program. Analyze the following Eureka startup application and provide a comprehensive assessment.
 
@@ -423,7 +423,7 @@ REQUIREMENTS:
 
       console.log('Created sections:', createdSections.length);
 
-      // Create section details (strengths and improvements) using EXACT same structure as BARC
+      // FIXED: Create section details properly with proper detail_type values
       const sectionDetails = [];
       
       for (const section of createdSections) {
@@ -440,45 +440,57 @@ REQUIREMENTS:
             improvements: analysisSection.improvements?.length || 0
           });
           
-          // Add strengths
+          // Add strengths with correct detail_type
           if (analysisSection.strengths && Array.isArray(analysisSection.strengths)) {
             for (const strength of analysisSection.strengths) {
-              sectionDetails.push({
-                section_id: section.id,
-                detail_type: 'strength',
-                content: strength
-              });
+              if (strength && strength.trim()) {
+                sectionDetails.push({
+                  section_id: section.id,
+                  detail_type: 'strength',
+                  content: strength.trim()
+                });
+              }
             }
           }
           
-          // Add improvements (mapped as weaknesses for compatibility)
+          // Add improvements as weaknesses with correct detail_type
           if (analysisSection.improvements && Array.isArray(analysisSection.improvements)) {
             for (const improvement of analysisSection.improvements) {
-              sectionDetails.push({
-                section_id: section.id,
-                detail_type: 'weakness',
-                content: improvement
-              });
+              if (improvement && improvement.trim()) {
+                sectionDetails.push({
+                  section_id: section.id,
+                  detail_type: 'weakness',
+                  content: improvement.trim()
+                });
+              }
             }
           }
         }
       }
 
       console.log('Total section details to create:', sectionDetails.length);
+      console.log('Section details breakdown:', sectionDetails.map(d => ({ type: d.detail_type, section_id: d.section_id })));
 
       if (sectionDetails.length > 0) {
-        const { error: detailsError } = await supabase
+        const { data: createdDetails, error: detailsError } = await supabase
           .from('section_details')
-          .insert(sectionDetails);
+          .insert(sectionDetails)
+          .select();
 
         if (detailsError) {
           console.error('Error creating section details:', detailsError);
           throw new Error(`Failed to create section details: ${detailsError.message}`);
         }
 
-        console.log('Successfully created section details:', sectionDetails.length);
+        console.log('Successfully created section details:', createdDetails?.length || 0);
+        console.log('Created details by type:', 
+          createdDetails?.reduce((acc, detail) => {
+            acc[detail.detail_type] = (acc[detail.detail_type] || 0) + 1;
+            return acc;
+          }, {})
+        );
       } else {
-        console.warn('No section details to create');
+        console.warn('No section details to create - check analysis result structure');
       }
     }
 
