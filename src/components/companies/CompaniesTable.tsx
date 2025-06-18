@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -262,8 +263,12 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               const companyDetails = (company as any).company_details;
               // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
               const status = companyDetails?.status || 'New';
-              const contactInfo = companyDetails?.point_of_contact || (company as any).poc_name || '';
-              const contactEmail = companyDetails?.contact_email || (company as any).email || '';
+              
+              // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
+              const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
+              const contactEmail = (company as any).email || companyDetails?.contact_email || '';
+              const phoneNumber = (company as any).phonenumber || '';
+              
               // Display industry directly from public_form_submissions
               const industry = company.industry || "—";
               const assessmentPoints = getSummaryPoints(company.assessment_points);
@@ -285,13 +290,13 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       {contactInfo && (
                         <span className="text-sm">{contactInfo}</span>
                       )}
-                      {(company as any).phonenumber && (
+                      {phoneNumber && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Phone className="h-3 w-3" />
-                          <span>{(company as any).phonenumber}</span>
+                          <span>{phoneNumber}</span>
                         </div>
                       )}
-                      {!contactInfo && !(company as any).phonenumber && (
+                      {!contactInfo && !phoneNumber && (
                         <span className="text-sm">—</span>
                       )}
                     </div>

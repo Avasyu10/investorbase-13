@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
 const corsHeaders = {
@@ -45,7 +44,43 @@ Deno.serve(async (req) => {
 
     console.log('📋 Submission data retrieved:', submission.company_name)
 
-    // Update status to processing
+    // Check if company already exists for this submission to prevent duplicates
+    const { data: existingCompany } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('name', submission.company_name)
+      .eq('source', 'eureka_form')
+      .eq('user_id', submission.user_id)
+      .maybeSingle()
+
+    if (existingCompany) {
+      console.log('✅ Company already exists, updating submission with existing company ID:', existingCompany.id)
+      
+      // Update the submission with the existing company ID
+      await supabase
+        .from('eureka_form_submissions')
+        .update({ 
+          company_id: existingCompany.id,
+          analysis_status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', submissionId)
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Eureka submission linked to existing company',
+          submissionId,
+          companyId: existingCompany.id
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+
+    // Update status to processing only if not already processed
     const { error: updateError } = await supabase
       .from('eureka_form_submissions')
       .update({ 
@@ -53,6 +88,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', submissionId)
+      .eq('analysis_status', 'pending') // Only update if still pending
 
     if (updateError) {
       console.error('❌ Error updating submission status:', updateError)
@@ -207,8 +243,8 @@ Provide a thorough, objective analysis that would be valuable for incubator deci
       }
     }
 
-    // Create company record so it appears in prospects
-    console.log('🏢 Creating company record...')
+    // Create company record so it appears in prospects (only if it doesn't exist)
+    console.log('🏢 Creating new company record...')
     const { data: newCompany, error: companyError } = await supabase
       .from('companies')
       .insert({
