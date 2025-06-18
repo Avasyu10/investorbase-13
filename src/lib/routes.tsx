@@ -9,7 +9,6 @@ import CompanyPage from "@/pages/CompanyPage";
 import SectionPage from "@/pages/SectionPage";
 import PublicUpload from "@/pages/PublicUpload";
 import BarcSubmit from "@/pages/BarcSubmit";
-import EurekaSample from "@/pages/EurekaSample";
 import BarcSubmissions from "@/pages/BarcSubmissions";
 import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
@@ -37,7 +36,6 @@ export const routes = [
   { path: "/public-upload/:slug", element: <PublicUpload /> },
   { path: "/public-upload", element: <PublicUpload /> },
   { path: "/submit/:slug", element: <BarcSubmit /> },
-  { path: "/eureka-sample/:slug", element: <EurekaSample /> },
   { path: "/thank-you", element: <ThankYou /> },
   { 
     path: "/dashboard", 
