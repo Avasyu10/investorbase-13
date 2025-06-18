@@ -407,7 +407,7 @@ const EurekaSample = () => {
                     name="question1"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>1. What specific problem are you solving, and why is now the right time to solve it?</FormLabel>
+                        <FormLabel>1. What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe the specific problem you are solving and the timing"
@@ -424,7 +424,7 @@ const EurekaSample = () => {
                     name="question2"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>2. Who are your first 10 customers or users, and how did you find or plan to find them?</FormLabel>
+                        <FormLabel>2. What is the intended customer segment or target customers of your venture?</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe your target customers and customer acquisition strategy"
@@ -441,7 +441,7 @@ const EurekaSample = () => {
                     name="question3"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>3. What is your unfair advantage or moat that will help you win over time?</FormLabel>
+                        <FormLabel>3. Who are your current competitors? (Please mention both direct and indirect competitors if applicable)</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe your competitive advantage and moat"
@@ -458,7 +458,7 @@ const EurekaSample = () => {
                     name="question4"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>4. How does your team's background uniquely equip you to solve this problem?</FormLabel>
+                        <FormLabel>4. How will your venture generate revenue? What are the factors affecting your costs andrevenues? Also highlight any growth opportunities in future.</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe your team's background and expertise"
@@ -475,7 +475,7 @@ const EurekaSample = () => {
                     name="question5"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>5. What milestones do you aim to achieve during the incubation period, and what support do you need from us to get there?</FormLabel>
+                        <FormLabel>5. How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP(Intellectual Property) advantage if any.</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Describe your milestones and support needs"
