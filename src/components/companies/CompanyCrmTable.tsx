@@ -229,14 +229,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell className="max-w-[120px] truncate" title="Contact Phone">
                     {company.phonenumber ? (
-                      <a 
-                        href={`tel:${company.phonenumber}`}
-                        className="text-blue-500 hover:underline flex items-center gap-1"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <Phone className="h-3 w-3" />
-                        <span>{company.phonenumber}</span>
-                      </a>
+                    <span className="text-muted-foreground">{company.phonenumber}</span>
+                      
                     ) : (
                       <span className="text-muted-foreground italic">—</span>
                     )}
