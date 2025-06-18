@@ -29,7 +29,7 @@ import { CompanyListItem } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { ExternalLink, Edit2 } from "lucide-react";
+import { ExternalLink, Edit2, Phone } from "lucide-react";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -218,8 +218,6 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
-              const phoneNumber = (company as any).phonenumber;
-              
               return (
                 <TableRow
                   key={company.id}
@@ -227,13 +225,12 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                   onClick={() => onCompanyClick(company.id)}
                 >
                   <TableCell className="font-medium">{company.name}</TableCell>
-                  <TableCell className="max-w-[120px] truncate" title="Contact Phone">
-                    {company.phonenumber ? (
-                    <span className="text-muted-foreground">{company.phonenumber}</span>
-                      
-                    ) : (
-                      <span className="text-muted-foreground italic">—</span>
-                    )}
+                  <TableCell className="max-w-[120px] truncate" title="Point of Contact">
+                    <CompanyCrmField 
+                      companyId={company.id.toString()} 
+                      field="point_of_contact"
+                      refreshTrigger={refreshTrigger}
+                    />
                   </TableCell>
                   <TableCell className="max-w-[150px] truncate" title="Contact Email">
                     <CompanyCrmField 
@@ -575,18 +572,18 @@ function CompanyCrmField({
     }
   }
 
-  // if (isPhone && value) {
-  //   return (
-  //     <a 
-  //       href={`tel:${value}`}
-  //       className="text-blue-500 hover:underline flex items-center gap-1"
-  //       onClick={(e) => e.stopPropagation()}
-  //     >
-  //       <Phone className="h-3 w-3" />
-  //       <span>{value}</span>
-  //     </a>
-  //   );
-  // }
+  if (isPhone && value) {
+    return (
+      <a 
+        href={`tel:${value}`}
+        className="text-blue-500 hover:underline flex items-center gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Phone className="h-3 w-3" />
+        <span>{value}</span>
+      </a>
+    );
+  }
 
   return <span className="truncate">{value}</span>;
 }
