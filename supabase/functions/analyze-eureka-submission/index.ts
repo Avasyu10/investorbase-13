@@ -207,6 +207,39 @@ Provide a thorough, objective analysis that would be valuable for incubator deci
       }
     }
 
+    // Create company record so it appears in prospects
+    console.log('🏢 Creating company record...')
+    const { data: newCompany, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        name: submission.company_name,
+        overall_score: analysisResult.overall_score || 0,
+        user_id: submission.user_id,
+        source: 'eureka_form',
+        poc_name: submission.poc_name,
+        email: submission.submitter_email,
+        phonenumber: submission.phoneno,
+        industry: submission.company_type,
+        assessment_points: analysisResult.sections?.map(section => 
+          `${section.title}: ${section.assessment}`
+        ) || []
+      })
+      .select()
+      .single()
+
+    if (companyError) {
+      console.error('❌ Error creating company record:', companyError)
+      // Continue with analysis update even if company creation fails
+    } else {
+      console.log('✅ Company record created successfully:', newCompany?.id)
+      
+      // Update the submission with the company ID
+      await supabase
+        .from('eureka_form_submissions')
+        .update({ company_id: newCompany.id })
+        .eq('id', submissionId)
+    }
+
     // Update the submission with analysis results
     const { error: analysisUpdateError } = await supabase
       .from('eureka_form_submissions')
@@ -230,7 +263,8 @@ Provide a thorough, objective analysis that would be valuable for incubator deci
         success: true, 
         message: 'Eureka submission analysis completed successfully',
         submissionId,
-        overallScore: analysisResult.overall_score
+        overallScore: analysisResult.overall_score,
+        companyId: newCompany?.id
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
