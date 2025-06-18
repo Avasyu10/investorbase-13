@@ -1,4 +1,5 @@
 
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -63,7 +64,7 @@ serve(async (req) => {
     // Fetch submission data
     console.log('Fetching submission for analysis...');
     const { data: submission, error: fetchError } = await supabase
-      .from('barc_form_submissions')
+      .from('eureka_form_submissions')
       .select('*')
       .eq('id', submissionId)
       .single();
@@ -107,7 +108,7 @@ serve(async (req) => {
       console.log('Could not acquire lock - submission is already being processed or completed');
       // Check current status and return accordingly
       const { data: currentSubmission } = await supabase
-        .from('barc_form_submissions')
+        .from('eureka_form_submissions')
         .select('analysis_status, company_id')
         .eq('id', submissionId)
         .single();
@@ -361,7 +362,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-2025-04-14',
         messages: [
           {
             role: 'system',
@@ -431,7 +432,7 @@ serve(async (req) => {
         overall_score: analysisResult.overall_score,
         assessment_points: analysisResult.summary?.assessment_points || [],
         user_id: effectiveUserId,
-        source: 'barc_form',
+        source: 'eureka_form',
         industry: submission.company_type || null,
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
@@ -578,7 +579,7 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log('Successfully analyzed BARC submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
+    console.log('Successfully analyzed Eureka submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
 
     return new Response(
       JSON.stringify({ 
@@ -594,7 +595,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in analyze-barc-form function:', error);
+    console.error('Error in analyze-eureka-form function:', error);
 
     // Update submission with error status if we have submissionId
     if (submissionId) {
@@ -633,3 +634,4 @@ serve(async (req) => {
     );
   }
 });
+
