@@ -121,7 +121,7 @@ const EurekaSample = () => {
         company_name: formData.companyName,
         company_registration_type: formData.companyRegistrationType,
         executive_summary: formData.executiveSummary,
-        company_type: formData.companyType,
+        company_type: `${formData.companyType} | Stage: ${formData.stage}`, // Include stage in company_type
         question_1: formData.question1,
         question_2: formData.question2,
         question_3: formData.question3,
@@ -132,8 +132,6 @@ const EurekaSample = () => {
         phoneno: formData.phoneNo,
         company_linkedin_url: formData.companyLinkedinUrl,
         founder_linkedin_urls: formData.founderLinkedinUrls.filter(url => url.trim() !== ''),
-        // Add stage field as part of company_type for now, or we could store it in executive_summary
-        // Since we're reusing the existing table structure
         analysis_status: 'pending',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -184,238 +182,318 @@ const EurekaSample = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
       <div className="container mx-auto px-4 max-w-4xl">
-        <Card>
-          <CardHeader>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-4">
+            <Building2 className="h-8 w-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900">IIT Bombay Eureka Sample</h1>
+          </div>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Submit your startup application for review. Please provide detailed information about your company and innovation.
+          </p>
+        </div>
+
+        <Card className="shadow-xl border-0">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
             <CardTitle className="text-2xl font-bold text-center">
-              {form.form_name || 'Eureka Sample Application'}
+              Startup Application Form
             </CardTitle>
-            <CardDescription className="text-center">
-              Please fill out this application form with your startup details
+            <CardDescription className="text-blue-100 text-center text-lg">
+              Fill out all required fields to submit your application
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Company Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="companyName">Company Name *</Label>
-                  <Input
-                    id="companyName"
-                    value={formData.companyName}
-                    onChange={(e) => handleInputChange('companyName', e.target.value)}
-                    required
-                  />
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Company Information Section */}
+              <div className="space-y-6">
+                <div className="border-b pb-4">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Company Information</h3>
                 </div>
-                <div>
-                  <Label htmlFor="companyRegistrationType">Company Registration Type</Label>
-                  <Select value={formData.companyRegistrationType} onValueChange={(value) => handleInputChange('companyRegistrationType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select registration type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="private_limited">Private Limited</SelectItem>
-                      <SelectItem value="llp">Limited Liability Partnership</SelectItem>
-                      <SelectItem value="partnership">Partnership</SelectItem>
-                      <SelectItem value="sole_proprietorship">Sole Proprietorship</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="companyType">Industry/Sector</Label>
-                  <Input
-                    id="companyType"
-                    value={formData.companyType}
-                    onChange={(e) => handleInputChange('companyType', e.target.value)}
-                    placeholder="e.g., FinTech, HealthTech, EdTech"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="stage">Stage *</Label>
-                  <Select value={formData.stage} onValueChange={(value) => handleInputChange('stage', value)} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select company stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="idea">Idea Stage</SelectItem>
-                      <SelectItem value="prototype">Prototype</SelectItem>
-                      <SelectItem value="mvp">MVP</SelectItem>
-                      <SelectItem value="early_revenue">Early Revenue</SelectItem>
-                      <SelectItem value="growth">Growth Stage</SelectItem>
-                      <SelectItem value="scale">Scale Stage</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Executive Summary */}
-              <div>
-                <Label htmlFor="executiveSummary">Executive Summary</Label>
-                <Textarea
-                  id="executiveSummary"
-                  value={formData.executiveSummary}
-                  onChange={(e) => handleInputChange('executiveSummary', e.target.value)}
-                  rows={4}
-                  placeholder="Brief overview of your company, product, and mission"
-                />
-              </div>
-
-              {/* Application Questions */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="question1">1. Problem & Solution *</Label>
-                  <Textarea
-                    id="question1"
-                    value={formData.question1}
-                    onChange={(e) => handleInputChange('question1', e.target.value)}
-                    rows={3}
-                    placeholder="What problem are you solving and how?"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="question2">2. Market & Customer Discovery *</Label>
-                  <Textarea
-                    id="question2"
-                    value={formData.question2}
-                    onChange={(e) => handleInputChange('question2', e.target.value)}
-                    rows={3}
-                    placeholder="Who is your target market and what's your go-to-market strategy?"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="question3">3. Competitive Advantage *</Label>
-                  <Textarea
-                    id="question3"
-                    value={formData.question3}
-                    onChange={(e) => handleInputChange('question3', e.target.value)}
-                    rows={3}
-                    placeholder="What makes you different from existing solutions?"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="question4">4. Team & Execution *</Label>
-                  <Textarea
-                    id="question4"
-                    value={formData.question4}
-                    onChange={(e) => handleInputChange('question4', e.target.value)}
-                    rows={3}
-                    placeholder="Tell us about your team and execution capabilities"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="question5">5. Funding & Growth Plans *</Label>
-                  <Textarea
-                    id="question5"
-                    value={formData.question5}
-                    onChange={(e) => handleInputChange('question5', e.target.value)}
-                    rows={3}
-                    placeholder="What are your funding requirements and growth plans?"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="submitterEmail">Email Address *</Label>
-                  <Input
-                    id="submitterEmail"
-                    type="email"
-                    value={formData.submitterEmail}
-                    onChange={(e) => handleInputChange('submitterEmail', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="pocName">Point of Contact Name</Label>
-                  <Input
-                    id="pocName"
-                    value={formData.pocName}
-                    onChange={(e) => handleInputChange('pocName', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phoneNo">Phone Number</Label>
-                  <Input
-                    id="phoneNo"
-                    value={formData.phoneNo}
-                    onChange={(e) => handleInputChange('phoneNo', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="companyLinkedinUrl">Company LinkedIn URL</Label>
-                  <Input
-                    id="companyLinkedinUrl"
-                    value={formData.companyLinkedinUrl}
-                    onChange={(e) => handleInputChange('companyLinkedinUrl', e.target.value)}
-                    placeholder="https://linkedin.com/company/your-company"
-                  />
-                </div>
-              </div>
-
-              {/* Founder LinkedIn URLs */}
-              <div>
-                <Label>Founder LinkedIn Profiles</Label>
-                {formData.founderLinkedinUrls.map((url, index) => (
-                  <div key={index} className="flex gap-2 mt-2">
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName" className="text-sm font-medium text-gray-700">
+                      Company Name <span className="text-red-500">*</span>
+                    </Label>
                     <Input
-                      value={url}
-                      onChange={(e) => handleFounderLinkedInChange(index, e.target.value)}
-                      placeholder="https://linkedin.com/in/founder-name"
+                      id="companyName"
+                      value={formData.companyName}
+                      onChange={(e) => handleInputChange('companyName', e.target.value)}
+                      className="border-gray-300 focus:border-blue-500"
+                      required
                     />
-                    {formData.founderLinkedinUrls.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => removeFounderLinkedIn(index)}
-                      >
-                        Remove
-                      </Button>
-                    )}
                   </div>
-                ))}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="companyRegistrationType" className="text-sm font-medium text-gray-700">
+                      Registration Type
+                    </Label>
+                    <Select value={formData.companyRegistrationType} onValueChange={(value) => handleInputChange('companyRegistrationType', value)}>
+                      <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                        <SelectValue placeholder="Select registration type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="private_limited">Private Limited Company</SelectItem>
+                        <SelectItem value="llp">Limited Liability Partnership (LLP)</SelectItem>
+                        <SelectItem value="partnership">Partnership Firm</SelectItem>
+                        <SelectItem value="sole_proprietorship">Sole Proprietorship</SelectItem>
+                        <SelectItem value="section_8">Section 8 Company</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="companyType" className="text-sm font-medium text-gray-700">
+                      Industry/Sector
+                    </Label>
+                    <Input
+                      id="companyType"
+                      value={formData.companyType}
+                      onChange={(e) => handleInputChange('companyType', e.target.value)}
+                      placeholder="e.g., FinTech, HealthTech, EdTech, AgriTech"
+                      className="border-gray-300 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="stage" className="text-sm font-medium text-gray-700">
+                      Company Stage <span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={formData.stage} onValueChange={(value) => handleInputChange('stage', value)} required>
+                      <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                        <SelectValue placeholder="Select company stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="idea">Idea Stage</SelectItem>
+                        <SelectItem value="prototype">Prototype/MVP</SelectItem>
+                        <SelectItem value="early_revenue">Early Revenue</SelectItem>
+                        <SelectItem value="growth">Growth Stage</SelectItem>
+                        <SelectItem value="scale">Scale Stage</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="executiveSummary" className="text-sm font-medium text-gray-700">
+                    Executive Summary
+                  </Label>
+                  <Textarea
+                    id="executiveSummary"
+                    value={formData.executiveSummary}
+                    onChange={(e) => handleInputChange('executiveSummary', e.target.value)}
+                    rows={4}
+                    placeholder="Provide a concise overview of your company, including your mission, vision, and key value proposition..."
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Application Questions Section */}
+              <div className="space-y-6">
+                <div className="border-b pb-4">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Application Questions</h3>
+                  <p className="text-gray-600">Please provide detailed responses to the following questions</p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="question1" className="text-sm font-medium text-gray-700">
+                      1. Problem Statement & Solution <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="question1"
+                      value={formData.question1}
+                      onChange={(e) => handleInputChange('question1', e.target.value)}
+                      rows={4}
+                      placeholder="Describe the problem you're solving and your innovative solution approach..."
+                      className="border-gray-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="question2" className="text-sm font-medium text-gray-700">
+                      2. Market Analysis & Target Customers <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="question2"
+                      value={formData.question2}
+                      onChange={(e) => handleInputChange('question2', e.target.value)}
+                      rows={4}
+                      placeholder="Explain your target market, customer segments, and go-to-market strategy..."
+                      className="border-gray-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="question3" className="text-sm font-medium text-gray-700">
+                      3. Competitive Advantage & Innovation <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="question3"
+                      value={formData.question3}
+                      onChange={(e) => handleInputChange('question3', e.target.value)}
+                      rows={4}
+                      placeholder="What makes your solution unique? Describe your competitive advantages and innovation..."
+                      className="border-gray-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="question4" className="text-sm font-medium text-gray-700">
+                      4. Team & Execution Capability <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="question4"
+                      value={formData.question4}
+                      onChange={(e) => handleInputChange('question4', e.target.value)}
+                      rows={4}
+                      placeholder="Tell us about your founding team, key members, and your execution track record..."
+                      className="border-gray-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="question5" className="text-sm font-medium text-gray-700">
+                      5. Business Model & Financial Projections <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="question5"
+                      value={formData.question5}
+                      onChange={(e) => handleInputChange('question5', e.target.value)}
+                      rows={4}
+                      placeholder="Describe your revenue model, current financial status, and growth projections..."
+                      className="border-gray-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information Section */}
+              <div className="space-y-6">
+                <div className="border-b pb-4">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Contact Information</h3>
+                  <p className="text-gray-600">Provide your contact details for follow-up communication</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="submitterEmail" className="text-sm font-medium text-gray-700">
+                      Email Address <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="submitterEmail"
+                      type="email"
+                      value={formData.submitterEmail}
+                      onChange={(e) => handleInputChange('submitterEmail', e.target.value)}
+                      className="border-gray-300 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="pocName" className="text-sm font-medium text-gray-700">
+                      Primary Contact Name
+                    </Label>
+                    <Input
+                      id="pocName"
+                      value={formData.pocName}
+                      onChange={(e) => handleInputChange('pocName', e.target.value)}
+                      className="border-gray-300 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNo" className="text-sm font-medium text-gray-700">
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phoneNo"
+                      value={formData.phoneNo}
+                      onChange={(e) => handleInputChange('phoneNo', e.target.value)}
+                      placeholder="+91 XXXXX XXXXX"
+                      className="border-gray-300 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="companyLinkedinUrl" className="text-sm font-medium text-gray-700">
+                      Company LinkedIn URL
+                    </Label>
+                    <Input
+                      id="companyLinkedinUrl"
+                      value={formData.companyLinkedinUrl}
+                      onChange={(e) => handleInputChange('companyLinkedinUrl', e.target.value)}
+                      placeholder="https://linkedin.com/company/your-company"
+                      className="border-gray-300 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium text-gray-700">Founder LinkedIn Profiles</Label>
+                  {formData.founderLinkedinUrls.map((url, index) => (
+                    <div key={index} className="flex gap-3">
+                      <Input
+                        value={url}
+                        onChange={(e) => handleFounderLinkedInChange(index, e.target.value)}
+                        placeholder={`https://linkedin.com/in/founder-${index + 1}`}
+                        className="border-gray-300 focus:border-blue-500"
+                      />
+                      {formData.founderLinkedinUrls.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => removeFounderLinkedIn(index)}
+                          className="px-4"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addFounderLinkedIn}
+                    className="w-full border-dashed border-2 border-gray-300 hover:border-blue-500"
+                  >
+                    + Add Another Founder Profile
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t">
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addFounderLinkedIn}
-                  className="mt-2"
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 text-lg"
+                  size="lg"
                 >
-                  Add Another Founder
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                      Submitting Application...
+                    </>
+                  ) : (
+                    <>
+                      <Building2 className="h-5 w-5 mr-3" />
+                      Submit Application
+                    </>
+                  )}
                 </Button>
               </div>
-
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full"
-                size="lg"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting Application...
-                  </>
-                ) : (
-                  'Submit Application'
-                )}
-              </Button>
             </form>
           </CardContent>
         </Card>

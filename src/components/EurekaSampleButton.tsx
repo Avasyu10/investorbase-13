@@ -1,14 +1,11 @@
 
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Rocket } from "lucide-react";
 
 export function EurekaSampleButton() {
-  const navigate = useNavigate();
-
   const handleClick = () => {
-    // Navigate directly to the eureka sample form with a specific slug
-    navigate("/eureka-sample/iit-bombay-eureka");
+    // Open the eureka sample form in a new tab
+    window.open("/eureka-sample/iit-bombay-eureka", "_blank");
   };
 
   return (
