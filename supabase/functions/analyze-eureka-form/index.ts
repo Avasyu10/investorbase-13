@@ -374,7 +374,7 @@ REQUIREMENTS:
     const companyId = newCompany.id;
     console.log('Successfully created NEW company with ID:', companyId);
 
-    // Create sections using the EXACT same structure as BARC
+    // Create sections using the EXACT same structure as BARC - THIS IS THE KEY FIX
     console.log('Creating sections for company:', companyId);
     
     // Delete old sections first (in case of retry)
@@ -383,18 +383,18 @@ REQUIREMENTS:
       .delete()
       .eq('company_id', companyId);
 
-    // FIXED: Create sections with proper validation and error handling
+    // Create sections with the exact mapping from BARC form
     const sectionsToCreate = [];
     if (analysisResult.sections && typeof analysisResult.sections === 'object') {
       console.log('Processing analysis sections:', Object.keys(analysisResult.sections));
       
-      // CRITICAL FIX: Use the exact section keys from the analysis result
+      // Use the EXACT section mappings from BARC form
       const sectionMappings = {
-        'problem_solution_fit': { title: 'Problem & Solution', type: 'analysis', section_type: 'problem_solution_fit' },
-        'target_customers': { title: 'Target Customers', type: 'analysis', section_type: 'target_customers' },
+        'problem_solution_fit': { title: 'Problem & Solution Fit', type: 'analysis', section_type: 'problem_solution_fit' },
+        'target_customers': { title: 'Target Customers & Market', type: 'analysis', section_type: 'target_customers' },
         'competitive_advantage': { title: 'Competitive Advantage', type: 'analysis', section_type: 'competitive_advantage' },
         'market_opportunity': { title: 'Market Opportunity', type: 'analysis', section_type: 'market_opportunity' },
-        'team_strength': { title: 'Team Strength', type: 'analysis', section_type: 'team_strength' }
+        'team_strength': { title: 'Team & Execution', type: 'analysis', section_type: 'team_strength' }
       };
 
       for (const [sectionKey, sectionData] of Object.entries(analysisResult.sections)) {
@@ -413,7 +413,7 @@ REQUIREMENTS:
             section_type: mapping.section_type,
             type: mapping.type,
             title: mapping.title,
-            description: typeof sectionData.analysis === 'string' ? sectionData.analysis : ''
+            description: typeof sectionData.analysis === 'string' ? sectionData.analysis : 'No analysis provided'
           });
         } else {
           console.warn(`Skipping invalid section: ${sectionKey}`, { mapping: !!mapping, sectionData: typeof sectionData });
@@ -424,6 +424,7 @@ REQUIREMENTS:
     }
 
     console.log('Sections to create:', sectionsToCreate.length);
+    console.log('Section data preview:', sectionsToCreate.map(s => ({ title: s.title, score: s.score, section_type: s.section_type })));
 
     if (sectionsToCreate.length > 0) {
       const { data: createdSections, error: sectionsError } = await supabase
@@ -436,7 +437,7 @@ REQUIREMENTS:
         throw new Error(`Failed to create sections: ${sectionsError.message}`);
       }
 
-      console.log('Created sections:', createdSections.length);
+      console.log('Created sections successfully:', createdSections.length);
 
       // Create section details properly with proper detail_type values
       const sectionDetails = [];
@@ -508,12 +509,10 @@ REQUIREMENTS:
           }, {})
         );
       } else {
-        console.warn('No section details to create - check analysis result structure');
-        console.log('Analysis result sections structure:', analysisResult.sections);
+        console.warn('No section details to create');
       }
     } else {
       console.error('No sections created - this will cause UI issues');
-      console.log('Analysis result structure:', JSON.stringify(analysisResult, null, 2));
     }
 
     // Update submission with final results
