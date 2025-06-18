@@ -41,7 +41,7 @@ export const analyzeEurekaSubmission = async (submissionId: string) => {
   console.log('🔬 Starting Eureka submission analysis for:', submissionId);
   
   try {
-    const response = await fetch('/functions/v1/analyze-eureka-submission', {
+    const response = await fetch('/functions/v1/analyze-eureka-form', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
