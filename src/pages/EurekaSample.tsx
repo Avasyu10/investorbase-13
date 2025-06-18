@@ -164,49 +164,30 @@ const EurekaSample = () => {
 
       console.log('📋 Final submission data with user_id:', submissionData);
 
-      // Submit the form
+      // Submit the form - the database trigger will automatically start analysis
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
-      // Show success message immediately
+      // Show success message
       toast({
         title: "Success!",
-        description: "🎉 Application submitted successfully! Analysis is starting automatically.",
+        description: "🎉 Application submitted successfully! Analysis will start automatically.",
       });
 
-      // Trigger analysis and handle the result
-      try {
-        console.log('🚀 Starting analysis for submission:', submission.id);
-        await analyzeEurekaSubmission(submission.id);
-        console.log('✅ Analysis started successfully');
-        
-        toast({
-          title: "Analysis Started",
-          description: "Your application is now being analyzed. You'll be notified when it's complete.",
-        });
-        
-        // Emit custom events to update realtime listeners
-        window.dispatchEvent(new CustomEvent('eurekaNewSubmission'));
-        window.dispatchEvent(new CustomEvent('eurekaStatusChange'));
-        
-      } catch (analysisError: any) {
-        console.error('❌ Analysis failed to start:', analysisError);
-        toast({
-          title: "Analysis Issue",
-          description: `Your application was submitted, but analysis couldn't start automatically: ${analysisError.message || 'Unknown error'}`,
-          variant: "destructive",
-        });
-      }
-
+      // Emit custom events to update realtime listeners
+      window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
+        detail: { submissionId: submission.id, companyName: data.companyName } 
+      }));
+      
       form.reset();
       setFounderLinkedIns([""]);
       navigate("/thank-you");
       
-    } catch (error) {
-      console.error('Error submitting form:', error);
+    } catch (error: any) {
+      console.error('❌ Error submitting form:', error);
       toast({
         title: "Submission Error",
-        description: "There was an error submitting your application. Please try again.",
+        description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
         variant: "destructive",
       });
     } finally {
@@ -224,7 +205,7 @@ const EurekaSample = () => {
               <CardTitle className="text-2xl">Eureka Sample Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
-              Submit your application - analysis will start automatically and you'll be redirected to confirmation
+              Submit your application - analysis will start automatically
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
