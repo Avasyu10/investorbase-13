@@ -170,56 +170,55 @@ serve(async (req) => {
 
     Application Responses and Specific Metrics for Evaluation:
 
-    1. PROBLEM & TIMING: "${submission.question_1 || 'Not provided'}"
+    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Clarity of Problem Definition (20-30 points): Is it a real, urgent pain point with clear articulation?
-    - Market Timing Justification (20-30 points): Evidence of market shift, tech readiness, policy changes, etc.
-    - Insight Depth (20-30 points): Customer anecdotes, data, firsthand experience provided
+    - Problem Clarity (30 pts): Is it real, urgent, and well-articulated?
+    - Current Alternatives (30 pts): Are existing coping methods explained clearly?
+    - Solution Fit (30 pts): Is the solution directly tackling the core pain point?
     
-    Score harshly if: Vague problem description, no timing evidence, lacks personal insight
-    Score highly if: Crystal clear pain point, strong timing evidence, rich customer insights
+    Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution.
+    Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match.
 
-    2. CUSTOMER DISCOVERY: "${submission.question_2 || 'Not provided'}"
+    2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Customer Clarity (25-35 points): Can they describe personas/segments with precision?
-    - Validation Effort (25-35 points): Have they spoken to customers, secured pilots, gathered feedback?
-    - GTMP Realism (25-35 points): Is acquisition strategy practical and scalable?
+    - Customer Definition (35 pts): Are the segments specific and realistic?
+    - Use Case Relevance (35 pts): Does the product clearly serve these users?
+    - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight?
     
-    Score harshly if: Generic customer descriptions, no validation efforts, unrealistic GTM
-    Score highly if: Detailed customer personas, extensive validation, practical GTM strategy
+    Score harshly if: Describes “everyone” or is overly broad.
+    Score highly if: Defined personas, nuanced insights, matched offering.
 
-    3. COMPETITIVE ADVANTAGE: "${submission.question_3 || 'Not provided'}"
+    3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Differentiation (30-35 points): Clearly stated advantages vs existing solutions?
-    - Defensibility (30-35 points): Hard to replicate—tech IP, data, partnerships, network effects?
-    - Strategic Awareness (30-35 points): Aware of and positioned against incumbents?
+    - Competitor Awareness (35 pts): Are both direct and indirect players mentioned?
+    - Comparison Clarity (35 pts): Is differentiation from competitors clear?
+    - Strategic Positioning (30 pts): Do they show where they fit in the landscape?
     
-    Score harshly if: No clear differentiation, easily replicable, unaware of competition
-    Score highly if: Strong unique value prop, defensible moats, competitive intelligence
+    Score harshly if: Misses obvious competitors or gives vague comparisons
+    Score highly if: Deep landscape awareness and sharp positioning.
 
-    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
-    ${linkedInDataSection}
+    4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
-    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
-    - Execution History (30-35 points): Track record of building, selling, or scaling?
+    - Monetization Clarity (30 pts): Is revenue generation clearly explained?
+    - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified?
+    - Scalability & Growth (35 pts): Is there a future roadmap for expansion?
     
-    Score harshly if: No domain experience, skill gaps, no execution track record
-    Score highly if: Deep domain expertise, complementary skills, proven execution
+    Score harshly if: No revenue clarity or hand-wavy growth claims.
+    Score highly if: Structured, feasible model + strong growth potential.
 
-    5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
+    5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Goal Specificity (30-35 points): Clear KPIs like MVP, first customer, funding targets?
-    - Feasibility (30-35 points): Are goals realistic for 3-6 month timeframe?
-    - Support Clarity (30-35 points): Do they know what they need—mentorship, infrastructure, access?
+    - USP Clarity (30 pts): Clear, strong differentiator from others?
+    - Customer Pull Strategy (35 pts): Effective tactics to attract and retain users?
+    - IP or Moat (35 pts): Any defensibility—tech, brand, data, or network effects?
     
-    Score harshly if: Vague goals, unrealistic timelines, unclear support needs
-    Score highly if: Specific measurable goals, realistic timelines, clear support requirements
+    Score harshly if: No meaningful edge, or vague marketing.
+    Score highly if: Compelling USP + solid GTM + proprietary advantage.
 
     SCORING GUIDELINES - BE HIGHLY DISCRIMINATIVE:
     - 90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding
@@ -267,25 +266,25 @@ serve(async (req) => {
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "market_opportunity": {
+        "target_customers": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "competitive_advantage": {
+        "competitors": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "team_strength": {
+        "revenue_model": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": [${founderLinkedInData.length > 0 ? `"CRITICAL: Start with founder LinkedIn insights in this EXACT format for each founder: 'Founder Name: his/her relevant experience or achievement', then add 3-4 additional strengths with market data integration"` : `"exactly 4-5 strengths with market data integration - include LinkedIn founder insights if available"`}],
+          "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
-        "execution_plan": {
+        "differentiation": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
@@ -319,8 +318,7 @@ serve(async (req) => {
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. Return only valid JSON without markdown formatting
-    8. FOR TEAM SECTION: ${founderLinkedInData.length > 0 ? 'MUST start strengths with founder LinkedIn insights in exact format: "Founder Name: his/her relevant experience or achievement" for each founder, then add 3-4 market-related strengths' : 'Include LinkedIn founder insights in strengths when available'}
-    9. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
+    8. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
     `;
 
     // Call OpenAI for analysis
