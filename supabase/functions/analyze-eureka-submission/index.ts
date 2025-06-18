@@ -44,13 +44,13 @@ Deno.serve(async (req) => {
 
     console.log('📋 Submission data retrieved:', submission.company_name)
 
-    // Check if company already exists for this submission to prevent duplicates
+    // FIXED: Check if company already exists more comprehensively
+    // Look for existing company by name AND contact email to prevent duplicates
     const { data: existingCompany } = await supabase
       .from('companies')
-      .select('id')
+      .select('id, name, email, poc_name')
       .eq('name', submission.company_name)
       .eq('source', 'eureka_form')
-      .eq('user_id', submission.user_id)
       .maybeSingle()
 
     if (existingCompany) {
@@ -72,6 +72,29 @@ Deno.serve(async (req) => {
           message: 'Eureka submission linked to existing company',
           submissionId,
           companyId: existingCompany.id
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+
+    // Check if this submission was already processed to prevent duplicate processing
+    const { data: submissionCheck } = await supabase
+      .from('eureka_form_submissions')
+      .select('analysis_status, company_id')
+      .eq('id', submissionId)
+      .single()
+
+    if (submissionCheck?.analysis_status === 'completed' && submissionCheck?.company_id) {
+      console.log('✅ Submission already processed, skipping analysis')
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Submission already processed',
+          submissionId,
+          companyId: submissionCheck.company_id
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

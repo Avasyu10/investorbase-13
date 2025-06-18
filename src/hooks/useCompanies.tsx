@@ -32,16 +32,10 @@ function mapDbCompanyToApi(company: any) {
     assessment_points: company.assessment_points || [],
     report_id: company.report_id,
     source: source,
-    // For the Contact column, prioritize point_of_contact from company_details over poc_name
-    contact_person: company.company_details && company.company_details.length > 0 
-      ? company.company_details[0].point_of_contact 
-      : company.poc_name,
-    // Keep phone number separate and only return it once
-    phone: company.phonenumber,
-    // Keep email separate
-    contact_email: company.company_details && company.company_details.length > 0 
-      ? company.company_details[0].contact_email 
-      : company.email,
+    // FIXED: Keep contact information from companies table and don't set to null
+    poc_name: company.poc_name,
+    phonenumber: company.phonenumber,
+    email: company.email,
     industry: company.industry,
     // Include company_details fields for CRM functionality
     company_details: company.company_details && company.company_details.length > 0 ? {
@@ -52,11 +46,7 @@ function mapDbCompanyToApi(company: any) {
       point_of_contact: company.company_details[0].point_of_contact,
       industry: company.company_details[0].industry,
       teammember_name: company.company_details[0].teammember_name
-    } : null,
-    // Legacy fields for backward compatibility (but avoid duplication)
-    poc_name: null, // Set to null to avoid duplication in Contact column
-    phonenumber: null, // Set to null to avoid duplication, use 'phone' instead
-    email: null // Set to null to avoid duplication, use 'contact_email' instead
+    } : null
   };
 }
 
