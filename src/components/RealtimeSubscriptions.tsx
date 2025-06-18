@@ -198,6 +198,119 @@ export function RealtimeSubscriptions() {
         }
       });
 
+    // Eureka form submissions channel - NEW ADDITION
+    const eurekaChannel = supabase
+      .channel('eureka_form_submissions_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'eureka_form_submissions'
+        },
+        async (payload) => {
+          console.log('🎓 Eureka Update received:', payload);
+          
+          const newStatus = payload.new.analysis_status;
+          const oldStatus = payload.old?.analysis_status;
+          const submissionId = payload.new.id;
+          const companyName = payload.new.company_name;
+          const companyId = payload.new.company_id;
+          
+          console.log(`📊 Eureka Status change: ${submissionId} from ${oldStatus} to ${newStatus}`);
+          console.log(`📊 Company ID: ${companyId}`);
+          
+          // Immediately invalidate queries
+          console.log('🔄 Invalidating queries...');
+          await queryClient.invalidateQueries({ 
+            queryKey: ['eureka-submissions'],
+            refetchType: 'all'
+          });
+          
+          await queryClient.invalidateQueries({ 
+            queryKey: ['public-submissions'],
+            refetchType: 'all'
+          });
+          console.log('✅ Queries invalidated');
+          
+          // Dispatch custom event for immediate UI updates
+          const customEvent = new CustomEvent('eurekaStatusChange', {
+            detail: {
+              submissionId,
+              status: newStatus,
+              companyId,
+              companyName
+            }
+          });
+          
+          console.log('📡 Dispatching eurekaStatusChange event:', customEvent.detail);
+          window.dispatchEvent(customEvent);
+          
+          // Show notifications and handle navigation
+          if (newStatus === 'completed' && oldStatus !== 'completed') {
+            console.log('🎉 Eureka Analysis completed - showing notification');
+            
+            toast({
+              title: "✅ Eureka Analysis completed!",
+              description: `Analysis successfully completed for ${companyName}.`,
+            });
+            
+            // Navigate to company page if available
+            if (companyId) {
+              setTimeout(() => {
+                console.log(`🚀 Navigating to company: ${companyId}`);
+                navigate(`/company/${companyId}`);
+              }, 2000);
+            }
+          } else if (newStatus === 'failed' || newStatus === 'error') {
+            console.log('❌ Eureka Analysis failed');
+            toast({
+              title: "❌ Eureka Analysis failed",
+              description: `Analysis failed for ${companyName}. Please try again.`,
+              variant: "destructive",
+            });
+          } else if (newStatus === 'processing' && oldStatus !== 'processing') {
+            console.log('🔄 Eureka Analysis started');
+            toast({
+              title: "🔄 Analysis started",
+              description: `Analysis has started for ${companyName}. You'll be notified when complete.`,
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'eureka_form_submissions'
+        },
+        async (payload) => {
+          console.log('🆕 New Eureka submission detected:', payload);
+          
+          // Broadcast new submission event
+          window.dispatchEvent(new CustomEvent('eurekaNewSubmission', {
+            detail: payload.new
+          }));
+          
+          // Invalidate cache immediately
+          await queryClient.invalidateQueries({ 
+            queryKey: ['eureka-submissions'],
+            refetchType: 'all'
+          });
+          await queryClient.invalidateQueries({ 
+            queryKey: ['public-submissions'],
+            refetchType: 'all'
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Eureka realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Eureka realtime subscription active');
+        }
+      });
+
     // Companies channel - trigger scraping when company is created with LinkedIn URL
     const companiesChannel = supabase
       .channel('companies_realtime')
@@ -252,6 +365,7 @@ export function RealtimeSubscriptions() {
       console.log('🧹 Cleaning up realtime subscriptions');
       supabase.removeChannel(emailChannel);
       supabase.removeChannel(barcChannel);
+      supabase.removeChannel(eurekaChannel);
       supabase.removeChannel(companiesChannel);
     };
   }, [navigate, queryClient]);
