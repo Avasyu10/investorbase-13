@@ -198,7 +198,7 @@ export function RealtimeSubscriptions() {
         }
       });
 
-    // Eureka form submissions channel - NEW ADDITION
+    // Eureka form submissions channel - Enhanced with PostgreSQL notification listener
     const eurekaChannel = supabase
       .channel('eureka_form_submissions_realtime')
       .on(
@@ -304,6 +304,60 @@ export function RealtimeSubscriptions() {
           });
         }
       )
+      // Listen for PostgreSQL notifications about new Eureka submissions
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'eureka_form_submissions',
+          filter: 'analysis_status=eq.processing'
+        },
+        async (payload) => {
+          // This will be triggered when the trigger sets status to processing
+          console.log('🔥 Eureka submission processing detected, triggering analysis:', payload);
+          
+          const submissionId = payload.new?.id || payload.record?.id;
+          const companyName = payload.new?.company_name || payload.record?.company_name;
+          
+          if (submissionId) {
+            try {
+              console.log('🚀 Calling auto-analyze-eureka-submission function for:', submissionId);
+              
+              const response = await supabase.functions.invoke('auto-analyze-eureka-submission', {
+                body: { 
+                  submissionId,
+                  companyName,
+                  submitterEmail: payload.new?.submitter_email || payload.record?.submitter_email,
+                  createdAt: payload.new?.created_at || payload.record?.created_at
+                }
+              });
+              
+              if (response.error) {
+                console.error('❌ Error from auto-analyze-eureka-submission:', response.error);
+                toast({
+                  title: 'Error processing Eureka submission',
+                  description: `Failed to analyze submission: ${response.error.message}`,
+                  variant: "destructive"
+                });
+              } else {
+                console.log('✅ Auto-analyze-eureka-submission triggered successfully:', response.data);
+                toast({
+                  title: "🎓 Eureka Analysis Started",
+                  description: `Analysis has begun for ${companyName}. You'll be notified when complete.`,
+                });
+              }
+            } catch (error) {
+              console.error('❌ Error calling auto-analyze-eureka-submission:', error);
+              toast({
+                title: 'Error processing Eureka submission',
+                description: `Failed to start analysis: ${error.message}`,
+                variant: "destructive"
+              });
+            }
+          }
+        }
+      )
       .subscribe((status) => {
         console.log('📡 Eureka realtime subscription status:', status);
         if (status === 'SUBSCRIBED') {
@@ -350,6 +404,31 @@ export function RealtimeSubscriptions() {
                 console.error('❌ Failed to trigger company scraping:', error);
               } else {
                 console.log('✅ Company scraping triggered successfully');
+              }
+            }
+            
+            // Also check Eureka submissions
+            const { data: eurekaSubmission } = await supabase
+              .from('eureka_form_submissions')
+              .select('company_linkedin_url')
+              .eq('company_id', companyId)
+              .single();
+            
+            if (eurekaSubmission?.company_linkedin_url) {
+              console.log('🔗 Eureka company has LinkedIn URL, triggering scraping:', eurekaSubmission.company_linkedin_url);
+              
+              // Trigger the scraping edge function
+              const { error } = await supabase.functions.invoke('scraped_company_details', {
+                body: { 
+                  linkedInUrl: eurekaSubmission.company_linkedin_url,
+                  companyId: companyId
+                }
+              });
+              
+              if (error) {
+                console.error('❌ Failed to trigger Eureka company scraping:', error);
+              } else {
+                console.log('✅ Eureka company scraping triggered successfully');
               }
             }
           } catch (error) {
