@@ -29,7 +29,7 @@ import { CompanyListItem } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { ExternalLink, Edit2, Phone } from "lucide-react";
+import { ExternalLink, Edit2 } from "lucide-react";
 
 interface CrmData {
   point_of_contact: string | null;
