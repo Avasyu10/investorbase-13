@@ -1,6 +1,7 @@
 
 import { CompaniesList } from "./CompaniesList";
 import { IITBombayCompaniesList } from "./IITBombayCompaniesList";
+import { EurekaSampleButton } from "../EurekaSampleButton";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2, Building2 } from "lucide-react";
 
@@ -31,9 +32,17 @@ export function ConditionalCompaniesList() {
     );
   }
 
-  // Show IIT Bombay specific UI if user has is_iitbombay: true
+  // Show IIT Bombay specific UI with Eureka Sample button if user has is_iitbombay: true
   if (isIITBombay) {
-    return <IITBombayCompaniesList />;
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Companies Dashboard</h1>
+          <EurekaSampleButton />
+        </div>
+        <IITBombayCompaniesList />
+      </div>
+    );
   }
 
   // Show default UI for all other users
