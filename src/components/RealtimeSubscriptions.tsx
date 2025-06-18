@@ -308,7 +308,7 @@ export function RealtimeSubscriptions() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'eureka_form_submissions',
           filter: 'analysis_status=eq.processing'
@@ -317,8 +317,16 @@ export function RealtimeSubscriptions() {
           // This will be triggered when the trigger sets status to processing
           console.log('🔥 Eureka submission processing detected, triggering analysis:', payload);
           
-          const submissionId = payload.new?.id || payload.record?.id;
-          const companyName = payload.new?.company_name || payload.record?.company_name;
+          // Check if payload.new exists and has the required properties
+          if (!payload.new || typeof payload.new !== 'object') {
+            console.error('❌ Invalid payload structure:', payload);
+            return;
+          }
+          
+          const submissionId = payload.new.id;
+          const companyName = payload.new.company_name;
+          const submitterEmail = payload.new.submitter_email;
+          const createdAt = payload.new.created_at;
           
           if (submissionId) {
             try {
@@ -328,8 +336,8 @@ export function RealtimeSubscriptions() {
                 body: { 
                   submissionId,
                   companyName,
-                  submitterEmail: payload.new?.submitter_email || payload.record?.submitter_email,
-                  createdAt: payload.new?.created_at || payload.record?.created_at
+                  submitterEmail,
+                  createdAt
                 }
               });
               
@@ -344,10 +352,10 @@ export function RealtimeSubscriptions() {
                 console.log('✅ Auto-analyze-eureka-submission triggered successfully:', response.data);
                 toast({
                   title: "🎓 Eureka Analysis Started",
-                  description: `Analysis has begun for ${companyName}. You'll be notified when complete.`,
+                  description: `Analysis has begun for ${companyName || 'the submission'}. You'll be notified when complete.`,
                 });
               }
-            } catch (error) {
+            } catch (error: any) {
               console.error('❌ Error calling auto-analyze-eureka-submission:', error);
               toast({
                 title: 'Error processing Eureka submission',
