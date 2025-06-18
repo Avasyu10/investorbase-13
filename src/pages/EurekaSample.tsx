@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,7 @@ const EurekaSample = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 Eureka Sample form submit triggered:', data);
+    console.log('📝 Eureka form submit triggered:', data);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -136,11 +137,10 @@ const EurekaSample = () => {
     setIsSubmitting(true);
 
     try {
-      // Insert into barc_form_submissions table with exact field mapping
-      const { data: submission, error: insertError } = await supabase
+      const { error } = await supabase
         .from('barc_form_submissions')
         .insert({
-          form_slug: 'eureka-sample',
+          form_slug: slug || 'eureka-sample',
           company_name: data.companyName,
           company_registration_type: data.companyRegistrationType || "Not Specified",
           executive_summary: data.executiveSummary,
@@ -155,34 +155,14 @@ const EurekaSample = () => {
           poc_name: data.pocName,
           phoneno: data.phoneNumber,
           company_linkedin_url: data.companyLinkedInUrl
-        })
-        .select()
-        .single();
+        });
 
-      if (insertError) throw insertError;
+      if (error) throw error;
 
-      console.log('✅ Submission created:', submission.id);
-
-      // Call the centralized routing function instead of direct analysis
-      console.log('🔍 Starting analysis via centralized router...');
-      const { data: routingData, error: routingError } = await supabase.functions.invoke('route-submission-analysis', {
-        body: { submissionId: submission.id }
+      toast({
+        title: "Success!",
+        description: "🎉 Application submitted successfully! Analysis is starting automatically.",
       });
-
-      if (routingError) {
-        console.error('Routing error:', routingError);
-        toast({
-          title: "Submission successful, but analysis failed",
-          description: "Your application was submitted but automatic analysis encountered an error. Our team will review it manually.",
-          variant: "destructive",
-        });
-      } else {
-        console.log('✅ Analysis completed via router:', routingData);
-        toast({
-          title: "Success!",
-          description: "🎉 Application submitted and analyzed successfully!",
-        });
-      }
 
       form.reset();
       setFounderLinkedIns([""]);
