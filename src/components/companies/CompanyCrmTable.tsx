@@ -203,7 +203,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[150px]">Company</TableHead>
+              <TableHead className="w-[150px]">Compani</TableHead>
               <TableHead className="w-[120px]">Contact</TableHead>
               <TableHead className="w-[150px]">Email</TableHead>
               <TableHead className="w-[120px]">Source</TableHead>
