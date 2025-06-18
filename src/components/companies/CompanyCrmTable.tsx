@@ -575,18 +575,18 @@ function CompanyCrmField({
     }
   }
 
-  if (isPhone && value) {
-    return (
-      <a 
-        href={`tel:${value}`}
-        className="text-blue-500 hover:underline flex items-center gap-1"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Phone className="h-3 w-3" />
-        <span>{value}</span>
-      </a>
-    );
-  }
+  // if (isPhone && value) {
+  //   return (
+  //     <a 
+  //       href={`tel:${value}`}
+  //       className="text-blue-500 hover:underline flex items-center gap-1"
+  //       onClick={(e) => e.stopPropagation()}
+  //     >
+  //       <Phone className="h-3 w-3" />
+  //       <span>{value}</span>
+  //     </a>
+  //   );
+  // }
 
   return <span className="truncate">{value}</span>;
 }
