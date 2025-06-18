@@ -63,7 +63,7 @@ serve(async (req) => {
     // Fetch submission data
     console.log('Fetching submission for analysis...');
     const { data: submission, error: fetchError } = await supabase
-      .from('eureka_form_submissions')
+      .from('barc_form_submissions')
       .select('*')
       .eq('id', submissionId)
       .single();
@@ -107,7 +107,7 @@ serve(async (req) => {
       console.log('Could not acquire lock - submission is already being processed or completed');
       // Check current status and return accordingly
       const { data: currentSubmission } = await supabase
-        .from('eureka_form_submissions')
+        .from('barc_form_submissions')
         .select('analysis_status, company_id')
         .eq('id', submissionId)
         .single();
@@ -171,7 +171,6 @@ serve(async (req) => {
                 url: url.trim(),
                 content: linkedInData.content
               });
-              console.log('Found LinkedIn data for:', url.trim());
             }
           } catch (error) {
             console.warn(`Error fetching LinkedIn data for ${url}:`, error);
@@ -187,7 +186,7 @@ serve(async (req) => {
         ).join('\n\n')}`
       : '\n\nNo LinkedIn data available for founders.';
 
-    // Build analysis prompt with submission data (same as BARC)
+    // Build analysis prompt with submission data
     const analysisPrompt = `
     You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
 
@@ -374,7 +373,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.3,
-        max_tokens: 4000,
+        max_tokens: 3000,
       }),
     });
 
@@ -432,13 +431,11 @@ serve(async (req) => {
         overall_score: analysisResult.overall_score,
         assessment_points: analysisResult.summary?.assessment_points || [],
         user_id: effectiveUserId,
-        source: 'eureka_form',
+        source: 'barc_form',
         industry: submission.company_type || null,
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
-        phonenumber: submission.phoneno || null,
-        introduction: analysisResult.company_info?.introduction || 'No description available.',
-        stage: analysisResult.company_info?.stage || 'Not specified'
+        phonenumber: submission.phoneno || null
       };
 
       console.log('Company data to insert:', companyData);
@@ -465,9 +462,7 @@ serve(async (req) => {
         industry: submission.company_type || null,
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
-        phonenumber: submission.phoneno || null,
-        introduction: analysisResult.company_info?.introduction || 'No description available.',
-        stage: analysisResult.company_info?.stage || 'Not specified'
+        phonenumber: submission.phoneno || null
       };
 
       const { error: updateCompanyError } = await supabase
@@ -583,7 +578,7 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log('Successfully analyzed Eureka submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
+    console.log('Successfully analyzed BARC submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
 
     return new Response(
       JSON.stringify({ 
@@ -599,7 +594,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in analyze-eureka-form function:', error);
+    console.error('Error in analyze-barc-form function:', error);
 
     // Update submission with error status if we have submissionId
     if (submissionId) {
