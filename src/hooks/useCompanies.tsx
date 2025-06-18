@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -33,7 +32,7 @@ function mapDbCompanyToApi(company: any) {
     assessment_points: company.assessment_points || [],
     report_id: company.report_id,
     source: source,
-    // Include additional fields for IIT Bombay users
+    // Include additional fields for IIT Bombay users - keep these separate
     poc_name: company.poc_name,
     phonenumber: company.phonenumber,
     email: company.email,
@@ -45,7 +44,7 @@ function mapDbCompanyToApi(company: any) {
       status_date: company.company_details[0].status_date,
       notes: company.company_details[0].notes,
       contact_email: company.company_details[0].contact_email,
-      point_of_contact: company.company_details[0].point_of_contact,
+      point_of_contact: company.company_details[0].point_of_contact, // This should be the contact person's name
       industry: company.company_details[0].industry,
       teammember_name: company.company_details[0].teammember_name
     } : null
