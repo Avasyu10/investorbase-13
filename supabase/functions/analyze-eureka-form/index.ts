@@ -408,15 +408,15 @@ serve(async (req) => {
     let analysisResult;
     try {
       analysisResult = JSON.parse(analysisText);
-      console.log('Successfully parsed Eureka analysis result');
+      console.log('Successfully parsed analysis result');
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
       console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
       throw new Error('Analysis response was not valid JSON');
     }
 
-    console.log('Eureka analysis overall score:', analysisResult.overall_score);
-    console.log('Eureka analysis recommendation:', analysisResult.recommendation);
+    console.log('Analysis overall score:', analysisResult.overall_score);
+    console.log('Analysis recommendation:', analysisResult.recommendation);
 
     // Create or update company
     let companyId = submission.company_id;
