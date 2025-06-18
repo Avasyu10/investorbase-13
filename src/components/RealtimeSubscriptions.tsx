@@ -198,7 +198,7 @@ export function RealtimeSubscriptions() {
         }
       });
 
-    // Eureka form submissions channel - Enhanced with PostgreSQL notification listener
+    // Eureka form submissions channel - FIXED to match working BARC pattern
     const eurekaChannel = supabase
       .channel('eureka_form_submissions_realtime')
       .on(
@@ -270,11 +270,43 @@ export function RealtimeSubscriptions() {
               variant: "destructive",
             });
           } else if (newStatus === 'processing' && oldStatus !== 'processing') {
-            console.log('🔄 Eureka Analysis started');
-            toast({
-              title: "🔄 Analysis started",
-              description: `Analysis has started for ${companyName}. You'll be notified when complete.`,
-            });
+            console.log('🔄 Eureka Analysis started - calling edge function');
+            
+            // Call the auto-analyze function when status changes to processing
+            try {
+              console.log('🚀 Calling auto-analyze-eureka-submission function for:', submissionId);
+              
+              const response = await supabase.functions.invoke('auto-analyze-eureka-submission', {
+                body: { 
+                  submissionId,
+                  companyName,
+                  submitterEmail: payload.new.submitter_email,
+                  createdAt: payload.new.created_at
+                }
+              });
+              
+              if (response.error) {
+                console.error('❌ Error from auto-analyze-eureka-submission:', response.error);
+                toast({
+                  title: 'Error processing Eureka submission',
+                  description: `Failed to analyze submission: ${response.error.message}`,
+                  variant: "destructive"
+                });
+              } else {
+                console.log('✅ Auto-analyze-eureka-submission triggered successfully:', response.data);
+                toast({
+                  title: "🎓 Eureka Analysis Started",
+                  description: `Analysis has begun for ${companyName || 'the submission'}. You'll be notified when complete.`,
+                });
+              }
+            } catch (error: any) {
+              console.error('❌ Error calling auto-analyze-eureka-submission:', error);
+              toast({
+                title: 'Error processing Eureka submission',
+                description: `Failed to start analysis: ${error.message}`,
+                variant: "destructive"
+              });
+            }
           }
         }
       )
@@ -302,68 +334,6 @@ export function RealtimeSubscriptions() {
             queryKey: ['public-submissions'],
             refetchType: 'all'
           });
-        }
-      )
-      // Listen for PostgreSQL notifications about new Eureka submissions
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'eureka_form_submissions',
-          filter: 'analysis_status=eq.processing'
-        },
-        async (payload) => {
-          // This will be triggered when the trigger sets status to processing
-          console.log('🔥 Eureka submission processing detected, triggering analysis:', payload);
-          
-          // Check if payload.new exists and has the required properties
-          if (!payload.new || typeof payload.new !== 'object') {
-            console.error('❌ Invalid payload structure:', payload);
-            return;
-          }
-          
-          const submissionId = payload.new.id;
-          const companyName = payload.new.company_name;
-          const submitterEmail = payload.new.submitter_email;
-          const createdAt = payload.new.created_at;
-          
-          if (submissionId) {
-            try {
-              console.log('🚀 Calling auto-analyze-eureka-submission function for:', submissionId);
-              
-              const response = await supabase.functions.invoke('auto-analyze-eureka-submission', {
-                body: { 
-                  submissionId,
-                  companyName,
-                  submitterEmail,
-                  createdAt
-                }
-              });
-              
-              if (response.error) {
-                console.error('❌ Error from auto-analyze-eureka-submission:', response.error);
-                toast({
-                  title: 'Error processing Eureka submission',
-                  description: `Failed to analyze submission: ${response.error.message}`,
-                  variant: "destructive"
-                });
-              } else {
-                console.log('✅ Auto-analyze-eureka-submission triggered successfully:', response.data);
-                toast({
-                  title: "🎓 Eureka Analysis Started",
-                  description: `Analysis has begun for ${companyName || 'the submission'}. You'll be notified when complete.`,
-                });
-              }
-            } catch (error: any) {
-              console.error('❌ Error calling auto-analyze-eureka-submission:', error);
-              toast({
-                title: 'Error processing Eureka submission',
-                description: `Failed to start analysis: ${error.message}`,
-                variant: "destructive"
-              });
-            }
-          }
         }
       )
       .subscribe((status) => {
