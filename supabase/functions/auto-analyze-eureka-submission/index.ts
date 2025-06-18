@@ -54,7 +54,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Calling analyze-eureka-form function...');
+    // Add a small delay to ensure the submission is fully committed to the database
+    console.log('Adding small delay to ensure database consistency...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Verify the submission exists before calling the main analysis function
+    console.log('Verifying submission exists...');
+    const { data: submissionCheck, error: checkError } = await supabase
+      .from('eureka_form_submissions')
+      .select('id, analysis_status')
+      .eq('id', submissionId)
+      .single();
+
+    if (checkError || !submissionCheck) {
+      console.error('Submission not found during verification:', checkError);
+      throw new Error(`Submission not found: ${checkError?.message || 'Unknown error'}`);
+    }
+
+    console.log('Submission verified, calling main analysis function...');
     
     // Call the main analysis function
     const { data, error } = await supabase.functions.invoke('analyze-eureka-form', {

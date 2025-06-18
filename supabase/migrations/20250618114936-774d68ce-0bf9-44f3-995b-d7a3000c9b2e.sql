@@ -1,5 +1,5 @@
 
--- Fix the Eureka auto-analyze trigger to call the correct edge function
+-- Fix the Eureka auto-analyze trigger to call the correct edge function and handle timing properly
 CREATE OR REPLACE FUNCTION public.auto_analyze_eureka_submission()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -25,22 +25,16 @@ BEGIN
     payload_json
   );
 
-  -- Set initial status to processing
-  UPDATE public.eureka_form_submissions 
-  SET 
-    analysis_status = 'processing',
-    updated_at = now()
-  WHERE id = NEW.id;
-
-  -- Invoke the edge function with proper JSON formatting (EXACTLY like BARC form)
+  -- Use the auto-analyze wrapper function instead of direct call to main function
+  -- This ensures proper error handling and timing
   SELECT http_post(
-    'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/analyze-eureka-form',
+    'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-eureka-submission',
     payload_json,
     'application/json'
   ) INTO response;
 
   -- Log the response for debugging
-  RAISE LOG 'Response from auto-analyze edge function: %', response;
+  RAISE LOG 'Response from auto-analyze wrapper function: %', response;
 
   RETURN NEW;
 EXCEPTION WHEN others THEN
@@ -49,3 +43,11 @@ EXCEPTION WHEN others THEN
   RETURN NEW;
 END;
 $function$;
+
+-- Ensure the trigger exists and is properly attached
+DROP TRIGGER IF EXISTS auto_analyze_eureka_submission_trigger ON public.eureka_form_submissions;
+
+CREATE TRIGGER auto_analyze_eureka_submission_trigger
+  AFTER INSERT ON public.eureka_form_submissions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.auto_analyze_eureka_submission();
