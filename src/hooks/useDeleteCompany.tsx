@@ -2,21 +2,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useRef } from 'react';
+import { useCallback } from 'react';
 
 export function useDeleteCompany() {
   const queryClient = useQueryClient();
-  const isExecutingRef = useRef(false);
 
-  return useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (companyId: string) => {
-      // Prevent duplicate executions
-      if (isExecutingRef.current) {
-        console.log('Delete operation already in progress, skipping...');
-        return companyId;
-      }
-
-      isExecutingRef.current = true;
       console.log('Starting company deletion process for:', companyId);
       
       try {
@@ -160,32 +152,34 @@ export function useDeleteCompany() {
       } catch (error) {
         console.error('Company deletion failed:', error);
         throw error;
-      } finally {
-        isExecutingRef.current = false;
       }
     },
     onSuccess: () => {
       // Invalidate and refetch companies query
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       
-      // Only show toast once per successful deletion
-      if (!isExecutingRef.current) {
-        toast({
-          title: "Company deleted",
-          description: "The company has been successfully removed.",
-        });
-      }
+      toast({
+        title: "Company deleted",
+        description: "The company has been successfully removed.",
+      });
     },
     onError: (error: any) => {
       console.error('Failed to delete company:', error);
-      // Only show error toast once
-      if (!isExecutingRef.current) {
-        toast({
-          title: "Error deleting company",
-          description: error.message || "Failed to delete the company. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error deleting company",
+        description: error.message || "Failed to delete the company. Please try again.",
+        variant: "destructive",
+      });
     },
   });
+
+  // Return a memoized function to prevent recreation on every render
+  const deleteCompany = useCallback((companyId: string) => {
+    return deleteMutation.mutateAsync(companyId);
+  }, [deleteMutation]);
+
+  return {
+    deleteCompany,
+    isDeleting: deleteMutation.isPending
+  };
 }

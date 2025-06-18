@@ -85,24 +85,7 @@ serve(async (req) => {
       phoneno: submission.phoneno
     });
 
-    // FIXED: Check if submission was already processed to prevent duplicate processing
-    if (submission.analysis_status === 'completed' && submission.company_id) {
-      console.log('Submission already completed, returning existing company ID:', submission.company_id);
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          submissionId,
-          companyId: submission.company_id,
-          isNewCompany: false,
-          message: 'Analysis already completed'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Check if already processing or completed using an atomic update
+    // CRITICAL: Use atomic operation to prevent duplicate processing
     console.log('Attempting to acquire lock for Eureka submission analysis...');
     const { data: lockResult, error: lockError } = await supabase
       .from('eureka_form_submissions')
@@ -111,7 +94,7 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', submissionId)
-      .in('analysis_status', ['pending', 'failed'])
+      .eq('analysis_status', 'pending') // Only proceed if status is still pending
       .select()
       .maybeSingle();
 
@@ -166,11 +149,10 @@ serve(async (req) => {
     console.log('Successfully acquired lock for Eureka submission analysis');
 
     // Determine the effective user ID for company creation
-    // If submission has user_id, use it; otherwise fall back to form_slug
     const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
-    // FIXED: More comprehensive check for existing companies
+    // Check for existing companies more comprehensively
     const { data: existingCompanies } = await supabase
       .from('companies')
       .select('id, name, email, poc_name')
@@ -205,12 +187,6 @@ serve(async (req) => {
         }
       );
     }
-
-    // Build LinkedIn data section if available
-    const founderLinkedInData = submission.founder_linkedin_urls || [];
-    const linkedInDataSection = founderLinkedInData.length > 0 
-      ? `\n\nFounder LinkedIn URLs: ${founderLinkedInData.join(', ')}`
-      : '';
 
     // Build analysis prompt with submission data
     const analysisPrompt = `
@@ -283,11 +259,8 @@ serve(async (req) => {
     - 20-39: Very poor responses, largely inadequate or missing key elements
     - 1-19: Extremely poor or non-responses
 
-    MARKET INTEGRATION REQUIREMENT:
-    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context.
-
     For ASSESSMENT POINTS (8-10 points required):
-    Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation. Each assessment point should provide substantial market intelligence that connects startup positioning with industry realities, competitive dynamics, and growth opportunities.
+    Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation.
 
     CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
     WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
@@ -301,7 +274,6 @@ serve(async (req) => {
 
     For STRENGTHS (exactly 4-5 each per section):
     - STRENGTHS: Highlight what they did well, supported by market validation and data
-    - FOR TEAM SECTION SPECIFICALLY: ${founderLinkedInData.length > 0 ? 'Start with founder LinkedIn insights in this exact format: "Founder Name: his/her relevant experience or achievement" for each founder with LinkedIn data available, then follow with 3-4 additional strengths related to the answer and market data.' : 'If LinkedIn data was provided, include founder-specific insights as described above'}
 
     Provide analysis in this JSON format with ALL scores on 1-100 scale:
 
@@ -351,15 +323,7 @@ serve(async (req) => {
         "next_steps": ["specific recommendations with market-informed guidance"],
         "assessment_points": [
           "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
-          "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
-          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
-          "Weave in insights from the startup's responses to show market positioning and strategic implications",
-          "Focus on quantifiable market opportunities, risks, and benchmarks with actionable intelligence",
-          "Connect startup's approach to broader industry trends, competitive dynamics, and market timing factors",
-          "Provide detailed analysis of how their solution fits within current market conditions and future projections",
-          "Examples: 'Operating in the $47B EdTech market growing at 16.3% CAGR, this startup faces typical customer acquisition challenges where the average CAC of $89 affects 73% of similar companies. However, their university partnership approach could potentially reduce acquisition costs by 40% based on sector data, while competing against established players like Coursera ($2.9B market cap) and emerging AI-powered platforms that have collectively raised $1.2B in the last 18 months. The regulatory environment shows favorable trends with 67% of educational institutions increasing digital adoption budgets by an average of 23% annually.'",
-          "Prioritize hard numbers, market intelligence, competitive analysis, and strategic positioning over qualitative assessments",
-          "Each assessment point should provide substantial business intelligence that investors can act upon"
+          "Each point must be 3-4 sentences long and prioritize market data and numbers above all else"
         ]
       }
     }
@@ -372,7 +336,6 @@ serve(async (req) => {
     5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     6. All scores must be 1-100 scale
     7. Return only valid JSON without markdown formatting
-    8. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
     `;
 
     // Call OpenAI for analysis
@@ -442,80 +405,45 @@ serve(async (req) => {
     console.log('Eureka analysis overall score:', analysisResult.overall_score);
     console.log('Eureka analysis recommendation:', analysisResult.recommendation);
 
-    // Create or update company
-    let companyId = submission.company_id;
-    let isNewCompany = false;
+    // Create company
+    console.log('Creating NEW company for analyzed Eureka submission...');
+    
+    const companyData = {
+      name: submission.company_name,
+      overall_score: analysisResult.overall_score,
+      assessment_points: analysisResult.summary?.assessment_points || [],
+      user_id: effectiveUserId,
+      source: 'eureka_form',
+      industry: submission.company_type || null,
+      email: submission.submitter_email || null,
+      poc_name: submission.poc_name || null,
+      phonenumber: submission.phoneno || null
+    };
 
-    if (!companyId) {
-      console.log('Creating NEW company for analyzed Eureka submission...');
-      isNewCompany = true;
-      
-      const companyData = {
-        name: submission.company_name,
-        overall_score: analysisResult.overall_score,
-        assessment_points: analysisResult.summary?.assessment_points || [],
-        user_id: effectiveUserId,
-        source: 'eureka_form',
-        industry: submission.company_type || null,
-        email: submission.submitter_email || null,
-        poc_name: submission.poc_name || null,
-        phonenumber: submission.phoneno || null
-      };
+    console.log('Company data to insert:', companyData);
+    
+    const { data: newCompany, error: companyError } = await supabase
+      .from('companies')
+      .insert(companyData)
+      .select()
+      .single();
 
-      console.log('Company data to insert:', companyData);
-      
-      const { data: newCompany, error: companyError } = await supabase
-        .from('companies')
-        .insert(companyData)
-        .select()
-        .single();
-
-      if (companyError) {
-        console.error('Error creating company:', companyError);
-        throw new Error(`Failed to create company: ${companyError.message}`);
-      }
-
-      companyId = newCompany.id;
-      console.log('Successfully created NEW company with ID:', companyId);
-    } else {
-      console.log('Updating existing company...');
-      
-      const updateData = {
-        overall_score: analysisResult.overall_score,
-        assessment_points: analysisResult.summary?.assessment_points || [],
-        industry: submission.company_type || null,
-        email: submission.submitter_email || null,
-        poc_name: submission.poc_name || null,
-        phonenumber: submission.phoneno || null
-      };
-
-      const { error: updateCompanyError } = await supabase
-        .from('companies')
-        .update(updateData)
-        .eq('id', companyId);
-
-      if (updateCompanyError) {
-        console.error('Error updating company:', updateCompanyError);
-        throw new Error(`Failed to update company: ${updateCompanyError.message}`);
-      }
-
-      console.log('Successfully updated existing company with ID:', companyId);
+    if (companyError) {
+      console.error('Error creating company:', companyError);
+      throw new Error(`Failed to create company: ${companyError.message}`);
     }
+
+    const companyId = newCompany.id;
+    console.log('Successfully created NEW company with ID:', companyId);
 
     // Create sections
     console.log('Creating sections for company:', companyId);
     
-    // Delete old sections first
-    const { error: deleteError } = await supabase
+    // Delete old sections first (in case of retry)
+    await supabase
       .from('sections')
       .delete()
       .eq('company_id', companyId);
-
-    if (deleteError) {
-      console.error('Error deleting old sections:', deleteError);
-    } else {
-      console.log('Deleted old sections');
-    }
 
     const sectionMappings = {
       'problem_solution_fit': { title: 'Problem & Solution', type: 'problem_solution_fit' },
@@ -537,6 +465,8 @@ serve(async (req) => {
       };
     });
 
+    console.log('Sections to create:', sectionsToCreate.length);
+
     if (sectionsToCreate.length > 0) {
       const { data: createdSections, error: sectionsError } = await supabase
         .from('sections')
@@ -548,9 +478,9 @@ serve(async (req) => {
         throw new Error(`Failed to create sections: ${sectionsError.message}`);
       }
 
-      console.log('Created sections:', sectionsToCreate.length);
+      console.log('Created sections:', createdSections.length);
 
-      // Create section details (strengths and weaknesses)
+      // Create section details (strengths and weaknesses) - THIS IS THE CRITICAL FIX
       const sectionDetails = [];
       
       for (const section of createdSections) {
@@ -558,6 +488,11 @@ serve(async (req) => {
         const sectionData = analysisResult.sections[sectionKey];
         
         if (sectionData) {
+          console.log(`Processing section details for ${sectionKey}:`, {
+            strengths: sectionData.strengths?.length || 0,
+            improvements: sectionData.improvements?.length || 0
+          });
+          
           // Add strengths
           if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
             for (const strength of sectionData.strengths) {
@@ -582,6 +517,8 @@ serve(async (req) => {
         }
       }
 
+      console.log('Total section details to create:', sectionDetails.length);
+
       if (sectionDetails.length > 0) {
         const { error: detailsError } = await supabase
           .from('section_details')
@@ -592,7 +529,9 @@ serve(async (req) => {
           throw new Error(`Failed to create section details: ${detailsError.message}`);
         }
 
-        console.log('Created section details:', sectionDetails.length);
+        console.log('Successfully created section details:', sectionDetails.length);
+      } else {
+        console.warn('No section details to create');
       }
     }
 
@@ -613,14 +552,14 @@ serve(async (req) => {
       throw new Error(`Failed to update submission: ${updateError.message}`);
     }
 
-    console.log('Successfully analyzed Eureka submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
+    console.log('Successfully analyzed Eureka submission', submissionId, 'and created company', companyId);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         submissionId,
         companyId,
-        isNewCompany,
+        isNewCompany: true,
         analysisResult
       }),
       {

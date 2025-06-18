@@ -75,28 +75,31 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       
       console.log("Retrieved section data:", sectionData);
       
-      // Get strengths and weaknesses
+      // Get strengths and weaknesses - FIXED: Better error handling and logging
       const { data: detailsData, error: detailsError } = await supabase
         .from('section_details')
         .select('*')
         .eq('section_id', sectionId);
         
-      if (detailsError) throw detailsError;
+      if (detailsError) {
+        console.error('Error fetching section details:', detailsError);
+        throw detailsError;
+      }
       
-      console.log("Retrieved section details:", detailsData);
+      console.log("Retrieved section details:", detailsData?.length || 0, "items");
       
       const strengths = detailsData
-        .filter(detail => detail.detail_type === 'strength')
-        .map(detail => detail.content);
+        ?.filter(detail => detail.detail_type === 'strength')
+        ?.map(detail => detail.content) || [];
         
       const weaknesses = detailsData
-        .filter(detail => detail.detail_type === 'weakness')
-        .map(detail => detail.content);
+        ?.filter(detail => detail.detail_type === 'weakness')
+        ?.map(detail => detail.content) || [];
+      
+      console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
       
       // Make sure we have a description field
       const description = sectionData.description || 'No detailed content available.';
-      
-      console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
       
       // Handle both 1-5 and 1-100 scoring scales
       const rawScore = Number(sectionData.score);
