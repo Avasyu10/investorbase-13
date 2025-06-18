@@ -32,22 +32,31 @@ function mapDbCompanyToApi(company: any) {
     assessment_points: company.assessment_points || [],
     report_id: company.report_id,
     source: source,
-    // Include additional fields for IIT Bombay users - keep these separate
-    poc_name: company.poc_name,
-    phonenumber: company.phonenumber,
-    email: company.email,
+    // For the Contact column, prioritize point_of_contact from company_details over poc_name
+    contact_person: company.company_details && company.company_details.length > 0 
+      ? company.company_details[0].point_of_contact 
+      : company.poc_name,
+    // Keep phone number separate and only return it once
+    phone: company.phonenumber,
+    // Keep email separate
+    contact_email: company.company_details && company.company_details.length > 0 
+      ? company.company_details[0].contact_email 
+      : company.email,
     industry: company.industry,
-    // Include company_details fields for non-IIT Bombay users
-    // Fix: Ensure company_details is properly structured as a single object
+    // Include company_details fields for CRM functionality
     company_details: company.company_details && company.company_details.length > 0 ? {
       status: company.company_details[0].status,
       status_date: company.company_details[0].status_date,
       notes: company.company_details[0].notes,
       contact_email: company.company_details[0].contact_email,
-      point_of_contact: company.company_details[0].point_of_contact, // This should be the contact person's name
+      point_of_contact: company.company_details[0].point_of_contact,
       industry: company.company_details[0].industry,
       teammember_name: company.company_details[0].teammember_name
-    } : null
+    } : null,
+    // Legacy fields for backward compatibility (but avoid duplication)
+    poc_name: null, // Set to null to avoid duplication in Contact column
+    phonenumber: null, // Set to null to avoid duplication, use 'phone' instead
+    email: null // Set to null to avoid duplication, use 'contact_email' instead
   };
 }
 
