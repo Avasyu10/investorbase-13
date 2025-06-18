@@ -222,170 +222,91 @@ serve(async (req) => {
         ).join('\n\n')}`
       : '\n\nNo LinkedIn data available for founders.';
 
-    // Build analysis prompt - Using EXACT same structure as BARC
+    // Use the EXACT same analysis prompt structure as BARC form
     const analysisPrompt = `
-    You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
+You are an expert startup evaluator. Analyze this Eureka startup application and provide a comprehensive assessment.
 
-    Company Information:
-    - Company Name: ${submission.company_name || 'Not provided'}
-    - Registration Type: ${submission.company_registration_type || 'Not provided'}
-    - Industry: ${submission.company_type || 'Not provided'}
-    - Executive Summary: ${submission.executive_summary || 'Not provided'}
+Company Information:
+- Company Name: ${submission.company_name || 'Not provided'}
+- Registration Type: ${submission.company_registration_type || 'Not provided'}
+- Industry: ${submission.company_type || 'Not provided'}
+- Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and Specific Metrics for Evaluation:
+Application Responses:
+1. Problem & Timing: ${submission.question_1 || 'Not provided'}
+2. Customer Discovery: ${submission.question_2 || 'Not provided'}
+3. Competitive Advantage: ${submission.question_3 || 'Not provided'}
+4. Team & Execution: ${submission.question_4 || 'Not provided'}
+5. Execution Plan: ${submission.question_5 || 'Not provided'}
+${linkedInDataSection}
 
-    1. PROBLEM & TIMING: "${submission.question_1 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Clarity of Problem Definition (20-30 points): Is it a real, urgent pain point with clear articulation?
-    - Market Timing Justification (20-30 points): Evidence of market shift, tech readiness, policy changes, etc.
-    - Insight Depth (20-30 points): Customer anecdotes, data, firsthand experience provided
-    
-    Score harshly if: Vague problem description, no timing evidence, lacks personal insight
-    Score highly if: Crystal clear pain point, strong timing evidence, rich customer insights
+Provide analysis in this EXACT JSON format:
 
-    2. CUSTOMER DISCOVERY: "${submission.question_2 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Customer Clarity (25-35 points): Can they describe personas/segments with precision?
-    - Validation Effort (25-35 points): Have they spoken to customers, secured pilots, gathered feedback?
-    - GTMP Realism (25-35 points): Is acquisition strategy practical and scalable?
-    
-    Score harshly if: Generic customer descriptions, no validation efforts, unrealistic GTM
-    Score highly if: Detailed customer personas, extensive validation, practical GTM strategy
-
-    3. COMPETITIVE ADVANTAGE: "${submission.question_3 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Differentiation (30-35 points): Clearly stated advantages vs existing solutions?
-    - Defensibility (30-35 points): Hard to replicate—tech IP, data, partnerships, network effects?
-    - Strategic Awareness (30-35 points): Aware of and positioned against incumbents?
-    
-    Score harshly if: No clear differentiation, easily replicable, unaware of competition
-    Score highly if: Strong unique value prop, defensible moats, competitive intelligence
-
-    4. TEAM STRENGTH: "${submission.question_4 || 'Not provided'}"
-    ${linkedInDataSection}
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Founder-Problem Fit (30-35 points): Domain expertise or lived experience with the problem?
-    - Complementarity of Skills (30-35 points): Tech + business + ops coverage?
-    - Execution History (30-35 points): Track record of building, selling, or scaling?
-    
-    Score harshly if: No domain experience, skill gaps, no execution track record
-    Score highly if: Deep domain expertise, complementary skills, proven execution
-
-    5. EXECUTION PLAN: "${submission.question_5 || 'Not provided'}"
-    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Goal Specificity (30-35 points): Clear KPIs like MVP, first customer, funding targets?
-    - Feasibility (30-35 points): Are goals realistic for 3-6 month timeframe?
-    - Support Clarity (30-35 points): Do they know what they need—mentorship, infrastructure, access?
-    
-    Score harshly if: Vague goals, unrealistic timelines, unclear support needs
-    Score highly if: Specific measurable goals, realistic timelines, clear support requirements
-
-    SCORING GUIDELINES - BE HIGHLY DISCRIMINATIVE:
-    - 90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding
-    - 80-89: Strong responses with good evidence and understanding, minor gaps
-    - 70-79: Adequate responses with some evidence, moderate understanding
-    - 60-69: Weak responses with limited evidence, significant gaps
-    - 40-59: Poor responses with minimal substance, major deficiencies
-    - 20-39: Very poor responses, largely inadequate or missing key elements
-    - 1-19: Extremely poor or non-responses
-
-    MARKET INTEGRATION REQUIREMENT:
-    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context.
-
-    For ASSESSMENT POINTS (8-10 points required):
-    Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation. Each assessment point should provide substantial market intelligence that connects startup positioning with industry realities, competitive dynamics, and growth opportunities.
-
-    CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
-    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
-    - Market saturation concerns (X% of market already captured by incumbents)
-    - High customer acquisition costs in this sector ($X CAC vs industry average)
-    - Regulatory challenges affecting X% of similar companies
-    - Economic headwinds impacting sector growth (X% decline in funding)
-    - Technology adoption barriers affecting X% of target market
-    - Competitive pressure from well-funded players with $X backing
-    - Market timing risks based on industry cycles
-
-    For STRENGTHS (exactly 4-5 each per section):
-    - STRENGTHS: Highlight what they did well, supported by market validation and data
-    - FOR TEAM SECTION SPECIFICALLY: ${founderLinkedInData.length > 0 ? 'Start with founder LinkedIn insights in this exact format: "Founder Name: his/her relevant experience or achievement" for each founder with LinkedIn data available, then follow with 3-4 additional strengths related to the answer and market data.' : 'If LinkedIn data was provided, include founder-specific insights as described above'}
-
-    Provide analysis in this JSON format with ALL scores on 1-100 scale:
-
-    {
-      "overall_score": number (1-100),
-      "recommendation": "Accept" | "Consider" | "Reject",
-      "company_info": {
-        "industry": "string (infer from application)",
-        "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description)"
-      },
-      "sections": {
-        "problem_solution_fit": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "target_customers": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "competitive_advantage": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "market_opportunity": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "team_strength": {
-          "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": [${founderLinkedInData.length > 0 ? `"CRITICAL: Start with founder LinkedIn insights in this EXACT format for each founder: 'Founder Name: his/her relevant experience or achievement', then add 3-4 additional strengths with market data integration"` : `"exactly 4-5 strengths with market data integration - include LinkedIn founder insights if available"`}],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        }
-      },
-      "summary": {
-        "overall_feedback": "comprehensive feedback integrating response quality with market context",
-        "key_factors": ["key decision factors with market validation"],
-        "next_steps": ["specific recommendations with market-informed guidance"],
-        "assessment_points": [
-          "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
-          "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
-          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
-          "Weave in insights from the startup's responses to show market positioning and strategic implications",
-          "Focus on quantifiable market opportunities, risks, and benchmarks with actionable intelligence",
-          "Connect startup's approach to broader industry trends, competitive dynamics, and market timing factors",
-          "Provide detailed analysis of how their solution fits within current market conditions and future projections",
-          "Examples: 'Operating in the $47B EdTech market growing at 16.3% CAGR, this startup faces typical customer acquisition challenges where the average CAC of $89 affects 73% of similar companies. However, their university partnership approach could potentially reduce acquisition costs by 40% based on sector data, while competing against established players like Coursera ($2.9B market cap) and emerging AI-powered platforms that have collectively raised $1.2B in the last 18 months. The regulatory environment shows favorable trends with 67% of educational institutions increasing digital adoption budgets by an average of 23% annually.'",
-          "Prioritize hard numbers, market intelligence, competitive analysis, and strategic positioning over qualitative assessments",
-          "Each assessment point should provide substantial business intelligence that investors can act upon"
-        ]
-      }
+{
+  "overall_score": number (1-100),
+  "recommendation": "Accept" | "Consider" | "Reject",
+  "company_info": {
+    "industry": "string",
+    "stage": "string",
+    "introduction": "string"
+  },
+  "sections": {
+    "problem_solution_fit": {
+      "score": number (1-100),
+      "analysis": "detailed analysis",
+      "strengths": ["strength 1", "strength 2", "strength 3", "strength 4"],
+      "improvements": ["improvement 1", "improvement 2", "improvement 3", "improvement 4"]
+    },
+    "target_customers": {
+      "score": number (1-100),
+      "analysis": "detailed analysis",
+      "strengths": ["strength 1", "strength 2", "strength 3", "strength 4"],
+      "improvements": ["improvement 1", "improvement 2", "improvement 3", "improvement 4"]
+    },
+    "competitive_advantage": {
+      "score": number (1-100),
+      "analysis": "detailed analysis",
+      "strengths": ["strength 1", "strength 2", "strength 3", "strength 4"],
+      "improvements": ["improvement 1", "improvement 2", "improvement 3", "improvement 4"]
+    },
+    "market_opportunity": {
+      "score": number (1-100),
+      "analysis": "detailed analysis",
+      "strengths": ["strength 1", "strength 2", "strength 3", "strength 4"],
+      "improvements": ["improvement 1", "improvement 2", "improvement 3", "improvement 4"]
+    },
+    "team_strength": {
+      "score": number (1-100),
+      "analysis": "detailed analysis",
+      "strengths": [${founderLinkedInData.length > 0 ? '"Include founder LinkedIn insights first", "strength 2", "strength 3", "strength 4"' : '"strength 1", "strength 2", "strength 3", "strength 4"'}],
+      "improvements": ["improvement 1", "improvement 2", "improvement 3", "improvement 4"]
     }
+  },
+  "summary": {
+    "overall_feedback": "comprehensive feedback",
+    "key_factors": ["factor 1", "factor 2", "factor 3"],
+    "next_steps": ["step 1", "step 2", "step 3"],
+    "assessment_points": [
+      "assessment point 1 with market data",
+      "assessment point 2 with market data",
+      "assessment point 3 with market data",
+      "assessment point 4 with market data",
+      "assessment point 5 with market data",
+      "assessment point 6 with market data",
+      "assessment point 7 with market data",
+      "assessment point 8 with market data"
+    ]
+  }
+}
 
-    CRITICAL REQUIREMENTS:
-    1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
-    2. Use the exact metrics provided for each question in your evaluation
-    3. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
-    4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
-    5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
-    6. All scores must be 1-100 scale
-    7. Return only valid JSON without markdown formatting
-    8. FOR TEAM SECTION: ${founderLinkedInData.length > 0 ? 'MUST start strengths with founder LinkedIn insights in exact format: "Founder Name: his/her relevant experience or achievement" for each founder, then add 3-4 market-related strengths' : 'Include LinkedIn founder insights in strengths when available'}
-    9. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
-    `;
+CRITICAL REQUIREMENTS:
+1. Return ONLY valid JSON without markdown formatting
+2. All scores must be 1-100 scale
+3. Each section must have exactly 4 strengths and 4 improvements
+4. Assessment points must include market data and numbers
+5. Include LinkedIn insights in team_strength strengths when available
+6. Use the exact JSON structure provided above
+`;
 
     // Call OpenAI for analysis
     console.log('Calling OpenAI API for Eureka analysis...');
@@ -455,7 +376,7 @@ serve(async (req) => {
     console.log('Eureka analysis overall score:', analysisResult.overall_score);
     console.log('Eureka analysis sections:', Object.keys(analysisResult.sections || {}).length);
 
-    // Create company
+    // Create company record
     console.log('Creating NEW company for analyzed Eureka submission...');
     
     const companyData = {
@@ -486,7 +407,7 @@ serve(async (req) => {
     const companyId = newCompany.id;
     console.log('Successfully created NEW company with ID:', companyId);
 
-    // Create sections using the EXACT same structure as BARC - THIS IS THE KEY FIX
+    // Create sections using the EXACT same structure as BARC
     console.log('Creating sections for company:', companyId);
     
     // Delete old sections first (in case of retry)
@@ -616,7 +537,7 @@ serve(async (req) => {
         console.log('Successfully created section details:', createdDetails?.length || 0);
         console.log('Created details by type:', 
           createdDetails?.reduce((acc, detail) => {
-            acc[detail.detail_type] = (acc[detail.detail_type] || 1) + 1;
+            acc[detail.detail_type] = (acc[detail.detail_type] || 0) + 1;
             return acc;
           }, {})
         );
