@@ -7,7 +7,7 @@ import { Eye, Mail, FileText, Calendar, GraduationCap, Building2 } from "lucide-
 import { formatDistanceToNow } from "date-fns";
 import { AnalysisModal } from "./AnalysisModal";
 import { BarcAnalysisModal } from "./BarcAnalysisModal";
-import type { CombinedSubmission } from "./PublicSubmissionsList";
+import type { CombinedSubmission } from "./types";
 
 interface PublicSubmissionsTableProps {
   submissions: CombinedSubmission[];

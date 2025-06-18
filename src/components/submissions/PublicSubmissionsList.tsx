@@ -6,22 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { Loader2, Inbox, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-export interface CombinedSubmission {
-  id: string;
-  company_name: string;
-  submitter_email: string;
-  created_at: string;
-  source: 'public_form' | 'barc_form' | 'email' | 'eureka_form';
-  analysis_status?: string;
-  form_slug?: string;
-  sender_email?: string;
-  from_email?: string;
-  has_attachment?: boolean;
-  analysis_result?: any;
-  user_id?: string;
-  company_id?: string;
-}
+import type { CombinedSubmission } from "./types";
 
 export function PublicSubmissionsList() {
   const [submissions, setSubmissions] = useState<CombinedSubmission[]>([]);
@@ -78,7 +63,14 @@ export function PublicSubmissionsList() {
             source: 'public_form' as const,
             form_slug: sub.form_slug,
             user_id: undefined,
-            company_id: undefined
+            company_id: undefined,
+            title: sub.title || 'Untitled Submission',
+            description: sub.description,
+            company_stage: sub.company_stage,
+            industry: sub.industry,
+            founder_name: sub.founder_name,
+            founder_email: sub.founder_email,
+            website_url: sub.website_url
           }));
           allSubmissions = [...allSubmissions, ...mappedPublicSubmissions];
         }
@@ -107,7 +99,20 @@ export function PublicSubmissionsList() {
             form_slug: sub.form_slug,
             analysis_result: sub.analysis_result,
             user_id: sub.user_id,
-            company_id: sub.company_id
+            company_id: sub.company_id,
+            company_type: sub.company_type,
+            company_registration_type: sub.company_registration_type,
+            executive_summary: sub.executive_summary,
+            question_1: sub.question_1,
+            question_2: sub.question_2,
+            question_3: sub.question_3,
+            question_4: sub.question_4,
+            question_5: sub.question_5,
+            poc_name: sub.poc_name,
+            phoneno: sub.phoneno,
+            company_linkedin_url: sub.company_linkedin_url,
+            founder_linkedin_urls: sub.founder_linkedin_urls,
+            report_id: sub.report_id
           }));
           allSubmissions = [...allSubmissions, ...mappedBarcSubmissions];
         }
@@ -136,7 +141,20 @@ export function PublicSubmissionsList() {
             form_slug: sub.form_slug,
             analysis_result: sub.analysis_result,
             user_id: sub.user_id,
-            company_id: sub.company_id
+            company_id: sub.company_id,
+            company_type: sub.company_type,
+            company_registration_type: sub.company_registration_type,
+            executive_summary: sub.executive_summary,
+            question_1: sub.question_1,
+            question_2: sub.question_2,
+            question_3: sub.question_3,
+            question_4: sub.question_4,
+            question_5: sub.question_5,
+            poc_name: sub.poc_name,
+            phoneno: sub.phoneno,
+            company_linkedin_url: sub.company_linkedin_url,
+            founder_linkedin_urls: sub.founder_linkedin_urls,
+            report_id: sub.report_id
           }));
           allSubmissions = [...allSubmissions, ...mappedEurekaSubmissions];
         }
