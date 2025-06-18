@@ -469,6 +469,90 @@ export type Database = {
         }
         Relationships: []
       }
+      eureka_form_submissions: {
+        Row: {
+          analysis_error: string | null
+          analysis_result: Json | null
+          analysis_status: string | null
+          analyzed_at: string | null
+          company_id: string | null
+          company_linkedin_url: string | null
+          company_name: string
+          company_registration_type: string | null
+          company_type: string | null
+          created_at: string
+          executive_summary: string | null
+          form_slug: string
+          founder_linkedin_urls: string[] | null
+          id: string
+          phoneno: string | null
+          poc_name: string | null
+          question_1: string | null
+          question_2: string | null
+          question_3: string | null
+          question_4: string | null
+          question_5: string | null
+          report_id: string | null
+          submitter_email: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          company_id?: string | null
+          company_linkedin_url?: string | null
+          company_name: string
+          company_registration_type?: string | null
+          company_type?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          form_slug: string
+          founder_linkedin_urls?: string[] | null
+          id?: string
+          phoneno?: string | null
+          poc_name?: string | null
+          question_1?: string | null
+          question_2?: string | null
+          question_3?: string | null
+          question_4?: string | null
+          question_5?: string | null
+          report_id?: string | null
+          submitter_email: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          company_id?: string | null
+          company_linkedin_url?: string | null
+          company_name?: string
+          company_registration_type?: string | null
+          company_type?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          form_slug?: string
+          founder_linkedin_urls?: string[] | null
+          id?: string
+          phoneno?: string | null
+          poc_name?: string | null
+          question_1?: string | null
+          question_2?: string | null
+          question_3?: string | null
+          question_4?: string | null
+          question_5?: string | null
+          report_id?: string | null
+          submitter_email?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       fund_thesis_analysis: {
         Row: {
           analysis_text: string

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { submitEurekaForm, analyzeEurekaSubmission, type EurekaSubmissionData } from "@/lib/api/eureka";
 
 interface EurekaFormData {
   companyName: string;
@@ -137,27 +136,32 @@ const EurekaSample = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('barc_form_submissions')
-        .insert({
-          form_slug: slug || 'eureka-sample',
-          company_name: data.companyName,
-          company_registration_type: data.companyRegistrationType || "Not Specified",
-          executive_summary: data.executiveSummary,
-          company_type: data.companyType,
-          question_1: data.question1,
-          question_2: data.question2,
-          question_3: data.question3,
-          question_4: data.question4,
-          question_5: data.question5,
-          submitter_email: data.submitterEmail,
-          founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
-          poc_name: data.pocName,
-          phoneno: data.phoneNumber,
-          company_linkedin_url: data.companyLinkedInUrl
-        });
+      const submissionData: EurekaSubmissionData = {
+        form_slug: slug || 'eureka-sample',
+        company_name: data.companyName,
+        company_registration_type: data.companyRegistrationType || "Not Specified",
+        executive_summary: data.executiveSummary,
+        company_type: data.companyType,
+        question_1: data.question1,
+        question_2: data.question2,
+        question_3: data.question3,
+        question_4: data.question4,
+        question_5: data.question5,
+        submitter_email: data.submitterEmail,
+        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
+        poc_name: data.pocName,
+        phoneno: data.phoneNumber,
+        company_linkedin_url: data.companyLinkedInUrl
+      };
 
-      if (error) throw error;
+      // Submit the form
+      const submission = await submitEurekaForm(submissionData);
+
+      // Trigger analysis without waiting for it to complete
+      analyzeEurekaSubmission(submission.id).catch(error => {
+        console.error('❌ Analysis failed:', error);
+        // Don't throw here as we still want to redirect user
+      });
 
       toast({
         title: "Success!",
