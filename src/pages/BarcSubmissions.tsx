@@ -13,12 +13,13 @@ import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
 import { analyzeBarcSubmission } from "@/lib/api/barc";
 import { useNavigate } from "react-router-dom";
 import { useBarcAnalysisManager } from "@/hooks/useBarcAnalysisManager";
+import type { CombinedSubmission } from "@/components/submissions/types";
 
 const BarcSubmissions = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedSubmission, setSelectedSubmission] = useState<BarcSubmission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<CombinedSubmission | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   
   const { startAnalysis, isAnalyzing, getAnalysisStatus } = useBarcAnalysisManager();
@@ -44,8 +45,9 @@ const BarcSubmissions = () => {
       
       return (data || []).map(item => ({
         ...item,
+        source: 'barc_form' as const,
         analysis_result: item.analysis_result ? item.analysis_result as unknown as BarcAnalysisResult : null
-      })) as BarcSubmission[];
+      })) as CombinedSubmission[];
     },
     enabled: !!user,
     staleTime: 30000,
@@ -120,7 +122,7 @@ const BarcSubmissions = () => {
     }
   };
 
-  const getStatusBadge = (submission: BarcSubmission) => {
+  const getStatusBadge = (submission: CombinedSubmission) => {
     const status = submission.analysis_status;
     const currentlyAnalyzing = isAnalyzing(submission.id);
     
@@ -152,8 +154,11 @@ const BarcSubmissions = () => {
     }
   };
 
-  const getAnalysisResult = (submission: BarcSubmission): BarcAnalysisResult | null => {
-    return submission.analysis_result || null;
+  const getAnalysisResult = (submission: CombinedSubmission): BarcAnalysisResult | null => {
+    if (submission.source === 'barc_form' || submission.source === 'eureka_form') {
+      return submission.analysis_result as BarcAnalysisResult || null;
+    }
+    return null;
   };
 
   if (isLoading) {
@@ -202,9 +207,11 @@ const BarcSubmissions = () => {
                       <Building className="h-5 w-5 text-primary" />
                       <div>
                         <CardTitle className="text-xl">{submission.company_name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {submission.company_type} • {submission.company_registration_type}
-                        </p>
+                        {submission.source === 'barc_form' && 'company_type' in submission && (
+                          <p className="text-sm text-muted-foreground">
+                            {submission.company_type} • {submission.company_registration_type}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -233,9 +240,11 @@ const BarcSubmissions = () => {
                     )}
                   </div>
 
-                  <p className="text-sm line-clamp-3">
-                    {submission.executive_summary}
-                  </p>
+                  {submission.source === 'barc_form' && 'executive_summary' in submission && (
+                    <p className="text-sm line-clamp-3">
+                      {submission.executive_summary}
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-2 pt-4">
                     {submission.analysis_status === 'completed' ? (
@@ -287,13 +296,12 @@ const BarcSubmissions = () => {
       )}
 
       <BarcAnalysisModal
-        isOpen={isAnalysisModalOpen}
-        onClose={() => {
-          setIsAnalysisModalOpen(false);
-          setSelectedSubmission(null);
+        open={isAnalysisModalOpen}
+        onOpenChange={(open) => {
+          setIsAnalysisModalOpen(open);
+          if (!open) setSelectedSubmission(null);
         }}
         submission={selectedSubmission}
-        onRefresh={() => refetch()}
       />
     </div>
   );

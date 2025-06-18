@@ -5,6 +5,7 @@ import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisModal } from '@/components/submissions/AnalysisModal';
+import type { CombinedSubmission } from '@/components/submissions/types';
 
 interface FundThesisAlignmentProps {
   companyId: string;
@@ -177,6 +178,18 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     );
   }
 
+  // Create a mock submission that matches CombinedSubmission type
+  const mockSubmission: CombinedSubmission = {
+    id: companyId,
+    company_name: companyName,
+    submitter_email: '',
+    created_at: new Date().toISOString(),
+    source: 'public_form' as const,
+    analysis_result: analysis,
+    title: `${companyName} Fund Thesis Analysis`,
+    description: 'Fund thesis alignment analysis'
+  };
+
   return (
     <>
       <div className="flex gap-4">
@@ -192,22 +205,9 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       </div>
 
       <AnalysisModal
-        isOpen={isAnalysisModalOpen}
-        isAnalyzing={isAnalyzing}
-        submission={{ 
-          id: companyId,
-          title: companyName || "Company Analysis",
-          description: null,
-          company_stage: null,
-          industry: null,
-          website_url: null,
-          created_at: new Date().toISOString(),
-          form_slug: "",
-          pdf_url: null,
-          report_id: null
-        }}
-        onClose={() => setIsAnalysisModalOpen(false)}
-        analysisText={analysis}
+        open={isAnalysisModalOpen}
+        onOpenChange={setIsAnalysisModalOpen}
+        submission={mockSubmission}
       />
     </>
   );
