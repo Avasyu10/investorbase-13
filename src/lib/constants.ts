@@ -56,16 +56,20 @@ export const SECTION_TITLES = {
 
 // Define the ordered array for section display
 export const ORDERED_SECTIONS = [
-  SECTION_TYPES.PROBLEM,
-  SECTION_TYPES.MARKET,
-  SECTION_TYPES.SOLUTION,
-  SECTION_TYPES.COMPETITIVE_LANDSCAPE,
-  SECTION_TYPES.TRACTION,
-  SECTION_TYPES.BUSINESS_MODEL,
-  SECTION_TYPES.GTM_STRATEGY,
-  SECTION_TYPES.TEAM,
-  SECTION_TYPES.FINANCIALS,
-  SECTION_TYPES.ASK
+  'business_model',
+  'market_opportunity',
+  'competitive_advantage',
+  'financial_projections',
+  'team_experience',
+  'technology_innovation',
+  'scalability_potential',
+  'risk_assessment',
+  // New Eureka form sections
+  'problem_solution_fit',
+  'target_customers',
+  'competitors',
+  'revenue_model',
+  'differentiation'
 ];
 
 // Array of all expected section types for validation

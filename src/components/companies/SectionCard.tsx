@@ -11,30 +11,43 @@ interface SectionCardProps {
 }
 
 export const SectionCard = ({ section, onClick }: SectionCardProps) => {
+  // Handle both 1-5 and 1-100 scoring scales
   const score = parseFloat(section.score.toString());
-  const progressValue = score * 20; // Convert 1-5 scale to 0-100
+  const isHundredScale = score > 5;
+  const normalizedScore = isHundredScale ? score / 20 : score; // Convert 1-100 to 1-5
+  const progressValue = isHundredScale ? score : score * 20; // Convert to 0-100 for progress bar
 
   const getScoreColor = (score: number) => {
-    if (score >= 4.5) return "text-green-600";
-    if (score >= 3.5) return "text-blue-600";
-    if (score >= 2.5) return "text-yellow-600";
-    if (score >= 1.5) return "text-orange-600";
+    const displayScore = isHundredScale ? score / 20 : score;
+    if (displayScore >= 4.5) return "text-green-600";
+    if (displayScore >= 3.5) return "text-blue-600";
+    if (displayScore >= 2.5) return "text-yellow-600";
+    if (displayScore >= 1.5) return "text-orange-600";
     return "text-red-600";
   };
 
   const getScoreBadgeVariant = (score: number) => {
-    if (score >= 4.5) return "default";
-    if (score >= 3.5) return "secondary";
-    if (score >= 2.5) return "outline";
+    const displayScore = isHundredScale ? score / 20 : score;
+    if (displayScore >= 4.5) return "default";
+    if (displayScore >= 3.5) return "secondary";
+    if (displayScore >= 2.5) return "outline";
     return "destructive";
   };
 
   const formatSectionTitle = (title: string) => {
+    // Use the title from the section directly, as it's already formatted for Eureka forms
+    if (title && title.includes('&')) {
+      return title; // Already formatted titles like "Problem & Solution"
+    }
+    
+    // Fallback to formatting for older sections
     return title
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
+
+  const displayScore = isHundredScale ? score : normalizedScore;
 
   return (
     <Card 
@@ -47,7 +60,7 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
           <div className="flex items-center gap-2 flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-500" />
             <Badge variant={getScoreBadgeVariant(score)} className="text-xs">
-              {score.toFixed(1)}
+              {isHundredScale ? Math.round(score) : normalizedScore.toFixed(1)}
             </Badge>
           </div>
         </CardTitle>

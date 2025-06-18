@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -84,6 +85,23 @@ serve(async (req) => {
       phoneno: submission.phoneno
     });
 
+    // FIXED: Check if submission was already processed to prevent duplicate processing
+    if (submission.analysis_status === 'completed' && submission.company_id) {
+      console.log('Submission already completed, returning existing company ID:', submission.company_id);
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          submissionId,
+          companyId: submission.company_id,
+          isNewCompany: false,
+          message: 'Analysis already completed'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Check if already processing or completed using an atomic update
     console.log('Attempting to acquire lock for Eureka submission analysis...');
     const { data: lockResult, error: lockError } = await supabase
@@ -152,6 +170,42 @@ serve(async (req) => {
     const effectiveUserId = submission.user_id || submission.form_slug;
     console.log('Using effective user ID for company creation:', effectiveUserId);
 
+    // FIXED: More comprehensive check for existing companies
+    const { data: existingCompanies } = await supabase
+      .from('companies')
+      .select('id, name, email, poc_name')
+      .eq('name', submission.company_name)
+      .eq('source', 'eureka_form')
+      .eq('user_id', effectiveUserId);
+
+    if (existingCompanies && existingCompanies.length > 0) {
+      const existingCompany = existingCompanies[0];
+      console.log('Found existing company, linking submission:', existingCompany.id);
+      
+      // Link the submission to existing company
+      await supabase
+        .from('eureka_form_submissions')
+        .update({ 
+          company_id: existingCompany.id,
+          analysis_status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', submissionId);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          submissionId,
+          companyId: existingCompany.id,
+          isNewCompany: false,
+          message: 'Linked to existing company'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Build LinkedIn data section if available
     const founderLinkedInData = submission.founder_linkedin_urls || [];
     const linkedInDataSection = founderLinkedInData.length > 0 
@@ -187,7 +241,7 @@ serve(async (req) => {
     - Use Case Relevance (35 pts): Does the product clearly serve these users?
     - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight?
     
-    Score harshly if: Describes “everyone” or is overly broad.
+    Score harshly if: Describes "everyone" or is overly broad.
     Score highly if: Defined personas, nuanced insights, matched offering.
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
@@ -463,14 +517,25 @@ serve(async (req) => {
       console.log('Deleted old sections');
     }
 
-    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => ({
-      company_id: companyId,
-      score: sectionData.score || 0,
-      section_type: sectionName,
-      type: 'analysis',
-      title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      description: sectionData.analysis || ''
-    }));
+    const sectionMappings = {
+      'problem_solution_fit': { title: 'Problem & Solution', type: 'problem_solution_fit' },
+      'target_customers': { title: 'Target Customers', type: 'target_customers' },
+      'competitors': { title: 'Competitors', type: 'competitors' },
+      'revenue_model': { title: 'Revenue Model', type: 'revenue_model' },
+      'differentiation': { title: 'Differentiation', type: 'differentiation' }
+    };
+
+    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => {
+      const mapping = sectionMappings[sectionName as keyof typeof sectionMappings];
+      return {
+        company_id: companyId,
+        score: sectionData.score || 0,
+        section_type: mapping?.type || sectionName,
+        type: 'analysis',
+        title: mapping?.title || sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: sectionData.analysis || ''
+      };
+    });
 
     if (sectionsToCreate.length > 0) {
       const { data: createdSections, error: sectionsError } = await supabase

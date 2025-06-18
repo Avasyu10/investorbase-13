@@ -2,12 +2,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useRef } from 'react';
 
 export function useDeleteCompany() {
   const queryClient = useQueryClient();
+  const isExecutingRef = useRef(false);
 
   return useMutation({
     mutationFn: async (companyId: string) => {
+      // Prevent duplicate executions
+      if (isExecutingRef.current) {
+        console.log('Delete operation already in progress, skipping...');
+        return companyId;
+      }
+
+      isExecutingRef.current = true;
       console.log('Starting company deletion process for:', companyId);
       
       try {
@@ -98,7 +107,7 @@ export function useDeleteCompany() {
           throw barcSubmissionsError;
         }
 
-        // FIXED: Delete Eureka form submissions linked to this company
+        // Delete Eureka form submissions linked to this company
         console.log('Deleting eureka_form_submissions for company:', companyId);
         const { error: eurekaSubmissionsError } = await supabase
           .from('eureka_form_submissions')
@@ -151,24 +160,32 @@ export function useDeleteCompany() {
       } catch (error) {
         console.error('Company deletion failed:', error);
         throw error;
+      } finally {
+        isExecutingRef.current = false;
       }
     },
     onSuccess: () => {
       // Invalidate and refetch companies query
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       
-      toast({
-        title: "Company deleted",
-        description: "The company has been successfully removed.",
-      });
+      // Only show toast once per successful deletion
+      if (!isExecutingRef.current) {
+        toast({
+          title: "Company deleted",
+          description: "The company has been successfully removed.",
+        });
+      }
     },
     onError: (error: any) => {
       console.error('Failed to delete company:', error);
-      toast({
-        title: "Error deleting company",
-        description: error.message || "Failed to delete the company. Please try again.",
-        variant: "destructive",
-      });
+      // Only show error toast once
+      if (!isExecutingRef.current) {
+        toast({
+          title: "Error deleting company",
+          description: error.message || "Failed to delete the company. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
   });
 }

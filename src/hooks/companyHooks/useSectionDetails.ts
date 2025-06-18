@@ -98,11 +98,15 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
       
       console.log("Mapped section with strengths:", strengths.length, "weaknesses:", weaknesses.length);
       
+      // Handle both 1-5 and 1-100 scoring scales
+      const rawScore = Number(sectionData.score);
+      const normalizedScore = rawScore > 5 ? rawScore : rawScore; // Keep original score for display
+      
       return {
         id: sectionData.id,
         type: sectionData.type,
         title: sectionData.title,
-        score: Number(sectionData.score), // Ensure score is a number
+        score: normalizedScore,
         description: description,
         strengths,
         weaknesses,
@@ -110,7 +114,7 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         createdAt: sectionData.created_at,
         updatedAt: sectionData.updated_at || sectionData.created_at,
         // Add order index for sorting
-        orderIndex: ORDERED_SECTIONS.indexOf(sectionData.type)
+        orderIndex: ORDERED_SECTIONS.indexOf(sectionData.section_type || sectionData.type)
       } as SectionDetail;
     },
     enabled: !!companyId && !!sectionId,
