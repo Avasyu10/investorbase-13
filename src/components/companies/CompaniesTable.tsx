@@ -21,6 +21,7 @@ interface CompaniesTableProps {
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
+  const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
   const deleteCompanyMutation = useDeleteCompany();
 
   // Update local state when companies prop changes
@@ -88,6 +89,15 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   const handleDeleteClick = (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
     
+    // FIXED: Prevent duplicate deletion calls
+    if (deletingCompanies.has(companyId)) {
+      console.log('Company deletion already in progress:', companyId);
+      return;
+    }
+
+    // Add company to deleting set
+    setDeletingCompanies(prev => new Set(prev).add(companyId));
+    
     deleteCompanyMutation.mutate(companyId, {
       onSuccess: () => {
         // Remove from local state immediately
@@ -96,6 +106,12 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         if (onDeleteCompany) {
           onDeleteCompany(companyId);
         }
+        // Remove from deleting set
+        setDeletingCompanies(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(companyId);
+          return newSet;
+        });
       },
       onError: (error: any) => {
         console.error('Failed to delete company:', error);
@@ -103,6 +119,12 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
           title: "Error deleting company",
           description: error.message || "Failed to delete the company. Please try again.",
           variant: "destructive",
+        });
+        // Remove from deleting set on error
+        setDeletingCompanies(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(companyId);
+          return newSet;
         });
       }
     });
@@ -173,6 +195,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const summaryPoints = getSummaryPoints(company.assessment_points);
+                const isDeleting = deletingCompanies.has(company.id);
                 
                 return (
                   <TableRow 
@@ -220,7 +243,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                         variant="ghost"
                         size="sm"
                         onClick={(e) => handleDeleteClick(e, company.id)}
-                        disabled={deleteCompanyMutation.isPending}
+                        disabled={isDeleting || deleteCompanyMutation.isPending}
                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -263,6 +286,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               const companyDetails = (company as any).company_details;
               // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
               const status = companyDetails?.status || 'New';
+              const isDeleting = deletingCompanies.has(company.id);
               
               // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
               const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
@@ -384,7 +408,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       variant="ghost"
                       size="sm"
                       onClick={(e) => handleDeleteClick(e, company.id)}
-                      disabled={deleteCompanyMutation.isPending}
+                      disabled={isDeleting || deleteCompanyMutation.isPending}
                       className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />

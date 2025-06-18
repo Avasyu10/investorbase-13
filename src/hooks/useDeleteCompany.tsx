@@ -98,6 +98,18 @@ export function useDeleteCompany() {
           throw barcSubmissionsError;
         }
 
+        // FIXED: Delete Eureka form submissions linked to this company
+        console.log('Deleting eureka_form_submissions for company:', companyId);
+        const { error: eurekaSubmissionsError } = await supabase
+          .from('eureka_form_submissions')
+          .delete()
+          .eq('company_id', companyId);
+
+        if (eurekaSubmissionsError) {
+          console.error('Error deleting Eureka form submissions:', eurekaSubmissionsError);
+          throw eurekaSubmissionsError;
+        }
+
         // Delete company_details if they exist
         console.log('Deleting company_details for company:', companyId);
         const { error: companyDetailsError } = await supabase
