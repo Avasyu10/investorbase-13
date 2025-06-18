@@ -62,6 +62,50 @@ export function RealtimeEmailListener() {
           });
         }
       )
+      
+      // Add listener for Eureka form submissions
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'eureka_form_submissions'
+        },
+        (payload) => {
+          console.log('New Eureka form submission detected:', payload);
+          
+          // Call the confirmation email edge function for Eureka submissions too
+          supabase.functions.invoke('barc_confirmation_email', {
+            body: { record: payload.new }
+          })
+          .then(response => {
+            console.log('Eureka confirmation email function response:', response);
+            
+            if (response.error) {
+              console.error('Error from Eureka confirmation email function:', response.error);
+              toast({
+                title: 'Error sending confirmation email',
+                description: `Failed to send email: ${response.error.message || 'Unknown error'}`,
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            toast({
+              title: 'Confirmation email sent',
+              description: `Email sent to ${payload.new.submitter_email || 'applicant'}`,
+            });
+          })
+          .catch(error => {
+            console.error('Error calling Eureka confirmation email function:', error);
+            toast({
+              title: 'Error sending confirmation email',
+              description: `Failed to send email: ${error.message || 'Unknown error'}`,
+              variant: "destructive"
+            });
+          });
+        }
+      )
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
       });
