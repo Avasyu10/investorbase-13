@@ -12,7 +12,7 @@ export function IITBombayCompaniesList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const deleteCompanyMutation = useDeleteCompany();
+  const { deleteCompany } = useDeleteCompany();
 
   const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
@@ -20,8 +20,8 @@ export function IITBombayCompaniesList() {
     navigate(`/company/${companyId}`);
   };
 
-  const handleDeleteCompany = (companyId: string) => {
-    deleteCompanyMutation.mutate(companyId);
+  const handleDeleteCompany = async (companyId: string) => {
+    await deleteCompany(companyId);
   };
 
   // Calculate rating-based stats
