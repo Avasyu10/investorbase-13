@@ -1,291 +1,167 @@
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronDown, ChevronUp } from "lucide-react";
-import { useState, useEffect } from "react";
-
-interface PublicSubmission {
-  id: string;
-  title: string;
-  description: string | null;
-  company_stage: string | null;
-  industry: string | null;
-  website_url: string | null;
-  created_at: string;
-  form_slug: string;
-  pdf_url: string | null;
-  report_id: string | null;
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Mail, FileText, Globe, Building2, User, Phone } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import type { CombinedSubmission } from "./types";
 
 interface AnalysisModalProps {
-  isOpen: boolean;
-  isAnalyzing: boolean;
-  submission: PublicSubmission | null;
-  onClose: () => void;
-  analysisText?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  submission: CombinedSubmission | null;
 }
 
-export function AnalysisModal({ 
-  isOpen, 
-  isAnalyzing, 
-  submission, 
-  onClose, 
-  analysisText 
-}: AnalysisModalProps) {
-  const [expandedSections, setExpandedSections] = useState<{
-    summary: boolean;
-    similarities: boolean;
-    differences: boolean;
-  }>({
-    summary: true,
-    similarities: true,
-    differences: true,
-  });
+export function AnalysisModal({ open, onOpenChange, submission }: AnalysisModalProps) {
+  if (!submission) return null;
 
-  // Ensure sections are always expanded when the modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setExpandedSections({
-        summary: true,
-        similarities: true,
-        differences: true,
-      });
-    }
-  }, [isOpen]);
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  // Parse the analysis text into sections
-  const parseAnalysis = (text: string) => {
-    if (!text) return { summary: [], similarities: [], differences: [], score: "0.0" };
-    
-    const sections: { 
-      summary: string[];
-      similarities: string[];
-      differences: string[];
-      score: string;
-    } = {
-      summary: [],
-      similarities: [],
-      differences: [],
-      score: "0.0"
-    };
-    
-    // First try to extract the score with improved regex patterns that capture more variations
-    // Look for both "Synergy Score: X.X/5" and "**Synergy Score:** X.X/5" formats
-    const scorePatterns = [
-      /\*\*Synergy Score:\*\*\s*(\d+\.\d+)\/5/i,
-      /Synergy Score:\s*(\d+\.\d+)\/5/i,
-      /score of (\d+\.\d+)\/5/i,
-      /Synergy Score: (\d+\.\d+)/i
-    ];
-    
-    // Try each pattern until one matches
-    for (const pattern of scorePatterns) {
-      const scoreMatch = text.match(pattern);
-      if (scoreMatch && scoreMatch[1]) {
-        sections.score = scoreMatch[1];
-        break;
-      }
-    }
-    
-    let currentSection = '';
-    const lines = text.split('\n').filter(line => line.trim());
-    
-    for (const line of lines) {
-      if (line.match(/^(\*\*)?1\.\s*Overall\s*Summary(\*\*)?/i) || 
-          line.includes('Overall Summary')) {
-        currentSection = 'summary';
-        continue;
-      } else if (line.match(/^(\*\*)?2\.\s*Key\s*Similarities(\*\*)?/i) || 
-                line.includes('Key Similarities')) {
-        currentSection = 'similarities';
-        continue;
-      } else if (line.match(/^(\*\*)?3\.\s*Key\s*Differences(\*\*)?/i) || 
-                line.includes('Key Differences')) {
-        currentSection = 'differences';
-        continue;
-      }
-      
-      // Skip section headers, score line, or empty lines
-      if (line.match(/^\*\*.*\*\*$/) || 
-          line.match(/\*\*Synergy Score:\*\*/) || 
-          !line.trim() || 
-          line.match(/^\d+\.$/) || 
-          line === '---') {
-        continue;
-      }
-      
-      // Process bullet points for similarities and differences
-      if ((currentSection === 'similarities' || currentSection === 'differences') && 
-          (line.startsWith('*') || line.startsWith('-'))) {
-        // Clean bullet points and formatting
-        let cleanedLine = line.replace(/^[\*\-]\s*/, '').trim();
-        // Fix double stars issue - replace all ** with empty string before further processing
-        cleanedLine = cleanedLine.replace(/\*\*/g, '').trim();
-        
-        if (cleanedLine) {
-          sections[currentSection as 'similarities' | 'differences'].push(cleanedLine);
-        }
-        continue;
-      }
-      
-      // Add content to current section
-      if (currentSection && sections[currentSection as keyof typeof sections]) {
-        if (currentSection === 'summary') {
-          // Clean formatting
-          let cleanedLine = line.replace(/^\*\*|\*\*$/g, '').trim();
-          
-          if (cleanedLine && !cleanedLine.match(/^Synergy Score:/i)) {
-            sections.summary.push(cleanedLine);
-          }
-        }
-      }
-    }
-    
-    return sections;
-  };
-
-  const parsedAnalysis = analysisText ? parseAnalysis(analysisText) : null;
+  const isPublicSubmission = submission.source === 'public_form';
+  const isEmailSubmission = submission.source === 'email';
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl bg-background text-foreground">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <FileText className="h-5 w-5 text-primary" />
-            Fund Thesis Alignment Analysis
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {submission.company_name}
+            <Badge variant="outline" className="ml-2">
+              {submission.source === 'public_form' ? 'Public Form' : 'Email'}
+            </Badge>
           </DialogTitle>
-          <DialogDescription>
-            {submission?.title 
-              ? `Analysis of "${submission.title}" and your investment thesis`
-              : "Fund Thesis Alignment"}
-          </DialogDescription>
         </DialogHeader>
 
-        {isAnalyzing ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-            <p className="text-center text-sm text-muted-foreground">
-              This may take a minute or two. Please don't close this window.
-            </p>
-          </div>
-        ) : parsedAnalysis ? (
-          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
-            {/* Summary Section */}
-            <div className="border rounded-lg overflow-hidden">
-              <button 
-                onClick={() => toggleSection('summary')}
-                className="w-full flex items-center justify-between bg-muted/50 p-4 text-left font-medium"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 text-primary">
-                    <span className="text-sm font-bold">1</span>
-                  </div>
-                  <h3 className="text-lg font-semibold">Overall Summary</h3>
-                </div>
-                {expandedSections.summary ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </button>
-              
-              {expandedSections.summary && (
-                <div className="p-4 space-y-3">
-                  <div className="mb-4">
-                    <span className="font-semibold text-primary">Synergy Score: </span>
-                    <span className="text-lg font-bold text-primary">{parsedAnalysis.score}/5</span>
-                  </div>
-                  {parsedAnalysis.summary.length > 0 ? (
-                    parsedAnalysis.summary.map((point, i) => (
-                      <p key={i} className="text-sm text-muted-foreground leading-relaxed">
-                        {point}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="text-sm italic text-muted-foreground">No summary information available</p>
-                  )}
-                </div>
-              )}
+        <div className="space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Contact Information
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Email: {submission.submitter_email}
+              </p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Submitted: {formatDistanceToNow(new Date(submission.created_at), { addSuffix: true })}
+              </p>
             </div>
 
-            {/* Similarities Section */}
-            <div className="border rounded-lg overflow-hidden">
-              <button 
-                onClick={() => toggleSection('similarities')}
-                className="w-full flex items-center justify-between bg-muted/50 p-4 text-left font-medium"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-green-100 text-green-700">
-                    <span className="text-sm font-bold">2</span>
-                  </div>
-                  <h3 className="text-lg font-semibold">Key Similarities</h3>
-                </div>
-                {expandedSections.similarities ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </button>
-              
-              {expandedSections.similarities && (
-                <div className="p-4 space-y-2">
-                  {parsedAnalysis.similarities.length > 0 ? (
-                    parsedAnalysis.similarities.map((point, i) => (
-                      <div key={i} className="flex items-start gap-2 mb-3">
-                        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                        <p className="text-sm text-muted-foreground">{point}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm italic text-muted-foreground">No similarities identified</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Differences Section */}
-            <div className="border rounded-lg overflow-hidden">
-              <button 
-                onClick={() => toggleSection('differences')}
-                className="w-full flex items-center justify-between bg-muted/50 p-4 text-left font-medium"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-amber-100 text-amber-700">
-                    <span className="text-sm font-bold">3</span>
-                  </div>
-                  <h3 className="text-lg font-semibold">Key Differences</h3>
-                </div>
-                {expandedSections.differences ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </button>
-              
-              {expandedSections.differences && (
-                <div className="p-4 space-y-2">
-                  {parsedAnalysis.differences.length > 0 ? (
-                    parsedAnalysis.differences.map((point, i) => (
-                      <div key={i} className="flex items-start gap-2 mb-3">
-                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-                        <p className="text-sm text-muted-foreground">{point}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm italic text-muted-foreground">No differences identified</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="py-6 text-center">
-            <p className="text-center">No analysis available.</p>
-            {!analysisText && (
-              <p className="text-sm text-muted-foreground mt-2">Please try again or contact support if the issue persists.</p>
+            {submission.analysis_status && (
+              <div className="space-y-2">
+                <h3 className="font-semibold">Analysis Status</h3>
+                <Badge 
+                  variant={
+                    submission.analysis_status === 'completed' ? 'default' : 
+                    submission.analysis_status === 'processing' ? 'secondary' : 
+                    'destructive'
+                  }
+                >
+                  {submission.analysis_status}
+                </Badge>
+              </div>
             )}
           </div>
-        )}
+
+          {/* Public Form Specific Fields */}
+          {isPublicSubmission && 'title' in submission && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Submission Details</h3>
+                <p className="text-sm"><strong>Title:</strong> {submission.title}</p>
+                {submission.description && (
+                  <p className="text-sm mt-2"><strong>Description:</strong> {submission.description}</p>
+                )}
+              </div>
+
+              {(submission.company_stage || submission.industry) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {submission.company_stage && (
+                    <div>
+                      <h4 className="font-medium mb-1">Company Stage</h4>
+                      <p className="text-sm text-muted-foreground">{submission.company_stage}</p>
+                    </div>
+                  )}
+                  {submission.industry && (
+                    <div>
+                      <h4 className="font-medium mb-1">Industry</h4>
+                      <p className="text-sm text-muted-foreground">{submission.industry}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(submission.founder_name || submission.founder_email) && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Founder Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {submission.founder_name && (
+                      <p className="text-sm"><strong>Name:</strong> {submission.founder_name}</p>
+                    )}
+                    {submission.founder_email && (
+                      <p className="text-sm"><strong>Email:</strong> {submission.founder_email}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {submission.website_url && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Website
+                  </h3>
+                  <a 
+                    href={submission.website_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    {submission.website_url}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Email Submission Specific Fields */}
+          {isEmailSubmission && 'sender_email' in submission && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Email Details</h3>
+                <p className="text-sm"><strong>Sender:</strong> {submission.sender_email}</p>
+                {submission.has_attachment && (
+                  <Badge variant="outline" className="mt-2">
+                    Has Attachment
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Form Slug */}
+          {submission.form_slug && (
+            <div>
+              <h3 className="font-semibold mb-2">Form</h3>
+              <p className="text-sm text-muted-foreground">{submission.form_slug}</p>
+            </div>
+          )}
+
+          {/* Analysis Result */}
+          {submission.analysis_result && (
+            <div>
+              <h3 className="font-semibold mb-2">Analysis Result</h3>
+              <div className="bg-muted p-4 rounded-lg">
+                <pre className="text-sm whitespace-pre-wrap overflow-auto">
+                  {JSON.stringify(submission.analysis_result, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

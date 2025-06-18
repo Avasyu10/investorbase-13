@@ -1,252 +1,234 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, AlertTriangle, Star, Building, RefreshCw } from "lucide-react";
-import { BarcSubmission, BarcAnalysisResult } from "@/types/barc-analysis";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { Calendar, Mail, Building2, User, Phone, Globe } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import type { CombinedSubmission } from "./types";
 
 interface BarcAnalysisModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  submission: BarcSubmission | null;
-  onRefresh?: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  submission: CombinedSubmission | null;
 }
 
-export const BarcAnalysisModal = ({ isOpen, onClose, submission, onRefresh }: BarcAnalysisModalProps) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
+export function BarcAnalysisModal({ open, onOpenChange, submission }: BarcAnalysisModalProps) {
+  if (!submission) return null;
 
-  if (!submission?.analysis_result) {
-    return null;
-  }
+  const isBarcSubmission = submission.source === 'barc_form';
+  const isEurekaSubmission = submission.source === 'eureka_form';
 
-  const analysis = submission.analysis_result;
-  const sections = analysis.sections || {};
-
-  const getRecommendationIcon = (recommendation: string) => {
-    switch (recommendation) {
-      case 'Accept':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'Consider':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'Reject':
-        return <XCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return <AlertTriangle className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const getRecommendationColor = (recommendation: string) => {
-    switch (recommendation) {
-      case 'Accept':
-        return 'bg-green-100 text-green-800';
-      case 'Consider':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Reject':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleViewCompany = () => {
-    if (submission.company_id) {
-      navigate(`/company/${submission.company_id}`);
-      onClose();
-    } else {
-      toast({
-        title: "Company not found",
-        description: "The company profile is not available yet. Please try refreshing the data.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRefresh = () => {
-    if (onRefresh) {
-      onRefresh();
-      toast({
-        title: "Refreshing data",
-        description: "Checking for updated company information...",
-      });
-    }
-  };
-
-  const getSectionCards = () => {
-    const sectionKeys = [
-      { key: 'problem_solution_fit', title: 'Problem-Solution Fit' },
-      { key: 'market_opportunity', title: 'Market Opportunity' },
-      { key: 'competitive_advantage', title: 'Competitive Advantage' },
-      { key: 'team_strength', title: 'Team Strength' },
-      { key: 'execution_plan', title: 'Execution Plan' }
-    ];
-
-    return sectionKeys.map(({ key, title }) => {
-      const section = sections[key as keyof typeof sections];
-      if (!section) return null;
-
-      return (
-        <Card key={key} className="mb-4">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-lg">
-              <span>{title}</span>
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-yellow-500" />
-                <span className="font-bold text-lg">{Math.round(section.score)}/100</span>
-              </div>
-            </CardTitle>
-            <Progress value={section.score} className="h-2" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {section.analysis}
-            </p>
-            
-            {section.strengths && section.strengths.length > 0 && (
-              <div>
-                <h5 className="font-medium text-green-700 mb-2">Strengths:</h5>
-                <ul className="list-disc list-inside space-y-1">
-                  {section.strengths.map((strength: string, idx: number) => (
-                    <li key={idx} className="text-sm text-green-600">{strength}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {section.improvements && section.improvements.length > 0 && (
-              <div>
-                <h5 className="font-medium text-amber-700 mb-2">Areas for Improvement:</h5>
-                <ul className="list-disc list-inside space-y-1">
-                  {section.improvements.map((improvement: string, idx: number) => (
-                    <li key={idx} className="text-sm text-amber-600">{improvement}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      );
-    });
+  // Type guard to check if submission has BARC/Eureka specific fields
+  const hasBarcFields = (sub: CombinedSubmission): sub is CombinedSubmission & {
+    company_type?: string;
+    company_registration_type?: string;
+    executive_summary?: string;
+    question_1?: string;
+    question_2?: string;
+    question_3?: string;
+    question_4?: string;
+    question_5?: string;
+    poc_name?: string;
+    phoneno?: string;
+    company_linkedin_url?: string;
+    founder_linkedin_urls?: string[];
+  } => {
+    return isBarcSubmission || isEurekaSubmission;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Analysis Results - {submission.company_name}</span>
-            <div className="flex items-center gap-2">
-              {getRecommendationIcon(analysis.recommendation)}
-              <Badge className={getRecommendationColor(analysis.recommendation)}>
-                {analysis.recommendation}
-              </Badge>
-            </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            {submission.company_name}
+            <Badge variant="outline" className="ml-2">
+              {submission.source === 'barc_form' ? 'BARC Form' : 'Eureka Form'}
+            </Badge>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Overall Score */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Overall Score</span>
-                <div className="flex items-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-500" />
-                  <span className="text-2xl font-bold">{Math.round(analysis.overall_score)}/100</span>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Progress value={analysis.overall_score} className="h-3 mb-4" />
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Contact Information
+              </h3>
               <p className="text-sm text-muted-foreground">
-                {analysis.summary?.overall_feedback}
+                Email: {submission.submitter_email}
               </p>
-            </CardContent>
-          </Card>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Submitted: {formatDistanceToNow(new Date(submission.created_at), { addSuffix: true })}
+              </p>
+            </div>
 
-          {/* Company Link */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Building className="h-5 w-5 text-blue-600" />
-                <div>
-                  <h4 className="font-medium text-blue-800">
-                    {submission.company_id ? 'Company Profile Available' : 'Company Profile Being Created'}
-                  </h4>
-                  <p className="text-sm text-blue-600">
-                    {submission.company_id 
-                      ? 'This application has been processed and added to your prospects'
-                      : 'The company profile is being created. Please check the Prospects tab or refresh this view.'
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleRefresh}
-                  variant="outline"
-                  size="sm"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+            {submission.analysis_status && (
+              <div className="space-y-2">
+                <h3 className="font-semibold">Analysis Status</h3>
+                <Badge 
+                  variant={
+                    submission.analysis_status === 'completed' ? 'default' : 
+                    submission.analysis_status === 'processing' ? 'secondary' : 
+                    'destructive'
+                  }
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-                {submission.company_id && (
-                  <Button
-                    onClick={handleViewCompany}
-                    variant="outline"
-                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                  >
-                    View Company Profile
-                  </Button>
-                )}
+                  {submission.analysis_status}
+                </Badge>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Section Scores */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
-            {getSectionCards()}
+            )}
           </div>
 
-          {/* Summary */}
-          {analysis.summary && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary & Recommendations</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {analysis.summary.key_factors && analysis.summary.key_factors.length > 0 && (
-                  <div>
-                    <h5 className="font-medium mb-2">Key Decision Factors:</h5>
-                    <ul className="list-disc list-inside space-y-1">
-                      {analysis.summary.key_factors.map((factor: string, idx: number) => (
-                        <li key={idx} className="text-sm">{factor}</li>
-                      ))}
-                    </ul>
+          {/* BARC/Eureka Specific Fields */}
+          {hasBarcFields(submission) && (
+            <>
+              {/* Company Information */}
+              <div className="space-y-4">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Company Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {submission.company_type && (
+                    <div>
+                      <h4 className="font-medium mb-1">Company Type</h4>
+                      <p className="text-sm text-muted-foreground">{submission.company_type}</p>
+                    </div>
+                  )}
+                  {submission.company_registration_type && (
+                    <div>
+                      <h4 className="font-medium mb-1">Registration Type</h4>
+                      <p className="text-sm text-muted-foreground">{submission.company_registration_type}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Executive Summary */}
+              {submission.executive_summary && (
+                <div>
+                  <h3 className="font-semibold mb-2">Executive Summary</h3>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <p className="text-sm whitespace-pre-wrap">{submission.executive_summary}</p>
                   </div>
-                )}
-                
-                {analysis.summary.next_steps && analysis.summary.next_steps.length > 0 && (
-                  <div>
-                    <h5 className="font-medium mb-2">Suggested Next Steps:</h5>
-                    <ul className="list-disc list-inside space-y-1">
-                      {analysis.summary.next_steps.map((step: string, idx: number) => (
-                        <li key={idx} className="text-sm">{step}</li>
-                      ))}
-                    </ul>
+                </div>
+              )}
+
+              {/* Contact Information */}
+              {(submission.poc_name || submission.phoneno) && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Point of Contact
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {submission.poc_name && (
+                      <p className="text-sm"><strong>Name:</strong> {submission.poc_name}</p>
+                    )}
+                    {submission.phoneno && (
+                      <p className="text-sm flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        <strong>Phone:</strong> {submission.phoneno}
+                      </p>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              )}
+
+              {/* LinkedIn Information */}
+              {(submission.company_linkedin_url || (submission.founder_linkedin_urls && submission.founder_linkedin_urls.length > 0)) && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    LinkedIn Profiles
+                  </h3>
+                  <div className="space-y-2">
+                    {submission.company_linkedin_url && (
+                      <div>
+                        <h4 className="font-medium mb-1">Company LinkedIn</h4>
+                        <a 
+                          href={submission.company_linkedin_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          {submission.company_linkedin_url}
+                        </a>
+                      </div>
+                    )}
+                    {submission.founder_linkedin_urls && submission.founder_linkedin_urls.length > 0 && (
+                      <div>
+                        <h4 className="font-medium mb-1">Founder LinkedIn Profiles</h4>
+                        <div className="space-y-1">
+                          {submission.founder_linkedin_urls.map((url, index) => (
+                            <a 
+                              key={index}
+                              href={url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm block"
+                            >
+                              {url}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Questions */}
+              <div className="space-y-4">
+                <h3 className="font-semibold mb-2">Form Responses</h3>
+                {[1, 2, 3, 4, 5].map(num => {
+                  const questionKey = `question_${num}` as keyof typeof submission;
+                  const questionValue = submission[questionKey];
+                  if (!questionValue) return null;
+                  
+                  return (
+                    <div key={num} className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-2">Question {num}</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {String(questionValue)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
+
+          {/* Form Slug */}
+          {submission.form_slug && (
+            <div>
+              <h3 className="font-semibold mb-2">Form</h3>
+              <p className="text-sm text-muted-foreground">{submission.form_slug}</p>
+            </div>
+          )}
+
+          {/* Analysis Result */}
+          {submission.analysis_result && (
+            <div>
+              <h3 className="font-semibold mb-2">Analysis Result</h3>
+              <div className="bg-muted p-4 rounded-lg">
+                <pre className="text-sm whitespace-pre-wrap overflow-auto">
+                  {JSON.stringify(submission.analysis_result, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* System Information */}
+          <div className="border-t pt-4 text-xs text-muted-foreground space-y-1">
+            {submission.user_id && <p>User ID: {submission.user_id}</p>}
+            {submission.company_id && <p>Company ID: {submission.company_id}</p>}
+            {'report_id' in submission && submission.report_id && <p>Report ID: {submission.report_id}</p>}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-};
+}
