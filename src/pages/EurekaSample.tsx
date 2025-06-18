@@ -71,7 +71,7 @@ const EurekaSample = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 Eureka form submit triggered:', data);
+    console.log('📝 Eureka Sample form submit triggered:', data);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -137,10 +137,11 @@ const EurekaSample = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
+      // Insert into barc_form_submissions table with exact field mapping
+      const { data: submission, error: insertError } = await supabase
         .from('barc_form_submissions')
         .insert({
-          form_slug: slug || 'eureka-sample',
+          form_slug: 'eureka-sample',
           company_name: data.companyName,
           company_registration_type: data.companyRegistrationType || "Not Specified",
           executive_summary: data.executiveSummary,
@@ -155,14 +156,34 @@ const EurekaSample = () => {
           poc_name: data.pocName,
           phoneno: data.phoneNumber,
           company_linkedin_url: data.companyLinkedInUrl
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
-      toast({
-        title: "Success!",
-        description: "🎉 Application submitted successfully! Analysis is starting automatically.",
+      console.log('✅ Submission created:', submission.id);
+
+      // Call the new analyze-eureka-form edge function
+      console.log('🔍 Starting analysis...');
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-eureka-form', {
+        body: { submissionId: submission.id }
       });
+
+      if (analysisError) {
+        console.error('Analysis error:', analysisError);
+        toast({
+          title: "Submission successful, but analysis failed",
+          description: "Your application was submitted but automatic analysis encountered an error. Our team will review it manually.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('✅ Analysis completed:', analysisData);
+        toast({
+          title: "Success!",
+          description: "🎉 Application submitted and analyzed successfully!",
+        });
+      }
 
       form.reset();
       setFounderLinkedIns([""]);
