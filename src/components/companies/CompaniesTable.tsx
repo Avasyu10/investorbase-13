@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -222,7 +223,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     <TableCell>
                       <div className="max-w-[300px]">
                         <span className="text-sm text-muted-foreground">
-                          {(company as any).scoring_reason || "Scoring analysis is being generated for this company."}
+                          {company.scoring_reason || "Scoring analysis is being generated for this company."}
                         </span>
                       </div>
                     </TableCell>
