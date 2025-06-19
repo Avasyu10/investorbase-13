@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -15,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ORDERED_SECTIONS } from "@/lib/constants";
 import ReactMarkdown from 'react-markdown';
 import { CompanyDetailed } from "@/lib/api/apiContract";
+import FormResponsesDialog from "./FormResponsesDialog";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -295,6 +295,7 @@ const CompanyDetails = () => {
                       View Deck
                     </Button>
                   )}
+                  {id && <FormResponsesDialog companyId={id} />}
                   <Button
                     onClick={handleChatbotClick}
                     variant={showChat ? "secondary" : "default"}

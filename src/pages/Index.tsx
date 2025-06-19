@@ -40,7 +40,7 @@ const Index = () => {
             className="text-lg px-8 py-6"
             asChild
           >
-            <Link to="/get-started">
+            <Link to="/signup">
               Get Started
             </Link>
           </Button>
