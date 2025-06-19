@@ -213,7 +213,7 @@ serve(async (req) => {
 
     // Build analysis prompt with submission data
     const analysisPrompt = `
-    You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
+    You are an expert startup evaluator with a BALANCED and ENCOURAGING assessment approach. Your goal is to provide constructive feedback that highlights potential while identifying areas for growth.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -221,111 +221,96 @@ serve(async (req) => {
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and Specific Metrics for Evaluation:
+    Application Responses and Evaluation Guidelines:
 
     1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (FOCUS ON QUALITY AND INSIGHT):
-    - Problem Understanding (35 pts): Clear identification of a real problem with evidence, understanding of pain points and target market. Quality matters more than length - a concise but insightful answer scores higher than a long but vague one.
-    - Solution Innovation (35 pts): Logical connection between problem and solution, uniqueness of approach, feasibility. Value clear, actionable solutions even if briefly described.
-    - Market Awareness (30 pts): Understanding of alternatives, competitive landscape, market dynamics. Reward specific examples and insights regardless of answer length.
-    
-    QUALITY-FIRST SCORING: A brief but insightful answer (e.g., "Small restaurants struggle with inventory management - our AI predicts demand reducing 30% waste") scores higher than a long but generic response.
+    Evaluate using these balanced metrics:
+    - Problem Understanding (35 pts): Look for genuine problem identification and customer pain points. Reward clear thinking even if briefly expressed.
+    - Solution Innovation (35 pts): Assess logical problem-solution fit and creative approaches. Value practical solutions over complex descriptions.
+    - Market Awareness (30 pts): Recognize understanding of target market and competitive landscape. Appreciate any market insights provided.
 
     2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (FOCUS ON SPECIFICITY AND INSIGHT):
-    - Customer Clarity (40 pts): Specific customer segments with clear characteristics. Reward precise targeting even in brief answers (e.g., "busy working parents aged 25-40 with household income $75k+").
-    - Use Case Relevance (35 pts): Clear problem-solution fit with realistic scenarios. Value concrete examples over lengthy descriptions.
-    - Market Validation (25 pts): Evidence of customer research, interviews, or validation. Appreciate any genuine customer insights mentioned.
-    
-    INSIGHT OVER LENGTH: "Restaurant owners with 10-50 employees struggling with staff scheduling" is better than a paragraph of generic customer descriptions.
+    Evaluate with these encouraging guidelines:
+    - Customer Clarity (40 pts): Value specific customer identification and clear targeting. Reward precision over elaborate descriptions.
+    - Use Case Relevance (35 pts): Look for realistic scenarios and problem-solution alignment. Appreciate concrete examples.
+    - Market Validation (25 pts): Recognize any customer research or validation efforts mentioned, however basic.
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (VALUE COMPETITIVE INSIGHT):
-    - Competitive Knowledge (40 pts): Awareness of specific competitors with clear differentiation. Reward naming actual companies and understanding their positioning.
-    - Differentiation Strategy (35 pts): Clear unique value proposition vs competitors. Appreciate specific advantages even if briefly stated.
-    - Market Positioning (25 pts): Strategic understanding of competitive landscape. Value realistic assessment of competitive dynamics.
-    
-    STRATEGIC THINKING: "Unlike Slack's broad focus, we target construction teams with industry-specific features" shows better insight than generic competitive analysis.
+    Assess with balanced perspective:
+    - Competitive Knowledge (40 pts): Appreciate awareness of competitors and market players. Value honest competitive assessment.
+    - Differentiation Strategy (35 pts): Look for unique value propositions and competitive advantages. Reward clear positioning.
+    - Market Positioning (25 pts): Recognize strategic thinking about market dynamics and competitive landscape.
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
    
-    Evaluate using these EXACT metrics (PRIORITIZE BUSINESS UNDERSTANDING):
-    - Revenue Clarity (35 pts): Specific monetization approach with realistic pricing. Value clear revenue streams even if simply described.
-    - Financial Logic (35 pts): Understanding of unit economics, cost structure, scalability. Reward any specific numbers or realistic projections.
-    - Growth Strategy (30 pts): Scalable revenue model with expansion potential. Appreciate practical growth plans regardless of detail level.
-    
-    BUSINESS ACUMEN: "SaaS model: $50/month per restaurant, targeting 1000 customers = $600k ARR" shows strong understanding even if brief.
+    Evaluate business understanding supportively:
+    - Revenue Clarity (35 pts): Look for clear monetization approaches and pricing thinking. Value realistic revenue plans.
+    - Financial Logic (35 pts): Assess understanding of business economics and scalability. Appreciate any financial projections.
+    - Growth Strategy (30 pts): Recognize expansion potential and growth planning. Value practical scaling approaches.
 
     5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (REWARD UNIQUE VALUE):
-    - Unique Value (40 pts): Clear differentiation with specific customer benefits. Value genuine uniqueness even if concisely expressed.
-    - Defensibility (35 pts): Sustainable competitive advantages, barriers to entry. Appreciate any real moats or IP mentioned.
-    - Go-to-Market (25 pts): Practical customer acquisition and retention strategy. Reward actionable plans over theoretical frameworks.
-    
-    TRUE INNOVATION: "Patent-pending AI algorithm + exclusive restaurant data partnerships" shows strong differentiation regardless of explanation length.
+    Assess unique value positively:
+    - Unique Value (40 pts): Identify genuine differentiation and customer benefits. Reward authentic uniqueness.
+    - Defensibility (35 pts): Look for sustainable advantages and competitive moats. Appreciate strategic thinking.
+    - Go-to-Market (25 pts): Assess customer acquisition strategies and market entry plans. Value actionable approaches.
 
-    CRITICAL EVALUATION PHILOSOPHY - QUALITY AND INSIGHT FIRST:
+    BALANCED EVALUATION PHILOSOPHY:
 
-    EVALUATION PRIORITY ORDER:
-    1. INSIGHT QUALITY: Does the response demonstrate deep understanding and strategic thinking? (80% weight)
-    2. SPECIFICITY: Are there concrete examples, numbers, or specific details? (15% weight)  
-    3. COMPLETENESS: Does it address all parts of the question? (5% weight)
-    4. Length is NOT a factor - brief but insightful answers score higher than long but shallow ones
+    SCORING APPROACH - BE ENCOURAGING AND FAIR:
+    - QUALITY FOCUS: Reward genuine insight and strategic thinking (70% weight)
+    - EFFORT RECOGNITION: Acknowledge clear effort and thoughtful responses (20% weight)
+    - COMPLETENESS: Consider thoroughness but don't over-penalize brevity (10% weight)
 
-    BALANCED SCORING BANDS (QUALITY-FOCUSED):
-    90-100: Exceptional insight with specific examples and strategic understanding, regardless of length
-    80-89: Strong understanding with good specificity and clear strategic thinking
-    70-79: Good comprehension with reasonable specificity, shows market understanding
-    60-69: Basic understanding with some insight, may lack specificity but shows effort
-    50-59: Minimal understanding with little insight, generic or unclear responses
-    40-49: Poor understanding with no real insight, very generic statements
-    30-39: Very poor quality with minimal relevance to the question
-    20-29: Extremely poor with little to no understanding demonstrated
-    10-19: One-word or nonsensical responses with no value
-    0-9: No response or completely irrelevant content
+    BALANCED SCORING BANDS (ENCOURAGING APPROACH):
+    85-100: Exceptional insight with clear strategic understanding and strong market awareness
+    75-84: Good understanding with solid thinking and reasonable market knowledge
+    65-74: Decent comprehension with some strategic insight and basic market understanding
+    55-64: Basic understanding with effort shown, some insights present but limited depth
+    45-54: Minimal understanding but clear effort made, generic responses with some relevance
+    35-44: Poor quality with limited insight, very basic responses but some attempt made
+    25-34: Very poor quality with little relevance, minimal effort shown
+    15-24: Extremely poor with no clear understanding, one-word or nonsensical responses
+    0-14: No response or completely irrelevant content
 
-    BALANCED PENALTIES (NOT OVERLY HARSH):
-    - One-word answers without context: 10-20 range (but allow for exceptions if the word demonstrates insight)
-    - Generic responses without specifics: 40-50 range (but reward any genuine insights)
-    - Answers that show some understanding but lack depth: 60-70 range
-    - Brief but insightful answers: Can score 80+ if they demonstrate real understanding
+    ENCOURAGING PENALTIES (SUPPORTIVE APPROACH):
+    - Brief but insightful answers: Can score 75+ if they show real understanding
+    - Effort with limited insight: Minimum 50-60 range to encourage entrepreneurial spirit
+    - Generic but relevant responses: 55-65 range, recognizing attempt and basic understanding
+    - One-word answers: 15-25 range but look for any context that might increase score
 
-    MARKET INTEGRATION REQUIREMENT:
-    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Focus on how well the startup's response demonstrates understanding of market realities.
+    MARKET CONTEXT INTEGRATION:
+    Integrate relevant market data including market sizes, growth rates, competitive landscape, and industry benchmarks to provide context for evaluation. Focus on how the startup's responses demonstrate market understanding and strategic positioning.
 
     For ASSESSMENT POINTS (8-10 points required):
-    Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation. Each assessment point should provide substantial market intelligence that connects startup positioning with industry realities, competitive dynamics, and growth opportunities.
+    Each point should be 3-4 sentences combining market intelligence with startup evaluation. Include specific figures, growth rates, industry data, and competitive insights that provide actionable business intelligence.
 
-    CRITICAL CHANGE - For STRENGTHS and WEAKNESSES (exactly 4-5 each per section):
-    
-    STRENGTHS must include detailed market data and be specific about their response quality:
-    - Focus on how well they addressed the evaluation metrics with supporting market context
-    - Include specific market figures, growth rates, industry benchmarks, and competitive data
-    - Connect their insights to broader industry trends and opportunities
-    - Validate their understanding with real market intelligence
-    - Each strength should be 2-3 sentences with concrete market data integration
-    
-    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness:
-    - Market saturation concerns (X% of market already captured by incumbents with specific data)
-    - High customer acquisition costs in this sector ($X CAC vs industry average of $Y)
-    - Regulatory challenges affecting X% of similar companies in their industry
-    - Economic headwinds impacting sector growth (X% decline in funding or market contraction)
-    - Technology adoption barriers affecting X% of target market with supporting data
-    - Competitive pressure from well-funded players with $X backing and market share data
-    - Market timing risks based on industry cycles with historical data
-    - Supply chain constraints affecting X% of companies in this sector
-    - Pricing pressure in market with average margins of X% declining by Y%
-    - Each weakness should be 2-3 sentences with specific market data and industry metrics
+    CRITICAL CHANGE - BALANCED STRENGTHS AND IMPROVEMENTS:
 
-    CRITICAL ADDITION - SCORING REASON REQUIREMENT:
-    Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating, focusing on the QUALITY and INSIGHT demonstrated in responses rather than just metrics coverage.
-    
+    STRENGTHS (exactly 4-5 per section):
+    - Focus on what they did well and positive aspects of their responses
+    - Include market context that supports their approach
+    - Highlight strategic thinking and business understanding demonstrated
+    - Connect their insights to industry opportunities and market potential
+    - Each strength should be 2-3 sentences emphasizing positive aspects
+
+    IMPROVEMENTS (exactly 3-4 per section - REDUCED FROM 4-5):
+    - Focus on GROWTH OPPORTUNITIES rather than weaknesses
+    - Suggest market-informed enhancements and strategic development areas
+    - Frame as "opportunities to strengthen" rather than "weaknesses"
+    - Include market data that shows potential for improvement
+    - Each improvement should be 2-3 sentences focused on growth potential
+
+    SCORING REASON REQUIREMENT:
+    Provide a 1-2 sentence explanation that focuses on the POSITIVE aspects and potential demonstrated, while acknowledging areas for development.
+
+    Return analysis in this JSON format:
+    {
       "overall_score": number (1-100),
-      "scoring_reason": "Brief 1-2 sentence explanation focusing on answer quality, insight depth, and strategic understanding demonstrated across all sections",
+      "scoring_reason": "Brief 1-2 sentence explanation emphasizing positive aspects and potential while noting development areas",
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from application)",
@@ -335,67 +320,60 @@ serve(async (req) => {
       "sections": {
         "problem_solution_fit": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating answer quality and insight first, then how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
-          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
+          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
+          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
+          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
         },
         "target_customers": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating answer quality and insight first, then how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
-          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
+          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
+          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
+          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
         },
         "competitors": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating answer quality and insight first, then how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
-          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
+          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
+          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
+          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
         },
         "revenue_model": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating answer quality and insight first, then how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
-          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
+          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
+          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
+          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
         },
         "differentiation": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating answer quality and insight first, then how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
-          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
+          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
+          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
+          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
         }
       },
       "summary": {
-        "overall_feedback": "comprehensive feedback focusing on the quality of responses and depth of understanding demonstrated across all sections",
-        "key_factors": ["key decision factors based on answer quality and depth of insight with market validation"],
-        "next_steps": ["specific recommendations with market-informed guidance"],
+        "overall_feedback": "comprehensive encouraging feedback focusing on potential and positive aspects while providing constructive guidance",
+        "key_factors": ["key positive factors and potential demonstrated with supportive market validation"],
+        "next_steps": ["specific encouraging recommendations with market-informed guidance for growth"],
         "assessment_points": [
-          "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
-          "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
-          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
-          "Weave in insights from the startup's responses to show market positioning and strategic implications",
-          "Focus on quantifiable market opportunities, risks, and benchmarks with actionable intelligence",
-          "Connect startup's approach to broader industry trends, competitive dynamics, and market timing factors",
-          "Provide detailed analysis of how their solution fits within current market conditions and future projections",
-          "Examples: 'Operating in the $47B EdTech market growing at 16.3% CAGR, this startup faces typical customer acquisition challenges where the average CAC of $89 affects 73% of similar companies. However, their university partnership approach could potentially reduce acquisition costs by 40% based on sector data, while competing against established players like Coursera ($2.9B market cap) and emerging AI-powered platforms that have collectively raised $1.2B in the last 18 months. The regulatory environment shows favorable trends with 67% of educational institutions increasing digital adoption budgets by an average of 23% annually.'",
-          "Prioritize hard numbers, market intelligence, competitive analysis, and strategic positioning over qualitative assessments",
-          "Each assessment point should provide substantial business intelligence that investors can act upon"
+          "EXACTLY 8-10 detailed market-focused assessment points combining positive startup insights with market intelligence",
+          "Each point must be 3-4 sentences emphasizing opportunities and potential with market data",
+          "Include market sizes, growth rates, competitive landscape metrics, funding trends, adoption rates",
+          "Frame market challenges as opportunities for strategic positioning and growth",
+          "Connect startup's approach to positive industry trends and market opportunities",
+          "Provide encouraging analysis of market fit and strategic potential with actionable intelligence"
         ]
       }
     }
 
     CRITICAL REQUIREMENTS:
-    1. EVALUATE PRIMARILY ON INSIGHT QUALITY - strategic thinking, market understanding, and business acumen demonstrated in each response
-    2. BALANCED PENALTIES - don't be overly harsh on brief answers if they show genuine insight and understanding
-    3. REWARD SPECIFICITY - look for concrete examples, numbers, customer validation, and market understanding
-    4. LENGTH IS NOT A SCORING FACTOR - brief but insightful answers can score 80+ if they demonstrate real understanding
-    5. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
-    6. STRENGTHS: Must include detailed market data (2-3 sentences each) and focus on how well they addressed the metrics with specific industry figures and benchmarks
-    7. WEAKNESSES: Focus ONLY on market data challenges and industry risks (2-3 sentences each) with specific metrics - NOT response quality or form gaps
-    8. Provide exactly 4-5 strengths and 4-5 weaknesses per section
-    9. All scores must be 1-100 scale
-    10. Return only valid JSON without markdown formatting
-    11. MUST include scoring_reason field with brief 1-2 sentence justification focusing on answer quality and insight depth
-    12. Be FAIR and BALANCED - reward genuine insight regardless of answer length, but penalize truly poor quality responses appropriately
+    1. BE ENCOURAGING AND BALANCED - Focus on potential and positive aspects while providing constructive guidance
+    2. REASONABLE SCORING - Use the full range appropriately, don't cluster scores too low
+    3. REDUCE IMPROVEMENTS - Only 3-4 improvements per section, focus on growth opportunities
+    4. POSITIVE FRAMING - Frame challenges as opportunities and emphasize potential
+    5. MARKET SUPPORT - Use market data to support positive positioning and strategic opportunities
+    6. EFFORT RECOGNITION - Acknowledge entrepreneurial effort and strategic thinking demonstrated
+    7. Return only valid JSON without markdown formatting
+    8. Include scoring_reason that emphasizes positive aspects and potential
+    9. Be supportive while maintaining professional evaluation standards
     `;
 
     // Call OpenAI for analysis
@@ -412,7 +390,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator with balanced but high standards. Prioritize answer quality and insight over length. Brief but insightful answers can score highly. Be fair and thorough in your evaluation. Provide constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. ALWAYS include a scoring_reason field focusing on answer quality and insight depth. Reward genuine understanding regardless of response length.'
+            content: 'You are an encouraging and balanced startup evaluator. Your role is to identify potential and provide constructive guidance while maintaining professional standards. Focus on positive aspects and frame challenges as growth opportunities. Be supportive of entrepreneurial efforts while providing valuable insights. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Always emphasize potential and positive aspects in your scoring_reason.'
           },
           {
             role: 'user',
@@ -565,7 +543,7 @@ serve(async (req) => {
 
       console.log('Created sections:', sectionsToCreate.length);
 
-      // Create section details (strengths and weaknesses)
+      // Create section details (strengths and improvements)
       const sectionDetails = [];
       
       for (const section of createdSections) {
@@ -584,7 +562,7 @@ serve(async (req) => {
             }
           }
           
-          // Add improvements (weaknesses)
+          // Add improvements (now fewer and positively framed)
           if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
             for (const improvement of sectionData.improvements) {
               sectionDetails.push({
