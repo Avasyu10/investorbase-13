@@ -224,78 +224,75 @@ serve(async (req) => {
 
     1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, reward comprehensive and detailed responses):
-    - Problem Clarity (30 pts): Is it real, urgent, and well-articulated with specific details?
-    - Current Alternatives (30 pts): Are existing coping methods explained clearly with depth?
-    - Solution Fit (30 pts): Is the solution directly tackling the core pain point with thoughtful reasoning?
+    Evaluate using these EXACT metrics (PRIMARY FOCUS - answer length is SECONDARY):
+    - Problem Clarity (30 pts): Is the problem real, urgent, and well-articulated? Look for specificity, evidence of pain points, target audience understanding, and clear problem definition regardless of length.
+    - Current Alternatives (30 pts): Are existing solutions/coping methods explained? Evaluate understanding of competitive landscape, gaps in current solutions, and why people currently struggle.
+    - Solution Fit (30 pts): Does the solution directly address the core problem? Assess logical connection, innovation, feasibility, and differentiation from existing approaches.
     
-    Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution, VERY SHORT ANSWERS (under 20 words should score 10-25 MAXIMUM).
-    Score moderately if: Basic understanding shown but lacks depth or specifics (30-60 word answers should score 40-65).
-    Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match + DETAILED EXPLANATIONS (100+ words with specific examples and evidence should score 70-95).
+    SCORING PHILOSOPHY: Prioritize QUALITY OF INSIGHT over quantity of words. A concise but insightful answer demonstrating deep understanding should score higher than a lengthy but shallow response.
 
     2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, reward comprehensive and detailed responses):
-    - Customer Definition (35 pts): Are the segments specific and realistic with detailed descriptions?
-    - Use Case Relevance (35 pts): Does the product clearly serve these users with specific examples?
-    - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight with evidence?
+    Evaluate using these EXACT metrics (PRIMARY FOCUS - answer length is SECONDARY):
+    - Customer Definition (35 pts): Are target segments specific, realistic, and well-defined? Look for clear personas, demographic/psychographic details, and market size understanding.
+    - Use Case Relevance (35 pts): Does the product clearly serve these users? Evaluate problem-solution fit for specific segments, value proposition clarity, and customer journey understanding.
+    - Depth of Understanding (30 pts): Evidence of customer research, behavioral insights, needs analysis, and market validation efforts.
     
-    Score harshly if: Describes "everyone" or is overly broad, VERY SHORT ANSWERS (under 20 words should score 10-25 MAXIMUM).
-    Score moderately if: Some customer segmentation but lacks specificity (30-60 word answers should score 40-65).
-    Score highly if: Defined personas, nuanced insights, matched offering + DETAILED EXPLANATIONS (100+ words with specific customer profiles and use cases should score 70-95).
+    SCORING PHILOSOPHY: Reward precision and evidence-based customer insights over generic descriptions, regardless of response length.
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, reward comprehensive and detailed responses):
-    - Competitor Awareness (35 pts): Are both direct and indirect players mentioned with specific names and details?
-    - Comparison Clarity (35 pts): Is differentiation from competitors clear with specific comparisons?
-    - Strategic Positioning (30 pts): Do they show where they fit in the landscape with thoughtful analysis?
+    Evaluate using these EXACT metrics (PRIMARY FOCUS - answer length is SECONDARY):
+    - Competitor Awareness (35 pts): Knowledge of both direct and indirect competitors. Look for specific company names, understanding of competitive dynamics, and market positioning awareness.
+    - Comparison Clarity (35 pts): Clear differentiation and competitive advantages. Evaluate unique value proposition, feature comparisons, and strategic positioning.
+    - Strategic Positioning (30 pts): Understanding of where they fit in the competitive landscape, opportunities for disruption, and defensive strategies.
     
-    Score harshly if: Misses obvious competitors or gives vague comparisons, VERY SHORT ANSWERS (under 20 words should score 10-25 MAXIMUM).
-    Score moderately if: Some competitor awareness but limited analysis (30-60 word answers should score 40-65).
-    Score highly if: Deep landscape awareness and sharp positioning + DETAILED EXPLANATIONS (100+ words with specific competitor analysis should score 70-95).
+    SCORING PHILOSOPHY: Value strategic thinking and competitive intelligence over exhaustive competitor lists.
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
    
-    Evaluate using these EXACT metrics (score each 1-100, reward comprehensive and detailed responses):
-    - Monetization Clarity (30 pts): Is revenue generation clearly explained with specific mechanisms?
-    - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified with details?
-    - Scalability & Growth (35 pts): Is there a future roadmap for expansion with concrete plans?
+    Evaluate using these EXACT metrics (PRIMARY FOCUS - answer length is SECONDARY):
+    - Monetization Clarity (30 pts): Clear revenue generation mechanisms, pricing strategy, and business model logic. Look for viability and sustainability.
+    - Cost/Revenue Drivers (35 pts): Understanding of unit economics, cost structure, key metrics (CAC, LTV, etc.), and profitability pathways.
+    - Scalability & Growth (35 pts): Plans for revenue expansion, scaling strategies, market penetration approach, and long-term financial projections.
     
-    Score harshly if: No revenue clarity or hand-wavy growth claims, VERY SHORT ANSWERS (under 20 words should score 10-25 MAXIMUM).
-    Score moderately if: Basic revenue model outlined but lacks detail (30-60 word answers should score 40-65).
-    Score highly if: Structured, feasible model + strong growth potential + DETAILED EXPLANATIONS (100+ words with specific revenue streams and projections should score 70-95).
+    SCORING PHILOSOPHY: Emphasize business model viability and financial thinking over detailed financial projections.
 
     5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, reward comprehensive and detailed responses):
-    - USP Clarity (30 pts): Clear, strong differentiator from others with specific advantages?
-    - Customer Pull Strategy (35 pts): Effective tactics to attract and retain users with detailed plans?
-    - IP or Moat (35 pts): Any defensibility—tech, brand, data, or network effects with specifics?
+    Evaluate using these EXACT metrics (PRIMARY FOCUS - answer length is SECONDARY):
+    - USP Clarity (30 pts): Unique value proposition that clearly distinguishes from alternatives. Look for compelling differentiation and customer value creation.
+    - Customer Pull Strategy (35 pts): Go-to-market approach, customer acquisition tactics, and retention strategies. Evaluate marketing channels and growth loops.
+    - IP or Moat (35 pts): Defensibility through technology, brand, data, network effects, or other barriers to entry. Assess competitive protection.
     
-    Score harshly if: No meaningful edge, or vague marketing, VERY SHORT ANSWERS (under 20 words should score 10-25 MAXIMUM).
-    Score moderately if: Some differentiation mentioned but not compelling (30-60 word answers should score 40-65).
-    Score highly if: Compelling USP + solid GTM + proprietary advantage + DETAILED EXPLANATIONS (100+ words with specific differentiation strategies should score 70-95).
+    SCORING PHILOSOPHY: Reward innovative thinking and strategic moats over marketing tactics.
 
-    UPDATED SCORING GUIDELINES - REWARD COMPREHENSIVE RESPONSES:
+    UPDATED SCORING GUIDELINES - METRICS-FIRST APPROACH:
 
-    ANSWER LENGTH AND QUALITY REQUIREMENTS (BALANCED APPROACH):
-    - VERY SHORT ANSWERS (under 20 words): Score 10-25 MAXIMUM
-    - SHORT ANSWERS (20-50 words): Score 25-45 range (can go higher if high quality)
-    - MODERATE ANSWERS (50-100 words): Score 40-70 range (good potential for higher scores)
-    - DETAILED ANSWERS (100-200 words): Score 65-85 range (strong potential for high scores)
-    - COMPREHENSIVE ANSWERS (200+ words): Score 75-95 range (highest potential if quality is good)
+    EVALUATION PRIORITY ORDER:
+    1. CONTENT QUALITY: How well does the response address each specific metric? (PRIMARY - 80% weight)
+    2. INSIGHT DEPTH: Evidence of research, understanding, and strategic thinking (SECONDARY - 15% weight)  
+    3. COMPREHENSIVENESS: Completeness of response and supporting details (TERTIARY - 5% weight)
 
-    QUALITY ASSESSMENT WITH BALANCED EXPECTATIONS:
-    85-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding, DETAILED RESPONSES with specific examples, data, and thorough explanations
-    70-84: Strong responses with good evidence and solid understanding, GOOD DETAIL with meaningful specifics
-    55-69: Adequate responses with reasonable evidence, moderate understanding, MODERATE DETAIL
-    40-54: Basic responses with limited evidence but some understanding shown
-    25-39: Weak responses with minimal substance but some effort visible
-    10-24: Very poor responses, extremely short or meaningless content
+    SCORING BANDS BY CONTENT QUALITY:
+    90-100: Exceptional insight addressing all metrics with evidence, strategic thinking, and innovation
+    80-89: Strong understanding of most metrics with good evidence and clear thinking
+    70-79: Good grasp of key metrics with reasonable evidence and some strategic insight
+    60-69: Basic understanding of some metrics with limited evidence but shows awareness
+    50-59: Minimal understanding of metrics with little evidence or strategic thinking
+    40-49: Poor understanding of metrics with weak or missing evidence
+    30-39: Very limited addressing of metrics with unclear or confused thinking
+    20-29: Minimal effort with little to no understanding of the metrics
+    10-19: Extremely poor response with no meaningful content addressing the metrics
+
+    LENGTH IMPACT (MINOR ADJUSTMENT ONLY):
+    - Exceptional responses (20+ words with high quality): No penalty, potential +5 bonus
+    - Adequate responses (10-20 words with good quality): No penalty  
+    - Brief responses (5-10 words): -5 to -10 points if quality is good, -15 if poor quality
+    - Very brief responses (<5 words): -10 to -20 points regardless of quality
 
     MARKET INTEGRATION REQUIREMENT:
-    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context, but DETAILED RESPONSES WITH GOOD CONTENT should receive scores reflecting their comprehensiveness.
+    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Focus on how well the startup's response demonstrates understanding of market realities.
 
     For ASSESSMENT POINTS (8-10 points required):
     Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation. Each assessment point should provide substantial market intelligence that connects startup positioning with industry realities, competitive dynamics, and growth opportunities.
@@ -311,13 +308,13 @@ serve(async (req) => {
     - Market timing risks based on industry cycles
 
     For STRENGTHS (exactly 4-5 each per section):
-    - STRENGTHS: Highlight what they did well, supported by market validation and data
+    - STRENGTHS: Highlight what they did well in addressing the metrics, supported by market validation and data
 
     CRITICAL ADDITION - SCORING REASON REQUIREMENT:
-    Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating. This should be concise but specific about what drove the score up or down.
+    Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating, focusing on how well they addressed the evaluation metrics for each question rather than response length.
     
       "overall_score": number (1-100),
-      "scoring_reason": "Brief 1-2 sentence explanation of the key factors that determined this overall score",
+      "scoring_reason": "Brief 1-2 sentence explanation focusing on how well the key evaluation metrics were addressed across all sections",
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from application)",
@@ -327,38 +324,38 @@ serve(async (req) => {
       "sections": {
         "problem_solution_fit": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "target_customers": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "competitors": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "revenue_model": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "differentiation": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
       },
       "summary": {
-        "overall_feedback": "comprehensive feedback integrating response quality with market context",
-        "key_factors": ["key decision factors with market validation"],
+        "overall_feedback": "comprehensive feedback focusing on how well the startup addressed the evaluation metrics across all sections",
+        "key_factors": ["key decision factors based on metric performance with market validation"],
         "next_steps": ["specific recommendations with market-informed guidance"],
         "assessment_points": [
           "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
@@ -376,17 +373,17 @@ serve(async (req) => {
     }
 
     CRITICAL REQUIREMENTS:
-    1. DETAILED RESPONSES should be rewarded appropriately - comprehensive answers (100+ words) with good content should score 70-95
-    2. CREATE REALISTIC SCORE DISTRIBUTIONS - reward effort and comprehensiveness while maintaining standards
-    3. Use the exact metrics provided for each question in your evaluation
-    4. MODERATELY PENALIZE SHORT ANSWERS but don't be overly harsh if some quality is present
+    1. EVALUATE PRIMARILY ON METRIC FULFILLMENT - how well each response addresses the specific evaluation criteria for that question
+    2. LENGTH IS SECONDARY - a concise but insightful answer should score higher than a long but shallow one
+    3. REWARD EVIDENCE AND INSIGHTS - look for research, data, customer validation, market understanding
+    4. Use the exact metrics provided for each question as the primary evaluation framework
     5. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
     6. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
     7. Provide exactly 4-5 strengths and 4-5 weaknesses per section
     8. All scores must be 1-100 scale
     9. Return only valid JSON without markdown formatting
-    10. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
-    11. Balance analytical rigor with recognition of effort and comprehensiveness in responses
+    10. MUST include scoring_reason field with brief 1-2 sentence justification focusing on metric performance
+    11. Balance analytical rigor with recognition of how well the startup addressed each question's specific evaluation metrics
     `;
 
     // Call OpenAI for analysis
@@ -403,7 +400,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Reward comprehensive, detailed responses appropriately while maintaining analytical standards. ALWAYS include a scoring_reason field with a brief 1-2 sentence justification for the overall score.'
+            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Focus primarily on how well each response addresses the specific evaluation metrics for each question, with answer length being a secondary consideration. ALWAYS include a scoring_reason field with a brief 1-2 sentence justification focusing on metric performance across all sections.'
           },
           {
             role: 'user',
