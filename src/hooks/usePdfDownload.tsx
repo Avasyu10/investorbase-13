@@ -23,6 +23,22 @@ export const usePdfDownload = () => {
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
     
+    // Calculate summary statistics
+    const totalProspects = companies.length;
+    const highPotential = companies.filter(company => company.overall_score >= 70).length;
+    const mediumPotential = companies.filter(company => company.overall_score >= 40 && company.overall_score < 70).length;
+    const lowPotential = companies.filter(company => company.overall_score < 40).length;
+    
+    // Add summary statistics
+    doc.setFontSize(12);
+    doc.text('Summary Statistics:', 14, 45);
+    
+    doc.setFontSize(10);
+    doc.text(`Total Prospects: ${totalProspects}`, 14, 55);
+    doc.text(`High Potential (70+): ${highPotential}`, 14, 62);
+    doc.text(`Medium Potential (40-69): ${mediumPotential}`, 14, 69);
+    doc.text(`Low Potential (<40): ${lowPotential}`, 14, 76);
+    
     // Prepare table data
     const tableHeaders = [
       'Company Name',
@@ -30,7 +46,7 @@ export const usePdfDownload = () => {
       'Email', 
       'Industry',
       'Score',
-      'Source'
+      'Reason for Scoring'
     ];
     
     const tableData = companies.map(company => [
@@ -39,14 +55,14 @@ export const usePdfDownload = () => {
       (company as any).email || (company as any).company_details?.contact_email || 'N/A',
       company.industry || 'N/A',
       `${Math.round(company.overall_score)}/100`,
-      company.source || 'Dashboard'
+      company.scoring_reason || 'Scoring analysis pending'
     ]);
     
     // Add table using the autoTable function
     autoTable(doc, {
       head: [tableHeaders],
       body: tableData,
-      startY: 40,
+      startY: 85,
       styles: {
         fontSize: 8,
         cellPadding: 3,
@@ -60,7 +76,10 @@ export const usePdfDownload = () => {
       alternateRowStyles: {
         fillColor: [245, 245, 245],
       },
-      margin: { top: 40, right: 14, bottom: 20, left: 14 },
+      margin: { top: 85, right: 14, bottom: 20, left: 14 },
+      columnStyles: {
+        5: { cellWidth: 35 } // Make the "Reason for Scoring" column wider
+      },
     });
     
     // Save the PDF
