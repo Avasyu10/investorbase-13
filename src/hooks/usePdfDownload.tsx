@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { Company } from '@/lib/api/apiContract';
 
 interface PDFOptions {
@@ -42,8 +42,8 @@ export const usePdfDownload = () => {
       company.source || 'Dashboard'
     ]);
     
-    // Add table
-    (doc as any).autoTable({
+    // Add table using the autoTable function
+    autoTable(doc, {
       head: [tableHeaders],
       body: tableData,
       startY: 40,
