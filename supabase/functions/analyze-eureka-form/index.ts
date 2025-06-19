@@ -46,15 +46,15 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
     console.log('Environment check:', {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceKey: !!supabaseServiceKey,
-      hasOpenAIKey: !!openaiApiKey
+      hasGeminiKey: !!geminiApiKey
     });
 
-    if (!supabaseUrl || !supabaseServiceKey || !openaiApiKey) {
+    if (!supabaseUrl || !supabaseServiceKey || !geminiApiKey) {
       throw new Error('Required environment variables are missing');
     }
 
@@ -505,47 +505,47 @@ serve(async (req) => {
     REMEMBER: You MUST calculate each section score step-by-step and show your calculation. Include the score_calculation field for each section showing exactly how you arrived at the final score. Keep the scoring_reason to ONE CONCISE SENTENCE only. BE REALISTIC AND VARIED IN YOUR SCORING to show clear quality differences.
     `;
 
-    // Call OpenAI for analysis
-    console.log('Calling OpenAI API for analysis...');
+    // Call Gemini for analysis
+    console.log('Calling Gemini API for analysis...');
     
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
+        contents: [
           {
-            role: 'system',
-            content: 'You are a realistic startup evaluator with VARIED scoring standards to differentiate between submissions. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". Be REALISTIC in scoring - show clear distinctions between different quality levels. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.'
-          },
-          {
-            role: 'user',
-            content: analysisPrompt
+            parts: [
+              {
+                text: `You are a realistic startup evaluator with VARIED scoring standards to differentiate between submissions. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". Be REALISTIC in scoring - show clear distinctions between different quality levels. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.\n\n${analysisPrompt}`
+              }
+            ]
           }
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json"
+        }
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    console.log('OpenAI response received, parsing...');
+    const geminiData = await geminiResponse.json();
+    console.log('Gemini response received, parsing...');
 
-    if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
-      throw new Error('Invalid response structure from OpenAI');
+    if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
+      throw new Error('Invalid response structure from Gemini');
     }
 
-    let analysisText = openaiData.choices[0].message.content;
-    console.log('Raw analysis text received from OpenAI');
+    let analysisText = geminiData.candidates[0].content.parts[0].text;
+    console.log('Raw analysis text received from Gemini');
 
     // Clean up the response text to extract JSON
     analysisText = analysisText.trim();
@@ -564,7 +564,7 @@ serve(async (req) => {
       analysisResult = JSON.parse(analysisText);
       console.log('Successfully parsed analysis result');
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response as JSON:', parseError);
+      console.error('Failed to parse Gemini response as JSON:', parseError);
       console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
       throw new Error('Analysis response was not valid JSON');
     }
