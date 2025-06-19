@@ -225,62 +225,69 @@ serve(async (req) => {
 
     1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Problem Clarity (30 pts): Is it real, urgent, and well-articulated?
-    - Current Alternatives (30 pts): Are existing coping methods explained clearly?
-    - Solution Fit (30 pts): Is the solution directly tackling the core pain point?
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative based on ANSWER QUALITY AND DEPTH):
+    - Problem Clarity (30 pts): Is it real, urgent, and well-articulated with specific details?
+    - Current Alternatives (30 pts): Are existing coping methods explained clearly with depth?
+    - Solution Fit (30 pts): Is the solution directly tackling the core pain point with thoughtful reasoning?
     
-    Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution.
-    Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match.
+    Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution, ONE-WORD OR VERY SHORT ANSWERS (under 20 words should score 10-30).
+    Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Customer Definition (35 pts): Are the segments specific and realistic?
-    - Use Case Relevance (35 pts): Does the product clearly serve these users?
-    - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight?
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative based on ANSWER QUALITY AND DEPTH):
+    - Customer Definition (35 pts): Are the segments specific and realistic with detailed descriptions?
+    - Use Case Relevance (35 pts): Does the product clearly serve these users with specific examples?
+    - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight with evidence?
     
-    Score harshly if: Describes "everyone" or is overly broad.
-    Score highly if: Defined personas, nuanced insights, matched offering.
+    Score harshly if: Describes "everyone" or is overly broad, ONE-WORD OR VERY SHORT ANSWERS (under 20 words should score 10-30).
+    Score highly if: Defined personas, nuanced insights, matched offering + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Competitor Awareness (35 pts): Are both direct and indirect players mentioned?
-    - Comparison Clarity (35 pts): Is differentiation from competitors clear?
-    - Strategic Positioning (30 pts): Do they show where they fit in the landscape?
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative based on ANSWER QUALITY AND DEPTH):
+    - Competitor Awareness (35 pts): Are both direct and indirect players mentioned with specific names and details?
+    - Comparison Clarity (35 pts): Is differentiation from competitors clear with specific comparisons?
+    - Strategic Positioning (30 pts): Do they show where they fit in the landscape with thoughtful analysis?
     
-    Score harshly if: Misses obvious competitors or gives vague comparisons.
-    Score highly if: Deep landscape awareness and sharp positioning.
+    Score harshly if: Misses obvious competitors or gives vague comparisons, ONE-WORD OR VERY SHORT ANSWERS (under 20 words should score 10-30).
+    Score highly if: Deep landscape awareness and sharp positioning + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
    
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - Monetization Clarity (30 pts): Is revenue generation clearly explained?
-    - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified?
-    - Scalability & Growth (35 pts): Is there a future roadmap for expansion?
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative based on ANSWER QUALITY AND DEPTH):
+    - Monetization Clarity (30 pts): Is revenue generation clearly explained with specific mechanisms?
+    - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified with details?
+    - Scalability & Growth (35 pts): Is there a future roadmap for expansion with concrete plans?
     
-    Score harshly if: No revenue clarity or hand-wavy growth claims.
-    Score highly if: Structured, feasible model + strong growth potential.
+    Score harshly if: No revenue clarity or hand-wavy growth claims, ONE-WORD OR VERY SHORT ANSWERS (under 20 words should score 10-30).
+    Score highly if: Structured, feasible model + strong growth potential + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
-    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative):
-    - USP Clarity (30 pts): Clear, strong differentiator from others?
-    - Customer Pull Strategy (35 pts): Effective tactics to attract and retain users?
-    - IP or Moat (35 pts): Any defensibility—tech, brand, data, or network effects?
+    Evaluate using these EXACT metrics (score each 1-100, be highly discriminative based on ANSWER QUALITY AND DEPTH):
+    - USP Clarity (30 pts): Clear, strong differentiator from others with specific advantages?
+    - Customer Pull Strategy (35 pts): Effective tactics to attract and retain users with detailed plans?
+    - IP or Moat (35 pts): Any defensibility—tech, brand, data, or network effects with specifics?
     
-    Score harshly if: No meaningful edge, or vague marketing.
-    Score highly if: Compelling USP + solid GTM + proprietary advantage.s
+    Score harshly if: No meaningful edge, or vague marketing, ONE-WORD OR VERY SHORT ANSWERS (under 20 words should score 10-30).
+    Score highly if: Compelling USP + solid GTM + proprietary advantage + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
-    SCORING GUIDELINES - BE HIGHLY DISCRIMINATIVE:
-    - 90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding
-    - 80-89: Strong responses with good evidence and understanding, minor gaps
-    - 70-79: Adequate responses with some evidence, moderate understanding
-    - 60-69: Weak responses with limited evidence, significant gaps
-    - 40-59: Poor responses with minimal substance, major deficiencies
-    - 20-39: Very poor responses, largely inadequate or missing key elements
-    - 1-19: Extremely poor or non-responses
+    CRITICAL SCORING GUIDELINES - BE EXTREMELY DISCRIMINATIVE BASED ON ANSWER QUALITY:
+    - 90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding, DETAILED RESPONSES (150+ words with specific examples, data, and thorough explanations)
+    - 80-89: Strong responses with good evidence and understanding, minor gaps, GOOD DETAIL (100-150 words with some specifics)
+    - 70-79: Adequate responses with some evidence, moderate understanding, MODERATE DETAIL (50-100 words)
+    - 60-69: Weak responses with limited evidence, significant gaps, BRIEF RESPONSES (20-50 words)
+    - 40-59: Poor responses with minimal substance, major deficiencies, VERY SHORT (10-20 words)
+    - 20-39: Very poor responses, largely inadequate or missing key elements, EXTREMELY SHORT (5-10 words)
+    - 1-19: Extremely poor or non-responses, ONE-WORD ANSWERS OR MEANINGLESS TEXT (under 5 words)
+
+    ANSWER LENGTH AND DEPTH REQUIREMENTS:
+    - Answers under 10 words should NEVER score above 30
+    - Answers under 50 words should rarely score above 60
+    - Answers over 100 words with specific details should score 70+
+    - Answers over 200 words with comprehensive analysis should score 80+
+    - Only award 90+ for truly exceptional, detailed responses with evidence and insights
 
     MARKET INTEGRATION REQUIREMENT:
     For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context.
@@ -360,14 +367,16 @@ serve(async (req) => {
     }
 
     CRITICAL REQUIREMENTS:
-    1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent responses (80-100), poor responses (10-40)
+    1. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent detailed responses (85-100), poor short responses (10-40)
     2. Use the exact metrics provided for each question in your evaluation
-    3. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
-    4. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
-    5. Provide exactly 4-5 strengths and 4-5 weaknesses per section
-    6. All scores must be 1-100 scale
-    7. Return only valid JSON without markdown formatting
-    8. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
+    3. HEAVILY PENALIZE SHORT, SUPERFICIAL ANSWERS - one-word or very brief answers should score 10-30 maximum
+    4. REWARD DETAILED, THOUGHTFUL RESPONSES - comprehensive answers with specifics should score 80-100
+    5. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
+    6. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
+    7. Provide exactly 4-5 strengths and 4-5 weaknesses per section
+    8. All scores must be 1-100 scale
+    9. Return only valid JSON without markdown formatting
+    10. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
     `;
 
     // Call OpenAI for analysis
