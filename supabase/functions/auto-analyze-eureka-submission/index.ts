@@ -54,15 +54,15 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Add a small delay to ensure the submission is fully committed to the database
-    console.log('Adding small delay to ensure database consistency...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Add a longer delay to ensure the submission is fully committed to the database
+    console.log('Adding delay to ensure database consistency...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Verify the submission exists before calling the main analysis function
-    console.log('Verifying submission exists...');
+    // First, verify the submission exists and update status to processing
+    console.log('Verifying submission exists and updating status...');
     const { data: submissionCheck, error: checkError } = await supabase
       .from('eureka_form_submissions')
-      .select('id, analysis_status')
+      .select('id, analysis_status, company_name')
       .eq('id', submissionId)
       .single();
 
@@ -71,7 +71,23 @@ serve(async (req) => {
       throw new Error(`Submission not found: ${checkError?.message || 'Unknown error'}`);
     }
 
-    console.log('Submission verified, calling main analysis function...');
+    console.log('Submission verified:', submissionCheck);
+
+    // Update status to processing
+    const { error: updateError } = await supabase
+      .from('eureka_form_submissions')
+      .update({ 
+        analysis_status: 'processing',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', submissionId);
+
+    if (updateError) {
+      console.error('Error updating submission status:', updateError);
+      throw new Error(`Failed to update submission status: ${updateError.message}`);
+    }
+
+    console.log('Status updated to processing, calling main analysis function...');
     
     // Call the main analysis function
     const { data, error } = await supabase.functions.invoke('analyze-eureka-form', {
@@ -80,6 +96,16 @@ serve(async (req) => {
 
     if (error) {
       console.error('Error from analyze-eureka-form function:', error);
+      
+      // Update submission status to failed
+      await supabase
+        .from('eureka_form_submissions')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error.message || 'Analysis function failed'
+        })
+        .eq('id', submissionId);
+      
       throw new Error(`Analysis function failed: ${error.message}`);
     }
 
