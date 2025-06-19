@@ -78,7 +78,12 @@ export const usePdfDownload = () => {
       },
       margin: { top: 20, right: 14, bottom: 20, left: 14 },
       columnStyles: {
-        5: { cellWidth: 35 } // Make the "Reason for Scoring" column wider
+        0: { cellWidth: 25 }, // Company Name - reduced
+        1: { cellWidth: 20 }, // Contact - reduced  
+        2: { cellWidth: 25 }, // Email - reduced
+        3: { cellWidth: 20 }, // Industry - reduced
+        4: { cellWidth: 15 }, // Score - reduced
+        5: { cellWidth: 60 } // Reason for Scoring - significantly increased
       },
       showHead: 'everyPage',
       pageBreak: 'auto',

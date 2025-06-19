@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -207,12 +208,12 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-semibold">Company Name</TableHead>
-                <TableHead className="font-semibold">Name</TableHead>
-                <TableHead className="font-semibold">Phone Number</TableHead>
-                <TableHead className="font-semibold">Email</TableHead>
-                <TableHead className="font-semibold">Industry</TableHead>
-                <TableHead className="font-semibold">Score</TableHead>
+                <TableHead className="font-semibold w-[140px]">Company Name</TableHead>
+                <TableHead className="font-semibold w-[100px]">Name</TableHead>
+                <TableHead className="font-semibold w-[110px]">Phone Number</TableHead>
+                <TableHead className="font-semibold w-[120px]">Email</TableHead>
+                <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+                <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold">Reason for Scoring</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
@@ -254,7 +255,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-[300px]">
+                      <div className="max-w-none">
                         <span className="text-sm text-muted-foreground">
                           {company.scoring_reason || "Scoring analysis is being generated for this company."}
                         </span>
@@ -307,15 +308,15 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold w-[120px]">Company</TableHead>
-              <TableHead className="font-semibold w-[140px]">Contact</TableHead>
-              <TableHead className="font-semibold w-[120px]">Email</TableHead>
-              <TableHead className="font-semibold w-[100px]">Source</TableHead>
-              <TableHead className="font-semibold w-[120px]">Industry</TableHead>
-              <TableHead className="font-semibold w-[100px]">Score</TableHead>
-              <TableHead className="font-semibold w-[120px]">Status</TableHead>
-              <TableHead className="font-semibold w-[140px]">Status Changed</TableHead>
-              <TableHead className="font-semibold w-[160px]">Team Member Interacting</TableHead>
+              <TableHead className="font-semibold w-[100px]">Company</TableHead>
+              <TableHead className="font-semibold w-[120px]">Contact</TableHead>
+              <TableHead className="font-semibold w-[100px]">Email</TableHead>
+              <TableHead className="font-semibold w-[80px]">Source</TableHead>
+              <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+              <TableHead className="font-semibold w-[80px]">Score</TableHead>
+              <TableHead className="font-semibold w-[100px]">Status</TableHead>
+              <TableHead className="font-semibold w-[120px]">Status Changed</TableHead>
+              <TableHead className="font-semibold w-[140px]">Team Member Interacting</TableHead>
               <TableHead className="font-semibold">Notes</TableHead>
               <TableHead className="font-semibold w-[80px]">Edit Status</TableHead>
               <TableHead className="w-[60px]"></TableHead>
@@ -417,7 +418,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="max-w-[200px]">
+                    <div className="max-w-none">
                       {assessmentPoints.length > 0 ? (
                         <div className="space-y-1">
                           {assessmentPoints.map((point, index) => (
