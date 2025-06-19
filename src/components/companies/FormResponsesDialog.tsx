@@ -67,11 +67,11 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
   }, [isOpen, companyId]);
 
   const questions = [
-    "What problem does your startup solve?",
-    "What is your target market and size?", 
-    "What is your business model?",
-    "What is your competitive advantage?",
-    "What are your funding requirements and use of funds?"
+    "What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?",
+    "What is the intended customer segment or target customers of your venture?", 
+    "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)",
+    "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.",
+    "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any."
   ];
 
   return (
