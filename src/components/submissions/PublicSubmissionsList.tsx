@@ -1,9 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
+import { IITBombaySubmissionsTable } from "./IITBombaySubmissionsTable";
 import { Loader2, Inbox, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CombinedSubmission } from "./types";
@@ -13,6 +14,7 @@ export function PublicSubmissionsList() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { user } = useAuth();
+  const { isIITBombay } = useProfile();
   const { toast } = useToast();
 
   const fetchSubmissions = async () => {
@@ -361,7 +363,13 @@ export function PublicSubmissionsList() {
           </p>
         </div>
       ) : (
-        <PublicSubmissionsTable submissions={submissions} />
+        <>
+          {isIITBombay ? (
+            <IITBombaySubmissionsTable submissions={submissions} />
+          ) : (
+            <PublicSubmissionsTable submissions={submissions} />
+          )}
+        </>
       )}
     </div>
   );
