@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -180,14 +179,13 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold">Email</TableHead>
                 <TableHead className="font-semibold">Industry</TableHead>
                 <TableHead className="font-semibold">Score</TableHead>
-                <TableHead className="font-semibold">Summary</TableHead>
+                <TableHead className="font-semibold">Reason for Scoring</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
-                const summaryPoints = getSummaryPoints(company.assessment_points);
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 
                 return (
@@ -222,13 +220,10 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        {summaryPoints.map((point, index) => (
-                          <div key={index} className="flex items-start gap-2 text-sm">
-                            <span className="text-primary mt-1">•</span>
-                            <span className="text-muted-foreground line-clamp-2">{point}</span>
-                          </div>
-                        ))}
+                      <div className="max-w-[300px]">
+                        <span className="text-sm text-muted-foreground">
+                          {(company as any).scoring_reason || "Scoring analysis is being generated for this company."}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
