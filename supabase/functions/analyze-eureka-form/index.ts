@@ -215,6 +215,8 @@ serve(async (req) => {
     const analysisPrompt = `
     You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to evaluate startup applications fairly while providing meaningful score differentiation. Most good applications should score between 60-80, with exceptional ones reaching 80-90.
 
+    CRITICAL REQUIREMENT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible.
+
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
@@ -285,63 +287,76 @@ serve(async (req) => {
     - Consider: Overall score 60-74 (solid applications with good potential)
     - Reject: Overall score < 60 (applications needing significant development)
 
+    MANDATORY MARKET DATA REQUIREMENTS:
+    - Include actual market size figures (in billions/millions USD) for the industry
+    - Reference real growth rates and industry trends
+    - Mention specific competitor companies and their valuations when possible
+    - Include funding data for similar companies in the space
+    - Use actual industry statistics and benchmarks
+    - Reference real market research data and sources
+
     Return analysis in this JSON format:
     {
       "overall_score": number (calculated weighted average),
-      "scoring_reason": "One concise sentence explaining the overall assessment",
+      "scoring_reason": "One concise sentence explaining the overall assessment WITH SPECIFIC MARKET DATA",
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from application)",
         "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description)"
+        "introduction": "string (2-3 sentence description WITH MARKET CONTEXT)"
       },
       "sections": {
         "problem_solution_fit": {
           "score": number (0-100),
-          "analysis": "Balanced analysis highlighting what they did well and areas for improvement",
-          "strengths": ["4-5 specific strengths with detailed explanations"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights"]
+          "analysis": "Balanced analysis highlighting what they did well and areas for improvement WITH MARKET DATA",
+          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REAL MARKET NUMBERS"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING MARKET BENCHMARKS"]
         },
         "target_customers": {
           "score": number (0-100),
-          "analysis": "Balanced analysis of their customer understanding",
-          "strengths": ["4-5 specific strengths with detailed explanations"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights"]
+          "analysis": "Balanced analysis of their customer understanding WITH MARKET SIZING DATA",
+          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING CUSTOMER SEGMENT SIZES"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING MARKET PENETRATION DATA"]
         },
         "competitors": {
           "score": number (0-100),
-          "analysis": "Balanced analysis of their competitive understanding",
-          "strengths": ["4-5 specific strengths with detailed explanations"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights"]
+          "analysis": "Balanced analysis of their competitive understanding WITH COMPETITOR VALUATIONS",
+          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING COMPETITIVE MARKET SHARE DATA"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING COMPETITOR FUNDING DATA"]
         },
         "revenue_model": {
           "score": number (0-100),
-          "analysis": "Balanced analysis of their revenue strategy",
-          "strengths": ["4-5 specific strengths with detailed explanations"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights"]
+          "analysis": "Balanced analysis of their revenue strategy WITH INDUSTRY PRICING DATA",
+          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REVENUE BENCHMARKS"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING PRICING COMPARISONS"]
         },
         "differentiation": {
           "score": number (0-100),
-          "analysis": "Balanced analysis of their differentiation strategy",
-          "strengths": ["4-5 specific strengths with detailed explanations"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights"]
+          "analysis": "Balanced analysis of their differentiation strategy WITH MARKET POSITIONING DATA",
+          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING INNOVATION METRICS"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING MARKET GAPS DATA"]
         }
       },
       "summary": {
-        "overall_feedback": "Comprehensive feedback focusing on strengths and growth opportunities",
-        "key_factors": ["Key success factors and potential challenges"],
-        "next_steps": ["Specific recommendations for next steps"],
+        "overall_feedback": "Comprehensive feedback focusing on strengths and growth opportunities WITH MARKET CONTEXT",
+        "key_factors": ["Key success factors and potential challenges WITH INDUSTRY DATA"],
+        "next_steps": ["Specific recommendations for next steps WITH MARKET-BASED GUIDANCE"],
         "assessment_points": [
           "8-10 detailed assessment points combining market analysis with startup evaluation",
-          "Focus on realistic market opportunities and strategic recommendations",
-          "Include market data where relevant but don't penalize for lack of perfect data",
-          "Emphasize actionable insights and growth potential",
-          "Balance constructive criticism with recognition of good work"
+          "Focus on realistic market opportunities and strategic recommendations WITH ACTUAL NUMBERS",
+          "Include SPECIFIC market data, competitor analysis, and industry benchmarks",
+          "Emphasize actionable insights and growth potential WITH QUANTIFIED TARGETS",
+          "Balance constructive criticism with recognition of good work USING MARKET STANDARDS",
+          "Reference actual funding rounds, market sizes, and growth rates where relevant",
+          "Include specific competitor companies, their valuations, and market positions",
+          "Provide industry-specific metrics and benchmarks for comparison"
         ]
       }
     }
 
-    IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement.
+    CRITICAL: Every analysis section MUST include real market data, specific numbers, competitor information, industry statistics, and quantified benchmarks. Do not provide generic feedback - use actual market research data to support your evaluation.
+
+    IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement with real market data.
     `;
 
     // Call Gemini for analysis
@@ -357,13 +372,13 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: `You are a FAIR and BALANCED startup evaluator. Your goal is to evaluate applications generously while maintaining meaningful distinctions. Good detailed applications should score 70-85, exceptional ones 80-90. Be generous with scoring - reward effort and detailed thinking. Return ONLY valid JSON without any markdown formatting.\n\n${analysisPrompt}`
+                text: `You are a FAIR and BALANCED startup evaluator with access to current market data. Your goal is to evaluate applications generously while maintaining meaningful distinctions. Good detailed applications should score 70-85, exceptional ones 80-90. Be generous with scoring - reward effort and detailed thinking. You MUST incorporate real market data and numbers in all assessments. Return ONLY valid JSON without any markdown formatting.\n\n${analysisPrompt}`
               }
             ]
           }
         ],
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.2,
           maxOutputTokens: 8192,
           responseMimeType: "application/json"
         }
