@@ -1,5 +1,4 @@
 
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -61,26 +60,42 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Add a small delay to ensure database consistency
-    console.log('Adding small delay to ensure database consistency...');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Retry mechanism to handle timing issues
+    let submission = null;
+    let retryCount = 0;
+    const maxRetries = 5;
+    
+    while (!submission && retryCount < maxRetries) {
+      console.log(`Attempt ${retryCount + 1} to fetch submission...`);
+      
+      if (retryCount > 0) {
+        // Add progressive delay for retries
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+      
+      const { data: fetchedSubmission, error: fetchError } = await supabase
+        .from('eureka_form_submissions')
+        .select('*')
+        .eq('id', submissionId)
+        .maybeSingle();
 
-    // Fetch submission data using maybeSingle() to avoid single() errors
-    console.log('Fetching submission for analysis...');
-    const { data: submission, error: fetchError } = await supabase
-      .from('eureka_form_submissions')
-      .select('*')
-      .eq('id', submissionId)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error('Failed to fetch submission:', fetchError);
-      throw new Error(`Failed to fetch submission: ${fetchError.message}`);
+      if (fetchError) {
+        console.error(`Fetch error on attempt ${retryCount + 1}:`, fetchError);
+        if (retryCount === maxRetries - 1) {
+          throw new Error(`Failed to fetch submission after ${maxRetries} attempts: ${fetchError.message}`);
+        }
+      } else if (fetchedSubmission) {
+        submission = fetchedSubmission;
+        console.log('Successfully fetched submission on attempt', retryCount + 1);
+      } else {
+        console.warn(`Submission not found on attempt ${retryCount + 1}, retrying...`);
+      }
+      
+      retryCount++;
     }
 
     if (!submission) {
-      console.error('Submission not found with ID:', submissionId);
-      throw new Error('Submission not found');
+      throw new Error(`Submission not found after ${maxRetries} attempts`);
     }
 
     console.log('Retrieved submission for analysis:', {
@@ -637,4 +652,3 @@ serve(async (req) => {
     );
   }
 });
-
