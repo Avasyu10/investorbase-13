@@ -1,18 +1,13 @@
 
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Mail, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle, Mail } from "lucide-react";
 
 const ThankYou = () => {
   useEffect(() => {
     // Scroll to top when page loads
     window.scrollTo(0, 0);
   }, []);
-
-  const handleGoBack = () => {
-    window.history.back();
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-black py-12 px-4">
@@ -80,17 +75,6 @@ const ThankYou = () => {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              <div className="pt-4">
-                <Button 
-                  onClick={handleGoBack}
-                  variant="outline"
-                  className="flex items-center gap-2 border-blue-600 text-blue-400 hover:bg-blue-900/20 hover:text-blue-300"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Go Back
-                </Button>
               </div>
             </div>
           </CardContent>
