@@ -198,7 +198,7 @@ export function RealtimeSubscriptions() {
         }
       });
 
-    // Eureka form submissions channel - SIMPLIFIED to only listen for updates, no manual function calls
+    // Eureka form submissions channel - SIMPLIFIED to only listen for updates, database trigger handles analysis
     const eurekaChannel = supabase
       .channel('eureka_form_submissions_realtime')
       .on(

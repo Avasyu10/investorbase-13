@@ -61,17 +61,26 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch submission data
+    // Add a small delay to ensure database consistency
+    console.log('Adding small delay to ensure database consistency...');
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Fetch submission data using maybeSingle() to avoid single() errors
     console.log('Fetching submission for analysis...');
     const { data: submission, error: fetchError } = await supabase
       .from('eureka_form_submissions')
       .select('*')
       .eq('id', submissionId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !submission) {
+    if (fetchError) {
       console.error('Failed to fetch submission:', fetchError);
-      throw new Error(`Failed to fetch submission: ${fetchError?.message || 'Submission not found'}`);
+      throw new Error(`Failed to fetch submission: ${fetchError.message}`);
+    }
+
+    if (!submission) {
+      console.error('Submission not found with ID:', submissionId);
+      throw new Error('Submission not found');
     }
 
     console.log('Retrieved submission for analysis:', {
@@ -216,7 +225,7 @@ serve(async (req) => {
     - Use Case Relevance (35 pts): Does the product clearly serve these users?
     - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight?
     
-    Score harshly if: Describes “everyone” or is overly broad.
+    Score harshly if: Describes "everyone" or is overly broad.
     Score highly if: Defined personas, nuanced insights, matched offering.
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
@@ -356,7 +365,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
