@@ -213,7 +213,7 @@ serve(async (req) => {
 
     // Build analysis prompt with submission data
     const analysisPrompt = `
-    You are an expert startup evaluator with a BALANCED and ENCOURAGING assessment approach. Your goal is to provide constructive feedback that highlights potential while identifying areas for growth.
+    You are an expert startup evaluator with STRICT EVALUATION STANDARDS and PRECISE SCORING. Your goal is to provide accurate assessment based on detailed evaluation metrics while maintaining an encouraging tone.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -221,99 +221,216 @@ serve(async (req) => {
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and Evaluation Guidelines:
+    Application Responses and DETAILED EVALUATION METRICS:
 
     1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
-    Evaluate using these balanced metrics:
-    - Problem Understanding (35 pts): Look for genuine problem identification and customer pain points. Reward clear thinking even if briefly expressed.
-    - Solution Innovation (35 pts): Assess logical problem-solution fit and creative approaches. Value practical solutions over complex descriptions.
-    - Market Awareness (30 pts): Recognize understanding of target market and competitive landscape. Appreciate any market insights provided.
+    STRICT EVALUATION METRICS (100 points total):
+    - Problem Clarity & Significance (25 pts): Is the problem clearly articulated with specific pain points? Is it a significant market need?
+      • 23-25: Crystal clear problem with quantified impact and urgency
+      • 19-22: Clear problem with good articulation but missing some specifics
+      • 15-18: Adequate problem identification but lacks depth or specificity
+      • 10-14: Vague problem statement with limited understanding
+      • 5-9: Poor problem articulation, generic or unclear
+      • 0-4: No clear problem identified or completely irrelevant
+    
+    - Solution Innovation & Feasibility (25 pts): Is the solution innovative, technically feasible, and directly addresses the problem?
+      • 23-25: Highly innovative, technically sound, perfect problem-solution fit
+      • 19-22: Good innovation with solid feasibility and clear connection to problem
+      • 15-18: Adequate solution with reasonable feasibility but limited innovation
+      • 10-14: Basic solution with questionable feasibility or weak problem connection
+      • 5-9: Poor solution with significant feasibility concerns
+      • 0-4: No viable solution or completely unrealistic approach
+    
+    - Market Understanding (25 pts): Shows understanding of market size, timing, and competitive landscape?
+      • 23-25: Deep market insights with data, perfect timing, competitive awareness
+      • 19-22: Good market understanding with some data and competitive knowledge
+      • 15-18: Basic market awareness but lacks depth or specific insights
+      • 10-14: Limited market understanding with generic insights
+      • 5-9: Poor market knowledge with incorrect assumptions
+      • 0-4: No market understanding demonstrated
+    
+    - Technical Depth & Implementation (25 pts): Shows technical understanding and clear implementation path?
+      • 23-25: Excellent technical depth with clear implementation roadmap
+      • 19-22: Good technical understanding with reasonable implementation plan
+      • 15-18: Basic technical awareness but lacks implementation details
+      • 10-14: Limited technical understanding with vague implementation
+      • 5-9: Poor technical grasp with unrealistic implementation
+      • 0-4: No technical understanding or implementation plan
 
     2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
-    Evaluate with these encouraging guidelines:
-    - Customer Clarity (40 pts): Value specific customer identification and clear targeting. Reward precision over elaborate descriptions.
-    - Use Case Relevance (35 pts): Look for realistic scenarios and problem-solution alignment. Appreciate concrete examples.
-    - Market Validation (25 pts): Recognize any customer research or validation efforts mentioned, however basic.
+    STRICT EVALUATION METRICS (100 points total):
+    - Customer Segmentation Precision (30 pts): Are target customers clearly defined with specific characteristics?
+      • 27-30: Precise segmentation with demographics, psychographics, and behaviors
+      • 23-26: Good segmentation with most key characteristics identified
+      • 18-22: Adequate segmentation but missing important details
+      • 12-17: Basic segmentation with limited specificity
+      • 6-11: Poor segmentation, too broad or vague
+      • 0-5: No clear customer segmentation
+    
+    - Market Size & Accessibility (25 pts): Understanding of addressable market and how to reach customers?
+      • 23-25: Clear TAM/SAM/SOM with specific acquisition strategies
+      • 19-22: Good market sizing with reasonable acquisition approach
+      • 15-18: Basic market understanding but limited acquisition strategy
+      • 10-14: Poor market sizing with unclear acquisition approach
+      • 5-9: Inadequate market understanding and no clear acquisition plan
+      • 0-4: No market sizing or customer acquisition strategy
+    
+    - Customer Pain Points & Willingness to Pay (25 pts): Deep understanding of customer pain and payment behavior?
+      • 23-25: Detailed pain point analysis with payment validation
+      • 19-22: Good pain understanding with reasonable payment assumptions
+      • 15-18: Basic pain awareness but limited payment validation
+      • 10-14: Superficial pain understanding with weak payment logic
+      • 5-9: Poor pain identification with no payment validation
+      • 0-4: No understanding of customer pain or payment behavior
+    
+    - Customer Validation Evidence (20 pts): Evidence of customer research, interviews, or validation?
+      • 18-20: Strong validation with multiple customer touchpoints and feedback
+      • 15-17: Good validation with some customer research evidence
+      • 11-14: Basic validation attempts with limited evidence
+      • 7-10: Minimal validation with weak evidence
+      • 3-6: No meaningful validation but claims of customer contact
+      • 0-2: No customer validation attempted
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
-    Assess with balanced perspective:
-    - Competitive Knowledge (40 pts): Appreciate awareness of competitors and market players. Value honest competitive assessment.
-    - Differentiation Strategy (35 pts): Look for unique value propositions and competitive advantages. Reward clear positioning.
-    - Market Positioning (25 pts): Recognize strategic thinking about market dynamics and competitive landscape.
+    STRICT EVALUATION METRICS (100 points total):
+    - Competitive Landscape Knowledge (30 pts): Comprehensive understanding of direct and indirect competitors?
+      • 27-30: Complete competitive map with direct, indirect, and substitute competitors
+      • 23-26: Good competitive knowledge with most key players identified
+      • 18-22: Adequate competitive awareness but missing some important players
+      • 12-17: Basic competitive knowledge with significant gaps
+      • 6-11: Poor competitive understanding with major oversights
+      • 0-5: No meaningful competitive analysis
+    
+    - Differentiation Strategy (25 pts): Clear unique value proposition and competitive advantages?
+      • 23-25: Strong differentiation with sustainable competitive advantages
+      • 19-22: Good differentiation with reasonable competitive positioning
+      • 15-18: Basic differentiation but advantages may not be sustainable
+      • 10-14: Weak differentiation with easily replicable advantages
+      • 5-9: Poor differentiation with no clear competitive edge
+      • 0-4: No differentiation strategy identified
+    
+    - Competitive Analysis Depth (25 pts): Understanding of competitor strengths, weaknesses, and market position?
+      • 23-25: Deep analysis of competitor strategies, pricing, and market share
+      • 19-22: Good competitor analysis with key insights
+      • 15-18: Basic competitor analysis but lacks strategic depth
+      • 10-14: Superficial competitor analysis with limited insights
+      • 5-9: Poor competitor analysis with incorrect information
+      • 0-4: No competitive analysis provided
+    
+    - Market Positioning Strategy (20 pts): Clear strategy for positioning against competitors?
+      • 18-20: Sophisticated positioning strategy with clear market narrative
+      • 15-17: Good positioning with reasonable competitive strategy
+      • 11-14: Basic positioning but lacks strategic depth
+      • 7-10: Weak positioning with unclear competitive strategy
+      • 3-6: Poor positioning with no clear strategy
+      • 0-2: No positioning strategy identified
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
    
-    Evaluate business understanding supportively:
-    - Revenue Clarity (35 pts): Look for clear monetization approaches and pricing thinking. Value realistic revenue plans.
-    - Financial Logic (35 pts): Assess understanding of business economics and scalability. Appreciate any financial projections.
-    - Growth Strategy (30 pts): Recognize expansion potential and growth planning. Value practical scaling approaches.
+    STRICT EVALUATION METRICS (100 points total):
+    - Revenue Stream Clarity (25 pts): Clear identification of how money will be made?
+      • 23-25: Multiple clear revenue streams with detailed monetization
+      • 19-22: Clear primary revenue stream with good monetization logic
+      • 15-18: Basic revenue stream identification but lacks detail
+      • 10-14: Unclear revenue streams with weak monetization logic
+      • 5-9: Poor revenue understanding with questionable viability
+      • 0-4: No clear revenue model identified
+    
+    - Pricing Strategy & Logic (25 pts): Well-thought-out pricing with market justification?
+      • 23-25: Sophisticated pricing strategy with market research and value justification
+      • 19-22: Good pricing logic with reasonable market positioning
+      • 15-18: Basic pricing strategy but lacks market validation
+      • 10-14: Weak pricing logic with poor market understanding
+      • 5-9: Poor pricing with no clear justification
+      • 0-4: No pricing strategy provided
+    
+    - Financial Projections & Unit Economics (25 pts): Understanding of unit economics and financial sustainability?
+      • 23-25: Detailed unit economics with realistic financial projections
+      • 19-22: Good unit economics understanding with reasonable projections
+      • 15-18: Basic financial understanding but lacks unit economic depth
+      • 10-14: Weak financial projections with poor unit economics
+      • 5-9: Unrealistic financial assumptions with no unit economic basis
+      • 0-4: No financial projections or unit economics provided
+    
+    - Scalability & Growth Strategy (25 pts): Revenue model supports scalable growth?
+      • 23-25: Highly scalable model with clear growth strategy and market expansion
+      • 19-22: Good scalability with reasonable growth plans
+      • 15-18: Moderately scalable with basic growth strategy
+      • 10-14: Limited scalability with unclear growth path
+      • 5-9: Poor scalability with no clear growth strategy
+      • 0-4: No consideration of scalability or growth
 
     5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
-    Assess unique value positively:
-    - Unique Value (40 pts): Identify genuine differentiation and customer benefits. Reward authentic uniqueness.
-    - Defensibility (35 pts): Look for sustainable advantages and competitive moats. Appreciate strategic thinking.
-    - Go-to-Market (25 pts): Assess customer acquisition strategies and market entry plans. Value actionable approaches.
+    STRICT EVALUATION METRICS (100 points total):
+    - Unique Value Proposition Strength (30 pts): How unique and valuable is the offering?
+      • 27-30: Breakthrough innovation with significant unique value
+      • 23-26: Strong unique value with clear customer benefits
+      • 18-22: Moderate uniqueness with good value proposition
+      • 12-17: Limited uniqueness with basic value proposition
+      • 6-11: Weak uniqueness with questionable value
+      • 0-5: No clear unique value proposition
+    
+    - Defensibility & Moats (25 pts): Sustainable competitive advantages and barriers to entry?
+      • 23-25: Strong moats with patents, network effects, or significant barriers
+      • 19-22: Good defensibility with reasonable competitive protection
+      • 15-18: Moderate defensibility but may be vulnerable to competition
+      • 10-14: Weak defensibility with low barriers to entry
+      • 5-9: Poor defensibility with easily replicable offering
+      • 0-4: No defensible competitive advantages
+    
+    - Technology & Innovation Edge (25 pts): Technical innovation and advancement over existing solutions?
+      • 23-25: Cutting-edge technology with significant advancement
+      • 19-22: Good technology with meaningful improvements
+      • 15-18: Moderate technology advancement with some improvements
+      • 10-14: Limited technology differentiation with minimal advancement
+      • 5-9: Poor technology with no clear advancement
+      • 0-4: No technology differentiation identified
+    
+    - Go-to-Market Advantage (20 pts): Unique approach to reaching and acquiring customers?
+      • 18-20: Innovative GTM strategy with significant customer acquisition advantages
+      • 15-17: Good GTM approach with reasonable customer acquisition strategy
+      • 11-14: Basic GTM strategy but lacks innovation or clear advantages
+      • 7-10: Weak GTM approach with unclear customer acquisition
+      • 3-6: Poor GTM strategy with no clear customer acquisition plan
+      • 0-2: No GTM strategy identified
 
-    BALANCED EVALUATION PHILOSOPHY:
+    CRITICAL SCORING REQUIREMENTS:
 
-    SCORING APPROACH - BE ENCOURAGING AND FAIR:
-    - QUALITY FOCUS: Reward genuine insight and strategic thinking (70% weight)
-    - EFFORT RECOGNITION: Acknowledge clear effort and thoughtful responses (20% weight)
-    - COMPLETENESS: Consider thoroughness but don't over-penalize brevity (10% weight)
+    SCORING DISTRIBUTION - BE PRECISE AND VARIED:
+    - Use the FULL range 0-100 based on actual response quality
+    - Excellent responses (clear, detailed, market-aware): 85-95
+    - Good responses (solid understanding, some details): 70-84  
+    - Average responses (basic understanding, limited detail): 50-69
+    - Below average responses (poor understanding, minimal insight): 30-49
+    - Poor responses (no clear understanding, generic): 15-29
+    - Very poor responses (irrelevant, nonsensical): 0-14
 
-    BALANCED SCORING BANDS (ENCOURAGING APPROACH):
-    85-100: Exceptional insight with clear strategic understanding and strong market awareness
-    75-84: Good understanding with solid thinking and reasonable market knowledge
-    65-74: Decent comprehension with some strategic insight and basic market understanding
-    55-64: Basic understanding with effort shown, some insights present but limited depth
-    45-54: Minimal understanding but clear effort made, generic responses with some relevance
-    35-44: Poor quality with limited insight, very basic responses but some attempt made
-    25-34: Very poor quality with little relevance, minimal effort shown
-    15-24: Extremely poor with no clear understanding, one-word or nonsensical responses
-    0-14: No response or completely irrelevant content
+    OVERALL SCORE CALCULATION:
+    Calculate weighted average: (Problem 25% + Customers 25% + Competitors 20% + Revenue 15% + Differentiation 15%)
 
-    ENCOURAGING PENALTIES (SUPPORTIVE APPROACH):
-    - Brief but insightful answers: Can score 75+ if they show real understanding
-    - Effort with limited insight: Minimum 50-60 range to encourage entrepreneurial spirit
-    - Generic but relevant responses: 55-65 range, recognizing attempt and basic understanding
-    - One-word answers: 15-25 range but look for any context that might increase score
+    RECOMMENDATION LOGIC:
+    - Accept: Overall score ≥ 80 with no section below 70
+    - Consider: Overall score 60-79 OR strong sections with some weaknesses
+    - Reject: Overall score < 60 OR critical sections below 50
 
-    MARKET CONTEXT INTEGRATION:
-    Integrate relevant market data including market sizes, growth rates, competitive landscape, and industry benchmarks to provide context for evaluation. Focus on how the startup's responses demonstrate market understanding and strategic positioning.
-
-    For ASSESSMENT POINTS (8-10 points required):
-    Each point should be 3-4 sentences combining market intelligence with startup evaluation. Include specific figures, growth rates, industry data, and competitive insights that provide actionable business intelligence.
-
-    CRITICAL REQUIREMENTS - DETAILED STRENGTHS AND WEAKNESSES WITH MARKET DATA:
-
-    STRENGTHS (exactly 4-5 per section):
-    - Each strength MUST include specific market data, numbers, growth rates, or industry benchmarks
-    - Focus on what they did well with quantitative market validation
-    - Include market size figures, adoption rates, competitive positioning data, or industry trends
-    - Example: "The startup correctly identifies the $X billion market opportunity, which has grown Y% annually, demonstrating strong market timing."
-    - Each strength should be 3-4 sentences with at least one specific data point or market figure
-    - Connect their insights to measurable industry opportunities and market potential
-
-    WEAKNESSES (exactly 4-5 per section - DETAILED AND DATA-DRIVEN):
-    - Each weakness MUST include specific market data, competitive intelligence, or industry benchmarks
-    - Focus ONLY on what is missing, lacking, or insufficient in their response
-    - Include market gaps they failed to address, competitive blind spots, or missed industry insights
-    - Example: "The response lacks awareness of the 45% market shift toward mobile-first solutions, missing a $X billion opportunity segment."
-    - Each weakness should be 3-4 sentences with specific market data showing what they failed to address
-    - Provide concrete numbers, percentages, market sizes, or competitive data to highlight what's missing
-    - DO NOT include any recommendations, suggestions, or advice - only highlight deficiencies and gaps
-    - Avoid phrases like "should consider", "could improve", "might benefit", or any forward-looking advice
-
-    SCORING REASON REQUIREMENT:
-    Provide a 1-2 sentence explanation that focuses on the POSITIVE aspects and potential demonstrated, while acknowledging areas for development.
+    CRITICAL REQUIREMENTS:
+    1. SCORE BASED ON METRICS - Use the detailed point system above
+    2. VARY SCORES SIGNIFICANTLY - Don't cluster scores, use full range based on quality
+    3. BE PRECISE - Score exactly based on what's provided in the response
+    4. DETAILED MARKET DATA - Every strength and weakness MUST include specific numbers, percentages, market sizes, or industry data
+    5. EXACTLY 4-5 POINTS - Both strengths and improvements must have exactly 4-5 detailed points per section
+    6. 3-4 SENTENCES EACH - Each strength and weakness must be 3-4 sentences with market context
+    7. WEAKNESSES ONLY - In improvements sections, only highlight what is missing or lacking, NO recommendations
+    8. Return only valid JSON without markdown formatting
+    9. Include scoring_reason that emphasizes positive aspects and potential
 
     Return analysis in this JSON format:
     {
-      "overall_score": number (1-100),
+      "overall_score": number (calculated weighted average),
       "scoring_reason": "Brief 1-2 sentence explanation emphasizing positive aspects and potential while noting development areas",
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
@@ -323,31 +440,31 @@ serve(async (req) => {
       },
       "sections": {
         "problem_solution_fit": {
-          "score": number (1-100),
+          "score": number (calculated from metrics above),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
           "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "target_customers": {
-          "score": number (1-100),
+          "score": number (calculated from metrics above),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
           "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "competitors": {
-          "score": number (1-100),
+          "score": number (calculated from metrics above),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
           "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "revenue_model": {
-          "score": number (1-100),
+          "score": number (calculated from metrics above),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
           "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "differentiation": {
-          "score": number (1-100),
+          "score": number (calculated from metrics above),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
           "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
@@ -368,17 +485,7 @@ serve(async (req) => {
       }
     }
 
-    CRITICAL REQUIREMENTS:
-    1. BE ENCOURAGING AND BALANCED - Focus on potential and positive aspects while providing constructive guidance
-    2. DETAILED MARKET DATA - Every strength and weakness MUST include specific numbers, percentages, market sizes, or industry data
-    3. EXACTLY 4-5 POINTS - Both strengths and improvements must have exactly 4-5 detailed points per section
-    4. 3-4 SENTENCES EACH - Each strength and weakness must be 3-4 sentences with market context
-    5. QUANTITATIVE FOCUS - Include measurable data points in every strength and weakness
-    6. WEAKNESSES ONLY - In improvements sections, only highlight what is missing or lacking, NO recommendations
-    7. ACTIONABLE INTELLIGENCE - Provide specific market insights that guide strategic decisions
-    8. Return only valid JSON without markdown formatting
-    9. Include scoring_reason that emphasizes positive aspects and potential
-    10. Be supportive while maintaining professional evaluation standards with data-driven insights
+    REMEMBER: Score strictly based on the detailed metrics provided. Use the full scoring range (0-100) and vary scores significantly based on actual response quality. Be precise and data-driven in your evaluation.
     `;
 
     // Call OpenAI for analysis
@@ -395,14 +502,14 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an encouraging and balanced startup evaluator with deep market intelligence expertise. Your role is to identify potential and provide constructive guidance while maintaining professional standards. Every analysis point must include specific market data, numbers, percentages, or industry benchmarks. Focus on positive aspects and in weaknesses sections only highlight gaps and deficiencies without any recommendations or suggestions. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Always emphasize potential and positive aspects in your scoring_reason. Ensure every strength and weakness includes specific market data or numbers.'
+            content: 'You are a precise startup evaluator with strict scoring standards. Score based EXACTLY on the detailed evaluation metrics provided for each question. Use the full scoring range (0-100) and ensure significant score variation based on actual response quality. Every analysis point must include specific market data, numbers, percentages, or industry benchmarks. In weaknesses sections only highlight gaps and deficiencies without any recommendations or suggestions. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Calculate scores precisely using the provided point systems.'
           },
           {
             role: 'user',
             content: analysisPrompt
           }
         ],
-        temperature: 0.3,
+        temperature: 0.1,
         max_tokens: 4000,
       }),
     });
