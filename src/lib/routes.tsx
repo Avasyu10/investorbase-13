@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
+import GetStarted from "@/pages/GetStarted";
 import Dashboard from "@/pages/Dashboard";
 import UploadReport from "@/pages/UploadReport";
 import Report from "@/pages/Report";
@@ -30,6 +31,7 @@ import EurekaSample from "@/pages/EurekaSample";
 
 export const routes = [
   { path: "/", element: <Index /> },
+  { path: "/get-started", element: <GetStarted /> },
   { path: "/signup", element: <Signup /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/reset-password", element: <ResetPassword /> },
