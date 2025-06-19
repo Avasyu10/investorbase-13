@@ -288,21 +288,24 @@ serve(async (req) => {
     For ASSESSMENT POINTS (8-10 points required):
     Each point should be 3-4 sentences combining market intelligence with startup evaluation. Include specific figures, growth rates, industry data, and competitive insights that provide actionable business intelligence.
 
-    CRITICAL CHANGE - BALANCED STRENGTHS AND IMPROVEMENTS:
+    CRITICAL REQUIREMENTS - DETAILED STRENGTHS AND WEAKNESSES WITH MARKET DATA:
 
     STRENGTHS (exactly 4-5 per section):
-    - Focus on what they did well and positive aspects of their responses
-    - Include market context that supports their approach
-    - Highlight strategic thinking and business understanding demonstrated
-    - Connect their insights to industry opportunities and market potential
-    - Each strength should be 2-3 sentences emphasizing positive aspects
+    - Each strength MUST include specific market data, numbers, growth rates, or industry benchmarks
+    - Focus on what they did well with quantitative market validation
+    - Include market size figures, adoption rates, competitive positioning data, or industry trends
+    - Example: "The startup correctly identifies the $X billion market opportunity, which has grown Y% annually, demonstrating strong market timing."
+    - Each strength should be 3-4 sentences with at least one specific data point or market figure
+    - Connect their insights to measurable industry opportunities and market potential
 
-    IMPROVEMENTS (exactly 3-4 per section - REDUCED FROM 4-5):
-    - Focus on GROWTH OPPORTUNITIES rather than weaknesses
-    - Suggest market-informed enhancements and strategic development areas
-    - Frame as "opportunities to strengthen" rather than "weaknesses"
-    - Include market data that shows potential for improvement
-    - Each improvement should be 2-3 sentences focused on growth potential
+    WEAKNESSES (exactly 4-5 per section - DETAILED AND DATA-DRIVEN):
+    - Each weakness MUST include specific market data, competitive intelligence, or industry benchmarks
+    - Frame as growth opportunities with quantitative market context
+    - Include market research gaps, competitive blind spots, or missed industry insights
+    - Example: "The response lacks awareness of the 45% market shift toward mobile-first solutions, missing a $X billion opportunity segment."
+    - Each weakness should be 3-4 sentences with specific market data showing the gap or opportunity
+    - Provide concrete numbers, percentages, market sizes, or competitive data to support each weakness
+    - Include actionable market intelligence that shows what they're missing
 
     SCORING REASON REQUIREMENT:
     Provide a 1-2 sentence explanation that focuses on the POSITIVE aspects and potential demonstrated, while acknowledging areas for development.
@@ -321,32 +324,32 @@ serve(async (req) => {
         "problem_solution_fit": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
-          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
+          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
+          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
         },
         "target_customers": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
-          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
+          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
+          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
         },
         "competitors": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
-          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
+          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
+          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
         },
         "revenue_model": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
-          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
+          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
+          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
         },
         "differentiation": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 encouraging strengths (2-3 sentences each) with market context"],
-          "improvements": ["exactly 3-4 growth opportunities (2-3 sentences each) framed positively with market guidance"]
+          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
+          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
         }
       },
       "summary": {
@@ -366,14 +369,15 @@ serve(async (req) => {
 
     CRITICAL REQUIREMENTS:
     1. BE ENCOURAGING AND BALANCED - Focus on potential and positive aspects while providing constructive guidance
-    2. REASONABLE SCORING - Use the full range appropriately, don't cluster scores too low
-    3. REDUCE IMPROVEMENTS - Only 3-4 improvements per section, focus on growth opportunities
-    4. POSITIVE FRAMING - Frame challenges as opportunities and emphasize potential
-    5. MARKET SUPPORT - Use market data to support positive positioning and strategic opportunities
-    6. EFFORT RECOGNITION - Acknowledge entrepreneurial effort and strategic thinking demonstrated
-    7. Return only valid JSON without markdown formatting
-    8. Include scoring_reason that emphasizes positive aspects and potential
-    9. Be supportive while maintaining professional evaluation standards
+    2. DETAILED MARKET DATA - Every strength and weakness MUST include specific numbers, percentages, market sizes, or industry data
+    3. EXACTLY 4-5 POINTS - Both strengths and improvements must have exactly 4-5 detailed points per section
+    4. 3-4 SENTENCES EACH - Each strength and weakness must be 3-4 sentences with market context
+    5. QUANTITATIVE FOCUS - Include measurable data points in every strength and weakness
+    6. POSITIVE FRAMING - Frame challenges as opportunities with market intelligence
+    7. ACTIONABLE INTELLIGENCE - Provide specific market insights that guide strategic decisions
+    8. Return only valid JSON without markdown formatting
+    9. Include scoring_reason that emphasizes positive aspects and potential
+    10. Be supportive while maintaining professional evaluation standards with data-driven insights
     `;
 
     // Call OpenAI for analysis
@@ -390,7 +394,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an encouraging and balanced startup evaluator. Your role is to identify potential and provide constructive guidance while maintaining professional standards. Focus on positive aspects and frame challenges as growth opportunities. Be supportive of entrepreneurial efforts while providing valuable insights. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Always emphasize potential and positive aspects in your scoring_reason.'
+            content: 'You are an encouraging and balanced startup evaluator with deep market intelligence expertise. Your role is to identify potential and provide constructive guidance while maintaining professional standards. Every analysis point must include specific market data, numbers, percentages, or industry benchmarks. Focus on positive aspects and frame challenges as growth opportunities with quantitative market context. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Always emphasize potential and positive aspects in your scoring_reason. Ensure every strength and weakness includes specific market data or numbers.'
           },
           {
             role: 'user',
@@ -398,7 +402,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.3,
-        max_tokens: 3000,
+        max_tokens: 4000,
       }),
     });
 
@@ -562,7 +566,7 @@ serve(async (req) => {
             }
           }
           
-          // Add improvements (now fewer and positively framed)
+          // Add improvements (now with 4-5 detailed points with market data)
           if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
             for (const improvement of sectionData.improvements) {
               sectionDetails.push({
