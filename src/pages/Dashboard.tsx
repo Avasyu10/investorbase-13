@@ -63,11 +63,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleIITBombayFormClick = () => {
-    // Navigate to the IIT Bombay form
-    window.open('/submit/iit-bombay-applications', '_blank');
-  };
-
   if (isLoading || profileLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -102,13 +97,7 @@ const Dashboard = () => {
               </Button>
             )}
             {isIITBombay && (
-              <>
-                <Button onClick={handleIITBombayFormClick} variant="outline" className="flex items-center">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Eureka Form
-                </Button>
-                <EurekaSampleButton />
-              </>
+              <EurekaSampleButton />
             )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
               <Newspaper className="mr-2 h-4 w-4" />

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,7 @@ import InstitutionalWelcome from "@/components/auth/InstitutionalWelcome";
 import { ArrowLeft } from "lucide-react";
 
 type UserType = 'founder' | 'accelerator' | 'vc' | null;
+type AppState = 'homepage' | 'user-selection' | 'auth-form' | 'institutional-welcome';
 
 const Index = () => {
   const { user, isLoading, signInWithEmail, signUpWithEmail } = useAuth();
@@ -20,6 +22,7 @@ const Index = () => {
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
   const [selectedUserType, setSelectedUserType] = useState<UserType>(null);
+  const [appState, setAppState] = useState<AppState>('homepage');
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -47,45 +50,118 @@ const Index = () => {
 
   const handleUserTypeSelect = (userType: UserType) => {
     setSelectedUserType(userType);
+    if (userType === 'accelerator' || userType === 'vc') {
+      setAppState('institutional-welcome');
+    } else {
+      setAppState('auth-form');
+    }
   };
 
   const handleBackToUserTypeSelection = () => {
     setSelectedUserType(null);
+    setAppState('user-selection');
     // Reset form fields when going back
     setEmail("");
     setPassword("");
     setActiveTab("signin");
   };
 
-  // Show user type selection first
-  if (!selectedUserType) {
+  const handleBackToHomepage = () => {
+    setAppState('homepage');
+    setSelectedUserType(null);
+    setEmail("");
+    setPassword("");
+    setActiveTab("signin");
+  };
+
+  const handleGetStarted = () => {
+    setAppState('user-selection');
+  };
+
+  // Show homepage first
+  if (appState === 'homepage') {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
-        <div className="flex justify-center mb-6">
-          <img 
-            src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
-            alt="InvestorBase Logo" 
-            className="h-16 w-auto" 
-          />
+        <div className="max-w-4xl w-full space-y-8 animate-fade-in">
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
+              alt="InvestorBase Logo" 
+              className="h-20 w-auto" 
+            />
+          </div>
+          
+          <div className="space-y-6">
+            <h1 className="text-5xl font-bold tracking-tight">Welcome to InvestorBase</h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Deal Flow, Reimagined. Connect founders with investors through intelligent pitch deck analysis and streamlined communication.
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              onClick={handleGetStarted}
+              size="lg"
+              className="text-lg px-8 py-6"
+            >
+              Get Started
+            </Button>
+            <Button 
+              variant="outline"
+              size="lg"
+              className="text-lg px-8 py-6"
+              asChild
+            >
+              <Link to="/about">
+                Learn More
+              </Link>
+            </Button>
+          </div>
         </div>
-        <UserTypeSelection onUserTypeSelect={handleUserTypeSelect} />
+      </div>
+    );
+  }
+
+  // Show user type selection after clicking "Get Started"
+  if (appState === 'user-selection') {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
+        <div className="max-w-4xl w-full space-y-6 animate-fade-in">
+          <Button 
+            variant="ghost" 
+            onClick={handleBackToHomepage}
+            className="self-start"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to homepage
+          </Button>
+          
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
+              alt="InvestorBase Logo" 
+              className="h-16 w-auto" 
+            />
+          </div>
+          <UserTypeSelection onUserTypeSelect={handleUserTypeSelect} />
+        </div>
       </div>
     );
   }
 
   // Show institutional welcome for accelerator/vc
-  if (selectedUserType === 'accelerator' || selectedUserType === 'vc') {
+  if (appState === 'institutional-welcome') {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
         <InstitutionalWelcome 
-          userType={selectedUserType} 
+          userType={selectedUserType as 'accelerator' | 'vc'} 
           onBack={handleBackToUserTypeSelection}
         />
       </div>
     );
   }
 
-  // Show founder signup/signin (original flow)
+  // Show founder signup/signin form
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
