@@ -26,57 +26,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchInitialSession = async () => {
-      try {
-        setIsLoading(true);
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        console.log('Auth state changed:', event, currentSession?.user?.email);
         
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Handle different auth events
+        if (event === 'SIGNED_IN' && currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          console.log('User signed in:', currentSession.user.email);
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          console.log('User signed out');
+        } else if (event === 'TOKEN_REFRESHED' && currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          console.log('Session token refreshed successfully');
+        } else if (event === 'USER_UPDATED' && currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          console.log('User updated');
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Then check for existing session
+    const initializeSession = async () => {
+      try {
+        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error fetching session:', error);
-          throw error;
-        }
-        
-        if (session) {
-          setSession(session);
-          setUser(session.user);
-          console.log('Restored session for user:', session.user.email);
+          console.error('Error getting session:', error);
+          // Clear any stale session data
+          setSession(null);
+          setUser(null);
+        } else if (existingSession) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          console.log('Restored session for user:', existingSession.user.email);
+        } else {
+          console.log('No existing session found');
+          setSession(null);
+          setUser(null);
         }
       } catch (error) {
-        console.error('Session restoration error:', error);
-        toast({
-          title: "Authentication error",
-          description: "There was a problem with your authentication status",
-          variant: "destructive",
-        });
+        console.error('Session initialization error:', error);
+        setSession(null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchInitialSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log('Auth state changed:', event);
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-        setIsLoading(false);
-        
-        if (event === 'SIGNED_IN') {
-          console.log('User signed in:', currentSession?.user?.email);
-        } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Session token refreshed');
-        }
-      }
-    );
+    initializeSession();
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, []);
 
   const signInWithEmail = async (email: string, password: string, userType?: 'founder' | 'accelerator' | 'vc') => {
     try {
@@ -123,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       navigate('/dashboard');
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast({
         title: "Sign in failed",
         description: error.message,
@@ -179,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return true;
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
         title: "Sign up failed",
         description: error.message,
@@ -193,13 +206,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Sign out error:', error);
+        throw error;
+      }
+      
+      // Clear state immediately
+      setSession(null);
+      setUser(null);
+      
       navigate('/');
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
       });
     } catch (error: any) {
+      console.error('Error signing out:', error);
       toast({
         title: "Error signing out",
         description: error.message,
@@ -226,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return true;
     } catch (error: any) {
+      console.error('Password reset error:', error);
       toast({
         title: "Password reset failed",
         description: error.message,
@@ -254,6 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       navigate('/');
       return true;
     } catch (error: any) {
+      console.error('Password update error:', error);
       toast({
         title: "Password update failed",
         description: error.message,
