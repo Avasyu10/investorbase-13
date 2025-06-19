@@ -300,12 +300,13 @@ serve(async (req) => {
 
     WEAKNESSES (exactly 4-5 per section - DETAILED AND DATA-DRIVEN):
     - Each weakness MUST include specific market data, competitive intelligence, or industry benchmarks
-    - Frame as growth opportunities with quantitative market context
-    - Include market research gaps, competitive blind spots, or missed industry insights
+    - Focus ONLY on what is missing, lacking, or insufficient in their response
+    - Include market gaps they failed to address, competitive blind spots, or missed industry insights
     - Example: "The response lacks awareness of the 45% market shift toward mobile-first solutions, missing a $X billion opportunity segment."
-    - Each weakness should be 3-4 sentences with specific market data showing the gap or opportunity
-    - Provide concrete numbers, percentages, market sizes, or competitive data to support each weakness
-    - Include actionable market intelligence that shows what they're missing
+    - Each weakness should be 3-4 sentences with specific market data showing what they failed to address
+    - Provide concrete numbers, percentages, market sizes, or competitive data to highlight what's missing
+    - DO NOT include any recommendations, suggestions, or advice - only highlight deficiencies and gaps
+    - Avoid phrases like "should consider", "could improve", "might benefit", or any forward-looking advice
 
     SCORING REASON REQUIREMENT:
     Provide a 1-2 sentence explanation that focuses on the POSITIVE aspects and potential demonstrated, while acknowledging areas for development.
@@ -325,31 +326,31 @@ serve(async (req) => {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
+          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "target_customers": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
+          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "competitors": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
+          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "revenue_model": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
+          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         },
         "differentiation": {
           "score": number (1-100),
           "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
           "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed growth opportunities (3-4 sentences each) with specific market data/numbers"]
+          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations or suggestions"]
         }
       },
       "summary": {
@@ -373,7 +374,7 @@ serve(async (req) => {
     3. EXACTLY 4-5 POINTS - Both strengths and improvements must have exactly 4-5 detailed points per section
     4. 3-4 SENTENCES EACH - Each strength and weakness must be 3-4 sentences with market context
     5. QUANTITATIVE FOCUS - Include measurable data points in every strength and weakness
-    6. POSITIVE FRAMING - Frame challenges as opportunities with market intelligence
+    6. WEAKNESSES ONLY - In improvements sections, only highlight what is missing or lacking, NO recommendations
     7. ACTIONABLE INTELLIGENCE - Provide specific market insights that guide strategic decisions
     8. Return only valid JSON without markdown formatting
     9. Include scoring_reason that emphasizes positive aspects and potential
@@ -394,7 +395,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an encouraging and balanced startup evaluator with deep market intelligence expertise. Your role is to identify potential and provide constructive guidance while maintaining professional standards. Every analysis point must include specific market data, numbers, percentages, or industry benchmarks. Focus on positive aspects and frame challenges as growth opportunities with quantitative market context. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Always emphasize potential and positive aspects in your scoring_reason. Ensure every strength and weakness includes specific market data or numbers.'
+            content: 'You are an encouraging and balanced startup evaluator with deep market intelligence expertise. Your role is to identify potential and provide constructive guidance while maintaining professional standards. Every analysis point must include specific market data, numbers, percentages, or industry benchmarks. Focus on positive aspects and in weaknesses sections only highlight gaps and deficiencies without any recommendations or suggestions. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. Always emphasize potential and positive aspects in your scoring_reason. Ensure every strength and weakness includes specific market data or numbers.'
           },
           {
             role: 'user',
