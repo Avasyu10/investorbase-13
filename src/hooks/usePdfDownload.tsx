@@ -78,17 +78,18 @@ export const usePdfDownload = () => {
       },
       margin: { top: 20, right: 14, bottom: 20, left: 14 },
       columnStyles: {
-        0: { cellWidth: 25 }, // Company Name - reduced
-        1: { cellWidth: 20 }, // Contact - reduced  
-        2: { cellWidth: 25 }, // Email - reduced
-        3: { cellWidth: 20 }, // Industry - reduced
-        4: { cellWidth: 15 }, // Score - reduced
-        5: { cellWidth: 60 } // Reason for Scoring - significantly increased
+        0: { cellWidth: 30 }, // Company Name
+        1: { cellWidth: 25 }, // Contact
+        2: { cellWidth: 30 }, // Email
+        3: { cellWidth: 25 }, // Industry
+        4: { cellWidth: 20 }, // Score
+        5: { cellWidth: 'auto' } // Reason for Scoring - auto will use remaining space
       },
       showHead: 'everyPage',
       pageBreak: 'auto',
       tableLineWidth: 0.1,
       tableLineColor: [200, 200, 200],
+      tableWidth: 'auto', // This ensures the table uses the full available width
     });
     
     // Save the PDF
