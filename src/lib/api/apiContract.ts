@@ -1,4 +1,3 @@
-
 export interface Section {
   id: string;
   title: string;
@@ -28,6 +27,7 @@ export interface Company {
   stage?: string;
   industry?: string;
   introduction?: string;
+  scoring_reason?: string;
 }
 
 export interface CompanyDetailed extends Company {
