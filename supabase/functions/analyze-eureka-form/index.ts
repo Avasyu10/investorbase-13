@@ -423,7 +423,7 @@ serve(async (req) => {
     Return analysis in this JSON format:
     {
       "overall_score": number (calculated weighted average),
-      "scoring_reason": "Brief explanation emphasizing positive aspects and potential while noting development areas",
+      "scoring_reason": "One concise sentence explaining the key strengths and main areas needing improvement",
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from application)",
@@ -482,7 +482,7 @@ serve(async (req) => {
       }
     }
 
-    REMEMBER: You MUST calculate each section score step-by-step and show your calculation. Include the score_calculation field for each section showing exactly how you arrived at the final score.
+    REMEMBER: You MUST calculate each section score step-by-step and show your calculation. Include the score_calculation field for each section showing exactly how you arrived at the final score. Keep the scoring_reason to ONE CONCISE SENTENCE only.
     `;
 
     // Call OpenAI for analysis
@@ -499,7 +499,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a precise startup evaluator. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". Use the full scoring range (0-100) and ensure significant score variation based on actual response quality. Return ONLY valid JSON without any markdown formatting.'
+            content: 'You are a precise startup evaluator. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". Use the full scoring range (0-100) and ensure significant score variation based on actual response quality. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.'
           },
           {
             role: 'user',
