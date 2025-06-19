@@ -213,7 +213,7 @@ serve(async (req) => {
 
     // Build analysis prompt with submission data
     const analysisPrompt = `
-    You are an expert startup evaluator with LENIENT EVALUATION STANDARDS and ENCOURAGING SCORING. Your goal is to provide supportive assessment that recognizes potential and gives credit for entrepreneurial effort.
+    You are an expert startup evaluator with VARIED SCORING STANDARDS to differentiate between submissions. Your goal is to provide realistic assessment that shows clear distinctions between different quality levels.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -221,42 +221,46 @@ serve(async (req) => {
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and LENIENT EVALUATION METRICS:
+    Application Responses and VARIED EVALUATION METRICS:
 
     1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
     SCORING CALCULATION FOR PROBLEM & SOLUTION (100 points total):
     Step 1: Problem Clarity & Significance (25 pts):
-    - 22-25: Good problem identification with some impact awareness
-    - 18-21: Adequate problem statement showing understanding
-    - 14-17: Basic problem awareness with room for development
-    - 10-13: Problem mentioned but needs more clarity
-    - 6-9: Some problem identification attempted
-    - 0-5: No clear problem identified
+    - 23-25: Exceptional problem identification with compelling market data and urgency
+    - 20-22: Strong problem statement with clear impact awareness
+    - 16-19: Good problem identification with some market understanding
+    - 12-15: Basic problem awareness but lacks depth or urgency
+    - 8-11: Vague problem identification with minimal market connection
+    - 4-7: Poor problem clarity, mostly assumptions
+    - 0-3: No clear problem identified or completely misunderstood
 
     Step 2: Solution Innovation & Feasibility (25 pts):
-    - 22-25: Good solution approach with reasonable connection to problem
-    - 18-21: Decent solution concept with feasible elements
-    - 14-17: Basic solution identified with some merit
-    - 10-13: Solution attempt made with potential
-    - 6-9: Some solution thinking demonstrated
-    - 0-5: No viable solution presented
+    - 23-25: Highly innovative solution with strong technical feasibility
+    - 20-22: Creative solution approach with realistic implementation plan
+    - 16-19: Good solution concept with reasonable feasibility
+    - 12-15: Basic solution but implementation unclear
+    - 8-11: Weak solution with questionable feasibility
+    - 4-7: Poor solution that doesn't address the problem well
+    - 0-3: No viable solution or completely unrealistic
 
     Step 3: Market Understanding (25 pts):
-    - 22-25: Good market awareness with some insights
-    - 18-21: Decent market understanding demonstrated
-    - 14-17: Basic market awareness shown
-    - 10-13: Some market consideration evident
-    - 6-9: Minimal market awareness attempted
-    - 0-5: No market understanding demonstrated
+    - 23-25: Deep market insights with data-driven analysis
+    - 20-22: Strong market awareness with competitive insights
+    - 16-19: Good market understanding with some research
+    - 12-15: Basic market awareness but superficial
+    - 8-11: Limited market understanding, mostly assumptions
+    - 4-7: Poor market awareness with significant gaps
+    - 0-3: No market understanding demonstrated
 
     Step 4: Technical Depth & Implementation (25 pts):
-    - 22-25: Good technical thinking with implementation consideration
-    - 18-21: Decent technical awareness with some planning
-    - 14-17: Basic technical understanding shown
-    - 10-13: Some technical consideration evident
-    - 6-9: Minimal technical awareness demonstrated
-    - 0-5: No technical understanding shown
+    - 23-25: Strong technical planning with detailed implementation strategy
+    - 20-22: Good technical understanding with clear next steps
+    - 16-19: Decent technical awareness with some planning
+    - 12-15: Basic technical consideration but lacks depth
+    - 8-11: Minimal technical understanding
+    - 4-7: Poor technical awareness with unrealistic expectations
+    - 0-3: No technical understanding shown
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = PROBLEM_SOLUTION_SCORE
 
@@ -264,36 +268,40 @@ serve(async (req) => {
     
     SCORING CALCULATION FOR TARGET CUSTOMERS (100 points total):
     Step 1: Customer Segmentation Precision (30 pts):
-    - 25-30: Good customer identification with decent characteristics
-    - 20-24: Adequate customer segmentation with some details
-    - 15-19: Basic customer identification attempted
-    - 10-14: Some customer consideration shown
-    - 5-9: Minimal customer awareness demonstrated
-    - 0-4: No clear customer identification
+    - 27-30: Precise, well-researched customer segments with detailed personas
+    - 23-26: Good customer identification with clear characteristics
+    - 18-22: Decent customer segmentation with some details
+    - 13-17: Basic customer identification but lacks precision
+    - 8-12: Vague customer definition with limited understanding
+    - 4-7: Poor customer identification, too broad or unclear
+    - 0-3: No clear customer identification
 
     Step 2: Market Size & Accessibility (25 pts):
-    - 20-25: Good market understanding with acquisition thinking
-    - 16-19: Decent market awareness with some strategy
-    - 12-15: Basic market consideration shown
-    - 8-11: Some market understanding attempted
-    - 4-7: Minimal market awareness demonstrated
+    - 23-25: Strong market sizing with realistic acquisition strategy
+    - 19-22: Good market understanding with clear go-to-market approach
+    - 15-18: Decent market awareness with some strategy
+    - 11-14: Basic market consideration but lacks detail
+    - 7-10: Limited market understanding
+    - 4-6: Poor market analysis with unrealistic assumptions
     - 0-3: No market understanding shown
 
     Step 3: Customer Pain Points & Payment Behavior (25 pts):
-    - 20-25: Good pain understanding with payment consideration
-    - 16-19: Decent pain awareness with some logic
-    - 12-15: Basic pain identification attempted
-    - 8-11: Some pain consideration shown
-    - 4-7: Minimal pain awareness demonstrated
+    - 23-25: Deep understanding of pain points with willingness-to-pay evidence
+    - 19-22: Good pain understanding with logical payment reasoning
+    - 15-18: Decent pain identification with some validation
+    - 11-14: Basic pain consideration but superficial
+    - 7-10: Limited pain understanding
+    - 4-6: Poor pain analysis with weak reasoning
     - 0-3: No pain understanding shown
 
     Step 4: Customer Validation Evidence (20 pts):
-    - 16-20: Good validation efforts with some evidence
-    - 13-15: Decent validation attempts shown
-    - 10-12: Basic validation consideration attempted
-    - 7-9: Some validation thinking demonstrated
-    - 4-6: Minimal validation awareness shown
-    - 0-3: No validation attempted
+    - 18-20: Strong validation with customer interviews and feedback
+    - 15-17: Good validation efforts with some customer contact
+    - 12-14: Basic validation attempts shown
+    - 8-11: Minimal validation with mostly assumptions
+    - 5-7: Poor validation efforts
+    - 2-4: Almost no validation attempted
+    - 0-1: No validation shown
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = TARGET_CUSTOMERS_SCORE
 
@@ -301,36 +309,40 @@ serve(async (req) => {
     
     SCORING CALCULATION FOR COMPETITORS (100 points total):
     Step 1: Competitive Landscape Knowledge (30 pts):
-    - 25-30: Good competitive awareness with key players identified
-    - 20-24: Decent competitive understanding shown
-    - 15-19: Basic competitive awareness attempted
-    - 10-14: Some competitive consideration demonstrated
-    - 5-9: Minimal competitive awareness shown
-    - 0-4: No competitive analysis attempted
+    - 27-30: Comprehensive competitive analysis with direct and indirect competitors
+    - 23-26: Strong competitive awareness with key players identified
+    - 18-22: Good competitive understanding with some research
+    - 13-17: Basic competitive awareness but incomplete
+    - 8-12: Limited competitive understanding
+    - 4-7: Poor competitive analysis with major gaps
+    - 0-3: No competitive analysis or completely wrong
 
     Step 2: Differentiation Strategy (25 pts):
-    - 20-25: Good differentiation thinking with some advantages
-    - 16-19: Decent differentiation consideration shown
-    - 12-15: Basic differentiation attempted
-    - 8-11: Some differentiation thinking demonstrated
-    - 4-7: Minimal differentiation awareness shown
+    - 23-25: Clear, compelling differentiation with sustainable advantages
+    - 19-22: Strong differentiation strategy with unique positioning
+    - 15-18: Good differentiation with some competitive advantages
+    - 11-14: Basic differentiation but not compelling
+    - 7-10: Weak differentiation strategy
+    - 4-6: Poor differentiation with little uniqueness
     - 0-3: No differentiation strategy identified
 
     Step 3: Competitive Analysis Depth (25 pts):
-    - 20-25: Good competitor understanding with insights
-    - 16-19: Decent competitive analysis attempted
-    - 12-15: Basic competitor consideration shown
-    - 8-11: Some competitive thinking demonstrated
-    - 4-7: Minimal competitive analysis attempted
+    - 23-25: In-depth competitor analysis with strengths/weaknesses
+    - 19-22: Good competitive insights with detailed understanding
+    - 15-18: Decent competitor analysis with some insights
+    - 11-14: Basic competitor consideration but shallow
+    - 7-10: Limited competitive analysis
+    - 4-6: Poor competitor understanding
     - 0-3: No competitive analysis provided
 
     Step 4: Market Positioning Strategy (20 pts):
-    - 16-20: Good positioning thinking with strategy consideration
-    - 13-15: Decent positioning awareness shown
-    - 10-12: Basic positioning attempted
-    - 7-9: Some positioning consideration demonstrated
-    - 4-6: Minimal positioning awareness shown
-    - 0-3: No positioning strategy identified
+    - 18-20: Strong positioning strategy with clear market niche
+    - 15-17: Good positioning with strategic thinking
+    - 12-14: Decent positioning consideration
+    - 8-11: Basic positioning but unclear strategy
+    - 5-7: Weak positioning awareness
+    - 2-4: Poor positioning strategy
+    - 0-1: No positioning strategy identified
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = COMPETITORS_SCORE
 
@@ -338,35 +350,39 @@ serve(async (req) => {
    
     SCORING CALCULATION FOR REVENUE MODEL (100 points total):
     Step 1: Revenue Stream Clarity (25 pts):
-    - 20-25: Good revenue thinking with monetization consideration
-    - 16-19: Decent revenue understanding shown
-    - 12-15: Basic revenue identification attempted
-    - 8-11: Some revenue consideration demonstrated
-    - 4-7: Minimal revenue awareness shown
+    - 23-25: Clear, diversified revenue streams with strong monetization logic
+    - 19-22: Good revenue model with logical monetization approach
+    - 15-18: Decent revenue thinking with some clarity
+    - 11-14: Basic revenue identification but unclear execution
+    - 7-10: Weak revenue model with limited thinking
+    - 4-6: Poor revenue strategy with unrealistic assumptions
     - 0-3: No revenue model identified
 
     Step 2: Pricing Strategy & Logic (25 pts):
-    - 20-25: Good pricing consideration with some logic
-    - 16-19: Decent pricing thinking demonstrated
-    - 12-15: Basic pricing awareness attempted
-    - 8-11: Some pricing consideration shown
-    - 4-7: Minimal pricing awareness demonstrated
+    - 23-25: Well-researched pricing with competitive analysis and value justification
+    - 19-22: Good pricing strategy with logical reasoning
+    - 15-18: Decent pricing consideration with some research
+    - 11-14: Basic pricing but lacks market validation
+    - 7-10: Weak pricing strategy
+    - 4-6: Poor pricing with little justification
     - 0-3: No pricing strategy provided
 
     Step 3: Financial Projections & Unit Economics (25 pts):
-    - 20-25: Good financial thinking with some projections
-    - 16-19: Decent financial awareness demonstrated
-    - 12-15: Basic financial consideration attempted
-    - 8-11: Some financial thinking shown
-    - 4-7: Minimal financial awareness demonstrated
+    - 23-25: Detailed financial projections with realistic unit economics
+    - 19-22: Good financial thinking with some projections
+    - 15-18: Decent financial consideration with basic projections
+    - 11-14: Basic financial thinking but lacks detail
+    - 7-10: Weak financial projections
+    - 4-6: Poor financial understanding
     - 0-3: No financial projections provided
 
     Step 4: Scalability & Growth Strategy (25 pts):
-    - 20-25: Good scalability thinking with growth consideration
-    - 16-19: Decent growth awareness demonstrated
-    - 12-15: Basic scalability consideration attempted
-    - 8-11: Some growth thinking shown
-    - 4-7: Minimal scalability awareness demonstrated
+    - 23-25: Strong scalability plan with clear growth levers
+    - 19-22: Good scalability thinking with growth strategy
+    - 15-18: Decent scalability consideration
+    - 11-14: Basic scalability awareness but limited planning
+    - 7-10: Weak scalability understanding
+    - 4-6: Poor growth strategy
     - 0-3: No scalability consideration shown
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = REVENUE_MODEL_SCORE
@@ -375,50 +391,54 @@ serve(async (req) => {
     
     SCORING CALCULATION FOR DIFFERENTIATION (100 points total):
     Step 1: Unique Value Proposition Strength (30 pts):
-    - 25-30: Good unique value thinking with clear benefits
-    - 20-24: Decent value proposition consideration shown
-    - 15-19: Basic uniqueness attempted
-    - 10-14: Some value consideration demonstrated
-    - 5-9: Minimal uniqueness awareness shown
-    - 0-4: No unique value proposition
+    - 27-30: Compelling, unique value proposition with clear customer benefits
+    - 23-26: Strong value proposition with good differentiation
+    - 18-22: Good uniqueness with clear benefits
+    - 13-17: Basic uniqueness but not compelling
+    - 8-12: Weak value proposition
+    - 4-7: Poor uniqueness with little value
+    - 0-3: No unique value proposition
 
     Step 2: Defensibility & Moats (25 pts):
-    - 20-25: Good defensibility thinking with some protection
-    - 16-19: Decent defensibility consideration shown
-    - 12-15: Basic defensibility attempted
-    - 8-11: Some defensibility thinking demonstrated
-    - 4-7: Minimal defensibility awareness shown
+    - 23-25: Strong defensible advantages with multiple moats
+    - 19-22: Good defensibility with some protection strategies
+    - 15-18: Decent defensibility consideration
+    - 11-14: Basic defensibility but weak
+    - 7-10: Limited defensibility awareness
+    - 4-6: Poor defensible advantages
     - 0-3: No defensible advantages identified
 
     Step 3: Technology & Innovation Edge (25 pts):
-    - 20-25: Good technology thinking with some advancement
-    - 16-19: Decent technology consideration shown
-    - 12-15: Basic technology awareness attempted
-    - 8-11: Some technology thinking demonstrated
-    - 4-7: Minimal technology awareness shown
+    - 23-25: Cutting-edge technology with significant innovation
+    - 19-22: Strong technology differentiation
+    - 15-18: Good technology consideration with some innovation
+    - 11-14: Basic technology awareness but not innovative
+    - 7-10: Limited technology differentiation
+    - 4-6: Poor technology strategy
     - 0-3: No technology differentiation identified
 
     Step 4: Go-to-Market Advantage (20 pts):
-    - 16-20: Good GTM thinking with customer consideration
-    - 13-15: Decent GTM awareness demonstrated
-    - 10-12: Basic GTM consideration attempted
-    - 7-9: Some GTM thinking shown
-    - 4-6: Minimal GTM awareness demonstrated
-    - 0-3: No GTM strategy identified
+    - 18-20: Superior go-to-market strategy with competitive advantages
+    - 15-17: Strong GTM approach with clear advantages
+    - 12-14: Good GTM consideration
+    - 8-11: Basic GTM thinking but unremarkable
+    - 5-7: Weak GTM strategy
+    - 2-4: Poor GTM approach
+    - 0-1: No GTM strategy identified
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = DIFFERENTIATION_SCORE
 
-    LENIENT SCORING REQUIREMENTS:
+    VARIED SCORING REQUIREMENTS:
 
     1. CALCULATE EACH SECTION SCORE EXACTLY using the step-by-step method above
     2. For each section, you MUST show your calculation: "Step 1: X points, Step 2: Y points, Step 3: Z points, Step 4: W points. Total: X+Y+Z+W = FINAL_SCORE"
-    3. Be GENEROUS in scoring - give credit for effort and potential
+    3. Be REALISTIC in scoring - differentiate clearly between quality levels
     4. OVERALL SCORE = (PROBLEM_SOLUTION_SCORE × 0.25) + (TARGET_CUSTOMERS_SCORE × 0.25) + (COMPETITORS_SCORE × 0.20) + (REVENUE_MODEL_SCORE × 0.15) + (DIFFERENTIATION_SCORE × 0.15)
 
-    LENIENT RECOMMENDATION LOGIC:
-    - Accept: Overall score ≥ 75 with no section below 60
-    - Consider: Overall score 55-74 OR good sections with some development areas
-    - Reject: Overall score < 55 AND multiple critical sections below 40
+    REALISTIC RECOMMENDATION LOGIC:
+    - Accept: Overall score ≥ 80 AND no section below 70
+    - Consider: Overall score 60-79 OR good potential with development areas
+    - Reject: Overall score < 60 OR multiple critical sections below 50
 
     Return analysis in this JSON format:
     {
@@ -468,21 +488,21 @@ serve(async (req) => {
         }
       },
       "summary": {
-        "overall_feedback": "comprehensive encouraging feedback focusing on potential and positive aspects while providing constructive guidance",
-        "key_factors": ["key positive factors and potential demonstrated with supportive market validation"],
-        "next_steps": ["specific encouraging recommendations with market-informed guidance for growth"],
+        "overall_feedback": "comprehensive realistic feedback focusing on actual performance while providing constructive guidance",
+        "key_factors": ["key factors demonstrated with realistic market validation"],
+        "next_steps": ["specific realistic recommendations with market-informed guidance for growth"],
         "assessment_points": [
-          "EXACTLY 8-10 detailed market-focused assessment points combining positive startup insights with market intelligence",
-          "Each point must be 3-4 sentences emphasizing opportunities and potential with market data",
+          "EXACTLY 8-10 detailed market-focused assessment points combining realistic startup insights with market intelligence",
+          "Each point must be 3-4 sentences emphasizing realistic opportunities and challenges with market data",
           "Include market sizes, growth rates, competitive landscape metrics, funding trends, adoption rates",
-          "Frame market challenges as opportunities for strategic positioning and growth",
-          "Connect startup's approach to positive industry trends and market opportunities",
-          "Provide encouraging analysis of market fit and strategic potential with actionable intelligence"
+          "Present market challenges realistically while identifying strategic opportunities",
+          "Connect startup's approach to industry trends and market realities with balanced analysis",
+          "Provide realistic analysis of market fit and strategic potential with actionable intelligence"
         ]
       }
     }
 
-    REMEMBER: You MUST calculate each section score step-by-step and show your calculation. Include the score_calculation field for each section showing exactly how you arrived at the final score. Keep the scoring_reason to ONE CONCISE SENTENCE only. BE GENEROUS AND ENCOURAGING IN YOUR SCORING.
+    REMEMBER: You MUST calculate each section score step-by-step and show your calculation. Include the score_calculation field for each section showing exactly how you arrived at the final score. Keep the scoring_reason to ONE CONCISE SENTENCE only. BE REALISTIC AND VARIED IN YOUR SCORING to show clear quality differences.
     `;
 
     // Call OpenAI for analysis
@@ -495,18 +515,18 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a supportive startup evaluator with LENIENT evaluation standards. You MUST calculate each section score step-by-step using the generous metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". Be GENEROUS in scoring - give credit for effort and potential. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.'
+            content: 'You are a realistic startup evaluator with VARIED scoring standards to differentiate between submissions. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". Be REALISTIC in scoring - show clear distinctions between different quality levels. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.'
           },
           {
             role: 'user',
             content: analysisPrompt
           }
         ],
-        temperature: 0.1,
+        temperature: 0.3,
         max_tokens: 4000,
       }),
     });
