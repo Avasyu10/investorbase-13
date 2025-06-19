@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -297,18 +298,26 @@ serve(async (req) => {
     For ASSESSMENT POINTS (8-10 points required):
     Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation. Each assessment point should provide substantial market intelligence that connects startup positioning with industry realities, competitive dynamics, and growth opportunities.
 
-    CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
-    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
-    - Market saturation concerns (X% of market already captured by incumbents)
-    - High customer acquisition costs in this sector ($X CAC vs industry average)
-    - Regulatory challenges affecting X% of similar companies
-    - Economic headwinds impacting sector growth (X% decline in funding)
-    - Technology adoption barriers affecting X% of target market
-    - Competitive pressure from well-funded players with $X backing
-    - Market timing risks based on industry cycles
-
-    For STRENGTHS (exactly 4-5 each per section):
-    - STRENGTHS: Highlight what they did well in addressing the metrics, supported by market validation and data
+    CRITICAL CHANGE - For STRENGTHS and WEAKNESSES (exactly 4-5 each per section):
+    
+    STRENGTHS must include detailed market data and be specific about their response quality:
+    - Focus on how well they addressed the evaluation metrics with supporting market context
+    - Include specific market figures, growth rates, industry benchmarks, and competitive data
+    - Connect their insights to broader industry trends and opportunities
+    - Validate their understanding with real market intelligence
+    - Each strength should be 2-3 sentences with concrete market data integration
+    
+    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness:
+    - Market saturation concerns (X% of market already captured by incumbents with specific data)
+    - High customer acquisition costs in this sector ($X CAC vs industry average of $Y)
+    - Regulatory challenges affecting X% of similar companies in their industry
+    - Economic headwinds impacting sector growth (X% decline in funding or market contraction)
+    - Technology adoption barriers affecting X% of target market with supporting data
+    - Competitive pressure from well-funded players with $X backing and market share data
+    - Market timing risks based on industry cycles with historical data
+    - Supply chain constraints affecting X% of companies in this sector
+    - Pricing pressure in market with average margins of X% declining by Y%
+    - Each weakness should be 2-3 sentences with specific market data and industry metrics
 
     CRITICAL ADDITION - SCORING REASON REQUIREMENT:
     Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating, focusing on how well they addressed the evaluation metrics for each question rather than response length.
@@ -325,32 +334,32 @@ serve(async (req) => {
         "problem_solution_fit": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
+          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
         },
         "target_customers": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
+          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
         },
         "competitors": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
+          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
         },
         "revenue_model": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
+          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
         },
         "differentiation": {
           "score": number (1-100),
           "analysis": "detailed analysis evaluating how well the response addresses the 3 specific metrics with market context",
-          "strengths": ["exactly 4-5 strengths focusing on how well they addressed the metrics with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+          "strengths": ["exactly 4-5 detailed strengths (2-3 sentences each) focusing on how well they addressed the metrics with extensive market data integration including specific figures, growth rates, industry benchmarks"],
+          "improvements": ["exactly 4-5 market data challenges/risks (2-3 sentences each) the company faces in this industry with specific metrics and industry data - NOT response quality issues"]
         }
       },
       "summary": {
@@ -378,12 +387,13 @@ serve(async (req) => {
     3. REWARD EVIDENCE AND INSIGHTS - look for research, data, customer validation, market understanding
     4. Use the exact metrics provided for each question as the primary evaluation framework
     5. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
-    6. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
-    7. Provide exactly 4-5 strengths and 4-5 weaknesses per section
-    8. All scores must be 1-100 scale
-    9. Return only valid JSON without markdown formatting
-    10. MUST include scoring_reason field with brief 1-2 sentence justification focusing on metric performance
-    11. Balance analytical rigor with recognition of how well the startup addressed each question's specific evaluation metrics
+    6. STRENGTHS: Must include detailed market data (2-3 sentences each) and focus on how well they addressed the metrics with specific industry figures and benchmarks
+    7. WEAKNESSES: Focus ONLY on market data challenges and industry risks (2-3 sentences each) with specific metrics - NOT response quality or form gaps
+    8. Provide exactly 4-5 strengths and 4-5 weaknesses per section
+    9. All scores must be 1-100 scale
+    10. Return only valid JSON without markdown formatting
+    11. MUST include scoring_reason field with brief 1-2 sentence justification focusing on metric performance
+    12. Balance analytical rigor with recognition of how well the startup addressed each question's specific evaluation metrics
     `;
 
     // Call OpenAI for analysis
