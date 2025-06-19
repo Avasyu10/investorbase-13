@@ -76,10 +76,14 @@ export const usePdfDownload = () => {
       alternateRowStyles: {
         fillColor: [245, 245, 245],
       },
-      margin: { top: 85, right: 14, bottom: 20, left: 14 },
+      margin: { top: 20, right: 14, bottom: 20, left: 14 },
       columnStyles: {
         5: { cellWidth: 35 } // Make the "Reason for Scoring" column wider
       },
+      showHead: 'everyPage',
+      pageBreak: 'auto',
+      tableLineWidth: 0.1,
+      tableLineColor: [200, 200, 200],
     });
     
     // Save the PDF
