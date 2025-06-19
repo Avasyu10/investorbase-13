@@ -313,8 +313,12 @@ serve(async (req) => {
 
     For STRENGTHS (exactly 4-5 each per section):
     - STRENGTHS: Highlight what they did well, supported by market validation and data
+
+    CRITICAL ADDITION - SCORING REASON REQUIREMENT:
+    Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating. This should be concise but specific about what drove the score up or down.
     
       "overall_score": number (1-100),
+      "scoring_reason": "Brief 1-2 sentence explanation of the key factors that determined this overall score",
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from application)",
@@ -384,6 +388,7 @@ serve(async (req) => {
     9. All scores must be 1-100 scale
     10. Return only valid JSON without markdown formatting
     11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
+    12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
     `;
 
     // Call OpenAI for analysis
@@ -400,7 +405,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. BE EXTREMELY HARSH on poor answer quality - one-word or very short answers should receive very low scores (5-20 maximum) regardless of market potential.'
+            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text. BE EXTREMELY HARSH on poor answer quality - one-word or very short answers should receive very low scores (5-20 maximum) regardless of market potential. ALWAYS include a scoring_reason field with a brief 1-2 sentence justification for the overall score.'
           },
           {
             role: 'user',
@@ -452,6 +457,7 @@ serve(async (req) => {
 
     console.log('Analysis overall score:', analysisResult.overall_score);
     console.log('Analysis recommendation:', analysisResult.recommendation);
+    console.log('Analysis scoring reason:', analysisResult.scoring_reason);
 
     // Create or update company
     let companyId = submission.company_id;
@@ -465,6 +471,7 @@ serve(async (req) => {
         name: submission.company_name,
         overall_score: analysisResult.overall_score,
         assessment_points: analysisResult.summary?.assessment_points || [],
+        scoring_reason: analysisResult.scoring_reason || null,
         user_id: effectiveUserId,
         source: 'eureka_form',
         industry: submission.company_type || null,
@@ -494,6 +501,7 @@ serve(async (req) => {
       const updateData = {
         overall_score: analysisResult.overall_score,
         assessment_points: analysisResult.summary?.assessment_points || [],
+        scoring_reason: analysisResult.scoring_reason || null,
         industry: submission.company_type || null,
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
