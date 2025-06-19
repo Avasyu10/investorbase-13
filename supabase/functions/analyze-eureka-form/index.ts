@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -212,7 +213,7 @@ serve(async (req) => {
 
     // Build analysis prompt with submission data
     const analysisPrompt = `
-    You are an expert startup evaluator with STRICT AND HIGHLY VARIED SCORING STANDARDS. Your primary goal is to create MAXIMUM SCORE VARIATION between submissions, ranging from very low scores (20-40) for weak applications to very high scores (85-95) for exceptional ones. Most submissions should fall in the middle ranges (45-75).
+    You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to create GOOD SCORE VARIATION between submissions while being fair to realistic startup applications, ranging from moderate scores (45-65) for basic applications to high scores (75-90) for strong ones. Most good submissions should fall in the 55-75 range.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -220,225 +221,225 @@ serve(async (req) => {
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and HIGHLY VARIED EVALUATION METRICS:
+    Application Responses and BALANCED EVALUATION METRICS:
 
     1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
-    SCORING CALCULATION FOR PROBLEM & SOLUTION (100 points total) - BE EXTREMELY STRICT:
+    SCORING CALCULATION FOR PROBLEM & SOLUTION (100 points total) - BE FAIR BUT DISCERNING:
     Step 1: Problem Clarity & Significance (25 pts):
-    - 22-25: Revolutionary problem with massive market urgency and compelling data
-    - 18-21: Strong problem with clear market validation and urgency
-    - 14-17: Good problem identification with some market evidence
-    - 10-13: Basic problem awareness but limited validation
-    - 6-9: Weak problem identification with minimal evidence
-    - 3-5: Poor problem clarity with mostly assumptions
-    - 0-2: No clear problem or completely misunderstood market need
+    - 22-25: Exceptional problem with strong market evidence and urgency
+    - 18-21: Clear, well-defined problem with good market validation
+    - 14-17: Solid problem identification with reasonable evidence
+    - 10-13: Basic problem awareness with some validation
+    - 6-9: Unclear problem definition with limited evidence
+    - 3-5: Poor problem identification with weak justification
+    - 0-2: No clear problem identified
 
     Step 2: Solution Innovation & Feasibility (25 pts):
-    - 22-25: Groundbreaking solution with proven technical feasibility
-    - 18-21: Highly innovative approach with realistic implementation
-    - 14-17: Creative solution with reasonable feasibility
-    - 10-13: Basic solution but unclear implementation path
+    - 22-25: Highly innovative and clearly feasible solution
+    - 18-21: Good innovation with realistic implementation plan
+    - 14-17: Solid solution approach with reasonable feasibility
+    - 10-13: Basic solution with unclear implementation
     - 6-9: Weak solution with questionable viability
-    - 3-5: Poor solution that barely addresses the problem
-    - 0-2: No viable solution or completely unrealistic approach
+    - 3-5: Poor solution that barely addresses problem
+    - 0-2: No viable solution presented
 
     Step 3: Market Understanding (25 pts):
-    - 22-25: Deep market expertise with comprehensive data analysis
-    - 18-21: Strong market research with competitive intelligence
-    - 14-17: Good market awareness with some validation
-    - 10-13: Basic market knowledge but mostly surface-level
-    - 6-9: Limited understanding with significant knowledge gaps
-    - 3-5: Poor market awareness with major misconceptions
+    - 22-25: Deep market expertise with comprehensive analysis
+    - 18-21: Strong market research with good insights
+    - 14-17: Good market awareness with adequate research
+    - 10-13: Basic market knowledge with some gaps
+    - 6-9: Limited market understanding
+    - 3-5: Poor market awareness
     - 0-2: No demonstrated market understanding
 
     Step 4: Technical Depth & Implementation (25 pts):
-    - 22-25: Sophisticated technical strategy with detailed roadmap
-    - 18-21: Strong technical planning with clear execution steps
-    - 14-17: Decent technical consideration with some planning
-    - 10-13: Basic technical awareness but lacks depth
-    - 6-9: Minimal technical understanding or planning
-    - 3-5: Poor technical strategy with unrealistic expectations
-    - 0-2: No technical understanding demonstrated
+    - 22-25: Sophisticated technical strategy with detailed planning
+    - 18-21: Strong technical approach with clear roadmap
+    - 14-17: Good technical consideration with reasonable planning
+    - 10-13: Basic technical awareness with limited depth
+    - 6-9: Minimal technical understanding
+    - 3-5: Poor technical strategy
+    - 0-2: No technical understanding shown
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = PROBLEM_SOLUTION_SCORE
 
     2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
-    SCORING CALCULATION FOR TARGET CUSTOMERS (100 points total) - BE EXTREMELY STRICT:
+    SCORING CALCULATION FOR TARGET CUSTOMERS (100 points total) - BE FAIR BUT DISCERNING:
     Step 1: Customer Segmentation Precision (30 pts):
-    - 26-30: Laser-focused segments with detailed buyer personas and data
+    - 26-30: Very precise segments with detailed buyer personas
     - 21-25: Well-defined customer segments with clear characteristics
-    - 16-20: Good customer identification with some specificity
-    - 11-15: Basic segmentation but lacks precision and depth
-    - 6-10: Vague customer definition with broad generalizations
-    - 3-5: Poor targeting that's too broad or unclear
-    - 0-2: No clear customer identification or completely off-target
+    - 16-20: Good customer identification with reasonable specificity
+    - 11-15: Basic segmentation with adequate definition
+    - 6-10: Vague customer definition but some targeting
+    - 3-5: Poor targeting that's too broad
+    - 0-2: No clear customer identification
 
     Step 2: Market Size & Accessibility (25 pts):
-    - 22-25: Precise market sizing with proven acquisition channels
-    - 18-21: Strong market analysis with realistic go-to-market strategy
-    - 14-17: Decent market understanding with some strategy
-    - 10-13: Basic market consideration but lacks strategic depth
-    - 6-9: Limited market analysis with questionable assumptions
-    - 3-5: Poor market understanding with unrealistic projections
-    - 0-2: No market sizing or completely unrealistic expectations
+    - 22-25: Strong market analysis with realistic strategy
+    - 18-21: Good market understanding with clear approach
+    - 14-17: Decent market consideration with basic strategy
+    - 10-13: Basic market awareness with limited strategy
+    - 6-9: Poor market analysis with weak assumptions
+    - 3-5: Very limited market understanding
+    - 0-2: No market sizing or unrealistic expectations
 
     Step 3: Customer Pain Points & Payment Behavior (25 pts):
-    - 22-25: Deep pain analysis with validated willingness-to-pay data
-    - 18-21: Strong pain understanding with logical payment reasoning
-    - 14-17: Good pain identification with some customer validation
-    - 10-13: Basic pain awareness but mostly assumptions
-    - 6-9: Limited pain understanding with weak reasoning
-    - 3-5: Poor pain analysis with little customer insight
-    - 0-2: No pain understanding or completely wrong assumptions
+    - 22-25: Deep pain analysis with strong willingness-to-pay logic
+    - 18-21: Good pain understanding with reasonable payment logic
+    - 14-17: Solid pain identification with basic validation
+    - 10-13: Basic pain awareness with some reasoning
+    - 6-9: Limited pain understanding
+    - 3-5: Poor pain analysis
+    - 0-2: No pain understanding demonstrated
 
     Step 4: Customer Validation Evidence (20 pts):
-    - 17-20: Extensive customer interviews and market validation
-    - 14-16: Good validation efforts with customer feedback
-    - 11-13: Some validation attempts with limited evidence
-    - 7-10: Minimal validation with mostly internal assumptions
-    - 4-6: Poor validation efforts with little customer contact
-    - 2-3: Almost no validation attempted
-    - 0-1: No customer validation shown
+    - 17-20: Strong customer validation with evidence
+    - 14-16: Good validation efforts with some feedback
+    - 11-13: Basic validation attempts with limited evidence
+    - 7-10: Minimal validation with mostly assumptions
+    - 4-6: Poor validation efforts
+    - 2-3: Very little validation
+    - 0-1: No validation shown
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = TARGET_CUSTOMERS_SCORE
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
-    SCORING CALCULATION FOR COMPETITORS (100 points total) - BE EXTREMELY STRICT:
+    SCORING CALCULATION FOR COMPETITORS (100 points total) - BE FAIR BUT DISCERNING:
     Step 1: Competitive Landscape Knowledge (30 pts):
-    - 26-30: Comprehensive analysis of direct/indirect competitors with market intelligence
+    - 26-30: Comprehensive competitive analysis with deep insights
     - 21-25: Strong competitive research with key players identified
-    - 16-20: Good competitive understanding with some analysis
-    - 11-15: Basic competitive awareness but incomplete research
-    - 6-10: Limited competitive knowledge with major gaps
-    - 3-5: Poor competitive analysis with little understanding
-    - 0-2: No competitive analysis or completely wrong assessment
+    - 16-20: Good competitive understanding with reasonable analysis
+    - 11-15: Basic competitive awareness with adequate research
+    - 6-10: Limited competitive knowledge with some gaps
+    - 3-5: Poor competitive analysis
+    - 0-2: No competitive analysis
 
     Step 2: Differentiation Strategy (25 pts):
-    - 22-25: Compelling unique positioning with sustainable competitive advantages
-    - 18-21: Strong differentiation with clear unique value
-    - 14-17: Good differentiation with some competitive edge
-    - 10-13: Basic differentiation but not compelling or defensible
+    - 22-25: Strong unique positioning with clear advantages
+    - 18-21: Good differentiation with solid value proposition
+    - 14-17: Reasonable differentiation with some uniqueness
+    - 10-13: Basic differentiation but not particularly strong
     - 6-9: Weak differentiation with little uniqueness
-    - 3-5: Poor positioning with minimal competitive advantage
-    - 0-2: No differentiation strategy or copied approach
+    - 3-5: Poor positioning with minimal advantage
+    - 0-2: No differentiation strategy
 
     Step 3: Competitive Analysis Depth (25 pts):
-    - 22-25: In-depth competitor analysis with SWOT and market positioning
-    - 18-21: Good competitive insights with detailed understanding
-    - 14-17: Decent analysis with some competitive intelligence
-    - 10-13: Basic competitor consideration but shallow analysis
-    - 6-9: Limited competitive research with surface-level insights
-    - 3-5: Poor competitor understanding with little analysis
-    - 0-2: No competitive analysis or completely superficial
+    - 22-25: In-depth analysis with strong competitive intelligence
+    - 18-21: Good competitive insights with solid understanding
+    - 14-17: Decent analysis with reasonable competitive knowledge
+    - 10-13: Basic competitor consideration with surface analysis
+    - 6-9: Limited competitive research
+    - 3-5: Poor competitor understanding
+    - 0-2: No competitive analysis
 
     Step 4: Market Positioning Strategy (20 pts):
-    - 17-20: Sophisticated positioning with clear market niche and strategy
-    - 14-16: Strong positioning with strategic market approach
-    - 11-13: Good positioning consideration with some strategy
-    - 7-10: Basic positioning but unclear strategic direction
-    - 4-6: Weak positioning with little strategic thinking
-    - 2-3: Poor positioning strategy with no clear direction
-    - 0-1: No positioning strategy identified
+    - 17-20: Clear positioning strategy with good market approach
+    - 14-16: Solid positioning with reasonable strategy
+    - 11-13: Good positioning consideration with basic strategy
+    - 7-10: Basic positioning with limited strategic thinking
+    - 4-6: Weak positioning strategy
+    - 2-3: Poor positioning with unclear direction
+    - 0-1: No positioning strategy
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = COMPETITORS_SCORE
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
    
-    SCORING CALCULATION FOR REVENUE MODEL (100 points total) - BE EXTREMELY STRICT:
+    SCORING CALCULATION FOR REVENUE MODEL (100 points total) - BE FAIR BUT DISCERNING:
     Step 1: Revenue Stream Clarity (25 pts):
-    - 22-25: Multiple diversified revenue streams with proven monetization
-    - 18-21: Clear revenue model with logical monetization approach
-    - 14-17: Good revenue thinking with some clarity and validation
-    - 10-13: Basic revenue identification but unclear execution
-    - 6-9: Weak revenue model with limited strategic thinking
-    - 3-5: Poor revenue strategy with unrealistic assumptions
-    - 0-2: No revenue model or completely unrealistic monetization
+    - 22-25: Clear revenue model with multiple streams and good logic
+    - 18-21: Solid revenue model with logical approach
+    - 14-17: Good revenue thinking with reasonable clarity
+    - 10-13: Basic revenue identification with adequate planning
+    - 6-9: Weak revenue model with limited thinking
+    - 3-5: Poor revenue strategy with unclear approach
+    - 0-2: No revenue model presented
 
     Step 2: Pricing Strategy & Logic (25 pts):
-    - 22-25: Data-driven pricing with competitive analysis and value justification
-    - 18-21: Strong pricing strategy with market research backing
-    - 14-17: Good pricing consideration with some market validation
-    - 10-13: Basic pricing but lacks market research or validation
-    - 6-9: Weak pricing strategy with little justification
-    - 3-5: Poor pricing with no market basis or logic
-    - 0-2: No pricing strategy or completely arbitrary pricing
+    - 22-25: Well-researched pricing with strong market justification
+    - 18-21: Good pricing strategy with reasonable research
+    - 14-17: Solid pricing consideration with basic validation
+    - 10-13: Basic pricing with some market consideration
+    - 6-9: Weak pricing strategy with limited justification
+    - 3-5: Poor pricing with little logic
+    - 0-2: No pricing strategy
 
     Step 3: Financial Projections & Unit Economics (25 pts):
-    - 22-25: Detailed financial models with realistic unit economics and assumptions
-    - 18-21: Good financial projections with some modeling
-    - 14-17: Basic financial consideration with simple projections
-    - 10-13: Limited financial thinking with weak projections
-    - 6-9: Poor financial understanding with unrealistic numbers
-    - 3-5: Very weak financial projections with no basis
-    - 0-2: No financial projections or completely unrealistic expectations
+    - 22-25: Solid financial projections with reasonable assumptions
+    - 18-21: Good financial thinking with basic modeling
+    - 14-17: Decent financial consideration with simple projections
+    - 10-13: Basic financial awareness with limited projections
+    - 6-9: Poor financial understanding
+    - 3-5: Very weak financial projections
+    - 0-2: No financial projections
 
     Step 4: Scalability & Growth Strategy (25 pts):
-    - 22-25: Comprehensive scalability plan with clear growth levers and metrics
-    - 18-21: Strong scalability thinking with growth strategy
-    - 14-17: Good scalability consideration with some planning
-    - 10-13: Basic scalability awareness but limited strategic planning
-    - 6-9: Weak scalability understanding with little growth strategy
-    - 3-5: Poor growth planning with unrealistic scaling expectations
-    - 0-2: No scalability consideration or completely unrealistic growth plans
+    - 22-25: Strong scalability plan with clear growth strategy
+    - 18-21: Good scalability thinking with reasonable strategy
+    - 14-17: Solid scalability consideration with basic planning
+    - 10-13: Basic scalability awareness with limited planning
+    - 6-9: Weak scalability understanding
+    - 3-5: Poor growth planning
+    - 0-2: No scalability consideration
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = REVENUE_MODEL_SCORE
 
     5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
-    SCORING CALCULATION FOR DIFFERENTIATION (100 points total) - BE EXTREMELY STRICT:
+    SCORING CALCULATION FOR DIFFERENTIATION (100 points total) - BE FAIR BUT DISCERNING:
     Step 1: Unique Value Proposition Strength (30 pts):
-    - 26-30: Revolutionary value proposition with clear customer benefits and validation
-    - 21-25: Strong unique value with compelling customer benefits
-    - 16-20: Good uniqueness with clear but not exceptional benefits
-    - 11-15: Basic uniqueness but not particularly compelling
+    - 26-30: Strong value proposition with clear benefits
+    - 21-25: Good unique value with solid customer benefits
+    - 16-20: Reasonable uniqueness with clear benefits
+    - 11-15: Basic uniqueness with some compelling aspects
     - 6-10: Weak value proposition with limited differentiation
-    - 3-5: Poor uniqueness with little distinguishing value
-    - 0-2: No unique value proposition or copied approach
+    - 3-5: Poor uniqueness with little value
+    - 0-2: No unique value proposition
 
     Step 2: Defensibility & Moats (25 pts):
-    - 22-25: Multiple strong defensible advantages with sustainable moats
-    - 18-21: Good defensibility with some protection strategies
-    - 14-17: Decent defensibility with basic competitive protection
-    - 10-13: Limited defensibility with weak competitive barriers
-    - 6-9: Poor defensible advantages with little protection
-    - 3-5: Very weak defensibility with no real barriers
-    - 0-2: No defensible advantages or easily replicated
+    - 22-25: Good defensible advantages with some barriers
+    - 18-21: Reasonable defensibility with basic protection
+    - 14-17: Decent defensibility with some competitive protection
+    - 10-13: Basic defensibility with limited barriers
+    - 6-9: Weak defensive advantages
+    - 3-5: Poor defensibility with no real barriers
+    - 0-2: No defensible advantages
 
     Step 3: Technology & Innovation Edge (25 pts):
-    - 22-25: Cutting-edge technology with significant innovation and IP potential
-    - 18-21: Strong technology differentiation with innovation
-    - 14-17: Good technology approach with some innovation
-    - 10-13: Basic technology but not particularly innovative
-    - 6-9: Limited technology differentiation with little innovation
-    - 3-5: Poor technology strategy with no innovation
-    - 0-2: No technology differentiation or outdated approach
+    - 22-25: Strong technology differentiation with innovation
+    - 18-21: Good technology approach with some innovation
+    - 14-17: Decent technology with reasonable innovation
+    - 10-13: Basic technology with limited innovation
+    - 6-9: Poor technology strategy with little innovation
+    - 3-5: Very weak technology approach
+    - 0-2: No technology differentiation
 
     Step 4: Go-to-Market Advantage (20 pts):
-    - 17-20: Superior GTM strategy with unique channel advantages and partnerships
-    - 14-16: Strong GTM approach with clear competitive advantages
-    - 11-13: Good GTM consideration with some advantages
-    - 7-10: Basic GTM thinking but not particularly advantageous
-    - 4-6: Weak GTM strategy with little competitive edge
-    - 2-3: Poor GTM approach with no clear advantages
-    - 0-1: No GTM strategy or completely generic approach
+    - 17-20: Strong GTM strategy with clear advantages
+    - 14-16: Good GTM approach with some advantages
+    - 11-13: Decent GTM consideration with basic advantages
+    - 7-10: Basic GTM thinking with limited advantages
+    - 4-6: Weak GTM strategy
+    - 2-3: Poor GTM approach
+    - 0-1: No GTM strategy
 
     CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = DIFFERENTIATION_SCORE
 
-    CRITICAL SCORING REQUIREMENTS FOR MAXIMUM VARIATION:
+    BALANCED SCORING REQUIREMENTS FOR GOOD VARIATION:
 
     1. CALCULATE EACH SECTION SCORE EXACTLY using the step-by-step method above
     2. For each section, you MUST show your calculation: "Step 1: X points, Step 2: Y points, Step 3: Z points, Step 4: W points. Total: X+Y+Z+W = FINAL_SCORE"
-    3. BE EXTREMELY STRICT - Most submissions should score in the 35-65 range with only exceptional ones reaching 80+
-    4. CREATE MAXIMUM VARIATION - Aim for at least 30-40 point differences between weak and strong submissions
+    3. BE FAIR BUT DISCERNING - Most good submissions should score in the 55-75 range with exceptional ones reaching 80-90
+    4. CREATE GOOD VARIATION - Aim for meaningful differences between weak and strong submissions while being fair
     5. OVERALL SCORE = (PROBLEM_SOLUTION_SCORE × 0.25) + (TARGET_CUSTOMERS_SCORE × 0.25) + (COMPETITORS_SCORE × 0.20) + (REVENUE_MODEL_SCORE × 0.15) + (DIFFERENTIATION_SCORE × 0.15)
 
-    STRICT RECOMMENDATION LOGIC WITH VARIED THRESHOLDS:
-    - Accept: Overall score ≥ 85 AND no section below 75 (only for truly exceptional submissions)
-    - Consider: Overall score 55-84 OR shows strong potential despite some weaknesses
-    - Reject: Overall score < 55 OR multiple critical sections below 40
+    BALANCED RECOMMENDATION LOGIC:
+    - Accept: Overall score ≥ 80 AND no section below 70 (for truly exceptional submissions)
+    - Consider: Overall score 60-79 OR shows good potential with some strong areas
+    - Reject: Overall score < 60 OR multiple critical sections below 50
 
     Return analysis in this JSON format:
     {
@@ -502,7 +503,7 @@ serve(async (req) => {
       }
     }
 
-    REMEMBER: You MUST calculate each section score step-by-step and show your calculation. BE EXTREMELY STRICT to create maximum score variation (20-95 range). Keep the scoring_reason to ONE CONCISE SENTENCE only. Most submissions should score 35-65 with only exceptional ones reaching 80+.
+    REMEMBER: You MUST calculate each section score step-by-step and show your calculation. BE FAIR BUT DISCERNING to create good score variation (45-90 range). Keep the scoring_reason to ONE CONCISE SENTENCE only. Most good submissions should score 55-75 with exceptional ones reaching 80-90.
     `;
 
     // Call Gemini for analysis
@@ -518,7 +519,7 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: `You are an EXTREMELY STRICT startup evaluator with MAXIMUM SCORE VARIATION standards. Your goal is to create scores that range from 20-95 with most submissions falling in 35-65 range. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". BE EXTREMELY STRICT in scoring - show massive distinctions between quality levels. Only truly exceptional submissions should score above 80. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.\n\n${analysisPrompt}`
+                text: `You are a FAIR BUT DISCERNING startup evaluator with BALANCED SCORING STANDARDS. Your goal is to create good score variation that ranges from 45-90 with most good submissions falling in 55-75 range. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". BE FAIR to realistic startup applications while maintaining meaningful distinctions between quality levels. Good submissions should score well (60-80) with only exceptional ones reaching 85+. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.\n\n${analysisPrompt}`
               }
             ]
           }
