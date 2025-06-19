@@ -1,16 +1,16 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { format, formatDistanceToNow } from "date-fns";
-import { Star, Trash2, Phone, Mail, Globe } from "lucide-react";
+import { Star, Trash2, Phone, Mail, Globe, Download } from "lucide-react";
 import { StatusDropdown } from "./StatusDropdown";
 import { TeamMemberInput } from "./TeamMemberInput";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
+import { usePdfDownload } from "@/hooks/usePdfDownload";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -23,6 +23,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
   const { deleteCompany, isDeleting } = useDeleteCompany();
+  const { downloadCompaniesAsPdf } = usePdfDownload();
 
   // Update local state when companies prop changes
   useEffect(() => {
@@ -167,9 +168,41 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }));
   };
 
+  const handleDownloadPdf = () => {
+    const title = isIITBombay ? 'IIT Bombay Companies Prospects' : 'Companies Prospects';
+    downloadCompaniesAsPdf(localCompanies, { 
+      filename: `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`,
+      title 
+    });
+    
+    toast({
+      title: "PDF Downloaded",
+      description: "Companies table has been downloaded successfully.",
+    });
+  };
+
   if (isIITBombay) {
     return (
       <Card>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Companies Prospects</h3>
+              <p className="text-sm text-muted-foreground">
+                {localCompanies.length} companies found
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -251,6 +284,25 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   // New table format for non-IIT Bombay users
   return (
     <Card>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">Companies Prospects</h3>
+            <p className="text-sm text-muted-foreground">
+              {localCompanies.length} companies found
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPdf}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Button>
+        </div>
+      </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
