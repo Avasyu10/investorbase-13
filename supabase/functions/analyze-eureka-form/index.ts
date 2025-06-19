@@ -213,7 +213,7 @@ serve(async (req) => {
 
     // Build analysis prompt with submission data
     const analysisPrompt = `
-    You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to create GOOD SCORE VARIATION between submissions while being fair to realistic startup applications, ranging from moderate scores (45-65) for basic applications to high scores (75-90) for strong ones. Most good submissions should fall in the 55-75 range.
+    You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to evaluate startup applications fairly while providing meaningful score differentiation. Most good applications should score between 60-80, with exceptional ones reaching 80-90.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -221,230 +221,74 @@ serve(async (req) => {
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and BALANCED EVALUATION METRICS:
+    Application Responses and FAIR EVALUATION METRICS:
 
     1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
-    SCORING CALCULATION FOR PROBLEM & SOLUTION (100 points total) - BE FAIR BUT DISCERNING:
-    Step 1: Problem Clarity & Significance (25 pts):
-    - 22-25: Exceptional problem with strong market evidence and urgency
-    - 18-21: Clear, well-defined problem with good market validation
-    - 14-17: Solid problem identification with reasonable evidence
-    - 10-13: Basic problem awareness with some validation
-    - 6-9: Unclear problem definition with limited evidence
-    - 3-5: Poor problem identification with weak justification
-    - 0-2: No clear problem identified
-
-    Step 2: Solution Innovation & Feasibility (25 pts):
-    - 22-25: Highly innovative and clearly feasible solution
-    - 18-21: Good innovation with realistic implementation plan
-    - 14-17: Solid solution approach with reasonable feasibility
-    - 10-13: Basic solution with unclear implementation
-    - 6-9: Weak solution with questionable viability
-    - 3-5: Poor solution that barely addresses problem
-    - 0-2: No viable solution presented
-
-    Step 3: Market Understanding (25 pts):
-    - 22-25: Deep market expertise with comprehensive analysis
-    - 18-21: Strong market research with good insights
-    - 14-17: Good market awareness with adequate research
-    - 10-13: Basic market knowledge with some gaps
-    - 6-9: Limited market understanding
-    - 3-5: Poor market awareness
-    - 0-2: No demonstrated market understanding
-
-    Step 4: Technical Depth & Implementation (25 pts):
-    - 22-25: Sophisticated technical strategy with detailed planning
-    - 18-21: Strong technical approach with clear roadmap
-    - 14-17: Good technical consideration with reasonable planning
-    - 10-13: Basic technical awareness with limited depth
-    - 6-9: Minimal technical understanding
-    - 3-5: Poor technical strategy
-    - 0-2: No technical understanding shown
-
-    CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = PROBLEM_SOLUTION_SCORE
+    Rate this section from 0-100 based on these FAIR criteria:
+    - Clear problem identification (25 points): Look for specific pain points and market needs
+    - Solution viability (25 points): Assess if the solution logically addresses the problem
+    - Market understanding (25 points): Evidence of market research and validation
+    - Innovation level (25 points): How unique or differentiated the approach is
+    
+    Be generous with scoring - if someone provides detailed explanations with specific examples, they should score 70+ in this section.
 
     2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
-    SCORING CALCULATION FOR TARGET CUSTOMERS (100 points total) - BE FAIR BUT DISCERNING:
-    Step 1: Customer Segmentation Precision (30 pts):
-    - 26-30: Very precise segments with detailed buyer personas
-    - 21-25: Well-defined customer segments with clear characteristics
-    - 16-20: Good customer identification with reasonable specificity
-    - 11-15: Basic segmentation with adequate definition
-    - 6-10: Vague customer definition but some targeting
-    - 3-5: Poor targeting that's too broad
-    - 0-2: No clear customer identification
-
-    Step 2: Market Size & Accessibility (25 pts):
-    - 22-25: Strong market analysis with realistic strategy
-    - 18-21: Good market understanding with clear approach
-    - 14-17: Decent market consideration with basic strategy
-    - 10-13: Basic market awareness with limited strategy
-    - 6-9: Poor market analysis with weak assumptions
-    - 3-5: Very limited market understanding
-    - 0-2: No market sizing or unrealistic expectations
-
-    Step 3: Customer Pain Points & Payment Behavior (25 pts):
-    - 22-25: Deep pain analysis with strong willingness-to-pay logic
-    - 18-21: Good pain understanding with reasonable payment logic
-    - 14-17: Solid pain identification with basic validation
-    - 10-13: Basic pain awareness with some reasoning
-    - 6-9: Limited pain understanding
-    - 3-5: Poor pain analysis
-    - 0-2: No pain understanding demonstrated
-
-    Step 4: Customer Validation Evidence (20 pts):
-    - 17-20: Strong customer validation with evidence
-    - 14-16: Good validation efforts with some feedback
-    - 11-13: Basic validation attempts with limited evidence
-    - 7-10: Minimal validation with mostly assumptions
-    - 4-6: Poor validation efforts
-    - 2-3: Very little validation
-    - 0-1: No validation shown
-
-    CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = TARGET_CUSTOMERS_SCORE
+    Rate this section from 0-100 based on these FAIR criteria:
+    - Customer segmentation clarity (30 points): How well-defined their target customers are
+    - Market size understanding (25 points): Realistic assessment of addressable market
+    - Customer pain validation (25 points): Evidence of understanding customer needs
+    - Go-to-market feasibility (20 points): Realistic customer acquisition strategy
+    
+    Reward detailed customer analysis - specific customer segments with clear characteristics should score 70+.
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
-    SCORING CALCULATION FOR COMPETITORS (100 points total) - BE FAIR BUT DISCERNING:
-    Step 1: Competitive Landscape Knowledge (30 pts):
-    - 26-30: Comprehensive competitive analysis with deep insights
-    - 21-25: Strong competitive research with key players identified
-    - 16-20: Good competitive understanding with reasonable analysis
-    - 11-15: Basic competitive awareness with adequate research
-    - 6-10: Limited competitive knowledge with some gaps
-    - 3-5: Poor competitive analysis
-    - 0-2: No competitive analysis
-
-    Step 2: Differentiation Strategy (25 pts):
-    - 22-25: Strong unique positioning with clear advantages
-    - 18-21: Good differentiation with solid value proposition
-    - 14-17: Reasonable differentiation with some uniqueness
-    - 10-13: Basic differentiation but not particularly strong
-    - 6-9: Weak differentiation with little uniqueness
-    - 3-5: Poor positioning with minimal advantage
-    - 0-2: No differentiation strategy
-
-    Step 3: Competitive Analysis Depth (25 pts):
-    - 22-25: In-depth analysis with strong competitive intelligence
-    - 18-21: Good competitive insights with solid understanding
-    - 14-17: Decent analysis with reasonable competitive knowledge
-    - 10-13: Basic competitor consideration with surface analysis
-    - 6-9: Limited competitive research
-    - 3-5: Poor competitor understanding
-    - 0-2: No competitive analysis
-
-    Step 4: Market Positioning Strategy (20 pts):
-    - 17-20: Clear positioning strategy with good market approach
-    - 14-16: Solid positioning with reasonable strategy
-    - 11-13: Good positioning consideration with basic strategy
-    - 7-10: Basic positioning with limited strategic thinking
-    - 4-6: Weak positioning strategy
-    - 2-3: Poor positioning with unclear direction
-    - 0-1: No positioning strategy
-
-    CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = COMPETITORS_SCORE
+    Rate this section from 0-100 based on these FAIR criteria:
+    - Competitive landscape awareness (35 points): Knowledge of direct and indirect competitors
+    - Differentiation strategy (30 points): Clear unique value proposition
+    - Competitive analysis depth (20 points): Understanding of competitor strengths/weaknesses
+    - Market positioning (15 points): How they plan to position against competition
+    
+    Give credit for acknowledging competition and showing differentiation - should easily score 65+ if they identify competitors and explain differences.
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
    
-    SCORING CALCULATION FOR REVENUE MODEL (100 points total) - BE FAIR BUT DISCERNING:
-    Step 1: Revenue Stream Clarity (25 pts):
-    - 22-25: Clear revenue model with multiple streams and good logic
-    - 18-21: Solid revenue model with logical approach
-    - 14-17: Good revenue thinking with reasonable clarity
-    - 10-13: Basic revenue identification with adequate planning
-    - 6-9: Weak revenue model with limited thinking
-    - 3-5: Poor revenue strategy with unclear approach
-    - 0-2: No revenue model presented
-
-    Step 2: Pricing Strategy & Logic (25 pts):
-    - 22-25: Well-researched pricing with strong market justification
-    - 18-21: Good pricing strategy with reasonable research
-    - 14-17: Solid pricing consideration with basic validation
-    - 10-13: Basic pricing with some market consideration
-    - 6-9: Weak pricing strategy with limited justification
-    - 3-5: Poor pricing with little logic
-    - 0-2: No pricing strategy
-
-    Step 3: Financial Projections & Unit Economics (25 pts):
-    - 22-25: Solid financial projections with reasonable assumptions
-    - 18-21: Good financial thinking with basic modeling
-    - 14-17: Decent financial consideration with simple projections
-    - 10-13: Basic financial awareness with limited projections
-    - 6-9: Poor financial understanding
-    - 3-5: Very weak financial projections
-    - 0-2: No financial projections
-
-    Step 4: Scalability & Growth Strategy (25 pts):
-    - 22-25: Strong scalability plan with clear growth strategy
-    - 18-21: Good scalability thinking with reasonable strategy
-    - 14-17: Solid scalability consideration with basic planning
-    - 10-13: Basic scalability awareness with limited planning
-    - 6-9: Weak scalability understanding
-    - 3-5: Poor growth planning
-    - 0-2: No scalability consideration
-
-    CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = REVENUE_MODEL_SCORE
+    Rate this section from 0-100 based on these FAIR criteria:
+    - Revenue stream clarity (30 points): Clear explanation of how they make money
+    - Pricing strategy logic (25 points): Reasonable pricing with market justification
+    - Financial projections (25 points): Realistic financial expectations
+    - Scalability potential (20 points): How the model can grow over time
+    
+    Reward clear revenue thinking - if they explain multiple revenue streams or show market research on pricing, score 70+.
 
     5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
-    SCORING CALCULATION FOR DIFFERENTIATION (100 points total) - BE FAIR BUT DISCERNING:
-    Step 1: Unique Value Proposition Strength (30 pts):
-    - 26-30: Strong value proposition with clear benefits
-    - 21-25: Good unique value with solid customer benefits
-    - 16-20: Reasonable uniqueness with clear benefits
-    - 11-15: Basic uniqueness with some compelling aspects
-    - 6-10: Weak value proposition with limited differentiation
-    - 3-5: Poor uniqueness with little value
-    - 0-2: No unique value proposition
+    Rate this section from 0-100 based on these FAIR criteria:
+    - Unique value proposition (35 points): What makes them different from alternatives
+    - Competitive advantages (25 points): Sustainable advantages they can maintain
+    - Innovation factor (25 points): Technology or approach innovations
+    - Market opportunity (15 points): How differentiation creates market opportunity
+    
+    Value creative solutions - unique approaches to known problems should score 70+, truly innovative solutions should score 80+.
 
-    Step 2: Defensibility & Moats (25 pts):
-    - 22-25: Good defensible advantages with some barriers
-    - 18-21: Reasonable defensibility with basic protection
-    - 14-17: Decent defensibility with some competitive protection
-    - 10-13: Basic defensibility with limited barriers
-    - 6-9: Weak defensive advantages
-    - 3-5: Poor defensibility with no real barriers
-    - 0-2: No defensible advantages
+    BALANCED SCORING REQUIREMENTS:
 
-    Step 3: Technology & Innovation Edge (25 pts):
-    - 22-25: Strong technology differentiation with innovation
-    - 18-21: Good technology approach with some innovation
-    - 14-17: Decent technology with reasonable innovation
-    - 10-13: Basic technology with limited innovation
-    - 6-9: Poor technology strategy with little innovation
-    - 3-5: Very weak technology approach
-    - 0-2: No technology differentiation
+    1. BE GENEROUS WITH GOOD RESPONSES: If someone provides detailed, thoughtful answers with specific examples, they should score 70-85 in each section
+    2. REWARD EFFORT AND DEPTH: Don't penalize for not having everything perfect - reward comprehensive thinking
+    3. REALISTIC EXPECTATIONS: These are early-stage startups, not established companies with perfect market data
+    4. OVERALL SCORE = (PROBLEM_SOLUTION × 0.25) + (TARGET_CUSTOMERS × 0.25) + (COMPETITORS × 0.20) + (REVENUE_MODEL × 0.15) + (DIFFERENTIATION × 0.15)
 
-    Step 4: Go-to-Market Advantage (20 pts):
-    - 17-20: Strong GTM strategy with clear advantages
-    - 14-16: Good GTM approach with some advantages
-    - 11-13: Decent GTM consideration with basic advantages
-    - 7-10: Basic GTM thinking with limited advantages
-    - 4-6: Weak GTM strategy
-    - 2-3: Poor GTM approach
-    - 0-1: No GTM strategy
-
-    CALCULATE: Add Step 1 + Step 2 + Step 3 + Step 4 = DIFFERENTIATION_SCORE
-
-    BALANCED SCORING REQUIREMENTS FOR GOOD VARIATION:
-
-    1. CALCULATE EACH SECTION SCORE EXACTLY using the step-by-step method above
-    2. For each section, you MUST show your calculation: "Step 1: X points, Step 2: Y points, Step 3: Z points, Step 4: W points. Total: X+Y+Z+W = FINAL_SCORE"
-    3. BE FAIR BUT DISCERNING - Most good submissions should score in the 55-75 range with exceptional ones reaching 80-90
-    4. CREATE GOOD VARIATION - Aim for meaningful differences between weak and strong submissions while being fair
-    5. OVERALL SCORE = (PROBLEM_SOLUTION_SCORE × 0.25) + (TARGET_CUSTOMERS_SCORE × 0.25) + (COMPETITORS_SCORE × 0.20) + (REVENUE_MODEL_SCORE × 0.15) + (DIFFERENTIATION_SCORE × 0.15)
-
-    BALANCED RECOMMENDATION LOGIC:
-    - Accept: Overall score ≥ 80 AND no section below 70 (for truly exceptional submissions)
-    - Consider: Overall score 60-79 OR shows good potential with some strong areas
-    - Reject: Overall score < 60 OR multiple critical sections below 50
+    RECOMMENDATION LOGIC:
+    - Accept: Overall score ≥ 75 (top tier applications with strong execution potential)
+    - Consider: Overall score 60-74 (solid applications with good potential)
+    - Reject: Overall score < 60 (applications needing significant development)
 
     Return analysis in this JSON format:
     {
       "overall_score": number (calculated weighted average),
-      "scoring_reason": "One concise sentence explaining the key strengths and main areas needing improvement",
+      "scoring_reason": "One concise sentence explaining the overall assessment",
       "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from application)",
@@ -453,57 +297,51 @@ serve(async (req) => {
       },
       "sections": {
         "problem_solution_fit": {
-          "score": number (PROBLEM_SOLUTION_SCORE calculated above),
-          "score_calculation": "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE",
-          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations"]
+          "score": number (0-100),
+          "analysis": "Balanced analysis highlighting what they did well and areas for improvement",
+          "strengths": ["4-5 specific strengths with detailed explanations"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights"]
         },
         "target_customers": {
-          "score": number (TARGET_CUSTOMERS_SCORE calculated above),
-          "score_calculation": "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE",
-          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations"]
+          "score": number (0-100),
+          "analysis": "Balanced analysis of their customer understanding",
+          "strengths": ["4-5 specific strengths with detailed explanations"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights"]
         },
         "competitors": {
-          "score": number (COMPETITORS_SCORE calculated above),
-          "score_calculation": "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE",
-          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations"]
+          "score": number (0-100),
+          "analysis": "Balanced analysis of their competitive understanding",
+          "strengths": ["4-5 specific strengths with detailed explanations"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights"]
         },
         "revenue_model": {
-          "score": number (REVENUE_MODEL_SCORE calculated above),
-          "score_calculation": "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE",
-          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations"]
+          "score": number (0-100),
+          "analysis": "Balanced analysis of their revenue strategy",
+          "strengths": ["4-5 specific strengths with detailed explanations"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights"]
         },
         "differentiation": {
-          "score": number (DIFFERENTIATION_SCORE calculated above),
-          "score_calculation": "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE",
-          "analysis": "detailed balanced analysis highlighting positives first, then areas for growth",
-          "strengths": ["exactly 4-5 detailed strengths (3-4 sentences each) with specific market data/numbers"],
-          "improvements": ["exactly 4-5 detailed weaknesses (3-4 sentences each) with specific market data/numbers - NO recommendations"]
+          "score": number (0-100),
+          "analysis": "Balanced analysis of their differentiation strategy",
+          "strengths": ["4-5 specific strengths with detailed explanations"],
+          "improvements": ["4-5 specific areas for improvement with actionable insights"]
         }
       },
       "summary": {
-        "overall_feedback": "comprehensive realistic feedback focusing on actual performance while providing constructive guidance",
-        "key_factors": ["key factors demonstrated with realistic market validation"],
-        "next_steps": ["specific realistic recommendations with market-informed guidance for growth"],
+        "overall_feedback": "Comprehensive feedback focusing on strengths and growth opportunities",
+        "key_factors": ["Key success factors and potential challenges"],
+        "next_steps": ["Specific recommendations for next steps"],
         "assessment_points": [
-          "EXACTLY 8-10 detailed market-focused assessment points combining realistic startup insights with market intelligence",
-          "Each point must be 3-4 sentences emphasizing realistic opportunities and challenges with market data",
-          "Include market sizes, growth rates, competitive landscape metrics, funding trends, adoption rates",
-          "Present market challenges realistically while identifying strategic opportunities",
-          "Connect startup's approach to industry trends and market realities with balanced analysis",
-          "Provide realistic analysis of market fit and strategic potential with actionable intelligence"
+          "8-10 detailed assessment points combining market analysis with startup evaluation",
+          "Focus on realistic market opportunities and strategic recommendations",
+          "Include market data where relevant but don't penalize for lack of perfect data",
+          "Emphasize actionable insights and growth potential",
+          "Balance constructive criticism with recognition of good work"
         ]
       }
     }
 
-    REMEMBER: You MUST calculate each section score step-by-step and show your calculation. BE FAIR BUT DISCERNING to create good score variation (45-90 range). Keep the scoring_reason to ONE CONCISE SENTENCE only. Most good submissions should score 55-75 with exceptional ones reaching 80-90.
+    IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement.
     `;
 
     // Call Gemini for analysis
@@ -519,13 +357,13 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: `You are a FAIR BUT DISCERNING startup evaluator with BALANCED SCORING STANDARDS. Your goal is to create good score variation that ranges from 45-90 with most good submissions falling in 55-75 range. You MUST calculate each section score step-by-step using the detailed metrics provided. For each section, show your calculation as "Step 1: X pts, Step 2: Y pts, Step 3: Z pts, Step 4: W pts. Total: FINAL_SCORE". BE FAIR to realistic startup applications while maintaining meaningful distinctions between quality levels. Good submissions should score well (60-80) with only exceptional ones reaching 85+. Keep the scoring_reason to ONE CONCISE SENTENCE only. Return ONLY valid JSON without any markdown formatting.\n\n${analysisPrompt}`
+                text: `You are a FAIR and BALANCED startup evaluator. Your goal is to evaluate applications generously while maintaining meaningful distinctions. Good detailed applications should score 70-85, exceptional ones 80-90. Be generous with scoring - reward effort and detailed thinking. Return ONLY valid JSON without any markdown formatting.\n\n${analysisPrompt}`
               }
             ]
           }
         ],
         generationConfig: {
-          temperature: 0.2,
+          temperature: 0.3,
           maxOutputTokens: 8192,
           responseMimeType: "application/json"
         }
@@ -578,7 +416,7 @@ serve(async (req) => {
     if (analysisResult.sections) {
       console.log('Section scores:');
       Object.entries(analysisResult.sections).forEach(([sectionName, sectionData]: [string, any]) => {
-        console.log(`${sectionName}: ${sectionData.score} (calculation: ${sectionData.score_calculation || 'No calculation provided'})`);
+        console.log(`${sectionName}: ${sectionData.score}`);
       });
     }
 
@@ -700,7 +538,7 @@ serve(async (req) => {
             }
           }
           
-          // Add improvements (now with 4-5 detailed points with market data)
+          // Add improvements
           if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
             for (const improvement of sectionData.improvements) {
               sectionDetails.push({
