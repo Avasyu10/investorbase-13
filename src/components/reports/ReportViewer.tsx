@@ -2,10 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw, Bug } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { downloadReport } from "@/lib/supabase/reports";
-import { StorageDebugger } from "@/components/debug/StorageDebugger";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -27,7 +26,6 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [showDebugger, setShowDebugger] = useState(false);
   const { user } = useAuth();
 
   // Update page number when initialPage changes
@@ -55,7 +53,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         setPdfUrl('');
       }
       
-      // Download the PDF blob using the updated function
+      // Download the PDF blob
       const pdfBlob = await downloadReport('', user.id, reportId);
       
       if (!pdfBlob || pdfBlob.size === 0) {
@@ -163,23 +161,8 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
             >
               Refresh Page
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowDebugger(!showDebugger)}
-              className="flex items-center gap-2"
-            >
-              <Bug className="h-4 w-4" />
-              Debug Storage
-            </Button>
           </div>
         </div>
-        
-        {showDebugger && (
-          <div className="w-full max-w-4xl">
-            <StorageDebugger />
-          </div>
-        )}
       </div>
     );
   }
@@ -189,26 +172,9 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <p className="mb-4">No PDF available</p>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" size="sm" onClick={handleRetry}>
-              Try Loading Again
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowDebugger(!showDebugger)}
-              className="flex items-center gap-2"
-            >
-              <Bug className="h-4 w-4" />
-              Debug Storage
-            </Button>
-          </div>
-          
-          {showDebugger && (
-            <div className="mt-6">
-              <StorageDebugger />
-            </div>
-          )}
+          <Button variant="outline" size="sm" onClick={handleRetry}>
+            Try Loading Again
+          </Button>
         </div>
       </div>
     );
@@ -259,15 +225,6 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
             <Button variant="outline" size="sm" onClick={handleRetry}>
               <RefreshCw className="h-4 w-4" />
-            </Button>
-
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowDebugger(!showDebugger)}
-              className="flex items-center gap-2"
-            >
-              <Bug className="h-4 w-4" />
             </Button>
           </div>
         </div>

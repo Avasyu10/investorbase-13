@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -102,43 +101,34 @@ export async function downloadReport(fileUrl: string, userId: string) {
   console.log('=== DOWNLOAD REPORT FUNCTION START ===');
   console.log('Input parameters:', { fileUrl, userId });
   
-  // Use the correct bucket name consistently
   const bucketName = 'report-pdfs';
   
-  // Try different path combinations
-  const pathsToTry = [
-    fileUrl, // Original path
-    `${userId}/${fileUrl}`, // User-specific path
-    fileUrl.startsWith('/') ? fileUrl.substring(1) : `/${fileUrl}`, // With/without leading slash
-  ];
+  // The file should be stored with user-specific path
+  const filePath = `${userId}/${fileUrl}`;
+  
+  console.log(`Downloading from bucket: ${bucketName}, path: ${filePath}`);
 
-  console.log(`Trying bucket: ${bucketName} with paths:`, pathsToTry);
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .download(filePath);
 
-  for (const tryPath of pathsToTry) {
-    console.log(`\n--- Trying path: ${tryPath} ---`);
-    
-    try {
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .download(tryPath);
-
-      if (!error && data && data.size > 0) {
-        console.log('✅ Download successful!', {
-          bucket: bucketName,
-          path: tryPath,
-          size: data.size,
-          type: data.type
-        });
-        return data;
-      }
-      console.log('❌ Download failed:', error?.message || 'No data/empty file');
-    } catch (downloadError) {
-      console.log('❌ Download exception:', downloadError);
+    if (!error && data && data.size > 0) {
+      console.log('✅ Download successful!', {
+        bucket: bucketName,
+        path: filePath,
+        size: data.size,
+        type: data.type
+      });
+      return data;
     }
+    
+    console.log('❌ Download failed:', error?.message || 'No data/empty file');
+    throw new Error(`Failed to download file: ${error?.message || 'File not found'}`);
+  } catch (downloadError) {
+    console.log('❌ Download exception:', downloadError);
+    throw new Error(`Failed to download report from bucket: ${bucketName}, path: ${filePath}`);
   }
-
-  console.log('=== DOWNLOAD REPORT FUNCTION END ===');
-  throw new Error(`Failed to download report from bucket: ${bucketName}. Tried paths: ${pathsToTry.join(', ')}`);
 }
 
 export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
@@ -222,7 +212,7 @@ export async function uploadReport(file: File, title: string, description: strin
       fileSize: file.size 
     });
     
-    // Upload the file to storage using correct bucket name
+    // Upload the file to storage with user-specific path
     const { error: uploadError } = await supabase.storage
       .from('report-pdfs')
       .upload(filePath, file);
@@ -234,13 +224,13 @@ export async function uploadReport(file: File, title: string, description: strin
     
     console.log('File uploaded to storage successfully, saving record to database');
     
-    // Insert a record in the reports table
+    // Insert a record in the reports table - store just the filename for consistency
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert([{
         title,
         description,
-        pdf_url: fileName, // Store just the filename, not the full path
+        pdf_url: fileName, // Store just the filename
         user_id: user.id
       }])
       .select()
