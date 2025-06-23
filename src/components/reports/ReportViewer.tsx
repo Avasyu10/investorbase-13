@@ -27,7 +27,7 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
 
       // Get the profile data separately
       let profileData = null;
-      if (reportData.user_id) {
+      if (reportData?.user_id) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('is_iitbombay')
@@ -43,7 +43,7 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
 
       // If there's a company_id, get the company data separately
       let companyData = null;
-      if (reportData.company_id) {
+      if (reportData?.company_id) {
         const { data: company, error: companyError } = await supabase
           .from('companies')
           .select(`
