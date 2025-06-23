@@ -54,12 +54,12 @@ export async function getReportData(reportId: string) {
   
   let pdfData = null;
   
-  // Use service role to download - try direct path first
+  // Use service role to download - try direct path first using the correct bucket name
   try {
     console.log(`Downloading PDF: ${report.pdf_url}`);
     
     const { data, error } = await supabase.storage
-      .from('report_pdfs')
+      .from('report-pdfs')
       .download(report.pdf_url);
       
     if (!error && data) {
@@ -74,7 +74,7 @@ export async function getReportData(reportId: string) {
         console.log(`Trying user-specific path: ${userSpecificPath}`);
         
         const { data: userData, error: userError } = await supabase.storage
-          .from('report_pdfs')
+          .from('report-pdfs')
           .download(userSpecificPath);
           
         if (!userError && userData) {

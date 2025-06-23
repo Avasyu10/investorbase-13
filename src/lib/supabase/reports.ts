@@ -70,29 +70,27 @@ export async function debugStorageBucket(): Promise<void> {
   console.log('Available buckets:', buckets);
   if (bucketsError) console.error('Buckets error:', bucketsError);
   
-  // Check both possible bucket names
-  const bucketNames = ['report_pdfs', 'Report PDFs'];
+  // Check the report-pdfs bucket
+  const bucketName = 'report-pdfs';
   
-  for (const bucketName of bucketNames) {
-    console.log(`\n--- Checking bucket: ${bucketName} ---`);
-    
-    const { data: files, error: filesError } = await supabase.storage
-      .from(bucketName)
-      .list('', { limit: 100 });
-    
-    console.log(`Files in "${bucketName}" bucket (root):`, files);
-    if (filesError) console.error(`Files listing error for ${bucketName}:`, filesError);
-    
-    // List files with user folders
-    if (files && files.length > 0) {
-      for (const file of files) {
-        if (file.name) {
-          const { data: folderFiles, error: folderError } = await supabase.storage
-            .from(bucketName)
-            .list(file.name, { limit: 100 });
-          console.log(`Files in folder ${file.name} (bucket ${bucketName}):`, folderFiles);
-          if (folderError) console.error(`Folder ${file.name} error:`, folderError);
-        }
+  console.log(`\n--- Checking bucket: ${bucketName} ---`);
+  
+  const { data: files, error: filesError } = await supabase.storage
+    .from(bucketName)
+    .list('', { limit: 100 });
+  
+  console.log(`Files in "${bucketName}" bucket (root):`, files);
+  if (filesError) console.error(`Files listing error for ${bucketName}:`, filesError);
+  
+  // List files with user folders
+  if (files && files.length > 0) {
+    for (const file of files) {
+      if (file.name) {
+        const { data: folderFiles, error: folderError } = await supabase.storage
+          .from(bucketName)
+          .list(file.name, { limit: 100 });
+        console.log(`Files in folder ${file.name} (bucket ${bucketName}):`, folderFiles);
+        if (folderError) console.error(`Folder ${file.name} error:`, folderError);
       }
     }
   }
@@ -135,111 +133,109 @@ export async function downloadReport(fileUrl: string, userId?: string, reportId?
     
     console.log('Paths to try:', pathsToTry);
     
-    // Try both possible bucket names
-    const bucketNames = ['report_pdfs', 'Report PDFs'];
+    // Use the correct bucket name
+    const bucketName = 'report-pdfs';
     
-    for (const bucketName of bucketNames) {
-      console.log(`\n=== TRYING BUCKET: ${bucketName} ===`);
+    console.log(`\n=== TRYING BUCKET: ${bucketName} ===`);
+    
+    for (const tryPath of pathsToTry) {
+      console.log(`\n--- Trying path: ${tryPath} in bucket: ${bucketName} ---`);
       
-      for (const tryPath of pathsToTry) {
-        console.log(`\n--- Trying path: ${tryPath} in bucket: ${bucketName} ---`);
-        
-        // Method 1: Try direct download
-        console.log('Method 1: Direct download');
-        const { data: directData, error: directError } = await supabase.storage
-          .from(bucketName)
-          .download(tryPath);
+      // Method 1: Try direct download
+      console.log('Method 1: Direct download');
+      const { data: directData, error: directError } = await supabase.storage
+        .from(bucketName)
+        .download(tryPath);
 
-        if (!directError && directData && directData.size > 0) {
-          console.log('✅ Direct download successful!', {
-            bucket: bucketName,
-            path: tryPath,
-            size: directData.size,
-            type: directData.type
+      if (!directError && directData && directData.size > 0) {
+        console.log('✅ Direct download successful!', {
+          bucket: bucketName,
+          path: tryPath,
+          size: directData.size,
+          type: directData.type
+        });
+        return directData;
+      }
+      console.log('❌ Direct download failed:', directError?.message || 'No data/empty file');
+
+      // Method 2: Try signed URL
+      console.log('Method 2: Signed URL');
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from(bucketName)
+        .createSignedUrl(tryPath, 60);
+
+      if (!urlError && urlData?.signedUrl) {
+        console.log('Signed URL created:', urlData.signedUrl);
+        try {
+          const response = await fetch(urlData.signedUrl);
+          console.log('Fetch response:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
           });
-          return directData;
-        }
-        console.log('❌ Direct download failed:', directError?.message || 'No data/empty file');
-
-        // Method 2: Try signed URL
-        console.log('Method 2: Signed URL');
-        const { data: urlData, error: urlError } = await supabase.storage
-          .from(bucketName)
-          .createSignedUrl(tryPath, 60);
-
-        if (!urlError && urlData?.signedUrl) {
-          console.log('Signed URL created:', urlData.signedUrl);
-          try {
-            const response = await fetch(urlData.signedUrl);
-            console.log('Fetch response:', {
-              status: response.status,
-              statusText: response.statusText,
-              headers: Object.fromEntries(response.headers.entries())
-            });
-            
-            if (response.ok) {
-              const blob = await response.blob();
-              if (blob.size > 0) {
-                console.log('✅ Signed URL download successful!', {
-                  bucket: bucketName,
-                  path: tryPath,
-                  size: blob.size,
-                  type: blob.type
-                });
-                return blob;
-              } else {
-                console.log('❌ Signed URL returned empty blob');
-              }
+          
+          if (response.ok) {
+            const blob = await response.blob();
+            if (blob.size > 0) {
+              console.log('✅ Signed URL download successful!', {
+                bucket: bucketName,
+                path: tryPath,
+                size: blob.size,
+                type: blob.type
+              });
+              return blob;
             } else {
-              console.log('❌ Signed URL fetch failed:', response.status, response.statusText);
+              console.log('❌ Signed URL returned empty blob');
             }
-          } catch (fetchError) {
-            console.error('❌ Signed URL fetch exception:', fetchError);
+          } else {
+            console.log('❌ Signed URL fetch failed:', response.status, response.statusText);
           }
-        } else {
-          console.log('❌ Signed URL creation failed:', urlError?.message);
+        } catch (fetchError) {
+          console.error('❌ Signed URL fetch exception:', fetchError);
         }
+      } else {
+        console.log('❌ Signed URL creation failed:', urlError?.message);
+      }
 
-        // Method 3: Try public URL
-        console.log('Method 3: Public URL');
-        const { data: publicData } = supabase.storage
-          .from(bucketName)
-          .getPublicUrl(tryPath);
+      // Method 3: Try public URL
+      console.log('Method 3: Public URL');
+      const { data: publicData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(tryPath);
 
-        if (publicData.publicUrl) {
-          console.log('Public URL:', publicData.publicUrl);
-          try {
-            const response = await fetch(publicData.publicUrl);
-            console.log('Public fetch response:', {
-              status: response.status,
-              statusText: response.statusText
-            });
-            
-            if (response.ok) {
-              const blob = await response.blob();
-              if (blob.size > 0) {
-                console.log('✅ Public URL download successful!', {
-                  bucket: bucketName,
-                  path: tryPath,
-                  size: blob.size,
-                  type: blob.type
-                });
-                return blob;
-              } else {
-                console.log('❌ Public URL returned empty blob');
-              }
+      if (publicData.publicUrl) {
+        console.log('Public URL:', publicData.publicUrl);
+        try {
+          const response = await fetch(publicData.publicUrl);
+          console.log('Public fetch response:', {
+            status: response.status,
+            statusText: response.statusText
+          });
+          
+          if (response.ok) {
+            const blob = await response.blob();
+            if (blob.size > 0) {
+              console.log('✅ Public URL download successful!', {
+                bucket: bucketName,
+                path: tryPath,
+                size: blob.size,
+                type: blob.type
+              });
+              return blob;
             } else {
-              console.log('❌ Public URL fetch failed:', response.status, response.statusText);
+              console.log('❌ Public URL returned empty blob');
             }
-          } catch (fetchError) {
-            console.error('❌ Public URL fetch exception:', fetchError);
+          } else {
+            console.log('❌ Public URL fetch failed:', response.status, response.statusText);
           }
+        } catch (fetchError) {
+          console.error('❌ Public URL fetch exception:', fetchError);
         }
       }
     }
 
     console.log('=== DOWNLOAD REPORT DEBUG END ===');
-    throw new Error(`All download methods failed. Tried buckets: ${bucketNames.join(', ')}, Tried paths: ${pathsToTry.join(', ')}`);
+    throw new Error(`All download methods failed. Tried bucket: ${bucketName}, Tried paths: ${pathsToTry.join(', ')}`);
     
   } catch (err) {
     console.error('=== DOWNLOAD REPORT ERROR ===');
