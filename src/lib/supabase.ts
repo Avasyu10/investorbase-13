@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -101,7 +102,7 @@ export async function downloadReport(fileUrl: string, userId: string) {
   console.log('=== DOWNLOAD REPORT FUNCTION START ===');
   console.log('Input parameters:', { fileUrl, userId });
   
-  const bucketName = 'report-pdfs';
+  const bucketName = 'report-pdfs'; // Fixed: use hyphen consistently
   
   // The file should be stored with user-specific path
   const filePath = `${userId}/${fileUrl}`;
@@ -214,7 +215,7 @@ export async function uploadReport(file: File, title: string, description: strin
     
     // Upload the file to storage with user-specific path
     const { error: uploadError } = await supabase.storage
-      .from('report-pdfs')
+      .from('report-pdfs') // Fixed: use hyphen consistently
       .upload(filePath, file);
       
     if (uploadError) {

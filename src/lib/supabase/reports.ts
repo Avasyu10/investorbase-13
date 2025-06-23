@@ -72,7 +72,7 @@ export async function debugStorageBucket(): Promise<void> {
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     console.log('Available buckets:', buckets, 'Error:', bucketsError);
     
-    // Check the report-pdfs bucket specifically
+    // Check the report-pdfs bucket specifically (with hyphen)
     const bucketName = 'report-pdfs';
     console.log(`Checking bucket: ${bucketName}`);
     
