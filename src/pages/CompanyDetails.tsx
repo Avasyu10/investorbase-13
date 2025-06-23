@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -85,6 +86,7 @@ function CompanyDetails() {
           
           if (report?.analysis_result) {
             const analysisResult = report.analysis_result as AnalysisResult;
+            console.log('Full analysis result:', analysisResult);
             
             // Set slide notes
             if (analysisResult.slideBySlideNotes && analysisResult.slideBySlideNotes.length > 0) {
@@ -95,14 +97,27 @@ function CompanyDetails() {
               setSlideNotes([]);
             }
             
-            // Set improvement suggestions
-            if (analysisResult.improvementSuggestions && analysisResult.improvementSuggestions.length > 0) {
-              setImprovementSuggestions(analysisResult.improvementSuggestions);
-              console.log('Improvement suggestions found:', analysisResult.improvementSuggestions.length);
-            } else {
-              console.log('No improvementSuggestions in analysis result or empty array');
-              setImprovementSuggestions([]);
+            // Set improvement suggestions - check multiple possible locations
+            let suggestions: string[] = [];
+            
+            if (analysisResult.improvementSuggestions && Array.isArray(analysisResult.improvementSuggestions)) {
+              suggestions = analysisResult.improvementSuggestions;
+              console.log('Found improvementSuggestions in root:', suggestions.length);
+            } else if (analysisResult.sections) {
+              // Sometimes improvement suggestions might be nested in sections
+              console.log('Checking sections for improvement suggestions');
+              for (const section of analysisResult.sections) {
+                if (section.improvementSuggestions && Array.isArray(section.improvementSuggestions)) {
+                  suggestions = [...suggestions, ...section.improvementSuggestions];
+                }
+              }
+              console.log('Found suggestions in sections:', suggestions.length);
             }
+            
+            // Always show improvement suggestions section, even if empty (for debugging)
+            setImprovementSuggestions(suggestions);
+            console.log('Final improvement suggestions count:', suggestions.length);
+            console.log('Improvement suggestions:', suggestions);
           } else {
             console.log('No analysis_result in report');
             setSlideNotes([]);
@@ -138,7 +153,8 @@ function CompanyDetails() {
         isIITBombayUser,
         slideNotesCount: slideNotes.length,
         improvementSuggestionsCount: improvementSuggestions.length,
-        shouldShowSlideViewer: company.report_id ? true : false
+        shouldShowSlideViewer: company.report_id ? true : false,
+        shouldShowImprovementSuggestions: company.report_id ? true : false
       });
     }
   }, [company, isIITBombayUser, slideNotes, improvementSuggestions]);
@@ -181,7 +197,7 @@ function CompanyDetails() {
 
   console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
-  console.log('Has report ID:', !!company.report_id);
+  console.log('Should show improvement suggestions:', !!company.report_id);
 
   return (
     <div className="h-screen flex flex-col">
@@ -284,8 +300,8 @@ function CompanyDetails() {
             />
           )}
 
-          {/* Show Improvement Suggestions section after slide-by-slide analysis */}
-          {company.report_id && improvementSuggestions.length > 0 && (
+          {/* ALWAYS show Improvement Suggestions section when report_id exists */}
+          {company.report_id && (
             <ImprovementSuggestions
               suggestions={improvementSuggestions}
               companyName={company.name}
