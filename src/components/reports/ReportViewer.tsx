@@ -9,6 +9,18 @@ interface ReportViewerProps {
   reportId: string;
 }
 
+// Type guard to check if the analysis result has the new format
+const hasNewFormat = (analysisResult: any): analysisResult is {
+  companyOverview: any;
+  slideBySlideNotes: any;
+  [key: string]: any;
+} => {
+  return analysisResult && 
+         typeof analysisResult === 'object' && 
+         analysisResult.companyOverview && 
+         analysisResult.slideBySlideNotes;
+};
+
 export const ReportViewer = ({ reportId }: ReportViewerProps) => {
   const { data: report, isLoading, error } = useQuery({
     queryKey: ['report', reportId],
@@ -105,13 +117,14 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
 
   // Check if this is a non-IIT Bombay user with new format
   const isIITBombayUser = report.profiles?.is_iitbombay || false;
-  const hasNewFormat = report.analysis_result?.companyOverview && report.analysis_result?.slideBySlideNotes;
+  const analysisResult = report.analysis_result;
+  const hasNewFormatData = hasNewFormat(analysisResult);
 
-  if (!isIITBombayUser && hasNewFormat) {
+  if (!isIITBombayUser && hasNewFormatData) {
     // Render new format for non-IIT Bombay users
     return (
       <NonIITBombayReportViewer 
-        analysisResult={report.analysis_result}
+        analysisResult={analysisResult}
         pdfUrl={report.pdf_url}
       />
     );
