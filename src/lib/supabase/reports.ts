@@ -61,6 +61,50 @@ export async function analyzeReport(reportId: string): Promise<void> {
   }
 }
 
+export async function debugStorageBucket(): Promise<void> {
+  console.log('=== STORAGE BUCKET DEBUG START ===');
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log('Current user:', user?.id);
+    
+    // List all buckets
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    console.log('Available buckets:', buckets, 'Error:', bucketsError);
+    
+    // Check the report-pdfs bucket specifically
+    const bucketName = 'report-pdfs';
+    console.log(`Checking bucket: ${bucketName}`);
+    
+    // List files in the bucket
+    const { data: files, error: filesError } = await supabase.storage
+      .from(bucketName)
+      .list('', { limit: 100 });
+    
+    console.log('Files in bucket root:', files, 'Error:', filesError);
+    
+    // If user exists, check their specific folder
+    if (user) {
+      const { data: userFiles, error: userFilesError } = await supabase.storage
+        .from(bucketName)
+        .list(user.id, { limit: 100 });
+      
+      console.log(`Files in user folder (${user.id}):`, userFiles, 'Error:', userFilesError);
+    }
+    
+    // Get bucket details
+    const { data: bucketDetails, error: bucketError } = await supabase.storage
+      .getBucket(bucketName);
+    
+    console.log('Bucket details:', bucketDetails, 'Error:', bucketError);
+    
+  } catch (err) {
+    console.error('Debug error:', err);
+  }
+  
+  console.log('=== STORAGE BUCKET DEBUG END ===');
+}
+
 export async function downloadReport(fileUrl: string, userId?: string, reportId?: string): Promise<Blob> {
   console.log('=== DOWNLOAD REPORT START ===');
   console.log('Input parameters:', { fileUrl, userId, reportId });
