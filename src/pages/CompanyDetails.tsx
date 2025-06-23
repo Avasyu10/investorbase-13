@@ -164,8 +164,8 @@ function CompanyDetails() {
         // IIT Bombay users: exclude slide notes
         return section.type !== 'SLIDE_NOTES';
       } else {
-        // Non-IIT Bombay users: exclude regular sections, only show slide notes
-        return section.type === 'SLIDE_NOTES';
+        // Non-IIT Bombay users: exclude slide notes from regular sections
+        return section.type !== 'SLIDE_NOTES';
       }
     }) : [];
 
@@ -210,9 +210,61 @@ function CompanyDetails() {
             />
           )}
 
-          {/* Conditional rendering based on user type */}
-          {!isIITBombayUser ? (
-            // Non-IIT Bombay users: Always show slide-by-slide section if report_id exists
+          {/* Show section metrics for IIT Bombay users */}
+          {isIITBombayUser && (
+            <>
+              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-primary" />
+                Section Metrics
+              </h2>
+              
+              {filteredSections.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  {filteredSections.map((section) => (
+                    <SectionCard 
+                      key={section.id} 
+                      section={section} 
+                      onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle>No Analysis Sections Available</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      There are no detailed analysis sections available for this company.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+
+          {/* Show section metrics FIRST for non-IIT Bombay users, but only if there are non-slide sections */}
+          {!isIITBombayUser && filteredSections.length > 0 && (
+            <>
+              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                <BarChart2 className="h-5 w-5 text-primary" />
+                Section Metrics
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {filteredSections.map((section) => (
+                  <SectionCard 
+                    key={section.id} 
+                    section={section} 
+                    onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ALWAYS show slide-by-slide section for non-IIT Bombay users if report_id exists */}
+          {!isIITBombayUser && (
             <>
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
@@ -236,36 +288,6 @@ function CompanyDetails() {
                   </CardContent>
                 </Card>
               )}
-            </>
-          ) : (
-            // IIT Bombay users: Show detailed analysis sections
-            <>
-              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <BarChart2 className="h-5 w-5 text-primary" />
-                Detailed Analysis
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredSections.length > 0 ? (
-                  filteredSections.map((section) => (
-                    <SectionCard
-                      key={section.id}
-                      section={section}
-                      onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
-                    />
-                  ))
-                ) : (
-                  <Card className="col-span-full">
-                    <CardHeader>
-                      <CardTitle>No Analysis Sections Available</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">
-                        There are no detailed analysis sections available for this company.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
             </>
           )}
         </div>
