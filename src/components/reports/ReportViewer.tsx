@@ -7,8 +7,8 @@ import { getReportById } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configure PDF.js worker - use the local worker file
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Configure PDF.js worker - use the worker from unpkg CDN that matches our version
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface ReportViewerProps {
   reportId: string;
@@ -47,6 +47,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       console.log('=== REPORT VIEWER: Starting PDF load ===');
       console.log('Report ID:', reportId);
       console.log('User ID:', user.id);
+      console.log('PDF.js version:', pdfjs.version);
       
       // Clean up previous blob URL
       if (pdfUrl && pdfUrl.startsWith('blob:')) {
@@ -139,6 +140,8 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       errorMessage += 'PDF loading was interrupted. Please try again.';
     } else if (error?.message?.includes('Cannot read')) {
       errorMessage += 'Unable to read the PDF file. It may be password protected or corrupted.';
+    } else if (error?.message?.includes('worker')) {
+      errorMessage += 'PDF worker failed to initialize. Please refresh the page and try again.';
     } else {
       errorMessage += 'Please try refreshing the page or contact support if the problem persists.';
     }
@@ -188,6 +191,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           <div className="text-xs text-muted-foreground mb-4">
             <p>Report ID: {reportId}</p>
             <p>User ID: {user?.id}</p>
+            <p>PDF.js Version: {pdfjs.version}</p>
           </div>
           <div className="flex gap-2 justify-center mb-4">
             <Button 
