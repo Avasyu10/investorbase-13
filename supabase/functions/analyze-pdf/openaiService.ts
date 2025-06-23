@@ -234,73 +234,97 @@ The overall score should reflect the weighted average of all sections, consideri
 }
 
 function getSlideBySlideAnalysisPrompt(scoringScale: number): string {
-  return `Analyze this PDF pitch deck and provide a comprehensive assessment with slide-by-slide detailed notes. Please return your analysis in the following JSON format:
+  return `Analyze this PDF pitch deck and provide a comprehensive assessment with detailed slide-by-slide notes. Please carefully examine each page/slide of the document and provide specific insights for every slide.
+
+Return your analysis in EXACTLY this JSON format (no extra text before or after):
 
 {
   "overallScore": <number between 0-${scoringScale}>,
   "assessmentPoints": [
-    "<key insight 1>",
-    "<key insight 2>",
-    "<key insight 3>",
-    "<key insight 4>",
-    "<key insight 5>"
+    "<key business insight 1>",
+    "<key business insight 2>",
+    "<key business insight 3>",
+    "<key business insight 4>",
+    "<key business insight 5>"
   ],
   "sections": [
     {
       "type": "SLIDE_NOTES",
-      "title": "Slide by Slide Notes",
+      "title": "Slide by Slide Analysis",
       "score": <number between 0-${scoringScale}>,
-      "description": "<comprehensive company overview analysis>",
-      "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-      "weaknesses": ["<weakness 1>", "<weakness 2>", "<weakness 3>"]
+      "description": "Comprehensive slide-by-slide analysis of the pitch deck with detailed insights for each page.",
+      "strengths": [
+        "<overall presentation strength 1>",
+        "<overall presentation strength 2>",
+        "<overall presentation strength 3>"
+      ],
+      "weaknesses": [
+        "<overall presentation weakness 1>",
+        "<overall presentation weakness 2>",
+        "<overall presentation weakness 3>"
+      ]
     }
   ],
   "slideBySlideNotes": [
     {
       "slideNumber": 1,
       "notes": [
-        "<detailed note 1 with market data and specific insights>",
-        "<detailed note 2 with competitive analysis and benchmarks>",
-        "<detailed note 3 with industry trends and validation>",
-        "<detailed note 4 with actionable recommendations>",
-        "<detailed note 5 with growth potential and risks>"
+        "<detailed analysis point 1 for slide 1>",
+        "<detailed analysis point 2 for slide 1>",
+        "<detailed analysis point 3 for slide 1>",
+        "<detailed analysis point 4 for slide 1>"
       ]
     },
     {
       "slideNumber": 2,
       "notes": [
-        "<detailed note 1 with market data and specific insights>",
-        "<detailed note 2 with competitive analysis and benchmarks>",
-        "<detailed note 3 with industry trends and validation>",
-        "<detailed note 4 with actionable recommendations>",
-        "<detailed note 5 with growth potential and risks>"
+        "<detailed analysis point 1 for slide 2>",
+        "<detailed analysis point 2 for slide 2>",
+        "<detailed analysis point 3 for slide 2>",
+        "<detailed analysis point 4 for slide 2>"
       ]
-    },
-    ... (continue for each slide in the deck)
+    }
+    ... (continue for EVERY slide/page in the deck)
   ]
 }
 
 CRITICAL REQUIREMENTS:
 
-1. SLIDE_NOTES SECTION:
-   - Provide a comprehensive analysis of the company's business model, value proposition, and market position
-   - Include market size data, competitive landscape overview, and business model assessment
-   - Score based on clarity of vision, market opportunity size, and execution potential
+1. EXAMINE EVERY PAGE: You MUST analyze every single page/slide in the PDF document. Count all pages including title slides, content slides, appendix slides, etc.
 
-2. SLIDE-BY-SLIDE NOTES:
-   - Provide 4-5 detailed notes for EACH slide in the pitch deck
-   - Include specific market data, industry benchmarks, competitive analysis
-   - Reference actual market sizes, growth rates, competitor valuations where relevant
-   - Provide actionable insights and recommendations for each slide
-   - Include both positive observations and areas for improvement
-   - Use real market research data and industry statistics
+2. SLIDE-BY-SLIDE NOTES REQUIREMENTS:
+   - Provide exactly 4 detailed notes for EACH slide in the deck
+   - Each note should be 2-3 sentences long with specific observations
+   - Include content analysis, design feedback, business insights, and recommendations
+   - Reference specific elements visible on each slide (text, charts, images, etc.)
+   - Provide both positive observations and constructive criticism
+   - Include market context and industry benchmarks where relevant
 
-ANALYSIS REQUIREMENTS:
-- Each note must be substantial (2-3 sentences minimum)
-- Include specific numbers, percentages, market sizes where applicable
-- Reference industry trends, competitor data, and market benchmarks
-- Provide both validation and constructive criticism
-- Focus on investment potential and business viability
+3. CONTENT ANALYSIS FOR EACH SLIDE:
+   - What key message is the slide trying to convey?
+   - How effectively does it communicate that message?
+   - What specific data, metrics, or claims are presented?
+   - Are there any gaps or missing information?
+   - How does this slide contribute to the overall narrative?
 
-Score the section from 0-${scoringScale} based on quality, completeness, and investment potential. The overall score should reflect the weighted average considering the company's overall investment attractiveness.`;
+4. BUSINESS INSIGHTS:
+   - Market opportunity assessment based on slide content
+   - Competitive positioning analysis
+   - Business model validation
+   - Team credibility evaluation
+   - Financial projections assessment
+   - Risk identification and mitigation
+
+EXAMPLE SLIDE ANALYSIS:
+{
+  "slideNumber": 3,
+  "notes": [
+    "The market size slide presents a TAM of $50B with clear data sources, though the SAM calculation of $5B seems optimistic without detailed geographic breakdown or timing assumptions.",
+    "The slide effectively uses visual hierarchy with the funnel diagram, but could benefit from showing market growth trends over time to demonstrate opportunity expansion.",
+    "The competitive landscape positioning shows clear differentiation in the quadrant chart, though some key competitors like Company X appear to be missing from the analysis.",
+    "The go-to-market strategy timeline is well-structured but lacks specific customer acquisition cost estimates and customer lifetime value projections that would validate the business model."
+  ]
+}
+
+Score the overall analysis from 0-${scoringScale} based on deck quality, business viability, and investment potential. Ensure every slide in the document is included in the slideBySlideNotes array.`;
 }

@@ -22,9 +22,14 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
 
   // Update total slides when slideNotes change
   useEffect(() => {
-    setTotalSlides(slideNotes.length);
-    if (currentSlide > slideNotes.length) {
-      setCurrentSlide(1);
+    if (slideNotes && slideNotes.length > 0) {
+      const maxSlideNumber = Math.max(...slideNotes.map(note => note.slideNumber));
+      setTotalSlides(maxSlideNumber);
+      
+      // If current slide is beyond available slides, reset to first slide
+      if (currentSlide > maxSlideNumber) {
+        setCurrentSlide(1);
+      }
     }
   }, [slideNotes, currentSlide]);
 
@@ -39,6 +44,12 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
   const goToPrevSlide = () => {
     if (currentSlide > 1) {
       setCurrentSlide(currentSlide - 1);
+    }
+  };
+
+  const goToSlide = (slideNumber: number) => {
+    if (slideNumber >= 1 && slideNumber <= totalSlides) {
+      setCurrentSlide(slideNumber);
     }
   };
 
@@ -61,7 +72,7 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
           <h3 className="text-lg font-semibold mb-2">No Slide Notes Available</h3>
           <p className="text-muted-foreground">
-            No detailed slide-by-slide notes are available for this presentation.
+            No detailed slide-by-slide notes are available for this presentation. The analysis may still be processing.
           </p>
         </CardContent>
       </Card>
@@ -75,6 +86,7 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
         <div className="flex items-center gap-3">
           <BookOpen className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold">Slide by Slide Analysis</h2>
+          <span className="text-sm text-muted-foreground">({companyName})</span>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -104,21 +116,22 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
       </div>
 
       {/* Main content area with PDF and notes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[600px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[600px]">
         {/* PDF Viewer - Left Side */}
         <Card className="shadow-card border-0 bg-gradient-to-br from-secondary/20 via-secondary/10 to-background overflow-hidden">
           <CardHeader className="border-b pb-4">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Presentation Deck
+              Presentation Deck - Slide {currentSlide}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 h-full">
-            <div className="h-full">
+            <div className="h-[500px]">
               <ReportViewer 
                 reportId={reportId} 
                 initialPage={currentSlide}
                 showControls={false}
+                onPageChange={(page) => setCurrentSlide(page)}
               />
             </div>
           </CardContent>
@@ -132,7 +145,7 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
               Slide {currentSlide} Analysis
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-5 h-full overflow-y-auto">
+          <CardContent className="pt-5 h-full overflow-y-auto max-h-[500px]">
             {currentSlideNotes ? (
               <div className="space-y-4">
                 {currentSlideNotes.notes.map((note, index) => (
@@ -164,6 +177,9 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
                 <p className="text-muted-foreground">
                   No analysis available for slide {currentSlide}.
                 </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  The AI analysis may not have covered this slide, or the slide might be blank.
+                </p>
               </div>
             )}
           </CardContent>
@@ -172,20 +188,32 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
 
       {/* Slide navigation indicators */}
       <div className="flex justify-center">
-        <div className="flex items-center gap-2 p-2 bg-secondary/20 rounded-lg">
-          {Array.from({ length: totalSlides }, (_, index) => (
+        <div className="flex items-center gap-2 p-2 bg-secondary/20 rounded-lg max-w-full overflow-x-auto">
+          {Array.from({ length: Math.min(totalSlides, 15) }, (_, index) => (
             <Button
               key={index + 1}
               variant={currentSlide === index + 1 ? "default" : "ghost"}
               size="sm"
-              onClick={() => setCurrentSlide(index + 1)}
-              className="w-8 h-8 p-0 text-xs"
+              onClick={() => goToSlide(index + 1)}
+              className="w-8 h-8 p-0 text-xs shrink-0"
             >
               {index + 1}
             </Button>
           ))}
+          {totalSlides > 15 && (
+            <span className="text-xs text-muted-foreground px-2">
+              ...{totalSlides}
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
+          Debug: Current slide: {currentSlide}, Total slides: {totalSlides}, Available notes: {slideNotes.map(n => n.slideNumber).join(', ')}
+        </div>
+      )}
     </div>
   );
 }
