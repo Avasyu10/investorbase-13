@@ -52,110 +52,60 @@ export async function getReportData(reportId: string) {
   
   console.log("Attempting to download PDF from storage");
   
+  // Define download strategies
+  const strategies = [];
+  
+  // Strategy 1: User-specific path for dashboard uploads
+  if (report.user_id && !report.is_public_submission) {
+    strategies.push({
+      name: 'user-specific path',
+      path: `${report.user_id}/${report.pdf_url}`,
+      bucket: 'report_pdfs'
+    });
+  }
+  
+  // Strategy 2: Direct path
+  strategies.push({
+    name: 'direct path',
+    path: report.pdf_url,
+    bucket: 'report_pdfs'
+  });
+  
+  // Strategy 3: Email attachments bucket
+  strategies.push({
+    name: 'email attachments',
+    path: report.pdf_url,
+    bucket: 'email_attachments'
+  });
+  
   let pdfData = null;
   let lastError = null;
   
-  // For dashboard uploads, the file is stored with user_id prefix
-  if (report.user_id && !report.is_public_submission) {
-    const userPath = `${report.user_id}/${report.pdf_url}`;
-    console.log("Trying user path for dashboard upload:", userPath);
+  // Try each strategy
+  for (const strategy of strategies) {
+    if (pdfData) break;
     
     try {
+      console.log(`Trying ${strategy.name}:`, strategy.path);
+      
       const { data, error } = await supabase.storage
-        .from('report_pdfs')
-        .download(userPath);
+        .from(strategy.bucket)
+        .download(strategy.path);
         
       if (error) {
-        console.log("User path failed:", error.message);
+        console.log(`${strategy.name} failed:`, error.message);
         lastError = error;
-      } else if (data) {
+        continue;
+      }
+      
+      if (data) {
         pdfData = data;
-        console.log("Successfully downloaded from report_pdfs bucket");
+        console.log(`Successfully downloaded via ${strategy.name}`);
+        break;
       }
     } catch (err) {
-      console.log("Error with user path:", err);
+      console.log(`Error with ${strategy.name}:`, err);
       lastError = err;
-    }
-  }
-  
-  // Try direct path if user path failed or this is a public submission
-  if (!pdfData) {
-    console.log("Trying direct path:", report.pdf_url);
-    try {
-      const { data, error } = await supabase.storage
-        .from('report_pdfs')
-        .download(report.pdf_url);
-        
-      if (error) {
-        console.log("Direct path failed:", error.message);
-        lastError = error;
-      } else if (data) {
-        pdfData = data;
-        console.log("Successfully downloaded with direct path");
-      }
-    } catch (err) {
-      console.log("Error with direct path:", err);
-      lastError = err;
-    }
-  }
-  
-  // Check email submissions table for attachment URL
-  if (!pdfData) {
-    console.log("Checking email submissions table");
-    const { data: emailSubmission } = await supabase
-      .from('email_submissions')
-      .select('attachment_url')
-      .eq('report_id', reportId)
-      .maybeSingle();
-    
-    if (emailSubmission?.attachment_url) {
-      console.log("Found email attachment URL:", emailSubmission.attachment_url);
-      try {
-        const { data, error } = await supabase.storage
-          .from('email_attachments')
-          .download(emailSubmission.attachment_url);
-          
-        if (error) {
-          console.log("Email attachment download failed:", error.message);
-          lastError = error;
-        } else if (data) {
-          pdfData = data;
-          console.log("Successfully downloaded from email attachments");
-        }
-      } catch (err) {
-        console.log("Error downloading email attachment:", err);
-        lastError = err;
-      }
-    }
-  }
-  
-  // Check email pitch submissions table
-  if (!pdfData) {
-    console.log("Checking email pitch submissions table");
-    const { data: pitchSubmission } = await supabase
-      .from('email_pitch_submissions')
-      .select('attachment_url')
-      .eq('report_id', reportId)
-      .maybeSingle();
-    
-    if (pitchSubmission?.attachment_url) {
-      console.log("Found pitch attachment URL:", pitchSubmission.attachment_url);
-      try {
-        const { data, error } = await supabase.storage
-          .from('email_attachments')
-          .download(pitchSubmission.attachment_url);
-          
-        if (error) {
-          console.log("Pitch attachment download failed:", error.message);
-          lastError = error;
-        } else if (data) {
-          pdfData = data;
-          console.log("Successfully downloaded from pitch attachments");
-        }
-      } catch (err) {
-        console.log("Error downloading pitch attachment:", err);
-        lastError = err;
-      }
     }
   }
   

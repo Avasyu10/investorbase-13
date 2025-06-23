@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Set up PDF.js worker with a more reliable CDN
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Use a more reliable worker configuration
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).toString();
 
 interface ReportViewerProps {
   reportId: string;
@@ -43,7 +47,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         
         console.log('Starting PDF load for report:', reportId);
         
-        // First get the report to find the PDF URL
+        // Get the report data
         const { data: report, error: reportError } = await supabase
           .from('reports')
           .select('pdf_url, user_id, is_public_submission')
@@ -61,66 +65,61 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           isPublic: report.is_public_submission 
         });
 
-        // Try multiple download strategies
+        if (!report.pdf_url) {
+          throw new Error('No PDF URL found in report');
+        }
+
+        // Try multiple download strategies with better error handling
         let blob = null;
-        let lastError = null;
+        const strategies = [];
 
-        // Strategy 1: Try the downloadReport function first
-        try {
-          console.log('Trying downloadReport function...');
-          blob = await downloadReport(report.pdf_url, report.user_id || user.id);
-          console.log('Downloaded via downloadReport function successfully');
-        } catch (downloadError) {
-          console.log('downloadReport function failed:', downloadError);
-          lastError = downloadError;
+        // Strategy 1: User-specific path for dashboard uploads
+        if (report.user_id && !report.is_public_submission) {
+          strategies.push({
+            name: 'user-specific path',
+            path: `${report.user_id}/${report.pdf_url}`,
+            bucket: 'report_pdfs'
+          });
         }
 
-        // Strategy 2: Try direct storage access with user path
-        if (!blob && report.user_id && !report.is_public_submission) {
+        // Strategy 2: Direct path
+        strategies.push({
+          name: 'direct path',
+          path: report.pdf_url,
+          bucket: 'report_pdfs'
+        });
+
+        // Strategy 3: Check email attachments bucket
+        strategies.push({
+          name: 'email attachments',
+          path: report.pdf_url,
+          bucket: 'email_attachments'
+        });
+
+        // Try each strategy
+        for (const strategy of strategies) {
+          if (blob) break;
+          
           try {
-            const userPath = `${report.user_id}/${report.pdf_url}`;
-            console.log('Trying user-specific path:', userPath);
+            console.log(`Trying ${strategy.name}:`, strategy.path);
             
             const { data: storageData, error: storageError } = await supabase.storage
-              .from('report_pdfs')
-              .download(userPath);
+              .from(strategy.bucket)
+              .download(strategy.path);
             
             if (!storageError && storageData) {
               blob = storageData;
-              console.log('Downloaded via user path successfully');
+              console.log(`Successfully downloaded via ${strategy.name}`);
+              break;
             } else {
-              console.log('User path failed:', storageError);
-              lastError = storageError;
+              console.log(`${strategy.name} failed:`, storageError?.message || 'No data');
             }
           } catch (err) {
-            console.log('User path exception:', err);
-            lastError = err;
+            console.log(`${strategy.name} exception:`, err);
           }
         }
 
-        // Strategy 3: Try direct path
-        if (!blob) {
-          try {
-            console.log('Trying direct path:', report.pdf_url);
-            
-            const { data: storageData, error: storageError } = await supabase.storage
-              .from('report_pdfs')
-              .download(report.pdf_url);
-            
-            if (!storageError && storageData) {
-              blob = storageData;
-              console.log('Downloaded via direct path successfully');
-            } else {
-              console.log('Direct path failed:', storageError);
-              lastError = storageError;
-            }
-          } catch (err) {
-            console.log('Direct path exception:', err);
-            lastError = err;
-          }
-        }
-
-        // Strategy 4: Try public URL access
+        // Strategy 4: Try public URL as last resort
         if (!blob) {
           try {
             console.log('Trying public URL access...');
@@ -137,28 +136,31 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
                 console.log('Downloaded via public URL successfully');
               } else {
                 console.log('Public URL fetch failed:', response.status, response.statusText);
-                lastError = new Error(`Public URL fetch failed: ${response.status}`);
               }
             }
           } catch (err) {
             console.log('Public URL exception:', err);
-            lastError = err;
           }
         }
 
         if (!blob) {
-          console.error('All download strategies failed. Last error:', lastError);
-          throw new Error('Failed to load PDF from storage');
+          throw new Error('Failed to download PDF from any storage location');
         }
 
-        // Verify the blob is a valid PDF
-        if (blob.type && !blob.type.includes('pdf')) {
-          console.warn('Blob type is not PDF:', blob.type);
+        // Validate the blob
+        console.log('PDF blob info:', {
+          size: blob.size,
+          type: blob.type
+        });
+
+        if (blob.size === 0) {
+          throw new Error('Downloaded PDF file is empty');
         }
 
+        // Create object URL
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
-        console.log('PDF URL created successfully, size:', blob.size);
+        console.log('PDF URL created successfully');
         
       } catch (err) {
         console.error('Error loading PDF:', err);
@@ -185,7 +187,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   const onDocumentLoadError = (error: any) => {
     console.error('PDF document load error:', error);
-    setError('Failed to load PDF document. The file may be corrupted or in an unsupported format.');
+    setError('Failed to load PDF document. The file may be corrupted or incompatible.');
   };
 
   const changePage = (offset: number) => {
@@ -284,25 +286,28 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       )}
       
       <div className="flex-1 overflow-auto flex items-center justify-center p-4">
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          className="max-w-full"
-          options={{
-            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-            cMapPacked: true,
-          }}
-        >
-          <Page
-            pageNumber={pageNumber}
-            scale={scale}
-            rotate={rotation}
-            className="shadow-lg"
-            renderTextLayer={true}
-            renderAnnotationLayer={true}
-          />
-        </Document>
+        {pdfUrl && (
+          <Document
+            file={pdfUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            className="max-w-full"
+            options={{
+              cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+              cMapPacked: true,
+              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/',
+            }}
+          >
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              rotate={rotation}
+              className="shadow-lg"
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+            />
+          </Document>
+        )}
       </div>
       
       {!showControls && numPages > 1 && (
