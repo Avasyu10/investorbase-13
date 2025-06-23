@@ -87,14 +87,14 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
 
         {/* Slide Notes - Right Side */}
         <div className="lg:col-span-1">
-          <Card className="h-full border-l-4 border-l-primary">
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-primary" />
                 <span>Slide {currentSlide} Notes</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-full">
+            <CardContent>
               {currentSlideNotes && currentSlideNotes.notes.length > 0 ? (
                 <div className="space-y-3">
                   {currentSlideNotes.notes.map((note, index) => (
