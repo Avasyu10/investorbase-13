@@ -1,206 +1,375 @@
-
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { getReportById, downloadReport, analyzeReport } from "@/lib/supabase/reports";
+import { Button } from "@/components/ui/button";
+import { Loader, Calendar, FileText, Download, AlertCircle, ExternalLink, Play } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
-import { ReportSegment } from "./ReportSegment";
-import { NonIITBombayReportViewer } from "./NonIITBombayReportViewer";
 
 interface ReportViewerProps {
   reportId: string;
 }
 
-// Define the expected AnalysisResult interface based on NonIITBombayReportViewer
-interface AnalysisResult {
-  overallScore: number;
-  companyOverview: {
-    companyName: string;
-    industry: string;
-    stage: string;
-    fundingAsk: string;
-    summary: string;
-  };
-  sectionMetrics: Array<{
-    sectionName: string;
-    score: number;
-    description: string;
-  }>;
-  slideBySlideNotes: Array<{
-    slideNumber: number;
-    slideTitle: string;
-    notes: string[];
-  }>;
-}
-
-// Type guard to check if the analysis result has the new format
-const hasNewFormat = (analysisResult: any): analysisResult is AnalysisResult => {
-  return analysisResult && 
-         typeof analysisResult === 'object' && 
-         typeof analysisResult.overallScore === 'number' &&
-         analysisResult.companyOverview && 
-         typeof analysisResult.companyOverview === 'object' &&
-         Array.isArray(analysisResult.sectionMetrics) &&
-         Array.isArray(analysisResult.slideBySlideNotes);
-};
-
-export const ReportViewer = ({ reportId }: ReportViewerProps) => {
-  const { data: report, isLoading, error } = useQuery({
-    queryKey: ['report', reportId],
+export function ReportViewer({ reportId }: ReportViewerProps) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
+  const [isEmailSubmission, setIsEmailSubmission] = useState(false);
+  const [pdfDisplayError, setPdfDisplayError] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  
+  const { data: report, isLoading, error, refetch } = useQuery({
+    queryKey: ["report", reportId, user?.id],
     queryFn: async () => {
-      // First, get the report data including analysis_result
-      const { data: reportData, error: reportError } = await supabase
-        .from('reports')
-        .select(`
-          *,
-          analysis_result
-        `)
-        .eq('id', reportId)
-        .single();
-
-      if (reportError) throw reportError;
-
-      // Get the profile data separately
-      let profileData = null;
-      if (reportData?.user_id) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('is_iitbombay')
-          .eq('id', reportData.user_id)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-        } else {
-          profileData = profile;
-        }
+      const reportData = await getReportById(reportId);
+      
+      // Check if this is an email submission
+      const { data: emailSubmission } = await supabase
+        .from('email_submissions')
+        .select('attachment_url')
+        .eq('report_id', reportId)
+        .maybeSingle();
+      
+      if (emailSubmission?.attachment_url) {
+        console.log("This is an email submission with attachment URL:", emailSubmission.attachment_url);
+        setIsEmailSubmission(true);
       }
-
-      // If there's a company_id, get the company data separately
-      let companyData = null;
-      if (reportData?.company_id) {
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .select(`
-            *,
-            sections (
-              id,
-              title,
-              description,
-              score,
-              section_type,
-              section_details (
-                id,
-                detail_type,
-                content
-              )
-            )
-          `)
-          .eq('id', reportData.company_id)
-          .single();
-
-        if (companyError) {
-          console.error('Error fetching company:', companyError);
-        } else {
-          companyData = company;
-        }
-      }
-
-      return {
-        ...reportData,
-        profiles: profileData,
-        companies: companyData
-      };
+      
+      return reportData;
+    },
+    enabled: !!reportId && !!user,
+    retry: 2,
+    meta: {
+      onError: (err: any) => {
+        console.error("Error fetching report:", err);
+        toast({
+          title: "Error loading report",
+          description: err.message || "Failed to load report data",
+          variant: "destructive",
+        });
+      },
     },
   });
 
+  const handleAnalyze = async () => {
+    if (!report || !user) return;
+    
+    try {
+      setAnalyzing(true);
+      console.log("Starting analysis for report:", reportId);
+      
+      await analyzeReport(reportId);
+      
+      toast({
+        title: "Analysis started",
+        description: "Your report is being analyzed. This may take a few minutes.",
+      });
+      
+      // Refetch the report to get updated analysis status
+      setTimeout(() => {
+        refetch();
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast({
+        title: "Analysis failed",
+        description: error instanceof Error ? error.message : "Failed to start analysis",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [reportId, pdfUrl]);
+
+  useEffect(() => {
+    const loadPdf = async () => {
+      if (!report?.pdf_url || !user?.id) return;
+      
+      try {
+        setLoadingPdf(true);
+        console.log("Loading PDF for report:", report.title);
+        console.log("PDF URL:", report.pdf_url);
+        console.log("Is email submission:", isEmailSubmission);
+        
+        let blob;
+        try {
+          blob = await downloadReport(report.pdf_url, user.id);
+        } catch (downloadError) {
+          console.error("Download error:", downloadError);
+          toast({
+            title: "Failed to load PDF",
+            description: "There was an error loading the document. Please try again later.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (!blob) {
+          throw new Error("Could not download PDF");
+        }
+        
+        setPdfBlob(blob);
+        
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+        
+        console.log("PDF loaded successfully:", url);
+      } catch (error) {
+        console.error("Error loading PDF:", error);
+        toast({
+          title: "Failed to load PDF",
+          description: "There was an error loading the document. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingPdf(false);
+      }
+    };
+    
+    if (report && !pdfBlob && !loadingPdf) {
+      loadPdf();
+    }
+  }, [report, pdfBlob, toast, loadingPdf, user, reportId, isEmailSubmission]);
+
+  const handleDownload = async () => {
+    if (!report || !user) return;
+    
+    try {
+      let blob = pdfBlob;
+      
+      if (!blob) {
+        blob = await downloadReport(report.pdf_url, user.id);
+      }
+      
+      if (!blob) {
+        throw new Error("Could not download PDF");
+      }
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${report.title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download started",
+        description: `${report.title}.pdf is downloading`,
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download failed",
+        description: "There was an error downloading the report",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
+  const handlePdfError = () => {
+    console.log("PDF failed to load in embedded viewer");
+    setPdfDisplayError(true);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }).format(date);
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex justify-center items-center h-64">
+        <div className="flex flex-col items-center space-y-2">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading report...</p>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !report) {
     return (
-      <div className="text-center py-8">
-        <p className="text-destructive">Error loading report: {error.message}</p>
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center space-y-2">
+          <div className="flex justify-center">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+          </div>
+          <p className="text-destructive font-medium text-xl">Failed to load report</p>
+          <p className="text-sm text-muted-foreground">
+            {error instanceof Error ? error.message : "There was an error loading this report. Please try again later."}
+          </p>
+        </div>
       </div>
     );
   }
-
-  if (!report) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">Report not found</p>
-      </div>
-    );
-  }
-
-  // Check if this is a non-IIT Bombay user with new format
-  const isIITBombayUser = report.profiles?.is_iitbombay || false;
-  const analysisResult = report.analysis_result;
-  const hasNewFormatData = hasNewFormat(analysisResult);
-
-  if (!isIITBombayUser && hasNewFormatData) {
-    // Render new format for non-IIT Bombay users
-    return (
-      <NonIITBombayReportViewer 
-        analysisResult={analysisResult}
-        pdfUrl={report.pdf_url}
-      />
-    );
-  }
-
-  // Render traditional format for IIT Bombay users or legacy reports
-  const company = report.companies;
-  
-  if (!company) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No company data available for this report</p>
-      </div>
-    );
-  }
-
-  const sections = company.sections || [];
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">{company.name}</h1>
-        <div className="text-xl font-semibold text-primary">
-          Overall Score: {company.overall_score}/100
-        </div>
-      </div>
-
-      {company.assessment_points && company.assessment_points.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Key Assessment Points</h2>
-          <div className="space-y-2">
-            {company.assessment_points.map((point: string, index: number) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
-                <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 mt-0.5">
-                  {index + 1}
-                </div>
-                <p className="text-sm text-muted-foreground">{point}</p>
-              </div>
-            ))}
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-xl font-bold tracking-tight">{report.title}</h2>
+            {report.is_public_submission ? (
+              <Badge variant="green" className="ml-2">
+                Public
+              </Badge>
+            ) : (
+              <Badge variant="gold" className="ml-2">
+                Dashboard
+              </Badge>
+            )}
+            {isEmailSubmission && (
+              <Badge variant="blue" className="ml-2">
+                Email
+              </Badge>
+            )}
+            {report.analysis_status && (
+              <Badge 
+                variant={report.analysis_status === 'completed' ? 'green' : 
+                        report.analysis_status === 'failed' ? 'destructive' : 'secondary'} 
+                className="ml-2"
+              >
+                {report.analysis_status === 'completed' ? 'Analyzed' : 
+                 report.analysis_status === 'failed' ? 'Analysis Failed' : 'Analyzing...'}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+            <Calendar className="h-4 w-4" />
+            <span>{formatDate(report.created_at)}</span>
           </div>
         </div>
+        <div className="flex gap-2">
+          {(!report.analysis_status || report.analysis_status === 'failed') && (
+            <Button 
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              variant="default"
+              className="transition-all duration-200 hover:shadow-md"
+            >
+              {analyzing ? (
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
+              {analyzing ? "Analyzing..." : "Analyze PDF"}
+            </Button>
+          )}
+          {pdfUrl && (
+            <Button 
+              onClick={openInNewTab} 
+              variant="outline"
+              className="transition-all duration-200 hover:shadow-md"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open in New Tab
+            </Button>
+          )}
+          <Button 
+            onClick={handleDownload} 
+            variant="outline"
+            className="transition-all duration-200 hover:shadow-md"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download PDF
+          </Button>
+        </div>
+      </div>
+      
+      {report.description && (
+        <p className="text-muted-foreground">{report.description}</p>
       )}
-
-      <div className="space-y-6">
-        {sections.map((section: any) => (
-          <ReportSegment
-            key={section.id}
-            sectionTitle={section.title}
-            score={section.score}
-            description={section.description}
-            sectionDetails={section.section_details || []}
-            sectionType={section.section_type}
-          />
-        ))}
+      
+      <div className="w-full bg-card border rounded-lg overflow-hidden shadow-sm">
+        {pdfUrl ? (
+          <>
+            {!pdfDisplayError ? (
+              <object
+                data={pdfUrl}
+                type="application/pdf"
+                className="w-full h-[70vh]"
+                onError={handlePdfError}
+              >
+                <div className="flex flex-col items-center justify-center h-[70vh] p-8 text-center">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">PDF Viewer Not Supported</p>
+                  <p className="text-muted-foreground mb-4">
+                    Your browser doesn't support embedded PDF viewing.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={openInNewTab} variant="outline">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open in New Tab
+                    </Button>
+                    <Button onClick={handleDownload}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
+                    </Button>
+                  </div>
+                </div>
+              </object>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[70vh] p-8 text-center">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium mb-2">PDF Display Error</p>
+                <p className="text-muted-foreground mb-4">
+                  The PDF couldn't be displayed in the browser viewer.
+                </p>
+                <div className="flex gap-2">
+                  <Button onClick={openInNewTab} variant="outline">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open in New Tab
+                  </Button>
+                  <Button onClick={handleDownload}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex justify-center items-center h-[70vh]">
+            {loadingPdf ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading PDF document...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <p className="text-sm text-destructive">Failed to load PDF</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
-};
+}

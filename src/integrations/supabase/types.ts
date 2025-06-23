@@ -990,15 +990,12 @@ export type Database = {
       reports: {
         Row: {
           analysis_error: string | null
-          analysis_result: Json | null
           analysis_status: string
-          analyzed_at: string | null
           company_id: string | null
           created_at: string
           description: string | null
           id: string
           is_public_submission: boolean | null
-          overall_score: number | null
           pdf_url: string
           submission_form_id: string | null
           submitter_email: string | null
@@ -1007,15 +1004,12 @@ export type Database = {
         }
         Insert: {
           analysis_error?: string | null
-          analysis_result?: Json | null
           analysis_status?: string
-          analyzed_at?: string | null
           company_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_public_submission?: boolean | null
-          overall_score?: number | null
           pdf_url: string
           submission_form_id?: string | null
           submitter_email?: string | null
@@ -1024,15 +1018,12 @@ export type Database = {
         }
         Update: {
           analysis_error?: string | null
-          analysis_result?: Json | null
           analysis_status?: string
-          analyzed_at?: string | null
           company_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_public_submission?: boolean | null
-          overall_score?: number | null
           pdf_url?: string
           submission_form_id?: string | null
           submitter_email?: string | null

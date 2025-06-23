@@ -1,262 +1,304 @@
-
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { corsHeaders } from "./cors.ts";
+import { getReportData } from "./reportService.ts";
 import { analyzeWithOpenAI } from "./openaiService.ts";
-import { DatabaseService } from "./databaseService.ts";
-import { ReportService } from "./reportService.ts";
+import { saveAnalysisResults } from "./databaseService.ts";
 
 serve(async (req) => {
-  console.log(`Request method: ${req.method}`);
-  
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
-    return new Response(null, { 
-      headers: corsHeaders,
-      status: 200 
-    });
-  }
-
-  if (req.method !== 'POST') {
-    console.log(`Method ${req.method} not allowed`);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Method not allowed' }),
-      {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const requestBody = await req.json();
-    const { reportId, fileBase64, fileName, overallScore, assessmentPoints, scoringScale, usePublicAnalysisPrompt = false } = requestBody;
+    // Check environment variables early
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
     
-    console.log('Received request:', { reportId, hasFileBase64: !!fileBase64, fileName, overallScore, assessmentPoints, scoringScale, usePublicAnalysisPrompt });
-
-    if (!reportId) {
-      throw new Error('Report ID is required');
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
-    console.log('Environment check:', {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasServiceKey: !!supabaseServiceKey,
-      hasGeminiKey: !!geminiApiKey
-    });
-
-    if (!supabaseUrl || !supabaseServiceKey || !geminiApiKey) {
-      throw new Error('Required environment variables are missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get the report data first
-    const { data: report, error: reportError } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('id', reportId)
-      .single();
-
-    if (reportError) {
-      console.error('Error fetching report:', reportError);
-      throw new Error(`Failed to fetch report: ${reportError.message}`);
-    }
-
-    console.log('Report data:', { id: report.id, pdf_url: report.pdf_url, user_id: report.user_id });
-
-    // Get the user profile separately if user_id exists
-    let isIITBombayUser = false;
-    if (report.user_id) {
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('is_iitbombay')
-          .eq('id', report.user_id)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          // Don't throw error, just continue with default value
-        } else {
-          isIITBombayUser = profile?.is_iitbombay || false;
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ 
+          error: 'GEMINI_API_KEY is not configured',
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
         }
-      } catch (profileErr) {
-        console.error('Profile fetch exception:', profileErr);
-        // Continue with default value
-      }
+      );
     }
-
-    console.log('User is IIT Bombay user:', isIITBombayUser);
-
-    // If fileBase64 is not provided, fetch it from storage
-    let pdfBase64 = fileBase64;
-    if (!pdfBase64) {
-      console.log('No fileBase64 provided, fetching from storage...');
-      
-      if (!report.pdf_url) {
-        throw new Error('No PDF URL found in report');
-      }
-
-      // Try multiple download strategies
-      let pdfBlob = null;
-      const downloadPaths = [
-        `${report.user_id}/${report.pdf_url}`, // User-prefixed path
-        report.pdf_url, // Direct path
-        report.pdf_url.split('/').pop() || report.pdf_url // Just filename
-      ];
-
-      for (const path of downloadPaths) {
-        try {
-          console.log(`Attempting to download PDF from path: ${path}`);
-          const { data, error } = await supabase.storage
-            .from('report_pdfs')
-            .download(path);
-
-          if (!error && data) {
-            pdfBlob = data;
-            console.log(`Successfully downloaded PDF from path: ${path}`);
-            break;
-          } else {
-            console.log(`Failed to download from path ${path}:`, error?.message);
-          }
-        } catch (err) {
-          console.log(`Error downloading from path ${path}:`, err);
+    
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error("Supabase credentials are not configured");
+      return new Response(
+        JSON.stringify({ 
+          error: 'Supabase credentials are not configured',
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
         }
-      }
-
-      if (!pdfBlob) {
-        throw new Error('Could not download PDF file from storage');
-      }
-
-      // Convert blob to base64
-      try {
-        const arrayBuffer = await pdfBlob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        pdfBase64 = btoa(String.fromCharCode(...uint8Array));
-        console.log('Successfully converted PDF to base64, length:', pdfBase64.length);
-      } catch (conversionError) {
-        console.error('Error converting PDF to base64:', conversionError);
-        throw new Error(`Failed to convert PDF to base64: ${conversionError.message}`);
-      }
+      );
     }
 
-    if (!pdfBase64) {
-      throw new Error('No PDF data available for analysis');
-    }
-
-    // Call the AI analysis
-    console.log('Starting AI analysis...');
-    let analysisResult;
+    // Parse request data
+    let reqData;
     try {
-      analysisResult = await analyzeWithOpenAI(pdfBase64, geminiApiKey, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
-      console.log('AI analysis completed');
-    } catch (analysisError) {
-      console.error('AI analysis failed:', analysisError);
-      throw new Error(`AI analysis failed: ${analysisError.message}`);
+      reqData = await req.json();
+    } catch (e) {
+      console.error("Error parsing request JSON:", e);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid request format. Expected JSON with reportId property.",
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
     }
 
-    // Create service instances AFTER getting analysis result to avoid circular references
-    const dbService = new DatabaseService(supabase);
-    const reportService = new ReportService(supabase);
+    const { reportId, usePublicAnalysisPrompt = false, scoringScale = 100 } = reqData;
+    
+    // Enhanced reportId validation
+    if (!reportId) {
+      console.error("Missing reportId in request");
+      return new Response(
+        JSON.stringify({ 
+          error: "Report ID is required",
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
+    // Validate that reportId is a valid UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(reportId)) {
+      console.error(`Invalid reportId format: "${reportId}"`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Invalid report ID format. Expected a UUID, got: ${reportId}`,
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
 
-    // Handle different response formats based on user type
-    if (!isIITBombayUser && !usePublicAnalysisPrompt) {
-      // Handle non-IIT Bombay user format
-      console.log('Processing non-IIT Bombay user analysis result');
+    console.log(`Processing report ${reportId}`);
+    
+    try {
+      // Get report data without authentication
+      const { supabase, report, pdfBase64 } = await getReportData(reportId);
+      
+      console.log("Successfully retrieved report data, analyzing with Gemini");
       
       try {
-        // Update the report with the new format
-        const { error: updateError } = await supabase
-          .from('reports')
-          .update({
-            overall_score: analysisResult.overallScore,
-            analysis_result: analysisResult,
-            analysis_status: 'completed',
-            analyzed_at: new Date().toISOString()
-          })
-          .eq('id', reportId);
+        // Analyze the PDF with Gemini, passing the new parameters
+        const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY, usePublicAnalysisPrompt, scoringScale);
+        
+        console.log("Gemini analysis complete, saving results to database");
+        
+        // Save analysis results to database
+        const companyId = await saveAnalysisResults(supabase, analysis, report);
 
-        if (updateError) {
-          console.error('Error updating report:', updateError);
-          throw new Error(`Failed to update report: ${updateError.message}`);
+        console.log(`Analysis complete, created company with ID: ${companyId}`);
+        
+        // Try to trigger the Perplexity research and details extraction concurrently
+        // But don't fail the main job if either fails
+        try {
+          // Define an array of promises for the background tasks
+          const backgroundTasks = [];
+          
+          // Add Perplexity research task if assessment points are available
+          if (analysis.assessmentPoints && analysis.assessmentPoints.length > 0) {
+            console.log("Initiating market research with Perplexity API");
+            
+            // Check if we have the Perplexity API key
+            const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+            
+            if (PERPLEXITY_API_KEY) {
+              // Create the research task
+              const doResearch = async () => {
+                try {
+                  console.log("Starting Perplexity research in background");
+                  
+                  // Prepare the data for the research API
+                  const assessmentText = analysis.assessmentPoints.join("\n\n");
+                  
+                  // Call the research function
+                  const researchResponse = await fetch(`${SUPABASE_URL}/functions/v1/research-with-perplexity`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      companyId,
+                      assessmentText
+                    })
+                  });
+                  
+                  if (!researchResponse.ok) {
+                    const errorText = await researchResponse.text();
+                    console.error(`Research failed (${researchResponse.status}): ${errorText}`);
+                  } else {
+                    console.log("Research completed successfully");
+                  }
+                } catch (researchError) {
+                  console.error("Error in background research task:", researchError);
+                }
+              };
+              
+              // Add to background tasks
+              backgroundTasks.push(doResearch());
+            } else {
+              console.log("Skipping market research - PERPLEXITY_API_KEY not configured");
+            }
+          } else {
+            console.log("Skipping market research - no assessment points available");
+          }
+          
+          // Add company details extraction task
+          console.log("Initiating company details extraction with Gemini API");
+          const extractDetails = async () => {
+            try {
+              console.log("Starting company details extraction in background");
+              
+              // Call the details-in-analyze-pdf function
+              const detailsResponse = await fetch(`${SUPABASE_URL}/functions/v1/details-in-analyze-pdf`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  reportId,
+                  companyId
+                })
+              });
+              
+              if (!detailsResponse.ok) {
+                const errorText = await detailsResponse.text();
+                console.error(`Details extraction failed (${detailsResponse.status}): ${errorText}`);
+              } else {
+                console.log("Company details extraction completed successfully");
+              }
+            } catch (detailsError) {
+              console.error("Error in company details extraction task:", detailsError);
+            }
+          };
+          
+          // Add to background tasks
+          backgroundTasks.push(extractDetails());
+          
+          // Run all background tasks but don't wait for them to complete
+          if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+            console.log("Using EdgeRuntime.waitUntil for background processing");
+            EdgeRuntime.waitUntil(Promise.all(backgroundTasks));
+          } else {
+            console.log("EdgeRuntime not available, starting tasks without waitUntil");
+            // Just start the tasks but don't await them
+            Promise.all(backgroundTasks).catch(err => console.error("Background tasks failed:", err));
+          }
+          
+          console.log("Background tasks initiated");
+        } catch (backgroundTasksError) {
+          console.error("Error setting up background tasks:", backgroundTasksError);
+          // Don't fail the main job due to background tasks failure
         }
 
-        console.log('Analysis completed for non-IIT Bombay user');
-
         return new Response(
-          JSON.stringify({
-            success: true,
-            analysisResult,
-            reportId,
-            message: 'Analysis completed successfully'
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      } catch (updateError) {
-        console.error('Error updating report for non-IIT Bombay user:', updateError);
-        throw updateError;
-      }
-    } else {
-      // Handle IIT Bombay user format (existing logic)
-      console.log('Received analysis result:', {
-        overallScore: analysisResult.overallScore,
-        sectionsCount: analysisResult.sections?.length || 0
-      });
-
-      try {
-        const companyId = await dbService.createCompany(
-          report.user_id,
-          overallScore || analysisResult.overallScore,
-          assessmentPoints || analysisResult.assessmentPoints || [],
-          report.title,
-          report.submitter_email
-        );
-
-        console.log('Created company with ID:', companyId);
-
-        const sectionsCreated = await dbService.createSections(companyId, analysisResult.sections || []);
-        console.log('Created sections:', sectionsCreated);
-
-        await reportService.updateReportWithResults(reportId, analysisResult, companyId);
-
-        console.log('Analysis completed successfully');
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            analysisResult,
+          JSON.stringify({ 
+            success: true, 
             companyId,
-            reportId,
-            message: 'Analysis completed successfully'
+            message: "Report analyzed successfully" 
           }),
-          {
+          { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
           }
         );
-      } catch (dbError) {
-        console.error('Database operation failed:', dbError);
-        throw new Error(`Database operation failed: ${dbError.message}`);
+      } catch (analysisError) {
+        console.error("Analysis error:", analysisError);
+        
+        // Update the report with the error
+        try {
+          const { error: updateError } = await supabase
+            .from('reports')
+            .update({ 
+              analysis_status: 'failed',
+              analysis_error: analysisError instanceof Error ? analysisError.message : 'Unknown analysis error'
+            })
+            .eq('id', reportId);
+          
+          if (updateError) {
+            console.error("Error updating report status:", updateError);
+          }
+        } catch (statusUpdateError) {
+          console.error("Error updating report failure status:", statusUpdateError);
+        }
+        
+        return new Response(
+          JSON.stringify({ 
+            error: analysisError instanceof Error ? analysisError.message : 'Analysis failed',
+            success: false
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500 
+          }
+        );
       }
+    } catch (error) {
+      console.error("Operation error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      
+      // Print detailed stack trace to logs if available
+      if (error instanceof Error && error.stack) {
+        console.error("Error stack trace:", error.stack);
+      }
+      
+      // Determine appropriate status code
+      let status = 500;
+      if (errorMessage.includes("not found")) {
+        status = 404;
+        console.error(`Report not found for id ${reportId}`);
+      } else if (errorMessage.includes("Invalid report ID format")) {
+        status = 400;
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          error: errorMessage,
+          success: false
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: status 
+        }
+      );
     }
-
   } catch (error) {
-    console.error('Error in analyze-pdf function:', error);
-    
+    console.error("Error in analyze-pdf function:", error);
     return new Response(
       JSON.stringify({ 
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : "An unexpected error occurred",
+        success: false
       }),
-      {
-        status: 500,
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
       }
     );
   }
