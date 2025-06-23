@@ -1,27 +1,26 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-
 export class DatabaseService {
   constructor(private supabase: any) {}
 
-  async createCompany(userId: string, overallScore: number, assessmentPoints: string[], companyName: string, companyEmail?: string) {
-    console.log('Creating company with score:', overallScore);
+  async createCompany(userId: string, overallScore: number, assessmentPoints: string[], companyName?: string, companyEmail?: string) {
+    console.log('Creating company record');
     
-    const { data: company, error } = await this.supabase
+    const { data: company, error: companyError } = await this.supabase
       .from('companies')
       .insert({
-        user_id: userId,
-        name: companyName || 'Unknown Company',
+        name: companyName || 'Untitled Company',
         email: companyEmail,
         overall_score: overallScore,
-        assessment_points: assessmentPoints || []
+        assessment_points: assessmentPoints,
+        user_id: userId,
+        source: 'dashboard'
       })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating company:', error);
-      throw error;
+    if (companyError) {
+      console.error('Error creating company:', companyError);
+      throw new Error(`Failed to create company: ${companyError.message}`);
     }
 
     console.log('Company created successfully:', company.id);
@@ -35,57 +34,65 @@ export class DatabaseService {
     }
 
     console.log('Creating sections for company:', companyId);
-    const sectionsToCreate = sections.map(section => ({
-      company_id: companyId,
-      title: section.title || 'Untitled Section',
-      type: section.type || 'GENERAL',
-      section_type: section.type || 'GENERAL',
-      score: section.score || 0,
-      description: section.description || section.detailedContent || ''
-    }));
+    const createdSections = [];
 
-    const { data: createdSections, error: sectionsError } = await this.supabase
-      .from('sections')
-      .insert(sectionsToCreate)
-      .select();
+    for (const section of sections) {
+      // Create the section
+      const { data: sectionData, error: sectionError } = await this.supabase
+        .from('sections')
+        .insert({
+          company_id: companyId,
+          title: section.title,
+          type: section.type,
+          score: section.score || 0,
+          description: section.description || ''
+        })
+        .select()
+        .single();
 
-    if (sectionsError) {
-      console.error('Error creating sections:', sectionsError);
-      throw sectionsError;
+      if (sectionError) {
+        console.error('Error creating section:', sectionError);
+        throw new Error(`Failed to create section: ${sectionError.message}`);
+      }
+
+      // Create section details (strengths and weaknesses)
+      const detailsToInsert = [];
+      
+      if (section.strengths && Array.isArray(section.strengths)) {
+        for (const strength of section.strengths) {
+          detailsToInsert.push({
+            section_id: sectionData.id,
+            detail_type: 'strength',
+            content: strength
+          });
+        }
+      }
+      
+      if (section.weaknesses && Array.isArray(section.weaknesses)) {
+        for (const weakness of section.weaknesses) {
+          detailsToInsert.push({
+            section_id: sectionData.id,
+            detail_type: 'weakness',
+            content: weakness
+          });
+        }
+      }
+      
+      if (detailsToInsert.length > 0) {
+        const { error: detailsError } = await this.supabase
+          .from('section_details')
+          .insert(detailsToInsert);
+        
+        if (detailsError) {
+          console.error('Error creating section details:', detailsError);
+          throw new Error(`Failed to create section details: ${detailsError.message}`);
+        }
+      }
+
+      createdSections.push(sectionData);
     }
 
     console.log('Sections created successfully:', createdSections.length);
-
-    // Create section details for each section
-    for (let i = 0; i < createdSections.length; i++) {
-      const section = sections[i];
-      const createdSection = createdSections[i];
-      
-      if (section.strengths && section.strengths.length > 0) {
-        const strengthDetails = section.strengths.map((strength: string) => ({
-          section_id: createdSection.id,
-          detail_type: 'strength',
-          content: strength
-        }));
-
-        await this.supabase
-          .from('section_details')
-          .insert(strengthDetails);
-      }
-
-      if (section.weaknesses && section.weaknesses.length > 0) {
-        const weaknessDetails = section.weaknesses.map((weakness: string) => ({
-          section_id: createdSection.id,
-          detail_type: 'weakness',
-          content: weakness
-        }));
-
-        await this.supabase
-          .from('section_details')
-          .insert(weaknessDetails);
-      }
-    }
-
     return createdSections;
   }
 }
