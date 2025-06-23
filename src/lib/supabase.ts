@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -98,16 +99,46 @@ export async function getReportById(id: string) {
 }
 
 export async function downloadReport(fileUrl: string, userId: string) {
-  const { data, error } = await supabase.storage
-    .from('report_pdfs')
-    .download(`${userId}/${fileUrl}`);
+  console.log('=== DOWNLOAD REPORT FUNCTION START ===');
+  console.log('Input parameters:', { fileUrl, userId });
+  
+  // Use the correct bucket name consistently
+  const bucketName = 'report-pdfs';
+  
+  // Try different path combinations
+  const pathsToTry = [
+    fileUrl, // Original path
+    `${userId}/${fileUrl}`, // User-specific path
+    fileUrl.startsWith('/') ? fileUrl.substring(1) : `/${fileUrl}`, // With/without leading slash
+  ];
 
-  if (error) {
-    console.error('Error downloading report:', error);
-    throw error;
+  console.log(`Trying bucket: ${bucketName} with paths:`, pathsToTry);
+
+  for (const tryPath of pathsToTry) {
+    console.log(`\n--- Trying path: ${tryPath} ---`);
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .download(tryPath);
+
+      if (!error && data && data.size > 0) {
+        console.log('✅ Download successful!', {
+          bucket: bucketName,
+          path: tryPath,
+          size: data.size,
+          type: data.type
+        });
+        return data;
+      }
+      console.log('❌ Download failed:', error?.message || 'No data/empty file');
+    } catch (downloadError) {
+      console.log('❌ Download exception:', downloadError);
+    }
   }
 
-  return data;
+  console.log('=== DOWNLOAD REPORT FUNCTION END ===');
+  throw new Error(`Failed to download report from bucket: ${bucketName}. Tried paths: ${pathsToTry.join(', ')}`);
 }
 
 export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
@@ -185,9 +216,15 @@ export async function uploadReport(file: File, title: string, description: strin
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
     
-    // Upload the file to storage
+    console.log('Uploading file to storage:', { 
+      bucket: 'report-pdfs', 
+      filePath, 
+      fileSize: file.size 
+    });
+    
+    // Upload the file to storage using correct bucket name
     const { error: uploadError } = await supabase.storage
-      .from('report_pdfs')
+      .from('report-pdfs')
       .upload(filePath, file);
       
     if (uploadError) {
@@ -203,7 +240,7 @@ export async function uploadReport(file: File, title: string, description: strin
       .insert([{
         title,
         description,
-        pdf_url: fileName,
+        pdf_url: fileName, // Store just the filename, not the full path
         user_id: user.id
       }])
       .select()

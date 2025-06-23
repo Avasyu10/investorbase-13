@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -200,7 +201,7 @@ const UploadReport = () => {
         for (const supplementFile of supplementFiles) {
           try {
             const { error: uploadError } = await supabase.storage
-              .from('report_pdfs')
+              .from('report-pdfs')
               .upload(`${user.id}/supplementary/${report.id}/${supplementFile.name}`, supplementFile);
               
             if (uploadError) {
