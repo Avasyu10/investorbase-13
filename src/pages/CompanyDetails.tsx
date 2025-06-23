@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -213,20 +212,22 @@ function CompanyDetails() {
             <ChevronLeft className="mr-1" /> Back
           </Button>
 
-          {/* Combined Company Overview and Score */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="lg:col-span-2">
-              <CompanyInfoCard
-                website={websiteToShow}
-                stage={stageToShow}
-                industry={industryToShow}
-                introduction={introductionToShow}
-                companyName={company.name}
-              />
-            </div>
-            <div>
-              {/* Only show ScoreAssessment for IIT Bombay users */}
-              {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
+          {/* Combined Company Overview and Score - Fixed width */}
+          <div className="w-full mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <CompanyInfoCard
+                  website={websiteToShow}
+                  stage={stageToShow}
+                  industry={industryToShow}
+                  introduction={introductionToShow}
+                  companyName={company.name}
+                />
+              </div>
+              <div>
+                {/* Only show ScoreAssessment for IIT Bombay users */}
+                {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
+              </div>
             </div>
           </div>
 
@@ -235,6 +236,15 @@ function CompanyDetails() {
             <OverallAssessment
               score={company.overall_score || 0}
               assessmentPoints={company.assessment_points || []}
+            />
+          )}
+
+          {/* ALWAYS show slide-by-slide section when report_id exists - MOVED ABOVE section metrics */}
+          {company.report_id && (
+            <SlideBySlideViewer
+              reportId={company.report_id}
+              slideNotes={slideNotes}
+              companyName={company.name}
             />
           )}
 
@@ -289,15 +299,6 @@ function CompanyDetails() {
                 ))}
               </div>
             </>
-          )}
-
-          {/* ALWAYS show slide-by-slide section when report_id exists - no duplicate heading */}
-          {company.report_id && (
-            <SlideBySlideViewer
-              reportId={company.report_id}
-              slideNotes={slideNotes}
-              companyName={company.name}
-            />
           )}
 
           {/* ALWAYS show Improvement Suggestions section when report_id exists */}
