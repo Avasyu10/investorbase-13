@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
@@ -8,8 +7,11 @@ import { downloadReport, debugStorageBucket } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Configure PDF.js worker with a more reliable setup
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).toString();
 
 interface ReportViewerProps {
   reportId: string;
@@ -101,7 +103,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   const onDocumentLoadError = (error: any) => {
     console.error('❌ PDF document load error:', error);
-    setError('Failed to load PDF document. Please try refreshing.');
+    setError('Failed to load PDF document. This might be a worker issue - please try refreshing.');
   };
 
   const changePage = (offset: number) => {
@@ -246,16 +248,17 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           }
           error={
             <div className="text-center p-8 text-red-500">
-              <p>Failed to render PDF</p>
+              <p>Failed to render PDF - Worker configuration issue</p>
               <Button variant="outline" size="sm" onClick={handleRetry} className="mt-2">
                 Retry
               </Button>
             </div>
           }
           options={{
-            cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+            cMapUrl: '/cmaps/',
             cMapPacked: true,
-            standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+            standardFontDataUrl: '/standard_fonts/',
+            workerSrc: `/pdf.worker.min.js`,
           }}
         >
           <Page
