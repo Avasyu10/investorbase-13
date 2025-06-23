@@ -53,44 +53,41 @@ export async function getReportData(reportId: string) {
   console.log("Attempting to download PDF from storage");
   
   let pdfData = null;
+  const bucketName = 'report_pdfs';
   
-  // Use service role to download - try direct path first using the correct bucket name
-  try {
-    console.log(`Downloading PDF: ${report.pdf_url}`);
-    
-    const { data, error } = await supabase.storage
-      .from('report-pdfs')
-      .download(report.pdf_url);
+  // Try multiple path combinations to find the file
+  const pathsToTry = [
+    report.pdf_url, // Direct filename
+    `${report.user_id}/${report.pdf_url}`, // User-specific path
+  ];
+  
+  console.log(`Trying to download from bucket: ${bucketName}`);
+  console.log(`Paths to try: ${pathsToTry.join(', ')}`);
+  
+  for (const filePath of pathsToTry) {
+    try {
+      console.log(`Attempting to download: ${filePath}`);
       
-    if (!error && data) {
-      pdfData = data;
-      console.log(`Successfully downloaded PDF, size: ${data.size}`);
-    } else if (error) {
-      console.log(`Direct download failed: ${error.message}`);
-      
-      // Try with user-specific path if we have a user_id
-      if (report.user_id && !report.is_public_submission) {
-        const userSpecificPath = `${report.user_id}/${report.pdf_url}`;
-        console.log(`Trying user-specific path: ${userSpecificPath}`);
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .download(filePath);
         
-        const { data: userData, error: userError } = await supabase.storage
-          .from('report-pdfs')
-          .download(userSpecificPath);
-          
-        if (!userError && userData) {
-          pdfData = userData;
-          console.log(`Successfully downloaded via user-specific path, size: ${userData.size}`);
-        } else {
-          console.log(`User-specific path failed: ${userError?.message || 'No data'}`);
-        }
+      if (!error && data && data.size > 0) {
+        pdfData = data;
+        console.log(`Successfully downloaded PDF from path: ${filePath}, size: ${data.size}`);
+        break;
+      } else if (error) {
+        console.log(`Download failed for path ${filePath}: ${error.message}`);
+      } else {
+        console.log(`No data or empty file for path: ${filePath}`);
       }
+    } catch (err) {
+      console.log(`Exception downloading ${filePath}:`, err);
     }
-  } catch (err) {
-    console.log(`PDF download exception:`, err);
   }
   
   if (!pdfData) {
-    throw new Error(`Failed to download PDF from storage. Path: ${report.pdf_url}`);
+    throw new Error(`Failed to download PDF from storage. Tried paths: ${pathsToTry.join(', ')}`);
   }
   
   console.log("PDF downloaded successfully, size:", pdfData.size);
