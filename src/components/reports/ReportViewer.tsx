@@ -2,17 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { downloadReport } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Use a more reliable worker configuration
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
-).toString();
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface ReportViewerProps {
   reportId: string;
@@ -36,36 +33,51 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
     setPageNumber(initialPage);
   }, [initialPage]);
 
-  useEffect(() => {
-    const loadPdf = async () => {
-      if (!user || !reportId) return;
+  const loadPdf = async () => {
+    if (!user || !reportId) {
+      console.log('Missing user or reportId:', { user: !!user, reportId });
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError('');
       
-      try {
-        setLoading(true);
-        setError('');
-        
-        console.log('Loading PDF for report:', reportId);
-        
-        // Use the downloadReport function which handles all the path logic
-        const pdfBlob = await downloadReport('', user.id, reportId);
-        
-        // Create a blob URL for the PDF
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        setPdfUrl(blobUrl);
-        
-        console.log('PDF blob created successfully, size:', pdfBlob.size);
-        
-      } catch (err) {
-        console.error('Error loading PDF:', err);
-        setError(`Failed to load PDF: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      } finally {
-        setLoading(false);
+      console.log('Starting PDF load for report:', reportId);
+      
+      // Clean up previous blob URL
+      if (pdfUrl && pdfUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(pdfUrl);
+        setPdfUrl('');
       }
-    };
+      
+      // Download the PDF blob using the updated function
+      const pdfBlob = await downloadReport('', user.id, reportId);
+      
+      if (!pdfBlob || pdfBlob.size === 0) {
+        throw new Error('Downloaded PDF is empty or invalid');
+      }
+      
+      console.log('PDF blob downloaded successfully, size:', pdfBlob.size);
+      
+      // Create blob URL
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfUrl(blobUrl);
+      
+      console.log('PDF blob URL created:', blobUrl);
+      
+    } catch (err) {
+      console.error('Error loading PDF:', err);
+      setError(`Failed to load PDF: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadPdf();
 
-    // Cleanup URL on unmount
+    // Cleanup function
     return () => {
       if (pdfUrl && pdfUrl.startsWith('blob:')) {
         URL.revokeObjectURL(pdfUrl);
@@ -75,12 +87,13 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setError(''); // Clear any previous errors
     console.log(`PDF loaded successfully with ${numPages} pages`);
   };
 
   const onDocumentLoadError = (error: any) => {
     console.error('PDF document load error:', error);
-    setError('Failed to load PDF document. The file may be corrupted or incompatible.');
+    setError('Failed to load PDF document. Please try refreshing.');
   };
 
   const changePage = (offset: number) => {
@@ -102,6 +115,11 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
   const rotate = () => setRotation(prev => (prev + 90) % 360);
 
+  const handleRetry = () => {
+    console.log('Retrying PDF load...');
+    loadPdf();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -119,20 +137,38 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           <p className="mb-4 text-sm">{error}</p>
           <div className="text-xs text-muted-foreground mb-4">
             <p>Report ID: {reportId}</p>
-            <p>This could be due to:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>PDF file not properly uploaded</li>
-              <li>Storage access permissions</li>
-              <li>File corruption during upload</li>
-            </ul>
+            <p>User ID: {user?.id}</p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => window.location.reload()} 
-            className="mt-2"
-          >
-            Retry Loading
+          <div className="flex gap-2 justify-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRetry}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()} 
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pdfUrl) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="mb-4">No PDF available</p>
+          <Button variant="outline" size="sm" onClick={handleRetry}>
+            Try Loading Again
           </Button>
         </div>
       </div>
@@ -181,33 +217,58 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
             <Button variant="outline" size="sm" onClick={rotate}>
               <RotateCw className="h-4 w-4" />
             </Button>
+
+            <Button variant="outline" size="sm" onClick={handleRetry}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       )}
       
       <div className="flex-1 overflow-auto flex items-center justify-center p-4">
-        {pdfUrl && (
-          <Document
-            file={pdfUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            className="max-w-full"
-            options={{
-              cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
-              cMapPacked: true,
-              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/',
-            }}
-          >
-            <Page
-              pageNumber={pageNumber}
-              scale={scale}
-              rotate={rotation}
-              className="shadow-lg"
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-          </Document>
-        )}
+        <Document
+          file={pdfUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={onDocumentLoadError}
+          loading={
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-3">Rendering PDF...</span>
+            </div>
+          }
+          error={
+            <div className="text-center p-8 text-red-500">
+              <p>Failed to render PDF</p>
+              <Button variant="outline" size="sm" onClick={handleRetry} className="mt-2">
+                Retry
+              </Button>
+            </div>
+          }
+          options={{
+            cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+            cMapPacked: true,
+            standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+          }}
+        >
+          <Page
+            pageNumber={pageNumber}
+            scale={scale}
+            rotate={rotation}
+            className="shadow-lg"
+            renderTextLayer={true}
+            renderAnnotationLayer={true}
+            loading={
+              <div className="flex items-center justify-center p-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            }
+            error={
+              <div className="text-center p-4 text-red-500">
+                Failed to render page {pageNumber}
+              </div>
+            }
+          />
+        </Document>
       </div>
       
       {!showControls && numPages > 1 && (
