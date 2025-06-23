@@ -1,5 +1,4 @@
 
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -55,8 +54,6 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const dbService = new DatabaseService(supabase);
-    const reportService = new ReportService(supabase);
 
     // Get the report data first
     const { data: report, error: reportError } = await supabase
@@ -101,7 +98,7 @@ serve(async (req) => {
       }
 
       // Try multiple download strategies
-      let pdfBlob: Blob | null = null;
+      let pdfBlob = null;
       const downloadPaths = [
         `${report.user_id}/${report.pdf_url}`, // User-prefixed path
         report.pdf_url, // Direct path
@@ -147,6 +144,10 @@ serve(async (req) => {
     const analysisResult = await analyzeWithOpenAI(pdfBase64, geminiApiKey, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
     console.log('AI analysis completed');
 
+    // Create service instances AFTER getting analysis result to avoid circular references
+    const dbService = new DatabaseService(supabase);
+    const reportService = new ReportService(supabase);
+
     // Handle different response formats based on user type
     if (!isIITBombayUser && !usePublicAnalysisPrompt) {
       // Handle non-IIT Bombay user format
@@ -168,8 +169,6 @@ serve(async (req) => {
         throw new Error(`Failed to update report: ${updateError.message}`);
       }
 
-      // For non-IIT Bombay users, we don't create traditional sections
-      // The frontend will handle the new format differently
       console.log('Analysis completed for non-IIT Bombay user');
 
       return new Response(
@@ -236,4 +235,3 @@ serve(async (req) => {
     );
   }
 });
-
