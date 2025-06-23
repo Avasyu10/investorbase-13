@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
+import { SectionChecklist } from "@/components/companies/SectionChecklist";
 import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Loader2, BarChart2 } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2, ListChecks } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -212,10 +213,10 @@ function CompanyDetails() {
             <ChevronLeft className="mr-1" /> Back
           </Button>
 
-          {/* Combined Company Overview and Score - Fixed width */}
-          <div className="w-full mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+          {/* Company Overview - Full width container */}
+          <div className="w-full max-w-none mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-3">
                 <CompanyInfoCard
                   website={websiteToShow}
                   stage={stageToShow}
@@ -224,7 +225,7 @@ function CompanyDetails() {
                   companyName={company.name}
                 />
               </div>
-              <div>
+              <div className="lg:col-span-1">
                 {/* Only show ScoreAssessment for IIT Bombay users */}
                 {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
               </div>
@@ -281,22 +282,19 @@ function CompanyDetails() {
             </>
           )}
 
-          {/* Show section metrics FIRST for non-IIT Bombay users, but only if there are non-slide sections */}
+          {/* Show section checklist for non-IIT Bombay users */}
           {!isIITBombayUser && filteredSections.length > 0 && (
             <>  
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <BarChart2 className="h-5 w-5 text-primary" />
-                Section Metrics
+                <ListChecks className="h-5 w-5 text-primary" />
+                Section Analysis Checklist
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {filteredSections.map((section) => (
-                  <SectionCard 
-                    key={section.id} 
-                    section={section} 
-                    onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
-                  />
-                ))}
+              <div className="mb-8">
+                <SectionChecklist 
+                  sections={filteredSections}
+                  onClick={(sectionId) => navigate(`/company/${company.id}/section/${sectionId}`)} 
+                />
               </div>
             </>
           )}
