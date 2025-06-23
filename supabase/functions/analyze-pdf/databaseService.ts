@@ -109,9 +109,14 @@ export async function createSectionsFromAnalysis(reportId: string, analysisResul
     .eq('id', reportId)
     .single();
     
-  if (reportError || !report?.company_id) {
+  if (reportError) {
     console.error("Error getting company_id from report:", reportError);
-    throw new Error("Could not find company for this report");
+    throw new Error("Could not retrieve report information");
+  }
+  
+  if (!report?.company_id) {
+    console.log("No company_id found for this report - skipping section creation");
+    return; // Don't throw an error, just return early
   }
   
   const companyId = report.company_id;

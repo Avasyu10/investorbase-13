@@ -60,15 +60,31 @@ serve(async (req) => {
     // Store the analysis result in the database
     await storeAnalysisResult(reportId, analysisResult);
     
-    // Update the company with the overall score and assessment points
+    // Update the company with the overall score and assessment points (if company exists)
     if (report.company_id) {
-      await updateCompanyFromAnalysis(report.company_id, analysisResult);
+      try {
+        await updateCompanyFromAnalysis(report.company_id, analysisResult);
+        console.log(`Company ${report.company_id} updated successfully`);
+      } catch (error) {
+        console.error('Error updating company:', error);
+        // Don't fail the entire analysis if company update fails
+      }
     } else {
-      console.log('No company ID associated with this report.');
+      console.log('No company ID associated with this report - skipping company update.');
     }
     
-    // Create sections from the analysis result
-    await createSectionsFromAnalysis(reportId, analysisResult);
+    // Create sections from the analysis result (if company exists)
+    if (report.company_id) {
+      try {
+        await createSectionsFromAnalysis(reportId, analysisResult);
+        console.log('Sections created successfully');
+      } catch (error) {
+        console.error('Error creating sections:', error);
+        // Don't fail the entire analysis if section creation fails
+      }
+    } else {
+      console.log('No company ID associated with this report - skipping section creation.');
+    }
 
     // Return the analysis result
     return new Response(JSON.stringify(analysisResult), {
