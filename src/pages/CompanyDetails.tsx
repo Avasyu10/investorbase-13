@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -215,11 +214,11 @@ function CompanyDetails() {
           </Button>
         </div>
 
-        {/* Company Overview - Full width container */}
+        {/* Company Overview - Full width like IIT Bombay version */}
         <div className="w-full mb-8">
           <div className="container mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-4">
                 <CompanyInfoCard
                   website={websiteToShow}
                   stage={stageToShow}
@@ -227,10 +226,6 @@ function CompanyDetails() {
                   introduction={introductionToShow}
                   companyName={company.name}
                 />
-              </div>
-              <div className="lg:col-span-1">
-                {/* Only show ScoreAssessment for IIT Bombay users */}
-                {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
               </div>
             </div>
           </div>
