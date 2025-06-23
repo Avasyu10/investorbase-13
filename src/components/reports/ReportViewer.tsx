@@ -8,8 +8,11 @@ import { getReportById } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configure PDF.js worker to match the API version
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.js`;
+// Configure PDF.js worker - use the worker from the installed package
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).toString();
 
 interface ReportViewerProps {
   reportId: string;
@@ -92,8 +95,13 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         type: pdfBlob.type
       });
       
+      // Verify the blob is a valid PDF
+      if (!pdfBlob.type.includes('pdf') && pdfBlob.type !== 'application/octet-stream') {
+        console.warn('Downloaded file may not be a PDF:', pdfBlob.type);
+      }
+      
       // Create blob URL
-      const blobUrl = URL.createObjectURL(pdfBlob);
+      const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
       setPdfUrl(blobUrl);
       
       console.log('✅ PDF blob URL created:', blobUrl);
@@ -125,7 +133,21 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   const onDocumentLoadError = (error: any) => {
     console.error('❌ PDF document load error:', error);
-    setError('Failed to load PDF document. Please try refreshing the page.');
+    
+    // More specific error messages based on the error type
+    let errorMessage = 'Failed to load PDF document. ';
+    
+    if (error?.message?.includes('Invalid PDF')) {
+      errorMessage += 'The file appears to be corrupted or not a valid PDF.';
+    } else if (error?.message?.includes('Loading aborted')) {
+      errorMessage += 'PDF loading was interrupted. Please try again.';
+    } else if (error?.message?.includes('Cannot read')) {
+      errorMessage += 'Unable to read the PDF file. It may be password protected or corrupted.';
+    } else {
+      errorMessage += 'Please try refreshing the page or contact support if the problem persists.';
+    }
+    
+    setError(errorMessage);
   };
 
   const changePage = (offset: number) => {
@@ -166,7 +188,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       <div className="flex flex-col items-center justify-center h-96 text-red-500">
         <div className="text-center mb-6">
           <p className="mb-2 text-lg font-semibold">PDF Loading Failed</p>
-          <p className="mb-4 text-sm">{error}</p>
+          <p className="mb-4 text-sm max-w-md">{error}</p>
           <div className="text-xs text-muted-foreground mb-4">
             <p>Report ID: {reportId}</p>
             <p>User ID: {user?.id}</p>
@@ -270,7 +292,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           }
           error={
             <div className="text-center p-8 text-red-500">
-              <p>Failed to render PDF</p>
+              <p>Failed to render PDF document</p>
               <Button variant="outline" size="sm" onClick={handleRetry} className="mt-2">
                 Retry
               </Button>
