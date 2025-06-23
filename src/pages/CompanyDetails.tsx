@@ -157,19 +157,13 @@ function CompanyDetails() {
   const industryToShow = company.industry || "";
   const introductionToShow = company.introduction || "";
 
-  // Filter sections based on user type - exclude slide notes for IIT Bombay users
+  // Filter sections based on user type - exclude slide notes for regular section display
   const filteredSections = company?.sections ? 
-    company.sections.filter(section => {
-      if (isIITBombayUser) {
-        // IIT Bombay users: exclude slide notes
-        return section.type !== 'SLIDE_NOTES';
-      } else {
-        // Non-IIT Bombay users: exclude slide notes from regular sections
-        return section.type !== 'SLIDE_NOTES';
-      }
-    }) : [];
+    company.sections.filter(section => section.type !== 'SLIDE_NOTES') : [];
 
-  console.log('Filtered sections:', filteredSections);
+  console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
+  console.log('Should show slide viewer:', !isIITBombayUser);
+  console.log('Has report ID:', !!company.report_id);
 
   return (
     <div className="h-screen flex flex-col">
@@ -245,7 +239,7 @@ function CompanyDetails() {
 
           {/* Show section metrics FIRST for non-IIT Bombay users, but only if there are non-slide sections */}
           {!isIITBombayUser && filteredSections.length > 0 && (
-            <>
+            <>  
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <BarChart2 className="h-5 w-5 text-primary" />
                 Section Metrics
@@ -263,7 +257,7 @@ function CompanyDetails() {
             </>
           )}
 
-          {/* ALWAYS show slide-by-slide section for non-IIT Bombay users if report_id exists */}
+          {/* ALWAYS show slide-by-slide section for non-IIT Bombay users */}
           {!isIITBombayUser && (
             <>
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">

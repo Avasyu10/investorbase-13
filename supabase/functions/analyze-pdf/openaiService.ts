@@ -32,8 +32,8 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
     basePrompt = getPublicAnalysisPrompt(scoringScale);
     console.log("Using public analysis prompt for IIT Bombay user");
   } else {
-    // Enhanced analysis for internal use
-    basePrompt = getEnhancedAnalysisPrompt();
+    // Enhanced analysis for internal use - now includes slide-by-slide notes
+    basePrompt = getEnhancedAnalysisPrompt(isIITBombayUser);
     console.log("Using enhanced analysis prompt");
   }
   
@@ -125,24 +125,46 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
     }
   }
 
-  // Ensure slideBySlideNotes field exists for non-IIT Bombay users
-  if (usePublicAnalysisPrompt && !isIITBombayUser) {
-    if (!analysis.slideBySlideNotes) {
-      console.warn("No slideBySlideNotes found in analysis result, initializing empty array");
-      analysis.slideBySlideNotes = [];
-    }
-    console.log("Slide by slide notes count:", analysis.slideBySlideNotes?.length || 0);
+  // Ensure slideBySlideNotes field exists for all analyses
+  if (!analysis.slideBySlideNotes) {
+    console.warn("No slideBySlideNotes found in analysis result, initializing empty array");
+    analysis.slideBySlideNotes = [];
   }
+  console.log("Slide by slide notes count:", analysis.slideBySlideNotes?.length || 0);
 
   console.log("Analysis sections count:", analysis.sections?.length || 0);
   console.log("Overall score:", analysis.overallScore);
-  console.log("Slide by slide notes count:", analysis.slideBySlideNotes?.length || 0);
 
   return analysis;
 }
 
-function getEnhancedAnalysisPrompt(): string {
-  return `Analyze this PDF document and provide a comprehensive investment assessment. Please return your analysis in the following JSON format:
+function getEnhancedAnalysisPrompt(isIITBombayUser = false): string {
+  const slideBySlideSection = isIITBombayUser ? '' : `
+  Also, you MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.`;
+
+  const slideBySlideFormat = isIITBombayUser ? '' : `,
+  "slideBySlideNotes": [
+    {
+      "slideNumber": 1,
+      "notes": [
+        "<detailed analysis point 1 for slide 1>",
+        "<detailed analysis point 2 for slide 1>",
+        "<detailed analysis point 3 for slide 1>",
+        "<detailed analysis point 4 for slide 1>"
+      ]
+    },
+    {
+      "slideNumber": 2,
+      "notes": [
+        "<detailed analysis point 1 for slide 2>",
+        "<detailed analysis point 2 for slide 2>",
+        "<detailed analysis point 3 for slide 2>",
+        "<detailed analysis point 4 for slide 2>"
+      ]
+    }
+  ]`;
+
+  return `Analyze this PDF document and provide a comprehensive investment assessment.${slideBySlideSection} Please return your analysis in the following JSON format:
 
 {
   "overallScore": <number between 1-100>,
@@ -174,7 +196,7 @@ function getEnhancedAnalysisPrompt(): string {
         "<detailed weakness 5 with market context and specific concerns>"
       ]
     }
-  ]
+  ]${slideBySlideFormat}
 }
 
 CRITICAL REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
@@ -196,6 +218,17 @@ Please analyze these sections:
 8. TEAM - Founder & Team Background
 9. FINANCIALS - Financial Overview & Projections
 10. ASK - The Ask & Next Steps
+
+${isIITBombayUser ? '' : `
+SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
+- You MUST provide exactly 4 detailed notes for EACH slide in the deck
+- Each note should be 2-3 sentences long with specific observations
+- Include content analysis, design feedback, business insights, and recommendations
+- Reference specific elements visible on each slide (text, charts, images, etc.)
+- Provide both positive observations and constructive criticism
+- Include market context and industry benchmarks where relevant
+
+Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.`}
 
 Score each section from 1-100 based on quality, completeness, and investment potential. Ensure all strengths and weaknesses are comprehensive, data-driven, and include relevant market context.`;
 }
