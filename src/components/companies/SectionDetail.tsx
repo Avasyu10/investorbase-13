@@ -8,11 +8,42 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, BarChart2, List, FileText } from "lucide-react";
 import { SECTION_TYPE_MAPPINGS } from "@/lib/constants";
+import { supabase } from "@/integrations/supabase/client";
 
 const SectionDetail = () => {
   const { companyId, sectionId } = useParams<{ companyId: string; sectionId: string }>();
   const navigate = useNavigate();
-  const { section, sectionDetails, isLoading } = useSectionDetails(sectionId || "");
+  const { section, isLoading } = useSectionDetails(companyId, sectionId);
+  const [sectionDetails, setSectionDetails] = useState<Array<{
+    id: string;
+    content: string;
+    detail_type: string;
+  }>>([]);
+
+  // Fetch section details separately
+  useEffect(() => {
+    const fetchSectionDetails = async () => {
+      if (!sectionId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('section_details')
+          .select('*')
+          .eq('section_id', sectionId);
+          
+        if (error) {
+          console.error('Error fetching section details:', error);
+          return;
+        }
+        
+        setSectionDetails(data || []);
+      } catch (error) {
+        console.error('Error fetching section details:', error);
+      }
+    };
+
+    fetchSectionDetails();
+  }, [sectionId]);
 
   const handleBack = () => {
     navigate(`/company/${companyId}`);
