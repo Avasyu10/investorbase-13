@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lightbulb, TrendingUp, Users, DollarSign, Target, BarChart3 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImprovementSuggestionsProps {
   reportId: string;
