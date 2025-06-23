@@ -61,14 +61,43 @@ export async function analyzeReport(reportId: string): Promise<void> {
   }
 }
 
-export async function downloadReport(fileUrl: string, userId?: string): Promise<Blob> {
-  console.log('Downloading report:', { fileUrl, userId });
+export async function downloadReport(fileUrl: string, userId?: string, reportId?: string): Promise<Blob> {
+  console.log('Downloading report:', { fileUrl, userId, reportId });
   
   try {
-    // Try signed URL first for better reliability
+    let actualFilePath = fileUrl;
+    
+    // If we have reportId, get the actual file path from the database
+    if (reportId) {
+      const report = await getReportById(reportId);
+      actualFilePath = report.pdf_url;
+      console.log('Retrieved file path from report:', actualFilePath);
+      
+      // If the file doesn't start with a user ID, prepend it
+      if (report.user_id && !actualFilePath.includes('/')) {
+        actualFilePath = `${report.user_id}/${actualFilePath}`;
+        console.log('Using user-specific path:', actualFilePath);
+      }
+    }
+    
+    console.log('Attempting to download from path:', actualFilePath);
+    
+    // Try direct download first
+    const { data, error } = await supabase.storage
+      .from('report_pdfs')
+      .download(actualFilePath);
+
+    if (!error && data) {
+      console.log('Successfully downloaded via direct download, size:', data.size);
+      return data;
+    }
+
+    console.log('Direct download failed:', error?.message);
+
+    // Try signed URL as fallback
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('report_pdfs')
-      .createSignedUrl(fileUrl, 3600); // 1 hour expiry
+      .createSignedUrl(actualFilePath, 3600); // 1 hour expiry
 
     if (!signedUrlError && signedUrlData?.signedUrl) {
       const response = await fetch(signedUrlData.signedUrl);
@@ -78,10 +107,10 @@ export async function downloadReport(fileUrl: string, userId?: string): Promise<
       }
     }
 
-    // Fallback to public URL
+    // Try public URL as final fallback
     const { data: publicUrlData } = supabase.storage
       .from('report_pdfs')
-      .getPublicUrl(fileUrl);
+      .getPublicUrl(actualFilePath);
 
     if (publicUrlData.publicUrl) {
       const response = await fetch(publicUrlData.publicUrl);
@@ -91,18 +120,7 @@ export async function downloadReport(fileUrl: string, userId?: string): Promise<
       }
     }
 
-    // Final fallback to direct download
-    const { data, error } = await supabase.storage
-      .from('report_pdfs')
-      .download(fileUrl);
-
-    if (error || !data) {
-      console.error('All download methods failed:', error);
-      throw error || new Error('Failed to download report');
-    }
-
-    console.log('Successfully downloaded via direct download');
-    return data;
+    throw new Error(`All download methods failed for path: ${actualFilePath}`);
   } catch (err) {
     console.error('Download error:', err);
     throw new Error(`Failed to download report: ${err instanceof Error ? err.message : 'Unknown error'}`);

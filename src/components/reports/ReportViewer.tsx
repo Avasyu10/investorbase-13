@@ -4,7 +4,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { downloadReport } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -46,71 +46,14 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         
         console.log('Loading PDF for report:', reportId);
         
-        // Get the report data
-        const { data: report, error: reportError } = await supabase
-          .from('reports')
-          .select('pdf_url, user_id, is_public_submission')
-          .eq('id', reportId)
-          .single();
-
-        if (reportError || !report) {
-          console.error('Report fetch error:', reportError);
-          throw new Error('Report not found');
-        }
-
-        console.log('Report found:', { 
-          pdfUrl: report.pdf_url, 
-          userId: report.user_id, 
-          isPublic: report.is_public_submission 
-        });
-
-        if (!report.pdf_url) {
-          throw new Error('No PDF URL found in report');
-        }
-
-        // Try to get the PDF using the public URL first
-        console.log('Getting public URL for PDF...');
-        const { data: publicUrlData } = supabase.storage
-          .from('report_pdfs')
-          .getPublicUrl(report.pdf_url);
-
-        if (publicUrlData.publicUrl) {
-          console.log('Testing public URL accessibility:', publicUrlData.publicUrl);
-          
-          try {
-            const testResponse = await fetch(publicUrlData.publicUrl, { 
-              method: 'HEAD',
-              mode: 'cors'
-            });
-            
-            if (testResponse.ok) {
-              console.log('PDF accessible via public URL');
-              setPdfUrl(publicUrlData.publicUrl);
-              return;
-            }
-          } catch (fetchError) {
-            console.log('Public URL not accessible, trying signed URL:', fetchError);
-          }
-        }
-
-        // Fallback to signed URL
-        console.log('Generating signed URL for PDF...');
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('report_pdfs')
-          .createSignedUrl(report.pdf_url, 3600); // 1 hour expiry
-
-        if (signedUrlError) {
-          console.error('Signed URL error:', signedUrlError);
-          throw new Error(`Failed to create signed URL: ${signedUrlError.message}`);
-        }
-
-        if (signedUrlData?.signedUrl) {
-          console.log('PDF accessible via signed URL');
-          setPdfUrl(signedUrlData.signedUrl);
-          return;
-        }
-
-        throw new Error('Unable to access PDF through any method');
+        // Use the downloadReport function which handles all the path logic
+        const pdfBlob = await downloadReport('', user.id, reportId);
+        
+        // Create a blob URL for the PDF
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        setPdfUrl(blobUrl);
+        
+        console.log('PDF blob created successfully, size:', pdfBlob.size);
         
       } catch (err) {
         console.error('Error loading PDF:', err);
