@@ -132,27 +132,43 @@ export async function downloadReport(fileUrl: string, userId?: string, reportId?
     }
     
     const bucketName = 'report-pdfs';
-    const filePath = `${actualUserId}/${fileUrl}`;
     
-    console.log(`Downloading from bucket: ${bucketName}, path: ${filePath}`);
+    // Try different path variations to find the file
+    const pathsToTry = [
+      `${actualUserId}/${fileUrl}`,  // User-specific folder
+      `${actualUserId}/${report?.pdf_url || fileUrl}`,  // With report's pdf_url
+      fileUrl,  // Direct filename
+      report?.pdf_url || fileUrl  // Report's pdf_url directly
+    ];
     
-    // Try direct download
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .download(filePath);
+    console.log('Trying paths:', pathsToTry);
+    
+    for (const filePath of pathsToTry) {
+      console.log(`Attempting download from: ${bucketName}/${filePath}`);
+      
+      try {
+        const { data, error } = await supabase.storage
+          .from(bucketName)
+          .download(filePath);
 
-    if (!error && data && data.size > 0) {
-      console.log('✅ Download successful!', {
-        bucket: bucketName,
-        path: filePath,
-        size: data.size,
-        type: data.type
-      });
-      return data;
+        if (!error && data && data.size > 0) {
+          console.log('✅ Download successful!', {
+            bucket: bucketName,
+            path: filePath,
+            size: data.size,
+            type: data.type
+          });
+          return data;
+        } else {
+          console.log(`❌ Path failed: ${filePath}, Error: ${error?.message || 'No data/empty file'}`);
+        }
+      } catch (pathError) {
+        console.log(`❌ Path exception: ${filePath}, Error:`, pathError);
+      }
     }
     
-    console.log('❌ Download failed:', error?.message || 'No data/empty file');
-    throw new Error(`Failed to download file: ${error?.message || 'File not found'}`);
+    // If all paths failed, throw an error
+    throw new Error(`Failed to download file from any path. Bucket: ${bucketName}, Attempted paths: ${pathsToTry.join(', ')}`);
     
   } catch (err) {
     console.error('=== DOWNLOAD REPORT ERROR ===');

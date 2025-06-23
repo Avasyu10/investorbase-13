@@ -4,7 +4,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { downloadReport } from "@/lib/supabase/reports";
+import { downloadReport, debugStorageBucket } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -53,7 +53,10 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         setPdfUrl('');
       }
       
-      // Download the PDF blob
+      // Debug storage first
+      await debugStorageBucket();
+      
+      // Download the PDF blob using the updated function
       const pdfBlob = await downloadReport('', user.id, reportId);
       
       if (!pdfBlob || pdfBlob.size === 0) {
