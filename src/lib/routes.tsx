@@ -12,6 +12,7 @@ import BarcSubmit from "@/pages/BarcSubmit";
 import BarcSubmissions from "@/pages/BarcSubmissions";
 import CompanyDetailPage from "@/pages/CompanyDetailPage";
 import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
+import CompanyDetails from "@/pages/CompanyDetails";
 import AnalysisSummary from "@/pages/AnalysisSummary";
 import Profile from "@/pages/Profile";
 import ProfileEdit from "@/pages/ProfileEdit";
@@ -85,6 +86,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <CompanyDetailPage />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/company-details/:id", 
+    element: (
+      <ProtectedRoute>
+        <CompanyDetails />
       </ProtectedRoute>
     )
   },

@@ -59,14 +59,21 @@ const CompanyDetails = () => {
           .eq('id', user.id)
           .single();
         
-        setIsIITBombayUser(userProfile?.is_iitbombay || false);
+        const isIITBombay = userProfile?.is_iitbombay || false;
+        setIsIITBombayUser(isIITBombay);
+        
+        // Redirect non-IIT Bombay users to the dedicated company details page
+        if (!isIITBombay && id) {
+          navigate(`/company-details/${id}`, { replace: true });
+          return;
+        }
       } catch (error) {
         console.error('Error checking user type:', error);
       }
     };
 
     checkUserType();
-  }, [user]);
+  }, [user, id, navigate]);
 
   // Memoize sorted sections for better performance, filtering out slide notes for IIT Bombay users
   const sortedSections = useMemo(() => {
@@ -371,21 +378,8 @@ const CompanyDetails = () => {
               {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
             </div>
             
-            {/* Show different sections based on user type */}
-            {!isIITBombayUser && slideNotesSection ? (
-              // Non-IIT Bombay users: Show slide-by-slide notes
-              <div className="mb-8">
-                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Slide by Slide Notes
-                </h2>
-                <SectionCard 
-                  section={slideNotesSection} 
-                  onClick={() => handleSectionClick(slideNotesSection.id)} 
-                />
-              </div>
-            ) : (
-              // IIT Bombay users: Show section metrics
+            {/* Show section metrics for IIT Bombay users only */}
+            {isIITBombayUser && (
               <>
                 <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
                   <BarChart2 className="h-5 w-5 text-primary" />
