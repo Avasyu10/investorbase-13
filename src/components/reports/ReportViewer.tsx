@@ -13,15 +13,27 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
   const { data: report, isLoading, error } = useQuery({
     queryKey: ['report', reportId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get the report with profile information
+      const { data: reportData, error: reportError } = await supabase
         .from('reports')
         .select(`
           *,
-          companies (
-            id,
-            name,
-            overall_score,
-            assessment_points,
+          profiles:user_id (
+            is_iitbombay
+          )
+        `)
+        .eq('id', reportId)
+        .single();
+
+      if (reportError) throw reportError;
+
+      // If there's a company_id, get the company data separately
+      let companyData = null;
+      if (reportData.company_id) {
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .select(`
+            *,
             sections (
               id,
               title,
@@ -34,16 +46,21 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
                 content
               )
             )
-          ),
-          profiles:user_id (
-            is_iitbombay
-          )
-        `)
-        .eq('id', reportId)
-        .single();
+          `)
+          .eq('id', reportData.company_id)
+          .single();
 
-      if (error) throw error;
-      return data;
+        if (companyError) {
+          console.error('Error fetching company:', companyError);
+        } else {
+          companyData = company;
+        }
+      }
+
+      return {
+        ...reportData,
+        companies: companyData
+      };
     },
   });
 
@@ -127,7 +144,7 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
         {sections.map((section: any) => (
           <ReportSegment
             key={section.id}
-            title={section.title}
+            sectionTitle={section.title}
             score={section.score}
             description={section.description}
             sectionDetails={section.section_details || []}
