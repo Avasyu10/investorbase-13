@@ -200,114 +200,112 @@ function CompanyDetails() {
   console.log('Should show improvement suggestions:', !!company.report_id);
 
   return (
-    <div className="h-screen flex flex-col">
-      <ScrollArea className="flex-1">
-        <div className="container mx-auto px-4 pt-0 pb-6 animate-fade-in">
-          {/* Back Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-            className="mb-6 flex items-center"
-          >
-            <ChevronLeft className="mr-1" /> Back
-          </Button>
+    <div className="min-h-screen">
+      <div className="container mx-auto px-4 pt-0 pb-6 animate-fade-in">
+        {/* Back Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/dashboard")}
+          className="mb-6 flex items-center"
+        >
+          <ChevronLeft className="mr-1" /> Back
+        </Button>
 
-          {/* Company Overview - Full width container */}
-          <div className="w-full max-w-none mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-3">
-                <CompanyInfoCard
-                  website={websiteToShow}
-                  stage={stageToShow}
-                  industry={industryToShow}
-                  introduction={introductionToShow}
-                  companyName={company.name}
-                />
-              </div>
-              <div className="lg:col-span-1">
-                {/* Only show ScoreAssessment for IIT Bombay users */}
-                {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
-              </div>
+        {/* Company Overview - Full width container */}
+        <div className="w-full max-w-none mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3">
+              <CompanyInfoCard
+                website={websiteToShow}
+                stage={stageToShow}
+                industry={industryToShow}
+                introduction={introductionToShow}
+                companyName={company.name}
+              />
+            </div>
+            <div className="lg:col-span-1">
+              {/* Only show ScoreAssessment for IIT Bombay users */}
+              {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
             </div>
           </div>
-
-          {/* Only show Overall Assessment for IIT Bombay users */}
-          {isIITBombayUser && (
-            <OverallAssessment
-              score={company.overall_score || 0}
-              assessmentPoints={company.assessment_points || []}
-            />
-          )}
-
-          {/* ALWAYS show slide-by-slide section when report_id exists - MOVED ABOVE section metrics */}
-          {company.report_id && (
-            <SlideBySlideViewer
-              reportId={company.report_id}
-              slideNotes={slideNotes}
-              companyName={company.name}
-            />
-          )}
-
-          {/* Show section metrics for IIT Bombay users */}
-          {isIITBombayUser && (
-            <>
-              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <BarChart2 className="h-5 w-5 text-primary" />
-                Section Metrics
-              </h2>
-              
-              {filteredSections.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  {filteredSections.map((section) => (
-                    <SectionCard 
-                      key={section.id} 
-                      section={section} 
-                      onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Card className="mb-8">
-                  <CardHeader>
-                    <CardTitle>No Analysis Sections Available</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">
-                      There are no detailed analysis sections available for this company.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          )}
-
-          {/* Show section checklist for non-IIT Bombay users */}
-          {!isIITBombayUser && filteredSections.length > 0 && (
-            <>  
-              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <ListChecks className="h-5 w-5 text-primary" />
-                Section Analysis Checklist
-              </h2>
-              
-              <div className="mb-8">
-                <SectionChecklist 
-                  sections={filteredSections}
-                  onClick={(sectionId) => navigate(`/company/${company.id}/section/${sectionId}`)} 
-                />
-              </div>
-            </>
-          )}
-
-          {/* ALWAYS show Improvement Suggestions section when report_id exists */}
-          {company.report_id && (
-            <ImprovementSuggestions
-              suggestions={improvementSuggestions}
-              companyName={company.name}
-            />
-          )}
         </div>
-      </ScrollArea>
+
+        {/* Only show Overall Assessment for IIT Bombay users */}
+        {isIITBombayUser && (
+          <OverallAssessment
+            score={company.overall_score || 0}
+            assessmentPoints={company.assessment_points || []}
+          />
+        )}
+
+        {/* ALWAYS show slide-by-slide section when report_id exists - MOVED ABOVE section metrics */}
+        {company.report_id && (
+          <SlideBySlideViewer
+            reportId={company.report_id}
+            slideNotes={slideNotes}
+            companyName={company.name}
+          />
+        )}
+
+        {/* Show section metrics for IIT Bombay users */}
+        {isIITBombayUser && (
+          <>
+            <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+              <BarChart2 className="h-5 w-5 text-primary" />
+              Section Metrics
+            </h2>
+            
+            {filteredSections.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {filteredSections.map((section) => (
+                  <SectionCard 
+                    key={section.id} 
+                    section={section} 
+                    onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>No Analysis Sections Available</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    There are no detailed analysis sections available for this company.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Show section checklist for non-IIT Bombay users */}
+        {!isIITBombayUser && filteredSections.length > 0 && (
+          <>  
+            <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-primary" />
+              Section Analysis Checklist
+            </h2>
+            
+            <div className="mb-8">
+              <SectionChecklist 
+                sections={filteredSections}
+                onClick={(sectionId) => navigate(`/company/${company.id}/section/${sectionId}`)} 
+              />
+            </div>
+          </>
+        )}
+
+        {/* ALWAYS show Improvement Suggestions section when report_id exists */}
+        {company.report_id && (
+          <ImprovementSuggestions
+            suggestions={improvementSuggestions}
+            companyName={company.name}
+          />
+        )}
+      </div>
     </div>
   );
 }
