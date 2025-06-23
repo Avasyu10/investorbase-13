@@ -1,4 +1,5 @@
 
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -57,15 +58,10 @@ serve(async (req) => {
     const dbService = new DatabaseService(supabase);
     const reportService = new ReportService(supabase);
 
-    // Get the report and user information
+    // Get the report data first
     const { data: report, error: reportError } = await supabase
       .from('reports')
-      .select(`
-        *,
-        profiles:user_id (
-          is_iitbombay
-        )
-      `)
+      .select('*')
       .eq('id', reportId)
       .single();
 
@@ -76,7 +72,23 @@ serve(async (req) => {
 
     console.log('Report data:', { id: report.id, pdf_url: report.pdf_url, user_id: report.user_id });
 
-    const isIITBombayUser = report.profiles?.is_iitbombay || false;
+    // Get the user profile separately if user_id exists
+    let isIITBombayUser = false;
+    if (report.user_id) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_iitbombay')
+        .eq('id', report.user_id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        // Don't throw error, just continue with default value
+      } else {
+        isIITBombayUser = profile?.is_iitbombay || false;
+      }
+    }
+
     console.log('User is IIT Bombay user:', isIITBombayUser);
 
     // If fileBase64 is not provided, fetch it from storage
@@ -224,3 +236,4 @@ serve(async (req) => {
     );
   }
 });
+
