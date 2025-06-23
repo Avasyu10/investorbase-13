@@ -44,7 +44,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         setLoading(true);
         setError('');
         
-        console.log('Starting PDF load for report:', reportId);
+        console.log('Loading PDF for report:', reportId);
         
         // Get the report data
         const { data: report, error: reportError } = await supabase
@@ -68,48 +68,49 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           throw new Error('No PDF URL found in report');
         }
 
-        // Try to get the PDF from storage using the public URL first
-        console.log('Trying to get PDF via public URL...');
+        // Try to get the PDF using the public URL first
+        console.log('Getting public URL for PDF...');
         const { data: publicUrlData } = supabase.storage
           .from('report_pdfs')
           .getPublicUrl(report.pdf_url);
 
         if (publicUrlData.publicUrl) {
-          console.log('Using public URL:', publicUrlData.publicUrl);
+          console.log('Testing public URL accessibility:', publicUrlData.publicUrl);
           
-          // Test if the public URL is accessible
-          const testResponse = await fetch(publicUrlData.publicUrl, { method: 'HEAD' });
-          
-          if (testResponse.ok) {
-            setPdfUrl(publicUrlData.publicUrl);
-            console.log('PDF loaded successfully via public URL');
-            return;
-          } else {
-            console.log('Public URL not accessible, trying download method');
+          try {
+            const testResponse = await fetch(publicUrlData.publicUrl, { 
+              method: 'HEAD',
+              mode: 'cors'
+            });
+            
+            if (testResponse.ok) {
+              console.log('PDF accessible via public URL');
+              setPdfUrl(publicUrlData.publicUrl);
+              return;
+            }
+          } catch (fetchError) {
+            console.log('Public URL not accessible, trying signed URL:', fetchError);
           }
         }
 
-        // Fallback to downloading the file
-        console.log('Downloading PDF from storage...');
-        const { data: fileData, error: downloadError } = await supabase.storage
+        // Fallback to signed URL
+        console.log('Generating signed URL for PDF...');
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('report_pdfs')
-          .download(report.pdf_url);
+          .createSignedUrl(report.pdf_url, 3600); // 1 hour expiry
 
-        if (downloadError || !fileData) {
-          console.error('Download error:', downloadError);
-          throw new Error(`Failed to download PDF: ${downloadError?.message || 'Unknown error'}`);
+        if (signedUrlError) {
+          console.error('Signed URL error:', signedUrlError);
+          throw new Error(`Failed to create signed URL: ${signedUrlError.message}`);
         }
 
-        console.log('PDF downloaded successfully, size:', fileData.size);
-
-        if (fileData.size === 0) {
-          throw new Error('Downloaded PDF file is empty');
+        if (signedUrlData?.signedUrl) {
+          console.log('PDF accessible via signed URL');
+          setPdfUrl(signedUrlData.signedUrl);
+          return;
         }
 
-        // Create object URL from blob
-        const objectUrl = URL.createObjectURL(fileData);
-        setPdfUrl(objectUrl);
-        console.log('PDF object URL created successfully');
+        throw new Error('Unable to access PDF through any method');
         
       } catch (err) {
         console.error('Error loading PDF:', err);
@@ -131,7 +132,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    console.log(`PDF loaded with ${numPages} pages`);
+    console.log(`PDF loaded successfully with ${numPages} pages`);
   };
 
   const onDocumentLoadError = (error: any) => {
@@ -171,17 +172,24 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
     return (
       <div className="flex items-center justify-center h-96 text-red-500">
         <div className="text-center">
-          <p className="mb-2">{error}</p>
-          <p className="text-sm text-muted-foreground">
-            Report ID: {reportId}
-          </p>
+          <p className="mb-2 text-lg font-semibold">PDF Loading Failed</p>
+          <p className="mb-4 text-sm">{error}</p>
+          <div className="text-xs text-muted-foreground mb-4">
+            <p>Report ID: {reportId}</p>
+            <p>This could be due to:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>PDF file not properly uploaded</li>
+              <li>Storage access permissions</li>
+              <li>File corruption during upload</li>
+            </ul>
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => window.location.reload()} 
             className="mt-2"
           >
-            Retry
+            Retry Loading
           </Button>
         </div>
       </div>

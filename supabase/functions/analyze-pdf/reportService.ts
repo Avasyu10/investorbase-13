@@ -53,67 +53,54 @@ export async function getReportData(reportId: string) {
   console.log("Attempting to download PDF from storage");
   
   let pdfData = null;
-  let lastError = null;
   
-  // Try to download the PDF using the most direct approach first
+  // Use service role to download - try direct path first
   try {
-    console.log(`Downloading PDF from report_pdfs bucket: ${report.pdf_url}`);
+    console.log(`Downloading PDF: ${report.pdf_url}`);
     
     const { data, error } = await supabase.storage
       .from('report_pdfs')
       .download(report.pdf_url);
       
-    if (error) {
-      console.log(`Direct download failed:`, error.message);
-      lastError = error;
-    } else if (data) {
+    if (!error && data) {
       pdfData = data;
-      console.log(`Successfully downloaded PDF via direct path`);
+      console.log(`Successfully downloaded PDF, size: ${data.size}`);
+    } else if (error) {
+      console.log(`Direct download failed: ${error.message}`);
+      
+      // Try with user-specific path if we have a user_id
+      if (report.user_id && !report.is_public_submission) {
+        const userSpecificPath = `${report.user_id}/${report.pdf_url}`;
+        console.log(`Trying user-specific path: ${userSpecificPath}`);
+        
+        const { data: userData, error: userError } = await supabase.storage
+          .from('report_pdfs')
+          .download(userSpecificPath);
+          
+        if (!userError && userData) {
+          pdfData = userData;
+          console.log(`Successfully downloaded via user-specific path, size: ${userData.size}`);
+        } else {
+          console.log(`User-specific path failed: ${userError?.message || 'No data'}`);
+        }
+      }
     }
   } catch (err) {
-    console.log(`Error with direct download:`, err);
-    lastError = err;
-  }
-  
-  // If direct download failed and we have a user_id, try user-specific path
-  if (!pdfData && report.user_id && !report.is_public_submission) {
-    try {
-      const userSpecificPath = `${report.user_id}/${report.pdf_url}`;
-      console.log(`Trying user-specific path: ${userSpecificPath}`);
-      
-      const { data, error } = await supabase.storage
-        .from('report_pdfs')
-        .download(userSpecificPath);
-        
-      if (!error && data) {
-        pdfData = data;
-        console.log(`Successfully downloaded via user-specific path`);
-      } else {
-        console.log(`User-specific path failed:`, error?.message || 'No data');
-        lastError = error;
-      }
-    } catch (err) {
-      console.log(`User-specific path exception:`, err);
-      lastError = err;
-    }
+    console.log(`PDF download exception:`, err);
   }
   
   if (!pdfData) {
-    const errorMessage = lastError ? 
-      (typeof lastError === 'object' ? JSON.stringify(lastError) : lastError.toString()) : 
-      "No PDF data found in any storage location";
-    console.error("All PDF download strategies failed. Last error:", errorMessage);
-    throw new Error(`Failed to download PDF: ${errorMessage}`);
+    throw new Error(`Failed to download PDF from storage. Path: ${report.pdf_url}`);
   }
   
   console.log("PDF downloaded successfully, size:", pdfData.size);
   
-  // Convert to base64 using a more reliable method
+  // Convert to base64
   try {
     const arrayBuffer = await pdfData.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Use the built-in btoa function with proper string conversion
+    // Use chunked conversion for better memory handling
     let binaryString = '';
     const chunkSize = 8192;
     
@@ -123,17 +110,7 @@ export async function getReportData(reportId: string) {
     }
     
     const pdfBase64 = btoa(binaryString);
-    
     console.log("PDF converted to base64, length:", pdfBase64.length);
-    
-    // Verify the base64 is valid by attempting to decode a small portion
-    try {
-      const testDecode = atob(pdfBase64.substring(0, 100));
-      console.log("Base64 validation successful");
-    } catch (validateError) {
-      console.error("Base64 validation failed:", validateError);
-      throw new Error("Invalid base64 encoding generated");
-    }
     
     return {
       supabase,
