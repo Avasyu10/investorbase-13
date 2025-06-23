@@ -72,17 +72,22 @@ serve(async (req) => {
     // Get the user profile separately if user_id exists
     let isIITBombayUser = false;
     if (report.user_id) {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_iitbombay')
-        .eq('id', report.user_id)
-        .single();
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_iitbombay')
+          .eq('id', report.user_id)
+          .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        // Don't throw error, just continue with default value
-      } else {
-        isIITBombayUser = profile?.is_iitbombay || false;
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          // Don't throw error, just continue with default value
+        } else {
+          isIITBombayUser = profile?.is_iitbombay || false;
+        }
+      } catch (profileErr) {
+        console.error('Profile fetch exception:', profileErr);
+        // Continue with default value
       }
     }
 
@@ -129,10 +134,15 @@ serve(async (req) => {
       }
 
       // Convert blob to base64
-      const arrayBuffer = await pdfBlob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      pdfBase64 = btoa(String.fromCharCode(...uint8Array));
-      console.log('Successfully converted PDF to base64, length:', pdfBase64.length);
+      try {
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        pdfBase64 = btoa(String.fromCharCode(...uint8Array));
+        console.log('Successfully converted PDF to base64, length:', pdfBase64.length);
+      } catch (conversionError) {
+        console.error('Error converting PDF to base64:', conversionError);
+        throw new Error(`Failed to convert PDF to base64: ${conversionError.message}`);
+      }
     }
 
     if (!pdfBase64) {
@@ -141,8 +151,14 @@ serve(async (req) => {
 
     // Call the AI analysis
     console.log('Starting AI analysis...');
-    const analysisResult = await analyzeWithOpenAI(pdfBase64, geminiApiKey, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
-    console.log('AI analysis completed');
+    let analysisResult;
+    try {
+      analysisResult = await analyzeWithOpenAI(pdfBase64, geminiApiKey, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
+      console.log('AI analysis completed');
+    } catch (analysisError) {
+      console.error('AI analysis failed:', analysisError);
+      throw new Error(`AI analysis failed: ${analysisError.message}`);
+    }
 
     // Create service instances AFTER getting analysis result to avoid circular references
     const dbService = new DatabaseService(supabase);
@@ -153,35 +169,40 @@ serve(async (req) => {
       // Handle non-IIT Bombay user format
       console.log('Processing non-IIT Bombay user analysis result');
       
-      // Update the report with the new format
-      const { error: updateError } = await supabase
-        .from('reports')
-        .update({
-          overall_score: analysisResult.overallScore,
-          analysis_result: analysisResult,
-          analysis_status: 'completed',
-          analyzed_at: new Date().toISOString()
-        })
-        .eq('id', reportId);
+      try {
+        // Update the report with the new format
+        const { error: updateError } = await supabase
+          .from('reports')
+          .update({
+            overall_score: analysisResult.overallScore,
+            analysis_result: analysisResult,
+            analysis_status: 'completed',
+            analyzed_at: new Date().toISOString()
+          })
+          .eq('id', reportId);
 
-      if (updateError) {
-        console.error('Error updating report:', updateError);
-        throw new Error(`Failed to update report: ${updateError.message}`);
-      }
-
-      console.log('Analysis completed for non-IIT Bombay user');
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          analysisResult,
-          reportId,
-          message: 'Analysis completed successfully'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        if (updateError) {
+          console.error('Error updating report:', updateError);
+          throw new Error(`Failed to update report: ${updateError.message}`);
         }
-      );
+
+        console.log('Analysis completed for non-IIT Bombay user');
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            analysisResult,
+            reportId,
+            message: 'Analysis completed successfully'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      } catch (updateError) {
+        console.error('Error updating report for non-IIT Bombay user:', updateError);
+        throw updateError;
+      }
     } else {
       // Handle IIT Bombay user format (existing logic)
       console.log('Received analysis result:', {
@@ -189,35 +210,40 @@ serve(async (req) => {
         sectionsCount: analysisResult.sections?.length || 0
       });
 
-      const companyId = await dbService.createCompany(
-        report.user_id,
-        overallScore || analysisResult.overallScore,
-        assessmentPoints || analysisResult.assessmentPoints || [],
-        report.title,
-        report.submitter_email
-      );
+      try {
+        const companyId = await dbService.createCompany(
+          report.user_id,
+          overallScore || analysisResult.overallScore,
+          assessmentPoints || analysisResult.assessmentPoints || [],
+          report.title,
+          report.submitter_email
+        );
 
-      console.log('Created company with ID:', companyId);
+        console.log('Created company with ID:', companyId);
 
-      const sectionsCreated = await dbService.createSections(companyId, analysisResult.sections || []);
-      console.log('Created sections:', sectionsCreated);
+        const sectionsCreated = await dbService.createSections(companyId, analysisResult.sections || []);
+        console.log('Created sections:', sectionsCreated);
 
-      await reportService.updateReportWithResults(reportId, analysisResult, companyId);
+        await reportService.updateReportWithResults(reportId, analysisResult, companyId);
 
-      console.log('Analysis completed successfully');
+        console.log('Analysis completed successfully');
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          analysisResult,
-          companyId,
-          reportId,
-          message: 'Analysis completed successfully'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+        return new Response(
+          JSON.stringify({
+            success: true,
+            analysisResult,
+            companyId,
+            reportId,
+            message: 'Analysis completed successfully'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      } catch (dbError) {
+        console.error('Database operation failed:', dbError);
+        throw new Error(`Database operation failed: ${dbError.message}`);
+      }
     }
 
   } catch (error) {
