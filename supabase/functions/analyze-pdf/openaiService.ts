@@ -247,18 +247,10 @@ function getSlideBySlideAnalysisPrompt(scoringScale: number): string {
   ],
   "sections": [
     {
-      "type": "COMPANY_OVERVIEW",
-      "title": "Company Overview",
+      "type": "SLIDE_NOTES",
+      "title": "Slide by Slide Notes",
       "score": <number between 0-${scoringScale}>,
       "description": "<comprehensive company overview analysis>",
-      "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-      "weaknesses": ["<weakness 1>", "<weakness 2>", "<weakness 3>"]
-    },
-    {
-      "type": "SECTION_METRICS",
-      "title": "Section Metrics",
-      "score": <number between 0-${scoringScale}>,
-      "description": "<detailed metrics and KPI analysis>",
       "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
       "weaknesses": ["<weakness 1>", "<weakness 2>", "<weakness 3>"]
     }
@@ -290,17 +282,12 @@ function getSlideBySlideAnalysisPrompt(scoringScale: number): string {
 
 CRITICAL REQUIREMENTS:
 
-1. COMPANY OVERVIEW SECTION:
+1. SLIDE_NOTES SECTION:
    - Provide a comprehensive analysis of the company's business model, value proposition, and market position
    - Include market size data, competitive landscape overview, and business model assessment
    - Score based on clarity of vision, market opportunity size, and execution potential
 
-2. SECTION METRICS SECTION:
-   - Analyze key performance indicators, financial metrics, and traction data
-   - Include revenue projections, customer acquisition costs, market penetration rates
-   - Score based on realistic projections, growth trajectory, and metric quality
-
-3. SLIDE-BY-SLIDE NOTES:
+2. SLIDE-BY-SLIDE NOTES:
    - Provide 4-5 detailed notes for EACH slide in the pitch deck
    - Include specific market data, industry benchmarks, competitive analysis
    - Reference actual market sizes, growth rates, competitor valuations where relevant
@@ -315,5 +302,5 @@ ANALYSIS REQUIREMENTS:
 - Provide both validation and constructive criticism
 - Focus on investment potential and business viability
 
-Score each section from 0-${scoringScale} based on quality, completeness, and investment potential. The overall score should reflect the weighted average considering the company's overall investment attractiveness.`;
+Score the section from 0-${scoringScale} based on quality, completeness, and investment potential. The overall score should reflect the weighted average considering the company's overall investment attractiveness.`;
 }

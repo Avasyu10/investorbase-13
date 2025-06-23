@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
 import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
+import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +22,7 @@ function CompanyDetails() {
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
   const [isIITBombayUser, setIsIITBombayUser] = useState(false);
+  const [slideNotes, setSlideNotes] = useState<Array<{slideNumber: number, notes: string[]}>>([]);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = company ? {
@@ -48,6 +50,30 @@ function CompanyDetails() {
 
     checkUserType();
   }, [user]);
+
+  // Extract slide notes from company data
+  useEffect(() => {
+    if (company?.report_id) {
+      // Get slide notes from the report analysis result
+      const fetchSlideNotes = async () => {
+        try {
+          const { data: report } = await supabase
+            .from('reports')
+            .select('analysis_result')
+            .eq('id', company.report_id)
+            .single();
+          
+          if (report?.analysis_result?.slideBySlideNotes) {
+            setSlideNotes(report.analysis_result.slideBySlideNotes);
+          }
+        } catch (error) {
+          console.error('Error fetching slide notes:', error);
+        }
+      };
+      
+      fetchSlideNotes();
+    }
+  }, [company?.report_id]);
 
   useEffect(() => {
     if (!company && !isLoading) {
@@ -140,34 +166,44 @@ function CompanyDetails() {
 
           {/* Sections based on user type */}
           {!isIITBombayUser ? (
-            // Non-IIT Bombay users: Show slide-by-slide notes
+            // Non-IIT Bombay users: Show slide-by-slide notes viewer
             <>
-              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-primary" />
-                Slide by Slide Notes
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredSections.length > 0 ? (
-                  filteredSections.map((section) => (
-                    <SectionCard
-                      key={section.id}
-                      section={section}
-                      onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
-                    />
-                  ))
-                ) : (
-                  <Card className="col-span-full">
-                    <CardHeader>
-                      <CardTitle>No Slide Notes Available</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">
-                        There are no slide-by-slide notes available for this company.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+              {slideNotes.length > 0 && company.report_id ? (
+                <SlideBySlideViewer
+                  reportId={company.report_id}
+                  slideNotes={slideNotes}
+                  companyName={company.name}
+                />
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                    Slide by Slide Notes
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredSections.length > 0 ? (
+                      filteredSections.map((section) => (
+                        <SectionCard
+                          key={section.id}
+                          section={section}
+                          onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
+                        />
+                      ))
+                    ) : (
+                      <Card className="col-span-full">
+                        <CardHeader>
+                          <CardTitle>No Slide Notes Available</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-muted-foreground">
+                            There are no slide-by-slide notes available for this company.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           ) : (
             // IIT Bombay users: Show detailed analysis sections
