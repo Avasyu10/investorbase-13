@@ -53,6 +53,10 @@ function CompanyDetails() {
           .single();
         
         setIsIITBombayUser(userProfile?.is_iitbombay || false);
+        console.log('User type checked:', { 
+          userId: user.id, 
+          isIITBombay: userProfile?.is_iitbombay || false 
+        });
       } catch (error) {
         console.error('Error checking user type:', error);
       }
@@ -64,6 +68,8 @@ function CompanyDetails() {
   // Extract slide notes from company data
   useEffect(() => {
     if (company?.report_id) {
+      console.log('Fetching slide notes for report_id:', company.report_id);
+      
       // Get slide notes from the report analysis result
       const fetchSlideNotes = async () => {
         try {
@@ -73,18 +79,30 @@ function CompanyDetails() {
             .eq('id', company.report_id)
             .single();
           
+          console.log('Report data fetched:', report);
+          
           if (report?.analysis_result) {
             const analysisResult = report.analysis_result as AnalysisResult;
             if (analysisResult.slideBySlideNotes) {
               setSlideNotes(analysisResult.slideBySlideNotes);
+              console.log('Slide notes found:', analysisResult.slideBySlideNotes.length);
+            } else {
+              console.log('No slideBySlideNotes in analysis result');
+              setSlideNotes([]);
             }
+          } else {
+            console.log('No analysis_result in report');
+            setSlideNotes([]);
           }
         } catch (error) {
           console.error('Error fetching slide notes:', error);
+          setSlideNotes([]);
         }
       };
       
       fetchSlideNotes();
+    } else {
+      console.log('No report_id found for company');
     }
   }, [company?.report_id]);
 
@@ -94,17 +112,18 @@ function CompanyDetails() {
     }
   }, [company, isLoading]);
 
-  // Filter sections based on user type
-  const filteredSections = company?.sections ? 
-    company.sections.filter(section => {
-      if (isIITBombayUser) {
-        // IIT Bombay users: exclude slide notes
-        return section.type !== 'SLIDE_NOTES';
-      } else {
-        // Non-IIT Bombay users: exclude regular sections, only show slide notes
-        return section.type === 'SLIDE_NOTES';
-      }
-    }) : [];
+  // Debug logging for the rendering decision
+  useEffect(() => {
+    if (company) {
+      console.log('Company details debug info:', {
+        companyName: company.name,
+        reportId: company.report_id,
+        isIITBombayUser,
+        slideNotesCount: slideNotes.length,
+        shouldShowSlideViewer: !isIITBombayUser && company.report_id
+      });
+    }
+  }, [company, isIITBombayUser, slideNotes]);
 
   // Early return for loading state
   if (authLoading || isLoading) {
@@ -137,6 +156,20 @@ function CompanyDetails() {
   const stageToShow = company.stage || "";
   const industryToShow = company.industry || "";
   const introductionToShow = company.introduction || "";
+
+  // Filter sections based on user type - exclude slide notes for IIT Bombay users
+  const filteredSections = company?.sections ? 
+    company.sections.filter(section => {
+      if (isIITBombayUser) {
+        // IIT Bombay users: exclude slide notes
+        return section.type !== 'SLIDE_NOTES';
+      } else {
+        // Non-IIT Bombay users: exclude regular sections, only show slide notes
+        return section.type === 'SLIDE_NOTES';
+      }
+    }) : [];
+
+  console.log('Filtered sections:', filteredSections);
 
   return (
     <div className="h-screen flex flex-col">
@@ -177,10 +210,14 @@ function CompanyDetails() {
             />
           )}
 
-          {/* Sections based on user type */}
+          {/* Conditional rendering based on user type */}
           {!isIITBombayUser ? (
-            // Non-IIT Bombay users: Show slide-by-slide notes viewer
+            // Non-IIT Bombay users: Always show slide-by-slide section if report_id exists
             <>
+              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Slide by Slide Analysis
+              </h2>
               {company.report_id ? (
                 <SlideBySlideViewer
                   reportId={company.report_id}
@@ -188,34 +225,16 @@ function CompanyDetails() {
                   companyName={company.name}
                 />
               ) : (
-                <>
-                  <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    Slide by Slide Notes
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredSections.length > 0 ? (
-                      filteredSections.map((section) => (
-                        <SectionCard
-                          key={section.id}
-                          section={section}
-                          onClick={() => navigate(`/company/${company.id}/section/${section.id}`)}
-                        />
-                      ))
-                    ) : (
-                      <Card className="col-span-full">
-                        <CardHeader>
-                          <CardTitle>No Report Available</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-muted-foreground">
-                            There is no PDF report available for slide-by-slide analysis for this company.
-                          </p>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </>
+                <Card className="shadow-card border-0 bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent">
+                  <CardHeader>
+                    <CardTitle>No Report Available</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      No PDF report is available for slide-by-slide analysis for this company.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
             </>
           ) : (
@@ -244,7 +263,7 @@ function CompanyDetails() {
                         There are no detailed analysis sections available for this company.
                       </p>
                     </CardContent>
-                    </Card>
+                  </Card>
                 )}
               </div>
             </>
