@@ -9,16 +9,37 @@ interface ReportViewerProps {
   reportId: string;
 }
 
+// Define the expected AnalysisResult interface based on NonIITBombayReportViewer
+interface AnalysisResult {
+  overallScore: number;
+  companyOverview: {
+    companyName: string;
+    industry: string;
+    stage: string;
+    fundingAsk: string;
+    summary: string;
+  };
+  sectionMetrics: Array<{
+    sectionName: string;
+    score: number;
+    description: string;
+  }>;
+  slideBySlideNotes: Array<{
+    slideNumber: number;
+    slideTitle: string;
+    notes: string[];
+  }>;
+}
+
 // Type guard to check if the analysis result has the new format
-const hasNewFormat = (analysisResult: any): analysisResult is {
-  companyOverview: any;
-  slideBySlideNotes: any;
-  [key: string]: any;
-} => {
+const hasNewFormat = (analysisResult: any): analysisResult is AnalysisResult => {
   return analysisResult && 
          typeof analysisResult === 'object' && 
+         typeof analysisResult.overallScore === 'number' &&
          analysisResult.companyOverview && 
-         analysisResult.slideBySlideNotes;
+         typeof analysisResult.companyOverview === 'object' &&
+         Array.isArray(analysisResult.sectionMetrics) &&
+         Array.isArray(analysisResult.slideBySlideNotes);
 };
 
 export const ReportViewer = ({ reportId }: ReportViewerProps) => {
