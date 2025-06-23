@@ -18,38 +18,49 @@ interface SlideBySlideViewerProps {
 
 export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideBySlideViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(1);
-  const [totalSlides, setTotalSlides] = useState(slideNotes.length);
+  const [totalSlides, setTotalSlides] = useState(1);
 
   // Update total slides when slideNotes change
   useEffect(() => {
     if (slideNotes && slideNotes.length > 0) {
       const maxSlideNumber = Math.max(...slideNotes.map(note => note.slideNumber));
-      setTotalSlides(maxSlideNumber);
+      setTotalSlides(Math.max(maxSlideNumber, 1));
       
       // If current slide is beyond available slides, reset to first slide
       if (currentSlide > maxSlideNumber) {
         setCurrentSlide(1);
       }
+      
+      console.log(`Slide notes available for slides: ${slideNotes.map(n => n.slideNumber).join(', ')}`);
+      console.log(`Total slides calculated: ${maxSlideNumber}`);
+    } else {
+      console.log("No slide notes available, defaulting to 1 slide");
+      setTotalSlides(1);
     }
   }, [slideNotes, currentSlide]);
 
-  const currentSlideNotes = slideNotes.find(slide => slide.slideNumber === currentSlide);
+  const currentSlideNotes = slideNotes?.find(slide => slide.slideNumber === currentSlide);
 
   const goToNextSlide = () => {
     if (currentSlide < totalSlides) {
-      setCurrentSlide(currentSlide + 1);
+      const nextSlide = currentSlide + 1;
+      setCurrentSlide(nextSlide);
+      console.log(`Navigating to slide ${nextSlide}`);
     }
   };
 
   const goToPrevSlide = () => {
     if (currentSlide > 1) {
-      setCurrentSlide(currentSlide - 1);
+      const prevSlide = currentSlide - 1;
+      setCurrentSlide(prevSlide);
+      console.log(`Navigating to slide ${prevSlide}`);
     }
   };
 
   const goToSlide = (slideNumber: number) => {
     if (slideNumber >= 1 && slideNumber <= totalSlides) {
       setCurrentSlide(slideNumber);
+      console.log(`Jumping to slide ${slideNumber}`);
     }
   };
 
@@ -65,14 +76,24 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
     return icons[noteIndex % icons.length];
   };
 
-  if (!slideNotes || slideNotes.length === 0) {
+  // Debug information
+  console.log("SlideBySlideViewer Debug:", {
+    reportId,
+    slideNotesLength: slideNotes?.length || 0,
+    currentSlide,
+    totalSlides,
+    hasCurrentSlideNotes: !!currentSlideNotes,
+    currentSlideNotesCount: currentSlideNotes?.notes?.length || 0
+  });
+
+  if (!reportId) {
     return (
-      <Card className="shadow-card border-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent">
+      <Card className="shadow-card border-0 bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent">
         <CardContent className="p-8 text-center">
-          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
-          <h3 className="text-lg font-semibold mb-2">No Slide Notes Available</h3>
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+          <h3 className="text-lg font-semibold mb-2">No Report Available</h3>
           <p className="text-muted-foreground">
-            No detailed slide-by-slide notes are available for this presentation. The analysis may still be processing.
+            No report ID is available for this company. The slide-by-slide analysis requires a PDF report.
           </p>
         </CardContent>
       </Card>
@@ -131,7 +152,10 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
                 reportId={reportId} 
                 initialPage={currentSlide}
                 showControls={false}
-                onPageChange={(page) => setCurrentSlide(page)}
+                onPageChange={(page) => {
+                  setCurrentSlide(page);
+                  console.log(`PDF viewer page changed to: ${page}`);
+                }}
               />
             </div>
           </CardContent>
@@ -143,10 +167,15 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
               Slide {currentSlide} Analysis
+              {slideNotes && slideNotes.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  ({slideNotes.length} slides analyzed)
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-5 h-full overflow-y-auto max-h-[500px]">
-            {currentSlideNotes ? (
+            {currentSlideNotes && currentSlideNotes.notes && currentSlideNotes.notes.length > 0 ? (
               <div className="space-y-4">
                 {currentSlideNotes.notes.map((note, index) => (
                   <div
@@ -163,15 +192,8 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
                     </div>
                   </div>
                 ))}
-                
-                {currentSlideNotes.notes.length === 0 && (
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-muted-foreground">No notes available for this slide.</p>
-                  </div>
-                )}
               </div>
-            ) : (
+            ) : slideNotes && slideNotes.length > 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
                 <p className="text-muted-foreground">
@@ -180,38 +202,69 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
                 <p className="text-xs text-muted-foreground mt-2">
                   The AI analysis may not have covered this slide, or the slide might be blank.
                 </p>
+                <div className="mt-4 text-xs text-muted-foreground">
+                  Available slides with notes: {slideNotes.map(n => n.slideNumber).join(', ')}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="h-8 w-8 mx-auto mb-3 text-amber-500" />
+                <h3 className="text-lg font-semibold mb-2">No Slide Notes Available</h3>
+                <p className="text-muted-foreground mb-4">
+                  No detailed slide-by-slide notes are available for this presentation.
+                </p>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>This could happen if:</p>
+                  <ul className="text-left max-w-md mx-auto space-y-1">
+                    <li>• The analysis is still processing</li>
+                    <li>• The pitch deck analysis failed</li>
+                    <li>• You have access to detailed analysis instead of slide notes</li>
+                  </ul>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Slide navigation indicators */}
-      <div className="flex justify-center">
-        <div className="flex items-center gap-2 p-2 bg-secondary/20 rounded-lg max-w-full overflow-x-auto">
-          {Array.from({ length: Math.min(totalSlides, 15) }, (_, index) => (
-            <Button
-              key={index + 1}
-              variant={currentSlide === index + 1 ? "default" : "ghost"}
-              size="sm"
-              onClick={() => goToSlide(index + 1)}
-              className="w-8 h-8 p-0 text-xs shrink-0"
-            >
-              {index + 1}
-            </Button>
-          ))}
-          {totalSlides > 15 && (
-            <span className="text-xs text-muted-foreground px-2">
-              ...{totalSlides}
-            </span>
-          )}
+      {/* Slide navigation indicators - only show if we have slides */}
+      {totalSlides > 1 && (
+        <div className="flex justify-center">
+          <div className="flex items-center gap-2 p-2 bg-secondary/20 rounded-lg max-w-full overflow-x-auto">
+            {Array.from({ length: Math.min(totalSlides, 15) }, (_, index) => {
+              const slideNumber = index + 1;
+              const hasNotes = slideNotes?.some(note => note.slideNumber === slideNumber);
+              return (
+                <Button
+                  key={slideNumber}
+                  variant={currentSlide === slideNumber ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => goToSlide(slideNumber)}
+                  className={`w-8 h-8 p-0 text-xs shrink-0 relative ${
+                    hasNotes ? 'ring-1 ring-green-500' : ''
+                  }`}
+                  title={hasNotes ? `Slide ${slideNumber} (has notes)` : `Slide ${slideNumber}`}
+                >
+                  {slideNumber}
+                  {hasNotes && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                  )}
+                </Button>
+              );
+            })}
+            {totalSlides > 15 && (
+              <span className="text-xs text-muted-foreground px-2">
+                ...{totalSlides}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Debug info */}
       {process.env.NODE_ENV === 'development' && (
         <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
-          Debug: Current slide: {currentSlide}, Total slides: {totalSlides}, Available notes: {slideNotes.map(n => n.slideNumber).join(', ')}
+          Debug: Current slide: {currentSlide}, Total slides: {totalSlides}, Available notes: {slideNotes?.map(n => n.slideNumber).join(', ') || 'none'}, Report ID: {reportId}
         </div>
       )}
     </div>
