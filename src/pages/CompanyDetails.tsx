@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -14,6 +13,7 @@ import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
+import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
 
 interface SlideNote {
   slideNumber: number;
@@ -22,6 +22,7 @@ interface SlideNote {
 
 interface AnalysisResult {
   slideBySlideNotes?: SlideNote[];
+  improvementSuggestions?: string[];
   [key: string]: any;
 }
 
@@ -33,6 +34,7 @@ function CompanyDetails() {
   const [error, setError] = useState<string | null>(null);
   const [isIITBombayUser, setIsIITBombayUser] = useState(false);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
+  const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = company ? {
@@ -65,13 +67,13 @@ function CompanyDetails() {
     checkUserType();
   }, [user]);
 
-  // Extract slide notes from company data
+  // Extract slide notes and improvement suggestions from company data
   useEffect(() => {
     if (company?.report_id) {
-      console.log('Fetching slide notes for report_id:', company.report_id);
+      console.log('Fetching slide notes and improvement suggestions for report_id:', company.report_id);
       
-      // Get slide notes from the report analysis result
-      const fetchSlideNotes = async () => {
+      // Get slide notes and improvement suggestions from the report analysis result
+      const fetchAnalysisData = async () => {
         try {
           const { data: report } = await supabase
             .from('reports')
@@ -83,6 +85,8 @@ function CompanyDetails() {
           
           if (report?.analysis_result) {
             const analysisResult = report.analysis_result as AnalysisResult;
+            
+            // Set slide notes
             if (analysisResult.slideBySlideNotes && analysisResult.slideBySlideNotes.length > 0) {
               setSlideNotes(analysisResult.slideBySlideNotes);
               console.log('Slide notes found:', analysisResult.slideBySlideNotes.length);
@@ -90,20 +94,32 @@ function CompanyDetails() {
               console.log('No slideBySlideNotes in analysis result or empty array');
               setSlideNotes([]);
             }
+            
+            // Set improvement suggestions
+            if (analysisResult.improvementSuggestions && analysisResult.improvementSuggestions.length > 0) {
+              setImprovementSuggestions(analysisResult.improvementSuggestions);
+              console.log('Improvement suggestions found:', analysisResult.improvementSuggestions.length);
+            } else {
+              console.log('No improvementSuggestions in analysis result or empty array');
+              setImprovementSuggestions([]);
+            }
           } else {
             console.log('No analysis_result in report');
             setSlideNotes([]);
+            setImprovementSuggestions([]);
           }
         } catch (error) {
-          console.error('Error fetching slide notes:', error);
+          console.error('Error fetching analysis data:', error);
           setSlideNotes([]);
+          setImprovementSuggestions([]);
         }
       };
       
-      fetchSlideNotes();
+      fetchAnalysisData();
     } else {
       console.log('No report_id found for company');
       setSlideNotes([]);
+      setImprovementSuggestions([]);
     }
   }, [company?.report_id]);
 
@@ -121,10 +137,11 @@ function CompanyDetails() {
         reportId: company.report_id,
         isIITBombayUser,
         slideNotesCount: slideNotes.length,
+        improvementSuggestionsCount: improvementSuggestions.length,
         shouldShowSlideViewer: company.report_id ? true : false
       });
     }
-  }, [company, isIITBombayUser, slideNotes]);
+  }, [company, isIITBombayUser, slideNotes, improvementSuggestions]);
 
   // Early return for loading state
   if (authLoading || isLoading) {
@@ -263,6 +280,14 @@ function CompanyDetails() {
             <SlideBySlideViewer
               reportId={company.report_id}
               slideNotes={slideNotes}
+              companyName={company.name}
+            />
+          )}
+
+          {/* Show Improvement Suggestions section after slide-by-slide analysis */}
+          {company.report_id && improvementSuggestions.length > 0 && (
+            <ImprovementSuggestions
+              suggestions={improvementSuggestions}
               companyName={company.name}
             />
           )}

@@ -1,4 +1,3 @@
-
 import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 export interface AnalysisResult {
@@ -16,6 +15,7 @@ export interface AnalysisResult {
     slideNumber: number;
     notes: string[];
   }>;
+  improvementSuggestions?: string[];
 }
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100, isIITBombayUser = false): Promise<any> {
@@ -131,6 +131,13 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
     analysis.slideBySlideNotes = [];
   }
   console.log("Slide by slide notes count:", analysis.slideBySlideNotes?.length || 0);
+
+  // Ensure improvementSuggestions field exists
+  if (!analysis.improvementSuggestions) {
+    console.warn("No improvementSuggestions found in analysis result, initializing empty array");
+    analysis.improvementSuggestions = [];
+  }
+  console.log("Improvement suggestions count:", analysis.improvementSuggestions?.length || 0);
 
   console.log("Analysis sections count:", analysis.sections?.length || 0);
   console.log("Overall score:", analysis.overallScore);
@@ -373,6 +380,18 @@ Return your analysis in EXACTLY this JSON format:
         "<detailed analysis point 4 for slide 2>"
       ]
     }
+  ],
+  "improvementSuggestions": [
+    "<actionable improvement suggestion 1 with specific implementation guidance>",
+    "<actionable improvement suggestion 2 with specific implementation guidance>",
+    "<actionable improvement suggestion 3 with specific implementation guidance>",
+    "<actionable improvement suggestion 4 with specific implementation guidance>",
+    "<actionable improvement suggestion 5 with specific implementation guidance>",
+    "<actionable improvement suggestion 6 with specific implementation guidance>",
+    "<actionable improvement suggestion 7 with specific implementation guidance>",
+    "<actionable improvement suggestion 8 with specific implementation guidance>",
+    "<actionable improvement suggestion 9 with specific implementation guidance>",
+    "<actionable improvement suggestion 10 with specific implementation guidance>"
   ]
 }
 
@@ -391,6 +410,25 @@ SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
 - Reference specific elements visible on each slide (text, charts, images, etc.)
 - Provide both positive observations and constructive criticism
 - Include market context and industry benchmarks where relevant
+
+IMPROVEMENT SUGGESTIONS REQUIREMENTS:
+- Provide EXACTLY 10 actionable improvement suggestions
+- Each suggestion must be specific and implementable
+- Focus on critical gaps and areas for enhancement
+- Include suggestions for missing elements like:
+  * "Add a Market Sizing slide using TAM/SAM/SOM format with specific market data"
+  * "Include a competitive analysis matrix showing direct and indirect competitors"
+  * "Add customer testimonials or case studies to strengthen traction evidence"
+  * "Create a detailed financial model showing unit economics and path to profitability"
+  * "Include team member profiles with relevant experience and achievements"
+  * "Add a product roadmap showing future development milestones"
+  * "Include risk analysis and mitigation strategies"
+  * "Add partnership opportunities and strategic alliances section"
+  * "Include funding utilization breakdown with specific milestones"
+  * "Add exit strategy considerations for potential investors"
+- Each suggestion should include WHY it's important and HOW to implement it
+- Consider industry best practices and investor expectations
+- Address both content gaps and presentation improvements
 
 Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
 

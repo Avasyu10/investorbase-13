@@ -109,12 +109,13 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       overall_score: analysis.overallScore
     };
 
-    // Store the full analysis result including slide notes if available
-    if (analysis.slideBySlideNotes) {
+    // Store the full analysis result including slide notes and improvement suggestions if available
+    if (analysis.slideBySlideNotes || analysis.improvementSuggestions) {
       reportUpdateData.analysis_result = {
         overallScore: analysis.overallScore,
         assessmentPoints: analysis.assessmentPoints,
-        slideBySlideNotes: analysis.slideBySlideNotes,
+        slideBySlideNotes: analysis.slideBySlideNotes || [],
+        improvementSuggestions: analysis.improvementSuggestions || [],
         sections: analysis.sections
       };
     }
