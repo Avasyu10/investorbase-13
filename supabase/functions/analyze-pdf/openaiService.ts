@@ -192,27 +192,12 @@ function getPublicAnalysisPrompt(scoringScale: number): string {
       "title": "Problem Statement",
       "score": <number between 0-${scoringScale}>,
       "description": "<detailed analysis>",
-      "strengths": [
-        "<detailed strength 1 with market data and specific metrics>",
-        "<detailed strength 2 with market data and specific metrics>"
-      ],
-      "weaknesses": [
-        "<detailed market-based weakness 1 with industry context and competitive concerns>",
-        "<detailed market-based weakness 2 with industry context and competitive concerns>"
-      ]
+      "strengths": ["<strength 1>", "<strength 2>"],
+      "weaknesses": ["<weakness 1>", "<weakness 2>"]
     },
     ... (continue for all sections)
   ]
 }
-
-CRITICAL REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
-- All strengths and weaknesses MUST be based on market data, industry analysis, and competitive landscape
-- Each weakness should focus on market challenges, competitive threats, industry risks, or market dynamics
-- Include specific market size limitations, competitive positioning concerns, industry trend challenges
-- Reference market adoption barriers, regulatory challenges, or competitive disadvantages
-- Provide data-driven concerns about market timing, customer acquisition costs, or market saturation
-- DO NOT focus on what information is missing from the submission form
-- Focus on real market-based investment concerns and competitive challenges
 
 Please analyze these sections:
 1. PROBLEM - Problem Statement
@@ -233,5 +218,5 @@ Score each section from 0-${scoringScale} based on quality, completeness, and in
 - ${Math.floor(scoringScale * 0.6) + 1}-${Math.floor(scoringScale * 0.8)}: Good - Above average quality
 - ${Math.floor(scoringScale * 0.8) + 1}-${scoringScale}: Excellent - Outstanding quality and potential
 
-The overall score should reflect the weighted average of all sections, considering the investment potential and business viability. Ensure all weaknesses are market-driven and focus on competitive and industry challenges rather than form completeness.`;
+The overall score should reflect the weighted average of all sections, considering the investment potential and business viability.`;
 }
