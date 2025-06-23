@@ -1,195 +1,139 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.29.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.0.0';
 
-export interface AnalysisResult {
-  overallScore: number;
-  assessmentPoints: string[];
-  sections: Array<{
-    title: string;
-    type: string;
-    score: number;
-    strengths: string[];
-    weaknesses: string[];
-    detailedContent: string;
-  }>;
-  slideBySlideNotes?: Array<{
-    slideNumber: number;
-    notes: string[];
-  }>;
-  improvementSuggestions?: string[];
-}
+export async function saveAnalysisResults(supabase: any, analysis: any, report: any) {
+  console.log("Starting to save analysis results to database");
+  
+  try {
+    // Create company entry
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        name: report.title || 'Unknown Company',
+        overall_score: analysis.overallScore || 0,
+        assessment_points: analysis.assessmentPoints || [],
+        report_id: report.id,
+        user_id: report.user_id,
+        source: report.is_public_submission ? 'public_submission' : 'dashboard'
+      })
+      .select()
+      .single();
 
-export async function storeAnalysisResult(reportId: string, analysisResult: AnalysisResult) {
-  console.log(`Storing analysis result for report ${reportId}`);
-  
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration');
-  }
-  
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
+    if (companyError) {
+      console.error("Error creating company:", companyError);
+      throw companyError;
     }
-  });
-  
-  const { error } = await supabase
-    .from('reports')
-    .update({
-      analysis_result: analysisResult,
-      analysis_status: 'completed'
-    })
-    .eq('id', reportId);
-    
-  if (error) {
-    console.error("Error storing analysis result:", error);
+
+    console.log("Company created successfully:", company.id);
+
+    // Save sections
+    if (analysis.sections && analysis.sections.length > 0) {
+      const sectionsToInsert = analysis.sections.map((section: any) => ({
+        company_id: company.id,
+        title: section.title,
+        type: section.type,
+        score: section.score || 0,
+        description: section.description || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      const { data: sections, error: sectionsError } = await supabase
+        .from('sections')
+        .insert(sectionsToInsert)
+        .select();
+
+      if (sectionsError) {
+        console.error("Error creating sections:", sectionsError);
+        throw sectionsError;
+      }
+
+      console.log("Sections created successfully:", sections.length);
+
+      // Save section details (strengths, weaknesses, and detailed content)
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        const analysisSection = analysis.sections[i];
+        
+        const detailsToInsert = [];
+
+        // Add strengths
+        if (analysisSection.strengths && analysisSection.strengths.length > 0) {
+          analysisSection.strengths.forEach((strength: string) => {
+            detailsToInsert.push({
+              section_id: section.id,
+              detail_type: 'strength',
+              content: strength
+            });
+          });
+        }
+
+        // Add weaknesses
+        if (analysisSection.weaknesses && analysisSection.weaknesses.length > 0) {
+          analysisSection.weaknesses.forEach((weakness: string) => {
+            detailsToInsert.push({
+              section_id: section.id,
+              detail_type: 'weakness',
+              content: weakness
+            });
+          });
+        }
+
+        // Add detailed content if available
+        if (analysisSection.detailedContent) {
+          detailsToInsert.push({
+            section_id: section.id,
+            detail_type: 'detailed_content',
+            content: analysisSection.detailedContent
+          });
+        }
+
+        if (detailsToInsert.length > 0) {
+          const { error: detailsError } = await supabase
+            .from('section_details')
+            .insert(detailsToInsert);
+
+          if (detailsError) {
+            console.error("Error creating section details:", detailsError);
+            // Don't throw here, continue with other sections
+          }
+        }
+      }
+    }
+
+    // Update the report with analysis results and slide notes
+    const reportUpdateData: any = {
+      analysis_status: 'completed',
+      analyzed_at: new Date().toISOString(),
+      company_id: company.id,
+      overall_score: analysis.overallScore
+    };
+
+    // Store the full analysis result including slide notes if available
+    if (analysis.slideBySlideNotes) {
+      reportUpdateData.analysis_result = {
+        overallScore: analysis.overallScore,
+        assessmentPoints: analysis.assessmentPoints,
+        slideBySlideNotes: analysis.slideBySlideNotes,
+        sections: analysis.sections
+      };
+    }
+
+    const { error: reportUpdateError } = await supabase
+      .from('reports')
+      .update(reportUpdateData)
+      .eq('id', report.id);
+
+    if (reportUpdateError) {
+      console.error("Error updating report:", reportUpdateError);
+      throw reportUpdateError;
+    }
+
+    console.log("Analysis results saved successfully");
+    return company.id;
+
+  } catch (error) {
+    console.error("Error in saveAnalysisResults:", error);
     throw error;
   }
-  
-  console.log(`Analysis result stored successfully for report ${reportId}`);
-}
-
-export async function updateCompanyFromAnalysis(companyId: string, analysisResult: AnalysisResult) {
-  console.log(`Updating company ${companyId} with analysis result`);
-  
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration');
-  }
-  
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-  
-  const { error } = await supabase
-    .from('companies')
-    .update({
-      overall_score: analysisResult.overallScore,
-      assessment_points: analysisResult.assessmentPoints
-    })
-    .eq('id', companyId);
-    
-  if (error) {
-    console.error("Error updating company:", error);
-    throw error;
-  }
-  
-  console.log(`Company ${companyId} updated successfully`);
-}
-
-export async function createSectionsFromAnalysis(reportId: string, analysisResult: AnalysisResult) {
-  console.log(`Creating sections for report ${reportId}`);
-  
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration');
-  }
-  
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-  
-  // Get the company_id from the report
-  const { data: report, error: reportError } = await supabase
-    .from('reports')
-    .select('company_id')
-    .eq('id', reportId)
-    .single();
-    
-  if (reportError) {
-    console.error("Error getting company_id from report:", reportError);
-    throw new Error("Could not retrieve report information");
-  }
-  
-  if (!report?.company_id) {
-    console.log("No company_id found for this report - skipping section creation");
-    return; // Don't throw an error, just return early
-  }
-  
-  const companyId = report.company_id;
-  
-  // Clear existing sections for this company
-  const { error: deleteError } = await supabase
-    .from('sections')
-    .delete()
-    .eq('company_id', companyId);
-    
-  if (deleteError) {
-    console.error("Error deleting existing sections:", deleteError);
-    throw deleteError;
-  }
-  
-  // Create new sections from analysis
-  const sectionsToInsert = analysisResult.sections.map(section => ({
-    company_id: companyId,
-    type: section.type,
-    title: section.title,
-    score: section.score,
-    strengths: section.strengths || [],
-    weaknesses: section.weaknesses || [],
-    detailed_content: section.detailedContent || section.description || ''
-  }));
-  
-  if (sectionsToInsert.length > 0) {
-    const { error: insertError } = await supabase
-      .from('sections')
-      .insert(sectionsToInsert);
-      
-    if (insertError) {
-      console.error("Error inserting sections:", insertError);
-      throw insertError;
-    }
-    
-    console.log(`Successfully created ${sectionsToInsert.length} sections for company ${companyId}`);
-  }
-}
-
-export async function getExistingAnalysis(reportId: string) {
-  console.log(`Checking for existing analysis for report ${reportId}`);
-  
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration');
-  }
-  
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-  
-  const { data: report, error } = await supabase
-    .from('reports')
-    .select('analysis_result, analysis_status')
-    .eq('id', reportId)
-    .single();
-    
-  if (error) {
-    console.error("Error checking existing analysis:", error);
-    return null;
-  }
-  
-  if (report?.analysis_result && report?.analysis_status === 'completed') {
-    console.log(`Found existing analysis for report ${reportId}`);
-    return report.analysis_result;
-  }
-  
-  console.log(`No existing analysis found for report ${reportId}`);
-  return null;
 }

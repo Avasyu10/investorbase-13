@@ -1,10 +1,10 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
 import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
-import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -263,14 +263,6 @@ function CompanyDetails() {
             <SlideBySlideViewer
               reportId={company.report_id}
               slideNotes={slideNotes}
-              companyName={company.name}
-            />
-          )}
-
-          {/* Add Improvement Suggestions section after Slide by Slide Analysis */}
-          {company.report_id && (
-            <ImprovementSuggestions
-              reportId={company.report_id}
               companyName={company.name}
             />
           )}
