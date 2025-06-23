@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { downloadReport, debugStorageBucket } from "@/lib/supabase/reports";
+import { getReportById } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -35,6 +36,8 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   const loadPdf = async () => {
     if (!user || !reportId) {
       console.log('Missing user or reportId:', { user: !!user, reportId });
+      setError('Authentication required to load PDF');
+      setLoading(false);
       return;
     }
     
@@ -52,20 +55,59 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         setPdfUrl('');
       }
       
-      // Debug storage first
-      await debugStorageBucket();
+      // Get the report details first
+      const report = await getReportById(reportId);
+      console.log('Report fetched:', {
+        id: report.id,
+        title: report.title,
+        pdf_url: report.pdf_url,
+        user_id: report.user_id
+      });
       
-      // Download the PDF blob using the updated function
-      const pdfBlob = await downloadReport('', user.id, reportId);
-      
-      if (!pdfBlob || pdfBlob.size === 0) {
-        throw new Error('Downloaded PDF is empty or invalid');
+      if (!report.pdf_url) {
+        throw new Error('No PDF file associated with this report');
       }
       
-      console.log('✅ PDF blob downloaded successfully:', {
-        size: pdfBlob.size,
-        type: pdfBlob.type
-      });
+      // Download the PDF using the Supabase storage client directly
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Try different path variations
+      const bucketName = 'report-pdfs';
+      const pathsToTry = [
+        report.pdf_url, // Direct filename
+        `${report.user_id}/${report.pdf_url}`, // User-specific path
+        `${user.id}/${report.pdf_url}` // Current user path
+      ];
+      
+      let pdfBlob = null;
+      
+      for (const filePath of pathsToTry) {
+        console.log(`Trying to download from: ${bucketName}/${filePath}`);
+        
+        try {
+          const { data, error } = await supabase.storage
+            .from(bucketName)
+            .download(filePath);
+
+          if (!error && data && data.size > 0) {
+            pdfBlob = data;
+            console.log('✅ PDF downloaded successfully:', {
+              path: filePath,
+              size: data.size,
+              type: data.type
+            });
+            break;
+          } else {
+            console.log(`❌ Failed to download from ${filePath}:`, error?.message || 'No data');
+          }
+        } catch (pathError) {
+          console.log(`❌ Exception downloading from ${filePath}:`, pathError);
+        }
+      }
+      
+      if (!pdfBlob) {
+        throw new Error(`Failed to download PDF from storage. Tried paths: ${pathsToTry.join(', ')}`);
+      }
       
       // Create blob URL
       const blobUrl = URL.createObjectURL(pdfBlob);
@@ -100,7 +142,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   const onDocumentLoadError = (error: any) => {
     console.error('❌ PDF document load error:', error);
-    setError('Failed to load PDF document. This might be a worker issue - please try refreshing.');
+    setError('Failed to load PDF document. The file might be corrupted or incompatible.');
   };
 
   const changePage = (offset: number) => {
@@ -245,17 +287,12 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           }
           error={
             <div className="text-center p-8 text-red-500">
-              <p>Failed to render PDF - Worker configuration issue</p>
+              <p>Failed to render PDF</p>
               <Button variant="outline" size="sm" onClick={handleRetry} className="mt-2">
                 Retry
               </Button>
             </div>
           }
-          options={{
-            cMapUrl: '/cmaps/',
-            cMapPacked: true,
-            standardFontDataUrl: '/standard_fonts/',
-          }}
         >
           <Page
             pageNumber={pageNumber}
