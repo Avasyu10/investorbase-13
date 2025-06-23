@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
@@ -32,10 +33,10 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { reportId, fileBase64, fileName, overallScore, assessmentPoints, scoringScale, usePublicAnalysisPrompt = false } = requestBody;
     
-    console.log('Received request:', { reportId, fileName, overallScore, assessmentPoints, scoringScale, usePublicAnalysisPrompt });
+    console.log('Received request:', { reportId, hasFileBase64: !!fileBase64, fileName, overallScore, assessmentPoints, scoringScale, usePublicAnalysisPrompt });
 
-    if (!reportId || !fileBase64) {
-      throw new Error('Report ID and file data are required');
+    if (!reportId) {
+      throw new Error('Report ID is required');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -73,12 +74,65 @@ serve(async (req) => {
       throw new Error(`Failed to fetch report: ${reportError.message}`);
     }
 
+    console.log('Report data:', { id: report.id, pdf_url: report.pdf_url, user_id: report.user_id });
+
     const isIITBombayUser = report.profiles?.is_iitbombay || false;
     console.log('User is IIT Bombay user:', isIITBombayUser);
 
+    // If fileBase64 is not provided, fetch it from storage
+    let pdfBase64 = fileBase64;
+    if (!pdfBase64) {
+      console.log('No fileBase64 provided, fetching from storage...');
+      
+      if (!report.pdf_url) {
+        throw new Error('No PDF URL found in report');
+      }
+
+      // Try multiple download strategies
+      let pdfBlob: Blob | null = null;
+      const downloadPaths = [
+        `${report.user_id}/${report.pdf_url}`, // User-prefixed path
+        report.pdf_url, // Direct path
+        report.pdf_url.split('/').pop() || report.pdf_url // Just filename
+      ];
+
+      for (const path of downloadPaths) {
+        try {
+          console.log(`Attempting to download PDF from path: ${path}`);
+          const { data, error } = await supabase.storage
+            .from('report_pdfs')
+            .download(path);
+
+          if (!error && data) {
+            pdfBlob = data;
+            console.log(`Successfully downloaded PDF from path: ${path}`);
+            break;
+          } else {
+            console.log(`Failed to download from path ${path}:`, error?.message);
+          }
+        } catch (err) {
+          console.log(`Error downloading from path ${path}:`, err);
+        }
+      }
+
+      if (!pdfBlob) {
+        throw new Error('Could not download PDF file from storage');
+      }
+
+      // Convert blob to base64
+      const arrayBuffer = await pdfBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      pdfBase64 = btoa(String.fromCharCode(...uint8Array));
+      console.log('Successfully converted PDF to base64, length:', pdfBase64.length);
+    }
+
+    if (!pdfBase64) {
+      throw new Error('No PDF data available for analysis');
+    }
+
     // Call the AI analysis
     console.log('Starting AI analysis...');
-    const analysisResult = await analyzeWithOpenAI(fileBase64, geminiApiKey, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
+    const analysisResult = await analyzeWithOpenAI(pdfBase64, geminiApiKey, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
     console.log('AI analysis completed');
 
     // Handle different response formats based on user type
@@ -92,7 +146,7 @@ serve(async (req) => {
         .update({
           overall_score: analysisResult.overallScore,
           analysis_result: analysisResult,
-          status: 'completed',
+          analysis_status: 'completed',
           analyzed_at: new Date().toISOString()
         })
         .eq('id', reportId);
@@ -128,8 +182,8 @@ serve(async (req) => {
         report.user_id,
         overallScore || analysisResult.overallScore,
         assessmentPoints || analysisResult.assessmentPoints || [],
-        report.company_name,
-        report.company_email
+        report.title,
+        report.submitter_email
       );
 
       console.log('Created company with ID:', companyId);
