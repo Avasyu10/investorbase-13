@@ -14,11 +14,11 @@ export interface AnalysisResult {
   }>;
 }
 
-export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100): Promise<any> {
+export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100, isIITBombayUser = false): Promise<any> {
   console.log("Starting Gemini analysis with PDF data");
   
-  // Choose the appropriate prompt based on the analysis type
-  const basePrompt = usePublicAnalysisPrompt ? getPublicAnalysisPrompt(scoringScale) : getEnhancedAnalysisPrompt();
+  // Choose the appropriate prompt based on the analysis type and user type
+  const basePrompt = usePublicAnalysisPrompt ? getPublicAnalysisPrompt(scoringScale) : (isIITBombayUser ? getEnhancedAnalysisPrompt() : getNonIITBombayAnalysisPrompt());
   
   const payload = {
     contents: [
@@ -172,6 +172,100 @@ Please analyze these sections:
 10. ASK - The Ask & Next Steps
 
 Score each section from 1-100 based on quality, completeness, and investment potential. Ensure all strengths and weaknesses are comprehensive, data-driven, and include relevant market context.`;
+}
+
+function getNonIITBombayAnalysisPrompt(): string {
+  return `Analyze this PDF pitch deck and provide a focused investment assessment. Please return your analysis in the following JSON format:
+
+{
+  "overallScore": <number between 1-100>,
+  "companyOverview": {
+    "companyName": "<company name from deck>",
+    "industry": "<industry/sector>",
+    "stage": "<startup stage>",
+    "fundingAsk": "<funding amount requested>",
+    "summary": "<2-3 sentence company summary with market context>"
+  },
+  "sectionMetrics": [
+    {
+      "sectionName": "Problem Statement",
+      "score": <number between 1-100>,
+      "description": "<brief analysis of this section>"
+    },
+    {
+      "sectionName": "Market Opportunity",
+      "score": <number between 1-100>,
+      "description": "<brief analysis of this section>"
+    },
+    {
+      "sectionName": "Solution/Product",
+      "score": <number between 1-100>,
+      "description": "<brief analysis of this section>"
+    },
+    {
+      "sectionName": "Business Model",
+      "score": <number between 1-100>,
+      "description": "<brief analysis of this section>"
+    },
+    {
+      "sectionName": "Traction",
+      "score": <number between 1-100>,
+      "description": "<brief analysis of this section>"
+    },
+    {
+      "sectionName": "Team",
+      "score": <number between 1-100>,
+      "description": "<brief analysis of this section>"
+    },
+    {
+      "sectionName": "Financials",
+      "score": <number between 1-100>,
+      "description": "<brief analysis of this section>"
+    }
+  ],
+  "slideBySlideNotes": [
+    {
+      "slideNumber": 1,
+      "slideTitle": "<title of slide 1>",
+      "notes": [
+        "<detailed note 1 with market data and specific insights>",
+        "<detailed note 2 with market data and specific insights>",
+        "<detailed note 3 with market data and specific insights>",
+        "<detailed note 4 with market data and specific insights>",
+        "<detailed note 5 with market data and specific insights>"
+      ]
+    },
+    {
+      "slideNumber": 2,
+      "slideTitle": "<title of slide 2>",
+      "notes": [
+        "<detailed note 1 with market data and specific insights>",
+        "<detailed note 2 with market data and specific insights>",
+        "<detailed note 3 with market data and specific insights>",
+        "<detailed note 4 with market data and specific insights>",
+        "<detailed note 5 with market data and specific insights>"
+      ]
+    }
+    ... (continue for all slides in the deck)
+  ]
+}
+
+CRITICAL REQUIREMENTS FOR SLIDE-BY-SLIDE NOTES:
+- Analyze EVERY slide in the pitch deck
+- Each slide should have 4-5 detailed notes
+- Include specific market data, industry benchmarks, competitive analysis
+- Reference actual market sizes, growth rates, funding data where relevant
+- Provide actionable insights and strategic recommendations
+- Include quantified metrics and comparative data points
+- Focus on investment perspective and due diligence insights
+
+SCORING CRITERIA:
+- Score each section from 1-100 based on quality, completeness, and investment potential
+- Consider market opportunity, execution capability, competitive positioning
+- Factor in team strength, traction evidence, and financial projections
+- Overall score should reflect weighted assessment of all sections
+
+Please provide comprehensive slide-by-slide analysis with market-driven insights for investment decision making.`;
 }
 
 function getPublicAnalysisPrompt(scoringScale: number): string {
