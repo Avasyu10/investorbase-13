@@ -61,54 +61,36 @@ export async function analyzeReport(reportId: string): Promise<void> {
   }
 }
 
-export async function downloadReport(fileUrl: string, userId: string): Promise<Blob> {
+export async function downloadReport(fileUrl: string, userId?: string): Promise<Blob> {
   console.log('Attempting to download report:', { fileUrl, userId });
   
-  const strategies = [
-    {
-      name: 'user-specific path',
-      path: `${userId}/${fileUrl}`,
-      bucket: 'report_pdfs'
-    },
-    {
-      name: 'direct path',
-      path: fileUrl,
-      bucket: 'report_pdfs'
-    },
-    {
-      name: 'email attachments',
-      path: fileUrl,
-      bucket: 'email_attachments'
-    }
-  ];
+  // First try to get the public URL
+  const { data: publicUrlData } = supabase.storage
+    .from('report_pdfs')
+    .getPublicUrl(fileUrl);
 
-  let lastError: any = null;
-  
-  for (const strategy of strategies) {
+  if (publicUrlData.publicUrl) {
     try {
-      console.log(`Trying ${strategy.name}:`, strategy.path);
-      
-      const { data, error } = await supabase.storage
-        .from(strategy.bucket)
-        .download(strategy.path);
-
-      if (error) {
-        console.log(`${strategy.name} failed:`, error.message);
-        lastError = error;
-        continue;
-      }
-      
-      if (data) {
-        console.log(`Successfully downloaded with ${strategy.name}`);
-        return data;
+      const response = await fetch(publicUrlData.publicUrl);
+      if (response.ok) {
+        console.log('Successfully downloaded via public URL');
+        return await response.blob();
       }
     } catch (error) {
-      console.log(`Error with ${strategy.name}:`, error);
-      lastError = error;
+      console.log('Public URL fetch failed, trying download method:', error);
     }
   }
-  
-  // If all strategies failed, throw the last error
-  console.error('All download strategies failed:', lastError);
-  throw lastError || new Error('Failed to download report from all attempted paths');
+
+  // Fallback to direct download
+  const { data, error } = await supabase.storage
+    .from('report_pdfs')
+    .download(fileUrl);
+
+  if (error || !data) {
+    console.error('Download error:', error);
+    throw error || new Error('Failed to download report');
+  }
+
+  console.log('Successfully downloaded via direct download');
+  return data;
 }

@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
-import { downloadReport } from "@/lib/supabase/reports";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -69,98 +68,48 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           throw new Error('No PDF URL found in report');
         }
 
-        // Try multiple download strategies with better error handling
-        let blob = null;
-        const strategies = [];
+        // Try to get the PDF from storage using the public URL first
+        console.log('Trying to get PDF via public URL...');
+        const { data: publicUrlData } = supabase.storage
+          .from('report_pdfs')
+          .getPublicUrl(report.pdf_url);
 
-        // Strategy 1: User-specific path for dashboard uploads
-        if (report.user_id && !report.is_public_submission) {
-          strategies.push({
-            name: 'user-specific path',
-            path: `${report.user_id}/${report.pdf_url}`,
-            bucket: 'report_pdfs'
-          });
-        }
-
-        // Strategy 2: Direct path
-        strategies.push({
-          name: 'direct path',
-          path: report.pdf_url,
-          bucket: 'report_pdfs'
-        });
-
-        // Strategy 3: Check email attachments bucket
-        strategies.push({
-          name: 'email attachments',
-          path: report.pdf_url,
-          bucket: 'email_attachments'
-        });
-
-        // Try each strategy
-        for (const strategy of strategies) {
-          if (blob) break;
+        if (publicUrlData.publicUrl) {
+          console.log('Using public URL:', publicUrlData.publicUrl);
           
-          try {
-            console.log(`Trying ${strategy.name}:`, strategy.path);
-            
-            const { data: storageData, error: storageError } = await supabase.storage
-              .from(strategy.bucket)
-              .download(strategy.path);
-            
-            if (!storageError && storageData) {
-              blob = storageData;
-              console.log(`Successfully downloaded via ${strategy.name}`);
-              break;
-            } else {
-              console.log(`${strategy.name} failed:`, storageError?.message || 'No data');
-            }
-          } catch (err) {
-            console.log(`${strategy.name} exception:`, err);
+          // Test if the public URL is accessible
+          const testResponse = await fetch(publicUrlData.publicUrl, { method: 'HEAD' });
+          
+          if (testResponse.ok) {
+            setPdfUrl(publicUrlData.publicUrl);
+            console.log('PDF loaded successfully via public URL');
+            return;
+          } else {
+            console.log('Public URL not accessible, trying download method');
           }
         }
 
-        // Strategy 4: Try public URL as last resort
-        if (!blob) {
-          try {
-            console.log('Trying public URL access...');
-            const { data: publicUrl } = supabase.storage
-              .from('report_pdfs')
-              .getPublicUrl(report.pdf_url);
-            
-            if (publicUrl.publicUrl) {
-              console.log('Fetching from public URL:', publicUrl.publicUrl);
-              const response = await fetch(publicUrl.publicUrl);
-              
-              if (response.ok) {
-                blob = await response.blob();
-                console.log('Downloaded via public URL successfully');
-              } else {
-                console.log('Public URL fetch failed:', response.status, response.statusText);
-              }
-            }
-          } catch (err) {
-            console.log('Public URL exception:', err);
-          }
+        // Fallback to downloading the file
+        console.log('Downloading PDF from storage...');
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('report_pdfs')
+          .download(report.pdf_url);
+
+        if (downloadError || !fileData) {
+          console.error('Download error:', downloadError);
+          throw new Error(`Failed to download PDF: ${downloadError?.message || 'Unknown error'}`);
         }
 
-        if (!blob) {
-          throw new Error('Failed to download PDF from any storage location');
-        }
+        console.log('PDF downloaded successfully, size:', fileData.size);
 
-        // Validate the blob
-        console.log('PDF blob info:', {
-          size: blob.size,
-          type: blob.type
-        });
-
-        if (blob.size === 0) {
+        if (fileData.size === 0) {
           throw new Error('Downloaded PDF file is empty');
         }
 
-        // Create object URL
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-        console.log('PDF URL created successfully');
+        // Create object URL from blob
+        const objectUrl = URL.createObjectURL(fileData);
+        setPdfUrl(objectUrl);
+        console.log('PDF object URL created successfully');
         
       } catch (err) {
         console.error('Error loading PDF:', err);
@@ -174,7 +123,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
     // Cleanup URL on unmount
     return () => {
-      if (pdfUrl) {
+      if (pdfUrl && pdfUrl.startsWith('blob:')) {
         URL.revokeObjectURL(pdfUrl);
       }
     };

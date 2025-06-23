@@ -52,59 +52,48 @@ export async function getReportData(reportId: string) {
   
   console.log("Attempting to download PDF from storage");
   
-  // Define download strategies
-  const strategies = [];
-  
-  // Strategy 1: User-specific path for dashboard uploads
-  if (report.user_id && !report.is_public_submission) {
-    strategies.push({
-      name: 'user-specific path',
-      path: `${report.user_id}/${report.pdf_url}`,
-      bucket: 'report_pdfs'
-    });
-  }
-  
-  // Strategy 2: Direct path
-  strategies.push({
-    name: 'direct path',
-    path: report.pdf_url,
-    bucket: 'report_pdfs'
-  });
-  
-  // Strategy 3: Email attachments bucket
-  strategies.push({
-    name: 'email attachments',
-    path: report.pdf_url,
-    bucket: 'email_attachments'
-  });
-  
   let pdfData = null;
   let lastError = null;
   
-  // Try each strategy
-  for (const strategy of strategies) {
-    if (pdfData) break;
+  // Try to download the PDF using the most direct approach first
+  try {
+    console.log(`Downloading PDF from report_pdfs bucket: ${report.pdf_url}`);
     
+    const { data, error } = await supabase.storage
+      .from('report_pdfs')
+      .download(report.pdf_url);
+      
+    if (error) {
+      console.log(`Direct download failed:`, error.message);
+      lastError = error;
+    } else if (data) {
+      pdfData = data;
+      console.log(`Successfully downloaded PDF via direct path`);
+    }
+  } catch (err) {
+    console.log(`Error with direct download:`, err);
+    lastError = err;
+  }
+  
+  // If direct download failed and we have a user_id, try user-specific path
+  if (!pdfData && report.user_id && !report.is_public_submission) {
     try {
-      console.log(`Trying ${strategy.name}:`, strategy.path);
+      const userSpecificPath = `${report.user_id}/${report.pdf_url}`;
+      console.log(`Trying user-specific path: ${userSpecificPath}`);
       
       const { data, error } = await supabase.storage
-        .from(strategy.bucket)
-        .download(strategy.path);
+        .from('report_pdfs')
+        .download(userSpecificPath);
         
-      if (error) {
-        console.log(`${strategy.name} failed:`, error.message);
-        lastError = error;
-        continue;
-      }
-      
-      if (data) {
+      if (!error && data) {
         pdfData = data;
-        console.log(`Successfully downloaded via ${strategy.name}`);
-        break;
+        console.log(`Successfully downloaded via user-specific path`);
+      } else {
+        console.log(`User-specific path failed:`, error?.message || 'No data');
+        lastError = error;
       }
     } catch (err) {
-      console.log(`Error with ${strategy.name}:`, err);
+      console.log(`User-specific path exception:`, err);
       lastError = err;
     }
   }
