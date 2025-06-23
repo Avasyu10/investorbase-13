@@ -7,11 +7,8 @@ import { downloadReport, debugStorageBucket } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configure PDF.js worker with a more reliable setup
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
-).toString();
+// Configure PDF.js worker - use the local worker file
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
 interface ReportViewerProps {
   reportId: string;
@@ -258,7 +255,6 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
             cMapUrl: '/cmaps/',
             cMapPacked: true,
             standardFontDataUrl: '/standard_fonts/',
-            workerSrc: `/pdf.worker.min.js`,
           }}
         >
           <Page
