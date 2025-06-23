@@ -1,4 +1,3 @@
-
 import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 export interface AnalysisResult {
@@ -16,6 +15,7 @@ export interface AnalysisResult {
     slideNumber: number;
     notes: string[];
   }>;
+  improvementSuggestions?: string[];
 }
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100, isIITBombayUser = false): Promise<any> {
@@ -131,6 +131,13 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
     analysis.slideBySlideNotes = [];
   }
   console.log("Slide by slide notes count:", analysis.slideBySlideNotes?.length || 0);
+
+  // Ensure improvementSuggestions field exists for enhanced analyses
+  if (!analysis.improvementSuggestions) {
+    console.warn("No improvementSuggestions found in analysis result, initializing empty array");
+    analysis.improvementSuggestions = [];
+  }
+  console.log("Improvement suggestions count:", analysis.improvementSuggestions?.length || 0);
 
   console.log("Analysis sections count:", analysis.sections?.length || 0);
   console.log("Overall score:", analysis.overallScore);
@@ -373,6 +380,16 @@ Return your analysis in EXACTLY this JSON format:
         "<detailed analysis point 4 for slide 2>"
       ]
     }
+  ],
+  "improvementSuggestions": [
+    "Add a comprehensive Market Sizing slide using TAM/SAM/SOM framework. Include specific market size figures (e.g., '$X billion TAM, $Y billion SAM, $Z million SOM by 2027') with credible sources like Gartner, McKinsey, or industry reports.",
+    "Include competitive landscape matrix showing direct and indirect competitors with positioning based on key differentiators. Add market share data and competitive advantages.",
+    "Strengthen financial projections with 3-5 year revenue forecasts, unit economics (CAC, LTV, gross margins), and key financial metrics benchmarked against industry standards.",
+    "Add traction metrics with specific numbers: user growth rates, revenue growth (MoM/YoY), customer acquisition metrics, retention rates, and key partnerships.",
+    "Include detailed go-to-market strategy with customer acquisition channels, sales funnel metrics, customer segments, and distribution strategy with cost estimates.",
+    "Enhance team slide with specific relevant experience, previous exits, domain expertise, advisory board members, and key hires planned with their backgrounds.",
+    "Add risk analysis section identifying key business risks, market risks, competitive threats, and mitigation strategies with contingency plans.",
+    "Include use of funds breakdown with specific allocation percentages, timeline for deployment, expected milestones, and ROI projections for each funding category."
   ]
 }
 
@@ -391,6 +408,19 @@ SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
 - Reference specific elements visible on each slide (text, charts, images, etc.)
 - Provide both positive observations and constructive criticism
 - Include market context and industry benchmarks where relevant
+
+IMPROVEMENT SUGGESTIONS REQUIREMENTS:
+- Analyze the actual content and identify what's genuinely missing or weak
+- Each suggestion must be specific and actionable, not generic advice
+- Include specific market data, percentages, timeframes, and industry benchmarks where applicable
+- Reference real market sizing methodologies (TAM/SAM/SOM), financial metrics (CAC, LTV, burn rate), and growth benchmarks
+- Tailor suggestions to the specific industry and business model shown in the deck
+- Prioritize suggestions that address the most critical gaps for investor appeal
+- Include quantitative targets and benchmarks (e.g., "aim for >40% gross margins", "achieve <6 month payback period")
+- Reference industry-standard frameworks and methodologies (OKRs, unit economics, cohort analysis)
+- If the deck already covers certain areas well, focus suggestions on enhancement rather than addition
+- Ensure all suggestions are practical and implementable
+- Generate 8-12 specific, actionable improvement suggestions
 
 Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
 

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lightbulb, TrendingUp, Users, DollarSign, Target, BarChart3 } from "lucide-react";
@@ -14,47 +15,52 @@ export function ImprovementSuggestions({ reportId, companyName }: ImprovementSug
   const [error, setError] = React.useState<string>('');
 
   React.useEffect(() => {
-    const generateImprovementSuggestions = async () => {
+    const fetchImprovementSuggestions = async () => {
       if (!reportId) return;
       
       try {
         setLoading(true);
         setError('');
         
-        console.log('Generating improvement suggestions for report:', reportId);
+        console.log('Fetching improvement suggestions for report:', reportId);
         
-        // Call the analyze-pdf function with improvement suggestions prompt
-        const { data, error: analysisError } = await supabase.functions.invoke('analyze-pdf', {
-          body: { 
-            reportId,
-            analysisType: 'improvement_suggestions',
-            companyName
-          }
-        });
+        // Get the analysis result from the reports table
+        const { data: report, error: reportError } = await supabase
+          .from('reports')
+          .select('analysis_result')
+          .eq('id', reportId)
+          .single();
 
-        if (analysisError) {
-          console.error('Error generating improvement suggestions:', analysisError);
-          throw new Error(analysisError.message || 'Failed to generate suggestions');
+        if (reportError) {
+          console.error('Error fetching report analysis:', reportError);
+          throw new Error(reportError.message || 'Failed to fetch analysis');
         }
 
-        if (data?.suggestions && Array.isArray(data.suggestions)) {
-          setSuggestions(data.suggestions);
-          console.log('Improvement suggestions generated:', data.suggestions.length);
+        if (report?.analysis_result) {
+          const analysisResult = report.analysis_result as any;
+          
+          if (analysisResult.improvementSuggestions && Array.isArray(analysisResult.improvementSuggestions)) {
+            setSuggestions(analysisResult.improvementSuggestions);
+            console.log('Improvement suggestions found:', analysisResult.improvementSuggestions.length);
+          } else {
+            console.warn('No improvement suggestions found in analysis result');
+            setSuggestions([]);
+          }
         } else {
-          console.warn('No suggestions returned from analysis');
+          console.warn('No analysis result found for report');
           setSuggestions([]);
         }
         
       } catch (err) {
-        console.error('Error in generateImprovementSuggestions:', err);
-        setError(err instanceof Error ? err.message : 'Failed to generate improvement suggestions');
+        console.error('Error in fetchImprovementSuggestions:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch improvement suggestions');
       } finally {
         setLoading(false);
       }
     };
 
-    generateImprovementSuggestions();
-  }, [reportId, companyName]);
+    fetchImprovementSuggestions();
+  }, [reportId]);
 
   const getIconForSuggestion = (suggestion: string) => {
     const lowerSuggestion = suggestion.toLowerCase();
@@ -88,7 +94,7 @@ export function ImprovementSuggestions({ reportId, companyName }: ImprovementSug
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-3">Analyzing deck for improvement opportunities...</span>
+            <span className="ml-3">Loading improvement suggestions...</span>
           </div>
         </CardContent>
       </Card>
@@ -108,7 +114,7 @@ export function ImprovementSuggestions({ reportId, companyName }: ImprovementSug
           <div className="text-center py-8">
             <p className="text-red-600 mb-4">{error}</p>
             <p className="text-sm text-muted-foreground">
-              Unable to generate improvement suggestions at this time.
+              Unable to load improvement suggestions at this time.
             </p>
           </div>
         </CardContent>
