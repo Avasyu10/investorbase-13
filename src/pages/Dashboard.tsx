@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
 

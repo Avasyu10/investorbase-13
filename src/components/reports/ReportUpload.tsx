@@ -162,28 +162,11 @@ export function ReportUpload({
       return;
     }
 
-    if (!isPublic && !file) {
+    if (isPublic && !file) {
       toast.error("Pitch deck required", {
         description: "Please upload a PDF pitch deck"
       });
       return;
-    }
-    
-    // Validate file for non-public uploads
-    if (!isPublic && file) {
-      if (file.type !== 'application/pdf') {
-        toast.error("Invalid file type", {
-          description: "Please upload a PDF file only"
-        });
-        return;
-      }
-      
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error("File too large", {
-          description: "Please upload a file smaller than 10MB"
-        });
-        return;
-      }
     }
       
     if (isPublic) {
@@ -255,7 +238,7 @@ export function ReportUpload({
 
     try {
       setIsUploading(true);
-      setProgressStage("Uploading your pitch deck...");
+      setProgressStage("Processing your submission...");
       setProgress(10);
       
       let report;
@@ -505,7 +488,7 @@ export function ReportUpload({
           throw fetchError;
         }
       } else {
-        // Non-public upload flow with enhanced error handling
+        // Non-public upload flow
         if (!file) {
           toast.error("Missing pitch deck", {
             description: "Please select a PDF file to upload"

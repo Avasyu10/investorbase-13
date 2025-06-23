@@ -1,134 +1,497 @@
+import { createClient } from '@supabase/supabase-js';
+import { parsePdfFromBlob, ParsedPdfSegment } from './pdf-parser';
+import { toast } from "@/hooks/use-toast";
 
-import { supabase } from '@/integrations/supabase/client';
+// These are provided by your Supabase project
+const supabaseUrl = 'https://jhtnruktmtjqrfoiyrep.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpodG5ydWt0bXRqcXJmb2l5cmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NTczMzksImV4cCI6MjA1NzMzMzMzOX0._HZzAtVcTH_cdXZoxIeERNYqS6_hFEjcWbgHK3vxQBY';
 
-export interface Report {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Types for our database
+export type Report = {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   pdf_url: string;
   created_at: string;
+  sections?: string[];
+  parsedSegments?: ParsedPdfSegment[];
   user_id?: string;
-  company_id?: string;
-  is_public_submission?: boolean;
-  submitter_email?: string;
   analysis_status?: string;
   analysis_error?: string;
+};
+
+// Functions to interact with Supabase
+
+export async function getReports() {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    console.log('No authenticated user found');
+    return [];
+  }
+
+  // Get reports from the reports table - strictly enforcing user_id filter
+  const { data: tableData, error: tableError } = await supabase
+    .from('reports')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (tableError) {
+    console.error('Error fetching reports from table:', tableError);
+    throw tableError;
+  }
+
+  if (tableData && tableData.length > 0) {
+    console.log('Found reports in table:', tableData);
+    return tableData as Report[];
+  }
+
+  console.log('No reports found for this user');
+  return [];
 }
 
-export async function uploadReport(
-  file: File, 
-  title: string, 
-  description?: string, 
-  websiteUrl?: string
-): Promise<Report> {
-  console.log('=== UPLOAD REPORT DEBUG START ===');
-  console.log('Upload parameters:', {
-    fileName: file.name,
-    fileSize: file.size,
-    fileType: file.type,
-    title,
-    hasDescription: !!description,
-    websiteUrl
-  });
+export async function getReportById(id: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  // Get the report from the reports table - strictly enforcing user_id filter
+  const { data: tableData, error: tableError } = await supabase
+    .from('reports')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (tableError) {
+    console.error('Error fetching report from table:', tableError);
+    throw tableError;
+  }
+
+  if (!tableData) {
+    throw new Error('Report not found or you do not have permission to access it');
+  }
+
+  const report = tableData as Report;
 
   try {
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error('User authentication error:', userError);
-      throw new Error('User must be authenticated to upload reports');
+    // Download the file
+    const pdfBlob = await downloadReport(report.pdf_url, user.id);
+    
+    // Parse the PDF content
+    const parsedSegments = await parsePdfFromBlob(pdfBlob);
+    
+    // Add parsed segments to the report
+    report.parsedSegments = parsedSegments;
+    
+    return report;
+  } catch (error) {
+    console.error('Error parsing PDF content:', error);
+    // Return the report without parsed segments if parsing fails
+    return report;
+  }
+}
+
+export async function downloadReport(fileUrl: string, userId: string) {
+  const { data, error } = await supabase.storage
+    .from('report_pdfs')
+    .download(`${userId}/${fileUrl}`);
+
+  if (error) {
+    console.error('Error downloading report:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
+  try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
     }
-
-    console.log('Authenticated user:', user.id);
-
-    // Generate unique filename with timestamp
-    const timestamp = Date.now();
-    const fileExtension = file.name.split('.').pop() || 'pdf';
-    const fileName = `${timestamp}.${fileExtension}`;
+    
+    console.log('Uploading report for user:', user.id);
+    
+    // If website URL is provided, scrape it first
+    let scrapedContent = null;
+    if (websiteUrl && websiteUrl.trim()) {
+      try {
+        console.log('Scraping website:', websiteUrl);
+        const { data, error } = await supabase.functions.invoke('scrape-website', {
+          body: { websiteUrl }
+        });
+        
+        if (error) {
+          console.error('Error scraping website:', error);
+          toast({
+            id: "scraping-error",
+            title: "Website scraping failed",
+            description: "Could not scrape the company website. Continuing without website data.",
+            variant: "destructive"
+          });
+        } else if (data && data.scrapedContent) {
+          scrapedContent = data.scrapedContent;
+          console.log('Website scraped successfully:', scrapedContent.substring(0, 100) + '...');
+          
+          // Store scraped content in database for debugging
+          const { error: storeError } = await supabase
+            .from('website_scrapes')
+            .insert({
+              url: websiteUrl,
+              content: scrapedContent,
+              status: 'success'
+            });
+            
+          if (storeError) {
+            console.error('Error storing scraped content:', storeError);
+          }
+          
+          // Enhance description with scraped content
+          if (description) {
+            description += '\n\nWebsite Content:\n' + scrapedContent;
+          } else {
+            description = 'Website Content:\n' + scrapedContent;
+          }
+        }
+      } catch (scrapingError) {
+        console.error('Error during website scraping:', scrapingError);
+        
+        // Store scraping error in database
+        try {
+          await supabase
+            .from('website_scrapes')
+            .insert({
+              url: websiteUrl,
+              status: 'error',
+              error_message: scrapingError instanceof Error ? scrapingError.message : String(scrapingError)
+            });
+        } catch (storeError) {
+          console.error('Error storing scraping error:', storeError);
+        }
+      }
+    }
+    
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
-
-    console.log('Generated file path:', filePath);
-
-    // Upload file to storage with correct bucket name
-    console.log('Starting file upload to report_pdfs bucket...');
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    
+    // Upload the file to storage
+    const { error: uploadError } = await supabase.storage
       .from('report_pdfs')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: 'application/pdf'
-      });
-
+      .upload(filePath, file);
+      
     if (uploadError) {
-      console.error('File upload error:', uploadError);
-      throw new Error(`Failed to upload PDF: ${uploadError.message}`);
+      console.error('Error uploading file to storage:', uploadError);
+      throw uploadError;
     }
-
-    console.log('File uploaded successfully:', uploadData);
-
-    // Create report record in database
-    console.log('Creating report record in database...');
-    const reportData = {
-      title,
-      description: description || null,
-      pdf_url: fileName, // Store just the filename, not the full path
-      user_id: user.id,
-      is_public_submission: false,
-      analysis_status: 'pending'
-    };
-
-    console.log('Report data to insert:', reportData);
-
-    const { data: report, error: reportError } = await supabase
+    
+    console.log('File uploaded to storage successfully, saving record to database');
+    
+    // Insert a record in the reports table
+    const { data: report, error: insertError } = await supabase
       .from('reports')
-      .insert(reportData)
+      .insert([{
+        title,
+        description,
+        pdf_url: fileName,
+        user_id: user.id
+      }])
       .select()
       .single();
-
-    if (reportError) {
-      console.error('Database insert error:', reportError);
       
-      // Clean up uploaded file if database insert fails
-      console.log('Cleaning up uploaded file due to database error...');
-      await supabase.storage
-        .from('report_pdfs')
-        .remove([filePath]);
-      
-      throw new Error(`Failed to create report record: ${reportError.message}`);
+    if (insertError) {
+      console.error('Error inserting report record:', insertError);
+      throw insertError;
     }
 
-    console.log('Report created successfully:', report);
-    console.log('=== UPLOAD REPORT DEBUG END ===');
-
-    return report;
-
+    console.log('Report record created successfully:', report);
+    
+    // If we scraped a website, update the website_scrapes table with report_id
+    if (scrapedContent && report) {
+      const { error: updateError } = await supabase
+        .from('website_scrapes')
+        .update({ report_id: report.id })
+        .eq('url', websiteUrl)
+        .is('report_id', null);
+        
+      if (updateError) {
+        console.error('Error linking scrape to report:', updateError);
+        // Non-blocking error, continue
+      }
+    }
+    
+    return report as Report;
   } catch (error) {
-    console.error('=== UPLOAD REPORT ERROR ===');
-    console.error('Error details:', error);
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error uploading report:', error);
     throw error;
   }
 }
 
 export async function analyzeReport(reportId: string) {
-  console.log('Starting analysis for report:', reportId);
-  
   try {
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+    console.log('Starting analysis for report:', reportId);
+    
+    // First, check if this is from an email or email pitch submission
+    const { data: emailSubmission } = await supabase
+      .from('email_submissions')
+      .select('*')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
+    const { data: emailPitchSubmission } = await supabase
+      .from('email_pitch_submissions')
+      .select('*')
+      .eq('report_id', reportId)
+      .maybeSingle();
+      
+    const { data: publicFormSubmission } = await supabase
+      .from('public_form_submissions')
+      .select('*')
+      .eq('report_id', reportId)
+      .maybeSingle();
+    
+    // Update report status to pending
+    await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'pending',
+        analysis_error: null
+      })
+      .eq('id', reportId);
+    
+    // Determine which edge function to call based on submission type
+    let endpoint = 'analyze-pdf';
+    
+    if (emailSubmission || emailPitchSubmission) {
+      endpoint = 'analyze-email-pitch-pdf';
+    } else if (publicFormSubmission) {
+      endpoint = 'analyze-public-pdf';
+    }
+    
+    console.log(`Using endpoint: ${endpoint} for analysis`);
+    
+    // Call the appropriate edge function
+    const { data, error } = await supabase.functions.invoke(endpoint, {
       body: { reportId }
     });
-
+    
     if (error) {
-      console.error('Analysis error:', error);
-      throw new Error(`Failed to start analysis: ${error.message}`);
+      console.error(`Error invoking ${endpoint} function:`, error);
+      
+      // Update report status to failed
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: error.message
+        })
+        .eq('id', reportId);
+        
+      throw error;
     }
-
-    console.log('Analysis started successfully:', data);
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || `Unknown error occurred during analysis with ${endpoint}`;
+      console.error('API returned error:', errorMessage);
+      
+      // Update report status to failed
+      await supabase
+        .from('reports')
+        .update({
+          analysis_status: 'failed',
+          analysis_error: errorMessage
+        })
+        .eq('id', reportId);
+        
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Analysis result:', data);
+    
+    // Update report status to completed
+    await supabase
+      .from('reports')
+      .update({
+        analysis_status: 'completed',
+        company_id: data.companyId
+      })
+      .eq('id', reportId);
+    
     return data;
   } catch (error) {
-    console.error('Error in analyzeReport:', error);
+    console.error('Error analyzing report:', error);
     throw error;
   }
 }
 
-export * from './supabase/reports';
+export async function analyzeReportDirect(file: File, title: string, description: string = '') {
+  try {
+    console.log('Converting file to base64...');
+    
+    // Convert file to base64
+    const base64String = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Extract just the base64 data part
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    
+    console.log('File converted to base64, calling analyze-pdf-direct function');
+    
+    // Call the edge function without authentication
+    const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
+      body: { 
+        title, 
+        description, 
+        pdfBase64: base64String 
+      }
+    });
+    
+    if (error) {
+      console.error('Error invoking analyze-pdf-direct function:', error);
+      
+      toast({
+        id: "analysis-error-direct-1",
+        title: "Analysis failed",
+        description: "There was a problem analyzing the report. Please try again later.",
+        variant: "destructive"
+      });
+      
+      throw error;
+    }
+    
+    if (!data || data.error) {
+      const errorMessage = data?.error || "Unknown error occurred during analysis";
+      console.error('API returned error:', errorMessage);
+      
+      toast({
+        id: "analysis-error-direct-2",
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+      throw new Error(errorMessage);
+    }
+    
+    console.log('Analysis result:', data);
+    
+    toast({
+      id: "analysis-success-direct",
+      title: "Analysis complete",
+      description: "Your pitch deck has been successfully analyzed",
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error analyzing report directly:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    if (!errorMessage.includes("analysis failed")) {
+      toast({
+        id: "analysis-error-direct-3",
+        title: "Analysis failed",
+        description: "Could not analyze the report. Please try again later.",
+        variant: "destructive"
+      });
+    }
+    
+    throw error;
+  }
+}
+
+export async function uploadPublicReport(file: File, title: string, description: string = '', websiteUrl: string = '', email: string = '') {
+  try {
+    console.log('Uploading public report');
+    
+    // Create FormData for direct submission to the edge function
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    formData.append('email', email);
+    
+    if (description) {
+      formData.append('description', description);
+    }
+    
+    if (websiteUrl) {
+      formData.append('websiteUrl', websiteUrl);
+    }
+    
+    // Use direct fetch to edge function instead of Supabase client
+    const response = await fetch("https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload", {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Upload error response:", errorData);
+      throw new Error(`Upload failed with status: ${response.status}${errorData.details ? ` - ${errorData.details}` : ''}`);
+    }
+    
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Upload failed');
+    }
+    
+    return { id: result.reportId };
+  } catch (error) {
+    console.error('Error uploading public report:', error);
+    throw error;
+  }
+}
+
+export function subscribeToEmailPitchSubmissions(onNewSubmission: (submission: any) => void) {
+  console.log('Setting up realtime subscription for email_pitch_submissions table');
+  
+  const channel = supabase
+    .channel('email_pitch_submissions_channel')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'email_pitch_submissions'
+      },
+      (payload) => {
+        console.log('New email pitch submission detected:', payload);
+        
+        // Get the submission ID
+        const submissionId = payload.new.id;
+        
+        // Call the auto-analyze edge function
+        supabase.functions.invoke('auto-analyze-email-pitch-pdf', {
+          body: { id: submissionId }
+        })
+        .then(response => {
+          console.log('Auto-analyze function response:', response);
+          if (onNewSubmission) {
+            onNewSubmission(payload.new);
+          }
+        })
+        .catch(error => {
+          console.error('Error calling auto-analyze function:', error);
+        });
+      }
+    )
+    .subscribe();
+    
+  // Return the channel so it can be unsubscribed later
+  return channel;
+}
