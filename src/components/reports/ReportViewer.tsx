@@ -8,8 +8,8 @@ import { getReportById } from "@/lib/supabase/reports";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configure PDF.js worker - use the local worker file
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Configure PDF.js worker to match the API version
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.js`;
 
 interface ReportViewerProps {
   reportId: string;
@@ -71,43 +71,26 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       // Download the PDF using the Supabase storage client directly
       const { supabase } = await import('@/integrations/supabase/client');
       
-      // Try different path variations
+      // The correct file path based on the storage structure
       const bucketName = 'report-pdfs';
-      const pathsToTry = [
-        report.pdf_url, // Direct filename
-        `${report.user_id}/${report.pdf_url}`, // User-specific path
-        `${user.id}/${report.pdf_url}` // Current user path
-      ];
+      const filePath = `${report.user_id || user.id}/${report.pdf_url}`;
       
-      let pdfBlob = null;
+      console.log(`Downloading from bucket: ${bucketName}, path: ${filePath}`);
       
-      for (const filePath of pathsToTry) {
-        console.log(`Trying to download from: ${bucketName}/${filePath}`);
-        
-        try {
-          const { data, error } = await supabase.storage
-            .from(bucketName)
-            .download(filePath);
+      const { data: pdfBlob, error: downloadError } = await supabase.storage
+        .from(bucketName)
+        .download(filePath);
 
-          if (!error && data && data.size > 0) {
-            pdfBlob = data;
-            console.log('✅ PDF downloaded successfully:', {
-              path: filePath,
-              size: data.size,
-              type: data.type
-            });
-            break;
-          } else {
-            console.log(`❌ Failed to download from ${filePath}:`, error?.message || 'No data');
-          }
-        } catch (pathError) {
-          console.log(`❌ Exception downloading from ${filePath}:`, pathError);
-        }
+      if (downloadError || !pdfBlob || pdfBlob.size === 0) {
+        console.error('Download failed:', downloadError?.message || 'No data/empty file');
+        throw new Error(`Failed to download PDF: ${downloadError?.message || 'File not found'}`);
       }
       
-      if (!pdfBlob) {
-        throw new Error(`Failed to download PDF from storage. Tried paths: ${pathsToTry.join(', ')}`);
-      }
+      console.log('✅ PDF downloaded successfully:', {
+        path: filePath,
+        size: pdfBlob.size,
+        type: pdfBlob.type
+      });
       
       // Create blob URL
       const blobUrl = URL.createObjectURL(pdfBlob);
@@ -142,7 +125,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   const onDocumentLoadError = (error: any) => {
     console.error('❌ PDF document load error:', error);
-    setError('Failed to load PDF document. The file might be corrupted or incompatible.');
+    setError('Failed to load PDF document. Please try refreshing the page.');
   };
 
   const changePage = (offset: number) => {
