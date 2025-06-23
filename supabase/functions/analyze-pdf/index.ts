@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
@@ -102,10 +103,23 @@ serve(async (req) => {
       const { supabase, report, pdfBase64 } = await getReportData(reportId);
       
       console.log("Successfully retrieved report data, analyzing with Gemini");
+
+      // Check if user is IIT Bombay user
+      let isIITBombayUser = false;
+      if (report.user_id) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('is_iitbombay')
+          .eq('id', report.user_id)
+          .single();
+        
+        isIITBombayUser = userProfile?.is_iitbombay || false;
+        console.log('User is IIT Bombay user:', isIITBombayUser);
+      }
       
       try {
-        // Analyze the PDF with Gemini, passing the new parameters
-        const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY, usePublicAnalysisPrompt, scoringScale);
+        // Analyze the PDF with Gemini, passing the new parameters including user type
+        const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
         
         console.log("Gemini analysis complete, saving results to database");
         

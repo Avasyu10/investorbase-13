@@ -5,7 +5,8 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
   console.log("Analysis overview:", {
     overallScore: analysis.overallScore,
     sectionsCount: analysis.sections?.length || 0,
-    assessmentPointsCount: analysis.assessmentPoints?.length || 0
+    assessmentPointsCount: analysis.assessmentPoints?.length || 0,
+    slideBySlideNotesCount: analysis.slideBySlideNotes?.length || 0
   });
 
   try {
@@ -219,6 +220,53 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         } catch (sectionErr) {
           console.error("Error processing section:", section.title, sectionErr);
           // Continue with other sections
+        }
+      }
+    }
+
+    // Save slide-by-slide notes if they exist (for non-IIT Bombay users)
+    if (analysis.slideBySlideNotes && Array.isArray(analysis.slideBySlideNotes)) {
+      console.log("Saving", analysis.slideBySlideNotes.length, "slide-by-slide notes");
+      
+      // Create a special section for slide-by-slide notes
+      const slideNotesSection = {
+        company_id: company.id,
+        title: 'Slide by Slide Notes',
+        type: 'SLIDE_NOTES',
+        score: 0, // Not scored
+        description: 'Detailed slide-by-slide analysis and notes'
+      };
+
+      const { data: savedSlideSection, error: slideSectionError } = await supabase
+        .from('sections')
+        .insert(slideNotesSection)
+        .select()
+        .single();
+
+      if (slideSectionError) {
+        console.error("Error saving slide notes section:", slideSectionError);
+      } else {
+        console.log("Slide notes section saved successfully:", savedSlideSection.id);
+
+        // Save each slide's notes as section details
+        for (const slideNote of analysis.slideBySlideNotes) {
+          if (slideNote.notes && Array.isArray(slideNote.notes)) {
+            for (const note of slideNote.notes) {
+              if (note && note.trim()) {
+                const { error: noteError } = await supabase
+                  .from('section_details')
+                  .insert({
+                    section_id: savedSlideSection.id,
+                    detail_type: 'slide_note',
+                    content: `Slide ${slideNote.slideNumber}: ${note.trim()}`
+                  });
+                
+                if (noteError) {
+                  console.error("Error saving slide note:", noteError);
+                }
+              }
+            }
+          }
         }
       }
     }

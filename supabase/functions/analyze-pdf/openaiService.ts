@@ -12,13 +12,24 @@ export interface AnalysisResult {
     weaknesses: string[];
     detailedContent: string;
   }>;
+  slideBySlideNotes?: Array<{
+    slideNumber: number;
+    notes: string[];
+  }>;
 }
 
-export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100): Promise<any> {
+export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100, isIITBombayUser = false): Promise<any> {
   console.log("Starting Gemini analysis with PDF data");
   
-  // Choose the appropriate prompt based on the analysis type
-  const basePrompt = usePublicAnalysisPrompt ? getPublicAnalysisPrompt(scoringScale) : getEnhancedAnalysisPrompt();
+  // Choose the appropriate prompt based on the analysis type and user type
+  let basePrompt;
+  if (usePublicAnalysisPrompt && !isIITBombayUser) {
+    basePrompt = getSlideBySlideAnalysisPrompt(scoringScale);
+  } else if (usePublicAnalysisPrompt) {
+    basePrompt = getPublicAnalysisPrompt(scoringScale);
+  } else {
+    basePrompt = getEnhancedAnalysisPrompt();
+  }
   
   const payload = {
     contents: [
@@ -110,6 +121,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
 
   console.log("Analysis sections count:", analysis.sections?.length || 0);
   console.log("Overall score:", analysis.overallScore);
+  console.log("Slide by slide notes count:", analysis.slideBySlideNotes?.length || 0);
 
   return analysis;
 }
@@ -219,4 +231,89 @@ Score each section from 0-${scoringScale} based on quality, completeness, and in
 - ${Math.floor(scoringScale * 0.8) + 1}-${scoringScale}: Excellent - Outstanding quality and potential
 
 The overall score should reflect the weighted average of all sections, considering the investment potential and business viability.`;
+}
+
+function getSlideBySlideAnalysisPrompt(scoringScale: number): string {
+  return `Analyze this PDF pitch deck and provide a comprehensive assessment with slide-by-slide detailed notes. Please return your analysis in the following JSON format:
+
+{
+  "overallScore": <number between 0-${scoringScale}>,
+  "assessmentPoints": [
+    "<key insight 1>",
+    "<key insight 2>",
+    "<key insight 3>",
+    "<key insight 4>",
+    "<key insight 5>"
+  ],
+  "sections": [
+    {
+      "type": "COMPANY_OVERVIEW",
+      "title": "Company Overview",
+      "score": <number between 0-${scoringScale}>,
+      "description": "<comprehensive company overview analysis>",
+      "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+      "weaknesses": ["<weakness 1>", "<weakness 2>", "<weakness 3>"]
+    },
+    {
+      "type": "SECTION_METRICS",
+      "title": "Section Metrics",
+      "score": <number between 0-${scoringScale}>,
+      "description": "<detailed metrics and KPI analysis>",
+      "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+      "weaknesses": ["<weakness 1>", "<weakness 2>", "<weakness 3>"]
+    }
+  ],
+  "slideBySlideNotes": [
+    {
+      "slideNumber": 1,
+      "notes": [
+        "<detailed note 1 with market data and specific insights>",
+        "<detailed note 2 with competitive analysis and benchmarks>",
+        "<detailed note 3 with industry trends and validation>",
+        "<detailed note 4 with actionable recommendations>",
+        "<detailed note 5 with growth potential and risks>"
+      ]
+    },
+    {
+      "slideNumber": 2,
+      "notes": [
+        "<detailed note 1 with market data and specific insights>",
+        "<detailed note 2 with competitive analysis and benchmarks>",
+        "<detailed note 3 with industry trends and validation>",
+        "<detailed note 4 with actionable recommendations>",
+        "<detailed note 5 with growth potential and risks>"
+      ]
+    },
+    ... (continue for each slide in the deck)
+  ]
+}
+
+CRITICAL REQUIREMENTS:
+
+1. COMPANY OVERVIEW SECTION:
+   - Provide a comprehensive analysis of the company's business model, value proposition, and market position
+   - Include market size data, competitive landscape overview, and business model assessment
+   - Score based on clarity of vision, market opportunity size, and execution potential
+
+2. SECTION METRICS SECTION:
+   - Analyze key performance indicators, financial metrics, and traction data
+   - Include revenue projections, customer acquisition costs, market penetration rates
+   - Score based on realistic projections, growth trajectory, and metric quality
+
+3. SLIDE-BY-SLIDE NOTES:
+   - Provide 4-5 detailed notes for EACH slide in the pitch deck
+   - Include specific market data, industry benchmarks, competitive analysis
+   - Reference actual market sizes, growth rates, competitor valuations where relevant
+   - Provide actionable insights and recommendations for each slide
+   - Include both positive observations and areas for improvement
+   - Use real market research data and industry statistics
+
+ANALYSIS REQUIREMENTS:
+- Each note must be substantial (2-3 sentences minimum)
+- Include specific numbers, percentages, market sizes where applicable
+- Reference industry trends, competitor data, and market benchmarks
+- Provide both validation and constructive criticism
+- Focus on investment potential and business viability
+
+Score each section from 0-${scoringScale} based on quality, completeness, and investment potential. The overall score should reflect the weighted average considering the company's overall investment attractiveness.`;
 }
