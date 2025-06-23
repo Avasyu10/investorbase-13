@@ -6,7 +6,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink } from "lucide-react";
+import { FileText, BarChart2, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink, BookOpen } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -15,12 +15,14 @@ import { ORDERED_SECTIONS } from "@/lib/constants";
 import ReactMarkdown from 'react-markdown';
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import FormResponsesDialog from "./FormResponsesDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { company, isLoading } = useCompanyDetails(id || "");
+  const { user } = useAuth();
   const [companyInfo, setCompanyInfo] = useState({
     website: "",
     stage: "",
@@ -34,6 +36,7 @@ const CompanyDetails = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isFromBarcForm, setIsFromBarcForm] = useState(false);
+  const [isIITBombayUser, setIsIITBombayUser] = useState(false);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = useMemo(() => {
@@ -44,11 +47,43 @@ const CompanyDetails = () => {
     };
   }, [company]);
 
-  // Memoize sorted sections for better performance
+  // Check if current user is IIT Bombay user
+  useEffect(() => {
+    const checkUserType = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('is_iitbombay')
+          .eq('id', user.id)
+          .single();
+        
+        setIsIITBombayUser(userProfile?.is_iitbombay || false);
+      } catch (error) {
+        console.error('Error checking user type:', error);
+      }
+    };
+
+    checkUserType();
+  }, [user]);
+
+  // Memoize sorted sections for better performance, filtering out slide notes for IIT Bombay users
   const sortedSections = useMemo(() => {
     if (!company?.sections) return [];
     
-    return [...company.sections].sort((a, b) => {
+    let sectionsToShow = company.sections;
+    
+    // Filter sections based on user type
+    if (isIITBombayUser) {
+      // IIT Bombay users: show all sections except slide notes
+      sectionsToShow = company.sections.filter(section => section.type !== 'SLIDE_NOTES');
+    } else {
+      // Non-IIT Bombay users: show slide notes and regular sections
+      sectionsToShow = company.sections;
+    }
+    
+    return [...sectionsToShow].sort((a, b) => {
       const indexA = ORDERED_SECTIONS.indexOf(a.type);
       const indexB = ORDERED_SECTIONS.indexOf(b.type);
       
@@ -61,7 +96,14 @@ const CompanyDetails = () => {
       
       return 0;
     });
-  }, [company?.sections]);
+  }, [company?.sections, isIITBombayUser]);
+
+  // Separate slide notes section for non-IIT Bombay users
+  const slideNotesSection = useMemo(() => {
+    if (isIITBombayUser || !company?.sections) return null;
+    
+    return company.sections.find(section => section.type === 'SLIDE_NOTES');
+  }, [company?.sections, isIITBombayUser]);
 
   // Check if this company is from a BARC form submission
   useEffect(() => {
@@ -115,8 +157,9 @@ const CompanyDetails = () => {
       console.log('Company data loaded:', company);
       console.log('Company sections:', company.sections);
       console.log('Number of sections:', company.sections?.length || 0);
+      console.log('Is IIT Bombay user:', isIITBombayUser);
     }
-  }, [company]);
+  }, [company, isIITBombayUser]);
 
   const handleSectionClick = useCallback((sectionId: number | string) => {
     navigate(`/company/${id}/section/${sectionId.toString()}`);
@@ -324,38 +367,58 @@ const CompanyDetails = () => {
                 />
               </div>
 
-              {companyDetailed && <ScoreAssessment company={companyDetailed} />}
+              {/* Only show ScoreAssessment for IIT Bombay users */}
+              {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
             </div>
             
-            <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-              <BarChart2 className="h-5 w-5 text-primary" />
-              Section Metrics
-            </h2>
-            
-            {sortedSections.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                {sortedSections.map((section) => (
-                  <SectionCard 
-                    key={section.id} 
-                    section={section} 
-                    onClick={() => handleSectionClick(section.id)} 
-                  />
-                ))}
+            {/* Show different sections based on user type */}
+            {!isIITBombayUser && slideNotesSection ? (
+              // Non-IIT Bombay users: Show slide-by-slide notes
+              <div className="mb-8">
+                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  Slide by Slide Notes
+                </h2>
+                <SectionCard 
+                  section={slideNotesSection} 
+                  onClick={() => handleSectionClick(slideNotesSection.id)} 
+                />
               </div>
             ) : (
-              <Card className="mb-8 border-0 shadow-subtle">
-                <CardContent className="p-6 text-center">
-                  <BarChart2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No Sections Available</h3>
-                  <p className="text-muted-foreground">
-                    This company doesn't have any analysis sections yet. The analysis might still be in progress or hasn't been completed.
-                  </p>
-                </CardContent>
-              </Card>
+              // IIT Bombay users: Show section metrics
+              <>
+                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5 text-primary" />
+                  Section Metrics
+                </h2>
+                
+                {sortedSections.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                    {sortedSections.map((section) => (
+                      <SectionCard 
+                        key={section.id} 
+                        section={section} 
+                        onClick={() => handleSectionClick(section.id)} 
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="mb-8 border-0 shadow-subtle">
+                    <CardContent className="p-6 text-center">
+                      <BarChart2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-lg font-semibold mb-2">No Sections Available</h3>
+                      <p className="text-muted-foreground">
+                        This company doesn't have any analysis sections yet. The analysis might still be in progress or hasn't been completed.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </div>
         </div>
         
+        {/* Chat sidebar remains the same */}
         {showChat && (
           <div className="w-1/2 border-l border-border bg-background shadow-card fixed right-0 top-0 h-screen flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center flex-shrink-0">

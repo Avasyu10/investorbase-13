@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -14,7 +13,9 @@ import {
   Building2,
   CheckCircle,
   AlertTriangle,
-  Globe
+  Globe,
+  BookOpen,
+  FileText
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
@@ -27,13 +28,18 @@ interface SectionDetailProps {
 
 // Helper function to get standardized display title
 const getDisplayTitle = (section: SectionDetailed): string => {
+  // Handle slide notes section
+  if (section.type === 'SLIDE_NOTES') {
+    return 'Slide by Slide Notes';
+  }
+  
   // Try to match the section type to our constants
   const sectionType = section.type?.toUpperCase();
   if (sectionType && SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES]) {
     return SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES];
   }
   
-  // Fallback: try to map common title patterns to our section types
+  // ... keep existing code (fallback mappings)
   const title = section.title.toLowerCase();
   if (title.includes('solution') || title.includes('product')) {
     return SECTION_TITLES[SECTION_TYPES.SOLUTION];
@@ -110,6 +116,44 @@ const formatDescriptionAsBullets = (description: string): string[] => {
     }, []);
 };
 
+// Helper function to parse slide notes from section details
+const parseSlideNotes = (description: string): Array<{slideNumber: number, notes: string[]}> => {
+  if (!description) return [];
+  
+  const slideNotes: Array<{slideNumber: number, notes: string[]}> = [];
+  const lines = description.split('\n').filter(line => line.trim());
+  
+  let currentSlide: {slideNumber: number, notes: string[]} | null = null;
+  
+  for (const line of lines) {
+    const slideMatch = line.match(/^Slide (\d+):\s*(.+)/);
+    if (slideMatch) {
+      // Save previous slide if exists
+      if (currentSlide && currentSlide.notes.length > 0) {
+        slideNotes.push(currentSlide);
+      }
+      
+      // Start new slide
+      const slideNumber = parseInt(slideMatch[1]);
+      const note = slideMatch[2].trim();
+      currentSlide = {
+        slideNumber,
+        notes: note ? [note] : []
+      };
+    } else if (currentSlide && line.trim()) {
+      // Add to current slide notes
+      currentSlide.notes.push(line.trim());
+    }
+  }
+  
+  // Add the last slide
+  if (currentSlide && currentSlide.notes.length > 0) {
+    slideNotes.push(currentSlide);
+  }
+  
+  return slideNotes.sort((a, b) => a.slideNumber - b.slideNumber);
+};
+
 export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   if (isLoading) {
     return (
@@ -129,11 +173,63 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   }
 
   const displayTitle = getDisplayTitle(section);
+  const isSlideNotesSection = section.type === 'SLIDE_NOTES';
 
   // Check if section is missing (score of 0.5 indicates a missing section)
   const isSectionMissing = section?.score === 0.5;
 
-  // Format the detailed content as bullet points and categorize them
+  if (isSlideNotesSection) {
+    // Handle slide notes display
+    const slideNotes = parseSlideNotes(section.detailedContent || section.description || '');
+    
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6 flex items-center gap-3">
+            <BookOpen className="h-8 w-8 text-primary" />
+            {displayTitle}
+          </h1>
+
+          {slideNotes.length > 0 ? (
+            <div className="space-y-6">
+              {slideNotes.map((slide, index) => (
+                <Card key={slide.slideNumber} className="shadow-card border-0 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent">
+                  <CardHeader className="border-b pb-4">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                      <CardTitle className="text-lg font-semibold">Slide {slide.slideNumber}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-5">
+                    <div className="space-y-3">
+                      {slide.notes.map((note, noteIndex) => (
+                        <div key={noteIndex} className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/5 hover:bg-blue-500/10 transition-colors border border-transparent hover:border-blue-500/20">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-blue-500 shrink-0" />
+                          <span className="text-sm leading-relaxed">{note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="shadow-card border-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent">
+              <CardContent className="p-6 text-center">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
+                <h3 className="text-lg font-semibold mb-2">No Slide Notes Available</h3>
+                <p className="text-muted-foreground">
+                  No detailed slide-by-slide notes are available for this analysis.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Regular section display logic (for IIT Bombay users)
   const contentBullets = section ? formatDescriptionAsBullets(section.detailedContent) : [];
   const isContentMissing = contentBullets.length === 0;
   
