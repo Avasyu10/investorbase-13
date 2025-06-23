@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 import { downloadReport } from "@/lib/supabase/reports";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -39,7 +40,18 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       
       try {
         setLoading(true);
-        const blob = await downloadReport(reportId, user.id);
+        // First get the report to find the PDF URL
+        const { data: report, error: reportError } = await supabase
+          .from('reports')
+          .select('pdf_url')
+          .eq('id', reportId)
+          .single();
+
+        if (reportError || !report) {
+          throw new Error('Report not found');
+        }
+
+        const blob = await downloadReport(report.pdf_url, user.id);
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
         setError('');

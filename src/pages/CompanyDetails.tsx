@@ -15,6 +15,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
 
+interface SlideNote {
+  slideNumber: number;
+  notes: string[];
+}
+
+interface AnalysisResult {
+  slideBySlideNotes?: SlideNote[];
+  [key: string]: any;
+}
+
 function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -22,7 +32,7 @@ function CompanyDetails() {
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
   const [isIITBombayUser, setIsIITBombayUser] = useState(false);
-  const [slideNotes, setSlideNotes] = useState<Array<{slideNumber: number, notes: string[]}>>([]);
+  const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = company ? {
@@ -63,8 +73,11 @@ function CompanyDetails() {
             .eq('id', company.report_id)
             .single();
           
-          if (report?.analysis_result?.slideBySlideNotes) {
-            setSlideNotes(report.analysis_result.slideBySlideNotes);
+          if (report?.analysis_result) {
+            const analysisResult = report.analysis_result as AnalysisResult;
+            if (analysisResult.slideBySlideNotes) {
+              setSlideNotes(analysisResult.slideBySlideNotes);
+            }
           }
         } catch (error) {
           console.error('Error fetching slide notes:', error);
