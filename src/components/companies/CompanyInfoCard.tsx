@@ -27,9 +27,9 @@ interface Company {
 }
 
 export function CompanyInfoCard({
-  website = "https://example.com",
-  stage = "Not specified",
-  industry = "Not specified",
+  website = "",
+  stage = "",
+  industry = "",
   founderLinkedIns = [],
   introduction = "No detailed information available for this company.",
   description, // For backward compatibility
@@ -45,13 +45,17 @@ export function CompanyInfoCard({
   const displayIntroduction = introduction || description || "No detailed information available for this company.";
 
   // Format website URL for display and linking
-  const displayWebsite = website && website !== "https://example.com" 
+  const displayWebsite = website && website !== "" 
     ? website.replace(/^https?:\/\/(www\.)?/, '') 
     : "Not available";
   
-  const websiteUrl = website && website !== "https://example.com" 
+  const websiteUrl = website && website !== "" 
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
+
+  // Display stage and industry with fallbacks
+  const displayStage = stage && stage !== "" ? stage : "Not specified";
+  const displayIndustry = industry && industry !== "" ? industry : "Not specified";
 
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
@@ -163,7 +167,7 @@ export function CompanyInfoCard({
               <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Stage</p>
-                <p className="text-sm text-muted-foreground">{stage}</p>
+                <p className="text-sm text-muted-foreground">{displayStage}</p>
               </div>
             </div>
             
@@ -171,7 +175,7 @@ export function CompanyInfoCard({
               <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium">Industry</p>
-                <p className="text-sm text-muted-foreground">{industry}</p>
+                <p className="text-sm text-muted-foreground">{displayIndustry}</p>
               </div>
             </div>
           </div>
