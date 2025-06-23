@@ -1,9 +1,13 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./cors.ts";
 import { getReportData } from "./reportService.ts";
 import { analyzeWithOpenAI } from "./openaiService.ts";
-import { saveAnalysisResults } from "./databaseService.ts";
+import { 
+  storeAnalysisResult, 
+  updateCompanyFromAnalysis, 
+  createSectionsFromAnalysis,
+  getExistingAnalysis 
+} from "./databaseService.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -12,307 +16,184 @@ serve(async (req) => {
   }
 
   try {
-    // Check environment variables early
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    const { reportId, analysisType, companyName } = await req.json();
     
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ 
-          error: 'GEMINI_API_KEY is not configured',
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-    
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.error("Supabase credentials are not configured");
-      return new Response(
-        JSON.stringify({ 
-          error: 'Supabase credentials are not configured',
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
-    }
-
-    // Parse request data
-    let reqData;
-    try {
-      reqData = await req.json();
-    } catch (e) {
-      console.error("Error parsing request JSON:", e);
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid request format. Expected JSON with reportId property.",
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-
-    const { reportId, usePublicAnalysisPrompt = false, scoringScale = 100 } = reqData;
-    
-    // Enhanced reportId validation
     if (!reportId) {
-      console.error("Missing reportId in request");
-      return new Response(
-        JSON.stringify({ 
-          error: "Report ID is required",
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-    
-    // Validate that reportId is a valid UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(reportId)) {
-      console.error(`Invalid reportId format: "${reportId}"`);
-      return new Response(
-        JSON.stringify({ 
-          error: `Invalid report ID format. Expected a UUID, got: ${reportId}`,
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
+      throw new Error('Report ID is required');
     }
 
-    console.log(`Processing report ${reportId}`);
-    
-    try {
-      // Get report data without authentication
+    console.log(`Processing request for report ${reportId}`, { analysisType, companyName });
+
+    // Handle improvement suggestions analysis type
+    if (analysisType === 'improvement_suggestions') {
+      console.log('Generating improvement suggestions for:', companyName);
+      
+      const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+      if (!geminiApiKey) {
+        throw new Error('GEMINI_API_KEY not configured');
+      }
+
+      // Get the report data and PDF
       const { supabase, report, pdfBase64 } = await getReportData(reportId);
       
-      console.log("Successfully retrieved report data, analyzing with Gemini");
+      // Generate improvement suggestions using specialized prompt
+      const improvementPrompt = `Analyze this pitch deck PDF and provide 8-12 specific, actionable improvement suggestions. Focus on what's missing or could be enhanced to make this a stronger investment pitch. Consider market data, industry benchmarks, and investor expectations.
 
-      // Check if user is IIT Bombay user
-      let isIITBombayUser = false;
-      if (report.user_id) {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('is_iitbombay')
-          .eq('id', report.user_id)
-          .single();
-        
-        isIITBombayUser = userProfile?.is_iitbombay || false;
-        console.log('User is IIT Bombay user:', isIITBombayUser);
+Return your response in EXACTLY this JSON format:
+
+{
+  "suggestions": [
+    "Add a comprehensive Market Sizing slide using TAM/SAM/SOM framework. Include specific market size figures (e.g., '$X billion TAM, $Y billion SAM, $Z million SOM by 2027') with credible sources like Gartner, McKinsey, or industry reports.",
+    "Include competitive landscape matrix showing direct and indirect competitors with positioning based on key differentiators. Add market share data and competitive advantages.",
+    "Strengthen financial projections with 3-5 year revenue forecasts, unit economics (CAC, LTV, gross margins), and key financial metrics benchmarked against industry standards.",
+    "Add traction metrics with specific numbers: user growth rates, revenue growth (MoM/YoY), customer acquisition metrics, retention rates, and key partnerships.",
+    "Include detailed go-to-market strategy with customer acquisition channels, sales funnel metrics, customer segments, and distribution strategy with cost estimates.",
+    "Enhance team slide with specific relevant experience, previous exits, domain expertise, advisory board members, and key hires planned with their backgrounds.",
+    "Add risk analysis section identifying key business risks, market risks, competitive threats, and mitigation strategies with contingency plans.",
+    "Include use of funds breakdown with specific allocation percentages, timeline for deployment, expected milestones, and ROI projections for each funding category."
+  ]
+}
+
+CRITICAL REQUIREMENTS:
+- Analyze the actual content and identify what's genuinely missing or weak
+- Each suggestion must be specific and actionable, not generic advice
+- Include specific market data, percentages, timeframes, and industry benchmarks where applicable
+- Reference real market sizing methodologies (TAM/SAM/SOM), financial metrics (CAC, LTV, burn rate), and growth benchmarks
+- Tailor suggestions to the specific industry and business model shown in the deck
+- Prioritize suggestions that address the most critical gaps for investor appeal
+- Include quantitative targets and benchmarks (e.g., "aim for >40% gross margins", "achieve <6 month payback period")
+- Reference industry-standard frameworks and methodologies (OKRs, unit economics, cohort analysis)
+
+If the deck already covers certain areas well, focus suggestions on enhancement rather than addition. Ensure all suggestions are practical and implementable.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: improvementPrompt
+                },
+                {
+                  inline_data: {
+                    mime_type: "application/pdf",
+                    data: pdfBase64
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 4096,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
       }
+
+      const data = await response.json();
+      console.log("Received response from Gemini API for improvement suggestions");
+
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error("Invalid response structure from Gemini API");
+      }
+
+      const rawResponse = data.candidates[0].content.parts[0].text;
+      console.log("Raw Gemini response length:", rawResponse.length);
+
+      // Extract JSON from the response
+      const jsonMatch = rawResponse.match(/```json\n?(.*?)\n?```/s);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in Gemini response");
+      }
+
+      const jsonText = jsonMatch[1];
+      let suggestions;
       
       try {
-        // Analyze the PDF with Gemini, passing the new parameters including user type
-        const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY, usePublicAnalysisPrompt, scoringScale, isIITBombayUser);
-        
-        console.log("Gemini analysis complete, saving results to database");
-        
-        // Save analysis results to database
-        const companyId = await saveAnalysisResults(supabase, analysis, report);
+        const parsed = JSON.parse(jsonText);
+        suggestions = parsed.suggestions || [];
+        console.log("Successfully parsed improvement suggestions:", suggestions.length);
+      } catch (error) {
+        console.error("Error parsing JSON:", error);
+        throw new Error(`Failed to parse JSON response: ${error.message}`);
+      }
 
-        console.log(`Analysis complete, created company with ID: ${companyId}`);
-        
-        // Try to trigger the Perplexity research and details extraction concurrently
-        // But don't fail the main job if either fails
-        try {
-          // Define an array of promises for the background tasks
-          const backgroundTasks = [];
-          
-          // Add Perplexity research task if assessment points are available
-          if (analysis.assessmentPoints && analysis.assessmentPoints.length > 0) {
-            console.log("Initiating market research with Perplexity API");
-            
-            // Check if we have the Perplexity API key
-            const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
-            
-            if (PERPLEXITY_API_KEY) {
-              // Create the research task
-              const doResearch = async () => {
-                try {
-                  console.log("Starting Perplexity research in background");
-                  
-                  // Prepare the data for the research API
-                  const assessmentText = analysis.assessmentPoints.join("\n\n");
-                  
-                  // Call the research function
-                  const researchResponse = await fetch(`${SUPABASE_URL}/functions/v1/research-with-perplexity`, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                      companyId,
-                      assessmentText
-                    })
-                  });
-                  
-                  if (!researchResponse.ok) {
-                    const errorText = await researchResponse.text();
-                    console.error(`Research failed (${researchResponse.status}): ${errorText}`);
-                  } else {
-                    console.log("Research completed successfully");
-                  }
-                } catch (researchError) {
-                  console.error("Error in background research task:", researchError);
-                }
-              };
-              
-              // Add to background tasks
-              backgroundTasks.push(doResearch());
-            } else {
-              console.log("Skipping market research - PERPLEXITY_API_KEY not configured");
-            }
-          } else {
-            console.log("Skipping market research - no assessment points available");
-          }
-          
-          // Add company details extraction task
-          console.log("Initiating company details extraction with Gemini API");
-          const extractDetails = async () => {
-            try {
-              console.log("Starting company details extraction in background");
-              
-              // Call the details-in-analyze-pdf function
-              const detailsResponse = await fetch(`${SUPABASE_URL}/functions/v1/details-in-analyze-pdf`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  reportId,
-                  companyId
-                })
-              });
-              
-              if (!detailsResponse.ok) {
-                const errorText = await detailsResponse.text();
-                console.error(`Details extraction failed (${detailsResponse.status}): ${errorText}`);
-              } else {
-                console.log("Company details extraction completed successfully");
-              }
-            } catch (detailsError) {
-              console.error("Error in company details extraction task:", detailsError);
-            }
-          };
-          
-          // Add to background tasks
-          backgroundTasks.push(extractDetails());
-          
-          // Run all background tasks but don't wait for them to complete
-          if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-            console.log("Using EdgeRuntime.waitUntil for background processing");
-            EdgeRuntime.waitUntil(Promise.all(backgroundTasks));
-          } else {
-            console.log("EdgeRuntime not available, starting tasks without waitUntil");
-            // Just start the tasks but don't await them
-            Promise.all(backgroundTasks).catch(err => console.error("Background tasks failed:", err));
-          }
-          
-          console.log("Background tasks initiated");
-        } catch (backgroundTasksError) {
-          console.error("Error setting up background tasks:", backgroundTasksError);
-          // Don't fail the main job due to background tasks failure
-        }
-
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            companyId,
-            message: "Report analyzed successfully" 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200 
-          }
-        );
-      } catch (analysisError) {
-        console.error("Analysis error:", analysisError);
-        
-        // Update the report with the error
-        try {
-          const { error: updateError } = await supabase
-            .from('reports')
-            .update({ 
-              analysis_status: 'failed',
-              analysis_error: analysisError instanceof Error ? analysisError.message : 'Unknown analysis error'
-            })
-            .eq('id', reportId);
-          
-          if (updateError) {
-            console.error("Error updating report status:", updateError);
-          }
-        } catch (statusUpdateError) {
-          console.error("Error updating report failure status:", statusUpdateError);
-        }
-        
-        return new Response(
-          JSON.stringify({ 
-            error: analysisError instanceof Error ? analysisError.message : 'Analysis failed',
-            success: false
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500 
-          }
-        );
-      }
-    } catch (error) {
-      console.error("Operation error:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-      
-      // Print detailed stack trace to logs if available
-      if (error instanceof Error && error.stack) {
-        console.error("Error stack trace:", error.stack);
-      }
-      
-      // Determine appropriate status code
-      let status = 500;
-      if (errorMessage.includes("not found")) {
-        status = 404;
-        console.error(`Report not found for id ${reportId}`);
-      } else if (errorMessage.includes("Invalid report ID format")) {
-        status = 400;
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          error: errorMessage,
-          success: false
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: status 
-        }
-      );
+      return new Response(JSON.stringify({ suggestions }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    // Extract API key from environment variables
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY not configured');
+    }
+    
+    // Determine analysis type and user type
+    const usePublicAnalysisPrompt = !!Deno.env.get('USE_PUBLIC_ANALYSIS_PROMPT');
+    const scoringScale = parseInt(Deno.env.get('SCORING_SCALE') || '100', 10);
+    const isIITBombayUser = !!Deno.env.get('IS_IIT_BOMBAY_USER');
+
+    // Get the report data and PDF
+    const { supabase, report, pdfBase64 } = await getReportData(reportId);
+    
+    // Check if analysis already exists
+    const existingAnalysis = await getExistingAnalysis(reportId);
+    if (existingAnalysis) {
+      console.log(`Analysis found in DB, returning existing analysis`);
+      return new Response(JSON.stringify(existingAnalysis), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Analyze the PDF using OpenAI
+    const analysisResult = await analyzeWithOpenAI(
+      pdfBase64, 
+      geminiApiKey, 
+      usePublicAnalysisPrompt,
+      scoringScale,
+      isIITBombayUser
+    );
+    
+    // Store the analysis result in the database
+    await storeAnalysisResult(reportId, analysisResult);
+    
+    // Update the company with the overall score and assessment points
+    if (report.company_id) {
+      await updateCompanyFromAnalysis(report.company_id, analysisResult);
+    } else {
+      console.log('No company ID associated with this report.');
+    }
+    
+    // Create sections from the analysis result
+    await createSectionsFromAnalysis(reportId, analysisResult);
+
+    // Return the analysis result
+    return new Response(JSON.stringify(analysisResult), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
-    console.error("Error in analyze-pdf function:", error);
+    console.error('Analysis error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "An unexpected error occurred",
-        success: false
+        error: error.message,
+        details: 'Check the function logs for more information'
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
