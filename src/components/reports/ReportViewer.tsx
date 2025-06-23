@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Set up PDF.js worker with a more reliable CDN
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ReportViewerProps {
   reportId: string;
@@ -42,50 +41,128 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         setLoading(true);
         setError('');
         
+        console.log('Starting PDF load for report:', reportId);
+        
         // First get the report to find the PDF URL
         const { data: report, error: reportError } = await supabase
           .from('reports')
-          .select('pdf_url, user_id')
+          .select('pdf_url, user_id, is_public_submission')
           .eq('id', reportId)
           .single();
 
         if (reportError || !report) {
+          console.error('Report fetch error:', reportError);
           throw new Error('Report not found');
         }
 
-        console.log('Loading PDF for report:', { reportId, pdfUrl: report.pdf_url, reportUserId: report.user_id });
+        console.log('Report found:', { 
+          pdfUrl: report.pdf_url, 
+          userId: report.user_id, 
+          isPublic: report.is_public_submission 
+        });
 
-        // Try to download the PDF - handle both user-specific and public paths
-        let blob;
+        // Try multiple download strategies
+        let blob = null;
+        let lastError = null;
+
+        // Strategy 1: Try the downloadReport function first
         try {
-          // Try user-specific path first
+          console.log('Trying downloadReport function...');
           blob = await downloadReport(report.pdf_url, report.user_id || user.id);
-        } catch (userError) {
-          console.log('User-specific download failed, trying public path:', userError);
-          
-          // If user-specific fails, try public path or direct path
+          console.log('Downloaded via downloadReport function successfully');
+        } catch (downloadError) {
+          console.log('downloadReport function failed:', downloadError);
+          lastError = downloadError;
+        }
+
+        // Strategy 2: Try direct storage access with user path
+        if (!blob && report.user_id && !report.is_public_submission) {
           try {
-            const { data: pdfData, error: downloadError } = await supabase.storage
+            const userPath = `${report.user_id}/${report.pdf_url}`;
+            console.log('Trying user-specific path:', userPath);
+            
+            const { data: storageData, error: storageError } = await supabase.storage
+              .from('report_pdfs')
+              .download(userPath);
+            
+            if (!storageError && storageData) {
+              blob = storageData;
+              console.log('Downloaded via user path successfully');
+            } else {
+              console.log('User path failed:', storageError);
+              lastError = storageError;
+            }
+          } catch (err) {
+            console.log('User path exception:', err);
+            lastError = err;
+          }
+        }
+
+        // Strategy 3: Try direct path
+        if (!blob) {
+          try {
+            console.log('Trying direct path:', report.pdf_url);
+            
+            const { data: storageData, error: storageError } = await supabase.storage
               .from('report_pdfs')
               .download(report.pdf_url);
             
-            if (downloadError || !pdfData) {
-              throw downloadError || new Error('Failed to download PDF');
+            if (!storageError && storageData) {
+              blob = storageData;
+              console.log('Downloaded via direct path successfully');
+            } else {
+              console.log('Direct path failed:', storageError);
+              lastError = storageError;
             }
-            
-            blob = pdfData;
-          } catch (publicError) {
-            console.error('Both download methods failed:', publicError);
-            throw new Error('Failed to load PDF document');
+          } catch (err) {
+            console.log('Direct path exception:', err);
+            lastError = err;
           }
+        }
+
+        // Strategy 4: Try public URL access
+        if (!blob) {
+          try {
+            console.log('Trying public URL access...');
+            const { data: publicUrl } = supabase.storage
+              .from('report_pdfs')
+              .getPublicUrl(report.pdf_url);
+            
+            if (publicUrl.publicUrl) {
+              console.log('Fetching from public URL:', publicUrl.publicUrl);
+              const response = await fetch(publicUrl.publicUrl);
+              
+              if (response.ok) {
+                blob = await response.blob();
+                console.log('Downloaded via public URL successfully');
+              } else {
+                console.log('Public URL fetch failed:', response.status, response.statusText);
+                lastError = new Error(`Public URL fetch failed: ${response.status}`);
+              }
+            }
+          } catch (err) {
+            console.log('Public URL exception:', err);
+            lastError = err;
+          }
+        }
+
+        if (!blob) {
+          console.error('All download strategies failed. Last error:', lastError);
+          throw new Error('Failed to load PDF from storage');
+        }
+
+        // Verify the blob is a valid PDF
+        if (blob.type && !blob.type.includes('pdf')) {
+          console.warn('Blob type is not PDF:', blob.type);
         }
 
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
-        console.log('PDF loaded successfully');
+        console.log('PDF URL created successfully, size:', blob.size);
+        
       } catch (err) {
         console.error('Error loading PDF:', err);
-        setError('Failed to load PDF document');
+        setError(`Failed to load PDF: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -104,6 +181,11 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     console.log(`PDF loaded with ${numPages} pages`);
+  };
+
+  const onDocumentLoadError = (error: any) => {
+    console.error('PDF document load error:', error);
+    setError('Failed to load PDF document. The file may be corrupted or in an unsupported format.');
   };
 
   const changePage = (offset: number) => {
@@ -142,6 +224,14 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           <p className="text-sm text-muted-foreground">
             Report ID: {reportId}
           </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.reload()} 
+            className="mt-2"
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -197,11 +287,12 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         <Document
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={(error) => {
-            console.error('PDF load error:', error);
-            setError('Failed to load PDF document');
-          }}
+          onLoadError={onDocumentLoadError}
           className="max-w-full"
+          options={{
+            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+            cMapPacked: true,
+          }}
         >
           <Page
             pageNumber={pageNumber}
