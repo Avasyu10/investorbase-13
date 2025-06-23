@@ -83,11 +83,11 @@ function CompanyDetails() {
           
           if (report?.analysis_result) {
             const analysisResult = report.analysis_result as AnalysisResult;
-            if (analysisResult.slideBySlideNotes) {
+            if (analysisResult.slideBySlideNotes && analysisResult.slideBySlideNotes.length > 0) {
               setSlideNotes(analysisResult.slideBySlideNotes);
               console.log('Slide notes found:', analysisResult.slideBySlideNotes.length);
             } else {
-              console.log('No slideBySlideNotes in analysis result');
+              console.log('No slideBySlideNotes in analysis result or empty array');
               setSlideNotes([]);
             }
           } else {
@@ -103,6 +103,7 @@ function CompanyDetails() {
       fetchSlideNotes();
     } else {
       console.log('No report_id found for company');
+      setSlideNotes([]);
     }
   }, [company?.report_id]);
 
@@ -120,7 +121,7 @@ function CompanyDetails() {
         reportId: company.report_id,
         isIITBombayUser,
         slideNotesCount: slideNotes.length,
-        shouldShowSlideViewer: !isIITBombayUser && company.report_id
+        shouldShowSlideViewer: company.report_id ? true : false
       });
     }
   }, [company, isIITBombayUser, slideNotes]);
@@ -162,7 +163,7 @@ function CompanyDetails() {
     company.sections.filter(section => section.type !== 'SLIDE_NOTES') : [];
 
   console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
-  console.log('Should show slide viewer:', !isIITBombayUser);
+  console.log('Should show slide viewer:', !!company.report_id);
   console.log('Has report ID:', !!company.report_id);
 
   return (
@@ -257,31 +258,18 @@ function CompanyDetails() {
             </>
           )}
 
-          {/* ALWAYS show slide-by-slide section for non-IIT Bombay users */}
-          {!isIITBombayUser && (
+          {/* ALWAYS show slide-by-slide section when report_id exists */}
+          {company.report_id && (
             <>
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
                 Slide by Slide Analysis
               </h2>
-              {company.report_id ? (
-                <SlideBySlideViewer
-                  reportId={company.report_id}
-                  slideNotes={slideNotes}
-                  companyName={company.name}
-                />
-              ) : (
-                <Card className="shadow-card border-0 bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent">
-                  <CardHeader>
-                    <CardTitle>No Report Available</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">
-                      No PDF report is available for slide-by-slide analysis for this company.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+              <SlideBySlideViewer
+                reportId={company.report_id}
+                slideNotes={slideNotes}
+                companyName={company.name}
+              />
             </>
           )}
         </div>

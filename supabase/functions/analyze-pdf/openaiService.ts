@@ -24,7 +24,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
   // Choose the appropriate prompt based on the analysis type and user type
   let basePrompt;
   if (usePublicAnalysisPrompt && !isIITBombayUser) {
-    // Non-IIT Bombay users get slide-by-slide analysis
+    // Non-IIT Bombay users get slide-by-slide analysis only
     basePrompt = getSlideBySlideAnalysisPrompt(scoringScale);
     console.log("Using slide-by-slide analysis prompt for non-IIT Bombay user");
   } else if (usePublicAnalysisPrompt) {
@@ -32,7 +32,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
     basePrompt = getPublicAnalysisPrompt(scoringScale);
     console.log("Using public analysis prompt for IIT Bombay user");
   } else {
-    // Enhanced analysis for internal use - now includes slide-by-slide notes
+    // Enhanced analysis for internal use - includes both section metrics AND slide-by-slide notes
     basePrompt = getEnhancedAnalysisPrompt(isIITBombayUser);
     console.log("Using enhanced analysis prompt");
   }
@@ -139,32 +139,9 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
 }
 
 function getEnhancedAnalysisPrompt(isIITBombayUser = false): string {
-  const slideBySlideSection = isIITBombayUser ? '' : `
-  Also, you MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.`;
+  return `Analyze this PDF pitch deck and provide a comprehensive investment assessment. You MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.
 
-  const slideBySlideFormat = isIITBombayUser ? '' : `,
-  "slideBySlideNotes": [
-    {
-      "slideNumber": 1,
-      "notes": [
-        "<detailed analysis point 1 for slide 1>",
-        "<detailed analysis point 2 for slide 1>",
-        "<detailed analysis point 3 for slide 1>",
-        "<detailed analysis point 4 for slide 1>"
-      ]
-    },
-    {
-      "slideNumber": 2,
-      "notes": [
-        "<detailed analysis point 1 for slide 2>",
-        "<detailed analysis point 2 for slide 2>",
-        "<detailed analysis point 3 for slide 2>",
-        "<detailed analysis point 4 for slide 2>"
-      ]
-    }
-  ]`;
-
-  return `Analyze this PDF document and provide a comprehensive investment assessment.${slideBySlideSection} Please return your analysis in the following JSON format:
+Return your analysis in EXACTLY this JSON format:
 
 {
   "overallScore": <number between 1-100>,
@@ -195,8 +172,208 @@ function getEnhancedAnalysisPrompt(isIITBombayUser = false): string {
         "<detailed weakness 4 with market context and specific concerns>",
         "<detailed weakness 5 with market context and specific concerns>"
       ]
+    },
+    {
+      "type": "MARKET",
+      "title": "Market Opportunity",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "SOLUTION",
+      "title": "Solution (Product)",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "COMPETITIVE_LANDSCAPE",
+      "title": "Competitive Landscape",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "TRACTION",
+      "title": "Traction & Milestones",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "BUSINESS_MODEL",
+      "title": "Business Model",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "GTM_STRATEGY",
+      "title": "Go-to-Market Strategy",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "TEAM",
+      "title": "Founder & Team Background",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "FINANCIALS",
+      "title": "Financial Overview & Projections",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
+    },
+    {
+      "type": "ASK",
+      "title": "The Ask & Next Steps",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     }
-  ]${slideBySlideFormat}
+  ],
+  "slideBySlideNotes": [
+    {
+      "slideNumber": 1,
+      "notes": [
+        "<detailed analysis point 1 for slide 1>",
+        "<detailed analysis point 2 for slide 1>",
+        "<detailed analysis point 3 for slide 1>",
+        "<detailed analysis point 4 for slide 1>"
+      ]
+    },
+    {
+      "slideNumber": 2,
+      "notes": [
+        "<detailed analysis point 1 for slide 2>",
+        "<detailed analysis point 2 for slide 2>",
+        "<detailed analysis point 3 for slide 2>",
+        "<detailed analysis point 4 for slide 2>"
+      ]
+    }
+  ]
 }
 
 CRITICAL REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
@@ -207,19 +384,6 @@ CRITICAL REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
 - Provide specific numbers, percentages, or comparative data points
 - Each point should be substantial and analytical, not just surface-level observations
 
-Please analyze these sections:
-1. PROBLEM - Problem Statement
-2. MARKET - Market Opportunity  
-3. SOLUTION - Solution (Product)
-4. COMPETITIVE_LANDSCAPE - Competitive Landscape
-5. TRACTION - Traction & Milestones
-6. BUSINESS_MODEL - Business Model
-7. GTM_STRATEGY - Go-to-Market Strategy
-8. TEAM - Founder & Team Background
-9. FINANCIALS - Financial Overview & Projections
-10. ASK - The Ask & Next Steps
-
-${isIITBombayUser ? '' : `
 SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
 - You MUST provide exactly 4 detailed notes for EACH slide in the deck
 - Each note should be 2-3 sentences long with specific observations
@@ -228,7 +392,7 @@ SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
 - Provide both positive observations and constructive criticism
 - Include market context and industry benchmarks where relevant
 
-Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.`}
+Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
 
 Score each section from 1-100 based on quality, completeness, and investment potential. Ensure all strengths and weaknesses are comprehensive, data-driven, and include relevant market context.`;
 }
