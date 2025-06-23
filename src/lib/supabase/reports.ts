@@ -70,12 +70,12 @@ export async function debugStorageBucket(): Promise<void> {
   console.log('Available buckets:', buckets);
   if (bucketsError) console.error('Buckets error:', bucketsError);
   
-  // Check report_pdfs bucket specifically
+  // Check "Report PDFs" bucket specifically
   const { data: files, error: filesError } = await supabase.storage
-    .from('report_pdfs')
+    .from('Report PDFs')
     .list('', { limit: 100 });
   
-  console.log('Files in report_pdfs bucket (root):', files);
+  console.log('Files in "Report PDFs" bucket (root):', files);
   if (filesError) console.error('Files listing error:', filesError);
   
   // List files with user folders
@@ -83,7 +83,7 @@ export async function debugStorageBucket(): Promise<void> {
     for (const file of files) {
       if (file.name) {
         const { data: folderFiles, error: folderError } = await supabase.storage
-          .from('report_pdfs')
+          .from('Report PDFs')
           .list(file.name, { limit: 100 });
         console.log(`Files in folder ${file.name}:`, folderFiles);
         if (folderError) console.error(`Folder ${file.name} error:`, folderError);
@@ -135,7 +135,7 @@ export async function downloadReport(fileUrl: string, userId?: string, reportId?
       // Method 1: Try direct download
       console.log('Method 1: Direct download');
       const { data: directData, error: directError } = await supabase.storage
-        .from('report_pdfs')
+        .from('Report PDFs')
         .download(tryPath);
 
       if (!directError && directData && directData.size > 0) {
@@ -151,7 +151,7 @@ export async function downloadReport(fileUrl: string, userId?: string, reportId?
       // Method 2: Try signed URL
       console.log('Method 2: Signed URL');
       const { data: urlData, error: urlError } = await supabase.storage
-        .from('report_pdfs')
+        .from('Report PDFs')
         .createSignedUrl(tryPath, 60);
 
       if (!urlError && urlData?.signedUrl) {
@@ -189,7 +189,7 @@ export async function downloadReport(fileUrl: string, userId?: string, reportId?
       // Method 3: Try public URL
       console.log('Method 3: Public URL');
       const { data: publicData } = supabase.storage
-        .from('report_pdfs')
+        .from('Report PDFs')
         .getPublicUrl(tryPath);
 
       if (publicData.publicUrl) {
