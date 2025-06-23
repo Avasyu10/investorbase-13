@@ -181,7 +181,7 @@ function CompanyDetails() {
           {!isIITBombayUser ? (
             // Non-IIT Bombay users: Show slide-by-slide notes viewer
             <>
-              {slideNotes.length > 0 && company.report_id ? (
+              {company.report_id ? (
                 <SlideBySlideViewer
                   reportId={company.report_id}
                   slideNotes={slideNotes}
@@ -205,11 +205,11 @@ function CompanyDetails() {
                     ) : (
                       <Card className="col-span-full">
                         <CardHeader>
-                          <CardTitle>No Slide Notes Available</CardTitle>
+                          <CardTitle>No Report Available</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-muted-foreground">
-                            There are no slide-by-slide notes available for this company.
+                            There is no PDF report available for slide-by-slide analysis for this company.
                           </p>
                         </CardContent>
                       </Card>
@@ -244,7 +244,7 @@ function CompanyDetails() {
                         There are no detailed analysis sections available for this company.
                       </p>
                     </CardContent>
-                  </Card>
+                    </Card>
                 )}
               </div>
             </>
