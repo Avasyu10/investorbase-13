@@ -13,19 +13,33 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
   const { data: report, isLoading, error } = useQuery({
     queryKey: ['report', reportId],
     queryFn: async () => {
-      // First, get the report with profile information
+      // First, get the report data including analysis_result
       const { data: reportData, error: reportError } = await supabase
         .from('reports')
         .select(`
           *,
-          profiles:user_id (
-            is_iitbombay
-          )
+          analysis_result
         `)
         .eq('id', reportId)
         .single();
 
       if (reportError) throw reportError;
+
+      // Get the profile data separately
+      let profileData = null;
+      if (reportData.user_id) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_iitbombay')
+          .eq('id', reportData.user_id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+        } else {
+          profileData = profile;
+        }
+      }
 
       // If there's a company_id, get the company data separately
       let companyData = null;
@@ -59,6 +73,7 @@ export const ReportViewer = ({ reportId }: ReportViewerProps) => {
 
       return {
         ...reportData,
+        profiles: profileData,
         companies: companyData
       };
     },
