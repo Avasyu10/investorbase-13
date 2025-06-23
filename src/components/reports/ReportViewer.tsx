@@ -40,10 +40,12 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       
       try {
         setLoading(true);
+        setError('');
+        
         // First get the report to find the PDF URL
         const { data: report, error: reportError } = await supabase
           .from('reports')
-          .select('pdf_url')
+          .select('pdf_url, user_id')
           .eq('id', reportId)
           .single();
 
@@ -51,10 +53,36 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
           throw new Error('Report not found');
         }
 
-        const blob = await downloadReport(report.pdf_url, user.id);
+        console.log('Loading PDF for report:', { reportId, pdfUrl: report.pdf_url, reportUserId: report.user_id });
+
+        // Try to download the PDF - handle both user-specific and public paths
+        let blob;
+        try {
+          // Try user-specific path first
+          blob = await downloadReport(report.pdf_url, report.user_id || user.id);
+        } catch (userError) {
+          console.log('User-specific download failed, trying public path:', userError);
+          
+          // If user-specific fails, try public path or direct path
+          try {
+            const { data: pdfData, error: downloadError } = await supabase.storage
+              .from('report_pdfs')
+              .download(report.pdf_url);
+            
+            if (downloadError || !pdfData) {
+              throw downloadError || new Error('Failed to download PDF');
+            }
+            
+            blob = pdfData;
+          } catch (publicError) {
+            console.error('Both download methods failed:', publicError);
+            throw new Error('Failed to load PDF document');
+          }
+        }
+
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
-        setError('');
+        console.log('PDF loaded successfully');
       } catch (err) {
         console.error('Error loading PDF:', err);
         setError('Failed to load PDF document');
@@ -109,7 +137,12 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   if (error) {
     return (
       <div className="flex items-center justify-center h-96 text-red-500">
-        <p>{error}</p>
+        <div className="text-center">
+          <p className="mb-2">{error}</p>
+          <p className="text-sm text-muted-foreground">
+            Report ID: {reportId}
+          </p>
+        </div>
       </div>
     );
   }

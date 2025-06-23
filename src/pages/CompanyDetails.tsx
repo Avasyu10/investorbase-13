@@ -8,7 +8,7 @@ import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Loader2, BarChart2, BookOpen } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2 } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -258,19 +258,13 @@ function CompanyDetails() {
             </>
           )}
 
-          {/* ALWAYS show slide-by-slide section when report_id exists */}
+          {/* ALWAYS show slide-by-slide section when report_id exists - no duplicate heading */}
           {company.report_id && (
-            <>
-              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-primary" />
-                Slide by Slide Analysis
-              </h2>
-              <SlideBySlideViewer
-                reportId={company.report_id}
-                slideNotes={slideNotes}
-                companyName={company.name}
-              />
-            </>
+            <SlideBySlideViewer
+              reportId={company.report_id}
+              slideNotes={slideNotes}
+              companyName={company.name}
+            />
           )}
         </div>
       </ScrollArea>
