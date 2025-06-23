@@ -1,3 +1,4 @@
+
 import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 export interface AnalysisResult {
@@ -17,7 +18,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
   console.log("Starting Gemini analysis with PDF data");
   
   // Choose the appropriate prompt based on the analysis type
-  const basePrompt = usePublicAnalysisPrompt ? getPublicAnalysisPrompt(scoringScale) : getDefaultAnalysisPrompt();
+  const basePrompt = usePublicAnalysisPrompt ? getPublicAnalysisPrompt(scoringScale) : getEnhancedAnalysisPrompt();
   
   const payload = {
     contents: [
@@ -113,7 +114,7 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
   return analysis;
 }
 
-function getDefaultAnalysisPrompt(): string {
+function getEnhancedAnalysisPrompt(): string {
   return `Analyze this PDF document and provide a comprehensive investment assessment. Please return your analysis in the following JSON format:
 
 {
@@ -131,12 +132,32 @@ function getDefaultAnalysisPrompt(): string {
       "title": "Problem Statement",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
-      "strengths": ["<strength 1>", "<strength 2>"],
-      "weaknesses": ["<weakness 1>", "<weakness 2>"]
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     ... (continue for all sections)
   ]
 }
+
+CRITICAL REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
+- Each strength and weakness MUST be 4-5 detailed points
+- Each point MUST include specific market data, metrics, or industry benchmarks where applicable
+- Include relevant market size figures, growth rates, competitive positioning data
+- Reference industry standards, adoption rates, or market trends
+- Provide specific numbers, percentages, or comparative data points
+- Each point should be substantial and analytical, not just surface-level observations
 
 Please analyze these sections:
 1. PROBLEM - Problem Statement
@@ -150,7 +171,7 @@ Please analyze these sections:
 9. FINANCIALS - Financial Overview & Projections
 10. ASK - The Ask & Next Steps
 
-Score each section from 1-100 based on quality, completeness, and investment potential.`;
+Score each section from 1-100 based on quality, completeness, and investment potential. Ensure all strengths and weaknesses are comprehensive, data-driven, and include relevant market context.`;
 }
 
 function getPublicAnalysisPrompt(scoringScale: number): string {
