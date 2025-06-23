@@ -1,249 +1,288 @@
 
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useSectionDetails } from "@/hooks/companyHooks/useSectionDetails";
-import { Button } from "@/components/ui/button";
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, BarChart2, List, FileText } from "lucide-react";
-import { SECTION_TYPE_MAPPINGS } from "@/lib/constants";
-import { supabase } from "@/integrations/supabase/client";
+import { 
+  BookText, 
+  TrendingUp, 
+  TrendingDown, 
+  Target, 
+  BarChart3, 
+  DollarSign, 
+  Lightbulb,
+  LineChart,
+  Users,
+  Building2,
+  CheckCircle,
+  AlertTriangle,
+  Globe
+} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SectionDetailed } from "@/lib/api/apiContract";
+import { SECTION_TITLES, SECTION_TYPES } from "@/lib/constants";
 
-const SectionDetail = () => {
-  const { companyId, sectionId } = useParams<{ companyId: string; sectionId: string }>();
-  const navigate = useNavigate();
-  const { section, isLoading } = useSectionDetails(companyId, sectionId);
-  const [sectionDetails, setSectionDetails] = useState<Array<{
-    id: string;
-    content: string;
-    detail_type: string;
-  }>>([]);
+interface SectionDetailProps {
+  section: SectionDetailed | null;
+  isLoading: boolean;
+}
 
-  // Fetch section details separately
-  useEffect(() => {
-    const fetchSectionDetails = async () => {
-      if (!sectionId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('section_details')
-          .select('*')
-          .eq('section_id', sectionId);
-          
-        if (error) {
-          console.error('Error fetching section details:', error);
-          return;
-        }
-        
-        setSectionDetails(data || []);
-      } catch (error) {
-        console.error('Error fetching section details:', error);
+// Helper function to get standardized display title
+const getDisplayTitle = (section: SectionDetailed): string => {
+  // Try to match the section type to our constants
+  const sectionType = section.type?.toUpperCase();
+  if (sectionType && SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES]) {
+    return SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES];
+  }
+  
+  // Fallback: try to map common title patterns to our section types
+  const title = section.title.toLowerCase();
+  if (title.includes('solution') || title.includes('product')) {
+    return SECTION_TITLES[SECTION_TYPES.SOLUTION];
+  }
+  if (title.includes('traction') || title.includes('milestone')) {
+    return SECTION_TITLES[SECTION_TYPES.TRACTION];
+  }
+  if (title.includes('team') || title.includes('founder')) {
+    return SECTION_TITLES[SECTION_TYPES.TEAM];
+  }
+  if (title.includes('financial') || title.includes('projection')) {
+    return SECTION_TITLES[SECTION_TYPES.FINANCIALS];
+  }
+  if (title.includes('ask') || title.includes('next step')) {
+    return SECTION_TITLES[SECTION_TYPES.ASK];
+  }
+  if (title.includes('problem')) {
+    return SECTION_TITLES[SECTION_TYPES.PROBLEM];
+  }
+  if (title.includes('market') || title.includes('opportunity')) {
+    return SECTION_TITLES[SECTION_TYPES.MARKET];
+  }
+  if (title.includes('competitive') || title.includes('landscape')) {
+    return SECTION_TITLES[SECTION_TYPES.COMPETITIVE_LANDSCAPE];
+  }
+  if (title.includes('business model')) {
+    return SECTION_TITLES[SECTION_TYPES.BUSINESS_MODEL];
+  }
+  if (title.includes('go-to-market') || title.includes('strategy')) {
+    return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
+  }
+  
+  // Final fallback to original title
+  return section.title;
+};
+
+// Helper function to format description as bullet points
+const formatDescriptionAsBullets = (description: string): string[] => {
+  if (!description || description === 'No detailed content available.') return [];
+  
+  // Instead of splitting on every period, try to identify complete thoughts
+  // This regex looks for sentence endings followed by spaces or line breaks
+  const regex = /(?<=[.!?])\s+(?=[A-Z])/g;
+  
+  // Split by the regex to get complete sentences
+  let sentences = description.split(regex);
+  
+  // If we have very few sentences, try another approach for more granular points
+  if (sentences.length <= 2 && description.length > 200) {
+    // Try splitting on semicolons and line breaks too
+    sentences = description.split(/(?<=[.;!?\n])\s+(?=[A-Z])/);
+  }
+  
+  // Process each sentence
+  return sentences
+    .map(s => s.trim())
+    .filter(s => s.length > 5) // Minimum length to be considered a point
+    .map(s => {
+      // Ensure each sentence ends with proper punctuation
+      if (s.endsWith('.') || s.endsWith('!') || s.endsWith('?') || s.endsWith(';')) {
+        return s;
       }
-    };
+      return s + '.';
+    })
+    // Fix any split sentence fragments by joining them with the next one if they're too short
+    .reduce((result: string[], current, index, array) => {
+      if (current.length < 30 && index < array.length - 1) {
+        // Current sentence is too short, join it with the next one
+        array[index + 1] = current + ' ' + array[index + 1];
+        return result;
+      }
+      result.push(current);
+      return result;
+    }, []);
+};
 
-    fetchSectionDetails();
-  }, [sectionId]);
-
-  const handleBack = () => {
-    navigate(`/company/${companyId}`);
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "score-excellent";
-    if (score >= 60) return "score-good"; 
-    if (score >= 40) return "score-average";
-    return "score-poor";
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 80) return "Excellent";
-    if (score >= 60) return "Good";
-    if (score >= 40) return "Average";
-    return "Poor";
-  };
-
+export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   if (isLoading) {
     return (
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-secondary rounded w-1/3"></div>
-            <div className="h-6 bg-secondary rounded w-1/2"></div>
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  <div className="h-4 bg-secondary rounded w-full"></div>
-                  <div className="h-4 bg-secondary rounded w-full"></div>
-                  <div className="h-4 bg-secondary rounded w-3/4"></div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-full mb-1" />
+          <Skeleton className="h-4 w-full mb-1" />
+          <Skeleton className="h-4 w-3/4" />
         </div>
       </div>
     );
   }
 
   if (!section) {
-    return (
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4 py-8">
-          <Button variant="outline" onClick={handleBack} className="mb-6">
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Company
-          </Button>
-          <p>Section not found</p>
-        </div>
-      </div>
-    );
+    return <div>Section not found</div>;
   }
 
-  const isSlideNotesSection = section.type === "SLIDE_NOTES";
-  const displayTitle = SECTION_TYPE_MAPPINGS[section.type as keyof typeof SECTION_TYPE_MAPPINGS] || section.title;
+  const displayTitle = getDisplayTitle(section);
 
-  const slideNotes = sectionDetails.filter(detail => detail.detail_type === 'slide_note');
-  const strengths = sectionDetails.filter(detail => detail.detail_type === 'strength');
-  const weaknesses = sectionDetails.filter(detail => detail.detail_type === 'weakness');
+  // Check if section is missing (score of 0.5 indicates a missing section)
+  const isSectionMissing = section?.score === 0.5;
+
+  // Format the detailed content as bullet points and categorize them
+  const contentBullets = section ? formatDescriptionAsBullets(section.detailedContent) : [];
+  const isContentMissing = contentBullets.length === 0;
+  
+  // Function to determine if a bullet point is a metric/statistic
+  const isMetric = (text: string) => {
+    return text.match(/\$|\d+%|\d+\s*(million|billion)|[0-9]+/i) !== null;
+  };
+
+  // Function to determine if a bullet point is about competition
+  const isCompetitive = (text: string) => {
+    return text.toLowerCase().includes('competitor') || 
+           text.toLowerCase().includes('market') ||
+           text.toLowerCase().includes('industry') ||
+           text.toLowerCase().includes('players');
+  };
+
+  // Function to determine if a bullet point relates to growth or opportunity
+  const isGrowth = (text: string) => {
+    return text.toLowerCase().includes('growth') || 
+           text.toLowerCase().includes('opportunity') ||
+           text.toLowerCase().includes('expansion') ||
+           text.toLowerCase().includes('potential') ||
+           text.toLowerCase().includes('future');
+  };
+
+  // Function to determine if a bullet point is about product or technology
+  const isProduct = (text: string) => {
+    return text.toLowerCase().includes('product') || 
+           text.toLowerCase().includes('technology') ||
+           text.toLowerCase().includes('solution') ||
+           text.toLowerCase().includes('platform') ||
+           text.toLowerCase().includes('feature');
+  };
+
+  // Get appropriate icon for each type of insight
+  const getInsightIcon = (text: string) => {
+    if (isMetric(text)) return <DollarSign className="h-5 w-5 text-emerald-500 shrink-0" />;
+    if (isCompetitive(text)) return <Target className="h-5 w-5 text-blue-500 shrink-0" />;
+    if (isGrowth(text)) return <LineChart className="h-5 w-5 text-violet-500 shrink-0" />;
+    if (isProduct(text)) return <Lightbulb className="h-5 w-5 text-amber-500 shrink-0" />;
+    
+    // Default icon
+    return <CheckCircle className="h-5 w-5 text-primary/70 shrink-0" />;
+  };
+
+  // Round score to integer for display
+  const scoreAsInteger = Math.round(section?.score);
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-8 animate-fade-in">
-        <Button variant="outline" onClick={handleBack} className="mb-6">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Back to Company
-        </Button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{displayTitle}</h1>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            {isSlideNotesSection ? (
-              <List className="h-6 w-6 text-primary" />
-            ) : (
-              <BarChart2 className="h-6 w-6 text-primary" />
-            )}
-            <h1 className="text-3xl font-bold tracking-tight">{displayTitle}</h1>
-          </div>
-
-          {!isSlideNotesSection && (
-            <div className="flex items-center gap-4 mb-6">
+        <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
+          <CardHeader className="border-b pb-4">
+            <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-medium">Score:</span>
-                <span className="text-3xl font-bold">{section.score}</span>
-                <Badge className={`${getScoreColor(section.score)} text-white`}>
-                  {getScoreLabel(section.score)}
-                </Badge>
+                <BookText className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl font-semibold">Key Insights</CardTitle>
+              </div>
+              <div className="flex items-center">
+                <span className="text-xl font-bold mr-1">{scoreAsInteger}</span>
+                <span className="text-sm text-muted-foreground">/100</span>
               </div>
             </div>
-          )}
-
-          {!isSlideNotesSection && (
-            <Progress 
-              value={section.score} 
-              className={`h-3 mb-6 ${getScoreColor(section.score)}`} 
-            />
-          )}
-        </div>
-
-        {isSlideNotesSection ? (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  {section.description}
-                </p>
-              </CardContent>
-            </Card>
-
-            {slideNotes.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <List className="h-5 w-5" />
-                    Slide-by-Slide Analysis ({slideNotes.length} notes)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {slideNotes.map((note, index) => (
-                      <div key={note.id} className="border-l-4 border-primary pl-4 py-2">
-                        <p className="text-sm font-medium text-primary mb-1">
-                          Note {index + 1}
-                        </p>
-                        <p className="text-muted-foreground leading-relaxed">
-                          {note.content}
-                        </p>
-                      </div>
-                    ))}
+          </CardHeader>
+          <CardContent className="pt-5">
+            <div className="grid grid-cols-1 gap-4">
+              {isSectionMissing ? (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-rose-500/10">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
+                  <span className="text-sm leading-relaxed font-medium">This section appears to be missing from the pitch deck. Consider adding it to improve the overall quality of your presentation.</span>
+                </div>
+              ) : isContentMissing ? (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-500 shrink-0" />
+                  <div className="text-sm leading-relaxed">
+                    <p className="font-medium mb-1">No detailed analysis available for this section.</p>
+                    <p>Please check the strengths and weaknesses below for the key points from the analysis.</p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  {section.description}
-                </p>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {strengths.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-green-700 dark:text-green-400">
-                      Strengths ({strengths.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3">
-                      {strengths.map((strength) => (
-                        <li key={strength.id} className="flex items-start gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="text-sm leading-relaxed">{strength.content}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-
-              {weaknesses.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-red-700 dark:text-red-400">
-                      Areas for Improvement ({weaknesses.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3">
-                      {weaknesses.map((weakness) => (
-                        <li key={weakness.id} className="flex items-start gap-2">
-                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="text-sm leading-relaxed">{weakness.content}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                </div>
+              ) : (
+                contentBullets.map((bullet, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-start gap-3 p-4 rounded-lg transition-colors border border-transparent
+                      ${isMetric(bullet) ? 'bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/20' : 
+                        isCompetitive(bullet) ? 'bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/20' : 
+                        isGrowth(bullet) ? 'bg-violet-500/5 hover:bg-violet-500/10 hover:border-violet-500/20' :
+                        isProduct(bullet) ? 'bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/20' :
+                        'bg-primary/5 hover:bg-primary/10 hover:border-primary/20'}`}
+                  >
+                    {getInsightIcon(bullet)}
+                    <span className="text-sm leading-relaxed">{bullet}</span>
+                  </div>
+                ))
               )}
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Strengths Card - Only show if section is not missing */}
+          {!isSectionMissing && section?.strengths.length > 0 && (
+            <Card className="shadow-card border-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent">
+              <CardHeader className="border-b pb-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-emerald-500" />
+                  <CardTitle className="text-xl font-semibold">Strengths</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-5">
+                <ul className="space-y-3">
+                  {section.strengths.map((strength, index) => (
+                    <li key={index} className="flex items-start gap-2 group">
+                      <div className="mt-1.5 shrink-0 rounded-full bg-emerald-100 p-1 group-hover:bg-emerald-200 transition-colors">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      </div>
+                      <span className="text-sm">{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Weaknesses Card - Always show this */}
+          <Card className="shadow-card border-0 bg-gradient-to-br from-rose-500/10 via-rose-500/5 to-transparent">
+            <CardHeader className="border-b pb-4">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-5 w-5 text-rose-500" />
+                <CardTitle className="text-xl font-semibold">Weaknesses</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <ul className="space-y-3">
+                {section?.weaknesses.map((weakness, index) => (
+                  <li key={index} className="flex items-start gap-2 group">
+                    <div className="mt-1.5 shrink-0 rounded-full bg-rose-100 p-1 group-hover:bg-rose-200 transition-colors">
+                      <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                    </div>
+                    <span className="text-sm">{weakness}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
-};
-
-export default SectionDetail;
+}

@@ -63,19 +63,6 @@ const CompanyDetails = () => {
     });
   }, [company?.sections]);
 
-  // Separate sections based on type for different display layouts
-  const regularSections = useMemo(() => {
-    return sortedSections.filter(section => 
-      !['COMPANY_OVERVIEW', 'SECTION_METRICS', 'SLIDE_NOTES'].includes(section.type)
-    );
-  }, [sortedSections]);
-
-  const specialSections = useMemo(() => {
-    return sortedSections.filter(section => 
-      ['COMPANY_OVERVIEW', 'SECTION_METRICS', 'SLIDE_NOTES'].includes(section.type)
-    );
-  }, [sortedSections]);
-
   // Check if this company is from a BARC form submission
   useEffect(() => {
     const checkBarcFormOrigin = async () => {
@@ -340,48 +327,22 @@ const CompanyDetails = () => {
               {companyDetailed && <ScoreAssessment company={companyDetailed} />}
             </div>
             
-            {/* Special sections for non-IIT Bombay users (Company Overview, Section Metrics, Slide Notes) */}
-            {specialSections.length > 0 && (
-              <>
-                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-                  <BarChart2 className="h-5 w-5 text-primary" />
-                  Analysis Overview
-                </h2>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                  {specialSections.map((section) => (
-                    <SectionCard 
-                      key={section.id} 
-                      section={section} 
-                      onClick={() => handleSectionClick(section.id)} 
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Regular sections */}
-            {regularSections.length > 0 && (
-              <>
-                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
-                  <BarChart2 className="h-5 w-5 text-primary" />
-                  {specialSections.length > 0 ? 'Detailed Section Analysis' : 'Section Metrics'}
-                </h2>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                  {regularSections.map((section) => (
-                    <SectionCard 
-                      key={section.id} 
-                      section={section} 
-                      onClick={() => handleSectionClick(section.id)} 
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* No sections message */}
-            {sortedSections.length === 0 && (
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+              <BarChart2 className="h-5 w-5 text-primary" />
+              Section Metrics
+            </h2>
+            
+            {sortedSections.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                {sortedSections.map((section) => (
+                  <SectionCard 
+                    key={section.id} 
+                    section={section} 
+                    onClick={() => handleSectionClick(section.id)} 
+                  />
+                ))}
+              </div>
+            ) : (
               <Card className="mb-8 border-0 shadow-subtle">
                 <CardContent className="p-6 text-center">
                   <BarChart2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />

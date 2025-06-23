@@ -1,5 +1,5 @@
 
-import SectionDetail from "@/components/companies/SectionDetail";
+import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
