@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw, Bug } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { downloadReport } from "@/lib/supabase/reports";
+import { StorageDebugger } from "@/components/debug/StorageDebugger";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -26,6 +27,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [showDebugger, setShowDebugger] = useState(false);
   const { user } = useAuth();
 
   // Update page number when initialPage changes
@@ -43,7 +45,9 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       setLoading(true);
       setError('');
       
-      console.log('Starting PDF load for report:', reportId);
+      console.log('=== REPORT VIEWER: Starting PDF load ===');
+      console.log('Report ID:', reportId);
+      console.log('User ID:', user.id);
       
       // Clean up previous blob URL
       if (pdfUrl && pdfUrl.startsWith('blob:')) {
@@ -58,16 +62,19 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
         throw new Error('Downloaded PDF is empty or invalid');
       }
       
-      console.log('PDF blob downloaded successfully, size:', pdfBlob.size);
+      console.log('✅ PDF blob downloaded successfully:', {
+        size: pdfBlob.size,
+        type: pdfBlob.type
+      });
       
       // Create blob URL
       const blobUrl = URL.createObjectURL(pdfBlob);
       setPdfUrl(blobUrl);
       
-      console.log('PDF blob URL created:', blobUrl);
+      console.log('✅ PDF blob URL created:', blobUrl);
       
     } catch (err) {
-      console.error('Error loading PDF:', err);
+      console.error('❌ Error loading PDF:', err);
       setError(`Failed to load PDF: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
@@ -88,11 +95,11 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setError(''); // Clear any previous errors
-    console.log(`PDF loaded successfully with ${numPages} pages`);
+    console.log(`✅ PDF document loaded successfully with ${numPages} pages`);
   };
 
   const onDocumentLoadError = (error: any) => {
-    console.error('PDF document load error:', error);
+    console.error('❌ PDF document load error:', error);
     setError('Failed to load PDF document. Please try refreshing.');
   };
 
@@ -116,7 +123,7 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
   const rotate = () => setRotation(prev => (prev + 90) % 360);
 
   const handleRetry = () => {
-    console.log('Retrying PDF load...');
+    console.log('🔄 Retrying PDF load...');
     loadPdf();
   };
 
@@ -131,15 +138,15 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96 text-red-500">
-        <div className="text-center">
+      <div className="flex flex-col items-center justify-center h-96 text-red-500">
+        <div className="text-center mb-6">
           <p className="mb-2 text-lg font-semibold">PDF Loading Failed</p>
           <p className="mb-4 text-sm">{error}</p>
           <div className="text-xs text-muted-foreground mb-4">
             <p>Report ID: {reportId}</p>
             <p>User ID: {user?.id}</p>
           </div>
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-2 justify-center mb-4">
             <Button 
               variant="outline" 
               size="sm" 
@@ -156,8 +163,23 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
             >
               Refresh Page
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDebugger(!showDebugger)}
+              className="flex items-center gap-2"
+            >
+              <Bug className="h-4 w-4" />
+              Debug Storage
+            </Button>
           </div>
         </div>
+        
+        {showDebugger && (
+          <div className="w-full max-w-4xl">
+            <StorageDebugger />
+          </div>
+        )}
       </div>
     );
   }
@@ -167,9 +189,26 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <p className="mb-4">No PDF available</p>
-          <Button variant="outline" size="sm" onClick={handleRetry}>
-            Try Loading Again
-          </Button>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={handleRetry}>
+              Try Loading Again
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDebugger(!showDebugger)}
+              className="flex items-center gap-2"
+            >
+              <Bug className="h-4 w-4" />
+              Debug Storage
+            </Button>
+          </div>
+          
+          {showDebugger && (
+            <div className="mt-6">
+              <StorageDebugger />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -220,6 +259,15 @@ export function ReportViewer({ reportId, initialPage = 1, showControls = true, o
 
             <Button variant="outline" size="sm" onClick={handleRetry}>
               <RefreshCw className="h-4 w-4" />
+            </Button>
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDebugger(!showDebugger)}
+              className="flex items-center gap-2"
+            >
+              <Bug className="h-4 w-4" />
             </Button>
           </div>
         </div>
