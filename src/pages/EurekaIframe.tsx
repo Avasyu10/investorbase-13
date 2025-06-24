@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { submitEurekaForm } from "@/lib/api/eureka";
-import { useAuth } from "@/hooks/useAuth";
 
 interface EurekaFormData {
   companyName: string;
@@ -32,15 +32,12 @@ interface EurekaFormData {
 
 const EurekaIframe = () => {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
-  console.log('🎯 EurekaIframe component loaded');
+  console.log('🎯 EurekaIframe component loaded (PUBLIC MODE)');
   console.log('📍 Current slug:', slug);
-  console.log('🔍 Current authenticated user:', user);
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -83,9 +80,8 @@ const EurekaIframe = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('🚀 EUREKA IFRAME FORM SUBMISSION STARTED');
+    console.log('🚀 PUBLIC EUREKA FORM SUBMISSION STARTED');
     console.log('📝 Form data being submitted:', data);
-    console.log('👤 User:', user);
     console.log('📍 Form slug:', slug);
     
     setIsSubmitting(true);
@@ -119,7 +115,7 @@ const EurekaIframe = () => {
       const finalLinkedInUrls = founderLinkedIns.filter(url => url.trim());
       console.log('🔗 Final LinkedIn URLs to submit:', finalLinkedInUrls);
 
-      // Prepare submission data
+      // Prepare submission data - NO USER_ID for public form
       const submissionData = {
         form_slug: slug || 'eureka-iframe',
         company_name: data.companyName.trim(),
@@ -136,15 +132,15 @@ const EurekaIframe = () => {
         poc_name: data.pocName.trim(),
         phoneno: data.phoneNumber.trim(),
         company_linkedin_url: data.companyLinkedInUrl?.trim() || "",
-        user_id: user?.id || null,
+        user_id: null, // Explicitly set to null for public submissions
       };
 
-      console.log('📋 FINAL SUBMISSION DATA:', submissionData);
+      console.log('📋 FINAL PUBLIC SUBMISSION DATA:', submissionData);
       console.log('🚀 Calling submitEurekaForm API function...');
       
       const submission = await submitEurekaForm(submissionData);
 
-      console.log('✅ SUBMISSION SUCCESSFUL:', submission);
+      console.log('✅ PUBLIC SUBMISSION SUCCESSFUL:', submission);
 
       // Show success message
       toast({
@@ -157,7 +153,7 @@ const EurekaIframe = () => {
       setFounderLinkedIns([""]);
       
     } catch (error: any) {
-      console.error('💥 SUBMISSION ERROR:', error);
+      console.error('💥 PUBLIC SUBMISSION ERROR:', error);
       
       // Show more detailed error message
       let errorMessage = "Please try again.";
