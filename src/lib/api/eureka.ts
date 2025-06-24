@@ -66,7 +66,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     
     console.log('📋 Final submission data being sent:', submissionData);
     
-    // Insert the submission - simplified approach
+    // Insert the submission with the user_id properly set
     const { data: submission, error } = await supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
