@@ -52,27 +52,12 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     
     console.log('📋 Final submission data being sent:', submissionData);
     
-    // Create a timeout promise that properly rejects
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Database operation timed out after 15 seconds')), 15000);
-    });
-    
-    // Insert the submission with shorter timeout and proper error handling
-    const insertPromise = supabase
+    // Insert the submission with proper error handling
+    const { data: submission, error } = await supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
       .select()
       .single();
-
-    // Race the insert against the timeout
-    const result = await Promise.race([insertPromise, timeoutPromise]);
-    
-    // Check if we got a proper result
-    if (!result || !result.data) {
-      throw new Error('No submission data returned from database');
-    }
-
-    const { data: submission, error } = result;
 
     if (error) {
       console.error('❌ Supabase error details:', {
