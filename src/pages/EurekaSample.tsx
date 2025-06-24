@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building, Plus, X, Share } from "lucide-react";
+import { Loader2, Building, Plus, X, Share, CheckCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,10 +40,15 @@ const EurekaSample = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
   const [showEmbedLink, setShowEmbedLink] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Check if we're in an iframe
+  const isInIframe = window.self !== window.top;
 
   // Log the current user to debug
   console.log('🔍 Current authenticated user:', user);
   console.log('🔍 User ID that will be submitted:', user?.id);
+  console.log('🔍 Is in iframe:', isInIframe);
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -81,6 +86,7 @@ const EurekaSample = () => {
   const onSubmit = async (data: EurekaFormData) => {
     console.log('📝 Eureka form submit triggered:', data);
     console.log('👤 Submitting with user ID:', user?.id);
+    console.log('🖼️ Iframe context:', { isInIframe, location: window.location.href });
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -167,7 +173,7 @@ const EurekaSample = () => {
 
       console.log('📋 Final submission data with user_id:', submissionData);
 
-      // Submit the form - the database trigger will automatically start analysis (LIKE BARC FORM)
+      // Submit the form - the database trigger will automatically start analysis
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
@@ -184,7 +190,25 @@ const EurekaSample = () => {
       
       form.reset();
       setFounderLinkedIns([""]);
-      navigate("/thank-you");
+      
+      // Handle navigation based on iframe context
+      if (isInIframe) {
+        // If in iframe, show success state instead of navigating
+        setIsSubmitted(true);
+        
+        // Try to communicate with parent window if possible
+        try {
+          window.parent.postMessage({
+            type: 'EUREKA_FORM_SUBMITTED',
+            data: { submissionId: submission.id, companyName: data.companyName }
+          }, '*');
+        } catch (error) {
+          console.log('Could not communicate with parent window:', error);
+        }
+      } else {
+        // Normal navigation for direct access
+        navigate("/thank-you");
+      }
       
     } catch (error: any) {
       console.error('❌ Error submitting form:', error);
@@ -198,26 +222,59 @@ const EurekaSample = () => {
     }
   };
 
+  // Show success state for iframe submissions
+  if (isSubmitted && isInIframe) {
+    return (
+      <div className="min-h-screen bg-black py-8 px-4">
+        <div className="container mx-auto max-w-3xl">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+                <CardTitle className="text-2xl text-green-600">Application Submitted Successfully!</CardTitle>
+                <CardDescription className="text-base">
+                  Thank you for your submission. Your application is now being processed and analysis will start automatically.
+                </CardDescription>
+                <Button 
+                  onClick={() => {
+                    setIsSubmitted(false);
+                    form.reset();
+                    setFounderLinkedIns([""]);
+                  }}
+                  variant="outline"
+                >
+                  Submit Another Application
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black py-8 px-4">
       <div className="container mx-auto max-w-3xl">
-        {/* Embed Link Section */}
-        <div className="mb-6">
-          <Collapsible open={showEmbedLink} onOpenChange={setShowEmbedLink}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
-                <div className="flex items-center gap-2">
-                  <Share className="h-4 w-4" />
-                  Get Embed Code for This Form
-                </div>
-                <span className="text-xs">{showEmbedLink ? "Hide" : "Show"}</span>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4">
-              <EurekaEmbedLink />
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+        {/* Only show embed link section when not in iframe */}
+        {!isInIframe && (
+          <div className="mb-6">
+            <Collapsible open={showEmbedLink} onOpenChange={setShowEmbedLink}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <div className="flex items-center gap-2">
+                    <Share className="h-4 w-4" />
+                    Get Embed Code for This Form
+                  </div>
+                  <span className="text-xs">{showEmbedLink ? "Hide" : "Show"}</span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <EurekaEmbedLink />
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        )}
 
         <Card>
           <CardHeader className="text-center border-b">
