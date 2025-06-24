@@ -1,197 +1,88 @@
+import { createBrowserRouter } from "react-router-dom"
 
-import { Routes, Route } from "react-router-dom";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Index from "@/pages/Index";
-import Dashboard from "@/pages/Dashboard";
-import UploadReport from "@/pages/UploadReport";
-import Report from "@/pages/Report";
-import CompanyPage from "@/pages/CompanyPage";
-import SectionPage from "@/pages/SectionPage";
-import PublicUpload from "@/pages/PublicUpload";
-import BarcSubmit from "@/pages/BarcSubmit";
-import BarcSubmissions from "@/pages/BarcSubmissions";
-import CompanyDetailPage from "@/pages/CompanyDetailPage";
-import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
-import CompanyDetails from "@/pages/CompanyDetails";
-import AnalysisSummary from "@/pages/AnalysisSummary";
-import Profile from "@/pages/Profile";
-import ProfileEdit from "@/pages/ProfileEdit";
-import ProfileSetup from "@/pages/ProfileSetup";
-import Feedback from "@/pages/Feedback";
-import NotFound from "@/pages/NotFound";
-import Admin from "@/pages/Admin";
-import PublicForms from "@/pages/PublicForms";
-import NewsFeed from "@/pages/NewsFeed";
-import EmailTest from "@/pages/EmailTest";
-import Signup from "@/pages/Signup";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
-import ThankYou from "@/pages/ThankYou";
-import EurekaSample from "@/pages/EurekaSample";
+import Dashboard from "@/pages/Dashboard"
+import Home from "@/pages/Home"
+import Login from "@/pages/Login"
+import Profile from "@/pages/Profile"
+import Report from "@/pages/Report"
+import Reports from "@/pages/Reports"
+import Settings from "@/pages/Settings"
+import SignUp from "@/pages/SignUp"
+import PublicUpload from "@/pages/PublicUpload"
+import PublicForm from "@/pages/PublicForm"
+import EurekaSample from "@/pages/EurekaSample"
+import ThankYou from "@/pages/ThankYou"
+import Pricing from "@/pages/Pricing"
+import BarcForm from "@/pages/BarcForm"
+import EurekaEmbed from "@/pages/EurekaEmbed";
 
-export const routes = [
-  { path: "/", element: <Index /> },
-  { path: "/get-started", element: <Index /> },
-  { path: "/signup", element: <Signup /> },
-  { path: "/forgot-password", element: <ForgotPassword /> },
-  { path: "/reset-password", element: <ResetPassword /> },
-  { path: "/public-upload/:slug", element: <PublicUpload /> },
-  { path: "/public-upload", element: <PublicUpload /> },
-  { path: "/submit/:slug", element: <BarcSubmit /> },
-  { path: "/submit/eureka-sample", element: <EurekaSample /> },
-  { path: "/thank-you", element: <ThankYou /> },
-  { 
-    path: "/dashboard", 
-    element: (
-      <ProtectedRoute>
-        <Dashboard />
-      </ProtectedRoute>
-    )
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Home />,
   },
-  { 
-    path: "/upload", 
-    element: (
-      <ProtectedRoute>
-        <UploadReport />
-      </ProtectedRoute>
-    )
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
   },
-  { 
-    path: "/report/:id", 
-    element: (
-      <ProtectedRoute>
-        <Report />
-      </ProtectedRoute>
-    )
+  {
+    path: "/reports",
+    element: <Reports />,
   },
-  { 
-    path: "/company/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyPage />
-      </ProtectedRoute>
-    )
+  {
+    path: "/report/:reportId",
+    element: <Report />,
   },
-  { 
-    path: "/company/:companyId/section/:sectionId", 
-    element: (
-      <ProtectedRoute>
-        <SectionPage />
-      </ProtectedRoute>
-    )
+  {
+    path: "/reports/:id",
+    element: <Report />,
   },
-  { 
-    path: "/company-detail/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyDetailPage />
-      </ProtectedRoute>
-    )
+  {
+    path: "/login",
+    element: <Login />,
   },
-  { 
-    path: "/company-details/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyDetails />
-      </ProtectedRoute>
-    )
+  {
+    path: "/signup",
+    element: <SignUp />,
   },
-  { 
-    path: "/company-overview/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyOverviewPage />
-      </ProtectedRoute>
-    )
+  {
+    path: "/profile",
+    element: <Profile />,
   },
-  { 
-    path: "/analysis-summary/:id", 
-    element: (
-      <ProtectedRoute>
-        <AnalysisSummary />
-      </ProtectedRoute>
-    )
+  {
+    path: "/settings",
+    element: <Settings />,
   },
-  { 
-    path: "/profile", 
-    element: (
-      <ProtectedRoute>
-        <Profile />
-      </ProtectedRoute>
-    )
+  {
+    path: "/public-upload",
+    element: <PublicUpload />,
   },
-  { 
-    path: "/profile/edit", 
-    element: (
-      <ProtectedRoute>
-        <ProfileEdit />
-      </ProtectedRoute>
-    )
+  {
+    path: "/public-upload/:formSlug",
+    element: <PublicUpload />,
   },
-  { 
-    path: "/profile/setup", 
-    element: (
-      <ProtectedRoute>
-        <ProfileSetup />
-      </ProtectedRoute>
-    )
+  {
+    path: "/public-form/:formSlug",
+    element: <PublicForm />,
   },
-  { 
-    path: "/feedback", 
-    element: (
-      <ProtectedRoute>
-        <Feedback />
-      </ProtectedRoute>
-    )
+  {
+    path: "/eureka/:slug",
+    element: <EurekaSample />,
   },
-  { 
-    path: "/admin", 
-    element: (
-      <ProtectedRoute>
-        <Admin />
-      </ProtectedRoute>
-    )
+   {
+    path: "/barc/:slug",
+    element: <BarcForm />,
   },
-  { 
-    path: "/public-forms", 
-    element: (
-      <ProtectedRoute>
-        <PublicForms />
-      </ProtectedRoute>
-    )
+  {
+    path: "/thank-you",
+    element: <ThankYou />,
   },
-  { 
-    path: "/barc-submissions", 
-    element: (
-      <ProtectedRoute>
-        <BarcSubmissions />
-      </ProtectedRoute>
-    )
+  {
+    path: "/pricing",
+    element: <Pricing />,
   },
-  { 
-    path: "/news-feed", 
-    element: (
-      <ProtectedRoute>
-        <NewsFeed />
-      </ProtectedRoute>
-    )
+  {
+    path: "/eureka/embed/:slug",
+    element: <EurekaEmbed />,
   },
-  { 
-    path: "/email-test", 
-    element: (
-      <ProtectedRoute>
-        <EmailTest />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/supplementary-materials/:companyId", 
-    element: (
-      <ProtectedRoute>
-        <SupplementaryMaterials />
-      </ProtectedRoute>
-    )
-  },
-  { path: "*", element: <NotFound /> }
-];
+]);

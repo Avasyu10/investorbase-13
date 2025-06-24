@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -21,6 +20,8 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { AreaOfInterestOptions } from "@/lib/constants";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { useToast } from "@/hooks/use-toast";
+import EurekaEmbedButton from "@/components/profile/EurekaEmbedButton";
+import EurekaSampleButton from "@/components/profile/EurekaSampleButton";
 
 interface VCProfile {
   id: string;
@@ -557,7 +558,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-8 animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
         {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
         <h1 className="text-3xl font-bold tracking-tight">
@@ -966,6 +967,22 @@ const Profile = () => {
           </>
         )}
       </Tabs>
+      
+      {/* Add this section where appropriate in your profile page */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Eureka Form Tools</CardTitle>
+          <CardDescription>
+            Tools for managing and sharing your Eureka application form
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-4">
+            <EurekaSampleButton />
+            <EurekaEmbedButton />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
