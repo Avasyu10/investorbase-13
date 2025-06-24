@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/useAuth";
+import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
 
 interface EurekaFormData {
   companyName: string;
@@ -139,73 +139,31 @@ const EurekaIframe = () => {
     setIsSubmitting(true);
 
     try {
-      // Use the same submission logic as ReportUpload component
-      const formData = new FormData();
-      
-      // Add all the Eureka form fields to FormData
-      formData.append('title', data.companyName);
-      formData.append('description', data.executiveSummary || '');
-      formData.append('email', data.submitterEmail);
-      formData.append('company_linkedin', data.companyLinkedInUrl || '');
-      formData.append('formSlug', slug || 'eureka-sample');
-      
-      // Add Eureka-specific fields
-      formData.append('company_registration_type', data.companyRegistrationType || '');
-      formData.append('company_type', data.companyType || '');
-      formData.append('executive_summary', data.executiveSummary || '');
-      formData.append('founder_name', data.pocName);
-      formData.append('founder_email', data.submitterEmail);
-      formData.append('founder_contact', data.phoneNumber);
-      
-      // Add questions
-      formData.append('question_1', data.question1 || '');
-      formData.append('question_2', data.question2 || '');
-      formData.append('question_3', data.question3 || '');
-      formData.append('question_4', data.question4 || '');
-      formData.append('question_5', data.question5 || '');
-      
-      // Add LinkedIn profiles as JSON string
-      const filteredProfiles = founderLinkedIns.filter(profile => profile.trim());
-      if (filteredProfiles.length > 0) {
-        formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
-      }
+      // Use the same submission logic as EurekaSample component
+      const submissionData: EurekaSubmissionData = {
+        form_slug: slug || 'eureka-sample',
+        company_name: data.companyName,
+        company_registration_type: data.companyRegistrationType || "Not Specified",
+        executive_summary: data.executiveSummary,
+        company_type: data.companyType,
+        question_1: data.question1,
+        question_2: data.question2,
+        question_3: data.question3,
+        question_4: data.question4,
+        question_5: data.question5,
+        submitter_email: data.submitterEmail,
+        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
+        poc_name: data.pocName,
+        phoneno: data.phoneNumber,
+        company_linkedin_url: data.companyLinkedInUrl,
+        user_id: user?.id || null
+      };
 
-      console.log('📋 Final iframe submission data preparation complete');
+      console.log('📋 Final iframe submission data:', submissionData);
 
-      // Use the same Supabase edge function URL as ReportUpload
-      const apiUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload`;
-      console.log("Sending iframe submission to:", apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        body: formData,
-      });
-
-      console.log("Response received:", {
-        status: response.status,
-        statusText: response.statusText,
-      });
-
-      if (!response.ok) {
-        let errorDetails = "Unknown error";
-        try {
-          const errorData = await response.json();
-          console.error("Response error data:", errorData);
-          errorDetails = errorData.details || errorData.message || errorData.error || `Status: ${response.status}`;
-        } catch (parseError) {
-          console.error("Failed to parse error response:", parseError);
-          errorDetails = `Status: ${response.status} - ${response.statusText}`;
-        }
-        
-        throw new Error(`Upload failed: ${errorDetails}`);
-      }
-
-      const result = await response.json();
-      console.log('📋 Iframe submission success response:', result);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Upload failed');
-      }
+      // Submit the form using the correct API function - the database trigger will automatically start analysis
+      const submission = await submitEurekaForm(submissionData);
+      console.log('📋 Iframe form submitted successfully:', submission);
 
       // Show success message
       toast({
@@ -215,7 +173,7 @@ const EurekaIframe = () => {
 
       // Emit custom events to update realtime listeners
       window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
-        detail: { submissionId: result.reportId, companyName: data.companyName } 
+        detail: { submissionId: submission.id, companyName: data.companyName } 
       }));
       
       // Reset form
