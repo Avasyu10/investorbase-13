@@ -294,7 +294,12 @@ const EurekaIframe = () => {
                       <FormItem>
                         <FormLabel className="text-sm">Company Name *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your company name" {...field} />
+                          <Input 
+                            {...field} 
+                            id="companyName"
+                            name="companyName"
+                            placeholder="Enter your company name" 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -310,9 +315,11 @@ const EurekaIframe = () => {
                           <FormLabel className="text-sm">Company LinkedIn URL</FormLabel>
                           <FormControl>
                             <Input
+                              {...field}
+                              id="companyLinkedInUrl"
+                              name="companyLinkedInUrl"
                               type="url"
                               placeholder="https://linkedin.com/company/yourcompany"
-                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -328,7 +335,7 @@ const EurekaIframe = () => {
                           <FormLabel className="text-sm">Registration Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger id="companyRegistrationType" name="companyRegistrationType">
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                             </FormControl>
@@ -356,9 +363,11 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">Executive Summary *</FormLabel>
                         <FormControl>
                           <Textarea
+                            {...field}
+                            id="executiveSummary"
+                            name="executiveSummary"
                             placeholder="Brief executive summary of your company"
                             className="min-h-[80px]"
-                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -375,7 +384,7 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">Industry *</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger id="companyType" name="companyType">
                               <SelectValue placeholder="Select industry" />
                             </SelectTrigger>
                           </FormControl>
@@ -417,6 +426,8 @@ const EurekaIframe = () => {
                     {founderLinkedIns.map((url, index) => (
                       <div key={index} className="flex gap-2">
                         <Input
+                          id={`founderLinkedIn${index}`}
+                          name={`founderLinkedIn${index}`}
                           placeholder="https://linkedin.com/in/username"
                           value={url}
                           onChange={(e) => updateLinkedInProfile(index, e.target.value)}
@@ -451,9 +462,11 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">1. What problem is your venture solving?</FormLabel>
                         <FormControl>
                           <Textarea
+                            {...field}
+                            id="question1"
+                            name="question1"
                             placeholder="Describe the problem and current solutions"
                             className="min-h-[60px]"
-                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -469,9 +482,11 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">2. Who are your target customers?</FormLabel>
                         <FormControl>
                           <Textarea
+                            {...field}
+                            id="question2"
+                            name="question2"
                             placeholder="Describe your target market"
                             className="min-h-[60px]"
-                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -487,9 +502,11 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">3. Who are your competitors?</FormLabel>
                         <FormControl>
                           <Textarea
+                            {...field}
+                            id="question3"
+                            name="question3"
                             placeholder="List direct and indirect competitors"
                             className="min-h-[60px]"
-                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -505,9 +522,11 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">4. How will you generate revenue?</FormLabel>
                         <FormControl>
                           <Textarea
+                            {...field}
+                            id="question4"
+                            name="question4"
                             placeholder="Describe your revenue model"
                             className="min-h-[60px]"
-                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -523,9 +542,11 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">5. What's your competitive advantage?</FormLabel>
                         <FormControl>
                           <Textarea
+                            {...field}
+                            id="question5"
+                            name="question5"
                             placeholder="Describe your unique advantages"
                             className="min-h-[60px]"
-                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -546,7 +567,12 @@ const EurekaIframe = () => {
                       <FormItem>
                         <FormLabel className="text-sm">Point of Contact Name *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Primary contact person" {...field} />
+                          <Input 
+                            {...field} 
+                            id="pocName"
+                            name="pocName"
+                            placeholder="Primary contact person" 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -567,7 +593,13 @@ const EurekaIframe = () => {
                       <FormItem>
                         <FormLabel className="text-sm">Email *</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="your@email.com" {...field} />
+                          <Input 
+                            {...field} 
+                            id="submitterEmail"
+                            name="submitterEmail"
+                            type="email" 
+                            placeholder="your@email.com" 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -582,7 +614,12 @@ const EurekaIframe = () => {
                       <FormItem>
                         <FormLabel className="text-sm">Phone Number *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Your phone number" {...field} />
+                          <Input 
+                            {...field} 
+                            id="phoneNumber"
+                            name="phoneNumber"
+                            placeholder="Your phone number" 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
