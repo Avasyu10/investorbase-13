@@ -7,14 +7,14 @@ import { BrowserRouter, useRoutes, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from '@/components/layout/Navbar';
-import { router } from '@/lib/routes';
+import { routes } from '@/lib/routes';
 
 // Create a client
 const queryClient = new QueryClient();
 
 // Routes component that uses the routes configuration
 const AppRoutes = () => {
-  return useRoutes(router.routes);
+  return useRoutes(routes);
 };
 
 // Component to conditionally render Navbar and padding
