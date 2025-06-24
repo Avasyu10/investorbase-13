@@ -39,11 +39,9 @@ const EurekaIframe = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
-  // Debug logging
-  console.log('🎯 EurekaIframe component loaded successfully');
+  console.log('🎯 EurekaIframe component loaded');
   console.log('📍 Current slug:', slug);
   console.log('🔍 Current authenticated user:', user);
-  console.log('🔍 User ID that will be submitted:', user?.id);
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -82,7 +80,7 @@ const EurekaIframe = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('🚀 IFRAME FORM SUBMISSION STARTED');
+    console.log('🚀 EUREKA IFRAME FORM SUBMISSION STARTED');
     console.log('📝 Form data being submitted:', data);
     console.log('👤 User:', user);
     console.log('📍 Form slug:', slug);
@@ -114,7 +112,7 @@ const EurekaIframe = () => {
         throw new Error('Please enter a valid email address');
       }
 
-      // Create submission data - DIRECT insert to avoid timing issues
+      // Step 1: Insert submission data FIRST
       const submissionData = {
         form_slug: slug || 'eureka-iframe',
         company_name: data.companyName,
@@ -131,28 +129,54 @@ const EurekaIframe = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        user_id: user?.id || null
+        user_id: user?.id || null,
+        analysis_status: 'pending'
       };
 
-      console.log('📋 DIRECT SUPABASE INSERT - Final submission data:', submissionData);
+      console.log('📋 STEP 1: Inserting submission data:', submissionData);
 
-      // DIRECT INSERT - avoiding the API layer to prevent timing issues
-      const { data: submission, error } = await supabase
+      // Insert the submission record
+      const { data: submission, error: insertError } = await supabase
         .from('eureka_form_submissions')
         .insert([submissionData])
         .select()
         .single();
 
-      if (error) {
-        console.error('💥 SUPABASE INSERT ERROR:', error);
-        throw new Error(`Submission failed: ${error.message}`);
+      if (insertError) {
+        console.error('💥 INSERT ERROR:', insertError);
+        throw new Error(`Submission failed: ${insertError.message}`);
       }
 
-      console.log('🎉 DIRECT INSERT SUCCESSFUL!');
-      console.log('✅ Submission data returned:', submission);
-      console.log('✅ Submission ID:', submission?.id);
+      console.log('✅ STEP 1 COMPLETE: Submission inserted successfully:', submission);
+      console.log('✅ Submission ID:', submission.id);
 
-      // Show success message
+      // Step 2: Wait a moment to ensure transaction is committed
+      console.log('⏳ STEP 2: Waiting for transaction commit...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 3: Trigger analysis by calling the edge function directly
+      console.log('🚀 STEP 3: Starting analysis for submission:', submission.id);
+      
+      try {
+        const { data: analysisResult, error: analysisError } = await supabase.functions.invoke('analyze-eureka-form', {
+          body: { submissionId: submission.id }
+        });
+
+        if (analysisError) {
+          console.error('⚠️ Analysis trigger error:', analysisError);
+          // Don't fail the submission, just log the error
+          console.log('📝 Submission was successful, but analysis trigger failed. Analysis can be run manually.');
+        } else {
+          console.log('✅ Analysis triggered successfully:', analysisResult);
+        }
+      } catch (analysisError) {
+        console.error('⚠️ Analysis trigger exception:', analysisError);
+        // Don't fail the submission
+      }
+
+      // Step 4: Success response
+      console.log('🎉 EUREKA SUBMISSION PROCESS COMPLETED SUCCESSFULLY');
+      
       toast({
         title: "Success!",
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
@@ -161,8 +185,6 @@ const EurekaIframe = () => {
       // Reset form
       form.reset();
       setFounderLinkedIns([""]);
-      
-      console.log('✅ IFRAME SUBMISSION PROCESS COMPLETED SUCCESSFULLY');
       
     } catch (error: any) {
       console.error('💥 SUBMISSION ERROR:', error);
