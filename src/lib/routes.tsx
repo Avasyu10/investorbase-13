@@ -40,10 +40,10 @@ export const router = createBrowserRouter([
         path: "/reset-password",
         element: <ResetPassword />,
       },
+      {
+        path: "/eureka-iframe/:slug?",
+        element: <EurekaIframe />,
+      },
     ],
-  },
-  {
-    path: "/eureka-iframe/:slug?",
-    element: <EurekaIframe />,
   },
 ]);
