@@ -168,7 +168,7 @@ const EurekaSample = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        user_id: user?.id || null // Ensure user_id is properly included
+        user_id: user?.id || null // This will be handled properly in the API
       };
 
       console.log('📋 Final submission data with user_id:', submissionData);
@@ -212,9 +212,23 @@ const EurekaSample = () => {
       
     } catch (error: any) {
       console.error('❌ Error submitting form:', error);
+      
+      // More specific error handling
+      let errorMessage = 'There was an error submitting your application. Please try again.';
+      
+      if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please check your internet connection and try again.';
+      } else if (error.message?.includes('permission') || error.message?.includes('denied')) {
+        errorMessage = 'Access denied. Please refresh the page and try again.';
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Submission Error",
-        description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
