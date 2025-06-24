@@ -1,138 +1,140 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.0.0';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
-
-export async function saveAnalysisResults(reportId: string, userId: string, analysisResult: any): Promise<string> {
-  console.log('Starting to save analysis results to database');
+export async function saveAnalysisResults(supabase: any, analysis: any, report: any) {
+  console.log("Starting to save analysis results to database");
   
-  // Extract company info from analysis result if available
-  const companyInfo = analysisResult.companyInfo || {};
-  const stage = companyInfo.stage || '';
-  const industry = companyInfo.industry || '';
-  const website = companyInfo.website || '';
-  const description = companyInfo.description || '';
-  
-  console.log('Extracted company info:', { stage, industry, website, description });
+  try {
+    // Create company entry
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        name: report.title || 'Unknown Company',
+        overall_score: analysis.overallScore || 0,
+        assessment_points: analysis.assessmentPoints || [],
+        report_id: report.id,
+        user_id: report.user_id,
+        source: report.is_public_submission ? 'public_submission' : 'dashboard'
+      })
+      .select()
+      .single();
 
-  // Save the complete analysis result to reports table
-  const { error: reportError } = await supabase
-    .from('reports')
-    .update({ 
-      analysis_result: analysisResult,
-      status: 'completed'
-    })
-    .eq('id', reportId);
-
-  if (reportError) {
-    console.error('Error updating report:', reportError);
-    throw new Error(`Failed to update report: ${reportError.message}`);
-  }
-
-  // Create company record
-  const { data: companyData, error: companyError } = await supabase
-    .from('companies')
-    .insert({
-      name: analysisResult.companyName || 'Unknown Company',
-      overall_score: analysisResult.overallScore || 0,
-      assessment_points: analysisResult.assessmentPoints || [],
-      report_id: reportId,
-      user_id: userId,
-      stage: stage, // Use extracted stage
-      industry: industry, // Use extracted industry
-      website: website, // Use extracted website
-      introduction: description // Use extracted description as introduction
-    })
-    .select()
-    .single();
-
-  if (companyError) {
-    console.error('Error creating company:', companyError);
-    throw new Error(`Failed to create company: ${companyError.message}`);
-  }
-
-  console.log('Company created successfully:', companyData.id);
-  const companyId = companyData.id;
-
-  // Create sections
-  if (analysisResult.sections && analysisResult.sections.length > 0) {
-    const sectionsToInsert = analysisResult.sections.map((section: any) => ({
-      company_id: companyId,
-      type: section.type,
-      title: section.title,
-      score: section.score || 0,
-      strengths: section.strengths || [],
-      weaknesses: section.weaknesses || [],
-      detailed_content: section.detailedContent || section.description || '',
-      description: section.description || ''
-    }));
-
-    const { error: sectionsError } = await supabase
-      .from('sections')
-      .insert(sectionsToInsert);
-
-    if (sectionsError) {
-      console.error('Error creating sections:', sectionsError);
-      throw new Error(`Failed to create sections: ${sectionsError.message}`);
+    if (companyError) {
+      console.error("Error creating company:", companyError);
+      throw companyError;
     }
 
-    console.log('Sections created successfully:', sectionsToInsert.length);
-  }
+    console.log("Company created successfully:", company.id);
 
-  console.log('Analysis results saved successfully');
-  return companyId;
-}
+    // Save sections
+    if (analysis.sections && analysis.sections.length > 0) {
+      const sectionsToInsert = analysis.sections.map((section: any) => ({
+        company_id: company.id,
+        title: section.title,
+        type: section.type,
+        score: section.score || 0,
+        description: section.description || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
 
-export async function getReportData(reportId: string) {
-  const { data, error } = await supabase
-    .from('reports')
-    .select('*')
-    .eq('id', reportId)
-    .single();
+      const { data: sections, error: sectionsError } = await supabase
+        .from('sections')
+        .insert(sectionsToInsert)
+        .select();
 
-  if (error) {
-    throw new Error(`Failed to get report: ${error.message}`);
-  }
+      if (sectionsError) {
+        console.error("Error creating sections:", sectionsError);
+        throw sectionsError;
+      }
 
-  return data;
-}
+      console.log("Sections created successfully:", sections.length);
 
-export async function downloadPdfFromStorage(fileName: string, userId?: string) {
-  // First try direct download
-  console.log(`Downloading PDF: ${fileName} from bucket: report-pdfs`);
-  
-  let { data, error } = await supabase.storage
-    .from('report-pdfs')
-    .download(fileName);
+      // Save section details (strengths, weaknesses, and detailed content)
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        const analysisSection = analysis.sections[i];
+        
+        const detailsToInsert = [];
 
-  if (error) {
-    console.log(`Direct download failed: ${JSON.stringify(error)}`);
-    
-    // Try user-specific path if userId is provided
-    if (userId) {
-      const userSpecificPath = `${userId}/${fileName}`;
-      console.log(`Trying user-specific path: ${userSpecificPath}`);
-      
-      const result = await supabase.storage
-        .from('report-pdfs')
-        .download(userSpecificPath);
-      
-      data = result.data;
-      error = result.error;
-      
-      if (!error && data) {
-        console.log(`Successfully downloaded via user-specific path, size: ${data.size}`);
+        // Add strengths
+        if (analysisSection.strengths && analysisSection.strengths.length > 0) {
+          analysisSection.strengths.forEach((strength: string) => {
+            detailsToInsert.push({
+              section_id: section.id,
+              detail_type: 'strength',
+              content: strength
+            });
+          });
+        }
+
+        // Add weaknesses
+        if (analysisSection.weaknesses && analysisSection.weaknesses.length > 0) {
+          analysisSection.weaknesses.forEach((weakness: string) => {
+            detailsToInsert.push({
+              section_id: section.id,
+              detail_type: 'weakness',
+              content: weakness
+            });
+          });
+        }
+
+        // Add detailed content if available
+        if (analysisSection.detailedContent) {
+          detailsToInsert.push({
+            section_id: section.id,
+            detail_type: 'detailed_content',
+            content: analysisSection.detailedContent
+          });
+        }
+
+        if (detailsToInsert.length > 0) {
+          const { error: detailsError } = await supabase
+            .from('section_details')
+            .insert(detailsToInsert);
+
+          if (detailsError) {
+            console.error("Error creating section details:", detailsError);
+            // Don't throw here, continue with other sections
+          }
+        }
       }
     }
-  }
 
-  if (error || !data) {
-    throw new Error(`Failed to download PDF: ${error?.message || 'No data received'}`);
-  }
+    // Update the report with analysis results and slide notes
+    const reportUpdateData: any = {
+      analysis_status: 'completed',
+      analyzed_at: new Date().toISOString(),
+      company_id: company.id,
+      overall_score: analysis.overallScore
+    };
 
-  console.log(`PDF downloaded successfully, size: ${data.size}`);
-  return data;
+    // Store the full analysis result including slide notes and improvement suggestions if available
+    if (analysis.slideBySlideNotes || analysis.improvementSuggestions) {
+      reportUpdateData.analysis_result = {
+        overallScore: analysis.overallScore,
+        assessmentPoints: analysis.assessmentPoints,
+        slideBySlideNotes: analysis.slideBySlideNotes || [],
+        improvementSuggestions: analysis.improvementSuggestions || [],
+        sections: analysis.sections
+      };
+    }
+
+    const { error: reportUpdateError } = await supabase
+      .from('reports')
+      .update(reportUpdateData)
+      .eq('id', report.id);
+
+    if (reportUpdateError) {
+      console.error("Error updating report:", reportUpdateError);
+      throw reportUpdateError;
+    }
+
+    console.log("Analysis results saved successfully");
+    return company.id;
+
+  } catch (error) {
+    console.error("Error in saveAnalysisResults:", error);
+    throw error;
+  }
 }

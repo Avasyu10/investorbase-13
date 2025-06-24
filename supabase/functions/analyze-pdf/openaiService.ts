@@ -1,3 +1,4 @@
+
 import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 export interface AnalysisResult {
@@ -148,17 +149,9 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
 function getEnhancedAnalysisPrompt(isIITBombayUser = false): string {
   return `Analyze this PDF pitch deck and provide a comprehensive checklist assessment. You MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.
 
-CRITICAL: You must also extract basic company information including stage (e.g., Pre-seed, Seed, Series A, etc.) and industry/sector from the pitch deck content and include it in your response.
-
 Return your analysis in EXACTLY this JSON format:
 
 {
-  "companyInfo": {
-    "stage": "<funding stage found in the deck or inferred from context>",
-    "industry": "<industry/sector the company operates in>",
-    "website": "<company website if mentioned>",
-    "description": "<brief company description based on deck content>"
-  },
   "sections": [
     {
       "type": "PROBLEM",
@@ -245,13 +238,6 @@ Return your analysis in EXACTLY this JSON format:
   ]
 }
 
-COMPANY INFORMATION EXTRACTION:
-- Look for funding stage information (Pre-seed, Seed, Series A, B, C, etc.) in slides about funding, the ask, or company milestones
-- If no explicit stage is mentioned, infer it from context (team size, revenue, funding amount requested, etc.)
-- Identify the industry/sector from the problem statement, solution description, or market analysis
-- Extract company website if mentioned anywhere in the deck
-- Create a brief description based on the company's solution and value proposition
-
 SECTION CHECKLIST REQUIREMENTS:
 - For each section, provide only a brief description of what content was found (if any)
 - Focus on identifying whether each section is present and what key information it contains
@@ -270,25 +256,25 @@ IMPROVEMENT SUGGESTIONS REQUIREMENTS:
 - Provide EXACTLY 10 actionable improvement suggestions
 - Each suggestion must be specific and implementable
 - Focus on critical gaps and areas for enhancement
-- MUST include at least 3-4 UI/design-related suggestions such as:
-  * "Improve slide layout consistency by standardizing font sizes, heading styles, and content positioning across all slides"
-  * "Enhance visual hierarchy by using consistent color coding for different types of information (headers, body text, highlights)"
-  * "Redesign charts and graphs with better formatting, clearer legends, proper data labels, and consistent color schemes"
-  * "Improve text readability by adjusting font sizes, line spacing, and ensuring adequate contrast between text and background"
-  * "Optimize slide spacing and alignment by creating more white space, better margins, and consistent element positioning"
-  * "Standardize the design system by using consistent button styles, icon usage, and visual elements throughout"
-  * "Enhance slide transitions and flow by improving the logical sequence and visual connections between slides"
-  * "Improve mobile and presentation readability by ensuring text is large enough and images are properly sized"
-- Also include content-related suggestions like:
+- Include suggestions for missing elements like:
   * "Add a Market Sizing slide using TAM/SAM/SOM format with specific market data"
   * "Include a competitive analysis matrix showing direct and indirect competitors"
   * "Add customer testimonials or case studies to strengthen traction evidence"
   * "Create a detailed financial model showing unit economics and path to profitability"
   * "Include team member profiles with relevant experience and achievements"
   * "Add a product roadmap showing future development milestones"
+  * "Include risk analysis and mitigation strategies"
+  * "Add partnership opportunities and strategic alliances section"
+  * "Include funding utilization breakdown with specific milestones"
+  * "Add exit strategy considerations for potential investors"
+  * "Improve slide layout consistency and visual hierarchy for better readability"
+  * "Use consistent color scheme and typography throughout the presentation"
+  * "Enhance chart formatting with proper legends and data labels"
+  * "Improve spacing and alignment of text and visual elements"
+  * "Add more white space to reduce visual clutter on slides"
 - Each suggestion should include WHY it's important and HOW to implement it
 - Consider industry best practices and investor expectations
-- Balance content improvements with UI/design enhancements (aim for 40% UI/design, 60% content)
+- Address both content gaps and presentation improvements, including UI/design elements
 
 Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
 
