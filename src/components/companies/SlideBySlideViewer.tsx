@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -152,10 +153,10 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
         </div>
       </div>
 
-      {/* Split View: PDF on left, Notes on right */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* PDF Viewer - Left Side */}
-        <div className="lg:col-span-1">
+      {/* Split View: PDF on left (more space), Notes on right (less space) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* PDF Viewer - Left Side (2/3 width) */}
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -178,7 +179,7 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
               )}
               
               {!loading && !error && pdfUrl && (
-                <div className="w-full overflow-hidden" style={{ height: '500px' }}>
+                <div className="w-full overflow-hidden" style={{ height: '600px' }}>
                   <iframe
                     key={currentSlide} // Force re-render when slide changes
                     src={getPdfUrlWithPage()}
@@ -198,36 +199,38 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
           </Card>
         </div>
 
-        {/* Slide Notes - Right Side */}
+        {/* Slide Notes - Right Side (1/3 width, same height as PDF) */}
         <div className="lg:col-span-1">
-          <Card className="border-l-4 border-l-primary">
+          <Card className="border-l-4 border-l-primary h-full">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-primary" />
                 <span>Slide {currentSlide} Notes</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {currentSlideNotes && currentSlideNotes.notes.length > 0 ? (
-                <div className="space-y-3">
-                  {currentSlideNotes.notes.map((note, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        {note}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No Notes for This Slide</h3>
-                  <p className="text-muted-foreground">
-                    There are no analysis notes available for slide {currentSlide}.
-                  </p>
-                </div>
-              )}
+            <CardContent className="flex-1">
+              <div className="h-full overflow-y-auto" style={{ maxHeight: '550px' }}>
+                {currentSlideNotes && currentSlideNotes.notes.length > 0 ? (
+                  <div className="space-y-3">
+                    {currentSlideNotes.notes.map((note, index) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          {note}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Notes for This Slide</h3>
+                    <p className="text-muted-foreground">
+                      There are no analysis notes available for slide {currentSlide}.
+                    </p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
