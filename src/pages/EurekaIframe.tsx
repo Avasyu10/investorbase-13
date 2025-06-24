@@ -170,7 +170,7 @@ const EurekaIframe = () => {
     setIsSubmitting(true);
 
     try {
-      // Create submission data - EXACTLY like the main form
+      // Create submission data with proper field mapping to eureka_form_submissions table
       const submissionData: EurekaSubmissionData = {
         form_slug: slug || 'eureka-iframe',
         company_name: data.companyName,
@@ -187,7 +187,7 @@ const EurekaIframe = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        user_id: user?.id || null // Ensure user_id is properly included
+        user_id: user?.id || null
       };
 
       console.log('📋 FINAL SUBMISSION DATA STRUCTURE:');
@@ -213,7 +213,7 @@ const EurekaIframe = () => {
       console.log('🚀 Calling submitEurekaForm API...');
       console.log('🚀 About to submit to Supabase with data:', JSON.stringify(submissionData, null, 2));
 
-      // Submit the form - the database trigger will automatically start analysis (LIKE BARC FORM)
+      // Submit the form - the database trigger will automatically start analysis
       const submission = await submitEurekaForm(submissionData);
       console.log('🎉 IFRAME FORM SUBMITTED SUCCESSFULLY!');
       console.log('📋 Eureka iframe form submitted successfully:', submission);
@@ -296,8 +296,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Input 
                             {...field} 
-                            id="companyName"
-                            name="companyName"
                             placeholder="Enter your company name" 
                           />
                         </FormControl>
@@ -316,8 +314,6 @@ const EurekaIframe = () => {
                           <FormControl>
                             <Input
                               {...field}
-                              id="companyLinkedInUrl"
-                              name="companyLinkedInUrl"
                               type="url"
                               placeholder="https://linkedin.com/company/yourcompany"
                             />
@@ -335,7 +331,7 @@ const EurekaIframe = () => {
                           <FormLabel className="text-sm">Registration Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger id="companyRegistrationType" name="companyRegistrationType">
+                              <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                             </FormControl>
@@ -364,8 +360,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Textarea
                             {...field}
-                            id="executiveSummary"
-                            name="executiveSummary"
                             placeholder="Brief executive summary of your company"
                             className="min-h-[80px]"
                           />
@@ -384,7 +378,7 @@ const EurekaIframe = () => {
                         <FormLabel className="text-sm">Industry *</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger id="companyType" name="companyType">
+                            <SelectTrigger>
                               <SelectValue placeholder="Select industry" />
                             </SelectTrigger>
                           </FormControl>
@@ -426,8 +420,6 @@ const EurekaIframe = () => {
                     {founderLinkedIns.map((url, index) => (
                       <div key={index} className="flex gap-2">
                         <Input
-                          id={`founderLinkedIn${index}`}
-                          name={`founderLinkedIn${index}`}
                           placeholder="https://linkedin.com/in/username"
                           value={url}
                           onChange={(e) => updateLinkedInProfile(index, e.target.value)}
@@ -463,8 +455,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Textarea
                             {...field}
-                            id="question1"
-                            name="question1"
                             placeholder="Describe the problem and current solutions"
                             className="min-h-[60px]"
                           />
@@ -483,8 +473,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Textarea
                             {...field}
-                            id="question2"
-                            name="question2"
                             placeholder="Describe your target market"
                             className="min-h-[60px]"
                           />
@@ -503,8 +491,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Textarea
                             {...field}
-                            id="question3"
-                            name="question3"
                             placeholder="List direct and indirect competitors"
                             className="min-h-[60px]"
                           />
@@ -523,8 +509,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Textarea
                             {...field}
-                            id="question4"
-                            name="question4"
                             placeholder="Describe your revenue model"
                             className="min-h-[60px]"
                           />
@@ -543,8 +527,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Textarea
                             {...field}
-                            id="question5"
-                            name="question5"
                             placeholder="Describe your unique advantages"
                             className="min-h-[60px]"
                           />
@@ -569,8 +551,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Input 
                             {...field} 
-                            id="pocName"
-                            name="pocName"
                             placeholder="Primary contact person" 
                           />
                         </FormControl>
@@ -595,8 +575,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Input 
                             {...field} 
-                            id="submitterEmail"
-                            name="submitterEmail"
                             type="email" 
                             placeholder="your@email.com" 
                           />
@@ -616,8 +594,6 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Input 
                             {...field} 
-                            id="phoneNumber"
-                            name="phoneNumber"
                             placeholder="Your phone number" 
                           />
                         </FormControl>
