@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
 import { useAuth } from "@/hooks/useAuth";
 
 interface EurekaFormData {
@@ -32,7 +31,6 @@ interface EurekaFormData {
 
 const EurekaIframe = () => {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +72,7 @@ const EurekaIframe = () => {
     );
   };
 
-  const onSubmit = async (data: EurekaFormData) => {
+  const handleSharedSubmit = async (data: EurekaFormData) => {
     console.log('📝 Iframe form submit triggered:', data);
     
     // Basic validation
@@ -141,30 +139,73 @@ const EurekaIframe = () => {
     setIsSubmitting(true);
 
     try {
-      const submissionData: EurekaSubmissionData = {
-        form_slug: slug || 'eureka-sample',
-        company_name: data.companyName,
-        company_registration_type: data.companyRegistrationType || "Not Specified",
-        executive_summary: data.executiveSummary,
-        company_type: data.companyType,
-        question_1: data.question1,
-        question_2: data.question2,
-        question_3: data.question3,
-        question_4: data.question4,
-        question_5: data.question5,
-        submitter_email: data.submitterEmail,
-        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
-        poc_name: data.pocName,
-        phoneno: data.phoneNumber,
-        company_linkedin_url: data.companyLinkedInUrl,
-        user_id: user?.id || null
-      };
+      // Use the same submission logic as ReportUpload component
+      const formData = new FormData();
+      
+      // Add all the Eureka form fields to FormData
+      formData.append('title', data.companyName);
+      formData.append('description', data.executiveSummary || '');
+      formData.append('email', data.submitterEmail);
+      formData.append('company_linkedin', data.companyLinkedInUrl || '');
+      formData.append('formSlug', slug || 'eureka-sample');
+      
+      // Add Eureka-specific fields
+      formData.append('company_registration_type', data.companyRegistrationType || '');
+      formData.append('company_type', data.companyType || '');
+      formData.append('executive_summary', data.executiveSummary || '');
+      formData.append('founder_name', data.pocName);
+      formData.append('founder_email', data.submitterEmail);
+      formData.append('founder_contact', data.phoneNumber);
+      
+      // Add questions
+      formData.append('question_1', data.question1 || '');
+      formData.append('question_2', data.question2 || '');
+      formData.append('question_3', data.question3 || '');
+      formData.append('question_4', data.question4 || '');
+      formData.append('question_5', data.question5 || '');
+      
+      // Add LinkedIn profiles as JSON string
+      const filteredProfiles = founderLinkedIns.filter(profile => profile.trim());
+      if (filteredProfiles.length > 0) {
+        formData.append('linkedInProfiles', JSON.stringify(filteredProfiles));
+      }
 
-      console.log('📋 Final iframe submission data:', submissionData);
+      console.log('📋 Final iframe submission data preparation complete');
 
-      // Submit the form - the database trigger will automatically start analysis
-      const submission = await submitEurekaForm(submissionData);
-      console.log('📋 Iframe form submitted successfully:', submission);
+      // Use the same Supabase edge function URL as ReportUpload
+      const apiUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/handle-public-upload`;
+      console.log("Sending iframe submission to:", apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log("Response received:", {
+        status: response.status,
+        statusText: response.statusText,
+      });
+
+      if (!response.ok) {
+        let errorDetails = "Unknown error";
+        try {
+          const errorData = await response.json();
+          console.error("Response error data:", errorData);
+          errorDetails = errorData.details || errorData.message || errorData.error || `Status: ${response.status}`;
+        } catch (parseError) {
+          console.error("Failed to parse error response:", parseError);
+          errorDetails = `Status: ${response.status} - ${response.statusText}`;
+        }
+        
+        throw new Error(`Upload failed: ${errorDetails}`);
+      }
+
+      const result = await response.json();
+      console.log('📋 Iframe submission success response:', result);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
+      }
 
       // Show success message
       toast({
@@ -174,7 +215,7 @@ const EurekaIframe = () => {
 
       // Emit custom events to update realtime listeners
       window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
-        detail: { submissionId: submission.id, companyName: data.companyName } 
+        detail: { submissionId: result.reportId, companyName: data.companyName } 
       }));
       
       // Reset form
@@ -205,7 +246,7 @@ const EurekaIframe = () => {
       </div>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(handleSharedSubmit)} className="space-y-4">
           {/* Company Information - Compact */}
           <div className="space-y-3">
             <h3 className="text-base font-semibold">Company Information</h3>
