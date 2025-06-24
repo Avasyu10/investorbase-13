@@ -1,197 +1,123 @@
-
-import { Routes, Route } from "react-router-dom";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Index from "@/pages/Index";
+import { createBrowserRouter } from "react-router-dom";
+import App from "@/App";
+import ComingSoon from "@/pages/ComingSoon";
+import ComponentCatalog from "@/pages/ComponentCatalog";
 import Dashboard from "@/pages/Dashboard";
-import UploadReport from "@/pages/UploadReport";
-import Report from "@/pages/Report";
-import CompanyPage from "@/pages/CompanyPage";
-import SectionPage from "@/pages/SectionPage";
-import PublicUpload from "@/pages/PublicUpload";
-import BarcSubmit from "@/pages/BarcSubmit";
-import BarcSubmissions from "@/pages/BarcSubmissions";
-import CompanyDetailPage from "@/pages/CompanyDetailPage";
-import CompanyOverviewPage from "@/pages/CompanyOverviewPage";
-import CompanyDetails from "@/pages/CompanyDetails";
-import AnalysisSummary from "@/pages/AnalysisSummary";
-import Profile from "@/pages/Profile";
-import ProfileEdit from "@/pages/ProfileEdit";
-import ProfileSetup from "@/pages/ProfileSetup";
-import Feedback from "@/pages/Feedback";
-import NotFound from "@/pages/NotFound";
-import Admin from "@/pages/Admin";
-import PublicForms from "@/pages/PublicForms";
-import NewsFeed from "@/pages/NewsFeed";
-import EmailTest from "@/pages/EmailTest";
-import Signup from "@/pages/Signup";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
-import ThankYou from "@/pages/ThankYou";
+import DealPage from "@/pages/DealPage";
+import Deals from "@/pages/Deals";
+import Discover from "@/pages/Discover";
 import EurekaSample from "@/pages/EurekaSample";
+import NotFound from "@/pages/NotFound";
+import Notifications from "@/pages/Notifications";
+import Onboarding from "@/pages/Onboarding";
+import Pricing from "@/pages/Pricing";
+import Profile from "@/pages/Profile";
+import PublicProfile from "@/pages/PublicProfile";
+import Sandbox from "@/pages/Sandbox";
+import Search from "@/pages/Search";
+import Settings from "@/pages/Settings";
+import SignIn from "@/pages/SignIn";
+import SignUp from "@/pages/SignUp";
+import ThankYou from "@/pages/ThankYou";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
+import ScrollToTop from "@/components/utils/ScrollToTop";
+import EurekaIframe from "@/pages/EurekaIframe";
 
-export const routes = [
-  { path: "/", element: <Index /> },
-  { path: "/get-started", element: <Index /> },
-  { path: "/signup", element: <Signup /> },
-  { path: "/forgot-password", element: <ForgotPassword /> },
-  { path: "/reset-password", element: <ResetPassword /> },
-  { path: "/public-upload/:slug", element: <PublicUpload /> },
-  { path: "/public-upload", element: <PublicUpload /> },
-  { path: "/submit/:slug", element: <BarcSubmit /> },
-  { path: "/submit/eureka-sample", element: <EurekaSample /> },
-  { path: "/thank-you", element: <ThankYou /> },
-  { 
-    path: "/dashboard", 
+export const router = createBrowserRouter([
+  {
+    path: "/",
     element: (
-      <ProtectedRoute>
-        <Dashboard />
-      </ProtectedRoute>
-    )
+      <ScrollToTop>
+        <App />
+      </ScrollToTop>
+    ),
+    errorElement: <NotFound />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: "/discover",
+        element: <Discover />,
+      },
+      {
+        path: "/search",
+        element: <Search />,
+      },
+      {
+        path: "/notifications",
+        element: <Notifications />,
+      },
+      {
+        path: "/profile",
+        element: <Profile />,
+      },
+      {
+        path: "/profile/:id",
+        element: <PublicProfile />,
+      },
+      {
+        path: "/settings",
+        element: <Settings />,
+      },
+      {
+        path: "/deals",
+        element: <Deals />,
+      },
+      {
+        path: "/deals/:id",
+        element: <DealPage />,
+      },
+      {
+        path: "/component-catalog",
+        element: <ComponentCatalog />,
+      },
+      {
+        path: "/sandbox",
+        element: <Sandbox />,
+      },
+      {
+        path: "/onboarding",
+        element: <Onboarding />,
+      },
+      {
+        path: "/pricing",
+        element: <Pricing />,
+      },
+      {
+        path: "/coming-soon",
+        element: <ComingSoon />,
+      },
+      {
+        path: "/thank-you",
+        element: <ThankYou />,
+      },
+      {
+        path: "/terms",
+        element: <Terms />,
+      },
+      {
+        path: "/privacy",
+        element: <Privacy />,
+      },
+      {
+        path: "/eureka-sample/:slug?",
+        element: <EurekaSample />,
+      },
+    ],
   },
-  { 
-    path: "/upload", 
-    element: (
-      <ProtectedRoute>
-        <UploadReport />
-      </ProtectedRoute>
-    )
+  {
+    path: "/sign-in",
+    element: <SignIn />,
   },
-  { 
-    path: "/report/:id", 
-    element: (
-      <ProtectedRoute>
-        <Report />
-      </ProtectedRoute>
-    )
+  {
+    path: "/sign-up",
+    element: <SignUp />,
   },
-  { 
-    path: "/company/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyPage />
-      </ProtectedRoute>
-    )
+  {
+    path: "/eureka-iframe/:slug?",
+    element: <EurekaIframe />,
   },
-  { 
-    path: "/company/:companyId/section/:sectionId", 
-    element: (
-      <ProtectedRoute>
-        <SectionPage />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/company-detail/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyDetailPage />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/company-details/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyDetails />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/company-overview/:id", 
-    element: (
-      <ProtectedRoute>
-        <CompanyOverviewPage />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/analysis-summary/:id", 
-    element: (
-      <ProtectedRoute>
-        <AnalysisSummary />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/profile", 
-    element: (
-      <ProtectedRoute>
-        <Profile />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/profile/edit", 
-    element: (
-      <ProtectedRoute>
-        <ProfileEdit />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/profile/setup", 
-    element: (
-      <ProtectedRoute>
-        <ProfileSetup />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/feedback", 
-    element: (
-      <ProtectedRoute>
-        <Feedback />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/admin", 
-    element: (
-      <ProtectedRoute>
-        <Admin />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/public-forms", 
-    element: (
-      <ProtectedRoute>
-        <PublicForms />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/barc-submissions", 
-    element: (
-      <ProtectedRoute>
-        <BarcSubmissions />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/news-feed", 
-    element: (
-      <ProtectedRoute>
-        <NewsFeed />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/email-test", 
-    element: (
-      <ProtectedRoute>
-        <EmailTest />
-      </ProtectedRoute>
-    )
-  },
-  { 
-    path: "/supplementary-materials/:companyId", 
-    element: (
-      <ProtectedRoute>
-        <SupplementaryMaterials />
-      </ProtectedRoute>
-    )
-  },
-  { path: "*", element: <NotFound /> }
-];
+]);
