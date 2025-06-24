@@ -308,6 +308,19 @@ serve(async (req) => {
     - Use actual industry statistics and benchmarks
     - Reference real market research data and sources
 
+    CRITICAL FOR IIT BOMBAY USERS - IMPROVEMENTS SECTION REQUIREMENTS:
+    All "improvements" sections must be 100% market-driven insights. Focus EXCLUSIVELY on:
+    - Market challenges and opportunities based on real industry data
+    - Competitive landscape insights with specific competitor analysis
+    - Industry benchmarks and performance metrics
+    - Market penetration strategies based on successful case studies
+    - Revenue optimization opportunities based on industry pricing data
+    - Customer acquisition challenges based on market research
+    - Market positioning opportunities with quantified data
+    - Industry-specific growth strategies with success metrics
+    
+    DO NOT mention missing form information, application completeness, or suggest adding more details to responses. Focus entirely on market dynamics, industry challenges, and strategic opportunities backed by real data.
+
     Return analysis in this JSON format:
     {
       "overall_score": number (calculated weighted average),
@@ -323,31 +336,31 @@ serve(async (req) => {
           "score": number (0-100),
           "analysis": "Balanced analysis highlighting what they did well and areas for improvement WITH MARKET DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REAL MARKET NUMBERS"],
-          "improvements": ["4-5 market-driven improvement areas with industry benchmarks and competitive data - DO NOT mention missing form information, focus entirely on market challenges and opportunities"]
+          "improvements": ["4-5 market-driven improvement areas focusing on industry challenges, competitive landscape, market opportunities, and strategic positioning - ALL based on real market data and industry benchmarks"]
         },
         "target_customers": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their customer understanding WITH MARKET SIZING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING CUSTOMER SEGMENT SIZES"],
-          "improvements": ["4-5 market-driven improvement areas with customer acquisition benchmarks and market penetration data - focus on market challenges, not form gaps"]
+          "improvements": ["4-5 market-driven improvement areas focusing on customer acquisition challenges, market penetration strategies, segment analysis, and customer behavior insights - ALL based on real market research data"]
         },
         "competitors": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their competitive understanding WITH COMPETITOR VALUATIONS",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING COMPETITIVE MARKET SHARE DATA"],
-          "improvements": ["4-5 market-driven improvement areas with competitor analysis and market positioning insights - focus on competitive challenges, not missing information"]
+          "improvements": ["4-5 market-driven improvement areas focusing on competitive positioning, market share opportunities, differentiation strategies, and competitive response tactics - ALL based on real competitor analysis and market data"]
         },
         "revenue_model": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their revenue strategy WITH INDUSTRY PRICING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REVENUE BENCHMARKS"],
-          "improvements": ["4-5 market-driven improvement areas with pricing strategy insights and revenue optimization based on industry data - focus on market dynamics, not missing details"]
+          "improvements": ["4-5 market-driven improvement areas focusing on pricing optimization, revenue stream diversification, market-based monetization strategies, and industry revenue benchmarks - ALL based on real financial data and industry standards"]
         },
         "differentiation": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their differentiation strategy WITH MARKET POSITIONING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING INNOVATION METRICS"],
-          "improvements": ["4-5 market-driven improvement areas with innovation benchmarks and market gap analysis - focus on market opportunities and challenges, not form completeness"]
+          "improvements": ["4-5 market-driven improvement areas focusing on innovation opportunities, market gap analysis, positioning strategies, and competitive advantages - ALL based on real market trends and innovation data"]
         }
       },
       "summary": {
