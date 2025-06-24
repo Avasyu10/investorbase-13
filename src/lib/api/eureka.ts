@@ -66,7 +66,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     
     console.log('📋 Final submission data being sent:', submissionData);
     
-    // Insert the submission with proper error handling
+    // Insert the submission with simplified error handling
     const { data: submission, error } = await supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
@@ -81,27 +81,6 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
         code: error.code,
         submissionData
       });
-      
-      // Try a simplified insertion without user_id if that's causing issues
-      if (error.message?.includes('user_id') || error.code === '23503') {
-        console.log('🔄 Retrying without user_id reference...');
-        const simpleData = { ...submissionData };
-        delete simpleData.user_id;
-        
-        const { data: retrySubmission, error: retryError } = await supabase
-          .from('eureka_form_submissions')
-          .insert([simpleData])
-          .select()
-          .single();
-          
-        if (retryError) {
-          console.error('❌ Retry also failed:', retryError);
-          throw new Error(`Submission failed: ${retryError.message}`);
-        }
-        
-        console.log('✅ Retry submission successful:', retrySubmission);
-        return retrySubmission;
-      }
       
       throw new Error(`Submission failed: ${error.message}`);
     }
