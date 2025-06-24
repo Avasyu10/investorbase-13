@@ -1,3 +1,4 @@
+
 import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 export interface AnalysisResult {
@@ -266,9 +267,14 @@ IMPROVEMENT SUGGESTIONS REQUIREMENTS:
   * "Add partnership opportunities and strategic alliances section"
   * "Include funding utilization breakdown with specific milestones"
   * "Add exit strategy considerations for potential investors"
+  * "Improve slide layout consistency and visual hierarchy for better readability"
+  * "Use consistent color scheme and typography throughout the presentation"
+  * "Enhance chart formatting with proper legends and data labels"
+  * "Improve spacing and alignment of text and visual elements"
+  * "Add more white space to reduce visual clutter on slides"
 - Each suggestion should include WHY it's important and HOW to implement it
 - Consider industry best practices and investor expectations
-- Address both content gaps and presentation improvements
+- Address both content gaps and presentation improvements, including UI/design elements
 
 Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
 

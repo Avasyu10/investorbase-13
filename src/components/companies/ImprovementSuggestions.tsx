@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, TrendingUp, Users, DollarSign, Target, BarChart } from "lucide-react";
+import { Lightbulb, TrendingUp, Users, DollarSign, Target, BarChart, Palette } from "lucide-react";
 
 interface ImprovementSuggestionsProps {
   suggestions: string[];
@@ -20,6 +20,8 @@ const getIconForCategory = (category: string) => {
       return <TrendingUp className="h-4 w-4 text-orange-500" />;
     case 'Design':
       return <BarChart className="h-4 w-4 text-indigo-500" />;
+    case 'UI':
+      return <Palette className="h-4 w-4 text-pink-500" />;
     default:
       return <Lightbulb className="h-4 w-4 text-yellow-500" />;
   }
@@ -43,6 +45,13 @@ const getCategoryForSuggestion = (suggestion: string) => {
   if (lowerSuggestion.includes('chart') || lowerSuggestion.includes('graph') || lowerSuggestion.includes('visual')) {
     return 'Design';
   }
+  if (lowerSuggestion.includes('layout') || lowerSuggestion.includes('color') || 
+      lowerSuggestion.includes('formatting') || lowerSuggestion.includes('font') ||
+      lowerSuggestion.includes('spacing') || lowerSuggestion.includes('alignment') ||
+      lowerSuggestion.includes('ui') || lowerSuggestion.includes('interface') ||
+      lowerSuggestion.includes('design consistency') || lowerSuggestion.includes('typography')) {
+    return 'UI';
+  }
   
   return 'General';
 };
@@ -59,6 +68,8 @@ const getCategoryColor = (category: string) => {
       return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
     case 'Design':
       return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
+    case 'UI':
+      return 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
@@ -94,7 +105,7 @@ export const ImprovementSuggestions = ({ suggestions, companyName }: Improvement
   }, {} as Record<string, string[]>);
 
   // Sort categories to show most important first
-  const categoryOrder = ['Market Analysis', 'Financials', 'Team', 'Traction', 'Design', 'General'];
+  const categoryOrder = ['Market Analysis', 'Financials', 'Team', 'Traction', 'Design', 'UI', 'General'];
   const sortedCategories = Object.keys(groupedSuggestions).sort((a, b) => {
     const indexA = categoryOrder.indexOf(a);
     const indexB = categoryOrder.indexOf(b);
