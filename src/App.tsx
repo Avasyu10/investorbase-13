@@ -21,8 +21,8 @@ const AppRoutes = () => {
 const ConditionalLayout = () => {
   const location = useLocation();
   
-  // Don't show navbar on thank you page, public submission pages, or any public upload pages
-  const hideNavbarPaths = ['/thank-you', '/submit', '/public-upload'];
+  // Don't show navbar on thank you page, public submission pages, iframe pages, or any public upload pages
+  const hideNavbarPaths = ['/thank-you', '/submit', '/public-upload', '/eureka-iframe'];
   const showNavbar = !hideNavbarPaths.some(path => location.pathname.startsWith(path));
   
   return (
