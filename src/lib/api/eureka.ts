@@ -21,75 +21,27 @@ export interface EurekaSubmissionData {
 }
 
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {
-  console.log('🔗 SUPABASE API CALL STARTED (PUBLIC MODE)');
-  console.log('📤 submitEurekaForm called with data:', data);
+  console.log('📤 Submitting Eureka form data:', data);
   
-  // Ensure user_id is handled properly for public submissions
+  // Ensure user_id is included in the submission
   const submissionData = {
     ...data,
-    user_id: data.user_id || null // Allow null for public submissions
+    user_id: data.user_id || null
   };
   
-  console.log('📤 Final PUBLIC submission data to Supabase:', submissionData);
-  console.log('🚀 Calling supabase.from("eureka_form_submissions").insert()...');
-  
-  try {
-    // Insert the submission - this should work for public submissions
-    const { data: submission, error } = await supabase
-      .from('eureka_form_submissions')
-      .insert([submissionData])
-      .select()
-      .single();
+  const { data: submission, error } = await supabase
+    .from('eureka_form_submissions')
+    .insert([submissionData])
+    .select()
+    .single();
 
-    if (error) {
-      console.error('💥 SUPABASE INSERT ERROR:');
-      console.error('❌ Error:', error);
-      throw error;
-    }
-
-    console.log('🎉 SUPABASE INSERT SUCCESSFUL!');
-    console.log('✅ Submission data returned from Supabase:', submission);
-    
-    // Wait a bit longer before triggering analysis to ensure transaction is committed
-    console.log('⏳ Waiting 3 seconds before triggering analysis...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Now trigger the analysis with proper error handling
-    try {
-      console.log('🔍 Triggering analysis for PUBLIC submission:', submission.id);
-      
-      const analysisResponse = await fetch(
-        'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-eureka-submission',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            submissionId: submission.id,
-            submission_id: submission.id // Include both formats for compatibility
-          }),
-        }
-      );
-
-      const analysisResult = await analysisResponse.json();
-      console.log('📊 Analysis trigger response:', analysisResult);
-      
-      if (!analysisResponse.ok) {
-        console.warn('⚠️ Analysis trigger failed, but PUBLIC submission was successful:', analysisResult);
-        // Don't throw here - submission was successful, analysis can be retried later
-      } else {
-        console.log('✅ Analysis triggered successfully for PUBLIC submission');
-      }
-    } catch (analysisError) {
-      console.warn('⚠️ Analysis trigger failed, but PUBLIC submission was successful:', analysisError);
-      // Don't throw here - submission was successful, analysis can be retried later
-    }
-    
-    return submission;
-  } catch (error) {
-    console.error('💥 EXCEPTION IN submitEurekaForm (PUBLIC MODE):');
-    console.error('❌ Exception:', error);
+  if (error) {
+    console.error('❌ Error submitting Eureka form:', error);
     throw error;
   }
+
+  console.log('✅ Eureka form submitted successfully - analysis will start automatically via trigger:', submission);
+  return submission;
 };
+
+// Remove the analyzeEurekaSubmission function since analysis is now automatic via trigger

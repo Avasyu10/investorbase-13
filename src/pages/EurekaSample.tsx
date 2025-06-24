@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,9 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
-
-// Fixed user ID for public embedded form
-const EMBEDDED_USER_ID = "ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af";
+import { useAuth } from "@/hooks/useAuth";
 
 interface EurekaFormData {
   companyName: string;
@@ -37,10 +34,13 @@ const EurekaSample = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
-  console.log('🔍 EMBEDDED EUREKA FORM - Using fixed user ID:', EMBEDDED_USER_ID);
+  // Log the current user to debug
+  console.log('🔍 Current authenticated user:', user);
+  console.log('🔍 User ID that will be submitted:', user?.id);
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -76,8 +76,8 @@ const EurekaSample = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 EMBEDDED Eureka form submit triggered:', data);
-    console.log('👤 Using EMBEDDED USER ID:', EMBEDDED_USER_ID);
+    console.log('📝 Eureka form submit triggered:', data);
+    console.log('👤 Submitting with user ID:', user?.id);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -139,12 +139,12 @@ const EurekaSample = () => {
       return;
     }
 
-    console.log('✅ EMBEDDED form validation passed, submitting...');
+    console.log('✅ Validation passed, submitting...');
     setIsSubmitting(true);
 
     try {
       const submissionData: EurekaSubmissionData = {
-        form_slug: slug || 'eureka-sample-embedded',
+        form_slug: slug || 'eureka-sample',
         company_name: data.companyName,
         company_registration_type: data.companyRegistrationType || "Not Specified",
         executive_summary: data.executiveSummary,
@@ -159,14 +159,14 @@ const EurekaSample = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        user_id: EMBEDDED_USER_ID // Use fixed user ID for embedded form
+        user_id: user?.id || null // Ensure user_id is properly included
       };
 
-      console.log('📋 EMBEDDED submission data with fixed user_id:', submissionData);
+      console.log('📋 Final submission data with user_id:', submissionData);
 
-      // Submit the form - the database trigger will automatically start analysis
+      // Submit the form - the database trigger will automatically start analysis (LIKE BARC FORM)
       const submission = await submitEurekaForm(submissionData);
-      console.log('📋 EMBEDDED Eureka form submitted successfully:', submission);
+      console.log('📋 Eureka form submitted successfully:', submission);
 
       // Show success message
       toast({
@@ -181,12 +181,10 @@ const EurekaSample = () => {
       
       form.reset();
       setFounderLinkedIns([""]);
-      
-      // For embedded form, don't navigate away - just show success
-      console.log('✅ EMBEDDED form submission complete');
+      navigate("/thank-you");
       
     } catch (error: any) {
-      console.error('❌ Error submitting EMBEDDED form:', error);
+      console.error('❌ Error submitting form:', error);
       toast({
         title: "Submission Error",
         description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
@@ -198,13 +196,13 @@ const EurekaSample = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white py-8 px-4">
+    <div className="min-h-screen bg-black py-8 px-4">
       <div className="container mx-auto max-w-3xl">
         <Card>
           <CardHeader className="text-center border-b">
             <div className="flex items-center justify-center mb-4">
               <Building className="h-8 w-8 text-primary mr-2" />
-              <CardTitle className="text-2xl">Eureka Application Form</CardTitle>
+              <CardTitle className="text-2xl">Eureka Sample Application Form</CardTitle>
             </div>
             <CardDescription className="text-base">
               Submit your application - analysis will start automatically
