@@ -87,11 +87,12 @@ const EurekaSample = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 Eureka form submit triggered:', data);
+    console.log('📝 Eureka form submit triggered with data:', data);
     console.log('🖼️ Context details:', { 
       isInIframe, 
       location: window.location.href,
-      userLoggedIn: !!user
+      userLoggedIn: !!user,
+      timestamp: new Date().toISOString()
     });
     
     // Basic validation
@@ -154,7 +155,7 @@ const EurekaSample = () => {
       return;
     }
 
-    console.log('✅ Validation passed, submitting...');
+    console.log('✅ Validation passed, proceeding with submission...');
     setIsSubmitting(true);
 
     try {
@@ -176,10 +177,13 @@ const EurekaSample = () => {
         company_linkedin_url: data.companyLinkedInUrl,
       };
 
-      console.log('📋 About to submit:', submissionData);
+      console.log('📋 About to submit this data:', submissionData);
+      console.log('⏰ Submission attempt started at:', new Date().toISOString());
 
       const submission = await submitEurekaForm(submissionData);
-      console.log('📋 Eureka form submitted successfully:', submission);
+      
+      console.log('📋 Eureka form submitted successfully at:', new Date().toISOString());
+      console.log('📋 Submission result:', submission);
 
       // Show success message
       toast({
@@ -199,6 +203,7 @@ const EurekaSample = () => {
       if (isInIframe) {
         // If in iframe, show success state instead of navigating
         setIsSubmitted(true);
+        console.log('📱 Iframe context: showing success state instead of navigating');
         
         // Try to communicate with parent window if possible
         try {
@@ -206,39 +211,29 @@ const EurekaSample = () => {
             type: 'EUREKA_FORM_SUBMITTED',
             data: { submissionId: submission.id, companyName: data.companyName }
           }, '*');
+          console.log('📨 Sent message to parent window');
         } catch (error) {
           console.log('Could not communicate with parent window:', error);
         }
       } else {
         // Normal navigation for direct access
+        console.log('🚀 Normal context: navigating to thank you page');
         navigate("/thank-you");
       }
       
     } catch (error: any) {
-      console.error('❌ Error submitting form:', error);
+      console.error('❌ Error submitting form at:', new Date().toISOString());
+      console.error('❌ Error details:', error);
       
-      // More specific error handling
-      let errorMessage = 'There was an error submitting your application. Please try again.';
-      
-      if (error.message?.includes('timeout') || error.message?.includes('timed out')) {
-        errorMessage = 'Request timed out. Please check your internet connection and try again.';
-      } else if (error.message?.includes('permission') || error.message?.includes('denied')) {
-        errorMessage = 'Access denied. Please refresh the page and try again.';
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        errorMessage = 'Network error. Please check your internet connection.';
-      } else if (error.message?.includes('table') || error.message?.includes('relation')) {
-        errorMessage = 'Database error. Please contact support.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
+      // Show error toast with the specific error message
       toast({
         title: "Submission Error",
-        description: errorMessage,
+        description: error.message || 'An unexpected error occurred. Please try again.',
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
+      console.log('🏁 Submission process completed at:', new Date().toISOString());
     }
   };
 

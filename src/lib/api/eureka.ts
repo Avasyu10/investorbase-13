@@ -66,7 +66,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     
     console.log('📋 Final submission data being sent:', submissionData);
     
-    // Insert the submission with simplified error handling
+    // Insert the submission - simplified approach
     const { data: submission, error } = await supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
@@ -82,31 +82,39 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
         submissionData
       });
       
-      throw new Error(`Submission failed: ${error.message}`);
+      throw new Error(`Database insertion failed: ${error.message}. Please try again.`);
     }
 
     if (!submission) {
-      throw new Error('No submission data returned from database');
+      throw new Error('Submission was created but no data was returned. Please contact support.');
     }
 
-    console.log('✅ Eureka form submitted successfully - analysis will start automatically via trigger:', submission);
+    console.log('✅ Eureka form submitted successfully:', submission);
+    
+    // Add a small delay to ensure the submission is fully committed before any analysis starts
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     return submission;
     
   } catch (error: any) {
     console.error('❌ Error in submitEurekaForm:', error);
     
-    // Provide more specific error messages
+    // Provide more specific error messages based on the actual error
     if (error.message?.includes('timeout') || error.message?.includes('timed out')) {
       throw new Error('Request timed out. Please check your connection and try again.');
     }
-    if (error.message?.includes('permission')) {
-      throw new Error('Permission denied. Please ensure you have access to submit forms.');
+    if (error.message?.includes('permission') || error.message?.includes('denied')) {
+      throw new Error('Access denied. Please refresh the page and try again.');
     }
     if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
-      throw new Error('Database table not found. Please contact support.');
+      throw new Error('Database configuration error. Please contact support.');
+    }
+    if (error.message?.includes('Database insertion failed')) {
+      // Re-throw database errors as-is since they're already formatted
+      throw error;
     }
     
-    // Re-throw the original error for other cases
-    throw error;
+    // For any other errors, provide a generic message
+    throw new Error('An unexpected error occurred. Please try again or contact support if the problem persists.');
   }
 };
