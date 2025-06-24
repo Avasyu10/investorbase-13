@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
-          console.log('User signed out');
+          console.log('User signed out - clearing state');
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
@@ -218,29 +218,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      console.log('Starting sign out process...');
       setIsLoading(true);
-      const { error } = await supabase.auth.signOut();
       
-      if (error) {
-        console.error('Sign out error:', error);
-        throw error;
-      }
-      
-      // Clear state immediately
+      // Clear local state first to provide immediate feedback
       setSession(null);
       setUser(null);
       
+      // Then call Supabase signOut
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Supabase sign out error:', error);
+        // Even if there's an error, we've cleared local state
+        // This handles cases where the session might be stale
+      }
+      
+      console.log('Sign out completed, navigating to home...');
+      
+      // Navigate to home page
       navigate('/');
+      
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
       });
     } catch (error: any) {
-      console.error('Error signing out:', error);
+      console.error('Error during sign out process:', error);
+      
+      // Still clear local state and redirect even if there's an error
+      setSession(null);
+      setUser(null);
+      navigate('/');
+      
       toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive",
+        title: "Signed out",
+        description: "You've been signed out.",
       });
     } finally {
       setIsLoading(false);
