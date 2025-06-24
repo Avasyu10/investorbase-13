@@ -41,7 +41,6 @@ const EurekaSample = () => {
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
   const [showEmbedLink, setShowEmbedLink] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
   // Check if we're in an iframe
   const isInIframe = window.self !== window.top;
@@ -87,37 +86,12 @@ const EurekaSample = () => {
     );
   };
 
-  const submitWithRetry = async (submissionData: any, maxRetries = 2) => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`📤 Submission attempt ${attempt}/${maxRetries}`);
-        const submission = await submitEurekaForm(submissionData);
-        return submission;
-      } catch (error: any) {
-        console.error(`❌ Attempt ${attempt} failed:`, error);
-        
-        if (attempt === maxRetries) {
-          throw error; // Re-throw on final attempt
-        }
-        
-        // Only retry on timeout errors
-        if (error.message?.includes('timeout') || error.message?.includes('timed out')) {
-          console.log(`⏳ Retrying in 2 seconds... (attempt ${attempt + 1}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
-        } else {
-          throw error; // Don't retry on other errors
-        }
-      }
-    }
-  };
-
   const onSubmit = async (data: EurekaFormData) => {
     console.log('📝 Eureka form submit triggered:', data);
     console.log('🖼️ Iframe context details:', { 
       isInIframe, 
       location: window.location.href,
-      willAssignUserId: isInIframe ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : (user?.id || 'anonymous')
+      willAssignUserId: isInIrame ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : (user?.id || 'anonymous')
     });
     
     // Basic validation
@@ -182,7 +156,6 @@ const EurekaSample = () => {
 
     console.log('✅ Validation passed, submitting...');
     setIsSubmitting(true);
-    setRetryCount(0);
 
     try {
       const submissionData: EurekaSubmissionData = {
@@ -206,8 +179,8 @@ const EurekaSample = () => {
 
       console.log('📋 Submission data (user_id will be set in API):', submissionData);
 
-      // Submit the form with retry logic
-      const submission = await submitWithRetry(submissionData);
+      // Direct submission without retry logic for now to simplify debugging
+      const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
       // Show success message
@@ -245,7 +218,6 @@ const EurekaSample = () => {
       
     } catch (error: any) {
       console.error('❌ Error submitting form:', error);
-      setRetryCount(prev => prev + 1);
       
       // More specific error handling
       let errorMessage = 'There was an error submitting your application. Please try again.';
