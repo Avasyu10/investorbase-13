@@ -9,27 +9,6 @@
     <meta name="author" content="Lovable" />
     <meta property="og:image" content="/og-image.png" />
     <link rel="icon" href="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" />
-    
-    <!-- Iframe-friendly security headers -->
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors *; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co https://jhtnruktmtjqrfoiyrep.supabase.co; connect-src 'self' https://jhtnruktmtjqrfoiyrep.supabase.co wss://jhtnruktmtjqrfoiyrep.supabase.co; style-src 'self' 'unsafe-inline';">
-    <meta name="referrer" content="origin-when-cross-origin">
-    
-    <!-- Ensure cookies work in iframe context -->
-    <script>
-      // Test and log cookie/storage capabilities for iframe debugging
-      console.log('🍪 Cookie test:', {
-        cookiesEnabled: navigator.cookieEnabled,
-        isIframe: window.self !== window.top,
-        origin: window.location.origin,
-        protocol: window.location.protocol
-      });
-      
-      // Set SameSite=None for iframe compatibility
-      if (window.self !== window.top) {
-        document.cookie = "iframe-test=1; SameSite=None; Secure; Path=/";
-        console.log('🖼️ Iframe detected - setting SameSite=None cookies');
-      }
-    </script>
   </head>
 
   <body>

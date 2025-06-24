@@ -62,7 +62,7 @@ serve(async (req) => {
     console.log('Verifying submission exists and updating status...');
     const { data: submissionCheck, error: checkError } = await supabase
       .from('eureka_form_submissions')
-      .select('id, analysis_status, company_name, user_id')
+      .select('id, analysis_status, company_name')
       .eq('id', submissionId)
       .single();
 

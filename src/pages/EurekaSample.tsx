@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building, Plus, X, Share, CheckCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
 import { useAuth } from "@/hooks/useAuth";
-import { EurekaEmbedLink } from "@/components/forms/EurekaEmbedLink";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface EurekaFormData {
   companyName: string;
@@ -39,75 +37,10 @@ const EurekaSample = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
-  const [showEmbedLink, setShowEmbedLink] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>({});
 
-  // Check if we're in an iframe and gather debug info
-  const isInIframe = window.self !== window.top;
-
-  useEffect(() => {
-    // Comprehensive iframe and CORS debugging
-    const debugData = {
-      isInIframe,
-      currentDomain: window.location.origin,
-      protocol: window.location.protocol,
-      parentOrigin: isInIframe ? document.referrer : 'N/A',
-      userAgent: navigator.userAgent,
-      cookiesEnabled: navigator.cookieEnabled,
-      localStorage: (() => {
-        try {
-          localStorage.setItem('test', 'test');
-          localStorage.removeItem('test');
-          return 'available';
-        } catch (e) {
-          return `blocked: ${e.message}`;
-        }
-      })(),
-      sessionStorage: (() => {
-        try {
-          sessionStorage.setItem('test', 'test');
-          sessionStorage.removeItem('test');
-          return 'available';
-        } catch (e) {
-          return `blocked: ${e.message}`;
-        }
-      })(),
-      thirdPartyCookies: (() => {
-        try {
-          document.cookie = "test=value; SameSite=None; Secure";
-          return document.cookie.includes('test=value') ? 'allowed' : 'blocked';
-        } catch (e) {
-          return `error: ${e.message}`;
-        }
-      })(),
-      headers: {
-        xFrameOptions: 'unknown', // Will be checked via network
-        csp: 'unknown'
-      },
-      supabaseConnection: 'testing...'
-    };
-
-    setDebugInfo(debugData);
-
-    // Test Supabase connection
-    import('@/integrations/supabase/client').then(({ supabase }) => {
-      supabase.auth.getSession().then(({ data, error }) => {
-        setDebugInfo(prev => ({
-          ...prev,
-          supabaseConnection: error ? `error: ${error.message}` : 'connected',
-          authSession: data.session ? 'authenticated' : 'anonymous'
-        }));
-      }).catch(err => {
-        setDebugInfo(prev => ({
-          ...prev,
-          supabaseConnection: `connection failed: ${err.message}`
-        }));
-      });
-    });
-
-    console.log('🔍 Iframe Debug Info:', debugData);
-  }, [isInIframe]);
+  // Log the current user to debug
+  console.log('🔍 Current authenticated user:', user);
+  console.log('🔍 User ID that will be submitted:', user?.id);
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -143,19 +76,44 @@ const EurekaSample = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 Starting form submission with debug info:', { data, debugInfo });
+    console.log('📝 Eureka form submit triggered:', data);
+    console.log('👤 Submitting with user ID:', user?.id);
     
-    // Enhanced validation for iframe context
-    if (!data.companyName.trim() || !data.submitterEmail.trim() || !data.pocName.trim() || !data.phoneNumber.trim()) {
+    // Basic validation
+    if (!data.companyName.trim()) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Company name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.submitterEmail.trim()) {
+      toast({
+        title: "Error", 
+        description: "Email is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.pocName.trim()) {
+      toast({
+        title: "Error",
+        description: "POC name is required", 
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.phoneNumber.trim()) {
+      toast({
+        title: "Error",
+        description: "Phone number is required",
         variant: "destructive",
       });
       return;
     }
 
-    // Enhanced email validation
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.submitterEmail)) {
       toast({
@@ -166,28 +124,25 @@ const EurekaSample = () => {
       return;
     }
 
+    // Validate LinkedIn URLs format
+    const invalidLinkedInUrls = founderLinkedIns.filter(url => {
+      if (!url.trim()) return false; // Empty URLs are allowed
+      return !url.includes('linkedin.com/');
+    });
+
+    if (invalidLinkedInUrls.length > 0) {
+      toast({
+        title: "Error",
+        description: "Please enter valid LinkedIn URLs (e.g., https://linkedin.com/in/username)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('✅ Validation passed, submitting...');
     setIsSubmitting(true);
 
     try {
-      // Pre-submission iframe checks
-      if (isInIframe) {
-        console.log('🖼️ Iframe submission attempt - checking environment...');
-        
-        // Check if we can access parent window (CORS check)
-        try {
-          if (window.parent !== window) {
-            console.log('✅ Parent window accessible');
-          }
-        } catch (e) {
-          console.warn('⚠️ Parent window access blocked:', e);
-        }
-
-        // Check for mixed content issues
-        if (window.location.protocol === 'https:' && debugInfo.parentOrigin && debugInfo.parentOrigin.startsWith('http:')) {
-          console.warn('⚠️ Mixed content detected: HTTPS iframe in HTTP parent');
-        }
-      }
-
       const submissionData: EurekaSubmissionData = {
         form_slug: slug || 'eureka-sample',
         company_name: data.companyName,
@@ -204,100 +159,35 @@ const EurekaSample = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
+        user_id: user?.id || null // Ensure user_id is properly included
       };
 
-      console.log('📋 Final submission data:', submissionData);
-      console.log('🌐 Network context:', {
-        origin: window.location.origin,
-        protocol: window.location.protocol,
-        isSecure: window.location.protocol === 'https:',
-        userAgent: navigator.userAgent.substring(0, 100) + '...'
-      });
+      console.log('📋 Final submission data with user_id:', submissionData);
 
+      // Submit the form - the database trigger will automatically start analysis (LIKE BARC FORM)
       const submission = await submitEurekaForm(submissionData);
-      
-      console.log('✅ Submission successful:', submission);
+      console.log('📋 Eureka form submitted successfully:', submission);
 
       // Show success message
       toast({
         title: "Success!",
-        description: "🎉 Application submitted successfully!",
+        description: "🎉 Application submitted successfully! Analysis will start automatically.",
       });
 
-      // Reset form
+      // Emit custom events to update realtime listeners
+      window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
+        detail: { submissionId: submission.id, companyName: data.companyName } 
+      }));
+      
       form.reset();
       setFounderLinkedIns([""]);
-      
-      // Enhanced post-submission handling for iframe
-      if (isInIframe) {
-        console.log('🖼️ Iframe submission complete - notifying parent...');
-        setIsSubmitted(true);
-        
-        // Multiple approaches to communicate with parent
-        try {
-          // Method 1: PostMessage with multiple target origins
-          const parentOrigins = ['*', window.location.origin];
-          if (debugInfo.parentOrigin && debugInfo.parentOrigin !== 'about:blank') {
-            parentOrigins.push(debugInfo.parentOrigin);
-          }
-          
-          parentOrigins.forEach(origin => {
-            try {
-              window.parent.postMessage({
-                type: 'EUREKA_FORM_SUBMITTED',
-                data: { 
-                  submissionId: submission.id, 
-                  companyName: data.companyName,
-                  success: true,
-                  timestamp: new Date().toISOString()
-                }
-              }, origin);
-              console.log(`📤 PostMessage sent to origin: ${origin}`);
-            } catch (e) {
-              console.warn(`⚠️ PostMessage failed for origin ${origin}:`, e);
-            }
-          });
-          
-          // Method 2: Try to trigger a custom event on parent
-          if (window.parent.document) {
-            const event = new CustomEvent('eurekaFormSubmitted', {
-              detail: { submissionId: submission.id, companyName: data.companyName }
-            });
-            window.parent.document.dispatchEvent(event);
-            console.log('📤 Custom event dispatched');
-          }
-        } catch (error) {
-          console.warn('⚠️ Parent communication failed:', error);
-        }
-      } else {
-        navigate("/thank-you");
-      }
+      navigate("/thank-you");
       
     } catch (error: any) {
-      console.error('❌ Submission failed with debug context:', {
-        error: error.message,
-        stack: error.stack,
-        debugInfo,
-        networkState: navigator.onLine ? 'online' : 'offline',
-        timestamp: new Date().toISOString()
-      });
-      
-      // Enhanced error reporting for iframe context
-      let errorMessage = error.message || 'Failed to submit. Please try again.';
-      
-      if (isInIframe) {
-        if (error.message?.includes('CORS')) {
-          errorMessage = 'Cross-origin request blocked. Please contact support.';
-        } else if (error.message?.includes('cookie')) {
-          errorMessage = 'Third-party cookies blocked. Please enable cookies and try again.';
-        } else if (error.message?.includes('network')) {
-          errorMessage = 'Network error. Please check your connection and try again.';
-        }
-      }
-      
+      console.error('❌ Error submitting form:', error);
       toast({
         title: "Submission Error",
-        description: errorMessage,
+        description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
         variant: "destructive",
       });
     } finally {
@@ -305,97 +195,9 @@ const EurekaSample = () => {
     }
   };
 
-  // Show debug info in development or when there are issues
-  const showDebugInfo = import.meta.env.DEV || isInIframe;
-
-  // Show success state for iframe submissions
-  if (isSubmitted && isInIframe) {
-    return (
-      <div className="min-h-screen bg-black py-8 px-4">
-        <div className="container mx-auto max-w-3xl">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="flex flex-col items-center space-y-4">
-                <CheckCircle className="h-16 w-16 text-green-500" />
-                <CardTitle className="text-2xl text-green-600">Application Submitted Successfully!</CardTitle>
-                <CardDescription className="text-base">
-                  Thank you for your submission. Your application is now being processed and analysis will start automatically.
-                </CardDescription>
-                <Button 
-                  onClick={() => {
-                    setIsSubmitted(false);
-                    form.reset();
-                    setFounderLinkedIns([""]);
-                  }}
-                  variant="outline"
-                >
-                  Submit Another Application
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-black py-8 px-4">
       <div className="container mx-auto max-w-3xl">
-        {/* Debug Information Panel */}
-        {showDebugInfo && (
-          <Card className="mb-6 border-yellow-500">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-yellow-600">
-                <AlertTriangle className="h-5 w-5" />
-                Debug Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Context:</strong>
-                  <ul className="list-disc list-inside ml-2">
-                    <li>In Iframe: {isInIframe ? 'Yes' : 'No'}</li>
-                    <li>Protocol: {debugInfo.protocol}</li>
-                    <li>Parent Origin: {debugInfo.parentOrigin}</li>
-                    <li>Cookies: {debugInfo.cookiesEnabled ? 'Enabled' : 'Disabled'}</li>
-                  </ul>
-                </div>
-                <div>
-                  <strong>Storage & Scripts:</strong>
-                  <ul className="list-disc list-inside ml-2">
-                    <li>LocalStorage: {debugInfo.localStorage}</li>
-                    <li>SessionStorage: {debugInfo.sessionStorage}</li>
-                    <li>Third-party Cookies: {debugInfo.thirdPartyCookies}</li>
-                    <li>Supabase: {debugInfo.supabaseConnection}</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Only show embed link section when not in iframe */}
-        {!isInIframe && (
-          <div className="mb-6">
-            <Collapsible open={showEmbedLink} onOpenChange={setShowEmbedLink}>
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  <div className="flex items-center gap-2">
-                    <Share className="h-4 w-4" />
-                    Get Embed Code for This Form
-                  </div>
-                  <span className="text-xs">{showEmbedLink ? "Hide" : "Show"}</span>
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4">
-                <EurekaEmbedLink />
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        )}
-
         <Card>
           <CardHeader className="text-center border-b">
             <div className="flex items-center justify-center mb-4">
@@ -404,11 +206,6 @@ const EurekaSample = () => {
             </div>
             <CardDescription className="text-base">
               Submit your application - analysis will start automatically
-              {isInIframe && (
-                <div className="mt-2 text-xs text-blue-400">
-                  Embedded form - submissions will be processed automatically
-                </div>
-              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
