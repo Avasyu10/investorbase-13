@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface EurekaSubmissionData {
@@ -22,14 +23,45 @@ export interface EurekaSubmissionData {
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('📤 Submitting Eureka form data:', data);
   
+  // Check iframe and CORS context
+  const isInIframe = window.self !== window.top;
+  const currentOrigin = window.location.origin;
+  
+  console.log('🌐 Submission context:', {
+    isInIframe,
+    currentOrigin,
+    protocol: window.location.protocol,
+    userAgent: navigator.userAgent.substring(0, 50) + '...',
+    cookiesEnabled: navigator.cookieEnabled,
+    timestamp: new Date().toISOString()
+  });
+  
   try {
-    // Get current user if available, otherwise allow anonymous submission
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || null;
+    // Test storage access first (Safari iframe issue detection)
+    try {
+      localStorage.setItem('cors-test', 'test');
+      localStorage.removeItem('cors-test');
+      console.log('✅ LocalStorage accessible');
+    } catch (storageError) {
+      console.warn('⚠️ LocalStorage blocked:', storageError);
+    }
+
+    // Get current user with enhanced error handling for iframe context
+    let userId: string | null = null;
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.warn('⚠️ Auth error (continuing as anonymous):', authError.message);
+      } else {
+        userId = user?.id || null;
+        console.log('👤 User context:', userId ? 'authenticated' : 'anonymous');
+      }
+    } catch (authException) {
+      console.warn('⚠️ Auth service unavailable (continuing as anonymous):', authException);
+    }
     
-    console.log('👤 Using user ID:', userId);
-    
-    // Prepare submission data - keep it simple
+    // Prepare submission data with iframe-safe approach
     const submissionData = {
       form_slug: data.form_slug,
       company_name: data.company_name,
@@ -47,12 +79,19 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
       phoneno: data.phoneno,
       company_linkedin_url: data.company_linkedin_url,
       user_id: userId,
-      analysis_status: 'pending'
+      analysis_status: 'pending',
+      // Add metadata for debugging iframe submissions
+      submission_context: {
+        is_iframe: isInIframe,
+        origin: currentOrigin,
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent
+      }
     };
     
-    console.log('📋 Submitting data:', submissionData);
+    console.log('📋 Submitting with context-aware data:', submissionData);
     
-    // Simple direct insertion without complex error handling
+    // Enhanced submission with iframe-specific error handling
     const { data: submission, error } = await supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
@@ -61,18 +100,53 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
 
     if (error) {
       console.error('❌ Database error:', error);
-      throw new Error(`Submission failed: ${error.message}`);
+      
+      // Provide specific error messages for common iframe issues
+      if (error.message?.includes('JWT')) {
+        throw new Error('Authentication token invalid. This may be due to third-party cookie restrictions in iframe context.');
+      } else if (error.message?.includes('CORS')) {
+        throw new Error('Cross-origin request blocked. Please ensure the iframe is embedded correctly.');
+      } else if (error.message?.includes('network')) {
+        throw new Error('Network error occurred. Please check your connection and try again.');
+      } else {
+        throw new Error(`Submission failed: ${error.message}`);
+      }
     }
 
     if (!submission) {
-      throw new Error('No data returned from submission');
+      throw new Error('No data returned from submission - this may indicate a network or configuration issue');
     }
 
     console.log('✅ Form submitted successfully:', submission);
+    
+    // Log successful iframe submission for monitoring
+    if (isInIframe) {
+      console.log('🖼️ Iframe submission completed successfully');
+    }
+    
     return submission;
     
   } catch (error: any) {
-    console.error('❌ Submission error:', error);
+    console.error('❌ Submission error with full context:', {
+      error: error.message,
+      stack: error.stack,
+      isInIframe,
+      currentOrigin,
+      timestamp: new Date().toISOString(),
+      networkOnline: navigator.onLine
+    });
+    
+    // Enhanced error handling for iframe-specific issues
+    if (isInIframe) {
+      if (error.message?.includes('cookie') || error.message?.includes('third-party')) {
+        throw new Error('Third-party cookies are blocked. Please enable cookies for this site or open the form in a new tab.');
+      } else if (error.message?.includes('CORS') || error.message?.includes('cross-origin')) {
+        throw new Error('Cross-origin request blocked. The iframe may not be configured correctly.');
+      } else if (error.message?.includes('CSP') || error.message?.includes('X-Frame-Options')) {
+        throw new Error('Content Security Policy or frame options blocking this request.');
+      }
+    }
+    
     throw new Error(error.message || 'Submission failed. Please try again.');
   }
 };
