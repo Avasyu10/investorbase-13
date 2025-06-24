@@ -87,43 +87,13 @@ const EurekaSample = () => {
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 Eureka form submit triggered with data:', data);
-    console.log('🖼️ Context details:', { 
-      isInIframe, 
-      location: window.location.href,
-      userLoggedIn: !!user,
-      timestamp: new Date().toISOString()
-    });
+    console.log('📝 Starting form submission:', data);
     
-    // Basic validation
-    if (!data.companyName.trim()) {
+    // Basic validation - keep it simple
+    if (!data.companyName.trim() || !data.submitterEmail.trim() || !data.pocName.trim() || !data.phoneNumber.trim()) {
       toast({
         title: "Error",
-        description: "Company name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!data.submitterEmail.trim()) {
-      toast({
-        title: "Error", 
-        description: "Email is required",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!data.pocName.trim()) {
-      toast({
-        title: "Error",
-        description: "POC name is required", 
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!data.phoneNumber.trim()) {
-      toast({
-        title: "Error",
-        description: "Phone number is required",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -140,22 +110,6 @@ const EurekaSample = () => {
       return;
     }
 
-    // Validate LinkedIn URLs format
-    const invalidLinkedInUrls = founderLinkedIns.filter(url => {
-      if (!url.trim()) return false; // Empty URLs are allowed
-      return !url.includes('linkedin.com/');
-    });
-
-    if (invalidLinkedInUrls.length > 0) {
-      toast({
-        title: "Error",
-        description: "Please enter valid LinkedIn URLs (e.g., https://linkedin.com/in/username)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    console.log('✅ Validation passed, proceeding with submission...');
     setIsSubmitting(true);
 
     try {
@@ -177,63 +131,46 @@ const EurekaSample = () => {
         company_linkedin_url: data.companyLinkedInUrl,
       };
 
-      console.log('📋 About to submit this data:', submissionData);
-      console.log('⏰ Submission attempt started at:', new Date().toISOString());
+      console.log('📋 Submitting form data:', submissionData);
 
       const submission = await submitEurekaForm(submissionData);
       
-      console.log('📋 Eureka form submitted successfully at:', new Date().toISOString());
-      console.log('📋 Submission result:', submission);
+      console.log('✅ Submission successful:', submission);
 
       // Show success message
       toast({
         title: "Success!",
-        description: "🎉 Application submitted successfully! Analysis will start automatically.",
+        description: "🎉 Application submitted successfully!",
       });
 
-      // Emit custom events to update realtime listeners
-      window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
-        detail: { submissionId: submission.id, companyName: data.companyName } 
-      }));
-      
+      // Reset form
       form.reset();
       setFounderLinkedIns([""]);
       
-      // Handle navigation based on iframe context
+      // Handle post-submission based on context
       if (isInIframe) {
-        // If in iframe, show success state instead of navigating
         setIsSubmitted(true);
-        console.log('📱 Iframe context: showing success state instead of navigating');
-        
-        // Try to communicate with parent window if possible
         try {
           window.parent.postMessage({
             type: 'EUREKA_FORM_SUBMITTED',
             data: { submissionId: submission.id, companyName: data.companyName }
           }, '*');
-          console.log('📨 Sent message to parent window');
         } catch (error) {
           console.log('Could not communicate with parent window:', error);
         }
       } else {
-        // Normal navigation for direct access
-        console.log('🚀 Normal context: navigating to thank you page');
         navigate("/thank-you");
       }
       
     } catch (error: any) {
-      console.error('❌ Error submitting form at:', new Date().toISOString());
-      console.error('❌ Error details:', error);
-      
-      // Show error toast with the specific error message
+      console.error('❌ Submission failed:', error);
       toast({
         title: "Submission Error",
-        description: error.message || 'An unexpected error occurred. Please try again.',
+        description: error.message || 'Failed to submit. Please try again.',
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
-      console.log('🏁 Submission process completed at:', new Date().toISOString());
     }
   };
 
