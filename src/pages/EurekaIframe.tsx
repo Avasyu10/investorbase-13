@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { supabase } from "@/integrations/supabase/client";
+import { submitEurekaForm } from "@/lib/api/eureka";
 import { useAuth } from "@/hooks/useAuth";
 
 interface EurekaFormData {
@@ -89,31 +89,25 @@ const EurekaIframe = () => {
     console.log('👤 User:', user);
     console.log('📍 Form slug:', slug);
     console.log('🔗 Founder LinkedIn URLs from state:', founderLinkedIns);
-    console.log('🔗 Founder LinkedIn URLs from form:', data.founderLinkedInUrls);
     
     setIsSubmitting(true);
 
     try {
-      // Validate required fields
-      const requiredFields = {
-        companyName: data.companyName?.trim(),
-        submitterEmail: data.submitterEmail?.trim(),
-        pocName: data.pocName?.trim(),
-        phoneNumber: data.phoneNumber?.trim(),
-        executiveSummary: data.executiveSummary?.trim(),
-        companyType: data.companyType?.trim(),
-      };
+      // Validate required fields with more detailed error messages
+      const missingFields = [];
+      
+      if (!data.companyName?.trim()) missingFields.push('Company Name');
+      if (!data.submitterEmail?.trim()) missingFields.push('Email');
+      if (!data.pocName?.trim()) missingFields.push('POC Name');
+      if (!data.phoneNumber?.trim()) missingFields.push('Phone Number');
+      if (!data.executiveSummary?.trim()) missingFields.push('Executive Summary');
+      if (!data.companyType?.trim()) missingFields.push('Industry');
 
-      console.log('🔍 Validating required fields:', requiredFields);
-
-      // Check for missing required fields
-      const missingFields = Object.entries(requiredFields)
-        .filter(([key, value]) => !value)
-        .map(([key]) => key);
+      console.log('🔍 Missing fields check:', missingFields);
 
       if (missingFields.length > 0) {
         console.error('❌ Missing required fields:', missingFields);
-        throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+        throw new Error(`Please fill in the following required fields: ${missingFields.join(', ')}`);
       }
 
       // Validate email format
@@ -123,108 +117,40 @@ const EurekaIframe = () => {
         throw new Error('Please enter a valid email address');
       }
 
-      // Use the current founderLinkedIns state (synced with form)
+      // Use the current founderLinkedIns state instead of form data
       const finalLinkedInUrls = founderLinkedIns.filter(url => url.trim());
       console.log('🔗 Final LinkedIn URLs to submit:', finalLinkedInUrls);
 
-      // Prepare submission data with all required fields
+      // Prepare submission data using the API format
       const submissionData = {
         form_slug: slug || 'eureka-iframe',
-        company_name: data.companyName,
+        company_name: data.companyName.trim(),
         company_registration_type: data.companyRegistrationType || "Not Specified",
-        executive_summary: data.executiveSummary,
+        executive_summary: data.executiveSummary.trim(),
         company_type: data.companyType,
-        question_1: data.question1 || "",
-        question_2: data.question2 || "",
-        question_3: data.question3 || "",
-        question_4: data.question4 || "",
-        question_5: data.question5 || "",
-        submitter_email: data.submitterEmail,
+        question_1: data.question1?.trim() || "",
+        question_2: data.question2?.trim() || "",
+        question_3: data.question3?.trim() || "",
+        question_4: data.question4?.trim() || "",
+        question_5: data.question5?.trim() || "",
+        submitter_email: data.submitterEmail.trim(),
         founder_linkedin_urls: finalLinkedInUrls,
-        poc_name: data.pocName,
-        phoneno: data.phoneNumber,
-        company_linkedin_url: data.companyLinkedInUrl || "",
+        poc_name: data.pocName.trim(),
+        phoneno: data.phoneNumber.trim(),
+        company_linkedin_url: data.companyLinkedInUrl?.trim() || "",
         user_id: user?.id || null,
-        analysis_status: 'pending'
       };
 
       console.log('📋 FINAL SUBMISSION DATA:', submissionData);
-      console.log('📋 Data types check:');
-      console.log('  - company_name:', typeof submissionData.company_name, '=', submissionData.company_name);
-      console.log('  - submitter_email:', typeof submissionData.submitter_email, '=', submissionData.submitter_email);
-      console.log('  - poc_name:', typeof submissionData.poc_name, '=', submissionData.poc_name);
-      console.log('  - phoneno:', typeof submissionData.phoneno, '=', submissionData.phoneno);
-      console.log('  - executive_summary:', typeof submissionData.executive_summary, '=', submissionData.executive_summary);
-      console.log('  - company_type:', typeof submissionData.company_type, '=', submissionData.company_type);
 
-      // Step 1: Insert submission data
-      console.log('🚀 STEP 1: Inserting submission to database...');
+      // Use the working API method
+      console.log('🚀 Calling submitEurekaForm API function...');
       
-      const { data: submission, error: insertError } = await supabase
-        .from('eureka_form_submissions')
-        .insert([submissionData])
-        .select()
-        .single();
+      const submission = await submitEurekaForm(submissionData);
 
-      if (insertError) {
-        console.error('💥 DATABASE INSERT ERROR:', insertError);
-        console.error('❌ Error code:', insertError.code);
-        console.error('❌ Error message:', insertError.message);
-        console.error('❌ Error details:', insertError.details);
-        console.error('❌ Error hint:', insertError.hint);
-        throw new Error(`Database insertion failed: ${insertError.message}`);
-      }
+      console.log('✅ SUBMISSION SUCCESSFUL:', submission);
 
-      if (!submission) {
-        console.error('💥 NO SUBMISSION RETURNED FROM DATABASE');
-        throw new Error('Database insertion failed: No data returned');
-      }
-
-      console.log('✅ STEP 1 COMPLETE: Submission inserted successfully');
-      console.log('✅ Submission ID:', submission.id);
-      console.log('✅ Submission data:', submission);
-
-      // Step 2: Wait for database transaction to commit
-      console.log('⏳ STEP 2: Waiting for database transaction to commit...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 3: Verify the submission exists before triggering analysis
-      console.log('🔍 STEP 3: Verifying submission exists in database...');
-      const { data: verifySubmission, error: verifyError } = await supabase
-        .from('eureka_form_submissions')
-        .select('id, company_name, submitter_email, analysis_status')
-        .eq('id', submission.id)
-        .single();
-
-      if (verifyError || !verifySubmission) {
-        console.error('💥 VERIFICATION FAILED:', verifyError);
-        throw new Error('Failed to verify submission in database');
-      }
-
-      console.log('✅ STEP 3 COMPLETE: Submission verified in database:', verifySubmission);
-
-      // Step 4: Trigger analysis
-      console.log('🚀 STEP 4: Triggering analysis for submission:', submission.id);
-      
-      try {
-        const { data: analysisResult, error: analysisError } = await supabase.functions.invoke('analyze-eureka-form', {
-          body: { submissionId: submission.id }
-        });
-
-        if (analysisError) {
-          console.error('⚠️ Analysis trigger error:', analysisError);
-          console.log('📝 Submission was successful, but analysis trigger failed. Analysis can be run manually.');
-        } else {
-          console.log('✅ Analysis triggered successfully:', analysisResult);
-        }
-      } catch (analysisError) {
-        console.error('⚠️ Analysis trigger exception:', analysisError);
-        // Don't fail the submission for analysis errors
-      }
-
-      // Step 5: Success response
-      console.log('🎉 EUREKA SUBMISSION PROCESS COMPLETED SUCCESSFULLY');
-      
+      // Show success message
       toast({
         title: "Success!",
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
@@ -274,7 +200,6 @@ const EurekaIframe = () => {
                   <FormField
                     control={form.control}
                     name="companyName"
-                    rules={{ required: "Company name is required" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm">Company Name *</FormLabel>
@@ -340,7 +265,6 @@ const EurekaIframe = () => {
                   <FormField
                     control={form.control}
                     name="executiveSummary"
-                    rules={{ required: "Executive summary is required" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm">Executive Summary *</FormLabel>
@@ -360,7 +284,6 @@ const EurekaIframe = () => {
                   <FormField
                     control={form.control}
                     name="companyType"
-                    rules={{ required: "Industry is required" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm">Industry *</FormLabel>
@@ -537,7 +460,6 @@ const EurekaIframe = () => {
                   <FormField
                     control={form.control}
                     name="pocName"
-                    rules={{ required: "POC name is required" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm">Point of Contact Name *</FormLabel>
@@ -556,13 +478,6 @@ const EurekaIframe = () => {
                   <FormField
                     control={form.control}
                     name="submitterEmail"
-                    rules={{ 
-                      required: "Email is required",
-                      pattern: {
-                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                        message: "Please enter a valid email address"
-                      }
-                    }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm">Email *</FormLabel>
@@ -582,7 +497,6 @@ const EurekaIframe = () => {
                   <FormField
                     control={form.control}
                     name="phoneNumber"
-                    rules={{ required: "Phone number is required" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm">Phone Number *</FormLabel>
