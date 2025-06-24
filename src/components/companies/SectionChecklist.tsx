@@ -1,15 +1,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Circle, ListChecks } from "lucide-react";
+import { CheckCircle, Circle } from "lucide-react";
 import { Section } from "@/lib/api/apiContract";
 
 interface SectionChecklistProps {
   sections: Section[];
-  onClick: (sectionId: string | number) => void;
 }
 
-export const SectionChecklist = ({ sections, onClick }: SectionChecklistProps) => {
+export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
   const formatSectionTitle = (title: string, sectionType?: string) => {
     // Handle Eureka form specific section types
     if (sectionType) {
@@ -47,15 +46,14 @@ export const SectionChecklist = ({ sections, onClick }: SectionChecklistProps) =
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {sections.map((section) => {
         const isAddressed = isSectionAddressed(section);
         
         return (
           <Card 
             key={section.id}
-            className="cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 border-l-primary/20"
-            onClick={() => onClick(section.id)}
+            className="border-l-4 border-l-primary/20"
           >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
@@ -75,13 +73,6 @@ export const SectionChecklist = ({ sections, onClick }: SectionChecklistProps) =
                 </Badge>
               </CardTitle>
             </CardHeader>
-            {section.description && (
-              <CardContent className="pt-0">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {section.description}
-                </p>
-              </CardContent>
-            )}
           </Card>
         );
       })}

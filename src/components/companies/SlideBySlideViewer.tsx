@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
-import { SimplePdfViewer } from "@/components/reports/SimplePdfViewer";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SlideNote {
   slideNumber: number;
@@ -19,6 +18,9 @@ interface SlideBySlideViewerProps {
 
 export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideBySlideViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(1);
+  const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   
   console.log('SlideBySlideViewer props:', { reportId, slideNotesCount: slideNotes.length, companyName });
 
@@ -27,6 +29,72 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
   
   // Get total number of slides (either from slide notes or assume a reasonable number)
   const totalSlides = slideNotes.length > 0 ? Math.max(...slideNotes.map(s => s.slideNumber)) : 10;
+
+  // Load PDF when component mounts
+  React.useEffect(() => {
+    const loadPdf = async () => {
+      if (!reportId) {
+        setError('No report ID provided');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        setError('');
+        
+        console.log('Loading PDF for report:', reportId);
+        
+        // Get the report details
+        const { data: report, error: reportError } = await supabase
+          .from('reports')
+          .select('pdf_url, user_id')
+          .eq('id', reportId)
+          .single();
+          
+        if (reportError) throw reportError;
+        if (!report?.pdf_url) throw new Error('No PDF file found for this report');
+        
+        console.log('Report found:', report);
+        
+        // Download the PDF from storage
+        const bucketName = 'report-pdfs';
+        const filePath = `${report.user_id}/${report.pdf_url}`;
+        
+        console.log(`Downloading from bucket: ${bucketName}, path: ${filePath}`);
+        
+        const { data: pdfBlob, error: downloadError } = await supabase.storage
+          .from(bucketName)
+          .download(filePath);
+
+        if (downloadError || !pdfBlob) {
+          console.error('Download failed:', downloadError);
+          throw new Error(`Failed to download PDF: ${downloadError?.message || 'File not found'}`);
+        }
+        
+        console.log('PDF downloaded successfully, size:', pdfBlob.size);
+        
+        // Create blob URL for the PDF
+        const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+        setPdfUrl(blobUrl);
+        
+      } catch (err) {
+        console.error('Error loading PDF:', err);
+        setError(`Failed to load PDF: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPdf();
+
+    // Cleanup function
+    return () => {
+      if (pdfUrl && pdfUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [reportId]);
 
   const goToNextSlide = () => {
     if (currentSlide < totalSlides) {
@@ -38,6 +106,12 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
     if (currentSlide > 1) {
       setCurrentSlide(currentSlide - 1);
     }
+  };
+
+  // Generate PDF URL with page parameter for synchronized viewing
+  const getPdfUrlWithPage = () => {
+    if (!pdfUrl) return '';
+    return `${pdfUrl}#page=${currentSlide}`;
   };
 
   return (
@@ -82,7 +156,41 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* PDF Viewer - Left Side */}
         <div className="lg:col-span-1">
-          <SimplePdfViewer reportId={reportId} companyName={companyName} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Pitch Deck - Slide {currentSlide}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-3">Loading pitch deck...</span>
+                </div>
+              )}
+              
+              {error && (
+                <div className="text-center py-8">
+                  <p className="text-red-500 mb-4">{error}</p>
+                </div>
+              )}
+              
+              {!loading && !error && pdfUrl && (
+                <div className="w-full" style={{ height: '500px' }}>
+                  <iframe
+                    key={currentSlide} // Force re-render when slide changes
+                    src={getPdfUrlWithPage()}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 'none', borderRadius: '8px' }}
+                    title={`${companyName} Pitch Deck - Slide ${currentSlide}`}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Slide Notes - Right Side */}
