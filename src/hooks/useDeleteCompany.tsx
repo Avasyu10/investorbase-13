@@ -12,17 +12,24 @@ export function useDeleteCompany() {
       console.log('Starting company deletion process for:', companyId);
       
       try {
-        // Delete in the correct order to avoid foreign key constraint issues
+        // Use a transaction-like approach by handling each step carefully
         
-        // 1. Delete section_details first (no foreign key dependencies)
-        console.log('Deleting section_details for company:', companyId);
-        const { data: sections } = await supabase
+        // 1. First, get all sections for this company
+        console.log('Fetching sections for company:', companyId);
+        const { data: sections, error: sectionsSelectError } = await supabase
           .from('sections')
           .select('id')
           .eq('company_id', companyId);
 
+        if (sectionsSelectError) {
+          console.error('Error fetching sections:', sectionsSelectError);
+          throw sectionsSelectError;
+        }
+
+        // 2. Delete section_details for all sections
         if (sections && sections.length > 0) {
           const sectionIds = sections.map(section => section.id);
+          console.log('Deleting section_details for sections:', sectionIds);
           
           const { error: sectionDetailsError } = await supabase
             .from('section_details')
@@ -36,7 +43,7 @@ export function useDeleteCompany() {
           console.log('Successfully deleted section_details');
         }
 
-        // 2. Delete sections
+        // 3. Delete sections
         console.log('Deleting sections for company:', companyId);
         const { error: sectionsError } = await supabase
           .from('sections')
@@ -49,7 +56,7 @@ export function useDeleteCompany() {
         }
         console.log('Successfully deleted sections');
 
-        // 3. Delete market_research records 
+        // 4. Delete market_research records (this is causing the constraint issue)
         console.log('Deleting market_research records for company:', companyId);
         const { error: marketResearchError } = await supabase
           .from('market_research')
@@ -62,7 +69,7 @@ export function useDeleteCompany() {
         }
         console.log('Successfully deleted market_research records');
 
-        // 4. Delete investor_research records
+        // 5. Delete investor_research records
         console.log('Deleting investor_research records for company:', companyId);
         const { error: investorResearchError } = await supabase
           .from('investor_research')
@@ -75,7 +82,7 @@ export function useDeleteCompany() {
         }
         console.log('Successfully deleted investor_research records');
 
-        // 5. Delete fund_thesis_analysis records
+        // 6. Delete fund_thesis_analysis records
         console.log('Deleting fund_thesis_analysis records for company:', companyId);
         const { error: fundThesisError } = await supabase
           .from('fund_thesis_analysis')
@@ -88,7 +95,7 @@ export function useDeleteCompany() {
         }
         console.log('Successfully deleted fund_thesis_analysis records');
 
-        // 6. Delete form submissions
+        // 7. Delete barc_form_submissions
         console.log('Deleting barc_form_submissions for company:', companyId);
         const { error: barcSubmissionsError } = await supabase
           .from('barc_form_submissions')
@@ -101,6 +108,7 @@ export function useDeleteCompany() {
         }
         console.log('Successfully deleted barc_form_submissions');
 
+        // 8. Delete eureka_form_submissions
         console.log('Deleting eureka_form_submissions for company:', companyId);
         const { error: eurekaSubmissionsError } = await supabase
           .from('eureka_form_submissions')
@@ -113,7 +121,7 @@ export function useDeleteCompany() {
         }
         console.log('Successfully deleted eureka_form_submissions');
 
-        // 7. Delete company_details
+        // 9. Delete company_details
         console.log('Deleting company_details for company:', companyId);
         const { error: companyDetailsError } = await supabase
           .from('company_details')
@@ -127,7 +135,7 @@ export function useDeleteCompany() {
           console.log('Successfully deleted company_details');
         }
 
-        // 8. Update reports to remove company reference (don't delete reports)
+        // 10. Update reports to remove company reference instead of deleting
         console.log('Updating reports to remove company reference:', companyId);
         const { error: reportsUpdateError } = await supabase
           .from('reports')
@@ -138,10 +146,10 @@ export function useDeleteCompany() {
           console.error('Error updating reports:', reportsUpdateError);
           // Don't throw here as this is not critical for deletion
         } else {
-          console.log('Successfully updated reports');
+          console.log('Successfully updated reports to remove company reference');
         }
 
-        // 9. Finally, delete the company
+        // 11. Finally, delete the company itself
         console.log('Deleting company:', companyId);
         const { error: companyError } = await supabase
           .from('companies')
