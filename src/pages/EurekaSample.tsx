@@ -45,10 +45,13 @@ const EurekaSample = () => {
   // Check if we're in an iframe
   const isInIframe = window.self !== window.top;
 
-  // Log the current user to debug
-  console.log('🔍 Current authenticated user:', user);
-  console.log('🔍 User ID that will be submitted:', user?.id);
-  console.log('🔍 Is in iframe:', isInIframe);
+  // Log the context information
+  console.log('🔍 Form context info:', {
+    isInIframe,
+    currentUser: user?.id,
+    location: window.location.href,
+    willUseIframeUserId: isInIframe ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : 'current user or anonymous'
+  });
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -85,8 +88,11 @@ const EurekaSample = () => {
 
   const onSubmit = async (data: EurekaFormData) => {
     console.log('📝 Eureka form submit triggered:', data);
-    console.log('👤 Submitting with user ID:', user?.id);
-    console.log('🖼️ Iframe context:', { isInIframe, location: window.location.href });
+    console.log('🖼️ Iframe context details:', { 
+      isInIframe, 
+      location: window.location.href,
+      willAssignUserId: isInIframe ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : (user?.id || 'anonymous')
+    });
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -168,12 +174,12 @@ const EurekaSample = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        user_id: user?.id || null // This will be handled properly in the API
+        // Note: user_id will be handled in the API based on iframe context
       };
 
-      console.log('📋 Final submission data with user_id:', submissionData);
+      console.log('📋 Submission data (user_id will be set in API):', submissionData);
 
-      // Submit the form - the database trigger will automatically start analysis
+      // Submit the form - the API will automatically assign the correct user_id based on iframe context
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
@@ -298,6 +304,11 @@ const EurekaSample = () => {
             </div>
             <CardDescription className="text-base">
               Submit your application - analysis will start automatically
+              {isInIframe && (
+                <div className="mt-2 text-xs text-blue-400">
+                  Submissions through this form will be associated with the designated user account
+                </div>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">

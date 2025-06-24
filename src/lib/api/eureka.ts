@@ -20,18 +20,34 @@ export interface EurekaSubmissionData {
   user_id?: string | null;
 }
 
+// The specific user ID for iframe submissions
+const IFRAME_USER_ID = 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af';
+
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('📤 Submitting Eureka form data:', data);
   
   try {
-    // Get current user if authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('🔍 Current user from auth:', user?.id);
+    // Check if we're in an iframe context
+    const isInIframe = window.self !== window.top;
+    console.log('🖼️ Is in iframe context:', isInIframe);
+    
+    let finalUserId: string | null;
+    
+    if (isInIframe) {
+      // If in iframe, always use the specific user ID
+      finalUserId = IFRAME_USER_ID;
+      console.log('📝 Using iframe user ID:', finalUserId);
+    } else {
+      // If not in iframe, get current authenticated user or null for anonymous
+      const { data: { user } } = await supabase.auth.getUser();
+      finalUserId = user?.id || null;
+      console.log('👤 Using authenticated user ID or anonymous:', finalUserId);
+    }
     
     // Prepare submission data with proper user_id handling
     const submissionData = {
       ...data,
-      user_id: user?.id || null // Set to authenticated user ID or null for anonymous
+      user_id: finalUserId
     };
     
     console.log('📋 Final submission data being sent:', submissionData);
