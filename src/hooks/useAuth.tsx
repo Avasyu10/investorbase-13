@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -101,29 +100,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (authError) throw authError;
 
-      // If this is a restricted signin (accelerator/vc), check user signup source
+      const userId = authData.user?.id;
+      
+      if (!userId) {
+        throw new Error('Authentication failed - no user ID received');
+      }
+
+      // Check user's signup source from profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('signup_source')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error checking user profile:', profileError);
+        // Don't block signin for profile check errors, just log them
+      }
+
+      console.log('User profile data:', profileData);
+      console.log('Attempting signin with userType:', userType);
+
+      // Enforce access restrictions based on signup source and login type
       if (userType && (userType === 'accelerator' || userType === 'vc')) {
-        const userId = authData.user?.id;
-        
-        if (userId) {
-          // Check if user has a profile with founder_signup source
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('signup_source')
-            .eq('id', userId)
-            .maybeSingle();
-
-          if (profileError && profileError.code !== 'PGRST116') {
-            console.error('Error checking user profile:', profileError);
-            throw new Error('Authentication verification failed');
-          }
-
-          // If user has a profile with founder_signup source, they shouldn't access institutional signin
-          if (profileData && profileData.signup_source === 'founder_signup') {
-            // Sign out the user immediately
-            await supabase.auth.signOut();
-            throw new Error('Access denied. Founders cannot use institutional signin. Please use the founder signin option.');
-          }
+        // This is an institutional signin attempt
+        if (profileData && profileData.signup_source === 'founder_signup') {
+          // Founder trying to access institutional signin - block this
+          console.log('Blocking founder from accessing institutional signin');
+          await supabase.auth.signOut();
+          throw new Error('Access denied. Founders cannot use institutional signin. Please use the founder signin option.');
+        }
+      } else if (userType === 'founder') {
+        // This is a founder signin attempt
+        if (profileData && profileData.signup_source !== 'founder_signup' && profileData.signup_source !== null) {
+          // Non-founder trying to access founder signin - block this
+          console.log('Blocking non-founder from accessing founder signin');
+          await supabase.auth.signOut();
+          throw new Error('Access denied. Please use the appropriate signin option for your account type.');
         }
       }
       
