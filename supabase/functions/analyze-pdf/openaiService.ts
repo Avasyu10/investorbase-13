@@ -278,7 +278,7 @@ SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
 - Include market context and industry benchmarks where relevant
 
 IMPROVEMENT SUGGESTIONS REQUIREMENTS:
-- Provide EXACTLY 10 actionable improvement suggestions
+- Provide EXACTLY 15 actionable improvement suggestions
 - Each suggestion must be specific and implementable
 - MUST include 3-4 UI/Design-specific suggestions such as:
   * "Improve slide layout consistency and visual hierarchy by using uniform header styles and consistent spacing between elements"
