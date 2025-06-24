@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ import { AreaOfInterestOptions } from "@/lib/constants";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { useToast } from "@/hooks/use-toast";
 import EurekaEmbedButton from "@/components/profile/EurekaEmbedButton";
-import EurekaSampleButton from "@/components/profile/EurekaSampleButton";
+import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
 
 interface VCProfile {
   id: string;
