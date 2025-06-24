@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,9 @@ const EurekaIframe = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
-  // Log the current user to debug
+  // Debug logging
+  console.log('🎯 EurekaIframe component loaded successfully');
+  console.log('📍 Current slug:', slug);
   console.log('🔍 Current authenticated user:', user);
   console.log('🔍 User ID that will be submitted:', user?.id);
 
