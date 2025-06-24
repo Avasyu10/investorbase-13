@@ -108,10 +108,10 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
     }
   };
 
-  // Generate PDF URL with page parameter for synchronized viewing
+  // Generate PDF URL with page parameter and view settings to hide scrollbars
   const getPdfUrlWithPage = () => {
     if (!pdfUrl) return '';
-    return `${pdfUrl}#page=${currentSlide}`;
+    return `${pdfUrl}#page=${currentSlide}&view=FitH&scrollbar=0&toolbar=0&navpanes=0`;
   };
 
   return (
@@ -178,13 +178,18 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
               )}
               
               {!loading && !error && pdfUrl && (
-                <div className="w-full" style={{ height: '500px' }}>
+                <div className="w-full overflow-hidden" style={{ height: '500px' }}>
                   <iframe
                     key={currentSlide} // Force re-render when slide changes
                     src={getPdfUrlWithPage()}
                     width="100%"
                     height="100%"
-                    style={{ border: 'none', borderRadius: '8px' }}
+                    style={{ 
+                      border: 'none', 
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}
+                    scrolling="no"
                     title={`${companyName} Pitch Deck - Slide ${currentSlide}`}
                   />
                 </div>
