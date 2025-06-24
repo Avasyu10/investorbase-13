@@ -53,7 +53,7 @@ export function useDeleteCompany() {
           }
         }
 
-        // Delete all related research and analysis records
+        // FIXED: Delete market_research records BEFORE deleting the company
         console.log('Deleting market_research records for company:', companyId);
         const { error: marketResearchError } = await supabase
           .from('market_research')
