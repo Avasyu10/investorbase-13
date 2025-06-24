@@ -8,10 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building, Plus, X } from "lucide-react";
+import { Loader2, Building, Plus, X, Share } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
 import { useAuth } from "@/hooks/useAuth";
+import { EurekaEmbedLink } from "@/components/forms/EurekaEmbedLink";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface EurekaFormData {
   companyName: string;
@@ -37,6 +39,7 @@ const EurekaSample = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
+  const [showEmbedLink, setShowEmbedLink] = useState(false);
 
   // Log the current user to debug
   console.log('🔍 Current authenticated user:', user);
@@ -198,6 +201,24 @@ const EurekaSample = () => {
   return (
     <div className="min-h-screen bg-black py-8 px-4">
       <div className="container mx-auto max-w-3xl">
+        {/* Embed Link Section */}
+        <div className="mb-6">
+          <Collapsible open={showEmbedLink} onOpenChange={setShowEmbedLink}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center gap-2">
+                  <Share className="h-4 w-4" />
+                  Get Embed Code for This Form
+                </div>
+                <span className="text-xs">{showEmbedLink ? "Hide" : "Show"}</span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <EurekaEmbedLink />
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
         <Card>
           <CardHeader className="text-center border-b">
             <div className="flex items-center justify-center mb-4">
