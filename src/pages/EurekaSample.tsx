@@ -50,7 +50,7 @@ const EurekaSample = () => {
     isInIframe,
     currentUser: user?.id,
     location: window.location.href,
-    willUseIframeUserId: isInIframe ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : 'current user or anonymous'
+    slug: slug
   });
 
   const form = useForm<EurekaFormData>({
@@ -88,10 +88,10 @@ const EurekaSample = () => {
 
   const onSubmit = async (data: EurekaFormData) => {
     console.log('📝 Eureka form submit triggered:', data);
-    console.log('🖼️ Iframe context details:', { 
+    console.log('🖼️ Context details:', { 
       isInIframe, 
       location: window.location.href,
-      willAssignUserId: isInIframe ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : (user?.id || 'anonymous')
+      userLoggedIn: !!user
     });
     
     // Basic validation
@@ -174,12 +174,10 @@ const EurekaSample = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        // Note: user_id will be handled in the API based on iframe context
       };
 
-      console.log('📋 Submission data (user_id will be set in API):', submissionData);
+      console.log('📋 About to submit:', submissionData);
 
-      // Direct submission without retry logic for now to simplify debugging
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
@@ -228,6 +226,8 @@ const EurekaSample = () => {
         errorMessage = 'Access denied. Please refresh the page and try again.';
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
         errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.message?.includes('table') || error.message?.includes('relation')) {
+        errorMessage = 'Database error. Please contact support.';
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -306,7 +306,7 @@ const EurekaSample = () => {
               Submit your application - analysis will start automatically
               {isInIframe && (
                 <div className="mt-2 text-xs text-blue-400">
-                  Submissions through this form will be associated with the designated user account
+                  Embedded form - submissions will be processed automatically
                 </div>
               )}
             </CardDescription>
