@@ -107,39 +107,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Authentication failed - no user ID received');
       }
 
-      // Check user's signup source from profile - this is REQUIRED for access control
+      // Check user's signup source from profile for access control
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('signup_source')
         .eq('id', userId)
-        .single(); // Use single() instead of maybeSingle() to ensure we get the profile
+        .maybeSingle(); // Use maybeSingle to handle cases where profile might not exist
 
       if (profileError) {
         console.error('Error checking user profile:', profileError);
-        await supabase.auth.signOut(); // Sign out the user
-        throw new Error('Unable to verify user profile. Please contact support.');
+        // Don't block signin for profile check errors, just log them
       }
 
       console.log('User profile data:', profileData);
       console.log('Attempting signin with userType:', userType);
 
-      // STRICT ACCESS CONTROL LOGIC
+      // ACCESS CONTROL LOGIC
       if (userType === 'accelerator' || userType === 'vc') {
         // This is an institutional signin attempt
-        if (!profileData || profileData.signup_source === 'founder_signup') {
+        // Only block if user has 'founder_signup' explicitly set
+        if (profileData && profileData.signup_source === 'founder_signup') {
           // Founder trying to access institutional signin - block this
           console.log('Blocking founder from accessing institutional signin');
           await supabase.auth.signOut();
           throw new Error('Access denied. Founders cannot use institutional signin. Please use the founder signin option.');
         }
+        // Allow if signup_source is NULL or any other value
       } else if (userType === 'founder') {
         // This is a founder signin attempt
-        if (profileData && profileData.signup_source !== 'founder_signup' && profileData.signup_source !== null) {
+        // Only block if user has a non-founder signup source (excluding NULL)
+        if (profileData && profileData.signup_source && profileData.signup_source !== 'founder_signup') {
           // Non-founder trying to access founder signin - block this
           console.log('Blocking non-founder from accessing founder signin');
           await supabase.auth.signOut();
           throw new Error('Access denied. Please use the appropriate signin option for your account type.');
         }
+        // Allow if signup_source is NULL or 'founder_signup'
       }
       
       toast({
