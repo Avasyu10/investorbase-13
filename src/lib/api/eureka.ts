@@ -52,12 +52,19 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     
     console.log('📋 Final submission data being sent:', submissionData);
     
-    // Insert the submission with proper error handling
-    const { data: submission, error } = await supabase
+    // Add timeout to the request
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database operation timed out after 30 seconds')), 30000);
+    });
+    
+    // Insert the submission with timeout and proper error handling
+    const insertPromise = supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
       .select()
       .single();
+
+    const { data: submission, error } = await Promise.race([insertPromise, timeoutPromise]);
 
     if (error) {
       console.error('❌ Supabase error details:', {
@@ -80,11 +87,11 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     console.error('❌ Error in submitEurekaForm:', error);
     
     // Provide more specific error messages
+    if (error.message?.includes('timeout') || error.message?.includes('timed out')) {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
     if (error.message?.includes('user_id')) {
       throw new Error('Authentication error. Please try refreshing the page and submitting again.');
-    }
-    if (error.message?.includes('timeout')) {
-      throw new Error('Request timed out. Please check your connection and try again.');
     }
     if (error.message?.includes('permission')) {
       throw new Error('Permission denied. Please ensure you have access to submit forms.');
