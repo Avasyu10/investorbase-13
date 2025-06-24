@@ -91,7 +91,7 @@ const EurekaSample = () => {
     console.log('🖼️ Iframe context details:', { 
       isInIframe, 
       location: window.location.href,
-      willAssignUserId: isInIrame ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : (user?.id || 'anonymous')
+      willAssignUserId: isInIframe ? 'ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af' : (user?.id || 'anonymous')
     });
     
     // Basic validation
