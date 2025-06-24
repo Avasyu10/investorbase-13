@@ -32,9 +32,9 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
     basePrompt = getPublicAnalysisPrompt(scoringScale);
     console.log("Using public analysis prompt for IIT Bombay user");
   } else {
-    // Enhanced analysis for internal use - includes both section metrics AND slide-by-slide notes
-    basePrompt = getEnhancedAnalysisPrompt(isIITBombayUser);
-    console.log("Using enhanced analysis prompt");
+    // Simplified checklist analysis for internal use
+    basePrompt = getSimplifiedChecklistPrompt();
+    console.log("Using simplified checklist prompt");
   }
   
   const payload = {
@@ -106,25 +106,6 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
     throw new Error(`Failed to parse JSON response: ${error.message}`);
   }
 
-  // Validate and normalize the analysis based on scoring scale and user type
-  if (usePublicAnalysisPrompt && scoringScale === 100) {
-    // Ensure scores are within 0-100 range for public analysis
-    if (analysis.overallScore < 0 || analysis.overallScore > 100) {
-      console.warn(`Overall score ${analysis.overallScore} out of range, clamping to 0-100`);
-      analysis.overallScore = Math.max(0, Math.min(100, analysis.overallScore));
-    }
-    
-    // Validate section scores
-    if (analysis.sections) {
-      analysis.sections.forEach((section: any) => {
-        if (section.score < 0 || section.score > 100) {
-          console.warn(`Section score ${section.score} out of range, clamping to 0-100`);
-          section.score = Math.max(0, Math.min(100, section.score));
-        }
-      });
-    }
-  }
-
   // Ensure slideBySlideNotes field exists for all analyses
   if (!analysis.slideBySlideNotes) {
     console.warn("No slideBySlideNotes found in analysis result, initializing empty array");
@@ -140,9 +121,108 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
   console.log("Improvement suggestions count:", analysis.improvementSuggestions?.length || 0);
 
   console.log("Analysis sections count:", analysis.sections?.length || 0);
-  console.log("Overall score:", analysis.overallScore);
 
   return analysis;
+}
+
+function getSimplifiedChecklistPrompt(): string {
+  return `Analyze this PDF pitch deck and identify which sections are present. Return your analysis in EXACTLY this JSON format:
+
+{
+  "overallScore": 0,
+  "assessmentPoints": [],
+  "sections": [
+    {
+      "type": "PROBLEM",
+      "title": "Problem Statement",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "MARKET",
+      "title": "Market Opportunity",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "SOLUTION",
+      "title": "Solution (Product)",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "COMPETITIVE_LANDSCAPE",
+      "title": "Competitive Landscape",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "TRACTION",
+      "title": "Traction & Milestones",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "BUSINESS_MODEL",
+      "title": "Business Model",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "GTM_STRATEGY",
+      "title": "Go-to-Market Strategy",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "TEAM",
+      "title": "Founder & Team Background",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "FINANCIALS",
+      "title": "Financial Overview & Projections",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "ASK",
+      "title": "The Ask & Next Steps",
+      "score": 0,
+      "description": "",
+      "strengths": [],
+      "weaknesses": []
+    }
+  ],
+  "slideBySlideNotes": [],
+  "improvementSuggestions": []
+}
+
+Instructions:
+- Review the pitch deck and identify which of the above sections are actually present in the document
+- Only include sections that have content or are addressed in the pitch deck
+- Do not provide any scoring, assessment points, strengths, weaknesses, or detailed analysis
+- Simply return the checklist structure with empty arrays for sections that are not present
+- The goal is to create a simple checklist of what sections exist in the pitch deck`;
 }
 
 function getEnhancedAnalysisPrompt(isIITBombayUser = false): string {
