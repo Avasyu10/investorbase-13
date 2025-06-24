@@ -293,7 +293,6 @@ function CompanyDetails() {
               <div className="mb-8">
                 <SectionChecklist 
                   sections={filteredSections}
-                  onClick={(sectionId) => navigate(`/company/${company.id}/section/${sectionId}`)} 
                 />
               </div>
             </>
