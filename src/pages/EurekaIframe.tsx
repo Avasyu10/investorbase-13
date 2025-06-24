@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -64,25 +65,35 @@ const EurekaIframe = () => {
   });
 
   const addLinkedInProfile = () => {
+    console.log('➕ Adding LinkedIn profile');
     setFounderLinkedIns(prev => [...prev, ""]);
   };
 
   const removeLinkedInProfile = (index: number) => {
+    console.log('➖ Removing LinkedIn profile at index:', index);
     setFounderLinkedIns(prev => prev.filter((_, i) => i !== index));
   };
 
   const updateLinkedInProfile = (index: number, value: string) => {
+    console.log('✏️ Updating LinkedIn profile at index:', index, 'with value:', value);
     setFounderLinkedIns(prev => 
       prev.map((profile, i) => i === index ? value : profile)
     );
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 Eureka iframe form submit triggered:', data);
-    console.log('👤 Submitting with user ID:', user?.id);
+    console.log('🚀 IFRAME FORM SUBMISSION STARTED');
+    console.log('📝 Eureka iframe form submit triggered with data:', data);
+    console.log('👤 Submitting with user:', user);
+    console.log('👤 User ID that will be submitted:', user?.id);
+    console.log('📍 Form slug:', slug);
+    console.log('🔗 Founder LinkedIn URLs:', founderLinkedIns);
     
-    // Basic validation
+    // Basic validation with detailed logging
+    console.log('🔍 Starting validation...');
+    
     if (!data.companyName.trim()) {
+      console.error('❌ Validation failed: Company name is missing');
       toast({
         title: "Error",
         description: "Company name is required",
@@ -90,7 +101,10 @@ const EurekaIframe = () => {
       });
       return;
     }
+    console.log('✅ Company name validation passed');
+    
     if (!data.submitterEmail.trim()) {
+      console.error('❌ Validation failed: Email is missing');
       toast({
         title: "Error", 
         description: "Email is required",
@@ -98,7 +112,10 @@ const EurekaIframe = () => {
       });
       return;
     }
+    console.log('✅ Email validation passed');
+    
     if (!data.pocName.trim()) {
+      console.error('❌ Validation failed: POC name is missing');
       toast({
         title: "Error",
         description: "POC name is required", 
@@ -106,7 +123,10 @@ const EurekaIframe = () => {
       });
       return;
     }
+    console.log('✅ POC name validation passed');
+    
     if (!data.phoneNumber.trim()) {
+      console.error('❌ Validation failed: Phone number is missing');
       toast({
         title: "Error",
         description: "Phone number is required",
@@ -114,10 +134,12 @@ const EurekaIframe = () => {
       });
       return;
     }
+    console.log('✅ Phone number validation passed');
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.submitterEmail)) {
+      console.error('❌ Validation failed: Invalid email format:', data.submitterEmail);
       toast({
         title: "Error",
         description: "Please enter a valid email address",
@@ -125,6 +147,7 @@ const EurekaIframe = () => {
       });
       return;
     }
+    console.log('✅ Email format validation passed');
 
     // Validate LinkedIn URLs format
     const invalidLinkedInUrls = founderLinkedIns.filter(url => {
@@ -133,6 +156,7 @@ const EurekaIframe = () => {
     });
 
     if (invalidLinkedInUrls.length > 0) {
+      console.error('❌ Validation failed: Invalid LinkedIn URLs:', invalidLinkedInUrls);
       toast({
         title: "Error",
         description: "Please enter valid LinkedIn URLs (e.g., https://linkedin.com/in/username)",
@@ -140,11 +164,13 @@ const EurekaIframe = () => {
       });
       return;
     }
+    console.log('✅ LinkedIn URLs validation passed');
 
-    console.log('✅ Validation passed, submitting...');
+    console.log('🎉 All validation passed, proceeding with submission...');
     setIsSubmitting(true);
 
     try {
+      // Create submission data - EXACTLY like the main form
       const submissionData: EurekaSubmissionData = {
         form_slug: slug || 'eureka-sample',
         company_name: data.companyName,
@@ -164,11 +190,36 @@ const EurekaIframe = () => {
         user_id: user?.id || null // Ensure user_id is properly included
       };
 
-      console.log('📋 Final submission data with user_id:', submissionData);
+      console.log('📋 FINAL SUBMISSION DATA STRUCTURE:');
+      console.log('📋 Form slug:', submissionData.form_slug);
+      console.log('📋 Company name:', submissionData.company_name);
+      console.log('📋 Company registration type:', submissionData.company_registration_type);
+      console.log('📋 Executive summary length:', submissionData.executive_summary?.length || 0);
+      console.log('📋 Company type:', submissionData.company_type);
+      console.log('📋 Submitter email:', submissionData.submitter_email);
+      console.log('📋 POC name:', submissionData.poc_name);
+      console.log('📋 Phone number:', submissionData.phoneno);
+      console.log('📋 Company LinkedIn URL:', submissionData.company_linkedin_url);
+      console.log('📋 User ID:', submissionData.user_id);
+      console.log('📋 Founder LinkedIn URLs:', submissionData.founder_linkedin_urls);
+      console.log('📋 Questions:', {
+        q1: submissionData.question_1?.substring(0, 50) + '...',
+        q2: submissionData.question_2?.substring(0, 50) + '...',
+        q3: submissionData.question_3?.substring(0, 50) + '...',
+        q4: submissionData.question_4?.substring(0, 50) + '...',
+        q5: submissionData.question_5?.substring(0, 50) + '...'
+      });
+
+      console.log('🚀 Calling submitEurekaForm API...');
+      console.log('🚀 About to submit to Supabase with data:', JSON.stringify(submissionData, null, 2));
 
       // Submit the form - the database trigger will automatically start analysis (LIKE BARC FORM)
       const submission = await submitEurekaForm(submissionData);
+      console.log('🎉 IFRAME FORM SUBMITTED SUCCESSFULLY!');
       console.log('📋 Eureka iframe form submitted successfully:', submission);
+      console.log('📋 Submission ID:', submission.id);
+      console.log('📋 Submission created at:', submission.created_at);
+      console.log('📋 Analysis status:', submission.analysis_status);
 
       // Show success message
       toast({
@@ -177,10 +228,12 @@ const EurekaIframe = () => {
       });
 
       // Emit custom events to update realtime listeners
+      console.log('📡 Emitting eurekaNewSubmission event...');
       window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
         detail: { submissionId: submission.id, companyName: data.companyName } 
       }));
       
+      console.log('🧹 Resetting form and LinkedIn profiles...');
       form.reset();
       setFounderLinkedIns([""]);
       
@@ -189,18 +242,29 @@ const EurekaIframe = () => {
         title: "Application Submitted!",
         description: "Thank you for your submission. We'll be in touch soon.",
       });
+
+      console.log('✅ IFRAME SUBMISSION PROCESS COMPLETED SUCCESSFULLY');
       
     } catch (error: any) {
+      console.error('💥 SUBMISSION ERROR OCCURRED:');
       console.error('❌ Error submitting iframe form:', error);
+      console.error('❌ Error name:', error.name);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      
       toast({
         title: "Submission Error",
         description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
         variant: "destructive",
       });
     } finally {
+      console.log('🏁 Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };
+
+  console.log('🎨 Rendering EurekaIframe component');
 
   return (
     <div className="min-h-screen bg-white py-4 px-4">
@@ -530,6 +594,7 @@ const EurekaIframe = () => {
                   type="submit" 
                   className="w-full" 
                   disabled={isSubmitting}
+                  onClick={() => console.log('🖱️ Submit button clicked!')}
                 >
                   {isSubmitting ? (
                     <>
