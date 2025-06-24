@@ -153,10 +153,10 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
         </div>
       </div>
 
-      {/* Split View: PDF on left (more space), Notes on right (less space) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* PDF Viewer - Left Side (2/3 width) */}
-        <div className="lg:col-span-2">
+      {/* Split View: PDF on left (even more space), Notes on right (less space) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* PDF Viewer - Left Side (3/4 width) */}
+        <div className="lg:col-span-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -199,7 +199,7 @@ export function SlideBySlideViewer({ reportId, slideNotes, companyName }: SlideB
           </Card>
         </div>
 
-        {/* Slide Notes - Right Side (1/3 width, same height as PDF) */}
+        {/* Slide Notes - Right Side (1/4 width, same height as PDF) */}
         <div className="lg:col-span-1">
           <Card className="border-l-4 border-l-primary h-full">
             <CardHeader className="pb-3">
