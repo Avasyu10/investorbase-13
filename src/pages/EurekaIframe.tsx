@@ -172,7 +172,7 @@ const EurekaIframe = () => {
     try {
       // Create submission data - EXACTLY like the main form
       const submissionData: EurekaSubmissionData = {
-        form_slug: slug || 'eureka-sample',
+        form_slug: slug || 'eureka-iframe',
         company_name: data.companyName,
         company_registration_type: data.companyRegistrationType || "Not Specified",
         executive_summary: data.executiveSummary,
