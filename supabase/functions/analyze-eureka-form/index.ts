@@ -297,7 +297,7 @@ serve(async (req) => {
 
     RECOMMENDATION LOGIC:
     - Accept: Overall score ≥ 75 (top tier applications with strong execution potential)
-    - Consider: Overall score 60-74 (solid applications with good potential)
+    - Consider: Overall score 60-74 (solid applications with good potential)  
     - Reject: Overall score < 60 (applications needing significant development)
 
     MANDATORY MARKET DATA REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
@@ -308,18 +308,23 @@ serve(async (req) => {
     - Use actual industry statistics and benchmarks
     - Reference real market research data and sources
 
-    CRITICAL FOR IIT BOMBAY USERS - IMPROVEMENTS SECTION REQUIREMENTS:
-    All "improvements" sections must be 100% market-driven insights. Focus EXCLUSIVELY on:
-    - Market challenges and opportunities based on real industry data
-    - Competitive landscape insights with specific competitor analysis
-    - Industry benchmarks and performance metrics
-    - Market penetration strategies based on successful case studies
-    - Revenue optimization opportunities based on industry pricing data
-    - Customer acquisition challenges based on market research
-    - Market positioning opportunities with quantified data
-    - Industry-specific growth strategies with success metrics
-    
-    DO NOT mention missing form information, application completeness, or suggest adding more details to responses. Focus entirely on market dynamics, industry challenges, and strategic opportunities backed by real data.
+    CRITICAL FOR IIT BOMBAY USERS - WEAKNESSES SECTION REQUIREMENTS:
+    The "improvements" sections must ONLY contain market-based challenges and weaknesses. These are NOT recommendations for the startup but rather market realities they will face:
+
+    ACCEPTABLE WEAKNESS TYPES:
+    - "The [industry] market faces intense competition with established players like [Company X] holding [Y]% market share"
+    - "Customer acquisition costs in this sector average $[X] according to [industry report], creating profitability challenges"
+    - "Market penetration typically requires 18-24 months based on similar companies like [examples]"
+    - "The industry experiences seasonal fluctuations with [X]% revenue variance between quarters"
+    - "Regulatory challenges in this space include [specific regulations] affecting [X]% of similar companies"
+
+    FORBIDDEN WEAKNESS TYPES (DO NOT USE):
+    - Any suggestion about form completion ("could provide more details about...")
+    - Any recommendation for what the startup should do ("should consider...")
+    - Any advice about strategy improvements ("could improve by...")
+    - Any mention of missing information in their responses
+
+    Think of weaknesses as external market forces and industry challenges, not internal startup deficiencies or missing application details.
 
     Return analysis in this JSON format:
     {
@@ -336,31 +341,31 @@ serve(async (req) => {
           "score": number (0-100),
           "analysis": "Balanced analysis highlighting what they did well and areas for improvement WITH MARKET DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REAL MARKET NUMBERS"],
-          "improvements": ["4-5 market-driven improvement areas focusing on industry challenges, competitive landscape, market opportunities, and strategic positioning - ALL based on real market data and industry benchmarks"]
+          "improvements": ["4-5 market challenges this startup will face based on industry data - focus on external market forces, competition intensity, customer acquisition difficulties, and industry barriers - NO form completion suggestions"]
         },
         "target_customers": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their customer understanding WITH MARKET SIZING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING CUSTOMER SEGMENT SIZES"],
-          "improvements": ["4-5 market-driven improvement areas focusing on customer acquisition challenges, market penetration strategies, segment analysis, and customer behavior insights - ALL based on real market research data"]
+          "improvements": ["4-5 customer market challenges including acquisition costs, conversion rates, market saturation levels, and customer behavior patterns from industry research - NO application feedback"]
         },
         "competitors": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their competitive understanding WITH COMPETITOR VALUATIONS",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING COMPETITIVE MARKET SHARE DATA"],
-          "improvements": ["4-5 market-driven improvement areas focusing on competitive positioning, market share opportunities, differentiation strategies, and competitive response tactics - ALL based on real competitor analysis and market data"]
+          "improvements": ["4-5 competitive market realities including market leader advantages, barriers to entry, competitive pricing pressures, and market consolidation trends - NO strategy advice"]
         },
         "revenue_model": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their revenue strategy WITH INDUSTRY PRICING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REVENUE BENCHMARKS"],
-          "improvements": ["4-5 market-driven improvement areas focusing on pricing optimization, revenue stream diversification, market-based monetization strategies, and industry revenue benchmarks - ALL based on real financial data and industry standards"]
+          "improvements": ["4-5 revenue market challenges including industry pricing pressures, customer payment patterns, seasonal revenue fluctuations, and monetization difficulties based on industry data - NO pricing recommendations"]
         },
         "differentiation": {
           "score": number (0-100),
           "analysis": "Balanced analysis of their differentiation strategy WITH MARKET POSITIONING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING INNOVATION METRICS"],
-          "improvements": ["4-5 market-driven improvement areas focusing on innovation opportunities, market gap analysis, positioning strategies, and competitive advantages - ALL based on real market trends and innovation data"]
+          "improvements": ["4-5 market differentiation challenges including commoditization risks, innovation cycles, patent landscapes, and market saturation levels based on industry trends - NO positioning advice"]
         }
       },
       "summary": {
@@ -380,9 +385,9 @@ serve(async (req) => {
       }
     }
 
-    CRITICAL: Every analysis section MUST include real market data, specific numbers, competitor information, industry statistics, and quantified benchmarks. All "improvements" sections must be market-driven insights focusing on industry challenges and opportunities, NOT gaps in the application form.
+    CRITICAL: Every analysis section MUST include real market data, specific numbers, competitor information, industry statistics, and quantified benchmarks. All "improvements" sections must describe market challenges and external forces, NOT suggestions for improving the application or startup strategy.
 
-    IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement with real market data.
+    IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing market-based challenges they will face.
     ` : `
     You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to evaluate startup applications fairly while providing meaningful score differentiation. Most good applications should score between 60-80, with exceptional ones reaching 80-90.
 
