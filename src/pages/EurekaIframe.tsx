@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 interface EurekaFormData {
@@ -83,95 +83,39 @@ const EurekaIframe = () => {
 
   const onSubmit = async (data: EurekaFormData) => {
     console.log('🚀 IFRAME FORM SUBMISSION STARTED');
-    console.log('📝 Eureka iframe form submit triggered with data:', data);
-    console.log('👤 Submitting with user:', user);
-    console.log('👤 User ID that will be submitted:', user?.id);
+    console.log('📝 Form data being submitted:', data);
+    console.log('👤 User:', user);
     console.log('📍 Form slug:', slug);
     console.log('🔗 Founder LinkedIn URLs:', founderLinkedIns);
     
-    // Basic validation with detailed logging
-    console.log('🔍 Starting validation...');
-    
-    if (!data.companyName.trim()) {
-      console.error('❌ Validation failed: Company name is missing');
-      toast({
-        title: "Error",
-        description: "Company name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-    console.log('✅ Company name validation passed');
-    
-    if (!data.submitterEmail.trim()) {
-      console.error('❌ Validation failed: Email is missing');
-      toast({
-        title: "Error", 
-        description: "Email is required",
-        variant: "destructive",
-      });
-      return;
-    }
-    console.log('✅ Email validation passed');
-    
-    if (!data.pocName.trim()) {
-      console.error('❌ Validation failed: POC name is missing');
-      toast({
-        title: "Error",
-        description: "POC name is required", 
-        variant: "destructive",
-      });
-      return;
-    }
-    console.log('✅ POC name validation passed');
-    
-    if (!data.phoneNumber.trim()) {
-      console.error('❌ Validation failed: Phone number is missing');
-      toast({
-        title: "Error",
-        description: "Phone number is required",
-        variant: "destructive",
-      });
-      return;
-    }
-    console.log('✅ Phone number validation passed');
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.submitterEmail)) {
-      console.error('❌ Validation failed: Invalid email format:', data.submitterEmail);
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-    console.log('✅ Email format validation passed');
-
-    // Validate LinkedIn URLs format
-    const invalidLinkedInUrls = founderLinkedIns.filter(url => {
-      if (!url.trim()) return false; // Empty URLs are allowed
-      return !url.includes('linkedin.com/');
-    });
-
-    if (invalidLinkedInUrls.length > 0) {
-      console.error('❌ Validation failed: Invalid LinkedIn URLs:', invalidLinkedInUrls);
-      toast({
-        title: "Error",
-        description: "Please enter valid LinkedIn URLs (e.g., https://linkedin.com/in/username)",
-        variant: "destructive",
-      });
-      return;
-    }
-    console.log('✅ LinkedIn URLs validation passed');
-
-    console.log('🎉 All validation passed, proceeding with submission...');
     setIsSubmitting(true);
 
     try {
-      // Create submission data with proper field mapping to eureka_form_submissions table
-      const submissionData: EurekaSubmissionData = {
+      // Basic validation
+      if (!data.companyName.trim()) {
+        throw new Error('Company name is required');
+      }
+      
+      if (!data.submitterEmail.trim()) {
+        throw new Error('Email is required');
+      }
+      
+      if (!data.pocName.trim()) {
+        throw new Error('POC name is required');
+      }
+      
+      if (!data.phoneNumber.trim()) {
+        throw new Error('Phone number is required');
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.submitterEmail)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Create submission data - DIRECT insert to avoid timing issues
+      const submissionData = {
         form_slug: slug || 'eureka-iframe',
         company_name: data.companyName,
         company_registration_type: data.companyRegistrationType || "Not Specified",
@@ -190,36 +134,23 @@ const EurekaIframe = () => {
         user_id: user?.id || null
       };
 
-      console.log('📋 FINAL SUBMISSION DATA STRUCTURE:');
-      console.log('📋 Form slug:', submissionData.form_slug);
-      console.log('📋 Company name:', submissionData.company_name);
-      console.log('📋 Company registration type:', submissionData.company_registration_type);
-      console.log('📋 Executive summary length:', submissionData.executive_summary?.length || 0);
-      console.log('📋 Company type:', submissionData.company_type);
-      console.log('📋 Submitter email:', submissionData.submitter_email);
-      console.log('📋 POC name:', submissionData.poc_name);
-      console.log('📋 Phone number:', submissionData.phoneno);
-      console.log('📋 Company LinkedIn URL:', submissionData.company_linkedin_url);
-      console.log('📋 User ID:', submissionData.user_id);
-      console.log('📋 Founder LinkedIn URLs:', submissionData.founder_linkedin_urls);
-      console.log('📋 Questions:', {
-        q1: submissionData.question_1?.substring(0, 50) + '...',
-        q2: submissionData.question_2?.substring(0, 50) + '...',
-        q3: submissionData.question_3?.substring(0, 50) + '...',
-        q4: submissionData.question_4?.substring(0, 50) + '...',
-        q5: submissionData.question_5?.substring(0, 50) + '...'
-      });
+      console.log('📋 DIRECT SUPABASE INSERT - Final submission data:', submissionData);
 
-      console.log('🚀 Calling submitEurekaForm API...');
-      console.log('🚀 About to submit to Supabase with data:', JSON.stringify(submissionData, null, 2));
+      // DIRECT INSERT - avoiding the API layer to prevent timing issues
+      const { data: submission, error } = await supabase
+        .from('eureka_form_submissions')
+        .insert([submissionData])
+        .select()
+        .single();
 
-      // Submit the form - the database trigger will automatically start analysis
-      const submission = await submitEurekaForm(submissionData);
-      console.log('🎉 IFRAME FORM SUBMITTED SUCCESSFULLY!');
-      console.log('📋 Eureka iframe form submitted successfully:', submission);
-      console.log('📋 Submission ID:', submission.id);
-      console.log('📋 Submission created at:', submission.created_at);
-      console.log('📋 Analysis status:', submission.analysis_status);
+      if (error) {
+        console.error('💥 SUPABASE INSERT ERROR:', error);
+        throw new Error(`Submission failed: ${error.message}`);
+      }
+
+      console.log('🎉 DIRECT INSERT SUCCESSFUL!');
+      console.log('✅ Submission data returned:', submission);
+      console.log('✅ Submission ID:', submission?.id);
 
       // Show success message
       toast({
@@ -227,31 +158,14 @@ const EurekaIframe = () => {
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
       });
 
-      // Emit custom events to update realtime listeners
-      console.log('📡 Emitting eurekaNewSubmission event...');
-      window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
-        detail: { submissionId: submission.id, companyName: data.companyName } 
-      }));
-      
-      console.log('🧹 Resetting form and LinkedIn profiles...');
+      // Reset form
       form.reset();
       setFounderLinkedIns([""]);
       
-      // For iframe, show success message instead of navigating
-      toast({
-        title: "Application Submitted!",
-        description: "Thank you for your submission. We'll be in touch soon.",
-      });
-
       console.log('✅ IFRAME SUBMISSION PROCESS COMPLETED SUCCESSFULLY');
       
     } catch (error: any) {
-      console.error('💥 SUBMISSION ERROR OCCURRED:');
-      console.error('❌ Error submitting iframe form:', error);
-      console.error('❌ Error name:', error.name);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error stack:', error.stack);
-      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      console.error('💥 SUBMISSION ERROR:', error);
       
       toast({
         title: "Submission Error",
@@ -263,8 +177,6 @@ const EurekaIframe = () => {
       setIsSubmitting(false);
     }
   };
-
-  console.log('🎨 Rendering EurekaIframe component');
 
   return (
     <div className="min-h-screen bg-white py-4 px-4">
@@ -607,7 +519,6 @@ const EurekaIframe = () => {
                   type="submit" 
                   className="w-full" 
                   disabled={isSubmitting}
-                  onClick={() => console.log('🖱️ Submit button clicked!')}
                 >
                   {isSubmitting ? (
                     <>

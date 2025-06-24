@@ -53,7 +53,6 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
       console.error('❌ Error details:', error.details);
       console.error('❌ Error hint:', error.hint);
       console.error('❌ Full error object:', JSON.stringify(error, null, 2));
-      console.error('❌ Error submitting Eureka form:', error);
       throw error;
     }
 
@@ -74,5 +73,3 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
     throw error;
   }
 };
-
-// Remove the analyzeEurekaSubmission function since analysis is now automatic via trigger

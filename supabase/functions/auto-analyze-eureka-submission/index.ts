@@ -1,18 +1,19 @@
 
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, user-agent, accept, accept-language, cache-control, pragma',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET, PUT, DELETE',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
-  console.log(`Auto-analyze Eureka submission - Request method: ${req.method}`);
+  console.log(`Auto-analyze wrapper - Request method: ${req.method}`);
   
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
+    console.log('Auto-analyze wrapper - Handling CORS preflight request');
     return new Response(null, { 
       headers: corsHeaders,
       status: 200 
@@ -20,7 +21,7 @@ serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    console.log(`Method ${req.method} not allowed`);
+    console.log(`Auto-analyze wrapper - Method ${req.method} not allowed`);
     return new Response(
       JSON.stringify({ success: false, error: 'Method not allowed' }),
       {
@@ -32,90 +33,49 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { submissionId, companyName, submitterEmail, createdAt } = requestBody;
+    console.log('Auto-analyze wrapper - Received request body:', requestBody);
     
-    console.log('Auto-analyze Eureka submission request:', {
-      submissionId,
-      companyName,
-      submitterEmail,
-      createdAt
-    });
+    const submissionId = requestBody.submissionId || requestBody.submission_id;
     
     if (!submissionId) {
       throw new Error('Submission ID is required');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    console.log(`Auto-analyze wrapper - Processing submission: ${submissionId}`);
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Required environment variables are missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Add a longer delay to ensure the submission is fully committed to the database
-    console.log('Adding delay to ensure database consistency...');
+    // Add a small delay to ensure the transaction is committed
+    console.log('Auto-analyze wrapper - Adding 2 second delay for transaction commit...');
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // First, verify the submission exists and update status to processing
-    console.log('Verifying submission exists and updating status...');
-    const { data: submissionCheck, error: checkError } = await supabase
-      .from('eureka_form_submissions')
-      .select('id, analysis_status, company_name')
-      .eq('id', submissionId)
-      .single();
-
-    if (checkError || !submissionCheck) {
-      console.error('Submission not found during verification:', checkError);
-      throw new Error(`Submission not found: ${checkError?.message || 'Unknown error'}`);
-    }
-
-    console.log('Submission verified:', submissionCheck);
-
-    // Update status to processing
-    const { error: updateError } = await supabase
-      .from('eureka_form_submissions')
-      .update({ 
-        analysis_status: 'processing',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', submissionId);
-
-    if (updateError) {
-      console.error('Error updating submission status:', updateError);
-      throw new Error(`Failed to update submission status: ${updateError.message}`);
-    }
-
-    console.log('Status updated to processing, calling main analysis function...');
-    
     // Call the main analysis function
-    const { data, error } = await supabase.functions.invoke('analyze-eureka-form', {
-      body: { submissionId }
-    });
+    console.log('Auto-analyze wrapper - Calling main analyze-eureka-form function...');
+    
+    const analysisResponse = await fetch(
+      'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/analyze-eureka-form',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': req.headers.get('Authorization') || '',
+        },
+        body: JSON.stringify({ submissionId }),
+      }
+    );
 
-    if (error) {
-      console.error('Error from analyze-eureka-form function:', error);
-      
-      // Update submission status to failed
-      await supabase
-        .from('eureka_form_submissions')
-        .update({
-          analysis_status: 'failed',
-          analysis_error: error.message || 'Analysis function failed'
-        })
-        .eq('id', submissionId);
-      
-      throw new Error(`Analysis function failed: ${error.message}`);
+    const analysisResult = await analysisResponse.json();
+    
+    console.log('Auto-analyze wrapper - Analysis function response:', analysisResult);
+
+    if (!analysisResponse.ok) {
+      throw new Error(`Analysis function failed: ${analysisResult.error || 'Unknown error'}`);
     }
-
-    console.log('Analysis function completed successfully:', data);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
+        message: 'Analysis initiated successfully',
         submissionId,
-        data
+        analysisResult
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -123,8 +83,8 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in auto-analyze-eureka-submission function:', error);
-
+    console.error('Auto-analyze wrapper - Error:', error);
+    
     return new Response(
       JSON.stringify({ 
         success: false,
