@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -106,25 +107,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Authentication failed - no user ID received');
       }
 
-      // Check user's signup source from profile
+      // Check user's signup source from profile - this is REQUIRED for access control
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('signup_source')
         .eq('id', userId)
-        .maybeSingle();
+        .single(); // Use single() instead of maybeSingle() to ensure we get the profile
 
-      if (profileError && profileError.code !== 'PGRST116') {
+      if (profileError) {
         console.error('Error checking user profile:', profileError);
-        // Don't block signin for profile check errors, just log them
+        await supabase.auth.signOut(); // Sign out the user
+        throw new Error('Unable to verify user profile. Please contact support.');
       }
 
       console.log('User profile data:', profileData);
       console.log('Attempting signin with userType:', userType);
 
-      // Enforce access restrictions based on signup source and login type
-      if (userType && (userType === 'accelerator' || userType === 'vc')) {
+      // STRICT ACCESS CONTROL LOGIC
+      if (userType === 'accelerator' || userType === 'vc') {
         // This is an institutional signin attempt
-        if (profileData && profileData.signup_source === 'founder_signup') {
+        if (!profileData || profileData.signup_source === 'founder_signup') {
           // Founder trying to access institutional signin - block this
           console.log('Blocking founder from accessing institutional signin');
           await supabase.auth.signOut();
