@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
@@ -29,6 +28,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 import ThankYou from "@/pages/ThankYou";
 import EurekaSample from "@/pages/EurekaSample";
+import EurekaEmbed from "@/pages/EurekaEmbed";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -40,6 +40,8 @@ export const routes = [
   { path: "/public-upload", element: <PublicUpload /> },
   { path: "/submit/:slug", element: <BarcSubmit /> },
   { path: "/submit/eureka-sample", element: <EurekaSample /> },
+  { path: "/embed/eureka/:slug", element: <EurekaEmbed /> },
+  { path: "/embed/eureka", element: <EurekaEmbed /> },
   { path: "/thank-you", element: <ThankYou /> },
   { 
     path: "/dashboard", 
