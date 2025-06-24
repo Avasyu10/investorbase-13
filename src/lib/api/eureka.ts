@@ -23,12 +23,6 @@ export interface EurekaSubmissionData {
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('🔗 SUPABASE API CALL STARTED');
   console.log('📤 submitEurekaForm called with data:', data);
-  console.log('📤 Data structure validation:');
-  console.log('  - form_slug:', typeof data.form_slug, '=', data.form_slug);
-  console.log('  - company_name:', typeof data.company_name, '=', data.company_name);
-  console.log('  - submitter_email:', typeof data.submitter_email, '=', data.submitter_email);
-  console.log('  - user_id:', typeof data.user_id, '=', data.user_id);
-  console.log('  - founder_linkedin_urls length:', data.founder_linkedin_urls?.length);
   
   // Ensure user_id is included in the submission
   const submissionData = {
@@ -40,6 +34,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('🚀 Calling supabase.from("eureka_form_submissions").insert()...');
   
   try {
+    // First, insert the submission without triggering analysis immediately
     const { data: submission, error } = await supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
@@ -48,28 +43,53 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
 
     if (error) {
       console.error('💥 SUPABASE INSERT ERROR:');
-      console.error('❌ Error code:', error.code);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error details:', error.details);
-      console.error('❌ Error hint:', error.hint);
-      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      console.error('❌ Error:', error);
       throw error;
     }
 
     console.log('🎉 SUPABASE INSERT SUCCESSFUL!');
-    console.log('✅ Eureka form submitted successfully - analysis will start automatically via trigger');
     console.log('✅ Submission data returned from Supabase:', submission);
-    console.log('✅ Submission ID:', submission?.id);
-    console.log('✅ Created at:', submission?.created_at);
-    console.log('✅ Analysis status:', submission?.analysis_status);
+    
+    // Wait a bit longer before triggering analysis to ensure transaction is committed
+    console.log('⏳ Waiting 3 seconds before triggering analysis...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Now trigger the analysis with proper error handling
+    try {
+      console.log('🔍 Triggering analysis for submission:', submission.id);
+      
+      const analysisResponse = await fetch(
+        'https://jhtnruktmtjqrfoiyrep.supabase.co/functions/v1/auto-analyze-eureka-submission',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            submissionId: submission.id,
+            submission_id: submission.id // Include both formats for compatibility
+          }),
+        }
+      );
+
+      const analysisResult = await analysisResponse.json();
+      console.log('📊 Analysis trigger response:', analysisResult);
+      
+      if (!analysisResponse.ok) {
+        console.warn('⚠️ Analysis trigger failed, but submission was successful:', analysisResult);
+        // Don't throw here - submission was successful, analysis can be retried later
+      } else {
+        console.log('✅ Analysis triggered successfully');
+      }
+    } catch (analysisError) {
+      console.warn('⚠️ Analysis trigger failed, but submission was successful:', analysisError);
+      // Don't throw here - submission was successful, analysis can be retried later
+    }
     
     return submission;
   } catch (error) {
     console.error('💥 EXCEPTION IN submitEurekaForm:');
-    console.error('❌ Exception type:', typeof error);
     console.error('❌ Exception:', error);
-    console.error('❌ Exception message:', (error as any)?.message);
-    console.error('❌ Exception stack:', (error as any)?.stack);
     throw error;
   }
 };

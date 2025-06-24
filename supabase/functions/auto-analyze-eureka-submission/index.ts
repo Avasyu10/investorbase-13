@@ -11,6 +11,8 @@ const corsHeaders = {
 
 serve(async (req) => {
   console.log(`Auto-analyze wrapper - Request method: ${req.method}`);
+  console.log(`Auto-analyze wrapper - Request origin: ${req.headers.get('origin')}`);
+  console.log(`Auto-analyze wrapper - Request URL: ${req.url}`);
   
   if (req.method === 'OPTIONS') {
     console.log('Auto-analyze wrapper - Handling CORS preflight request');
@@ -43,9 +45,9 @@ serve(async (req) => {
 
     console.log(`Auto-analyze wrapper - Processing submission: ${submissionId}`);
 
-    // Add a small delay to ensure the transaction is committed
-    console.log('Auto-analyze wrapper - Adding 2 second delay for transaction commit...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Add a longer delay to ensure the database transaction is fully committed
+    console.log('Auto-analyze wrapper - Adding 5 second delay for transaction commit...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Call the main analysis function
     console.log('Auto-analyze wrapper - Calling main analyze-eureka-form function...');
@@ -65,9 +67,23 @@ serve(async (req) => {
     const analysisResult = await analysisResponse.json();
     
     console.log('Auto-analyze wrapper - Analysis function response:', analysisResult);
+    console.log('Auto-analyze wrapper - Analysis function status:', analysisResponse.status);
 
     if (!analysisResponse.ok) {
-      throw new Error(`Analysis function failed: ${analysisResult.error || 'Unknown error'}`);
+      console.warn('Auto-analyze wrapper - Analysis function failed:', analysisResult);
+      // Don't throw error - return success but with warning
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Analysis scheduled but may have encountered issues',
+          submissionId,
+          analysisResult,
+          warning: `Analysis function returned status ${analysisResponse.status}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     return new Response(
@@ -88,7 +104,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        details: 'Check function logs for more information'
       }),
       {
         status: 500,

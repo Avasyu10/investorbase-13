@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -88,12 +87,11 @@ const EurekaIframe = () => {
     console.log('📝 Form data being submitted:', data);
     console.log('👤 User:', user);
     console.log('📍 Form slug:', slug);
-    console.log('🔗 Founder LinkedIn URLs from state:', founderLinkedIns);
     
     setIsSubmitting(true);
 
     try {
-      // Validate required fields with more detailed error messages
+      // Validate required fields
       const missingFields = [];
       
       if (!data.companyName?.trim()) missingFields.push('Company Name');
@@ -117,11 +115,11 @@ const EurekaIframe = () => {
         throw new Error('Please enter a valid email address');
       }
 
-      // Use the current founderLinkedIns state instead of form data
+      // Filter out empty LinkedIn URLs
       const finalLinkedInUrls = founderLinkedIns.filter(url => url.trim());
       console.log('🔗 Final LinkedIn URLs to submit:', finalLinkedInUrls);
 
-      // Prepare submission data using the API format
+      // Prepare submission data
       const submissionData = {
         form_slug: slug || 'eureka-iframe',
         company_name: data.companyName.trim(),
@@ -142,8 +140,6 @@ const EurekaIframe = () => {
       };
 
       console.log('📋 FINAL SUBMISSION DATA:', submissionData);
-
-      // Use the working API method
       console.log('🚀 Calling submitEurekaForm API function...');
       
       const submission = await submitEurekaForm(submissionData);
@@ -162,13 +158,20 @@ const EurekaIframe = () => {
       
     } catch (error: any) {
       console.error('💥 SUBMISSION ERROR:', error);
-      console.error('💥 Error type:', typeof error);
-      console.error('💥 Error message:', error?.message);
-      console.error('💥 Error stack:', error?.stack);
+      
+      // Show more detailed error message
+      let errorMessage = "Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.code === 'PGRST301') {
+        errorMessage = "Database connection issue. Please try again.";
+      } else if (error.code === 'PGRST116') {
+        errorMessage = "Validation error. Please check your form data.";
+      }
       
       toast({
         title: "Submission Error",
-        description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
+        description: `There was an error submitting your application: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
