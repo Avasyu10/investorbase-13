@@ -189,7 +189,7 @@ serve(async (req) => {
 
     // Parse request data
     const reqData = await req.json();
-    const { reportId, companyId } = reqData;
+    const { reportId, companyId, stage, industry } = reqData;
     
     if (!reportId) {
       console.error("Missing reportId in request");
@@ -258,17 +258,23 @@ serve(async (req) => {
       
       console.log("Company details extracted:", companyDetails);
       
+      // Prepare the details object with extracted data plus stage and industry from form
+      const detailsToSave = {
+        company_id: companyId,
+        website: companyDetails.website,
+        // Use stage and industry from the upload form if provided, otherwise fall back to extracted values
+        industry: industry || companyDetails.industry,
+        stage: stage || companyDetails.stage,
+        introduction: companyDetails.introduction
+      };
+      
+      console.log("Details to save:", detailsToSave);
+      
       // Save company details to database
       console.log("Saving company details to database...");
       const { data: savedDetails, error: saveError } = await serviceClient
         .from('company_details')
-        .upsert({
-          company_id: companyId,
-          website: companyDetails.website,
-          industry: companyDetails.industry,
-          stage: companyDetails.stage,
-          introduction: companyDetails.introduction
-        })
+        .upsert(detailsToSave)
         .select()
         .single();
       

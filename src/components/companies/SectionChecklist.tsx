@@ -40,8 +40,42 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
       .join(' ');
   };
 
-  // Check if section is addressed (has content or description)
+  // Check if section is addressed (has content or description that indicates it's present)
   const isSectionAddressed = (section: Section) => {
+    // Check if description indicates the section is addressed
+    if (section.description) {
+      const description = section.description.toLowerCase();
+      // Look for positive indicators that the section is present/addressed
+      const addressedIndicators = [
+        'addressed', 'covered', 'included', 'present', 'discussed', 
+        'mentioned', 'detailed', 'explained', 'outlined', 'provided'
+      ];
+      
+      const notAddressedIndicators = [
+        'not addressed', 'not covered', 'not included', 'missing', 
+        'absent', 'lacking', 'not present', 'not discussed'
+      ];
+      
+      // Check for negative indicators first (more specific)
+      const hasNegativeIndicator = notAddressedIndicators.some(indicator => 
+        description.includes(indicator)
+      );
+      
+      if (hasNegativeIndicator) {
+        return false;
+      }
+      
+      // Check for positive indicators
+      const hasPositiveIndicator = addressedIndicators.some(indicator => 
+        description.includes(indicator)
+      );
+      
+      if (hasPositiveIndicator) {
+        return true;
+      }
+    }
+    
+    // Fallback: check if there's any meaningful content
     return !!(section.description || section.strengths?.length || section.weaknesses?.length);
   };
 

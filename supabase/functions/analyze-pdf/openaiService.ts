@@ -1,3 +1,4 @@
+
 import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 export interface AnalysisResult {
@@ -497,20 +498,84 @@ Return your analysis in EXACTLY this JSON format (no extra text before or after)
   ],
   "sections": [
     {
-      "type": "SLIDE_NOTES",
-      "title": "Slide by Slide Analysis",
-      "score": <number between 0-${scoringScale}>,
-      "description": "Comprehensive slide-by-slide analysis of the pitch deck with detailed insights for each page.",
-      "strengths": [
-        "<overall presentation strength 1>",
-        "<overall presentation strength 2>",
-        "<overall presentation strength 3>"
-      ],
-      "weaknesses": [
-        "<overall presentation weakness 1>",
-        "<overall presentation weakness 2>",
-        "<overall presentation weakness 3>"
-      ]
+      "type": "PROBLEM",
+      "title": "Problem Statement",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "MARKET",
+      "title": "Market Opportunity",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "SOLUTION",
+      "title": "Solution (Product)",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "COMPETITIVE_LANDSCAPE",
+      "title": "Competitive Landscape",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "TRACTION",
+      "title": "Traction & Milestones",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "BUSINESS_MODEL",
+      "title": "Business Model",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "GTM_STRATEGY",
+      "title": "Go-to-Market Strategy",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "TEAM",
+      "title": "Founder & Team Background",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "FINANCIALS",
+      "title": "Financial Overview & Projections",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
+    },
+    {
+      "type": "ASK",
+      "title": "The Ask & Next Steps",
+      "score": 0,
+      "description": "Assessment of whether this section is addressed in the pitch deck.",
+      "strengths": [],
+      "weaknesses": []
     }
   ],
   "slideBySlideNotes": [
@@ -532,6 +597,18 @@ Return your analysis in EXACTLY this JSON format (no extra text before or after)
         "<detailed analysis point 4 for slide 2>"
       ]
     }
+  ],
+  "improvementSuggestions": [
+    "<actionable improvement suggestion 1 with specific implementation guidance>",
+    "<actionable improvement suggestion 2 with specific implementation guidance>",
+    "<actionable improvement suggestion 3 with specific implementation guidance>",
+    "<actionable improvement suggestion 4 with specific implementation guidance>",
+    "<actionable improvement suggestion 5 with specific implementation guidance>",
+    "<actionable improvement suggestion 6 with specific implementation guidance>",
+    "<actionable improvement suggestion 7 with specific implementation guidance>",
+    "<actionable improvement suggestion 8 with specific implementation guidance>",
+    "<actionable improvement suggestion 9 with specific implementation guidance>",
+    "<actionable improvement suggestion 10 with specific implementation guidance>"
   ]
 }
 
@@ -539,7 +616,13 @@ CRITICAL REQUIREMENTS:
 
 1. EXAMINE EVERY PAGE: Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc.
 
-2. SLIDE-BY-SLIDE NOTES REQUIREMENTS:
+2. SECTION ANALYSIS REQUIREMENTS:
+   - For each section, ONLY assess if the topic is addressed or not in the pitch deck
+   - Set score to 0 for all sections (we're not scoring individual sections anymore)
+   - Keep strengths and weaknesses arrays empty [] 
+   - Only provide a brief description noting whether the section is present in the deck
+
+3. SLIDE-BY-SLIDE NOTES REQUIREMENTS:
    - You MUST provide exactly 4 detailed notes for EACH slide in the deck
    - Each note should be 2-3 sentences long with specific observations
    - Include content analysis, design feedback, business insights, and recommendations
@@ -547,20 +630,11 @@ CRITICAL REQUIREMENTS:
    - Provide both positive observations and constructive criticism
    - Include market context and industry benchmarks where relevant
 
-3. CONTENT ANALYSIS FOR EACH SLIDE:
-   - What key message is the slide trying to convey?
-   - How effectively does it communicate that message?
-   - What specific data, metrics, or claims are presented?
-   - Are there any gaps or missing information?
-   - How does this slide contribute to the overall narrative?
-
-4. BUSINESS INSIGHTS:
-   - Market opportunity assessment based on slide content
-   - Competitive positioning analysis
-   - Business model validation
-   - Team credibility evaluation
-   - Financial projections assessment
-   - Risk identification and mitigation
+4. IMPROVEMENT SUGGESTIONS REQUIREMENTS:
+   - Provide EXACTLY 10 actionable improvement suggestions
+   - Each suggestion must be specific and implementable
+   - Focus on critical gaps and areas for enhancement
+   - Each suggestion should include WHY it's important and HOW to implement it
 
 The slideBySlideNotes array MUST contain an entry for every slide in the PDF. Count the total pages carefully and ensure you analyze each one.
 
