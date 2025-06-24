@@ -61,7 +61,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
       console.warn('⚠️ Auth service unavailable (continuing as anonymous):', authException);
     }
     
-    // Prepare submission data with iframe-safe approach
+    // Prepare submission data with proper schema
     const submissionData = {
       form_slug: data.form_slug,
       company_name: data.company_name,
@@ -78,7 +78,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
       poc_name: data.poc_name,
       phoneno: data.phoneno,
       company_linkedin_url: data.company_linkedin_url,
-      user_id: userId,
+      user_id: userId, // This should now work with the fixed schema
       analysis_status: 'pending',
       // Add metadata for debugging iframe submissions
       submission_context: {
@@ -89,9 +89,9 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
       }
     };
     
-    console.log('📋 Submitting with context-aware data:', submissionData);
+    console.log('📋 Submitting with fixed schema data:', submissionData);
     
-    // Enhanced submission with iframe-specific error handling
+    // Enhanced submission with better error reporting
     const { data: submission, error } = await supabase
       .from('eureka_form_submissions')
       .insert([submissionData])
@@ -99,10 +99,17 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
       .single();
 
     if (error) {
-      console.error('❌ Database error:', error);
+      console.error('❌ Database error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       
-      // Provide specific error messages for common iframe issues
-      if (error.message?.includes('JWT')) {
+      // Provide specific error messages for common issues
+      if (error.message?.includes('user_id') || error.message?.includes('invalid column')) {
+        throw new Error('Database schema error: The user_id column is missing. Please contact support.');
+      } else if (error.message?.includes('JWT')) {
         throw new Error('Authentication token invalid. This may be due to third-party cookie restrictions in iframe context.');
       } else if (error.message?.includes('CORS')) {
         throw new Error('Cross-origin request blocked. Please ensure the iframe is embedded correctly.');
