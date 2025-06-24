@@ -64,19 +64,23 @@ const EurekaIframe = () => {
 
   const addLinkedInProfile = () => {
     console.log('➕ Adding LinkedIn profile');
-    setFounderLinkedIns(prev => [...prev, ""]);
+    const newProfiles = [...founderLinkedIns, ""];
+    setFounderLinkedIns(newProfiles);
+    form.setValue('founderLinkedInUrls', newProfiles);
   };
 
   const removeLinkedInProfile = (index: number) => {
     console.log('➖ Removing LinkedIn profile at index:', index);
-    setFounderLinkedIns(prev => prev.filter((_, i) => i !== index));
+    const newProfiles = founderLinkedIns.filter((_, i) => i !== index);
+    setFounderLinkedIns(newProfiles);
+    form.setValue('founderLinkedInUrls', newProfiles);
   };
 
   const updateLinkedInProfile = (index: number, value: string) => {
     console.log('✏️ Updating LinkedIn profile at index:', index, 'with value:', value);
-    setFounderLinkedIns(prev => 
-      prev.map((profile, i) => i === index ? value : profile)
-    );
+    const newProfiles = founderLinkedIns.map((profile, i) => i === index ? value : profile);
+    setFounderLinkedIns(newProfiles);
+    form.setValue('founderLinkedInUrls', newProfiles);
   };
 
   const onSubmit = async (data: EurekaFormData) => {
@@ -84,58 +88,78 @@ const EurekaIframe = () => {
     console.log('📝 Form data being submitted:', data);
     console.log('👤 User:', user);
     console.log('📍 Form slug:', slug);
-    console.log('🔗 Founder LinkedIn URLs:', founderLinkedIns);
+    console.log('🔗 Founder LinkedIn URLs from state:', founderLinkedIns);
+    console.log('🔗 Founder LinkedIn URLs from form:', data.founderLinkedInUrls);
     
     setIsSubmitting(true);
 
     try {
-      // Basic validation
-      if (!data.companyName.trim()) {
-        throw new Error('Company name is required');
-      }
-      
-      if (!data.submitterEmail.trim()) {
-        throw new Error('Email is required');
-      }
-      
-      if (!data.pocName.trim()) {
-        throw new Error('POC name is required');
-      }
-      
-      if (!data.phoneNumber.trim()) {
-        throw new Error('Phone number is required');
+      // Validate required fields
+      const requiredFields = {
+        companyName: data.companyName?.trim(),
+        submitterEmail: data.submitterEmail?.trim(),
+        pocName: data.pocName?.trim(),
+        phoneNumber: data.phoneNumber?.trim(),
+        executiveSummary: data.executiveSummary?.trim(),
+        companyType: data.companyType?.trim(),
+      };
+
+      console.log('🔍 Validating required fields:', requiredFields);
+
+      // Check for missing required fields
+      const missingFields = Object.entries(requiredFields)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+      if (missingFields.length > 0) {
+        console.error('❌ Missing required fields:', missingFields);
+        throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       }
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(data.submitterEmail)) {
+        console.error('❌ Invalid email format:', data.submitterEmail);
         throw new Error('Please enter a valid email address');
       }
 
-      // Step 1: Insert submission data FIRST
+      // Use the current founderLinkedIns state (synced with form)
+      const finalLinkedInUrls = founderLinkedIns.filter(url => url.trim());
+      console.log('🔗 Final LinkedIn URLs to submit:', finalLinkedInUrls);
+
+      // Prepare submission data with all required fields
       const submissionData = {
         form_slug: slug || 'eureka-iframe',
         company_name: data.companyName,
         company_registration_type: data.companyRegistrationType || "Not Specified",
         executive_summary: data.executiveSummary,
         company_type: data.companyType,
-        question_1: data.question1,
-        question_2: data.question2,
-        question_3: data.question3,
-        question_4: data.question4,
-        question_5: data.question5,
+        question_1: data.question1 || "",
+        question_2: data.question2 || "",
+        question_3: data.question3 || "",
+        question_4: data.question4 || "",
+        question_5: data.question5 || "",
         submitter_email: data.submitterEmail,
-        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
+        founder_linkedin_urls: finalLinkedInUrls,
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
-        company_linkedin_url: data.companyLinkedInUrl,
+        company_linkedin_url: data.companyLinkedInUrl || "",
         user_id: user?.id || null,
         analysis_status: 'pending'
       };
 
-      console.log('📋 STEP 1: Inserting submission data:', submissionData);
+      console.log('📋 FINAL SUBMISSION DATA:', submissionData);
+      console.log('📋 Data types check:');
+      console.log('  - company_name:', typeof submissionData.company_name, '=', submissionData.company_name);
+      console.log('  - submitter_email:', typeof submissionData.submitter_email, '=', submissionData.submitter_email);
+      console.log('  - poc_name:', typeof submissionData.poc_name, '=', submissionData.poc_name);
+      console.log('  - phoneno:', typeof submissionData.phoneno, '=', submissionData.phoneno);
+      console.log('  - executive_summary:', typeof submissionData.executive_summary, '=', submissionData.executive_summary);
+      console.log('  - company_type:', typeof submissionData.company_type, '=', submissionData.company_type);
 
-      // Insert the submission record
+      // Step 1: Insert submission data
+      console.log('🚀 STEP 1: Inserting submission to database...');
+      
       const { data: submission, error: insertError } = await supabase
         .from('eureka_form_submissions')
         .insert([submissionData])
@@ -143,19 +167,44 @@ const EurekaIframe = () => {
         .single();
 
       if (insertError) {
-        console.error('💥 INSERT ERROR:', insertError);
-        throw new Error(`Submission failed: ${insertError.message}`);
+        console.error('💥 DATABASE INSERT ERROR:', insertError);
+        console.error('❌ Error code:', insertError.code);
+        console.error('❌ Error message:', insertError.message);
+        console.error('❌ Error details:', insertError.details);
+        console.error('❌ Error hint:', insertError.hint);
+        throw new Error(`Database insertion failed: ${insertError.message}`);
       }
 
-      console.log('✅ STEP 1 COMPLETE: Submission inserted successfully:', submission);
+      if (!submission) {
+        console.error('💥 NO SUBMISSION RETURNED FROM DATABASE');
+        throw new Error('Database insertion failed: No data returned');
+      }
+
+      console.log('✅ STEP 1 COMPLETE: Submission inserted successfully');
       console.log('✅ Submission ID:', submission.id);
+      console.log('✅ Submission data:', submission);
 
-      // Step 2: Wait a moment to ensure transaction is committed
-      console.log('⏳ STEP 2: Waiting for transaction commit...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Step 2: Wait for database transaction to commit
+      console.log('⏳ STEP 2: Waiting for database transaction to commit...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Step 3: Trigger analysis by calling the edge function directly
-      console.log('🚀 STEP 3: Starting analysis for submission:', submission.id);
+      // Step 3: Verify the submission exists before triggering analysis
+      console.log('🔍 STEP 3: Verifying submission exists in database...');
+      const { data: verifySubmission, error: verifyError } = await supabase
+        .from('eureka_form_submissions')
+        .select('id, company_name, submitter_email, analysis_status')
+        .eq('id', submission.id)
+        .single();
+
+      if (verifyError || !verifySubmission) {
+        console.error('💥 VERIFICATION FAILED:', verifyError);
+        throw new Error('Failed to verify submission in database');
+      }
+
+      console.log('✅ STEP 3 COMPLETE: Submission verified in database:', verifySubmission);
+
+      // Step 4: Trigger analysis
+      console.log('🚀 STEP 4: Triggering analysis for submission:', submission.id);
       
       try {
         const { data: analysisResult, error: analysisError } = await supabase.functions.invoke('analyze-eureka-form', {
@@ -164,17 +213,16 @@ const EurekaIframe = () => {
 
         if (analysisError) {
           console.error('⚠️ Analysis trigger error:', analysisError);
-          // Don't fail the submission, just log the error
           console.log('📝 Submission was successful, but analysis trigger failed. Analysis can be run manually.');
         } else {
           console.log('✅ Analysis triggered successfully:', analysisResult);
         }
       } catch (analysisError) {
         console.error('⚠️ Analysis trigger exception:', analysisError);
-        // Don't fail the submission
+        // Don't fail the submission for analysis errors
       }
 
-      // Step 4: Success response
+      // Step 5: Success response
       console.log('🎉 EUREKA SUBMISSION PROCESS COMPLETED SUCCESSFULLY');
       
       toast({
@@ -182,12 +230,15 @@ const EurekaIframe = () => {
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
       });
 
-      // Reset form
+      // Reset form and state
       form.reset();
       setFounderLinkedIns([""]);
       
     } catch (error: any) {
       console.error('💥 SUBMISSION ERROR:', error);
+      console.error('💥 Error type:', typeof error);
+      console.error('💥 Error message:', error?.message);
+      console.error('💥 Error stack:', error?.stack);
       
       toast({
         title: "Submission Error",
@@ -230,7 +281,8 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="Enter your company name" 
+                            placeholder="Enter your company name"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -250,6 +302,7 @@ const EurekaIframe = () => {
                               {...field}
                               type="url"
                               placeholder="https://linkedin.com/company/yourcompany"
+                              disabled={isSubmitting}
                             />
                           </FormControl>
                           <FormMessage />
@@ -263,7 +316,7 @@ const EurekaIframe = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm">Registration Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
@@ -296,6 +349,7 @@ const EurekaIframe = () => {
                             {...field}
                             placeholder="Brief executive summary of your company"
                             className="min-h-[80px]"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -310,7 +364,7 @@ const EurekaIframe = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm">Industry *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select industry" />
@@ -391,6 +445,7 @@ const EurekaIframe = () => {
                             {...field}
                             placeholder="Describe the problem and current solutions"
                             className="min-h-[60px]"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -409,6 +464,7 @@ const EurekaIframe = () => {
                             {...field}
                             placeholder="Describe your target market"
                             className="min-h-[60px]"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -427,6 +483,7 @@ const EurekaIframe = () => {
                             {...field}
                             placeholder="List direct and indirect competitors"
                             className="min-h-[60px]"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -445,6 +502,7 @@ const EurekaIframe = () => {
                             {...field}
                             placeholder="Describe your revenue model"
                             className="min-h-[60px]"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -463,6 +521,7 @@ const EurekaIframe = () => {
                             {...field}
                             placeholder="Describe your unique advantages"
                             className="min-h-[60px]"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -485,7 +544,8 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="Primary contact person" 
+                            placeholder="Primary contact person"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -510,7 +570,8 @@ const EurekaIframe = () => {
                           <Input 
                             {...field} 
                             type="email" 
-                            placeholder="your@email.com" 
+                            placeholder="your@email.com"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -528,7 +589,8 @@ const EurekaIframe = () => {
                         <FormControl>
                           <Input 
                             {...field} 
-                            placeholder="Your phone number" 
+                            placeholder="Your phone number"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage />
