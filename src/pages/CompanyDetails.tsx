@@ -154,7 +154,11 @@ function CompanyDetails() {
         slideNotesCount: slideNotes.length,
         improvementSuggestionsCount: improvementSuggestions.length,
         shouldShowSlideViewer: company.report_id ? true : false,
-        shouldShowImprovementSuggestions: company.report_id ? true : false
+        shouldShowImprovementSuggestions: company.report_id ? true : false,
+        companyStage: company.stage,
+        companyIndustry: company.industry,
+        companyWebsite: company.website,
+        companyIntroduction: company.introduction
       });
     }
   }, [company, isIITBombayUser, slideNotes, improvementSuggestions]);
@@ -185,11 +189,11 @@ function CompanyDetails() {
     );
   }
 
-  // Ensure we have values to display, using empty strings if properties are undefined
+  // Ensure we have values to display, using fallbacks and proper defaults
   const websiteToShow = company.website || "";
-  const stageToShow = company.stage || "";
-  const industryToShow = company.industry || "";
-  const introductionToShow = company.introduction || "";
+  const stageToShow = company.stage || "Not specified";
+  const industryToShow = company.industry || "Not specified";
+  const introductionToShow = company.introduction || `${company.name} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
 
   // Filter sections based on user type - exclude slide notes for regular section display
   const filteredSections = company?.sections ? 
@@ -198,6 +202,12 @@ function CompanyDetails() {
   console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
   console.log('Should show improvement suggestions:', !!company.report_id);
+  console.log('Final company info to display:', {
+    website: websiteToShow,
+    stage: stageToShow,
+    industry: industryToShow,
+    introduction: introductionToShow
+  });
 
   return (
     <div className="min-h-screen">

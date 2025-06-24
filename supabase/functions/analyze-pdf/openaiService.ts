@@ -17,6 +17,12 @@ export interface AnalysisResult {
     notes: string[];
   }>;
   improvementSuggestions?: string[];
+  companyInfo?: {
+    stage: string;
+    industry: string;
+    website: string;
+    description: string;
+  };
 }
 
 export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePublicAnalysisPrompt = false, scoringScale = 100, isIITBombayUser = false): Promise<any> {
@@ -140,6 +146,11 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
   }
   console.log("Improvement suggestions count:", analysis.improvementSuggestions?.length || 0);
 
+  // Log extracted company info for debugging
+  if (analysis.companyInfo) {
+    console.log("Extracted company info:", analysis.companyInfo);
+  }
+
   console.log("Analysis sections count:", analysis.sections?.length || 0);
   console.log("Overall score:", analysis.overallScore);
 
@@ -147,11 +158,19 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
 }
 
 function getEnhancedAnalysisPrompt(isIITBombayUser = false): string {
-  return `Analyze this PDF pitch deck and provide a comprehensive checklist assessment. You MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.
+  return `Analyze this PDF pitch deck and provide a comprehensive checklist assessment with company information extraction. You MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.
+
+CRITICAL: Extract company information from the pitch deck content and include it in the response.
 
 Return your analysis in EXACTLY this JSON format:
 
 {
+  "companyInfo": {
+    "stage": "<extract funding stage from pitch deck content - look for mentions like 'seed', 'series A', 'pre-seed', 'growth stage', etc.>",
+    "industry": "<extract industry/sector from pitch deck content - look for business domain, market category, technology sector>",
+    "website": "<extract website URL if mentioned in the deck>",
+    "description": "<create a concise 2-3 sentence description of what the company does based on the pitch content>"
+  },
   "sections": [
     {
       "type": "PROBLEM",
@@ -238,6 +257,12 @@ Return your analysis in EXACTLY this JSON format:
   ]
 }
 
+COMPANY INFORMATION EXTRACTION REQUIREMENTS:
+- Stage: Look for funding stage mentions (seed, pre-seed, series A/B/C, growth, bootstrap, etc.)
+- Industry: Identify the business sector/domain (fintech, healthcare, edtech, saas, marketplace, etc.)
+- Website: Extract any website URLs mentioned in the deck
+- Description: Create a brief company description based on the pitch content
+
 SECTION CHECKLIST REQUIREMENTS:
 - For each section, provide only a brief description of what content was found (if any)
 - Focus on identifying whether each section is present and what key information it contains
@@ -255,26 +280,21 @@ SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
 IMPROVEMENT SUGGESTIONS REQUIREMENTS:
 - Provide EXACTLY 10 actionable improvement suggestions
 - Each suggestion must be specific and implementable
-- Focus on critical gaps and areas for enhancement
-- Include suggestions for missing elements like:
-  * "Add a Market Sizing slide using TAM/SAM/SOM format with specific market data"
-  * "Include a competitive analysis matrix showing direct and indirect competitors"
-  * "Add customer testimonials or case studies to strengthen traction evidence"
-  * "Create a detailed financial model showing unit economics and path to profitability"
-  * "Include team member profiles with relevant experience and achievements"
-  * "Add a product roadmap showing future development milestones"
-  * "Include risk analysis and mitigation strategies"
-  * "Add partnership opportunities and strategic alliances section"
-  * "Include funding utilization breakdown with specific milestones"
-  * "Add exit strategy considerations for potential investors"
-  * "Improve slide layout consistency and visual hierarchy for better readability"
-  * "Use consistent color scheme and typography throughout the presentation"
-  * "Enhance chart formatting with proper legends and data labels"
-  * "Improve spacing and alignment of text and visual elements"
-  * "Add more white space to reduce visual clutter on slides"
+- MUST include 3-4 UI/Design-specific suggestions such as:
+  * "Improve slide layout consistency and visual hierarchy by using uniform header styles and consistent spacing between elements"
+  * "Enhance chart readability by adding proper legends, data labels, and using a consistent color scheme throughout all visualizations"
+  * "Reduce visual clutter by increasing white space, improving text alignment, and using bullet points more effectively"
+  * "Standardize typography by using consistent font sizes, weights, and colors across all slides for better professional appearance"
+- Content improvement suggestions should include:
+  * "Add a Market Sizing slide using TAM/SAM/SOM format with specific market data and growth projections"
+  * "Include a competitive analysis matrix showing direct and indirect competitors with feature comparisons"
+  * "Add customer testimonials or case studies to strengthen traction evidence and build credibility"
+  * "Create a detailed financial model showing unit economics, revenue projections, and path to profitability"
+  * "Include team member profiles with relevant experience, achievements, and advisory board information"
+  * "Add a product roadmap showing future development milestones and feature releases"
 - Each suggestion should include WHY it's important and HOW to implement it
 - Consider industry best practices and investor expectations
-- Address both content gaps and presentation improvements, including UI/design elements
+- Balance content gaps and presentation improvements
 
 Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
 

@@ -5,6 +5,10 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
   console.log("Starting to save analysis results to database");
   
   try {
+    // Extract company info from analysis if available
+    const companyInfo = analysis.companyInfo || {};
+    console.log("Extracted company info:", companyInfo);
+    
     // Create company entry
     const { data: company, error: companyError } = await supabase
       .from('companies')
@@ -14,7 +18,9 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         assessment_points: analysis.assessmentPoints || [],
         report_id: report.id,
         user_id: report.user_id,
-        source: report.is_public_submission ? 'public_submission' : 'dashboard'
+        source: report.is_public_submission ? 'public_submission' : 'dashboard',
+        industry: companyInfo.industry || null,
+        // Note: stage is stored in company_details table if needed
       })
       .select()
       .single();
@@ -25,6 +31,28 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     }
 
     console.log("Company created successfully:", company.id);
+
+    // Save company details if we have extracted company info
+    if (companyInfo && Object.keys(companyInfo).length > 0) {
+      const { error: companyDetailsError } = await supabase
+        .from('company_details')
+        .insert({
+          company_id: company.id,
+          stage: companyInfo.stage || null,
+          industry: companyInfo.industry || null,
+          website: companyInfo.website || null,
+          introduction: companyInfo.description || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (companyDetailsError) {
+        console.error("Error creating company details:", companyDetailsError);
+        // Don't throw here, continue with analysis saving
+      } else {
+        console.log("Company details saved successfully");
+      }
+    }
 
     // Save sections
     if (analysis.sections && analysis.sections.length > 0) {
@@ -109,13 +137,14 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       overall_score: analysis.overallScore
     };
 
-    // Store the full analysis result including slide notes and improvement suggestions if available
-    if (analysis.slideBySlideNotes || analysis.improvementSuggestions) {
+    // Store the full analysis result including slide notes, improvement suggestions, and company info
+    if (analysis.slideBySlideNotes || analysis.improvementSuggestions || analysis.companyInfo) {
       reportUpdateData.analysis_result = {
         overallScore: analysis.overallScore,
         assessmentPoints: analysis.assessmentPoints,
         slideBySlideNotes: analysis.slideBySlideNotes || [],
         improvementSuggestions: analysis.improvementSuggestions || [],
+        companyInfo: analysis.companyInfo || {},
         sections: analysis.sections
       };
     }

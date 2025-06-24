@@ -80,6 +80,21 @@ export function useCompanyDetails(companyId: string) {
       }
       
       console.log("Retrieved company details data:", companyDetailsData);
+
+      // Get report data to extract company info from analysis_result
+      let reportAnalysisData = null;
+      if (companyData.report_id) {
+        const { data: reportData, error: reportError } = await supabase
+          .from('reports')
+          .select('analysis_result')
+          .eq('id', companyData.report_id)
+          .maybeSingle();
+          
+        if (!reportError && reportData?.analysis_result) {
+          reportAnalysisData = reportData.analysis_result;
+          console.log("Retrieved analysis result company info:", reportAnalysisData.companyInfo);
+        }
+      }
       
       // Map sections with their details
       const sectionsWithDetails = sectionsData.map(section => {
@@ -107,6 +122,9 @@ export function useCompanyDetails(companyId: string) {
       });
       
       console.log("Mapped sections with details:", sectionsWithDetails);
+
+      // Prioritize company info from analysis result, then from company_details table
+      const analysisCompanyInfo = reportAnalysisData?.companyInfo || {};
       
       return {
         id: companyData.id,
@@ -118,10 +136,11 @@ export function useCompanyDetails(companyId: string) {
         updated_at: companyData.updated_at,
         source: companyData.source,
         report_id: companyData.report_id,
-        website: companyDetailsData?.website || '',
-        stage: companyDetailsData?.stage || '',
-        industry: companyDetailsData?.industry || '',
-        introduction: companyDetailsData?.introduction || '',
+        // Use analysis result first, then company_details, then fallback
+        website: analysisCompanyInfo.website || companyDetailsData?.website || '',
+        stage: analysisCompanyInfo.stage || companyDetailsData?.stage || '',
+        industry: analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry || '',
+        introduction: analysisCompanyInfo.description || companyDetailsData?.introduction || '',
       };
     },
     enabled: !!companyId,
