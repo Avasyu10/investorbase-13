@@ -146,81 +146,293 @@ export async function analyzeWithOpenAI(pdfBase64: string, apiKey: string, usePu
 }
 
 function getEnhancedAnalysisPrompt(isIITBombayUser = false): string {
-  return `Analyze this PDF pitch deck and create a simple checklist of sections present in the document. Your task is to identify which standard pitch deck sections are covered and provide a basic overview.
+  return `Analyze this PDF pitch deck and provide a comprehensive investment assessment. You MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.
 
 Return your analysis in EXACTLY this JSON format:
 
 {
+  "overallScore": <number between 1-100>,
+  "assessmentPoints": [
+    "<key insight 1>",
+    "<key insight 2>",
+    "<key insight 3>",
+    "<key insight 4>",
+    "<key insight 5>"
+  ],
   "sections": [
     {
       "type": "PROBLEM",
       "title": "Problem Statement",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "MARKET",
       "title": "Market Opportunity",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "SOLUTION",
       "title": "Solution (Product)",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "COMPETITIVE_LANDSCAPE",
       "title": "Competitive Landscape",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "TRACTION",
       "title": "Traction & Milestones",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "BUSINESS_MODEL",
       "title": "Business Model",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "GTM_STRATEGY",
       "title": "Go-to-Market Strategy",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "TEAM",
       "title": "Founder & Team Background",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "FINANCIALS",
       "title": "Financial Overview & Projections",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     },
     {
       "type": "ASK",
       "title": "The Ask & Next Steps",
-      "description": "<brief description of what this section covers in the deck>"
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<detailed strength 1 with market data and specific metrics>",
+        "<detailed strength 2 with market data and specific metrics>",
+        "<detailed strength 3 with market data and specific metrics>",
+        "<detailed strength 4 with market data and specific metrics>",
+        "<detailed strength 5 with market data and specific metrics>"
+      ],
+      "weaknesses": [
+        "<detailed weakness 1 with market context and specific concerns>",
+        "<detailed weakness 2 with market context and specific concerns>",
+        "<detailed weakness 3 with market context and specific concerns>",
+        "<detailed weakness 4 with market context and specific concerns>",
+        "<detailed weakness 5 with market context and specific concerns>"
+      ]
     }
+  ],
+  "slideBySlideNotes": [
+    {
+      "slideNumber": 1,
+      "notes": [
+        "<detailed analysis point 1 for slide 1>",
+        "<detailed analysis point 2 for slide 1>",
+        "<detailed analysis point 3 for slide 1>",
+        "<detailed analysis point 4 for slide 1>"
+      ]
+    },
+    {
+      "slideNumber": 2,
+      "notes": [
+        "<detailed analysis point 1 for slide 2>",
+        "<detailed analysis point 2 for slide 2>",
+        "<detailed analysis point 3 for slide 2>",
+        "<detailed analysis point 4 for slide 2>"
+      ]
+    }
+  ],
+  "improvementSuggestions": [
+    "<actionable improvement suggestion 1 with specific implementation guidance>",
+    "<actionable improvement suggestion 2 with specific implementation guidance>",
+    "<actionable improvement suggestion 3 with specific implementation guidance>",
+    "<actionable improvement suggestion 4 with specific implementation guidance>",
+    "<actionable improvement suggestion 5 with specific implementation guidance>",
+    "<actionable improvement suggestion 6 with specific implementation guidance>",
+    "<actionable improvement suggestion 7 with specific implementation guidance>",
+    "<actionable improvement suggestion 8 with specific implementation guidance>",
+    "<actionable improvement suggestion 9 with specific implementation guidance>",
+    "<actionable improvement suggestion 10 with specific implementation guidance>"
   ]
 }
 
-ANALYSIS REQUIREMENTS:
+CRITICAL REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
+- Each strength and weakness MUST be 4-5 detailed points
+- Each point MUST include specific market data, metrics, or industry benchmarks where applicable
+- Include relevant market size figures, growth rates, competitive positioning data
+- Reference industry standards, adoption rates, or market trends
+- Provide specific numbers, percentages, or comparative data points
+- Each point should be substantial and analytical, not just surface-level observations
 
-1. SECTION IDENTIFICATION: For each of the 10 standard sections listed above, determine if that section is present in the pitch deck
-2. BRIEF DESCRIPTION: For each section that IS present, provide a 1-2 sentence description of what specific content is covered
-3. ONLY INCLUDE PRESENT SECTIONS: Only include sections in your JSON response that are actually present in the deck
-4. SECTION TYPES: Use only the exact section types listed above (PROBLEM, MARKET, SOLUTION, COMPETITIVE_LANDSCAPE, TRACTION, BUSINESS_MODEL, GTM_STRATEGY, TEAM, FINANCIALS, ASK)
+SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
+- You MUST provide exactly 4 detailed notes for EACH slide in the deck
+- Each note should be 2-3 sentences long with specific observations
+- Include content analysis, design feedback, business insights, and recommendations
+- Reference specific elements visible on each slide (text, charts, images, etc.)
+- Provide both positive observations and constructive criticism
+- Include market context and industry benchmarks where relevant
 
-IMPORTANT NOTES:
-- Do not include sections that are not present in the deck
-- Do not provide scores, ratings, or assessments
-- Do not include strengths, weaknesses, or detailed analysis
-- Focus only on identifying what sections exist and briefly describing their content
-- If a section is missing entirely, do not include it in the response
-- The description should be factual and neutral, simply stating what information is presented
+IMPROVEMENT SUGGESTIONS REQUIREMENTS:
+- Provide EXACTLY 10 actionable improvement suggestions
+- Each suggestion must be specific and implementable
+- Focus on critical gaps and areas for enhancement
+- Include suggestions for missing elements like:
+  * "Add a Market Sizing slide using TAM/SAM/SOM format with specific market data"
+  * "Include a competitive analysis matrix showing direct and indirect competitors"
+  * "Add customer testimonials or case studies to strengthen traction evidence"
+  * "Create a detailed financial model showing unit economics and path to profitability"
+  * "Include team member profiles with relevant experience and achievements"
+  * "Add a product roadmap showing future development milestones"
+  * "Include risk analysis and mitigation strategies"
+  * "Add partnership opportunities and strategic alliances section"
+  * "Include funding utilization breakdown with specific milestones"
+  * "Add exit strategy considerations for potential investors"
+- Each suggestion should include WHY it's important and HOW to implement it
+- Consider industry best practices and investor expectations
+- Address both content gaps and presentation improvements
 
-Examine the entire PDF document carefully and identify which of these standard pitch deck sections are present.`;
+Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
+
+Score each section from 1-100 based on quality, completeness, and investment potential. Ensure all strengths and weaknesses are comprehensive, data-driven, and include relevant market context.`;
 }
 
 function getPublicAnalysisPrompt(scoringScale: number): string {
