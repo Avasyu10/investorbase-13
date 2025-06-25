@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ReportUpload } from "@/components/reports/ReportUpload";
+import { PublicReportUpload } from "@/components/reports/PublicReportUpload";
 import { Toaster } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileUp } from "lucide-react";
@@ -154,13 +154,13 @@ const PublicUpload = () => {
               </p>
             </div>
             
-            <ReportUpload 
+            <PublicReportUpload 
               onError={handleError} 
               onSuccess={handleSuccess}
               isPublic={true} 
               buttonText="Submit"
               skipAnalysis={!formData?.auto_analyze}
-              formSlug={activeFormSlug}
+              formSlug={activeFormSlug || ""}
               hideEmailField={false}
               disableScrapingFeatures={true}
             />

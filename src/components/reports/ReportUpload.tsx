@@ -19,6 +19,44 @@ export function ReportUpload() {
   const navigate = useNavigate();
   const { isVC } = useProfile();
 
+  // Company form states
+  const [companyStage, setCompanyStage] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
+  const [companyRegistrationType, setCompanyRegistrationType] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [dpiitRecognitionNumber, setDpiitRecognitionNumber] = useState("");
+  const [indianCitizenShareholding, setIndianCitizenShareholding] = useState("");
+  const [executiveSummary, setExecutiveSummary] = useState("");
+  const [companyType, setCompanyType] = useState("");
+  const [productsServices, setProductsServices] = useState("");
+  const [employeeCount, setEmployeeCount] = useState("");
+  const [fundsRaised, setFundsRaised] = useState("");
+  const [valuation, setValuation] = useState("");
+  const [lastFyRevenue, setLastFyRevenue] = useState("");
+  const [lastQuarterRevenue, setLastQuarterRevenue] = useState("");
+  const [founderName, setFounderName] = useState("");
+  const [founderGender, setFounderGender] = useState("");
+  const [founderEmail, setFounderEmail] = useState("");
+  const [founderContact, setFounderContact] = useState("");
+  const [founderAddress, setFounderAddress] = useState("");
+  const [founderState, setFounderState] = useState("");
+  const [companyLinkedInUrl, setCompanyLinkedInUrl] = useState("");
+
+  const updateLinkedInProfile = (index: number, value: string) => {
+    const updated = [...founderLinkedIns];
+    updated[index] = value;
+    setFounderLinkedIns(updated);
+  };
+
+  const addLinkedInProfile = () => {
+    setFounderLinkedIns([...founderLinkedIns, ""]);
+  };
+
+  const removeLinkedInProfile = (index: number) => {
+    setFounderLinkedIns(founderLinkedIns.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     if (!selectedFile || !title.trim()) return;
 
@@ -134,17 +172,59 @@ export function ReportUpload() {
 
       <CompanyInfoForm
         title={title}
+        setTitle={setTitle}
         briefIntroduction={description}
-        websiteUrl={websiteUrl}
-        onTitleChange={setTitle}
-        onBriefIntroductionChange={setDescription}
-        onWebsiteUrlChange={setWebsiteUrl}
-        onSubmit={handleSubmit}
-        onDirectAnalysis={handleDirectAnalysis}
-        selectedFile={selectedFile}
-        isUploading={isUploading}
-        isAnalyzing={isAnalyzing}
-        isVC={isVC}
+        setBriefIntroduction={setDescription}
+        companyWebsite={websiteUrl}
+        setCompanyWebsite={setWebsiteUrl}
+        companyStage={companyStage}
+        setCompanyStage={setCompanyStage}
+        industry={industry}
+        setIndustry={setIndustry}
+        founderLinkedIns={founderLinkedIns}
+        setFounderLinkedIns={setFounderLinkedIns}
+        updateLinkedInProfile={updateLinkedInProfile}
+        addLinkedInProfile={addLinkedInProfile}
+        removeLinkedInProfile={removeLinkedInProfile}
+        isDisabled={isUploading || isAnalyzing}
+        companyRegistrationType={companyRegistrationType}
+        setCompanyRegistrationType={setCompanyRegistrationType}
+        registrationNumber={registrationNumber}
+        setRegistrationNumber={setRegistrationNumber}
+        dpiitRecognitionNumber={dpiitRecognitionNumber}
+        setDpiitRecognitionNumber={setDpiitRecognitionNumber}
+        indianCitizenShareholding={indianCitizenShareholding}
+        setIndianCitizenShareholding={setIndianCitizenShareholding}
+        executiveSummary={executiveSummary}
+        setExecutiveSummary={setExecutiveSummary}
+        companyType={companyType}
+        setCompanyType={setCompanyType}
+        productsServices={productsServices}
+        setProductsServices={setProductsServices}
+        employeeCount={employeeCount}
+        setEmployeeCount={setEmployeeCount}
+        fundsRaised={fundsRaised}
+        setFundsRaised={setFundsRaised}
+        valuation={valuation}
+        setValuation={setValuation}
+        lastFyRevenue={lastFyRevenue}
+        setLastFyRevenue={setLastFyRevenue}
+        lastQuarterRevenue={lastQuarterRevenue}
+        setLastQuarterRevenue={setLastQuarterRevenue}
+        founderName={founderName}
+        setFounderName={setFounderName}
+        founderGender={founderGender}
+        setFounderGender={setFounderGender}
+        founderEmail={founderEmail}
+        setFounderEmail={setFounderEmail}
+        founderContact={founderContact}
+        setFounderContact={setFounderContact}
+        founderAddress={founderAddress}
+        setFounderAddress={setFounderAddress}
+        founderState={founderState}
+        setFounderState={setFounderState}
+        companyLinkedInUrl={companyLinkedInUrl}
+        setCompanyLinkedInUrl={setCompanyLinkedInUrl}
       />
 
       {(isUploading || isAnalyzing) && (
