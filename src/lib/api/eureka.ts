@@ -24,10 +24,10 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('📤 Submitting Eureka form data:', data);
   
   try {
-    // Ensure user_id is included in the submission and set analysis_status
+    // FIXED: Use the specific user ID for all Eureka form submissions, same as BARC
     const submissionData = {
       ...data,
-      user_id: data.user_id || null,
+      user_id: "ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af", // Fixed user ID for all Eureka submissions
       analysis_status: 'pending'
     };
     
