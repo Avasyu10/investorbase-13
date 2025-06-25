@@ -2,23 +2,12 @@
 import { CompaniesList } from "./CompaniesList";
 import { IITBombayCompaniesList } from "./IITBombayCompaniesList";
 import { useProfile } from "@/hooks/useProfile";
-import { useCompanies } from "@/hooks/useCompanies";
-import { useNavigate } from "react-router-dom";
 import { Loader2, Building2 } from "lucide-react";
-import type { Company } from "@/types/company";
 
 export function ConditionalCompaniesList() {
   const { profile, isLoading, error, isIITBombay } = useProfile();
-  const navigate = useNavigate();
-  
-  // FIXED: Add companies data and handlers for IIT Bombay component
-  const { companies, isLoading: companiesLoading } = useCompanies(1, 50, 'created_at', 'desc', '');
 
-  const handleCompanyClick = (company: Company) => {
-    navigate(`/company/${company.id}`);
-  };
-
-  if (isLoading || companiesLoading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center py-12">
@@ -44,7 +33,7 @@ export function ConditionalCompaniesList() {
 
   // Show IIT Bombay specific UI if user has is_iitbombay: true
   if (isIITBombay) {
-    return <IITBombayCompaniesList companies={companies} onCompanyClick={handleCompanyClick} />;
+    return <IITBombayCompaniesList />;
   }
 
   // Show default UI for all other users

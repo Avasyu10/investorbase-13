@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 interface StatusDropdownProps {
   companyId: string;
   currentStatus: string;
-  onStatusChange: (companyId: string, newStatus: string) => void; // FIXED: Add this prop
+  onStatusUpdate?: (newStatus: string) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -25,7 +25,7 @@ const STATUS_OPTIONS = [
   "Exit"
 ];
 
-export function StatusDropdown({ companyId, currentStatus, onStatusChange }: StatusDropdownProps) {
+export function StatusDropdown({ companyId, currentStatus, onStatusUpdate }: StatusDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
@@ -75,8 +75,8 @@ export function StatusDropdown({ companyId, currentStatus, onStatusChange }: Sta
         description: `Company status changed to ${newStatus}`,
       });
 
-      // FIXED: Call the callback to update parent component state
-      onStatusChange(companyId, newStatus);
+      // Call the callback to update parent component state
+      onStatusUpdate?.(newStatus);
 
     } catch (error) {
       console.error('Error updating status:', error);

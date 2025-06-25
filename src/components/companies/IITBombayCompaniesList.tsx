@@ -1,82 +1,135 @@
 
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDistanceToNow } from "date-fns";
-import type { Company } from "@/types/company";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Loader2, Building2, GraduationCap } from "lucide-react";
+import { CompaniesTable } from "./CompaniesTable";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompanies } from "@/hooks/useCompanies";
+import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 
-interface IITBombayCompaniesListProps {
-  companies: Company[];
-  onCompanyClick: (company: Company) => void;
-}
+export function IITBombayCompaniesList() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
+  const { deleteCompany } = useDeleteCompany();
 
-export function IITBombayCompaniesList({ companies, onCompanyClick }: IITBombayCompaniesListProps) {
-  const getScoreBadgeColor = (score: number) => {
-    if (score >= 80) return "bg-green-100 text-green-800 border-green-200";
-    if (score >= 60) return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    return "bg-red-100 text-red-800 border-red-200";
+  const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
+
+  const handleCompanyClick = (companyId: string) => {
+    navigate(`/company/${companyId}`);
   };
 
-  const getRecommendationBadge = (score: number) => {
-    if (score >= 75) return <Badge className="bg-green-100 text-green-800 border-green-200">Accept</Badge>;
-    if (score >= 60) return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Consider</Badge>;
-    return <Badge className="bg-red-100 text-red-800 border-red-200">Reject</Badge>;
+  const handleDeleteCompany = async (companyId: string) => {
+    await deleteCompany(companyId);
   };
+
+  // Calculate rating-based stats
+  const totalProspects = companies.length;
+  const highPotential = companies.filter(c => c.overall_score > 70).length;
+  const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
+  const badPotential = companies.filter(c => c.overall_score < 50).length;
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center py-12 border rounded-lg bg-card/50">
+          <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">Authentication Required</h3>
+          <p className="mt-2 text-muted-foreground">
+            Please sign in to view your prospects
+          </p>
+          <Button 
+            onClick={() => navigate("/")} 
+            className="mt-6"
+          >
+            Go to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center py-12 border rounded-lg bg-card/50">
+          <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">Failed to Load Companies</h3>
+          <p className="mt-2 text-muted-foreground">
+            {error.message || 'There was an error loading your prospects. Please try again.'}
+          </p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-6"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Company Name</TableHead>
-            <TableHead>Industry</TableHead>
-            <TableHead>Score</TableHead>
-            <TableHead>Reason for Scoring</TableHead>
-            <TableHead>Recommendation</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead>Submitted</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {companies.map((company) => (
-            <TableRow 
-              key={company.id} 
-              className="hover:bg-muted/50 cursor-pointer"
-              onClick={() => onCompanyClick(company)}
-            >
-              <TableCell className="font-medium">
-                {company.name}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {company.industry || 'Not specified'}
-              </TableCell>
-              <TableCell>
-                <Badge 
-                  variant="outline" 
-                  className={getScoreBadgeColor(company.overall_score || 0)}
-                >
-                  {company.overall_score || 0}/100
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground max-w-xs">
-                <div className="truncate" title={company.scoring_reason || 'No reason provided'}>
-                  {company.scoring_reason || 'No reason provided'}
-                </div>
-              </TableCell>
-              <TableCell>
-                {getRecommendationBadge(company.overall_score || 0)}
-              </TableCell>
-              <TableCell>
-                <Badge variant="secondary" className="capitalize">
-                  {company.source === 'eureka_form' ? 'Eureka Form' : company.source}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDistanceToNow(new Date(company.created_at), { addSuffix: true })}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="container mx-auto px-4 py-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold tracking-tight">Eureka Prospects</h1>
+          </div>
+          <p className="text-muted-foreground">
+            Application tracking, analysis and Management for Eureka
+          </p>
+        </div>
+      </div>
+
+      {/* Enhanced stats section for IIT Bombay users */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-primary">{totalProspects}</div>
+          <div className="text-sm text-muted-foreground">Total Prospects</div>
+        </div>
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-green-600">{highPotential}</div>
+          <div className="text-sm text-muted-foreground">High Potential</div>
+        </div>
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-yellow-600">{mediumPotential}</div>
+          <div className="text-sm text-muted-foreground">Medium Potential</div>
+        </div>
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-red-600">{badPotential}</div>
+          <div className="text-sm text-muted-foreground">Bad Potential</div>
+        </div>
+      </div>
+
+      {companies.length > 0 ? (
+        <CompaniesTable 
+          companies={companies} 
+          onCompanyClick={handleCompanyClick} 
+          onDeleteCompany={handleDeleteCompany}
+          isIITBombay={true} 
+        />
+      ) : (
+        <div className="text-center py-12 border rounded-lg bg-card/50">
+          <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">No prospects found</h3>
+          <p className="mt-2 text-muted-foreground">
+            No prospects available at the moment.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

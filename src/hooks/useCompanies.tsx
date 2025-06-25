@@ -33,7 +33,6 @@ function mapDbCompanyToApi(company: any) {
     report_id: company.report_id,
     source: source,
     scoring_reason: company.scoring_reason,
-    user_id: company.user_id, // FIXED: Include user_id from the database
     // FIXED: Keep contact information from companies table and don't set to null
     poc_name: company.poc_name,
     phonenumber: company.phonenumber,
