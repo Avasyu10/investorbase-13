@@ -1,66 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FileUploadZone } from "./upload/FileUploadZone";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
 import { ProgressIndicator } from "./upload/ProgressIndicator";
-import { VCReportUpload } from "./VCReportUpload";
 import { uploadReport, analyzeReport } from "@/lib/supabase/analysis";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
-import { supabase } from "@/integrations/supabase/client";
 
 export function ReportUpload() {
-  const { isVC, isLoading: profileLoading } = useProfile();
-  const [isVCConfirmed, setIsVCConfirmed] = useState<boolean | null>(null);
-  
-  // Double-check VC status from database
-  useEffect(() => {
-    const checkVCStatus = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('is_vc')
-          .eq('id', user.id)
-          .single();
-        
-        const vcStatus = userProfile?.is_vc || false;
-        setIsVCConfirmed(vcStatus);
-        console.log('ReportUpload: Confirmed VC status from database:', vcStatus);
-      } catch (error) {
-        console.error('Error checking VC status:', error);
-        setIsVCConfirmed(false);
-      }
-    };
-
-    if (!profileLoading) {
-      checkVCStatus();
-    }
-  }, [profileLoading]);
-
-  // Show loading while we determine user type
-  if (profileLoading || isVCConfirmed === null) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // Render VC-specific upload for VC users
-  if (isVCConfirmed) {
-    console.log('ReportUpload: Rendering VC-specific upload component');
-    return <VCReportUpload />;
-  }
-
-  // Regular upload component for non-VC users
-  return <RegularReportUpload />;
-}
-
-// Regular upload component (existing functionality)
-function RegularReportUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -70,6 +17,7 @@ function RegularReportUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const navigate = useNavigate();
+  const { isVC } = useProfile();
 
   // Company form states
   const [companyStage, setCompanyStage] = useState("");
@@ -112,9 +60,9 @@ function RegularReportUpload() {
   const handleSubmit = async () => {
     if (!selectedFile || !title.trim()) return;
 
-    console.log('RegularReportUpload: Starting regular upload and analysis');
+    console.log('ReportUpload handleSubmit - isVC from profile:', isVC);
     
-    // Regular upload and analysis flow (existing code)
+    // Always upload first, then analyze
     setIsUploading(true);
     setUploadProgress(0);
 
@@ -124,7 +72,7 @@ function RegularReportUpload() {
         setUploadProgress(prev => Math.min(prev + 10, 90));
       }, 200);
 
-      // Upload the report
+      // Upload the report (same for both VC and regular users)
       const report = await uploadReport(selectedFile, title, description, websiteUrl);
       
       clearInterval(uploadInterval);
@@ -140,10 +88,11 @@ function RegularReportUpload() {
         setAnalysisProgress(prev => Math.min(prev + 5, 90));
       }, 1000);
 
-      console.log('RegularReportUpload: Starting regular analysis for report:', report.id);
+      console.log(`Starting ${isVC ? 'VC' : 'regular'} analysis for report:`, report.id);
+      console.log('Passing isVC flag to analyzeReport:', isVC);
       
-      // Use regular analysis (not VC)
-      const analysisResult = await analyzeReport(report.id, false);
+      // CRITICAL: Pass the isVC flag to ensure correct edge function is called
+      const analysisResult = await analyzeReport(report.id, isVC);
       
       clearInterval(analysisInterval);
       setAnalysisProgress(100);
@@ -155,7 +104,7 @@ function RegularReportUpload() {
         navigate('/dashboard');
       }
     } catch (error) {
-      console.error('Error in regular upload/analysis process:', error);
+      console.error('Error in upload/analysis process:', error);
       setIsUploading(false);
       setIsAnalyzing(false);
       setUploadProgress(0);
@@ -167,10 +116,13 @@ function RegularReportUpload() {
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          Upload Pitch Deck
+          {isVC ? "Analyze Pitch Deck" : "Upload Pitch Deck"}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Upload your pitch deck for AI-powered analysis and insights.
+          {isVC 
+            ? "Upload a pitch deck for comprehensive investment analysis with detailed metrics and insights."
+            : "Upload your pitch deck for AI-powered analysis and insights."
+          }
         </p>
       </div>
 
@@ -189,62 +141,99 @@ function RegularReportUpload() {
         required={true}
       />
 
-      <CompanyInfoForm
-        title={title}
-        setTitle={setTitle}
-        briefIntroduction={description}
-        setBriefIntroduction={setDescription}
-        companyWebsite={websiteUrl}
-        setCompanyWebsite={setWebsiteUrl}
-        companyStage={companyStage}
-        setCompanyStage={setCompanyStage}
-        industry={industry}
-        setIndustry={setIndustry}
-        founderLinkedIns={founderLinkedIns}
-        setFounderLinkedIns={setFounderLinkedIns}
-        updateLinkedInProfile={updateLinkedInProfile}
-        addLinkedInProfile={addLinkedInProfile}
-        removeLinkedInProfile={removeLinkedInProfile}
-        isDisabled={isUploading || isAnalyzing}
-        companyRegistrationType={companyRegistrationType}
-        setCompanyRegistrationType={setCompanyRegistrationType}
-        registrationNumber={registrationNumber}
-        setRegistrationNumber={setRegistrationNumber}
-        dpiitRecognitionNumber={dpiitRecognitionNumber}
-        setDpiitRecognitionNumber={setDpiitRecognitionNumber}
-        indianCitizenShareholding={indianCitizenShareholding}
-        setIndianCitizenShareholding={setIndianCitizenShareholding}
-        executiveSummary={executiveSummary}
-        setExecutiveSummary={setExecutiveSummary}
-        companyType={companyType}
-        setCompanyType={setCompanyType}
-        productsServices={productsServices}
-        setProductsServices={setProductsServices}
-        employeeCount={employeeCount}
-        setEmployeeCount={setEmployeeCount}
-        fundsRaised={fundsRaised}
-        setFundsRaised={setFundsRaised}
-        valuation={valuation}
-        setValuation={setValuation}
-        lastFyRevenue={lastFyRevenue}
-        setLastFyRevenue={setLastFyRevenue}
-        lastQuarterRevenue={lastQuarterRevenue}
-        setLastQuarterRevenue={setLastQuarterRevenue}
-        founderName={founderName}
-        setFounderName={setFounderName}
-        founderGender={founderGender}
-        setFounderGender={setFounderGender}
-        founderEmail={founderEmail}
-        setFounderEmail={setFounderEmail}
-        founderContact={founderContact}
-        setFounderContact={setFounderContact}
-        founderAddress={founderAddress}
-        setFounderAddress={setFounderAddress}
-        founderState={founderState}
-        setFounderState={setFounderState}
-        companyLinkedInUrl={companyLinkedInUrl}
-        setCompanyLinkedInUrl={setCompanyLinkedInUrl}
-      />
+      {!isVC && (
+        <CompanyInfoForm
+          title={title}
+          setTitle={setTitle}
+          briefIntroduction={description}
+          setBriefIntroduction={setDescription}
+          companyWebsite={websiteUrl}
+          setCompanyWebsite={setWebsiteUrl}
+          companyStage={companyStage}
+          setCompanyStage={setCompanyStage}
+          industry={industry}
+          setIndustry={setIndustry}
+          founderLinkedIns={founderLinkedIns}
+          setFounderLinkedIns={setFounderLinkedIns}
+          updateLinkedInProfile={updateLinkedInProfile}
+          addLinkedInProfile={addLinkedInProfile}
+          removeLinkedInProfile={removeLinkedInProfile}
+          isDisabled={isUploading || isAnalyzing}
+          companyRegistrationType={companyRegistrationType}
+          setCompanyRegistrationType={setCompanyRegistrationType}
+          registrationNumber={registrationNumber}
+          setRegistrationNumber={setRegistrationNumber}
+          dpiitRecognitionNumber={dpiitRecognitionNumber}
+          setDpiitRecognitionNumber={setDpiitRecognitionNumber}
+          indianCitizenShareholding={indianCitizenShareholding}
+          setIndianCitizenShareholding={setIndianCitizenShareholding}
+          executiveSummary={executiveSummary}
+          setExecutiveSummary={setExecutiveSummary}
+          companyType={companyType}
+          setCompanyType={setCompanyType}
+          productsServices={productsServices}
+          setProductsServices={setProductsServices}
+          employeeCount={employeeCount}
+          setEmployeeCount={setEmployeeCount}
+          fundsRaised={fundsRaised}
+          setFundsRaised={setFundsRaised}
+          valuation={valuation}
+          setValuation={setValuation}
+          lastFyRevenue={lastFyRevenue}
+          setLastFyRevenue={setLastFyRevenue}
+          lastQuarterRevenue={lastQuarterRevenue}
+          setLastQuarterRevenue={setLastQuarterRevenue}
+          founderName={founderName}
+          setFounderName={setFounderName}
+          founderGender={founderGender}
+          setFounderGender={setFounderGender}
+          founderEmail={founderEmail}
+          setFounderEmail={setFounderEmail}
+          founderContact={founderContact}
+          setFounderContact={setFounderContact}
+          founderAddress={founderAddress}
+          setFounderAddress={setFounderAddress}
+          founderState={founderState}
+          setFounderState={setFounderState}
+          companyLinkedInUrl={companyLinkedInUrl}
+          setCompanyLinkedInUrl={setCompanyLinkedInUrl}
+        />
+      )}
+
+      {isVC && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="vc-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Company Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="vc-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Enter company name"
+              disabled={isUploading || isAnalyzing}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="vc-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Brief Description (Optional)
+            </label>
+            <textarea
+              id="vc-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Brief description of the company"
+              rows={3}
+              disabled={isUploading || isAnalyzing}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-center">
         <button
@@ -252,7 +241,7 @@ function RegularReportUpload() {
           disabled={!selectedFile || !title.trim() || isUploading || isAnalyzing}
           className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
-          {isUploading ? "Uploading..." : isAnalyzing ? "Analyzing..." : "Upload & Analyze"}
+          {isUploading ? "Uploading..." : isAnalyzing ? "Analyzing..." : isVC ? "Analyze Deck" : "Upload & Analyze"}
         </button>
       </div>
 
