@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -222,7 +223,10 @@ function CompanyDetails() {
 
           {/* For VC users, show Real-time Market Analysis */}
           {isVCUser && company.id && (
-            <MarketResearch companyId={company.id} />
+            <MarketResearch 
+              companyId={company.id} 
+              assessmentPoints={company.assessment_points || []}
+            />
           )}
 
           {/* For VC users, show section metrics */}
