@@ -46,15 +46,15 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
     console.log('Environment check:', {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceKey: !!supabaseServiceKey,
-      hasOpenAIKey: !!openaiApiKey
+      hasGeminiKey: !!geminiApiKey
     });
 
-    if (!supabaseUrl || !supabaseServiceKey || !openaiApiKey) {
+    if (!supabaseUrl || !supabaseServiceKey || !geminiApiKey) {
       throw new Error('Required environment variables are missing');
     }
 
@@ -351,47 +351,42 @@ serve(async (req) => {
     9. OVERALL ASSESSMENT PRIORITY: Market data and numbers take precedence over all other factors with detailed analysis
     `;
 
-    // Call OpenAI for analysis
-    console.log('Calling OpenAI API for analysis...');
+    // Call Gemini API for analysis
+    console.log('Calling Gemini API for analysis...');
     
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.'
-          },
-          {
-            role: 'user',
-            content: analysisPrompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 3000,
+        contents: [{
+          parts: [{
+            text: `You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.\n\n${analysisPrompt}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 3000,
+        }
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    console.log('OpenAI response received, parsing...');
+    const geminiData = await geminiResponse.json();
+    console.log('Gemini response received, parsing...');
 
-    if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
-      throw new Error('Invalid response structure from OpenAI');
+    if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
+      throw new Error('Invalid response structure from Gemini');
     }
 
-    let analysisText = openaiData.choices[0].message.content;
-    console.log('Raw analysis text received from OpenAI');
+    let analysisText = geminiData.candidates[0].content.parts[0].text;
+    console.log('Raw analysis text received from Gemini');
 
     // Clean up the response text to extract JSON
     analysisText = analysisText.trim();
@@ -410,7 +405,7 @@ serve(async (req) => {
       analysisResult = JSON.parse(analysisText);
       console.log('Successfully parsed analysis result');
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response as JSON:', parseError);
+      console.error('Failed to parse Gemini response as JSON:', parseError);
       console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
       throw new Error('Analysis response was not valid JSON');
     }
