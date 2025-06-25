@@ -7,7 +7,7 @@ import { BrowserRouter, useRoutes, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from '@/components/layout/Navbar';
-import { routes } from '@/lib/routes';
+import routes from '@/lib/routes';
 
 // Create a client
 const queryClient = new QueryClient();
