@@ -7,11 +7,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, ExternalLink } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
-import { BarcFormButton } from "@/components/profile/BarcFormButton";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
@@ -97,10 +96,7 @@ const Dashboard = () => {
               </Button>
             )}
             {isIITBombay && (
-              <>
-                <EurekaSampleButton />
-                <BarcFormButton />
-              </>
+              <EurekaSampleButton />
             )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
               <Newspaper className="mr-2 h-4 w-4" />
