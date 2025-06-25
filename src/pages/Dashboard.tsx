@@ -21,6 +21,16 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
+  // Add debugging for VC status
+  useEffect(() => {
+    if (user && profile) {
+      console.log("Dashboard Debug - User:", user.id);
+      console.log("Dashboard Debug - Profile:", profile);
+      console.log("Dashboard Debug - isVC:", isVC);
+      console.log("Dashboard Debug - profile.is_vc:", profile.is_vc);
+    }
+  }, [user, profile, isVC]);
+
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("User not authenticated, redirecting to home");
@@ -100,10 +110,16 @@ const Dashboard = () => {
             {isIITBombay && (
               <EurekaSampleButton />
             )}
+            {/* Debug info for VC status */}
+            {user && (
+              <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
+                Debug: VC={isVC ? 'true' : 'false'} | Profile VC={profile?.is_vc ? 'true' : 'false'}
+              </div>
+            )}
             {isVC && (
-              <Button onClick={() => navigate("/upload")} variant="outline" className="flex items-center">
+              <Button onClick={() => navigate("/upload")} className="flex items-center bg-purple-600 hover:bg-purple-700">
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Analyze Deck
+                Analyze Deck (VC)
               </Button>
             )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
