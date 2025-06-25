@@ -227,8 +227,10 @@ export async function analyzeReport(reportId: string, isVCAnalysis = false) {
   try {
     console.log('Starting analysis for report:', reportId, 'VC Analysis:', isVCAnalysis);
     
-    // Choose the appropriate function based on whether it's VC analysis
+    // CRITICAL: Choose the appropriate function based on whether it's VC analysis
     const functionName = isVCAnalysis ? 'analyze-pdf-vc' : 'analyze-pdf';
+    
+    console.log(`Calling edge function: ${functionName}`);
     
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: { reportId }
@@ -263,7 +265,7 @@ export async function analyzeReport(reportId: string, isVCAnalysis = false) {
       throw new Error(errorMessage);
     }
     
-    console.log('Analysis result:', data);
+    console.log(`${functionName} analysis result:`, data);
     
     await supabase
       .from('reports')
@@ -297,19 +299,58 @@ export async function analyzeReportDirect(file: File, title: string, description
     
     console.log(`File converted to base64, calling ${isVCAnalysis ? 'VC' : 'regular'} analyze function`);
     
-    // For VC analysis, we'll still use the regular direct function but pass a flag
-    // or we could create a separate VC direct function if needed
-    const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
-      body: { 
+    // For direct analysis, we need to determine which function to call
+    const functionName = isVCAnalysis ? 'analyze-pdf-vc' : 'analyze-pdf-direct';
+    
+    console.log(`Calling direct analysis function: ${functionName}`);
+    
+    let requestBody;
+    if (isVCAnalysis) {
+      // For VC analysis, we need to upload first then analyze
+      // Create a temporary report record
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      // Upload file first
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('report_pdfs')
+        .upload(filePath, file);
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: report, error: insertError } = await supabase
+        .from('reports')
+        .insert([{
+          title,
+          description,
+          pdf_url: fileName,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+        
+      if (insertError) throw insertError;
+      
+      requestBody = { reportId: report.id };
+    } else {
+      requestBody = { 
         title, 
         description, 
         pdfBase64: base64String,
         isVCAnalysis 
-      }
+      };
+    }
+    
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: requestBody
     });
     
     if (error) {
-      console.error('Error invoking analyze-pdf-direct function:', error);
+      console.error(`Error invoking ${functionName} function:`, error);
       
       toast({
         id: "analysis-error-direct-1",
@@ -335,7 +376,7 @@ export async function analyzeReportDirect(file: File, title: string, description
       throw new Error(errorMessage);
     }
     
-    console.log('Analysis result:', data);
+    console.log(`${functionName} analysis result:`, data);
     
     toast({
       id: "analysis-success-direct",

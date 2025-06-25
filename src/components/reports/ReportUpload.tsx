@@ -47,6 +47,8 @@ export function ReportUpload() {
         setAnalysisProgress(prev => Math.min(prev + 5, 90));
       }, 1000);
 
+      console.log(`Starting ${isVC ? 'VC' : 'regular'} analysis for report ${report.id}`);
+      
       // Use VC analysis if user is a VC
       const analysisResult = await analyzeReport(report.id, isVC);
       
@@ -80,6 +82,8 @@ export function ReportUpload() {
         setAnalysisProgress(prev => Math.min(prev + 5, 90));
       }, 1000);
 
+      console.log(`Starting direct ${isVC ? 'VC' : 'regular'} analysis`);
+      
       // Use VC analysis if user is a VC
       const analysisResult = await analyzeReportDirect(selectedFile, title, description, isVC);
       
@@ -114,18 +118,26 @@ export function ReportUpload() {
       </div>
 
       <FileUploadZone
-        selectedFile={selectedFile}
-        onFileSelect={setSelectedFile}
-        isUploading={isUploading}
-        isAnalyzing={isAnalyzing}
+        id="pitch-deck-upload"
+        label="Pitch Deck"
+        file={selectedFile}
+        onFileChange={(e) => {
+          const file = e.target.files?.[0] || null;
+          setSelectedFile(file);
+        }}
+        accept=".pdf"
+        description="PDF files only, max 10MB"
+        buttonText="Select PDF"
+        disabled={isUploading || isAnalyzing}
+        required={true}
       />
 
       <CompanyInfoForm
         title={title}
-        description={description}
+        briefIntroduction={description}
         websiteUrl={websiteUrl}
         onTitleChange={setTitle}
-        onDescriptionChange={setDescription}
+        onBriefIntroductionChange={setDescription}
         onWebsiteUrlChange={setWebsiteUrl}
         onSubmit={handleSubmit}
         onDirectAnalysis={handleDirectAnalysis}
@@ -137,11 +149,10 @@ export function ReportUpload() {
 
       {(isUploading || isAnalyzing) && (
         <ProgressIndicator
-          isUploading={isUploading}
+          progressStage={isUploading ? "Uploading..." : "Analyzing..."}
+          progress={isUploading ? uploadProgress : analysisProgress}
+          isScrapingWebsite={false}
           isAnalyzing={isAnalyzing}
-          uploadProgress={uploadProgress}
-          analysisProgress={analysisProgress}
-          isVC={isVC}
         />
       )}
     </div>
