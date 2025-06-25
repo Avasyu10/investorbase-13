@@ -50,7 +50,25 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
 
     console.log('✅ Eureka form submitted successfully:', submission);
     
-    // Return immediately - analysis will be triggered by database trigger
+    // Call our trigger function with a delay to ensure the transaction is committed
+    setTimeout(async () => {
+      try {
+        console.log('🔬 Triggering analysis for submission:', submission.id);
+        
+        const { data: triggerResponse, error: triggerError } = await supabase.functions.invoke('trigger-eureka-analysis', {
+          body: { submissionId: submission.id }
+        });
+        
+        if (triggerError) {
+          console.error('❌ Error triggering analysis:', triggerError);
+        } else {
+          console.log('✅ Analysis trigger successful:', triggerResponse);
+        }
+      } catch (error) {
+        console.error('❌ Error in delayed analysis trigger:', error);
+      }
+    }, 2000); // 2 second delay to ensure transaction commit
+    
     return submission;
   } catch (error: any) {
     console.error('❌ Failed to submit Eureka form:', error);

@@ -163,17 +163,17 @@ const EurekaSample = () => {
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
-      // Show success message
+      // Show success message with more detailed info
       toast({
         title: "Success!",
-        description: "🎉 Application submitted successfully! Analysis will start automatically.",
+        description: "🎉 Application submitted successfully! Analysis will start automatically and you'll be notified when complete.",
       });
 
       // Reset form
       form.reset();
       setFounderLinkedIns([""]);
       
-      // Redirect immediately to thank you page - analysis will run in background
+      // Redirect to thank you page
       console.log('🔄 Redirecting to thank you page...');
       navigate("/thank-you");
       
@@ -182,7 +182,15 @@ const EurekaSample = () => {
       
       let errorMessage = 'Please try again.';
       if (error.message) {
-        errorMessage = error.message;
+        if (error.message.includes('violates row-level security')) {
+          errorMessage = 'Permission denied. Please contact support if this issue persists.';
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = 'This submission already exists.';
+        } else if (error.message.includes('violates check constraint')) {
+          errorMessage = 'Invalid data provided. Please check your form fields.';
+        } else {
+          errorMessage = error.message;
+        }
       }
       
       toast({

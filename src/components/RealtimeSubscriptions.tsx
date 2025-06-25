@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,18 +10,31 @@ export const RealtimeSubscriptions = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const channelsRef = useRef<any[]>([]);
 
-  useEffect(() => {
+  const cleanupChannels = () => {
+    channelsRef.current.forEach(channel => {
+      console.log('Cleaning up channel:', channel.topic);
+      supabase.removeChannel(channel);
+    });
+    channelsRef.current = [];
+  };
+
+  const setupRealtimeSubscriptions = () => {
     if (!user) return;
 
-    // Don't set up redirects if user is on the thank you page (public form completion)
+    // Don't set up redirects if user is on the thank you page
     const isOnThankYouPage = location.pathname === '/thank-you';
 
     console.log('Setting up realtime subscriptions for user:', user.id);
 
+    // Clean up existing channels first
+    cleanupChannels();
+
     // Subscribe to eureka form submissions
     const eurekaChannel = supabase
-      .channel('eureka_submissions')
+      .channel(`eureka_submissions_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -40,7 +53,6 @@ export const RealtimeSubscriptions = () => {
               description: "Your Eureka form submission has been analyzed successfully!",
             });
             
-            // Only redirect if not on thank you page
             if (!isOnThankYouPage) {
               navigate(`/company/${submission.company_id}`);
             }
@@ -53,11 +65,22 @@ export const RealtimeSubscriptions = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Eureka channel status:', status);
+        if (status === 'CHANNEL_ERROR') {
+          console.log('Eureka channel error, will retry...');
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          reconnectTimeoutRef.current = setTimeout(() => {
+            setupRealtimeSubscriptions();
+          }, 5000);
+        }
+      });
 
     // Subscribe to BARC form submissions
     const barcChannel = supabase
-      .channel('barc_submissions')
+      .channel(`barc_submissions_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -76,7 +99,6 @@ export const RealtimeSubscriptions = () => {
               description: "Your BARC form submission has been analyzed successfully!",
             });
             
-            // Only redirect if not on thank you page
             if (!isOnThankYouPage) {
               navigate(`/company/${submission.company_id}`);
             }
@@ -89,11 +111,22 @@ export const RealtimeSubscriptions = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('BARC channel status:', status);
+        if (status === 'CHANNEL_ERROR') {
+          console.log('BARC channel error, will retry...');
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          reconnectTimeoutRef.current = setTimeout(() => {
+            setupRealtimeSubscriptions();
+          }, 5000);
+        }
+      });
 
     // Subscribe to email pitch submissions
     const emailPitchChannel = supabase
-      .channel('email_pitch_submissions')
+      .channel(`email_pitch_submissions_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -112,7 +145,6 @@ export const RealtimeSubscriptions = () => {
               description: "Your email pitch has been analyzed successfully!",
             });
             
-            // Only redirect if not on thank you page
             if (!isOnThankYouPage) {
               navigate(`/company/${submission.company_id}`);
             }
@@ -125,13 +157,32 @@ export const RealtimeSubscriptions = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Email pitch channel status:', status);
+        if (status === 'CHANNEL_ERROR') {
+          console.log('Email pitch channel error, will retry...');
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          reconnectTimeoutRef.current = setTimeout(() => {
+            setupRealtimeSubscriptions();
+          }, 5000);
+        }
+      });
+
+    // Store channels for cleanup
+    channelsRef.current = [eurekaChannel, barcChannel, emailPitchChannel];
+  };
+
+  useEffect(() => {
+    setupRealtimeSubscriptions();
 
     return () => {
       console.log('Cleaning up realtime subscriptions');
-      supabase.removeChannel(eurekaChannel);
-      supabase.removeChannel(barcChannel);
-      supabase.removeChannel(emailPitchChannel);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      cleanupChannels();
     };
   }, [user, navigate, toast, location.pathname]);
 
