@@ -134,116 +134,64 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Add delay and retry mechanism to ensure submission is available
-    console.log('Adding delay to ensure transaction is committed...');
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
+    // Wait longer for the database transaction to complete
+    console.log('Waiting for database transaction to complete...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // Fetch submission data with retry mechanism
+    // Fetch submission data with improved error handling
     console.log('Fetching submission for analysis...');
-    let submission = null;
-    let attempts = 0;
-    const maxAttempts = 3;
+    const { data: submission, error: fetchError } = await supabase
+      .from('eureka_form_submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .maybeSingle();
 
-    while (!submission && attempts < maxAttempts) {
-      attempts++;
-      console.log(`Fetch attempt ${attempts} for submission ${submissionId}`);
-      
-      const { data: fetchedSubmission, error: fetchError } = await supabase
-        .from('eureka_form_submissions')
-        .select('*')
-        .eq('id', submissionId)
-        .maybeSingle(); // Changed from .single() to .maybeSingle()
-
-      if (fetchError) {
-        console.error(`Fetch attempt ${attempts} failed:`, fetchError);
-        if (attempts === maxAttempts) {
-          throw new Error(`Failed to fetch submission after ${maxAttempts} attempts: ${fetchError.message}`);
-        }
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-        continue;
-      }
-
-      if (!fetchedSubmission) {
-        console.error(`Submission ${submissionId} not found on attempt ${attempts}`);
-        if (attempts === maxAttempts) {
-          throw new Error(`Submission not found after ${maxAttempts} attempts: ${submissionId}`);
-        }
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-        continue;
-      }
-
-      submission = fetchedSubmission;
-      console.log('Successfully fetched submission:', {
-        id: submission.id,
-        company_name: submission.company_name,
-        analysis_status: submission.analysis_status
-      });
+    if (fetchError) {
+      console.error('Database error fetching submission:', fetchError);
+      throw new Error(`Failed to fetch submission: ${fetchError.message}`);
     }
 
-    // Check if already processing or completed using an atomic update
-    console.log('Attempting to acquire lock for submission analysis...');
-    const { data: lockResult, error: lockError } = await supabase
+    if (!submission) {
+      console.error(`Submission ${submissionId} not found in database`);
+      throw new Error(`Submission not found: ${submissionId}`);
+    }
+
+    console.log('Successfully fetched submission:', {
+      id: submission.id,
+      company_name: submission.company_name,
+      analysis_status: submission.analysis_status
+    });
+
+    // Check if already analyzing or completed
+    if (submission.analysis_status === 'completed') {
+      console.log('Submission already analyzed');
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'Submission already analyzed',
+          submissionId,
+          companyId: submission.company_id
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Update status to processing
+    console.log('Updating submission status to processing...');
+    const { error: updateError } = await supabase
       .from('eureka_form_submissions')
       .update({ 
         analysis_status: 'processing',
         updated_at: new Date().toISOString()
       })
-      .eq('id', submissionId)
-      .in('analysis_status', ['pending', 'failed'])
-      .select()
-      .maybeSingle();
+      .eq('id', submissionId);
 
-    if (lockError) {
-      console.error('Error acquiring lock:', lockError);
-      throw new Error(`Failed to acquire processing lock: ${lockError.message}`);
+    if (updateError) {
+      console.error('Error updating submission status:', updateError);
+      throw new Error(`Failed to update submission status: ${updateError.message}`);
     }
-
-    if (!lockResult) {
-      console.log('Could not acquire lock - submission is already being processed or completed');
-      // Check current status and return accordingly
-      const { data: currentSubmission } = await supabase
-        .from('eureka_form_submissions')
-        .select('analysis_status, company_id')
-        .eq('id', submissionId)
-        .maybeSingle();
-
-      if (currentSubmission?.analysis_status === 'completed' && currentSubmission?.company_id) {
-        console.log('Submission already completed successfully');
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            submissionId,
-            companyId: currentSubmission.company_id,
-            isNewCompany: false,
-            message: 'Analysis already completed'
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      if (currentSubmission?.analysis_status === 'processing') {
-        console.log('Submission is currently being processed');
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            submissionId,
-            message: 'Analysis is currently in progress',
-            status: 'processing'
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      throw new Error('Submission is already being analyzed or has been completed');
-    }
-
-    console.log('Successfully acquired lock for submission analysis');
 
     // Use the specific user ID for all Eureka form submissions
     const effectiveUserId = "ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af";
@@ -646,7 +594,7 @@ serve(async (req) => {
 
     // Update submission with final results
     console.log('Updating submission with final analysis results...');
-    const { error: updateError } = await supabase
+    const { error: finalUpdateError } = await supabase
       .from('eureka_form_submissions')
       .update({
         analysis_status: 'completed',
@@ -656,9 +604,9 @@ serve(async (req) => {
       })
       .eq('id', submissionId);
 
-    if (updateError) {
-      console.error('Failed to update submission:', updateError);
-      throw new Error(`Failed to update submission: ${updateError.message}`);
+    if (finalUpdateError) {
+      console.error('Failed to update submission:', finalUpdateError);
+      throw new Error(`Failed to update submission: ${finalUpdateError.message}`);
     }
 
     console.log('Successfully analyzed Eureka submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
