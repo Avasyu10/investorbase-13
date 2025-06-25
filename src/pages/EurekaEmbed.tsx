@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { submitEurekaForm, type EurekaSubmissionData } from "@/lib/api/eureka";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EurekaFormData {
   companyName: string;
@@ -30,16 +30,13 @@ interface EurekaFormData {
   companyRegistrationType: string;
 }
 
-// Fixed user ID for embedded submissions
-const FIXED_USER_ID = "ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af";
-
 const EurekaEmbed = () => {
   const { slug } = useParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
-  console.log('🔗 Eureka Embed - Using fixed user ID:', FIXED_USER_ID);
+  console.log('🔗 Eureka Embed - Anonymous submission mode');
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -74,9 +71,50 @@ const EurekaEmbed = () => {
     );
   };
 
+  // Direct database submission without authentication
+  const submitToDatabase = async (formData: EurekaFormData) => {
+    console.log('📝 Direct database submission for embed:', formData);
+    
+    const submissionData = {
+      form_slug: slug || 'eureka-embed',
+      company_name: formData.companyName,
+      company_registration_type: formData.companyRegistrationType || "Not Specified",
+      executive_summary: formData.executiveSummary,
+      company_type: formData.companyType,
+      question_1: formData.question1,
+      question_2: formData.question2,
+      question_3: formData.question3,
+      question_4: formData.question4,
+      question_5: formData.question5,
+      submitter_email: formData.submitterEmail,
+      founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
+      poc_name: formData.pocName,
+      phoneno: formData.phoneNumber,
+      company_linkedin_url: formData.companyLinkedInUrl,
+      user_id: null, // Explicitly set to null for anonymous submissions
+      analysis_status: 'pending'
+    };
+
+    console.log('📋 Anonymous submission data:', submissionData);
+
+    // Direct insert without authentication
+    const { data, error } = await supabase
+      .from('eureka_form_submissions')
+      .insert([submissionData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error submitting to database:', error);
+      throw error;
+    }
+
+    console.log('✅ Direct database submission successful:', data);
+    return data;
+  };
+
   const onSubmit = async (data: EurekaFormData) => {
     console.log('📝 Eureka embed form submit triggered:', data);
-    console.log('🔗 Using fixed user ID for submission:', FIXED_USER_ID);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -138,33 +176,12 @@ const EurekaEmbed = () => {
       return;
     }
 
-    console.log('✅ Validation passed, submitting with fixed user ID...');
+    console.log('✅ Validation passed, submitting anonymously...');
     setIsSubmitting(true);
 
     try {
-      const submissionData: EurekaSubmissionData = {
-        form_slug: slug || 'eureka-embed',
-        company_name: data.companyName,
-        company_registration_type: data.companyRegistrationType || "Not Specified",
-        executive_summary: data.executiveSummary,
-        company_type: data.companyType,
-        question_1: data.question1,
-        question_2: data.question2,
-        question_3: data.question3,
-        question_4: data.question4,
-        question_5: data.question5,
-        submitter_email: data.submitterEmail,
-        founder_linkedin_urls: founderLinkedIns.filter(url => url.trim()),
-        poc_name: data.pocName,
-        phoneno: data.phoneNumber,
-        company_linkedin_url: data.companyLinkedInUrl,
-        user_id: FIXED_USER_ID // Use fixed user ID for embedded form
-      };
-
-      console.log('📋 Final embedded submission data:', submissionData);
-
-      // Submit the form - the database trigger will automatically start analysis
-      const submission = await submitEurekaForm(submissionData);
+      // Submit directly to database without authentication
+      const submission = await submitToDatabase(data);
       console.log('📋 Eureka embed form submitted successfully:', submission);
 
       // Show success message
@@ -173,7 +190,7 @@ const EurekaEmbed = () => {
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
       });
 
-      // Show thank you message instead of navigating
+      // Show thank you message
       toast({
         title: "Thank You!",
         description: "Your application has been submitted and will be reviewed shortly.",
