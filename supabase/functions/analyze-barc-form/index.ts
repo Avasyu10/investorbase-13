@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
-// Helper function to clean and parse JSON from AI responses
+// Enhanced helper function to clean and parse JSON from AI responses
 function cleanAndParseJSON(text: string): any {
   try {
     // First attempt - try parsing as-is
@@ -29,16 +29,21 @@ function cleanAndParseJSON(text: string): any {
     // Remove any leading/trailing whitespace
     cleaned = cleaned.trim();
     
-    // Fix common JSON issues
-    // Replace single quotes with double quotes (but be careful not to break strings)
-    // Fix escaped characters that might be malformed
+    // Fix common JSON issues with dollar signs and backslashes
     cleaned = cleaned
-      .replace(/\\'/g, "'")  // Fix escaped single quotes
-      .replace(/\\"/g, '"')  // Normalize escaped double quotes
-      .replace(/\\\\/g, '\\') // Fix double escaping
-      .replace(/\\n/g, '\\n') // Ensure newlines are properly escaped
-      .replace(/\\t/g, '\\t') // Ensure tabs are properly escaped
-      .replace(/\\r/g, '\\r'); // Ensure carriage returns are properly escaped
+      // Fix dollar signs that are improperly escaped
+      .replace(/\\?\$(\d)/g, '$$$1')  // Convert \$500 or $500 to $500
+      .replace(/\\\$/g, '$')         // Convert \$ to $
+      // Fix double backslashes and other escape issues
+      .replace(/\\\\/g, '\\')        // Fix double escaping
+      .replace(/\\'/g, "'")          // Fix escaped single quotes
+      .replace(/\\"/g, '"')          // Normalize escaped double quotes
+      // Fix newlines, tabs, and carriage returns
+      .replace(/\\n/g, '\\n')        // Ensure newlines are properly escaped
+      .replace(/\\t/g, '\\t')        // Ensure tabs are properly escaped
+      .replace(/\\r/g, '\\r')        // Ensure carriage returns are properly escaped
+      // Remove control characters that can break JSON
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
     
     // Try to find JSON object boundaries
     const startIndex = cleaned.indexOf('{');
@@ -54,18 +59,25 @@ function cleanAndParseJSON(text: string): any {
       console.error('Second parse attempt failed:', secondError);
       console.error('Cleaned text sample:', cleaned.substring(0, 500));
       
-      // Last resort: try to extract and fix the JSON manually
+      // Last resort: more aggressive cleaning
       try {
-        // Remove any problematic characters that might cause parsing issues
+        // Replace problematic patterns that commonly cause issues
         const finalCleaned = cleaned
-          .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-          .replace(/\n/g, '\\n')  // Properly escape actual newlines
-          .replace(/\r/g, '\\r')  // Properly escape carriage returns
-          .replace(/\t/g, '\\t'); // Properly escape tabs
+          // Fix any remaining dollar sign issues
+          .replace(/\\\$([0-9])/g, '$$$$1')     // \$500 -> $500
+          .replace(/\\&/g, '&')                // \& -> &
+          .replace(/\\\s/g, ' ')               // \ followed by space
+          // Ensure proper escaping of actual newlines in the text
+          .replace(/\n/g, '\\n')               // Actual newlines to escaped
+          .replace(/\r/g, '\\r')               // Actual carriage returns to escaped
+          .replace(/\t/g, '\\t')               // Actual tabs to escaped
+          // Remove any remaining problematic sequences
+          .replace(/\\([^"\\\/bfnrt])/g, '$1'); // Remove invalid escape sequences
           
         return JSON.parse(finalCleaned);
       } catch (finalError) {
         console.error('Final parse attempt failed:', finalError);
+        console.error('Final cleaned text sample:', cleaned.substring(0, 200));
         throw new Error(`Could not parse JSON response: ${finalError.message}`);
       }
     }
@@ -248,13 +260,19 @@ serve(async (req) => {
         ).join('\n\n')}`
       : '\n\nNo LinkedIn data available for founders.';
 
-    // Build analysis prompt with submission data
+    // Build analysis prompt with submission data - FIXED to avoid problematic characters
     const analysisPrompt = `
     You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to evaluate startup applications fairly while providing meaningful score differentiation. Most good applications should score between 60-80, with exceptional ones reaching 80-90.
 
-    CRITICAL REQUIREMENT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible.
+    CRITICAL JSON FORMATTING REQUIREMENTS:
+    - You MUST return ONLY valid JSON with no markdown formatting, code blocks, or additional text
+    - Use simple quotes and avoid complex escape sequences
+    - When mentioning dollar amounts, use "USD" instead of the dollar symbol
+    - When mentioning percentages, write them as "8-10 percent" instead of using % symbol
+    - Avoid using ampersand (&) symbols - write "and" instead
+    - No backticks, no explanatory text - just pure JSON
 
-    IMPORTANT: You MUST return ONLY valid JSON. Do not include any markdown formatting, code blocks, or additional text outside the JSON structure. No backticks, no explanatory text - just pure JSON.
+    IMPORTANT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible. When writing monetary amounts, always use "billion USD" or "million USD" format instead of symbols.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -264,7 +282,7 @@ serve(async (req) => {
 
     Application Responses and FAIR EVALUATION METRICS:
 
-    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
+    1. PROBLEM AND SOLUTION: "${submission.question_1 || 'Not provided'}"
     
     Rate this section from 0-100 based on these FAIR criteria:
     - Clear problem identification (25 points): Look for specific pain points and market needs
@@ -327,8 +345,8 @@ serve(async (req) => {
     - Reject: Overall score < 60 (applications needing significant development)
 
     MANDATORY MARKET DATA REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
-    - Include actual market size figures (in billions/millions USD) for the industry
-    - Reference real growth rates and industry trends
+    - Include actual market size figures in billions or millions USD for the industry
+    - Reference real growth rates and industry trends using percentage figures written as "percent"
     - Mention specific competitor companies and their valuations when possible
     - Include funding data for similar companies in the space
     - Use actual industry statistics and benchmarks
