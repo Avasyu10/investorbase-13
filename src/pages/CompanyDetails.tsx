@@ -12,7 +12,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Loader2, BarChart2, ListChecks } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
-import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +38,6 @@ function CompanyDetails() {
   const [isVCUser, setIsVCUser] = useState(false);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
-  const [showFundThesisAlignment, setShowFundThesisAlignment] = useState(false);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = company ? {
@@ -142,11 +140,6 @@ function CompanyDetails() {
     }
   }, [company?.report_id]);
 
-  // Handle view full analysis click
-  const handleViewFullAnalysis = () => {
-    setShowFundThesisAlignment(true);
-  };
-
   // Early return for loading state
   if (authLoading || isLoading) {
     return (
@@ -225,32 +218,7 @@ function CompanyDetails() {
             <OverallAssessment
               score={company.overall_score || 0}
               assessmentPoints={company.assessment_points || []}
-              onViewFullAnalysis={handleViewFullAnalysis}
             />
-          )}
-
-          {/* Show Fund Thesis Alignment Analysis when requested */}
-          {isVCUser && showFundThesisAlignment && company.id && (
-            <Card className="shadow-card border-0 mb-6">
-              <CardHeader className="border-b pb-4">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-xl font-semibold">Fund Thesis Alignment Analysis</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFundThesisAlignment(false)}
-                  >
-                    Close
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-5">
-                <FundThesisAlignment 
-                  companyId={company.id} 
-                  companyName={company.name}
-                />
-              </CardContent>
-            </Card>
           )}
 
           {/* For VC users, show Real-time Market Analysis */}
