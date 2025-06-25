@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -134,54 +133,45 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Implement retry logic for fetching the submission
-    console.log('Fetching submission with retry logic...');
+    // Fetch the submission with a single retry if not found
+    console.log('Fetching submission...');
     let submission = null;
-    let fetchError = null;
-    const maxRetries = 5;
-    const retryDelay = 2000; // 2 seconds
+    
+    const { data, error } = await supabase
+      .from('eureka_form_submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .maybeSingle();
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`Attempt ${attempt} to fetch submission ${submissionId}`);
+    if (error) {
+      console.error('Database error fetching submission:', error);
+      throw new Error(`Failed to fetch submission: ${error.message}`);
+    }
+
+    if (!data) {
+      // Single retry after 1 second if not found
+      console.log('Submission not found, retrying once after 1 second...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const { data, error } = await supabase
+      const { data: retryData, error: retryError } = await supabase
         .from('eureka_form_submissions')
         .select('*')
         .eq('id', submissionId)
         .maybeSingle();
 
-      if (error) {
-        console.error(`Fetch attempt ${attempt} failed:`, error);
-        fetchError = error;
-        
-        if (attempt < maxRetries) {
-          console.log(`Waiting ${retryDelay}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          continue;
-        }
-      } else if (data) {
-        console.log(`Successfully fetched submission on attempt ${attempt}`);
-        submission = data;
-        break;
-      } else {
-        console.log(`Submission not found on attempt ${attempt}`);
-        
-        if (attempt < maxRetries) {
-          console.log(`Waiting ${retryDelay}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          continue;
-        }
+      if (retryError) {
+        console.error('Retry database error:', retryError);
+        throw new Error(`Failed to fetch submission on retry: ${retryError.message}`);
       }
-    }
 
-    if (fetchError) {
-      console.error('Database error fetching submission after all retries:', fetchError);
-      throw new Error(`Failed to fetch submission: ${fetchError.message}`);
-    }
+      if (!retryData) {
+        console.error(`Submission ${submissionId} not found in database`);
+        throw new Error(`Submission not found: ${submissionId}`);
+      }
 
-    if (!submission) {
-      console.error(`Submission ${submissionId} not found in database after all retries`);
-      throw new Error(`Submission not found: ${submissionId}`);
+      submission = retryData;
+    } else {
+      submission = data;
     }
 
     console.log('Successfully fetched submission:', {
@@ -204,21 +194,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
-    }
-
-    // Update status to processing
-    console.log('Updating submission status to processing...');
-    const { error: updateError } = await supabase
-      .from('eureka_form_submissions')
-      .update({ 
-        analysis_status: 'processing',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', submissionId);
-
-    if (updateError) {
-      console.error('Error updating submission status:', updateError);
-      throw new Error(`Failed to update submission status: ${updateError.message}`);
     }
 
     // Use the specific user ID for all Eureka form submissions
