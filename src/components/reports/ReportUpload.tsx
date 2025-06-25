@@ -3,7 +3,7 @@ import { useState } from "react";
 import { FileUploadZone } from "./upload/FileUploadZone";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
 import { ProgressIndicator } from "./upload/ProgressIndicator";
-import { uploadReport, analyzeReport, analyzeReportDirect } from "@/lib/supabase/analysis";
+import { uploadReport, analyzeReport } from "@/lib/supabase/analysis";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -62,101 +62,36 @@ export function ReportUpload() {
 
     console.log('ReportUpload handleSubmit - isVC:', isVC);
     
-    if (isVC) {
-      // For VC users, use direct analysis which will call analyze-pdf-vc
+    // Always upload first, then analyze
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Simulate upload progress
+      const uploadInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
+      // Upload the report (same for both VC and regular users)
+      const report = await uploadReport(selectedFile, title, description, websiteUrl);
+      
+      clearInterval(uploadInterval);
+      setUploadProgress(100);
+      setIsUploading(false);
+      
+      // Start analysis
       setIsAnalyzing(true);
       setAnalysisProgress(0);
       
-      try {
-        // Simulate analysis progress
-        const analysisInterval = setInterval(() => {
-          setAnalysisProgress(prev => Math.min(prev + 5, 90));
-        }, 1000);
-
-        console.log('Starting VC direct analysis');
-        
-        const analysisResult = await analyzeReportDirect(selectedFile, title, description, true);
-        
-        clearInterval(analysisInterval);
-        setAnalysisProgress(100);
-        
-        // Navigate to the company details page
-        if (analysisResult.companyId) {
-          navigate(`/company/${analysisResult.companyId}`);
-        } else {
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error('Error in VC direct analysis:', error);
-        setIsAnalyzing(false);
-        setAnalysisProgress(0);
-      }
-    } else {
-      // For regular users, use the traditional upload then analyze flow
-      setIsUploading(true);
-      setUploadProgress(0);
-
-      try {
-        // Simulate upload progress
-        const uploadInterval = setInterval(() => {
-          setUploadProgress(prev => Math.min(prev + 10, 90));
-        }, 200);
-
-        // Upload the report
-        const report = await uploadReport(selectedFile, title, description, websiteUrl);
-        
-        clearInterval(uploadInterval);
-        setUploadProgress(100);
-        setIsUploading(false);
-        
-        // Start analysis
-        setIsAnalyzing(true);
-        setAnalysisProgress(0);
-        
-        // Simulate analysis progress
-        const analysisInterval = setInterval(() => {
-          setAnalysisProgress(prev => Math.min(prev + 5, 90));
-        }, 1000);
-
-        console.log('Starting regular analysis for report:', report.id);
-        
-        const analysisResult = await analyzeReport(report.id, false);
-        
-        clearInterval(analysisInterval);
-        setAnalysisProgress(100);
-        
-        // Navigate to the company details page
-        if (analysisResult.companyId) {
-          navigate(`/company/${analysisResult.companyId}`);
-        } else {
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error('Error in upload/analysis process:', error);
-        setIsUploading(false);
-        setIsAnalyzing(false);
-        setUploadProgress(0);
-        setAnalysisProgress(0);
-      }
-    }
-  };
-
-  const handleDirectAnalysis = async () => {
-    if (!selectedFile || !title.trim()) return;
-
-    setIsAnalyzing(true);
-    setAnalysisProgress(0);
-
-    try {
       // Simulate analysis progress
       const analysisInterval = setInterval(() => {
         setAnalysisProgress(prev => Math.min(prev + 5, 90));
       }, 1000);
 
-      console.log(`Starting direct ${isVC ? 'VC' : 'regular'} analysis`);
+      console.log(`Starting ${isVC ? 'VC' : 'regular'} analysis for report:`, report.id);
       
-      // Use VC analysis if user is a VC
-      const analysisResult = await analyzeReportDirect(selectedFile, title, description, isVC);
+      // CRITICAL: Pass the isVC flag to ensure correct edge function is called
+      const analysisResult = await analyzeReport(report.id, isVC);
       
       clearInterval(analysisInterval);
       setAnalysisProgress(100);
@@ -168,8 +103,10 @@ export function ReportUpload() {
         navigate('/dashboard');
       }
     } catch (error) {
-      console.error('Error in direct analysis:', error);
+      console.error('Error in upload/analysis process:', error);
+      setIsUploading(false);
       setIsAnalyzing(false);
+      setUploadProgress(0);
       setAnalysisProgress(0);
     }
   };
