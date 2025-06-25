@@ -134,34 +134,53 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Simple fetch without complex retry logic - add a small delay to ensure transaction is committed
-    console.log('Adding small delay to ensure transaction is committed...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Add delay and retry mechanism to ensure submission is available
+    console.log('Adding delay to ensure transaction is committed...');
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
 
-    // Fetch submission data
+    // Fetch submission data with retry mechanism
     console.log('Fetching submission for analysis...');
-    const { data: submission, error: fetchError } = await supabase
-      .from('eureka_form_submissions')
-      .select('*')
-      .eq('id', submissionId)
-      .single();
+    let submission = null;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    if (fetchError || !submission) {
-      console.error('Failed to fetch submission:', fetchError);
-      throw new Error(`Failed to fetch submission: ${fetchError?.message || 'Submission not found'}`);
+    while (!submission && attempts < maxAttempts) {
+      attempts++;
+      console.log(`Fetch attempt ${attempts} for submission ${submissionId}`);
+      
+      const { data: fetchedSubmission, error: fetchError } = await supabase
+        .from('eureka_form_submissions')
+        .select('*')
+        .eq('id', submissionId)
+        .maybeSingle(); // Changed from .single() to .maybeSingle()
+
+      if (fetchError) {
+        console.error(`Fetch attempt ${attempts} failed:`, fetchError);
+        if (attempts === maxAttempts) {
+          throw new Error(`Failed to fetch submission after ${maxAttempts} attempts: ${fetchError.message}`);
+        }
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        continue;
+      }
+
+      if (!fetchedSubmission) {
+        console.error(`Submission ${submissionId} not found on attempt ${attempts}`);
+        if (attempts === maxAttempts) {
+          throw new Error(`Submission not found after ${maxAttempts} attempts: ${submissionId}`);
+        }
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        continue;
+      }
+
+      submission = fetchedSubmission;
+      console.log('Successfully fetched submission:', {
+        id: submission.id,
+        company_name: submission.company_name,
+        analysis_status: submission.analysis_status
+      });
     }
-
-    console.log('Retrieved submission for analysis:', {
-      id: submission.id,
-      company_name: submission.company_name,
-      submitter_email: submission.submitter_email,
-      form_slug: submission.form_slug,
-      analysis_status: submission.analysis_status,
-      user_id: submission.user_id,
-      company_type: submission.company_type,
-      poc_name: submission.poc_name,
-      phoneno: submission.phoneno
-    });
 
     // Check if already processing or completed using an atomic update
     console.log('Attempting to acquire lock for submission analysis...');
@@ -188,7 +207,7 @@ serve(async (req) => {
         .from('eureka_form_submissions')
         .select('analysis_status, company_id')
         .eq('id', submissionId)
-        .single();
+        .maybeSingle();
 
       if (currentSubmission?.analysis_status === 'completed' && currentSubmission?.company_id) {
         console.log('Submission already completed successfully');
