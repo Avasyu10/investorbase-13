@@ -12,7 +12,7 @@ export interface BaseSubmission {
   from_email?: string;
   has_attachment?: boolean;
   analysis_result?: any;
-  user_id?: string | null;
+  user_id?: string;
   company_id?: string;
 }
 
@@ -62,10 +62,6 @@ export interface EurekaSubmission extends BaseSubmission {
   company_linkedin_url?: string;
   founder_linkedin_urls?: string[];
   report_id?: string;
-  analysis_status?: string;
-  analysis_result?: any;
-  analyzed_at?: string;
-  analysis_error?: string;
 }
 
 // Email submission interface
