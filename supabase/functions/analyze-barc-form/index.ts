@@ -10,6 +10,68 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+// Helper function to clean and parse JSON from AI responses
+function cleanAndParseJSON(text: string): any {
+  try {
+    // First attempt - try parsing as-is
+    return JSON.parse(text);
+  } catch (error) {
+    console.log('First parse attempt failed, cleaning JSON...');
+    
+    // Remove markdown code blocks
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Remove any leading/trailing whitespace
+    cleaned = cleaned.trim();
+    
+    // Fix common JSON issues
+    // Replace single quotes with double quotes (but be careful not to break strings)
+    // Fix escaped characters that might be malformed
+    cleaned = cleaned
+      .replace(/\\'/g, "'")  // Fix escaped single quotes
+      .replace(/\\"/g, '"')  // Normalize escaped double quotes
+      .replace(/\\\\/g, '\\') // Fix double escaping
+      .replace(/\\n/g, '\\n') // Ensure newlines are properly escaped
+      .replace(/\\t/g, '\\t') // Ensure tabs are properly escaped
+      .replace(/\\r/g, '\\r'); // Ensure carriage returns are properly escaped
+    
+    // Try to find JSON object boundaries
+    const startIndex = cleaned.indexOf('{');
+    const lastIndex = cleaned.lastIndexOf('}');
+    
+    if (startIndex !== -1 && lastIndex !== -1 && startIndex < lastIndex) {
+      cleaned = cleaned.substring(startIndex, lastIndex + 1);
+    }
+    
+    try {
+      return JSON.parse(cleaned);
+    } catch (secondError) {
+      console.error('Second parse attempt failed:', secondError);
+      console.error('Cleaned text sample:', cleaned.substring(0, 500));
+      
+      // Last resort: try to extract and fix the JSON manually
+      try {
+        // Remove any problematic characters that might cause parsing issues
+        const finalCleaned = cleaned
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+          .replace(/\n/g, '\\n')  // Properly escape actual newlines
+          .replace(/\r/g, '\\r')  // Properly escape carriage returns
+          .replace(/\t/g, '\\t'); // Properly escape tabs
+          
+        return JSON.parse(finalCleaned);
+      } catch (finalError) {
+        console.error('Final parse attempt failed:', finalError);
+        throw new Error(`Could not parse JSON response: ${finalError.message}`);
+      }
+    }
+  }
+}
+
 serve(async (req) => {
   console.log(`Request method: ${req.method}`);
   
@@ -192,6 +254,8 @@ serve(async (req) => {
 
     CRITICAL REQUIREMENT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible.
 
+    IMPORTANT: You MUST return ONLY valid JSON. Do not include any markdown formatting, code blocks, or additional text outside the JSON structure. No backticks, no explanatory text - just pure JSON.
+
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
@@ -270,11 +334,11 @@ serve(async (req) => {
     - Use actual industry statistics and benchmarks
     - Reference real market research data and sources
 
-    Return analysis in this JSON format:
+    Return ONLY this JSON structure with no additional text, markdown, or formatting:
     {
-      "overall_score": number (calculated weighted average),
+      "overall_score": 75,
       "scoring_reason": "One concise sentence explaining the overall assessment WITH SPECIFIC MARKET DATA",
-      "recommendation": "Accept" | "Consider" | "Reject",
+      "recommendation": "Accept",
       "company_info": {
         "industry": "string (infer from application)",
         "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
@@ -282,31 +346,31 @@ serve(async (req) => {
       },
       "sections": {
         "problem_solution_fit": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis highlighting what they did well and areas for improvement WITH MARKET DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REAL MARKET NUMBERS"],
           "improvements": ["4-5 market-driven improvement areas with industry benchmarks and competitive data - DO NOT mention missing form information, focus entirely on market challenges and opportunities"]
         },
         "target_customers": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their customer understanding WITH MARKET SIZING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING CUSTOMER SEGMENT SIZES"],
           "improvements": ["4-5 market-driven improvement areas with customer acquisition benchmarks and market penetration data - focus on market challenges, not form gaps"]
         },
         "competitors": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their competitive understanding WITH COMPETITOR VALUATIONS",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING COMPETITIVE MARKET SHARE DATA"],
           "improvements": ["4-5 market-driven improvement areas with competitor analysis and market positioning insights - focus on competitive challenges, not missing information"]
         },
         "revenue_model": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their revenue strategy WITH INDUSTRY PRICING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REVENUE BENCHMARKS"],
           "improvements": ["4-5 market-driven improvement areas with pricing strategy insights and revenue optimization based on industry data - focus on market dynamics, not missing details"]
         },
         "differentiation": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their differentiation strategy WITH MARKET POSITIONING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING INNOVATION METRICS"],
           "improvements": ["4-5 market-driven improvement areas with innovation benchmarks and market gap analysis - focus on market opportunities and challenges, not form completeness"]
@@ -347,12 +411,12 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.\n\n${analysisPrompt}`
+            text: analysisPrompt
           }]
         }],
         generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 3000,
+          temperature: 0.1,
+          maxOutputTokens: 4000,
         }
       }),
     });
@@ -372,27 +436,16 @@ serve(async (req) => {
 
     let analysisText = geminiData.candidates[0].content.parts[0].text;
     console.log('Raw analysis text received from Gemini');
-
-    // Clean up the response text to extract JSON
-    analysisText = analysisText.trim();
-    
-    // Remove markdown code blocks if present
-    if (analysisText.startsWith('```json')) {
-      analysisText = analysisText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (analysisText.startsWith('```')) {
-      analysisText = analysisText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-    
-    analysisText = analysisText.trim();
+    console.log('Analysis text sample:', analysisText.substring(0, 200) + '...');
 
     let analysisResult;
     try {
-      analysisResult = JSON.parse(analysisText);
+      analysisResult = cleanAndParseJSON(analysisText);
       console.log('Successfully parsed analysis result');
     } catch (parseError) {
       console.error('Failed to parse Gemini response as JSON:', parseError);
-      console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
-      throw new Error('Analysis response was not valid JSON');
+      console.error('Full analysis text:', analysisText);
+      throw new Error(`Analysis response was not valid JSON: ${parseError.message}`);
     }
 
     console.log('Analysis overall score:', analysisResult.overall_score);
