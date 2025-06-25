@@ -18,15 +18,17 @@ export interface EurekaSubmissionData {
   phoneno?: string;
   company_linkedin_url?: string;
   user_id?: string | null;
+  analysis_status?: string;
 }
 
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('📤 Submitting Eureka form data:', data);
   
-  // Ensure user_id is included in the submission
+  // Ensure the submission includes the analysis_status field
   const submissionData = {
     ...data,
-    user_id: data.user_id || null
+    analysis_status: 'pending', // Explicitly set status to pending
+    user_id: data.user_id || null // Ensure user_id is properly handled
   };
   
   const { data: submission, error } = await supabase
@@ -43,5 +45,3 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('✅ Eureka form submitted successfully - analysis will start automatically via trigger:', submission);
   return submission;
 };
-
-// Remove the analyzeEurekaSubmission function since analysis is now automatic via trigger
