@@ -10,23 +10,31 @@ export async function getReportData(reportId: string) {
   // Create a Supabase client without authentication
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   
-  // Get the report data
-  const { data: report, error: reportError } = await supabase
+  // First, let's check if the report exists at all
+  const { data: reportCheck, error: checkError } = await supabase
     .from('reports')
-    .select('*')
-    .eq('id', reportId)
-    .single();
+    .select('id, title, user_id, pdf_url')
+    .eq('id', reportId);
   
-  if (reportError) {
-    console.error("Error fetching report:", reportError);
-    throw new Error(`Report not found: ${reportError.message}`);
+  console.log("Report check result:", reportCheck, "Error:", checkError);
+  
+  if (checkError) {
+    console.error("Error checking report:", checkError);
+    throw new Error(`Failed to check report: ${checkError.message}`);
   }
   
-  if (!report) {
-    throw new Error("Report not found");
+  if (!reportCheck || reportCheck.length === 0) {
+    console.error("No report found with ID:", reportId);
+    throw new Error(`Report not found with ID: ${reportId}`);
   }
   
-  console.log("Report found:", report.title);
+  if (reportCheck.length > 1) {
+    console.error("Multiple reports found with same ID:", reportId);
+    throw new Error(`Multiple reports found with ID: ${reportId}`);
+  }
+  
+  const report = reportCheck[0];
+  console.log("Report found:", report.title, "User:", report.user_id);
   
   // Download the PDF from storage using the report's pdf_url
   let pdfBase64: string;
@@ -57,6 +65,11 @@ export async function getReportData(reportId: string) {
     pdfBase64 = btoa(binaryString);
     
     console.log("PDF converted to base64, length:", pdfBase64.length);
+    
+    if (pdfBase64.length === 0) {
+      throw new Error("PDF conversion resulted in empty base64 string");
+    }
+    
   } catch (error) {
     console.error("Error processing PDF:", error);
     throw new Error(`Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);

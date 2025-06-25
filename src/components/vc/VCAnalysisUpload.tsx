@@ -19,11 +19,17 @@ export function VCAnalysisUpload() {
   const { toast } = useToast();
 
   const handleSubmit = async () => {
-    if (!selectedFile || !title.trim()) return;
+    if (!selectedFile || !title.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a file and enter a company name.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     console.log('VCAnalysisUpload - Starting VC analysis process');
     
-    // Always upload first, then analyze
     setIsUploading(true);
     setUploadProgress(0);
 
@@ -33,12 +39,24 @@ export function VCAnalysisUpload() {
         setUploadProgress(prev => Math.min(prev + 10, 90));
       }, 200);
 
-      // Upload the report
-      const report = await uploadReport(selectedFile, title, description);
+      console.log('VCAnalysisUpload - Uploading report to storage');
+      
+      // Upload the report first
+      let report;
+      try {
+        report = await uploadReport(selectedFile, title, description);
+        console.log('VCAnalysisUpload - Report uploaded successfully:', report.id);
+      } catch (uploadError) {
+        console.error('VCAnalysisUpload - Upload failed:', uploadError);
+        throw new Error('Failed to upload report: ' + uploadError.message);
+      }
       
       clearInterval(uploadInterval);
       setUploadProgress(100);
       setIsUploading(false);
+      
+      // Small delay to show upload completion
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Start analysis
       setIsAnalyzing(true);
@@ -49,21 +67,35 @@ export function VCAnalysisUpload() {
         setAnalysisProgress(prev => Math.min(prev + 5, 90));
       }, 1000);
 
-      console.log('VCAnalysisUpload - GUARANTEED: Calling analyze-pdf-vc for report:', report.id);
+      console.log('VCAnalysisUpload - Starting VC analysis for report:', report.id);
       
-      // DIRECT CALL to VC edge function - NO CONDITIONS, NO CHECKS
+      // Verify report exists before calling analysis
+      const { data: reportCheck, error: reportCheckError } = await supabase
+        .from('reports')
+        .select('id, title, user_id')
+        .eq('id', report.id)
+        .single();
+      
+      if (reportCheckError || !reportCheck) {
+        console.error('VCAnalysisUpload - Report verification failed:', reportCheckError);
+        throw new Error('Report verification failed. Please try again.');
+      }
+      
+      console.log('VCAnalysisUpload - Report verified, calling analyze-pdf-vc');
+      
+      // Call the VC analysis function with verified report ID
       const { data, error } = await supabase.functions.invoke('analyze-pdf-vc', {
         body: { reportId: report.id }
       });
       
       if (error) {
-        console.error('Error calling analyze-pdf-vc:', error);
-        throw error;
+        console.error('VCAnalysisUpload - Analysis function error:', error);
+        throw new Error('Analysis failed: ' + error.message);
       }
       
       if (!data || data.error) {
         const errorMessage = data?.error || "Unknown error occurred during VC analysis";
-        console.error('VC analysis returned error:', errorMessage);
+        console.error('VCAnalysisUpload - Analysis returned error:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -73,28 +105,30 @@ export function VCAnalysisUpload() {
       console.log('VCAnalysisUpload - VC analysis completed successfully');
       
       toast({
-        id: "vc-analysis-success",
-        title: "VC Analysis Complete",
+        title: "Analysis Complete",
         description: "Your pitch deck has been successfully analyzed with VC insights.",
       });
       
       // Navigate to the company details page
       if (data.companyId) {
+        console.log('VCAnalysisUpload - Navigating to company:', data.companyId);
         navigate(`/company/${data.companyId}`);
       } else {
+        console.log('VCAnalysisUpload - No company ID returned, navigating to dashboard');
         navigate('/dashboard');
       }
     } catch (error) {
-      console.error('Error in VC upload/analysis process:', error);
+      console.error('VCAnalysisUpload - Error in upload/analysis process:', error);
       setIsUploading(false);
       setIsAnalyzing(false);
       setUploadProgress(0);
       setAnalysisProgress(0);
       
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
       toast({
-        id: "vc-analysis-error",
-        title: "VC Analysis Failed",
-        description: "There was a problem analyzing the deck. Please try again.",
+        title: "Analysis Failed",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -118,6 +152,7 @@ export function VCAnalysisUpload() {
         onFileChange={(e) => {
           const file = e.target.files?.[0] || null;
           setSelectedFile(file);
+          console.log('VCAnalysisUpload - File selected:', file?.name);
         }}
         accept=".pdf"
         description="PDF files only, max 10MB"
