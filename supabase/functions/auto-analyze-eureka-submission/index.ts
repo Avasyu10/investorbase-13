@@ -54,21 +54,26 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Add a longer delay to ensure the submission is fully committed to the database
+    // Add a delay to ensure the submission is fully committed to the database
     console.log('Adding delay to ensure database consistency...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // First, verify the submission exists and update status to processing
-    console.log('Verifying submission exists and updating status...');
+    // Verify the submission exists
+    console.log('Verifying submission exists...');
     const { data: submissionCheck, error: checkError } = await supabase
       .from('eureka_form_submissions')
       .select('id, analysis_status, company_name')
       .eq('id', submissionId)
-      .single();
+      .maybeSingle();
 
-    if (checkError || !submissionCheck) {
-      console.error('Submission not found during verification:', checkError);
-      throw new Error(`Submission not found: ${checkError?.message || 'Unknown error'}`);
+    if (checkError) {
+      console.error('Error checking submission:', checkError);
+      throw new Error(`Failed to verify submission: ${checkError.message}`);
+    }
+
+    if (!submissionCheck) {
+      console.error('Submission not found:', submissionId);
+      throw new Error(`Submission not found: ${submissionId}`);
     }
 
     console.log('Submission verified:', submissionCheck);
@@ -84,12 +89,12 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating submission status:', updateError);
-      throw new Error(`Failed to update submission status: ${updateError.message}`);
+      // Continue anyway, this is not critical
     }
 
     console.log('Status updated to processing, calling main analysis function...');
     
-    // Call the main analysis function
+    // Call the main analysis function using the invoke method
     const { data, error } = await supabase.functions.invoke('analyze-eureka-form', {
       body: { submissionId }
     });

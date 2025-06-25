@@ -38,7 +38,6 @@ const EurekaSample = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
-  // Log the current user to debug
   console.log('🔍 Current authenticated user:', user);
   console.log('🔍 User ID that will be submitted:', user?.id);
 
@@ -159,16 +158,14 @@ const EurekaSample = () => {
         poc_name: data.pocName,
         phoneno: data.phoneNumber,
         company_linkedin_url: data.companyLinkedInUrl,
-        user_id: user?.id || null // Ensure user_id is properly included
+        user_id: user?.id || null
       };
 
       console.log('📋 Final submission data with user_id:', submissionData);
 
-      // Submit the form - the database trigger will automatically start analysis (LIKE BARC FORM)
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
-      // Show success message
       toast({
         title: "Success!",
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
@@ -185,9 +182,15 @@ const EurekaSample = () => {
       
     } catch (error: any) {
       console.error('❌ Error submitting form:', error);
+      
+      let errorMessage = 'Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Submission Error",
-        description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
+        description: `There was an error submitting your application: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {

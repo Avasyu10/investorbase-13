@@ -23,25 +23,58 @@ export interface EurekaSubmissionData {
 export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('📤 Submitting Eureka form data:', data);
   
-  // Ensure user_id is included in the submission
-  const submissionData = {
-    ...data,
-    user_id: data.user_id || null
-  };
-  
-  const { data: submission, error } = await supabase
-    .from('eureka_form_submissions')
-    .insert([submissionData])
-    .select()
-    .single();
+  try {
+    // Ensure user_id is included in the submission and set analysis_status
+    const submissionData = {
+      ...data,
+      user_id: data.user_id || null,
+      analysis_status: 'pending'
+    };
+    
+    console.log('📋 Final submission data being sent to database:', submissionData);
+    
+    const { data: submission, error } = await supabase
+      .from('eureka_form_submissions')
+      .insert([submissionData])
+      .select()
+      .single();
 
-  if (error) {
-    console.error('❌ Error submitting Eureka form:', error);
+    if (error) {
+      console.error('❌ Error submitting Eureka form:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!submission) {
+      throw new Error('No submission data returned from database');
+    }
+
+    console.log('✅ Eureka form submitted successfully:', submission);
+    
+    // Give a small delay to ensure the record is committed
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Manually trigger analysis since the database trigger is having issues
+    try {
+      console.log('🔄 Manually triggering analysis for submission:', submission.id);
+      
+      const { error: analysisError } = await supabase.functions.invoke('analyze-eureka-form', {
+        body: { submissionId: submission.id }
+      });
+      
+      if (analysisError) {
+        console.error('⚠️ Analysis trigger failed, but submission was successful:', analysisError);
+        // Don't throw here - the submission was successful, analysis can be retried later
+      } else {
+        console.log('✅ Analysis triggered successfully');
+      }
+    } catch (analysisError) {
+      console.error('⚠️ Failed to trigger analysis, but submission was successful:', analysisError);
+      // Don't throw here - the submission was successful
+    }
+    
+    return submission;
+  } catch (error: any) {
+    console.error('❌ Failed to submit Eureka form:', error);
     throw error;
   }
-
-  console.log('✅ Eureka form submitted successfully - analysis will start automatically via trigger:', submission);
-  return submission;
 };
-
-// Remove the analyzeEurekaSubmission function since analysis is now automatic via trigger
