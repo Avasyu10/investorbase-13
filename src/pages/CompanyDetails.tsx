@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -183,6 +182,7 @@ function CompanyDetails() {
   console.log('Is VC User:', isVCUser);
 
   const handleViewFullAnalysis = () => {
+    console.log('handleViewFullAnalysis called, setting showFundThesisAlignment to true');
     setShowFundThesisAlignment(true);
   };
 
@@ -237,7 +237,10 @@ function CompanyDetails() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setShowFundThesisAlignment(false)}
+                    onClick={() => {
+                      console.log('Closing Fund Thesis Alignment modal');
+                      setShowFundThesisAlignment(false);
+                    }}
                   >
                     <X className="h-4 w-4" />
                   </Button>

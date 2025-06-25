@@ -78,7 +78,10 @@ export function OverallAssessment({
             <Button 
               variant="link" 
               className="text-amber-500 hover:text-amber-400 flex items-center gap-1 px-0"
-              onClick={onViewFullAnalysis}
+              onClick={() => {
+                console.log('View Full Analysis button clicked');
+                onViewFullAnalysis();
+              }}
             >
               View Full Analysis <ExternalLink className="h-4 w-4 ml-1" />
             </Button>
