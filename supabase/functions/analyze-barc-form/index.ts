@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -331,151 +332,8 @@ serve(async (req) => {
     CRITICAL: Every analysis section MUST include real market data, specific numbers, competitor information, industry statistics, and quantified benchmarks. All "improvements" sections must be market-driven insights focusing on industry challenges and opportunities, NOT gaps in the application form.
 
     IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement with real market data.
-    ` : `
-    You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to evaluate startup applications fairly while providing meaningful score differentiation. Most good applications should score between 60-80, with exceptional ones reaching 80-90.
 
-    CRITICAL REQUIREMENT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible.
-
-    Company Information:
-    - Company Name: ${submission.company_name || 'Not provided'}
-    - Registration Type: ${submission.company_registration_type || 'Not provided'}
-    - Industry: ${submission.company_type || 'Not provided'}
-    - Executive Summary: ${submission.executive_summary || 'Not provided'}
-
-    Application Responses and FAIR EVALUATION METRICS:
-
-    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
-    
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Clear problem identification (25 points): Look for specific pain points and market needs
-    - Solution viability (25 points): Assess if the solution logically addresses the problem
-    - Market understanding (25 points): Evidence of market research and validation
-    - Innovation level (25 points): How unique or differentiated the approach is
-    
-    Be generous with scoring - if someone provides detailed explanations with specific examples, they should score 70+ in this section.
-
-    2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
-    
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Customer segmentation clarity (30 points): How well-defined their target customers are
-    - Market size understanding (25 points): Realistic assessment of addressable market
-    - Customer pain validation (25 points): Evidence of understanding customer needs
-    - Go-to-market feasibility (20 points): Realistic customer acquisition strategy
-    
-    Reward detailed customer analysis - specific customer segments with clear characteristics should score 70+.
-
-    3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
-    
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Competitive landscape awareness (35 points): Knowledge of direct and indirect competitors
-    - Differentiation strategy (30 points): Clear unique value proposition
-    - Competitive analysis depth (20 points): Understanding of competitor strengths/weaknesses
-    - Market positioning (15 points): How they plan to position against competition
-    
-    Give credit for acknowledging competition and showing differentiation - should easily score 65+ if they identify competitors and explain differences.
-
-    4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
-   
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Revenue stream clarity (30 points): Clear explanation of how they make money
-    - Pricing strategy logic (25 points): Reasonable pricing with market justification
-    - Financial projections (25 points): Realistic financial expectations
-    - Scalability potential (20 points): How the model can grow over time
-    
-    Reward clear revenue thinking - if they explain multiple revenue streams or show market research on pricing, score 70+.
-
-    5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
-    
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Unique value proposition (35 points): What makes them different from alternatives
-    - Competitive advantages (25 points): Sustainable advantages they can maintain
-    - Innovation factor (25 points): Technology or approach innovations
-    - Market opportunity (15 points): How differentiation creates market opportunity
-    
-    Value creative solutions - unique approaches to known problems should score 70+, truly innovative solutions should score 80+.
-
-    BALANCED SCORING REQUIREMENTS:
-
-    1. BE GENEROUS WITH GOOD RESPONSES: If someone provides detailed, thoughtful answers with specific examples, they should score 70-85 in each section
-    2. REWARD EFFORT AND DEPTH: Don't penalize for not having everything perfect - reward comprehensive thinking
-    3. REALISTIC EXPECTATIONS: These are early-stage startups, not established companies with perfect market data
-    4. OVERALL SCORE = (PROBLEM_SOLUTION × 0.25) + (TARGET_CUSTOMERS × 0.25) + (COMPETITORS × 0.20) + (REVENUE_MODEL × 0.15) + (DIFFERENTIATION × 0.15)
-
-    RECOMMENDATION LOGIC:
-    - Accept: Overall score ≥ 75 (top tier applications with strong execution potential)
-    - Consider: Overall score 60-74 (solid applications with good potential)
-    - Reject: Overall score < 60 (applications needing significant development)
-
-    MANDATORY MARKET DATA REQUIREMENTS:
-    - Include actual market size figures (in billions/millions USD) for the industry
-    - Reference real growth rates and industry trends
-    - Mention specific competitor companies and their valuations when possible
-    - Include funding data for similar companies in the space
-    - Use actual industry statistics and benchmarks
-    - Reference real market research data and sources
-
-    Return analysis in this JSON format:
-    {
-      "overall_score": number (calculated weighted average),
-      "scoring_reason": "One concise sentence explaining the overall assessment WITH SPECIFIC MARKET DATA",
-      "recommendation": "Accept" | "Consider" | "Reject",
-      "company_info": {
-        "industry": "string (infer from application)",
-        "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description WITH MARKET CONTEXT)"
-      },
-      "sections": {
-        "problem_solution_fit": {
-          "score": number (0-100),
-          "analysis": "Balanced analysis highlighting what they did well and areas for improvement WITH MARKET DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REAL MARKET NUMBERS"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING MARKET BENCHMARKS"]
-        },
-        "target_customers": {
-          "score": number (0-100),
-          "analysis": "Balanced analysis of their customer understanding WITH MARKET SIZING DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING CUSTOMER SEGMENT SIZES"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING MARKET PENETRATION DATA"]
-        },
-        "competitors": {
-          "score": number (0-100),
-          "analysis": "Balanced analysis of their competitive understanding WITH COMPETITOR VALUATIONS",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING COMPETITIVE MARKET SHARE DATA"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING COMPETITOR FUNDING DATA"]
-        },
-        "revenue_model": {
-          "score": number (0-100),
-          "analysis": "Balanced analysis of their revenue strategy WITH INDUSTRY PRICING DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REVENUE BENCHMARKS"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING PRICING COMPARISONS"]
-        },
-        "differentiation": {
-          "score": number (0-100),
-          "analysis": "Balanced analysis of their differentiation strategy WITH MARKET POSITIONING DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING INNOVATION METRICS"],
-          "improvements": ["4-5 specific areas for improvement with actionable insights INCLUDING MARKET GAPS DATA"]
-        }
-      },
-      "summary": {
-        "overall_feedback": "Comprehensive feedback focusing on strengths and growth opportunities WITH MARKET CONTEXT",
-        "key_factors": ["Key success factors and potential challenges WITH INDUSTRY DATA"],
-        "next_steps": ["Specific recommendations for next steps WITH MARKET-BASED GUIDANCE"],
-        "assessment_points": [
-          "8-10 detailed assessment points combining market analysis with startup evaluation",
-          "Focus on realistic market opportunities and strategic recommendations WITH ACTUAL NUMBERS",
-          "Include SPECIFIC market data, competitor analysis, and industry benchmarks",
-          "Emphasize actionable insights and growth potential WITH QUANTIFIED TARGETS",
-          "Balance constructive criticism with recognition of good work USING MARKET STANDARDS",
-          "Reference actual funding rounds, market sizes, and growth rates where relevant",
-          "Include specific competitor companies, their valuations, and market positions",
-          "Provide industry-specific metrics and benchmarks for comparison"
-        ]
-      }
-    }
-
-    CRITICAL: Every analysis section MUST include real market data, specific numbers, competitor information, industry statistics, and quantified benchmarks. Do not provide generic feedback - use actual market research data to support your evaluation.
-
-    IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement with real market data.
+    ${linkedInDataSection}
     `;
 
     // Call Gemini API for analysis
@@ -600,7 +458,7 @@ serve(async (req) => {
       console.log('Successfully updated existing company with ID:', companyId);
     }
 
-    // Create sections
+    // Create sections with the correct mapping
     console.log('Creating sections for company:', companyId);
     
     // Delete old sections first
@@ -615,12 +473,21 @@ serve(async (req) => {
       console.log('Deleted old sections');
     }
 
-    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => ({
+    // Map the sections to the correct structure
+    const sectionMapping = {
+      'problem_solution_fit': 'Problem Solution Fit',
+      'target_customers': 'Target Customers', 
+      'competitors': 'Competitors',
+      'revenue_model': 'Revenue Model',
+      'differentiation': 'Differentiation'
+    };
+
+    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionKey, sectionData]: [string, any]) => ({
       company_id: companyId,
       score: sectionData.score || 0,
-      section_type: sectionName,
+      section_type: sectionKey,
       type: 'analysis',
-      title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title: sectionMapping[sectionKey as keyof typeof sectionMapping] || sectionKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       description: sectionData.analysis || ''
     }));
 
