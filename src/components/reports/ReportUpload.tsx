@@ -1,11 +1,11 @@
-
 import { useState } from "react";
 import { FileUploadZone } from "./upload/FileUploadZone";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
 import { ProgressIndicator } from "./upload/ProgressIndicator";
-import { uploadReport, analyzeReport } from "@/lib/supabase/analysis";
+import { uploadReport } from "@/lib/supabase/analysis";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/lib/supabase";
 
 export function ReportUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -89,10 +89,48 @@ export function ReportUpload() {
       }, 1000);
 
       console.log(`Starting ${isVC ? 'VC' : 'regular'} analysis for report:`, report.id);
-      console.log('Passing isVC flag to analyzeReport:', isVC);
       
-      // CRITICAL: Pass the isVC flag to ensure correct edge function is called
-      const analysisResult = await analyzeReport(report.id, isVC);
+      let analysisResult;
+      
+      if (isVC) {
+        // DIRECT CALL to VC edge function - no routing logic
+        console.log('Directly calling analyze-pdf-vc edge function');
+        const { data, error } = await supabase.functions.invoke('analyze-pdf-vc', {
+          body: { reportId: report.id }
+        });
+        
+        if (error) {
+          console.error('Error calling analyze-pdf-vc:', error);
+          throw error;
+        }
+        
+        if (!data || data.error) {
+          const errorMessage = data?.error || "Unknown error occurred during VC analysis";
+          console.error('VC analysis returned error:', errorMessage);
+          throw new Error(errorMessage);
+        }
+        
+        analysisResult = data;
+      } else {
+        // Regular analysis for non-VC users
+        console.log('Calling analyze-pdf edge function for regular user');
+        const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+          body: { reportId: report.id }
+        });
+        
+        if (error) {
+          console.error('Error calling analyze-pdf:', error);
+          throw error;
+        }
+        
+        if (!data || data.error) {
+          const errorMessage = data?.error || "Unknown error occurred during analysis";
+          console.error('Regular analysis returned error:', errorMessage);
+          throw new Error(errorMessage);
+        }
+        
+        analysisResult = data;
+      }
       
       clearInterval(analysisInterval);
       setAnalysisProgress(100);
