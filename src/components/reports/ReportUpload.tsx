@@ -60,7 +60,28 @@ export function ReportUpload() {
   const handleSubmit = async () => {
     if (!selectedFile || !title.trim()) return;
 
-    console.log('ReportUpload handleSubmit - isVC from profile:', isVC);
+    // CRITICAL FIX: Double-check user's VC status at submission time
+    console.log('ReportUpload handleSubmit - checking VC status at submission time');
+    
+    let isUserVC = false;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('is_vc')
+          .eq('id', user.id)
+          .single();
+        
+        isUserVC = userProfile?.is_vc || false;
+        console.log('Fresh VC status check:', isUserVC);
+        console.log('Profile hook VC status:', isVC);
+      }
+    } catch (error) {
+      console.error('Error checking user VC status:', error);
+      // Fallback to profile hook value
+      isUserVC = isVC;
+    }
     
     // Always upload first, then analyze
     setIsUploading(true);
@@ -88,13 +109,13 @@ export function ReportUpload() {
         setAnalysisProgress(prev => Math.min(prev + 5, 90));
       }, 1000);
 
-      console.log(`Starting ${isVC ? 'VC' : 'regular'} analysis for report:`, report.id);
+      console.log(`Starting ${isUserVC ? 'VC' : 'regular'} analysis for report:`, report.id);
       
       let analysisResult;
       
-      if (isVC) {
-        // DIRECT CALL to VC edge function - no routing logic
-        console.log('Directly calling analyze-pdf-vc edge function');
+      if (isUserVC) {
+        // DIRECT CALL to VC edge function - GUARANTEED FOR VC USERS
+        console.log('CONFIRMED: Calling analyze-pdf-vc edge function for VC user');
         const { data, error } = await supabase.functions.invoke('analyze-pdf-vc', {
           body: { reportId: report.id }
         });
@@ -111,9 +132,10 @@ export function ReportUpload() {
         }
         
         analysisResult = data;
+        console.log('VC analysis completed successfully');
       } else {
         // Regular analysis for non-VC users
-        console.log('Calling analyze-pdf edge function for regular user');
+        console.log('CONFIRMED: Calling analyze-pdf edge function for regular user');
         const { data, error } = await supabase.functions.invoke('analyze-pdf', {
           body: { reportId: report.id }
         });
@@ -130,6 +152,7 @@ export function ReportUpload() {
         }
         
         analysisResult = data;
+        console.log('Regular analysis completed successfully');
       }
       
       clearInterval(analysisInterval);
