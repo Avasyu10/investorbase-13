@@ -134,25 +134,53 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Wait longer for the database transaction to complete
-    console.log('Waiting for database transaction to complete...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Implement retry logic for fetching the submission
+    console.log('Fetching submission with retry logic...');
+    let submission = null;
+    let fetchError = null;
+    const maxRetries = 5;
+    const retryDelay = 2000; // 2 seconds
 
-    // Fetch submission data with improved error handling
-    console.log('Fetching submission for analysis...');
-    const { data: submission, error: fetchError } = await supabase
-      .from('eureka_form_submissions')
-      .select('*')
-      .eq('id', submissionId)
-      .maybeSingle();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`Attempt ${attempt} to fetch submission ${submissionId}`);
+      
+      const { data, error } = await supabase
+        .from('eureka_form_submissions')
+        .select('*')
+        .eq('id', submissionId)
+        .maybeSingle();
+
+      if (error) {
+        console.error(`Fetch attempt ${attempt} failed:`, error);
+        fetchError = error;
+        
+        if (attempt < maxRetries) {
+          console.log(`Waiting ${retryDelay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue;
+        }
+      } else if (data) {
+        console.log(`Successfully fetched submission on attempt ${attempt}`);
+        submission = data;
+        break;
+      } else {
+        console.log(`Submission not found on attempt ${attempt}`);
+        
+        if (attempt < maxRetries) {
+          console.log(`Waiting ${retryDelay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue;
+        }
+      }
+    }
 
     if (fetchError) {
-      console.error('Database error fetching submission:', fetchError);
+      console.error('Database error fetching submission after all retries:', fetchError);
       throw new Error(`Failed to fetch submission: ${fetchError.message}`);
     }
 
     if (!submission) {
-      console.error(`Submission ${submissionId} not found in database`);
+      console.error(`Submission ${submissionId} not found in database after all retries`);
       throw new Error(`Submission not found: ${submissionId}`);
     }
 
