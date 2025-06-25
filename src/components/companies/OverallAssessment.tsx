@@ -8,12 +8,14 @@ interface OverallAssessmentProps {
   score: number;
   maxScore?: number;
   assessmentPoints?: string[];
+  onViewFullAnalysis?: () => void;
 }
 
 export function OverallAssessment({ 
   score, 
   maxScore = 100,
-  assessmentPoints = []
+  assessmentPoints = [],
+  onViewFullAnalysis
 }: OverallAssessmentProps) {
   // Calculate progress percentage
   const progressPercentage = (score / maxScore) * 100;
@@ -71,14 +73,17 @@ export function OverallAssessment({
           ))}
         </div>
         
-        <div className="flex justify-end mt-6">
-          <Button 
-            variant="link" 
-            className="text-amber-500 hover:text-amber-400 flex items-center gap-1 px-0"
-          >
-            View Full Analysis <ExternalLink className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+        {onViewFullAnalysis && (
+          <div className="flex justify-end mt-6">
+            <Button 
+              variant="link" 
+              className="text-amber-500 hover:text-amber-400 flex items-center gap-1 px-0"
+              onClick={onViewFullAnalysis}
+            >
+              View Full Analysis <ExternalLink className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

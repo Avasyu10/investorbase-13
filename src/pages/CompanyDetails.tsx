@@ -9,7 +9,7 @@ import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Loader2, BarChart2, ListChecks } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2, ListChecks, X } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
 import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
 import { MarketResearch } from "@/components/companies/MarketResearch";
+import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 
 interface SlideNote {
   slideNumber: number;
@@ -38,6 +39,7 @@ function CompanyDetails() {
   const [isVCUser, setIsVCUser] = useState(false);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
+  const [showFundThesisAlignment, setShowFundThesisAlignment] = useState(false);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = company ? {
@@ -180,6 +182,10 @@ function CompanyDetails() {
   console.log('Should show slide viewer:', !!company.report_id);
   console.log('Is VC User:', isVCUser);
 
+  const handleViewFullAnalysis = () => {
+    setShowFundThesisAlignment(true);
+  };
+
   return (
     <div className="min-h-screen">
       <div className="w-full px-4 pt-0 pb-6 animate-fade-in">
@@ -218,7 +224,32 @@ function CompanyDetails() {
             <OverallAssessment
               score={company.overall_score || 0}
               assessmentPoints={company.assessment_points || []}
+              onViewFullAnalysis={handleViewFullAnalysis}
             />
+          )}
+
+          {/* Fund Thesis Alignment Modal/Overlay */}
+          {showFundThesisAlignment && isVCUser && company.id && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <div className="flex items-center justify-between p-6 border-b">
+                  <h2 className="text-xl font-semibold">Fund Thesis Alignment Analysis</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowFundThesisAlignment(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                  <FundThesisAlignment 
+                    companyId={company.id} 
+                    companyName={company.name}
+                  />
+                </div>
+              </div>
+            </div>
           )}
 
           {/* For VC users, show Real-time Market Analysis */}
