@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -162,20 +163,18 @@ const EurekaSample = () => {
       const submission = await submitEurekaForm(submissionData);
       console.log('📋 Eureka form submitted successfully:', submission);
 
+      // Show success message
       toast({
         title: "Success!",
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
       });
 
-      // Emit custom events to update realtime listeners
-      window.dispatchEvent(new CustomEvent('eurekaNewSubmission', { 
-        detail: { submissionId: submission.id, companyName: data.companyName } 
-      }));
-      
+      // Reset form
       form.reset();
       setFounderLinkedIns([""]);
       
       // Redirect immediately to thank you page - analysis will run in background
+      console.log('🔄 Redirecting to thank you page...');
       navigate("/thank-you");
       
     } catch (error: any) {
