@@ -41,15 +41,9 @@ export function VCAnalysisUpload() {
 
       console.log('VCAnalysisUpload - Uploading report to storage');
       
-      // Upload the report first
-      let report;
-      try {
-        report = await uploadReport(selectedFile, title, description);
-        console.log('VCAnalysisUpload - Report uploaded successfully:', report.id);
-      } catch (uploadError) {
-        console.error('VCAnalysisUpload - Upload failed:', uploadError);
-        throw new Error('Failed to upload report: ' + uploadError.message);
-      }
+      // Upload the report first using the same method as regular upload
+      const report = await uploadReport(selectedFile, title, description);
+      console.log('VCAnalysisUpload - Report uploaded successfully:', report.id);
       
       clearInterval(uploadInterval);
       setUploadProgress(100);
@@ -69,21 +63,7 @@ export function VCAnalysisUpload() {
 
       console.log('VCAnalysisUpload - Starting VC analysis for report:', report.id);
       
-      // Verify report exists before calling analysis
-      const { data: reportCheck, error: reportCheckError } = await supabase
-        .from('reports')
-        .select('id, title, user_id')
-        .eq('id', report.id)
-        .single();
-      
-      if (reportCheckError || !reportCheck) {
-        console.error('VCAnalysisUpload - Report verification failed:', reportCheckError);
-        throw new Error('Report verification failed. Please try again.');
-      }
-      
-      console.log('VCAnalysisUpload - Report verified, calling analyze-pdf-vc');
-      
-      // Call the VC analysis function with verified report ID
+      // Call the VC analysis function - use the same pattern as regular upload
       const { data, error } = await supabase.functions.invoke('analyze-pdf-vc', {
         body: { reportId: report.id }
       });
