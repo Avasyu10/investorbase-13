@@ -805,6 +805,7 @@ export type Database = {
           id: string
           is_admin: boolean
           is_iitbombay: boolean
+          is_vc: boolean
           signup_source: string | null
           updated_at: string
           username: string | null
@@ -817,6 +818,7 @@ export type Database = {
           id: string
           is_admin?: boolean
           is_iitbombay?: boolean
+          is_vc?: boolean
           signup_source?: string | null
           updated_at?: string
           username?: string | null
@@ -829,6 +831,7 @@ export type Database = {
           id?: string
           is_admin?: boolean
           is_iitbombay?: boolean
+          is_vc?: boolean
           signup_source?: string | null
           updated_at?: string
           username?: string | null

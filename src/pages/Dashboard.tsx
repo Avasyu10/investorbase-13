@@ -1,3 +1,4 @@
+
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
@@ -7,14 +8,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
-  const { profile, isIITBombay, isLoading: profileLoading } = useProfile();
+  const { profile, isIITBombay, isVC, isLoading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -28,12 +29,13 @@ const Dashboard = () => {
       console.log("Dashboard loaded for user:", user.id);
       console.log("Profile data:", profile);
       console.log("Is IIT Bombay user:", isIITBombay);
+      console.log("Is VC user:", isVC);
       checkAdminStatus();
     }
 
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
-  }, [user, isLoading, navigate, profile, isIITBombay]);
+  }, [user, isLoading, navigate, profile, isIITBombay, isVC]);
 
   const checkAdminStatus = async () => {
     if (!user) return;
@@ -98,11 +100,17 @@ const Dashboard = () => {
             {isIITBombay && (
               <EurekaSampleButton />
             )}
+            {isVC && (
+              <Button onClick={() => navigate("/upload")} variant="outline" className="flex items-center">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analyze Deck
+              </Button>
+            )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
               <Newspaper className="mr-2 h-4 w-4" />
               News Feed
             </Button>
-            {!isIITBombay && (
+            {!isIITBombay && !isVC && (
               <Button onClick={() => navigate("/upload")}>
                 <FileUp className="mr-2 h-4 w-4" />
                 Upload New Deck
