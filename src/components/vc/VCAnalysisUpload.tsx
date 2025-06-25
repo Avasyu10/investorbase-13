@@ -49,8 +49,9 @@ export function VCAnalysisUpload() {
       setUploadProgress(100);
       setIsUploading(false);
       
-      // Small delay to show upload completion
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Add a longer delay to ensure the database transaction is fully committed
+      console.log('VCAnalysisUpload - Waiting for database commit');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Start analysis
       setIsAnalyzing(true);

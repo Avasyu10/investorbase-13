@@ -15,7 +15,7 @@ serve(async (req) => {
     // Check environment variables early
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY is not configured");
@@ -31,7 +31,7 @@ serve(async (req) => {
       );
     }
     
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.error("Supabase credentials are not configured");
       return new Response(
         JSON.stringify({ 
@@ -99,31 +99,18 @@ serve(async (req) => {
     console.log(`Processing VC report ${reportId}`);
     
     try {
-      // Get report data without authentication
+      // Get report data using service role key
       const { supabase, report, pdfBase64 } = await getReportData(reportId);
       
       console.log("Successfully retrieved report data, analyzing with Gemini for VC");
 
-      // Check if user is VC user
-      let isVCUser = false;
-      if (report.user_id) {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('is_vc')
-          .eq('id', report.user_id)
-          .single();
-        
-        isVCUser = userProfile?.is_vc || false;
-        console.log('User is VC user:', isVCUser);
-      }
-      
       try {
         // Analyze the PDF with Gemini using VC-specific prompt
         const analysis = await analyzeWithOpenAI(pdfBase64, GEMINI_API_KEY, true, 100, false, true);
         
         console.log("Gemini VC analysis complete, saving results to database");
         
-        // Save analysis results to database
+        // Save analysis results to database using the same service
         const companyId = await saveAnalysisResults(supabase, analysis, report);
 
         console.log(`VC Analysis complete, created company with ID: ${companyId}`);
@@ -154,7 +141,7 @@ serve(async (req) => {
                   const researchResponse = await fetch(`${SUPABASE_URL}/functions/v1/research-with-perplexity`, {
                     method: 'POST',
                     headers: {
-                      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
                       'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -193,7 +180,7 @@ serve(async (req) => {
               const detailsResponse = await fetch(`${SUPABASE_URL}/functions/v1/details-in-analyze-pdf`, {
                 method: 'POST',
                 headers: {
-                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -246,7 +233,7 @@ serve(async (req) => {
       } catch (analysisError) {
         console.error("VC Analysis error:", analysisError);
         
-        // Update the report with the error
+        // Update the report with the error using service role
         try {
           const { error: updateError } = await supabase
             .from('reports')

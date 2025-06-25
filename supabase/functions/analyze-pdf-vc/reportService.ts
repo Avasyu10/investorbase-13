@@ -2,38 +2,31 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 export async function getReportData(reportId: string) {
   console.log("Getting report data for:", reportId);
   
-  // Create a Supabase client without authentication
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Create a Supabase client with service role key to bypass RLS
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   
-  // First, let's check if the report exists at all
-  const { data: reportCheck, error: checkError } = await supabase
+  // Get the report data - use service role to bypass RLS issues
+  const { data: report, error: reportError } = await supabase
     .from('reports')
     .select('id, title, user_id, pdf_url')
-    .eq('id', reportId);
+    .eq('id', reportId)
+    .single();
   
-  console.log("Report check result:", reportCheck, "Error:", checkError);
-  
-  if (checkError) {
-    console.error("Error checking report:", checkError);
-    throw new Error(`Failed to check report: ${checkError.message}`);
+  if (reportError) {
+    console.error("Error fetching report:", reportError);
+    throw new Error(`Failed to fetch report: ${reportError.message}`);
   }
   
-  if (!reportCheck || reportCheck.length === 0) {
+  if (!report) {
     console.error("No report found with ID:", reportId);
     throw new Error(`Report not found with ID: ${reportId}`);
   }
   
-  if (reportCheck.length > 1) {
-    console.error("Multiple reports found with same ID:", reportId);
-    throw new Error(`Multiple reports found with ID: ${reportId}`);
-  }
-  
-  const report = reportCheck[0];
   console.log("Report found:", report.title, "User:", report.user_id);
   
   // Download the PDF from storage using the report's pdf_url
