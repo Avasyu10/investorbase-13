@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -8,6 +9,80 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS, GET, PUT, DELETE',
   'Access-Control-Max-Age': '86400',
 };
+
+// Enhanced helper function to clean and parse JSON from AI responses
+function cleanAndParseJSON(text: string): any {
+  try {
+    // First attempt - try parsing as-is
+    return JSON.parse(text);
+  } catch (error) {
+    console.log('First parse attempt failed, cleaning JSON...');
+    
+    // Remove markdown code blocks
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Remove any leading/trailing whitespace
+    cleaned = cleaned.trim();
+    
+    // Fix common JSON issues with dollar signs and backslashes
+    cleaned = cleaned
+      // Fix dollar signs that are improperly escaped
+      .replace(/\\?\$(\d)/g, '$$$1')  // Convert \$500 or $500 to $500
+      .replace(/\\\$/g, '$')         // Convert \$ to $
+      // Fix double backslashes and other escape issues
+      .replace(/\\\\/g, '\\')        // Fix double escaping
+      .replace(/\\'/g, "'")          // Fix escaped single quotes
+      .replace(/\\"/g, '"')          // Normalize escaped double quotes
+      // Fix newlines, tabs, and carriage returns
+      .replace(/\\n/g, '\\n')        // Ensure newlines are properly escaped
+      .replace(/\\t/g, '\\t')        // Ensure tabs are properly escaped
+      .replace(/\\r/g, '\\r')        // Ensure carriage returns are properly escaped
+      // Remove control characters that can break JSON
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    
+    // Try to find JSON object boundaries
+    const startIndex = cleaned.indexOf('{');
+    const lastIndex = cleaned.lastIndexOf('}');
+    
+    if (startIndex !== -1 && lastIndex !== -1 && startIndex < lastIndex) {
+      cleaned = cleaned.substring(startIndex, lastIndex + 1);
+    }
+    
+    try {
+      return JSON.parse(cleaned);
+    } catch (secondError) {
+      console.error('Second parse attempt failed:', secondError);
+      console.error('Cleaned text sample:', cleaned.substring(0, 500));
+      
+      // Last resort: more aggressive cleaning
+      try {
+        // Replace problematic patterns that commonly cause issues
+        const finalCleaned = cleaned
+          // Fix any remaining dollar sign issues
+          .replace(/\\\$([0-9])/g, '$$$$1')     // \$500 -> $500
+          .replace(/\\&/g, '&')                // \& -> &
+          .replace(/\\\s/g, ' ')               // \ followed by space
+          // Ensure proper escaping of actual newlines in the text
+          .replace(/\n/g, '\\n')               // Actual newlines to escaped
+          .replace(/\r/g, '\\r')               // Actual carriage returns to escaped
+          .replace(/\t/g, '\\t')               // Actual tabs to escaped
+          // Remove any remaining problematic sequences
+          .replace(/\\([^"\\\/bfnrt])/g, '$1'); // Remove invalid escape sequences
+          
+        return JSON.parse(finalCleaned);
+      } catch (finalError) {
+        console.error('Final parse attempt failed:', finalError);
+        console.error('Final cleaned text sample:', cleaned.substring(0, 200));
+        throw new Error(`Could not parse JSON response: ${finalError.message}`);
+      }
+    }
+  }
+}
 
 serve(async (req) => {
   console.log(`Request method: ${req.method}`);
@@ -189,11 +264,19 @@ serve(async (req) => {
         ).join('\n\n')}`
       : '\n\nNo LinkedIn data available for founders.';
 
-    // Build analysis prompt with submission data
+    // Build analysis prompt with submission data - FIXED to avoid problematic characters
     const analysisPrompt = `
     You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to evaluate startup applications fairly while providing meaningful score differentiation. Most good applications should score between 60-80, with exceptional ones reaching 80-90.
 
-    CRITICAL REQUIREMENT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible.
+    CRITICAL JSON FORMATTING REQUIREMENTS:
+    - You MUST return ONLY valid JSON with no markdown formatting, code blocks, or additional text
+    - Use simple quotes and avoid complex escape sequences
+    - When mentioning dollar amounts, use "USD" instead of the dollar symbol
+    - When mentioning percentages, write them as "8-10 percent" instead of using % symbol
+    - Avoid using ampersand (&) symbols - write "and" instead
+    - No backticks, no explanatory text - just pure JSON
+
+    IMPORTANT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible. When writing monetary amounts, always use "billion USD" or "million USD" format instead of symbols.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -203,7 +286,7 @@ serve(async (req) => {
 
     Application Responses and FAIR EVALUATION METRICS:
 
-    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
+    1. PROBLEM AND SOLUTION: "${submission.question_1 || 'Not provided'}"
     
     Rate this section from 0-100 based on these FAIR criteria:
     - Clear problem identification (25 points): Look for specific pain points and market needs
@@ -266,18 +349,18 @@ serve(async (req) => {
     - Reject: Overall score < 60 (applications needing significant development)
 
     MANDATORY MARKET DATA REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
-    - Include actual market size figures (in billions/millions USD) for the industry
-    - Reference real growth rates and industry trends
+    - Include actual market size figures in billions or millions USD for the industry
+    - Reference real growth rates and industry trends using percentage figures written as "percent"
     - Mention specific competitor companies and their valuations when possible
     - Include funding data for similar companies in the space
     - Use actual industry statistics and benchmarks
     - Reference real market research data and sources
 
-    Return analysis in this JSON format:
+    Return ONLY this JSON structure with no additional text, markdown, or formatting:
     {
-      "overall_score": number (calculated weighted average),
+      "overall_score": 75,
       "scoring_reason": "One concise sentence explaining the overall assessment WITH SPECIFIC MARKET DATA",
-      "recommendation": "Accept" | "Consider" | "Reject",
+      "recommendation": "Accept",
       "company_info": {
         "industry": "string (infer from application)",
         "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
@@ -285,31 +368,31 @@ serve(async (req) => {
       },
       "sections": {
         "problem_solution_fit": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis highlighting what they did well and areas for improvement WITH MARKET DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REAL MARKET NUMBERS"],
           "improvements": ["4-5 market-driven improvement areas with industry benchmarks and competitive data - DO NOT mention missing form information, focus entirely on market challenges and opportunities"]
         },
         "target_customers": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their customer understanding WITH MARKET SIZING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING CUSTOMER SEGMENT SIZES"],
           "improvements": ["4-5 market-driven improvement areas with customer acquisition benchmarks and market penetration data - focus on market challenges, not form gaps"]
         },
         "competitors": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their competitive understanding WITH COMPETITOR VALUATIONS",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING COMPETITIVE MARKET SHARE DATA"],
           "improvements": ["4-5 market-driven improvement areas with competitor analysis and market positioning insights - focus on competitive challenges, not missing information"]
         },
         "revenue_model": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their revenue strategy WITH INDUSTRY PRICING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REVENUE BENCHMARKS"],
           "improvements": ["4-5 market-driven improvement areas with pricing strategy insights and revenue optimization based on industry data - focus on market dynamics, not missing details"]
         },
         "differentiation": {
-          "score": number (0-100),
+          "score": 75,
           "analysis": "Balanced analysis of their differentiation strategy WITH MARKET POSITIONING DATA",
           "strengths": ["4-5 specific strengths with detailed explanations INCLUDING INNOVATION METRICS"],
           "improvements": ["4-5 market-driven improvement areas with innovation benchmarks and market gap analysis - focus on market opportunities and challenges, not form completeness"]
@@ -335,9 +418,11 @@ serve(async (req) => {
     CRITICAL: Every analysis section MUST include real market data, specific numbers, competitor information, industry statistics, and quantified benchmarks. All "improvements" sections must be market-driven insights focusing on industry challenges and opportunities, NOT gaps in the application form.
 
     IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement with real market data.
-    ${linkedInDataSection}`;
 
-    // Call Gemini for analysis
+    ${linkedInDataSection}
+    `;
+
+    // Call Gemini API for analysis
     console.log('Calling Gemini API for analysis...');
     
     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
@@ -348,12 +433,12 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `You are an expert startup evaluator. Provide thorough, constructive analysis in valid JSON format. Return ONLY valid JSON without any markdown formatting, code blocks, or additional text.\n\n${analysisPrompt}`
+            text: analysisPrompt
           }]
         }],
         generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 3000,
+          temperature: 0.1,
+          maxOutputTokens: 4000,
         }
       }),
     });
@@ -373,27 +458,16 @@ serve(async (req) => {
 
     let analysisText = geminiData.candidates[0].content.parts[0].text;
     console.log('Raw analysis text received from Gemini');
-
-    // Clean up the response text to extract JSON
-    analysisText = analysisText.trim();
-    
-    // Remove markdown code blocks if present
-    if (analysisText.startsWith('```json')) {
-      analysisText = analysisText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (analysisText.startsWith('```')) {
-      analysisText = analysisText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-    
-    analysisText = analysisText.trim();
+    console.log('Analysis text sample:', analysisText.substring(0, 200) + '...');
 
     let analysisResult;
     try {
-      analysisResult = JSON.parse(analysisText);
+      analysisResult = cleanAndParseJSON(analysisText);
       console.log('Successfully parsed analysis result');
     } catch (parseError) {
       console.error('Failed to parse Gemini response as JSON:', parseError);
-      console.error('Cleaned analysis text:', analysisText.substring(0, 500) + '...');
-      throw new Error('Analysis response was not valid JSON');
+      console.error('Full analysis text:', analysisText);
+      throw new Error(`Analysis response was not valid JSON: ${parseError.message}`);
     }
 
     console.log('Analysis overall score:', analysisResult.overall_score);
@@ -474,12 +548,21 @@ serve(async (req) => {
       console.log('Deleted old sections');
     }
 
-    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionName, sectionData]: [string, any]) => ({
+    // Map the sections to the correct structure
+    const sectionMapping = {
+      'problem_solution_fit': 'Problem Solution Fit',
+      'target_customers': 'Target Customers', 
+      'competitors': 'Competitors',
+      'revenue_model': 'Revenue Model',
+      'differentiation': 'Differentiation'
+    };
+
+    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionKey, sectionData]: [string, any]) => ({
       company_id: companyId,
       score: sectionData.score || 0,
-      section_type: sectionName,
+      section_type: sectionKey,
       type: 'analysis',
-      title: sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      title: sectionMapping[sectionKey as keyof typeof sectionMapping] || sectionKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       description: sectionData.analysis || ''
     }));
 
