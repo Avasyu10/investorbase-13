@@ -284,30 +284,12 @@ export async function analyzeReport(reportId: string, isVCAnalysis = false) {
 
 export async function analyzeReportDirect(file: File, title: string, description: string = '', isVCAnalysis = false) {
   try {
-    console.log('Converting file to base64...');
+    console.log('Starting direct analysis with VC flag:', isVCAnalysis);
     
-    const base64String = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-    
-    console.log(`File converted to base64, calling ${isVCAnalysis ? 'VC' : 'regular'} analyze function`);
-    
-    // For direct analysis, we need to determine which function to call
-    const functionName = isVCAnalysis ? 'analyze-pdf-vc' : 'analyze-pdf-direct';
-    
-    console.log(`Calling direct analysis function: ${functionName}`);
-    
-    let requestBody;
     if (isVCAnalysis) {
-      // For VC analysis, we need to upload first then analyze
-      // Create a temporary report record
+      // For VC analysis, we need to upload the file first then analyze
+      console.log('VC analysis - uploading file first');
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
       
@@ -335,56 +317,112 @@ export async function analyzeReportDirect(file: File, title: string, description
         
       if (insertError) throw insertError;
       
-      requestBody = { reportId: report.id };
+      console.log('File uploaded for VC analysis, calling analyze-pdf-vc');
+      
+      // Now call the VC analysis function
+      const { data, error } = await supabase.functions.invoke('analyze-pdf-vc', {
+        body: { reportId: report.id }
+      });
+      
+      if (error) {
+        console.error('Error invoking analyze-pdf-vc function:', error);
+        
+        toast({
+          id: "analysis-error-vc-1",
+          title: "VC Analysis failed",
+          description: "There was a problem analyzing the report. Please try again later.",
+          variant: "destructive"
+        });
+        
+        throw error;
+      }
+      
+      if (!data || data.error) {
+        const errorMessage = data?.error || "Unknown error occurred during VC analysis";
+        console.error('VC API returned error:', errorMessage);
+        
+        toast({
+          id: "analysis-error-vc-2",
+          title: "VC Analysis failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        
+        throw new Error(errorMessage);
+      }
+      
+      console.log('VC analysis result:', data);
+      
+      toast({
+        id: "analysis-success-vc",
+        title: "VC Analysis complete",
+        description: "Your pitch deck has been successfully analyzed with VC insights",
+      });
+      
+      return data;
     } else {
-      requestBody = { 
-        title, 
-        description, 
-        pdfBase64: base64String,
-        isVCAnalysis 
-      };
-    }
-    
-    const { data, error } = await supabase.functions.invoke(functionName, {
-      body: requestBody
-    });
-    
-    if (error) {
-      console.error(`Error invoking ${functionName} function:`, error);
+      // Regular direct analysis
+      console.log('Converting file to base64 for direct analysis...');
       
-      toast({
-        id: "analysis-error-direct-1",
-        title: "Analysis failed",
-        description: "There was a problem analyzing the report. Please try again later.",
-        variant: "destructive"
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
       });
       
-      throw error;
-    }
-    
-    if (!data || data.error) {
-      const errorMessage = data?.error || "Unknown error occurred during analysis";
-      console.error('API returned error:', errorMessage);
+      console.log('File converted to base64, calling analyze-pdf-direct');
       
-      toast({
-        id: "analysis-error-direct-2",
-        title: "Analysis failed",
-        description: errorMessage,
-        variant: "destructive"
+      const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
+        body: { 
+          title, 
+          description, 
+          pdfBase64: base64String,
+          isVCAnalysis: false
+        }
       });
       
-      throw new Error(errorMessage);
+      if (error) {
+        console.error('Error invoking analyze-pdf-direct function:', error);
+        
+        toast({
+          id: "analysis-error-direct-1",
+          title: "Analysis failed",
+          description: "There was a problem analyzing the report. Please try again later.",
+          variant: "destructive"
+        });
+        
+        throw error;
+      }
+      
+      if (!data || data.error) {
+        const errorMessage = data?.error || "Unknown error occurred during analysis";
+        console.error('Direct API returned error:', errorMessage);
+        
+        toast({
+          id: "analysis-error-direct-2",
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        
+        throw new Error(errorMessage);
+      }
+      
+      console.log('Direct analysis result:', data);
+      
+      toast({
+        id: "analysis-success-direct",
+        title: "Analysis complete",
+        description: "Your pitch deck has been successfully analyzed",
+      });
+      
+      return data;
     }
-    
-    console.log(`${functionName} analysis result:`, data);
-    
-    toast({
-      id: "analysis-success-direct",
-      title: "Analysis complete",
-      description: "Your pitch deck has been successfully analyzed",
-    });
-    
-    return data;
   } catch (error) {
     console.error('Error analyzing report directly:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

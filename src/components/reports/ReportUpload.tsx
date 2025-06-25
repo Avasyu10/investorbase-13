@@ -60,51 +60,84 @@ export function ReportUpload() {
   const handleSubmit = async () => {
     if (!selectedFile || !title.trim()) return;
 
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      // Simulate upload progress
-      const uploadInterval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
-
-      // Upload the report
-      const report = await uploadReport(selectedFile, title, description, websiteUrl);
-      
-      clearInterval(uploadInterval);
-      setUploadProgress(100);
-      setIsUploading(false);
-      
-      // Start analysis
+    console.log('ReportUpload handleSubmit - isVC:', isVC);
+    
+    if (isVC) {
+      // For VC users, use direct analysis which will call analyze-pdf-vc
       setIsAnalyzing(true);
       setAnalysisProgress(0);
       
-      // Simulate analysis progress
-      const analysisInterval = setInterval(() => {
-        setAnalysisProgress(prev => Math.min(prev + 5, 90));
-      }, 1000);
+      try {
+        // Simulate analysis progress
+        const analysisInterval = setInterval(() => {
+          setAnalysisProgress(prev => Math.min(prev + 5, 90));
+        }, 1000);
 
-      console.log(`Starting ${isVC ? 'VC' : 'regular'} analysis for report ${report.id}`);
-      
-      // Use VC analysis if user is a VC
-      const analysisResult = await analyzeReport(report.id, isVC);
-      
-      clearInterval(analysisInterval);
-      setAnalysisProgress(100);
-      
-      // Navigate to the company details page
-      if (analysisResult.companyId) {
-        navigate(`/company/${analysisResult.companyId}`);
-      } else {
-        navigate('/dashboard');
+        console.log('Starting VC direct analysis');
+        
+        const analysisResult = await analyzeReportDirect(selectedFile, title, description, true);
+        
+        clearInterval(analysisInterval);
+        setAnalysisProgress(100);
+        
+        // Navigate to the company details page
+        if (analysisResult.companyId) {
+          navigate(`/company/${analysisResult.companyId}`);
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error in VC direct analysis:', error);
+        setIsAnalyzing(false);
+        setAnalysisProgress(0);
       }
-    } catch (error) {
-      console.error('Error in upload/analysis process:', error);
-      setIsUploading(false);
-      setIsAnalyzing(false);
+    } else {
+      // For regular users, use the traditional upload then analyze flow
+      setIsUploading(true);
       setUploadProgress(0);
-      setAnalysisProgress(0);
+
+      try {
+        // Simulate upload progress
+        const uploadInterval = setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 10, 90));
+        }, 200);
+
+        // Upload the report
+        const report = await uploadReport(selectedFile, title, description, websiteUrl);
+        
+        clearInterval(uploadInterval);
+        setUploadProgress(100);
+        setIsUploading(false);
+        
+        // Start analysis
+        setIsAnalyzing(true);
+        setAnalysisProgress(0);
+        
+        // Simulate analysis progress
+        const analysisInterval = setInterval(() => {
+          setAnalysisProgress(prev => Math.min(prev + 5, 90));
+        }, 1000);
+
+        console.log('Starting regular analysis for report:', report.id);
+        
+        const analysisResult = await analyzeReport(report.id, false);
+        
+        clearInterval(analysisInterval);
+        setAnalysisProgress(100);
+        
+        // Navigate to the company details page
+        if (analysisResult.companyId) {
+          navigate(`/company/${analysisResult.companyId}`);
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error in upload/analysis process:', error);
+        setIsUploading(false);
+        setIsAnalyzing(false);
+        setUploadProgress(0);
+        setAnalysisProgress(0);
+      }
     }
   };
 
@@ -170,62 +203,109 @@ export function ReportUpload() {
         required={true}
       />
 
-      <CompanyInfoForm
-        title={title}
-        setTitle={setTitle}
-        briefIntroduction={description}
-        setBriefIntroduction={setDescription}
-        companyWebsite={websiteUrl}
-        setCompanyWebsite={setWebsiteUrl}
-        companyStage={companyStage}
-        setCompanyStage={setCompanyStage}
-        industry={industry}
-        setIndustry={setIndustry}
-        founderLinkedIns={founderLinkedIns}
-        setFounderLinkedIns={setFounderLinkedIns}
-        updateLinkedInProfile={updateLinkedInProfile}
-        addLinkedInProfile={addLinkedInProfile}
-        removeLinkedInProfile={removeLinkedInProfile}
-        isDisabled={isUploading || isAnalyzing}
-        companyRegistrationType={companyRegistrationType}
-        setCompanyRegistrationType={setCompanyRegistrationType}
-        registrationNumber={registrationNumber}
-        setRegistrationNumber={setRegistrationNumber}
-        dpiitRecognitionNumber={dpiitRecognitionNumber}
-        setDpiitRecognitionNumber={setDpiitRecognitionNumber}
-        indianCitizenShareholding={indianCitizenShareholding}
-        setIndianCitizenShareholding={setIndianCitizenShareholding}
-        executiveSummary={executiveSummary}
-        setExecutiveSummary={setExecutiveSummary}
-        companyType={companyType}
-        setCompanyType={setCompanyType}
-        productsServices={productsServices}
-        setProductsServices={setProductsServices}
-        employeeCount={employeeCount}
-        setEmployeeCount={setEmployeeCount}
-        fundsRaised={fundsRaised}
-        setFundsRaised={setFundsRaised}
-        valuation={valuation}
-        setValuation={setValuation}
-        lastFyRevenue={lastFyRevenue}
-        setLastFyRevenue={setLastFyRevenue}
-        lastQuarterRevenue={lastQuarterRevenue}
-        setLastQuarterRevenue={setLastQuarterRevenue}
-        founderName={founderName}
-        setFounderName={setFounderName}
-        founderGender={founderGender}
-        setFounderGender={setFounderGender}
-        founderEmail={founderEmail}
-        setFounderEmail={setFounderEmail}
-        founderContact={founderContact}
-        setFounderContact={setFounderContact}
-        founderAddress={founderAddress}
-        setFounderAddress={setFounderAddress}
-        founderState={founderState}
-        setFounderState={setFounderState}
-        companyLinkedInUrl={companyLinkedInUrl}
-        setCompanyLinkedInUrl={setCompanyLinkedInUrl}
-      />
+      {!isVC && (
+        <CompanyInfoForm
+          title={title}
+          setTitle={setTitle}
+          briefIntroduction={description}
+          setBriefIntroduction={setDescription}
+          companyWebsite={websiteUrl}
+          setCompanyWebsite={setWebsiteUrl}
+          companyStage={companyStage}
+          setCompanyStage={setCompanyStage}
+          industry={industry}
+          setIndustry={setIndustry}
+          founderLinkedIns={founderLinkedIns}
+          setFounderLinkedIns={setFounderLinkedIns}
+          updateLinkedInProfile={updateLinkedInProfile}
+          addLinkedInProfile={addLinkedInProfile}
+          removeLinkedInProfile={removeLinkedInProfile}
+          isDisabled={isUploading || isAnalyzing}
+          companyRegistrationType={companyRegistrationType}
+          setCompanyRegistrationType={setCompanyRegistrationType}
+          registrationNumber={registrationNumber}
+          setRegistrationNumber={setRegistrationNumber}
+          dpiitRecognitionNumber={dpiitRecognitionNumber}
+          setDpiitRecognitionNumber={setDpiitRecognitionNumber}
+          indianCitizenShareholding={indianCitizenShareholding}
+          setIndianCitizenShareholding={setIndianCitizenShareholding}
+          executiveSummary={executiveSummary}
+          setExecutiveSummary={setExecutiveSummary}
+          companyType={companyType}
+          setCompanyType={setCompanyType}
+          productsServices={productsServices}
+          setProductsServices={setProductsServices}
+          employeeCount={employeeCount}
+          setEmployeeCount={setEmployeeCount}
+          fundsRaised={fundsRaised}
+          setFundsRaised={setFundsRaised}
+          valuation={valuation}
+          setValuation={setValuation}
+          lastFyRevenue={lastFyRevenue}
+          setLastFyRevenue={setLastFyRevenue}
+          lastQuarterRevenue={lastQuarterRevenue}
+          setLastQuarterRevenue={setLastQuarterRevenue}
+          founderName={founderName}
+          setFounderName={setFounderName}
+          founderGender={founderGender}
+          setFounderGender={setFounderGender}
+          founderEmail={founderEmail}
+          setFounderEmail={setFounderEmail}
+          founderContact={founderContact}
+          setFounderContact={setFounderContact}
+          founderAddress={founderAddress}
+          setFounderAddress={setFounderAddress}
+          founderState={founderState}
+          setFounderState={setFounderState}
+          companyLinkedInUrl={companyLinkedInUrl}
+          setCompanyLinkedInUrl={setCompanyLinkedInUrl}
+        />
+      )}
+
+      {isVC && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="vc-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Company Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="vc-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Enter company name"
+              disabled={isUploading || isAnalyzing}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="vc-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Brief Description (Optional)
+            </label>
+            <textarea
+              id="vc-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Brief description of the company"
+              rows={3}
+              disabled={isUploading || isAnalyzing}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-center">
+        <button
+          onClick={handleSubmit}
+          disabled={!selectedFile || !title.trim() || isUploading || isAnalyzing}
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+        >
+          {isUploading ? "Uploading..." : isAnalyzing ? "Analyzing..." : isVC ? "Analyze Deck" : "Upload & Analyze"}
+        </button>
+      </div>
 
       {(isUploading || isAnalyzing) && (
         <ProgressIndicator
