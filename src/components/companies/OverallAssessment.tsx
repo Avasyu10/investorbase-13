@@ -187,15 +187,15 @@ export function OverallAssessment({
                       <Lightbulb className="h-5 w-5 text-amber-500" />
                       Detailed Assessment Points
                     </h3>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       {displayPoints.map((point, index) => (
                         <div 
                           key={index} 
-                          className="bg-card border rounded-lg p-3 shadow-sm"
+                          className="bg-card border rounded-lg p-4 shadow-sm"
                         >
                           <div className="flex items-start gap-3">
-                            <div className="bg-primary/10 rounded-full p-1.5 shrink-0">
-                              <span className="text-xs font-medium text-primary">
+                            <div className="bg-primary/10 rounded-full p-2 shrink-0">
+                              <span className="text-sm font-medium text-primary">
                                 {index + 1}
                               </span>
                             </div>
