@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { ParsedPdfSegment } from '../pdf-parser';
 import { toast } from "@/hooks/use-toast";
@@ -222,16 +223,19 @@ export async function uploadReport(file: File, title: string, description: strin
   }
 }
 
-export async function analyzeReport(reportId: string) {
+export async function analyzeReport(reportId: string, isVCAnalysis = false) {
   try {
-    console.log('Starting analysis for report:', reportId);
+    console.log('Starting analysis for report:', reportId, 'VC Analysis:', isVCAnalysis);
     
-    const { data, error } = await supabase.functions.invoke('analyze-pdf', {
+    // Choose the appropriate function based on whether it's VC analysis
+    const functionName = isVCAnalysis ? 'analyze-pdf-vc' : 'analyze-pdf';
+    
+    const { data, error } = await supabase.functions.invoke(functionName, {
       body: { reportId }
     });
     
     if (error) {
-      console.error('Error invoking analyze-pdf function:', error);
+      console.error(`Error invoking ${functionName} function:`, error);
       
       await supabase
         .from('reports')
@@ -276,7 +280,7 @@ export async function analyzeReport(reportId: string) {
   }
 }
 
-export async function analyzeReportDirect(file: File, title: string, description: string = '') {
+export async function analyzeReportDirect(file: File, title: string, description: string = '', isVCAnalysis = false) {
   try {
     console.log('Converting file to base64...');
     
@@ -291,13 +295,16 @@ export async function analyzeReportDirect(file: File, title: string, description
       reader.readAsDataURL(file);
     });
     
-    console.log('File converted to base64, calling analyze-pdf-direct function');
+    console.log(`File converted to base64, calling ${isVCAnalysis ? 'VC' : 'regular'} analyze function`);
     
+    // For VC analysis, we'll still use the regular direct function but pass a flag
+    // or we could create a separate VC direct function if needed
     const { data, error } = await supabase.functions.invoke('analyze-pdf-direct', {
       body: { 
         title, 
         description, 
-        pdfBase64: base64String 
+        pdfBase64: base64String,
+        isVCAnalysis 
       }
     });
     

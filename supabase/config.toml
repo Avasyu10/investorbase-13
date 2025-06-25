@@ -22,6 +22,9 @@ verify_jwt = true
 [functions.analyze-pdf-direct]
 verify_jwt = true
 
+[functions.analyze-pdf-vc]
+verify_jwt = true
+
 [functions.analyze-barc-submission]
 verify_jwt = false
 timeout_seconds = 300
