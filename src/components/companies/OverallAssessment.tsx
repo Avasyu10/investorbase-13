@@ -5,6 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 
 interface OverallAssessmentProps {
@@ -40,6 +42,28 @@ export function OverallAssessment({
   const displayPoints = assessmentPoints && assessmentPoints.length > 0 
     ? assessmentPoints 
     : defaultAssessmentPoints;
+
+  // Comprehensive section breakdown data
+  const sectionBreakdownData = [
+    { name: "Problem", score: 82, color: "hsl(var(--chart-1))" },
+    { name: "Market", score: 78, color: "hsl(var(--chart-2))" },
+    { name: "Solution", score: 85, color: "hsl(var(--chart-3))" },
+    { name: "Product", score: 75, color: "hsl(var(--chart-4))" },
+    { name: "Competition", score: 70, color: "hsl(var(--chart-5))" },
+    { name: "Traction", score: 88, color: "hsl(var(--chart-1))" },
+    { name: "Business Model", score: 80, color: "hsl(var(--chart-2))" },
+    { name: "GTM Strategy", score: 73, color: "hsl(var(--chart-3))" },
+    { name: "Team", score: 90, color: "hsl(var(--chart-4))" },
+    { name: "Financials", score: 77, color: "hsl(var(--chart-5))" },
+    { name: "Ask & Use", score: 81, color: "hsl(var(--chart-1))" }
+  ];
+
+  const chartConfig = {
+    score: {
+      label: "Score",
+      color: "hsl(var(--chart-1))",
+    },
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-500";
@@ -100,15 +124,15 @@ export function OverallAssessment({
                 View Full Analysis <ExternalLink className="h-4 w-4 ml-1" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <BarChart2 className="h-5 w-5 text-primary" />
                   Full Analysis Report
                 </DialogTitle>
               </DialogHeader>
-              <ScrollArea className="h-[60vh] pr-4">
-                <div className="space-y-6">
+              <ScrollArea className="h-[75vh] pr-4">
+                <div className="space-y-8">
                   {/* Score Overview */}
                   <div className="bg-secondary/20 rounded-lg p-6">
                     <h3 className="text-lg font-semibold mb-4">Score Overview</h3>
@@ -122,6 +146,39 @@ export function OverallAssessment({
                       </div>
                     </div>
                     <Progress value={progressPercentage} className="h-3" />
+                  </div>
+
+                  {/* Section Performance Chart */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <BarChart2 className="h-5 w-5 text-primary" />
+                      Section Performance Analysis
+                    </h3>
+                    <div className="bg-card border rounded-lg p-6">
+                      <ChartContainer config={chartConfig} className="h-80 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={sectionBreakdownData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                            <XAxis 
+                              dataKey="name" 
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                              fontSize={12}
+                            />
+                            <YAxis domain={[0, 100]} />
+                            <ChartTooltip 
+                              content={<ChartTooltipContent />}
+                              formatter={(value) => [`${value}%`, "Score"]}
+                            />
+                            <Bar 
+                              dataKey="score" 
+                              fill="hsl(var(--primary))"
+                              radius={[4, 4, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </ChartContainer>
+                    </div>
                   </div>
 
                   {/* Detailed Analysis */}
@@ -149,37 +206,46 @@ export function OverallAssessment({
                     </div>
                   </div>
 
-                  {/* Score Breakdown */}
+                  {/* Comprehensive Score Breakdown */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Score Breakdown</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-card border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Market Opportunity</span>
-                          <span className="text-sm text-muted-foreground">85%</span>
+                    <h3 className="text-lg font-semibold mb-4">Comprehensive Score Breakdown</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {sectionBreakdownData.map((section, index) => (
+                        <div key={index} className="bg-card border rounded-lg p-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium">{section.name}</span>
+                            <span className="text-sm text-muted-foreground">{section.score}%</span>
+                          </div>
+                          <Progress value={section.score} className="h-2" />
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            {section.score >= 80 ? "Excellent" : 
+                             section.score >= 60 ? "Good" : 
+                             section.score >= 40 ? "Average" : "Needs Improvement"}
+                          </div>
                         </div>
-                        <Progress value={85} className="h-2" />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Key Insights */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">Strengths</h4>
+                        <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                          <li>• Strong team with proven track record</li>
+                          <li>• Significant market traction</li>
+                          <li>• Clear product-market fit</li>
+                        </ul>
                       </div>
-                      <div className="bg-card border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Team Strength</span>
-                          <span className="text-sm text-muted-foreground">78%</span>
-                        </div>
-                        <Progress value={78} className="h-2" />
-                      </div>
-                      <div className="bg-card border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Product Innovation</span>
-                          <span className="text-sm text-muted-foreground">72%</span>
-                        </div>
-                        <Progress value={72} className="h-2" />
-                      </div>
-                      <div className="bg-card border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Business Model</span>
-                          <span className="text-sm text-muted-foreground">80%</span>
-                        </div>
-                        <Progress value={80} className="h-2" />
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">Areas for Improvement</h4>
+                        <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                          <li>• Competitive positioning needs strengthening</li>
+                          <li>• GTM strategy requires refinement</li>
+                          <li>• Financial projections need validation</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
