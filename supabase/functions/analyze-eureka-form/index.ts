@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -60,52 +59,21 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Add retry logic to fetch submission data with delays
-    let submission = null;
-    let attempts = 0;
-    const maxAttempts = 5;
+    // Simple fetch without complex retry logic - add a small delay to ensure transaction is committed
+    console.log('Adding small delay to ensure transaction is committed...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    while (attempts < maxAttempts && !submission) {
-      attempts++;
-      console.log(`Attempt ${attempts} to fetch submission...`);
-      
-      // Add progressive delay: 500ms, 1s, 2s, 4s, 8s
-      if (attempts > 1) {
-        const delay = Math.pow(2, attempts - 2) * 500;
-        console.log(`Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+    // Fetch submission data
+    console.log('Fetching submission for analysis...');
+    const { data: submission, error: fetchError } = await supabase
+      .from('eureka_form_submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .single();
 
-      try {
-        const { data: submissionData, error: fetchError } = await supabase
-          .from('eureka_form_submissions')
-          .select('*')
-          .eq('id', submissionId)
-          .single();
-
-        if (fetchError) {
-          console.error(`Fetch attempt ${attempts} failed:`, fetchError);
-          if (attempts === maxAttempts) {
-            throw new Error(`Failed to fetch submission after ${maxAttempts} attempts: ${fetchError.message}`);
-          }
-          continue;
-        }
-
-        if (submissionData) {
-          submission = submissionData;
-          console.log(`Successfully fetched submission on attempt ${attempts}`);
-          break;
-        }
-      } catch (error) {
-        console.error(`Attempt ${attempts} error:`, error);
-        if (attempts === maxAttempts) {
-          throw error;
-        }
-      }
-    }
-
-    if (!submission) {
-      throw new Error(`Failed to fetch submission ${submissionId} after ${maxAttempts} attempts`);
+    if (fetchError || !submission) {
+      console.error('Failed to fetch submission:', fetchError);
+      throw new Error(`Failed to fetch submission: ${fetchError?.message || 'Submission not found'}`);
     }
 
     console.log('Retrieved submission for analysis:', {
