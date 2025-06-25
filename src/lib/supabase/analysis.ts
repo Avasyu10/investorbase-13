@@ -227,10 +227,30 @@ export async function analyzeReport(reportId: string, isVCAnalysis = false) {
   try {
     console.log('Starting analysis for report:', reportId, 'VC Analysis:', isVCAnalysis);
     
-    // CRITICAL: Choose the appropriate function based on whether it's VC analysis
-    const functionName = isVCAnalysis ? 'analyze-pdf-vc' : 'analyze-pdf';
+    // Get user profile to double-check VC status
+    const { data: { user } } = await supabase.auth.getUser();
     
-    console.log(`Calling edge function: ${functionName}`);
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Fetch user profile to verify VC status
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('is_vc')
+      .eq('id', user.id)
+      .single();
+    
+    const isUserVC = userProfile?.is_vc || false;
+    console.log('User VC status from database:', isUserVC);
+    
+    // Use the database value as the source of truth
+    const shouldUseVCAnalysis = isUserVC || isVCAnalysis;
+    
+    // CRITICAL: Choose the appropriate function based on whether it's VC analysis
+    const functionName = shouldUseVCAnalysis ? 'analyze-pdf-vc' : 'analyze-pdf';
+    
+    console.log(`Calling edge function: ${functionName} for user VC status: ${isUserVC}`);
     
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: { reportId }

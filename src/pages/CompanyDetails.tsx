@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
 import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
+import { MarketResearch } from "@/components/companies/MarketResearch";
 
 interface SlideNote {
   slideNumber: number;
@@ -33,7 +34,7 @@ function CompanyDetails() {
   const { isLoading: authLoading, user } = useAuth();
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
-  const [isIITBombayUser, setIsIITBombayUser] = useState(false);
+  const [isVCUser, setIsVCUser] = useState(false);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
 
@@ -43,7 +44,7 @@ function CompanyDetails() {
     sections: company.sections || []
   } : null;
 
-  // Check if current user is IIT Bombay user
+  // Check if current user is VC user
   useEffect(() => {
     const checkUserType = async () => {
       if (!user) return;
@@ -51,14 +52,14 @@ function CompanyDetails() {
       try {
         const { data: userProfile } = await supabase
           .from('profiles')
-          .select('is_iitbombay')
+          .select('is_vc')
           .eq('id', user.id)
           .single();
         
-        setIsIITBombayUser(userProfile?.is_iitbombay || false);
+        setIsVCUser(userProfile?.is_vc || false);
         console.log('User type checked:', { 
           userId: user.id, 
-          isIITBombay: userProfile?.is_iitbombay || false 
+          isVC: userProfile?.is_vc || false 
         });
       } catch (error) {
         console.error('Error checking user type:', error);
@@ -138,31 +139,6 @@ function CompanyDetails() {
     }
   }, [company?.report_id]);
 
-  useEffect(() => {
-    if (!company && !isLoading) {
-      setError("Company not found");
-    }
-  }, [company, isLoading]);
-
-  // Debug logging for the rendering decision
-  useEffect(() => {
-    if (company) {
-      console.log('Company details debug info:', {
-        companyName: company.name,
-        reportId: company.report_id,
-        isIITBombayUser,
-        slideNotesCount: slideNotes.length,
-        improvementSuggestionsCount: improvementSuggestions.length,
-        shouldShowSlideViewer: company.report_id ? true : false,
-        shouldShowImprovementSuggestions: company.report_id ? true : false,
-        companyStage: company.stage,
-        companyIndustry: company.industry,
-        companyWebsite: company.website,
-        companyIntroduction: company.introduction
-      });
-    }
-  }, [company, isIITBombayUser, slideNotes, improvementSuggestions]);
-
   // Early return for loading state
   if (authLoading || isLoading) {
     return (
@@ -201,13 +177,7 @@ function CompanyDetails() {
 
   console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
-  console.log('Should show improvement suggestions:', !!company.report_id);
-  console.log('Final company info to display:', {
-    website: websiteToShow,
-    stage: stageToShow,
-    industry: industryToShow,
-    introduction: introductionToShow
-  });
+  console.log('Is VC User:', isVCUser);
 
   return (
     <div className="min-h-screen">
@@ -224,7 +194,7 @@ function CompanyDetails() {
           </Button>
         </div>
 
-        {/* Company Overview - Full width like IIT Bombay version */}
+        {/* Company Overview - Full width */}
         <div className="w-full mb-8">
           <div className="container mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -242,25 +212,21 @@ function CompanyDetails() {
         </div>
 
         <div className="container mx-auto">
-          {/* Only show Overall Assessment for IIT Bombay users */}
-          {isIITBombayUser && (
+          {/* For VC users, show Overall Assessment */}
+          {isVCUser && (
             <OverallAssessment
               score={company.overall_score || 0}
               assessmentPoints={company.assessment_points || []}
             />
           )}
 
-          {/* ALWAYS show slide-by-slide section when report_id exists - MOVED ABOVE section metrics */}
-          {company.report_id && (
-            <SlideBySlideViewer
-              reportId={company.report_id}
-              slideNotes={slideNotes}
-              companyName={company.name}
-            />
+          {/* For VC users, show Real-time Market Analysis */}
+          {isVCUser && company.id && (
+            <MarketResearch companyId={company.id} />
           )}
 
-          {/* Show section metrics for IIT Bombay users */}
-          {isIITBombayUser && (
+          {/* For VC users, show section metrics */}
+          {isVCUser && (
             <>
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <BarChart2 className="h-5 w-5 text-primary" />
@@ -292,8 +258,8 @@ function CompanyDetails() {
             </>
           )}
 
-          {/* Show section checklist for non-IIT Bombay users */}
-          {!isIITBombayUser && filteredSections.length > 0 && (
+          {/* Show section checklist for non-VC users */}
+          {!isVCUser && filteredSections.length > 0 && (
             <>  
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <ListChecks className="h-5 w-5 text-primary" />
@@ -306,14 +272,6 @@ function CompanyDetails() {
                 />
               </div>
             </>
-          )}
-
-          {/* ALWAYS show Improvement Suggestions section when report_id exists */}
-          {company.report_id && (
-            <ImprovementSuggestions
-              suggestions={improvementSuggestions}
-              companyName={company.name}
-            />
           )}
         </div>
       </div>

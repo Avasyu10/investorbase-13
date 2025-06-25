@@ -60,7 +60,7 @@ export function ReportUpload() {
   const handleSubmit = async () => {
     if (!selectedFile || !title.trim()) return;
 
-    console.log('ReportUpload handleSubmit - isVC:', isVC);
+    console.log('ReportUpload handleSubmit - isVC from profile:', isVC);
     
     // Always upload first, then analyze
     setIsUploading(true);
@@ -89,6 +89,7 @@ export function ReportUpload() {
       }, 1000);
 
       console.log(`Starting ${isVC ? 'VC' : 'regular'} analysis for report:`, report.id);
+      console.log('Passing isVC flag to analyzeReport:', isVC);
       
       // CRITICAL: Pass the isVC flag to ensure correct edge function is called
       const analysisResult = await analyzeReport(report.id, isVC);
