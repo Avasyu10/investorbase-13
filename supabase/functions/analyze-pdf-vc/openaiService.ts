@@ -150,7 +150,7 @@ function getVCAnalysisPrompt(): string {
   ]
 }
 
-CRITICAL: The assessmentPoints array must contain exactly 7-8 comprehensive bullet points that include:
+CRITICAL: The assessmentPoints array must contain exactly 7-8 comprehensive detailed bullet points that include:
 - Specific market size data, growth rates, and TAM/SAM numbers from the deck
 - Financial metrics, revenue figures, projections, and unit economics mentioned
 - Traction metrics including user numbers, growth rates, customer acquisition costs
