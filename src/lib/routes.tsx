@@ -29,204 +29,169 @@ import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 import ThankYou from "@/pages/ThankYou";
 import EurekaSample from "@/pages/EurekaSample";
-import VCAnalysis from "@/pages/VCAnalysis";
-import { Navbar } from "@/components/layout/Navbar";
-import { useLocation } from "react-router-dom";
 
-import { createBrowserRouter, Outlet } from "react-router-dom";
-
-// Component to conditionally render Navbar and padding
-const ConditionalLayout = () => {
-  const location = useLocation();
-  
-  // Don't show navbar on thank you page, public submission pages, or any public upload pages
-  const hideNavbarPaths = ['/thank-you', '/submit', '/public-upload'];
-  const showNavbar = !hideNavbarPaths.some(path => location.pathname.startsWith(path));
-  
-  return (
-    <>
-      {showNavbar && <Navbar />}
-      <div className={showNavbar ? "pt-16" : ""}>
-        <Outlet />
-      </div>
-    </>
-  );
-};
-
-const routes = createBrowserRouter([
-  {
-    path: "/",
-    element: <ConditionalLayout />,
-    children: [
-      { path: "/", element: <Index /> },
-      { path: "/get-started", element: <Index /> },
-      { path: "/signup", element: <Signup /> },
-      { path: "/forgot-password", element: <ForgotPassword /> },
-      { path: "/reset-password", element: <ResetPassword /> },
-      { path: "/public-upload/:slug", element: <PublicUpload /> },
-      { path: "/public-upload", element: <PublicUpload /> },
-      { path: "/submit/:slug", element: <BarcSubmit /> },
-      { path: "/submit/eureka-sample", element: <EurekaSample /> },
-      { path: "/thank-you", element: <ThankYou /> },
-      { 
-        path: "/dashboard", 
-        element: (
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/upload", 
-        element: (
-          <ProtectedRoute>
-            <UploadReport />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/report/:id", 
-        element: (
-          <ProtectedRoute>
-            <Report />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/company/:id", 
-        element: (
-          <ProtectedRoute>
-            <CompanyPage />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/company/:companyId/section/:sectionId", 
-        element: (
-          <ProtectedRoute>
-            <SectionPage />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/company-detail/:id", 
-        element: (
-          <ProtectedRoute>
-            <CompanyDetailPage />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/company-details/:id", 
-        element: (
-          <ProtectedRoute>
-            <CompanyDetails />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/company-overview/:id", 
-        element: (
-          <ProtectedRoute>
-            <CompanyOverviewPage />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/analysis-summary/:id", 
-        element: (
-          <ProtectedRoute>
-            <AnalysisSummary />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/profile", 
-        element: (
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/profile/edit", 
-        element: (
-          <ProtectedRoute>
-            <ProfileEdit />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/profile/setup", 
-        element: (
-          <ProtectedRoute>
-            <ProfileSetup />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/feedback", 
-        element: (
-          <ProtectedRoute>
-            <Feedback />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/admin", 
-        element: (
-          <ProtectedRoute>
-            <Admin />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/public-forms", 
-        element: (
-          <ProtectedRoute>
-            <PublicForms />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/barc-submissions", 
-        element: (
-          <ProtectedRoute>
-            <BarcSubmissions />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/news-feed", 
-        element: (
-          <ProtectedRoute>
-            <NewsFeed />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/email-test", 
-        element: (
-          <ProtectedRoute>
-            <EmailTest />
-          </ProtectedRoute>
-        )
-      },
-      { 
-        path: "/supplementary-materials/:companyId", 
-        element: (
-          <ProtectedRoute>
-            <SupplementaryMaterials />
-          </ProtectedRoute>
-        )
-      },
-      { path: "*", element: <NotFound /> },
-      {
-        path: "/vc-analysis",
-        element: <VCAnalysis />,
-      },
-    ]
-  }
-]);
-
-export default routes;
+export const routes = [
+  { path: "/", element: <Index /> },
+  { path: "/get-started", element: <Index /> },
+  { path: "/signup", element: <Signup /> },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/reset-password", element: <ResetPassword /> },
+  { path: "/public-upload/:slug", element: <PublicUpload /> },
+  { path: "/public-upload", element: <PublicUpload /> },
+  { path: "/submit/:slug", element: <BarcSubmit /> },
+  { path: "/submit/eureka-sample", element: <EurekaSample /> },
+  { path: "/thank-you", element: <ThankYou /> },
+  { 
+    path: "/dashboard", 
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/upload", 
+    element: (
+      <ProtectedRoute>
+        <UploadReport />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/report/:id", 
+    element: (
+      <ProtectedRoute>
+        <Report />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/company/:id", 
+    element: (
+      <ProtectedRoute>
+        <CompanyPage />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/company/:companyId/section/:sectionId", 
+    element: (
+      <ProtectedRoute>
+        <SectionPage />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/company-detail/:id", 
+    element: (
+      <ProtectedRoute>
+        <CompanyDetailPage />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/company-details/:id", 
+    element: (
+      <ProtectedRoute>
+        <CompanyDetails />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/company-overview/:id", 
+    element: (
+      <ProtectedRoute>
+        <CompanyOverviewPage />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/analysis-summary/:id", 
+    element: (
+      <ProtectedRoute>
+        <AnalysisSummary />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/profile", 
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/profile/edit", 
+    element: (
+      <ProtectedRoute>
+        <ProfileEdit />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/profile/setup", 
+    element: (
+      <ProtectedRoute>
+        <ProfileSetup />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/feedback", 
+    element: (
+      <ProtectedRoute>
+        <Feedback />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/admin", 
+    element: (
+      <ProtectedRoute>
+        <Admin />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/public-forms", 
+    element: (
+      <ProtectedRoute>
+        <PublicForms />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/barc-submissions", 
+    element: (
+      <ProtectedRoute>
+        <BarcSubmissions />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/news-feed", 
+    element: (
+      <ProtectedRoute>
+        <NewsFeed />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/email-test", 
+    element: (
+      <ProtectedRoute>
+        <EmailTest />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/supplementary-materials/:companyId", 
+    element: (
+      <ProtectedRoute>
+        <SupplementaryMaterials />
+      </ProtectedRoute>
+    )
+  },
+  { path: "*", element: <NotFound /> }
+];

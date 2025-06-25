@@ -101,7 +101,7 @@ const Dashboard = () => {
               <EurekaSampleButton />
             )}
             {isVC && (
-              <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
+              <Button onClick={() => navigate("/upload")} variant="outline" className="flex items-center">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Analyze Deck
               </Button>
