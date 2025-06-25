@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
@@ -29,6 +28,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 import ThankYou from "@/pages/ThankYou";
 import EurekaSample from "@/pages/EurekaSample";
+import VCAnalysis from "@/pages/VCAnalysis";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -54,6 +54,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <UploadReport />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/vc-analysis", 
+    element: (
+      <ProtectedRoute>
+        <VCAnalysis />
       </ProtectedRoute>
     )
   },
