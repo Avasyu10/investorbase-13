@@ -6,6 +6,7 @@ import { Loader2, Building2 } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies } from "@/hooks/useCompanies";
+import type { Company } from "@/types/company";
 
 export function CompaniesList() {
   const navigate = useNavigate();
@@ -15,8 +16,15 @@ export function CompaniesList() {
   // Use the useCompanies hook which has proper RLS handling
   const { companies, isLoading, error } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
 
-  const handleCompanyClick = (companyId: string) => {
-    navigate(`/company/${companyId}`);
+  // FIXED: Change function signature to accept Company object instead of string
+  const handleCompanyClick = (company: Company) => {
+    navigate(`/company/${company.id}`);
+  };
+
+  // FIXED: Add status change handler
+  const handleStatusChange = (companyId: string, newStatus: string) => {
+    // Handle status change - could trigger a refetch or optimistic update
+    console.log(`Status changed for company ${companyId} to ${newStatus}`);
   };
 
   if (isLoading) {
@@ -81,7 +89,11 @@ export function CompaniesList() {
       </div>
 
       {companies.length > 0 ? (
-        <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} />
+        <CompaniesTable 
+          companies={companies} 
+          onCompanyClick={handleCompanyClick}
+          onStatusChange={handleStatusChange}
+        />
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
