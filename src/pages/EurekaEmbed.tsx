@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ const EurekaEmbed = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
 
-  console.log('🔗 Eureka Embed - Anonymous submission mode');
+  console.log('🔗 Eureka Embed - Anonymous submission mode for slug:', slug);
 
   const form = useForm<EurekaFormData>({
     defaultValues: {
@@ -71,9 +70,9 @@ const EurekaEmbed = () => {
     );
   };
 
-  // Direct database submission without authentication
+  // Direct anonymous database submission
   const submitToDatabase = async (formData: EurekaFormData) => {
-    console.log('📝 Direct database submission for embed:', formData);
+    console.log('📝 Starting anonymous database submission for embed:', formData);
     
     const submissionData = {
       form_slug: slug || 'eureka-embed',
@@ -95,26 +94,31 @@ const EurekaEmbed = () => {
       analysis_status: 'pending'
     };
 
-    console.log('📋 Anonymous submission data:', submissionData);
+    console.log('📋 Anonymous submission data prepared:', submissionData);
 
-    // Direct insert without authentication
-    const { data, error } = await supabase
-      .from('eureka_form_submissions')
-      .insert([submissionData])
-      .select()
-      .single();
+    try {
+      // Use upsert with onConflict to handle any potential issues
+      const { data, error } = await supabase
+        .from('eureka_form_submissions')
+        .insert([submissionData])
+        .select()
+        .single();
 
-    if (error) {
-      console.error('❌ Error submitting to database:', error);
-      throw error;
+      if (error) {
+        console.error('❌ Database insertion error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      console.log('✅ Anonymous database submission successful:', data);
+      return data;
+    } catch (dbError: any) {
+      console.error('❌ Database submission failed:', dbError);
+      throw new Error(`Failed to save submission: ${dbError.message}`);
     }
-
-    console.log('✅ Direct database submission successful:', data);
-    return data;
   };
 
   const onSubmit = async (data: EurekaFormData) => {
-    console.log('📝 Eureka embed form submit triggered:', data);
+    console.log('📝 Eureka embed form submit triggered with data:', data);
     
     // Basic validation
     if (!data.companyName.trim()) {
@@ -161,7 +165,7 @@ const EurekaEmbed = () => {
       return;
     }
 
-    // Validate LinkedIn URLs format
+    // Validate LinkedIn URLs format if provided
     const invalidLinkedInUrls = founderLinkedIns.filter(url => {
       if (!url.trim()) return false; // Empty URLs are allowed
       return !url.includes('linkedin.com/');
@@ -190,20 +194,21 @@ const EurekaEmbed = () => {
         description: "🎉 Application submitted successfully! Analysis will start automatically.",
       });
 
-      // Show thank you message
-      toast({
-        title: "Thank You!",
-        description: "Your application has been submitted and will be reviewed shortly.",
-      });
-      
+      // Reset form after successful submission
       form.reset();
       setFounderLinkedIns([""]);
       
     } catch (error: any) {
       console.error('❌ Error submitting embedded form:', error);
+      
+      let errorMessage = "Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Submission Error",
-        description: `There was an error submitting your application: ${error.message || 'Please try again.'}`,
+        description: `There was an error submitting your application: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
