@@ -1,0 +1,167 @@
+
+import { useState } from "react";
+import { FileUploadZone } from "./upload/FileUploadZone";
+import { ProgressIndicator } from "./upload/ProgressIndicator";
+import { uploadReport } from "@/lib/supabase/analysis";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+
+export function VCAnalysisUpload() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const navigate = useNavigate();
+
+  const handleVCAnalysis = async () => {
+    if (!selectedFile || !title.trim()) return;
+
+    console.log('VCAnalysisUpload - Starting VC-specific analysis');
+    
+    // Always upload first, then analyze
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Simulate upload progress
+      const uploadInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
+      // Upload the report
+      const report = await uploadReport(selectedFile, title, description);
+      
+      clearInterval(uploadInterval);
+      setUploadProgress(100);
+      setIsUploading(false);
+      
+      // Start VC analysis
+      setIsAnalyzing(true);
+      setAnalysisProgress(0);
+      
+      // Simulate analysis progress
+      const analysisInterval = setInterval(() => {
+        setAnalysisProgress(prev => Math.min(prev + 5, 90));
+      }, 1000);
+
+      console.log('VCAnalysisUpload - EXCLUSIVELY calling analyze-pdf-vc for report:', report.id);
+      
+      // EXCLUSIVE VC ANALYSIS - NO ROUTING LOGIC
+      const { data, error } = await supabase.functions.invoke('analyze-pdf-vc', {
+        body: { reportId: report.id }
+      });
+      
+      if (error) {
+        console.error('VCAnalysisUpload - Error calling analyze-pdf-vc:', error);
+        throw error;
+      }
+      
+      if (!data || data.error) {
+        const errorMessage = data?.error || "Unknown error occurred during VC analysis";
+        console.error('VCAnalysisUpload - VC analysis returned error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      console.log('VCAnalysisUpload - VC analysis completed successfully:', data);
+      
+      clearInterval(analysisInterval);
+      setAnalysisProgress(100);
+      
+      // Navigate to the company details page
+      if (data.companyId) {
+        navigate(`/company/${data.companyId}`);
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('VCAnalysisUpload - Error in VC analysis process:', error);
+      setIsUploading(false);
+      setIsAnalyzing(false);
+      setUploadProgress(0);
+      setAnalysisProgress(0);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          VC Pitch Deck Analysis
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Upload a pitch deck for comprehensive investment analysis with detailed metrics and insights.
+        </p>
+      </div>
+
+      <FileUploadZone
+        id="vc-pitch-deck-upload"
+        label="Pitch Deck"
+        file={selectedFile}
+        onFileChange={(e) => {
+          const file = e.target.files?.[0] || null;
+          setSelectedFile(file);
+        }}
+        accept=".pdf"
+        description="PDF files only, max 10MB"
+        buttonText="Select PDF"
+        disabled={isUploading || isAnalyzing}
+        required={true}
+      />
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="vc-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Company Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="vc-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="Enter company name"
+            disabled={isUploading || isAnalyzing}
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="vc-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Brief Description (Optional)
+          </label>
+          <textarea
+            id="vc-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="Brief description of the company"
+            rows={3}
+            disabled={isUploading || isAnalyzing}
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <button
+          onClick={handleVCAnalysis}
+          disabled={!selectedFile || !title.trim() || isUploading || isAnalyzing}
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+        >
+          {isUploading ? "Uploading..." : isAnalyzing ? "Analyzing..." : "Analyze Deck"}
+        </button>
+      </div>
+
+      {(isUploading || isAnalyzing) && (
+        <ProgressIndicator
+          progressStage={isUploading ? "Uploading..." : "Analyzing..."}
+          progress={isUploading ? uploadProgress : analysisProgress}
+          isScrapingWebsite={false}
+          isAnalyzing={isAnalyzing}
+        />
+      )}
+    </div>
+  );
+}

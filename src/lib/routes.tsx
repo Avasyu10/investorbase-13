@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
@@ -29,8 +28,11 @@ import ResetPassword from "@/pages/ResetPassword";
 import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 import ThankYou from "@/pages/ThankYou";
 import EurekaSample from "@/pages/EurekaSample";
+import VCAnalysis from "@/pages/VCAnalysis";
 
-export const routes = [
+import { createBrowserRouter } from "react-router-dom";
+
+const routes = createBrowserRouter([
   { path: "/", element: <Index /> },
   { path: "/get-started", element: <Index /> },
   { path: "/signup", element: <Signup /> },
@@ -193,5 +195,11 @@ export const routes = [
       </ProtectedRoute>
     )
   },
-  { path: "*", element: <NotFound /> }
-];
+  { path: "*", element: <NotFound /> },
+  {
+    path: "/vc-analysis",
+    element: <VCAnalysis />,
+  },
+]);
+
+export default routes;
