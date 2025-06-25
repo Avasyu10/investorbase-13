@@ -144,23 +144,48 @@ function getVCAnalysisPrompt(): string {
       "title": "Problem Statement",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
-      "strengths": ["<strength 1>", "<strength 2>"],
-      "weaknesses": ["<weakness 1>", "<weakness 2>"]
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<weakness 1 with market data/numbers>", 
+        "<weakness 2 with market data/numbers>", 
+        "<weakness 3 with market data/numbers>",
+        "<weakness 4 with market data/numbers>"
+      ]
     }
   ]
 }
 
-CRITICAL: The assessmentPoints array must contain exactly 7-8 comprehensive detailed bullet points that include:
-- Specific market size data, growth rates, and TAM/SAM numbers from the deck
-- Financial metrics, revenue figures, projections, and unit economics mentioned
-- Traction metrics including user numbers, growth rates, customer acquisition costs
-- Competitive positioning with market share data and differentiation factors
-- Team background with specific credentials, experience, and track record
-- Business model viability with revenue streams and scalability potential
-- Investment opportunity assessment including funding requirements and use of funds
-- Risk factors and mitigation strategies with specific market or execution risks
+CRITICAL REQUIREMENTS:
 
-Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
+1. ASSESSMENT POINTS: Must contain exactly 7-8 comprehensive detailed bullet points that include:
+   - Specific market size data, growth rates, and TAM/SAM numbers from the deck
+   - Financial metrics, revenue figures, projections, and unit economics mentioned
+   - Traction metrics including user numbers, growth rates, customer acquisition costs
+   - Competitive positioning with market share data and differentiation factors
+   - Team background with specific credentials, experience, and track record
+   - Business model viability with revenue streams and scalability potential
+   - Investment opportunity assessment including funding requirements and use of funds
+   - Risk factors and mitigation strategies with specific market or execution risks
+
+   Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
+
+2. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and 3-4 weaknesses. Each strength and weakness MUST include:
+   - Specific market data, numbers, percentages, or metrics from the deck
+   - Industry benchmarks or comparative data when available
+   - Quantifiable insights (revenue figures, growth rates, market share, user metrics, etc.)
+   - Financial projections, unit economics, or cost structures mentioned
+   - Competitive analysis data and positioning metrics
+
+   Examples of data-rich strengths/weaknesses:
+   - "TAM of $50B with 15% CAGR demonstrates significant market opportunity, exceeding typical SaaS market growth of 12%"
+   - "Customer acquisition cost of $200 with LTV of $2,400 shows strong unit economics with 12:1 LTV/CAC ratio"
+   - "Limited to 2% market penetration despite claiming $10B TAM, suggesting execution challenges or market barriers"
+   - "Burn rate of $500K/month with 18 months runway creates immediate funding pressure without clear path to profitability"
 
 Please analyze these sections:
 1. PROBLEM - Problem Statement & Market Need
@@ -181,5 +206,7 @@ Score each section from 1-100 based on investment attractiveness:
 - 61-80: Good - Strong investment potential with minor issues
 - 81-100: Excellent - Outstanding investment opportunity
 
-The overall score should reflect the comprehensive investment potential considering market opportunity, execution capability, scalability, and risk-adjusted returns.`;
+The overall score should reflect the comprehensive investment potential considering market opportunity, execution capability, scalability, and risk-adjusted returns.
+
+IMPORTANT: Every strength and weakness must contain specific numbers, metrics, percentages, growth rates, financial data, or market statistics from the pitch deck. Do not include generic statements without quantifiable data.`;
 }
