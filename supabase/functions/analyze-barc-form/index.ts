@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -148,9 +147,9 @@ serve(async (req) => {
 
     console.log('Successfully acquired lock for submission analysis');
 
-    // Determine the effective user ID for company creation
-    const effectiveUserId = submission.user_id || submission.form_slug;
-    console.log('Using effective user ID for company creation:', effectiveUserId);
+    // FIXED: Use the specific user ID for all BARC form submissions
+    const effectiveUserId = "ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af";
+    console.log('Using fixed user ID for company creation:', effectiveUserId);
 
     // Process LinkedIn data for team analysis
     const founderLinkedInData = [];
@@ -425,7 +424,7 @@ serve(async (req) => {
         name: submission.company_name,
         overall_score: analysisResult.overall_score,
         assessment_points: analysisResult.summary?.assessment_points || [],
-        user_id: effectiveUserId,
+        user_id: effectiveUserId, // FIXED: Use the specific user ID instead of form slug
         source: 'barc_form',
         industry: submission.company_type || null,
         email: submission.submitter_email || null,
