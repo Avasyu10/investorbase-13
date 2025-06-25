@@ -124,16 +124,19 @@ export async function analyzeWithOpenAI(
 }
 
 function getVCAnalysisPrompt(): string {
-  return `Analyze this PDF document and provide a comprehensive investment assessment. Please return your analysis in the following JSON format:
+  return `Analyze this PDF pitch deck and provide a comprehensive investment assessment from a venture capital perspective. Please return your analysis in the following JSON format:
 
 {
   "overallScore": <number between 1-100>,
   "assessmentPoints": [
-    "<key insight 1>",
-    "<key insight 2>",
-    "<key insight 3>",
-    "<key insight 4>",
-    "<key insight 5>"
+    "<comprehensive assessment point 1 with specific data/numbers>",
+    "<comprehensive assessment point 2 with specific data/numbers>",
+    "<comprehensive assessment point 3 with specific data/numbers>",
+    "<comprehensive assessment point 4 with specific data/numbers>",
+    "<comprehensive assessment point 5 with specific data/numbers>",
+    "<comprehensive assessment point 6 with specific data/numbers>",
+    "<comprehensive assessment point 7 with specific data/numbers>",
+    "<comprehensive assessment point 8 with specific data/numbers>"
   ],
   "sections": [
     {
@@ -147,24 +150,36 @@ function getVCAnalysisPrompt(): string {
   ]
 }
 
+CRITICAL: The assessmentPoints array must contain exactly 7-8 comprehensive bullet points that include:
+- Specific market size data, growth rates, and TAM/SAM numbers from the deck
+- Financial metrics, revenue figures, projections, and unit economics mentioned
+- Traction metrics including user numbers, growth rates, customer acquisition costs
+- Competitive positioning with market share data and differentiation factors
+- Team background with specific credentials, experience, and track record
+- Business model viability with revenue streams and scalability potential
+- Investment opportunity assessment including funding requirements and use of funds
+- Risk factors and mitigation strategies with specific market or execution risks
+
+Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
+
 Please analyze these sections:
-1. PROBLEM - Problem Statement
-2. MARKET - Market Opportunity  
-3. SOLUTION - Solution (Product)
-4. COMPETITIVE_LANDSCAPE - Competitive Landscape
-5. TRACTION - Traction & Milestones
-6. BUSINESS_MODEL - Business Model
-7. GTM_STRATEGY - Go-to-Market Strategy
+1. PROBLEM - Problem Statement & Market Need
+2. MARKET - Market Opportunity & Size  
+3. SOLUTION - Solution & Product Overview
+4. COMPETITIVE_LANDSCAPE - Competitive Analysis & Positioning
+5. TRACTION - Traction, Metrics & Milestones
+6. BUSINESS_MODEL - Business Model & Revenue Streams
+7. GTM_STRATEGY - Go-to-Market Strategy & Sales
 8. TEAM - Founder & Team Background
 9. FINANCIALS - Financial Overview & Projections
-10. ASK - The Ask & Next Steps
+10. ASK - Investment Ask & Use of Funds
 
-Score each section from 1-100 based on quality, completeness, and investment potential. Use the full range of the 100-point scale:
-- 1-20: Poor/Missing - Significant issues or missing information
-- 21-40: Below Average - Some issues present
-- 41-60: Average - Meets basic expectations
-- 61-80: Good - Above average quality
-- 81-100: Excellent - Outstanding quality and potential
+Score each section from 1-100 based on investment attractiveness:
+- 1-20: Poor - Significant red flags or missing critical information
+- 21-40: Below Average - Major concerns that impact investability
+- 41-60: Average - Meets basic investment criteria with some concerns
+- 61-80: Good - Strong investment potential with minor issues
+- 81-100: Excellent - Outstanding investment opportunity
 
-The overall score should reflect the weighted average of all sections, considering the investment potential and business viability.`;
+The overall score should reflect the comprehensive investment potential considering market opportunity, execution capability, scalability, and risk-adjusted returns.`;
 }
