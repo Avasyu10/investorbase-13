@@ -24,7 +24,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
   console.log('📤 Submitting Eureka form data:', data);
   
   try {
-    // FIXED: Use the specific user ID for all Eureka form submissions, same as BARC
+    // Use the specific user ID for all Eureka form submissions
     const submissionData = {
       ...data,
       user_id: "ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af", // Fixed user ID for all Eureka submissions
@@ -50,28 +50,7 @@ export const submitEurekaForm = async (data: EurekaSubmissionData) => {
 
     console.log('✅ Eureka form submitted successfully:', submission);
     
-    // Give a small delay to ensure the record is committed
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Manually trigger analysis since the database trigger is having issues
-    try {
-      console.log('🔄 Manually triggering analysis for submission:', submission.id);
-      
-      const { error: analysisError } = await supabase.functions.invoke('analyze-eureka-form', {
-        body: { submissionId: submission.id }
-      });
-      
-      if (analysisError) {
-        console.error('⚠️ Analysis trigger failed, but submission was successful:', analysisError);
-        // Don't throw here - the submission was successful, analysis can be retried later
-      } else {
-        console.log('✅ Analysis triggered successfully');
-      }
-    } catch (analysisError) {
-      console.error('⚠️ Failed to trigger analysis, but submission was successful:', analysisError);
-      // Don't throw here - the submission was successful
-    }
-    
+    // Return immediately - analysis will be triggered by database trigger
     return submission;
   } catch (error: any) {
     console.error('❌ Failed to submit Eureka form:', error);

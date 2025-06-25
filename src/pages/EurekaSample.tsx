@@ -174,6 +174,8 @@ const EurekaSample = () => {
       
       form.reset();
       setFounderLinkedIns([""]);
+      
+      // Redirect immediately to thank you page - analysis will run in background
       navigate("/thank-you");
       
     } catch (error: any) {
@@ -343,14 +345,12 @@ const EurekaSample = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                        <p className="text-sm text-muted-foreground">
-                          Please select the industry that best describes your company's primary focus
-                        </p>
                       </FormItem>
                     )}
                   />
                 </div>
 
+                {/* Founder Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Founder Information</h3>
                   
@@ -398,6 +398,7 @@ const EurekaSample = () => {
                   </div>
                 </div>
 
+                {/* Application Questions */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Application Questions</h3>
                   
@@ -487,6 +488,7 @@ const EurekaSample = () => {
                   />
                 </div>
 
+                {/* Contact Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Contact Information</h3>
                   
@@ -501,9 +503,6 @@ const EurekaSample = () => {
                           <Input placeholder="Enter the primary contact person's name" {...field} />
                         </FormControl>
                         <FormMessage />
-                        <p className="text-sm text-muted-foreground">
-                          Enter the name of the primary point of contact for your company.
-                        </p>
                       </FormItem>
                     )}
                   />
