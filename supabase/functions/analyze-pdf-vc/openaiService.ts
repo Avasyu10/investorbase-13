@@ -248,6 +248,24 @@ function getVCAnalysisPrompt(): string {
       ]
     },
     {
+      "type": "GTM_STRATEGY",
+      "title": "Go-to-Market Strategy & Sales",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
       "type": "TEAM",
       "title": "Founder & Team Background",
       "score": <number between 1-100>,
@@ -322,7 +340,7 @@ CRITICAL REQUIREMENTS:
 
    Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
 
-4. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and exactly 3-4 weaknesses and should be a little detailed.
+4. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and exactly 3-4 weaknesses.
 
    STRENGTHS should include:
    - Specific market data, numbers, percentages, or metrics from the deck
@@ -357,7 +375,7 @@ CRITICAL REQUIREMENTS:
    - "Regulatory compliance costs average $3.1M annually for companies in this space, representing 22% of typical revenue according to industry surveys"
    - "Economic data shows 34% contraction in target market spending over past 18 months, with consumer discretionary income in this demographic falling 28%"
 
-5. NEVER SKIP SECTIONS: You must analyze all 9 sections even if some information is not present in the pitch deck. If a section is not well-covered in the deck, still provide the analysis based on industry standards and market context.
+5. NEVER SKIP SECTIONS: You must analyze all 10 sections even if some information is not present in the pitch deck. If a section is not well-covered in the deck, still provide the analysis based on industry standards and market context.
 
 Score each section from 1-100 based on investment attractiveness:
 - 1-20: Poor - Significant red flags or missing critical information

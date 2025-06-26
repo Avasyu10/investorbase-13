@@ -35,28 +35,9 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
   };
 
   const formatSectionTitle = (title: string, sectionType?: string) => {
-    // Handle VC analysis specific section types with custom titles
+    // Handle Eureka form specific section types
     if (sectionType) {
       switch (sectionType) {
-        case 'PROBLEM':
-          return 'Problem Statement';
-        case 'MARKET':
-          return 'Market Size';
-        case 'SOLUTION':
-          return 'Solution';
-        case 'TRACTION':
-          return 'Traction';
-        case 'COMPETITIVE_LANDSCAPE':
-          return 'Competitor';
-        case 'BUSINESS_MODEL':
-          return 'Business Model';
-        case 'TEAM':
-          return 'Team';
-        case 'FINANCIALS':
-          return 'Financials';
-        case 'ASK':
-          return 'Ask';
-        // Handle Eureka form specific section types
         case 'problem_solution_fit':
           return 'Problem & Solution';
         case 'target_customers':
