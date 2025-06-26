@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -218,6 +217,8 @@ function CompanyDetails() {
             <OverallAssessment
               score={company.overall_score || 0}
               assessmentPoints={company.assessment_points || []}
+              companyId={company.id}
+              companyName={company.name}
             />
           )}
 

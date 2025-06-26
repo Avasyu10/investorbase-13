@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart2, Lightbulb, ExternalLink } from "lucide-react";
+import { BarChart2, Lightbulb, ExternalLink, FileText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -8,17 +8,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { useState } from "react";
+import { FundThesisAlignment } from "./FundThesisAlignment";
 
 interface OverallAssessmentProps {
   score: number;
   maxScore?: number;
   assessmentPoints?: string[];
+  companyId?: string;
+  companyName?: string;
 }
 
 export function OverallAssessment({ 
   score, 
   maxScore = 100,
-  assessmentPoints = []
+  assessmentPoints = [],
+  companyId,
+  companyName
 }: OverallAssessmentProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -87,9 +92,14 @@ export function OverallAssessment({
             <BarChart2 className="h-5 w-5 text-primary" />
             <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
-            <span className="text-sm text-muted-foreground">/{maxScore}</span>
+          <div className="flex items-center gap-4">
+            {companyId && (
+              <FundThesisAlignment companyId={companyId} companyName={companyName} />
+            )}
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
+              <span className="text-sm text-muted-foreground">/{maxScore}</span>
+            </div>
           </div>
         </div>
       </CardHeader>
