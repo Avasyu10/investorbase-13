@@ -121,56 +121,47 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="companies">
-              {isIITBombay ? "Eureka Prospects" : "Prospects"}
-            </TabsTrigger>
-            <TabsTrigger value="submissions">New Applications</TabsTrigger>
-            {!isIITBombay && (
-              <TabsTrigger value="reports" className="relative">
-                Pitch Decks
-                {isVC && (
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setChatOpen(true);
-                    }}
-                    variant="ghost"
-                    size="sm"
-                    className="ml-2 h-6 w-6 p-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full"
-                  >
-                    <MessageSquare className="h-3 w-3" />
-                  </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="companies">
+                  {isIITBombay ? "Eureka Prospects" : "Prospects"}
+                </TabsTrigger>
+                <TabsTrigger value="submissions">New Applications</TabsTrigger>
+                {!isIITBombay && (
+                  <TabsTrigger value="reports">
+                    Pitch Decks
+                  </TabsTrigger>
                 )}
-              </TabsTrigger>
-            )}
-          </TabsList>
-          <TabsContent value="companies">
-            <ConditionalCompaniesList />
-          </TabsContent>
-          <TabsContent value="submissions">
-            <PublicSubmissionsList />
-          </TabsContent>
-          {!isIITBombay && (
-            <TabsContent value="reports">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Pitch Decks</h2>
-                {isVC && (
-                  <Button
-                    onClick={() => setChatOpen(true)}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Team Chat
-                  </Button>
-                )}
-              </div>
-              <ReportsList />
-            </TabsContent>
-          )}
-        </Tabs>
+              </TabsList>
+              
+              {isVC && (
+                <Button
+                  onClick={() => setChatOpen(true)}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 h-10 text-base font-medium"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Chat with Team
+                </Button>
+              )}
+            </div>
+            
+            <div className="mt-6">
+              <TabsContent value="companies">
+                <ConditionalCompaniesList />
+              </TabsContent>
+              <TabsContent value="submissions">
+                <PublicSubmissionsList />
+              </TabsContent>
+              {!isIITBombay && (
+                <TabsContent value="reports">
+                  <ReportsList />
+                </TabsContent>
+              )}
+            </div>
+          </Tabs>
+        </div>
       </div>
 
       {/* VC Chat Interface */}

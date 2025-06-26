@@ -31,7 +31,7 @@ const mockUsers: User[] = [
   { id: "2", name: "Kanishk Saxena", role: "manager", color: "bg-blue-500" },
   { id: "3", name: "Avasyu Sharma", role: "analyst", color: "bg-green-500" },
   { id: "4", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
-  { id: "5", name: "Himunshu", role: "intern", color: "bg-orange-500" },
+  { id: "5", name: "Himanshu", role: "intern", color: "bg-orange-500" },
 ];
 
 const getRoleColor = (role: string) => {
@@ -138,7 +138,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   const renderMessages = (messages: Message[]) => (
-    <div className="space-y-4 py-4">
+    <div className="space-y-4 py-4 px-2">
       {messages.map((message) => (
         <div key={message.id} className="flex gap-3">
           <Avatar className="h-8 w-8 flex-shrink-0">
@@ -170,15 +170,15 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
-        <DialogHeader className="border-b pb-4">
+      <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col p-0">
+        <DialogHeader className="border-b pb-4 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
             VC Team Chat
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-1 gap-4 min-h-0">
+        <div className="flex flex-1 gap-4 min-h-0 px-6 pb-6">
           {/* Users Sidebar */}
           <div className="w-64 border-r pr-4 flex flex-col">
             <div className="mb-4 p-3 bg-muted/30 rounded-lg">
@@ -247,10 +247,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
               </TabsList>
 
               <TabsContent value="group" className="flex-1 flex flex-col min-h-0">
-                <ScrollArea className="flex-1 px-4">
+                <ScrollArea className="flex-1 -mx-2">
                   {renderMessages(groupMessages)}
                 </ScrollArea>
-                <div className="border-t pt-4 px-4">
+                <div className="border-t pt-4 mt-4">
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <Input
@@ -287,11 +287,11 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       <span className="text-sm font-medium">Private chat with {selectedPrivateUser.name}</span>
                     </div>
                     
-                    <ScrollArea className="flex-1 px-4">
+                    <ScrollArea className="flex-1 -mx-2">
                       {renderMessages(getPrivateMessages(selectedPrivateUser.id))}
                     </ScrollArea>
                     
-                    <div className="border-t pt-4 px-4">
+                    <div className="border-t pt-4 mt-4">
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <Input
