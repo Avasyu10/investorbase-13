@@ -202,10 +202,14 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       console.log('Found PDF URL:', reportData.pdf_url);
       console.log('Report user ID:', reportData.user_id);
 
+      // Construct the full path including user folder - this is the key fix
+      const fullPdfPath = `${reportData.user_id}/${reportData.pdf_url}`;
+      console.log('Full PDF path:', fullPdfPath);
+
       // Generate a signed URL for the PDF from report-pdfs bucket
       const { data: signedUrlData, error: urlError } = await supabase.storage
         .from('report-pdfs')
-        .createSignedUrl(reportData.pdf_url, 3600); // 1 hour expiry
+        .createSignedUrl(fullPdfPath, 3600); // 1 hour expiry
 
       if (urlError) {
         console.error('Error creating signed URL:', urlError);
