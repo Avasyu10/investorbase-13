@@ -4,10 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
-import { format, formatDistanceToNow } from "date-fns";
-import { Star, Trash2, Phone, Mail, Globe, Download } from "lucide-react";
-import { StatusDropdown } from "./StatusDropdown";
-import { TeamMemberInput } from "./TeamMemberInput";
+import { formatDistanceToNow } from "date-fns";
+import { Star, Trash2, Phone, Mail, Globe, Download, Edit } from "lucide-react";
+import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
@@ -23,6 +22,12 @@ interface CompaniesTableProps {
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
+    id: string;
+    teamMember: string;
+    status: string;
+  } | null>(null);
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const { downloadCompaniesAsPdf } = usePdfDownload();
 
@@ -125,18 +130,21 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
   };
 
-  const formatStatusChanged = (statusDate?: string, createdAt?: string) => {
-    const dateToUse = statusDate || createdAt;
-    if (!dateToUse) return "—";
+  const handleEditClick = (e: React.MouseEvent, company: Company) => {
+    e.stopPropagation(); // Prevent row click event
+    const companyDetails = (company as any).company_details;
+    const teamMemberName = companyDetails?.teammember_name || '';
+    const status = companyDetails?.status || 'New';
     
-    try {
-      return formatDistanceToNow(new Date(dateToUse), { addSuffix: true });
-    } catch (error) {
-      return "—";
-    }
+    setSelectedCompanyForEdit({
+      id: company.id,
+      teamMember: teamMemberName,
+      status: status
+    });
+    setEditDialogOpen(true);
   };
 
-  const handleStatusUpdate = (companyId: string, newStatus: string) => {
+  const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
     // Update local state to reflect the change immediately
     setLocalCompanies(prev => prev.map(company => {
       if (company.id === companyId) {
@@ -145,22 +153,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
           company_details: {
             ...(company as any).company_details,
             status: newStatus,
-            status_date: new Date().toISOString()
-          }
-        };
-      }
-      return company;
-    }));
-  };
-
-  const handleTeamMemberUpdate = (companyId: string, newTeamMember: string) => {
-    // Update local state to reflect the change immediately
-    setLocalCompanies(prev => prev.map(company => {
-      if (company.id === companyId) {
-        return {
-          ...company,
-          company_details: {
-            ...(company as any).company_details,
+            status_date: new Date().toISOString(),
             teammember_name: newTeamMember
           }
         };
@@ -284,184 +277,184 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
 
   // New table format for non-IIT Bombay users
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-semibold">Companies Prospects</h3>
-            <p className="text-sm text-muted-foreground">
-              {localCompanies.length} companies found
-            </p>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Companies Prospects</h3>
+              <p className="text-sm text-muted-foreground">
+                {localCompanies.length} companies found
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadPdf}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Download PDF
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-semibold w-[100px]">Company</TableHead>
-              <TableHead className="font-semibold w-[120px]">Contact</TableHead>
-              <TableHead className="font-semibold w-[100px]">Email</TableHead>
-              <TableHead className="font-semibold w-[80px]">Source</TableHead>
-              <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-              <TableHead className="font-semibold w-[80px]">Score</TableHead>
-              <TableHead className="font-semibold w-[100px]">Status</TableHead>
-              <TableHead className="font-semibold w-[120px]">Status Changed</TableHead>
-              <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
-              <TableHead className="font-semibold">Notes</TableHead>
-              <TableHead className="font-semibold w-[80px]">Edit Status</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {localCompanies.map((company) => {
-              const formattedScore = Math.round(company.overall_score);
-              const companyDetails = (company as any).company_details;
-              // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
-              const status = companyDetails?.status || 'New';
-              const isCompanyDeleting = deletingCompanies.has(company.id);
-              
-              // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
-              const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
-              const contactEmail = (company as any).email || companyDetails?.contact_email || '';
-              const phoneNumber = (company as any).phonenumber || '';
-              
-              // Display industry directly from public_form_submissions
-              const industry = company.industry || "—";
-              const assessmentPoints = getSummaryPoints(company.assessment_points);
-              const teamMemberName = companyDetails?.teammember_name || '';
-              
-              return (
-                <TableRow 
-                  key={company.id} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => onCompanyClick(company.id)}
-                >
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-foreground">{company.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {contactInfo && (
-                        <span className="text-sm">{contactInfo}</span>
-                      )}
-                      {phoneNumber && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          <span>{phoneNumber}</span>
-                        </div>
-                      )}
-                      {!contactInfo && !phoneNumber && (
-                        <span className="text-sm">—</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {contactEmail ? (
-                      <div className="flex items-center gap-1 text-sm">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span className="truncate">{contactEmail}</span>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-semibold w-[100px]">Company</TableHead>
+                <TableHead className="font-semibold w-[120px]">Contact</TableHead>
+                <TableHead className="font-semibold w-[100px]">Email</TableHead>
+                <TableHead className="font-semibold w-[80px]">Source</TableHead>
+                <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+                <TableHead className="font-semibold w-[80px]">Score</TableHead>
+                <TableHead className="font-semibold w-[100px]">Status</TableHead>
+                <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
+                <TableHead className="font-semibold">Notes</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {localCompanies.map((company) => {
+                const formattedScore = Math.round(company.overall_score);
+                const companyDetails = (company as any).company_details;
+                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
+                const status = companyDetails?.status || 'New';
+                const isCompanyDeleting = deletingCompanies.has(company.id);
+                
+                // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
+                const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
+                const contactEmail = (company as any).email || companyDetails?.contact_email || '';
+                const phoneNumber = (company as any).phonenumber || '';
+                
+                // Display industry directly from public_form_submissions
+                const industry = company.industry || "—";
+                const assessmentPoints = getSummaryPoints(company.assessment_points);
+                const teamMemberName = companyDetails?.teammember_name || '';
+                
+                return (
+                  <TableRow 
+                    key={company.id} 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => onCompanyClick(company.id)}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-foreground">{company.name}</span>
                       </div>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize text-xs">
-                      {company.source || 'Dashboard'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{industry}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <Badge className={getScoreBadgeColor(formattedScore)}>
-                        <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                          {formattedScore}
-                        </span>
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusBadgeColor(status)}>
-                      <span className="text-xs font-medium">{status}</span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">
-                      {formatStatusChanged(companyDetails?.status_date, company.created_at)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div 
-                      className="w-full"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <TeamMemberInput
-                        companyId={company.id}
-                        currentTeamMember={teamMemberName}
-                        onTeamMemberUpdate={(newTeamMember) => handleTeamMemberUpdate(company.id, newTeamMember)}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="max-w-none">
-                      {assessmentPoints.length > 0 ? (
-                        <div className="space-y-1">
-                          {assessmentPoints.map((point, index) => (
-                            <div key={index} className="flex items-start gap-1 text-xs">
-                              <span className="text-primary mt-1">•</span>
-                              <span className="text-muted-foreground line-clamp-2">{point}</span>
-                            </div>
-                          ))}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {contactInfo && (
+                          <span className="text-sm">{contactInfo}</span>
+                        )}
+                        {phoneNumber && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            <span>{phoneNumber}</span>
+                          </div>
+                        )}
+                        {!contactInfo && !phoneNumber && (
+                          <span className="text-sm">—</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {contactEmail ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate">{contactEmail}</span>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">No assessment points</span>
+                        "—"
                       )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div 
-                      className="flex items-center gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <StatusDropdown
-                        companyId={company.id}
-                        currentStatus={status}
-                        onStatusUpdate={(newStatus) => handleStatusUpdate(company.id, newStatus)}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => handleDeleteClick(e, company.id)}
-                      disabled={isCompanyDeleting || isDeleting}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {company.source || 'Dashboard'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <Badge className={getScoreBadgeColor(formattedScore)}>
+                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                            {formattedScore}
+                          </span>
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(status)}>
+                        <span className="text-xs font-medium">{status}</span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{teamMemberName || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-none">
+                        {assessmentPoints.length > 0 ? (
+                          <div className="space-y-1">
+                            {assessmentPoints.map((point, index) => (
+                              <div key={index} className="flex items-start gap-1 text-xs">
+                                <span className="text-primary mt-1">•</span>
+                                <span className="text-muted-foreground line-clamp-2">{point}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">No assessment points</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div 
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleEditClick(e, company)}
+                          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDeleteClick(e, company.id)}
+                          disabled={isCompanyDeleting || isDeleting}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <EditCompanyDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        companyId={selectedCompanyForEdit?.id || ""}
+        currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
+        currentStatus={selectedCompanyForEdit?.status || "New"}
+        onUpdate={(teamMember, status) => {
+          if (selectedCompanyForEdit) {
+            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+          }
+        }}
+      />
+    </>
   );
 }
