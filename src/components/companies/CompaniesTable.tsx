@@ -310,7 +310,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
-                <TableHead className="font-semibold">Information</TableHead>
+                <TableHead className="font-semibold">Notes</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
