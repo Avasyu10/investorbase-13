@@ -129,6 +129,7 @@ export type Database = {
         Row: {
           assessment_points: string[] | null
           created_at: string
+          deck_url: string | null
           email: string | null
           id: string
           industry: string | null
@@ -150,6 +151,7 @@ export type Database = {
         Insert: {
           assessment_points?: string[] | null
           created_at?: string
+          deck_url?: string | null
           email?: string | null
           id?: string
           industry?: string | null
@@ -171,6 +173,7 @@ export type Database = {
         Update: {
           assessment_points?: string[] | null
           created_at?: string
+          deck_url?: string | null
           email?: string | null
           id?: string
           industry?: string | null
@@ -1290,6 +1293,7 @@ export type Database = {
         Returns: {
           assessment_points: string[] | null
           created_at: string
+          deck_url: string | null
           email: string | null
           id: string
           industry: string | null

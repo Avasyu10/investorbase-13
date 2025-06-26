@@ -191,12 +191,6 @@ export function CompanyScrapingDialog({
     return (
       <div className="space-y-6">
         <div className="text-center pb-4 border-b">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <CheckCircle className="h-6 w-6 text-green-500" />
-            <Badge variant="secondary" className="text-sm bg-green-100 text-green-800">
-              Information Retrieved
-            </Badge>
-          </div>
           <Building2 className="h-12 w-12 mx-auto mb-3 text-primary" />
           <h3 className="text-2xl font-bold">{scrapedData.name || companyName}</h3>
           {scrapedData.industry && (
