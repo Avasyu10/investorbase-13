@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -80,16 +81,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       default:
         return "bg-gray-100 text-gray-800";
     }
-  };
-
-  const getSummaryPoints = (assessmentPoints?: string[]): string[] => {
-    if (!assessmentPoints || assessmentPoints.length === 0) {
-      return [
-        "Assessment analysis is being generated for this company.",
-        "Initial evaluation shows potential for growth opportunities."
-      ];
-    }
-    return assessmentPoints.slice(0, 2);
   };
 
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
@@ -300,7 +291,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
-                <TableHead className="font-semibold">Notes</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -319,7 +309,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 
                 // Display industry directly from public_form_submissions
                 const industry = company.industry || "—";
-                const assessmentPoints = getSummaryPoints(company.assessment_points);
                 const teamMemberName = companyDetails?.teammember_name || '';
                 
                 return (
@@ -384,22 +373,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">{teamMemberName || "—"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-none">
-                        {assessmentPoints.length > 0 ? (
-                          <div className="space-y-1">
-                            {assessmentPoints.map((point, index) => (
-                              <div key={index} className="flex items-start gap-1 text-xs">
-                                <span className="text-primary mt-1">•</span>
-                                <span className="text-muted-foreground line-clamp-2">{point}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">No assessment points</span>
-                        )}
-                      </div>
                     </TableCell>
                     <TableCell>
                       <div 
