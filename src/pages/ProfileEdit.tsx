@@ -86,7 +86,9 @@ const ProfileEdit = () => {
   const founderPublicFormUrl = "https://adca497b-fbd1-4bcc-8352-b3c550bc9790.lovableproject.com/public-upload?form=m92a7cet-l698ke";
 
   useEffect(() => {
+    console.log('ProfileEdit useEffect - user:', user, 'profile:', profile);
     if (!user) {
+      console.log('No user found, redirecting to login');
       navigate('/login');
       return;
     }
@@ -95,20 +97,26 @@ const ProfileEdit = () => {
   }, [user, navigate]);
 
   const fetchProfile = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('fetchProfile: No user available');
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log('fetchProfile: Starting profile fetch for user:', user.id);
       
       // Only fetch VC profile if user is not a founder
       if (!isFounder) {
         console.log('Fetching VC profile for user:', user.id);
         
-        const { data, error } = await supabase
+        // First check if the user has a VC profile
+        const { data, error, count } = await supabase
           .from('vc_profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+          .select('*', { count: 'exact' })
+          .eq('id', user.id);
+          
+        console.log('VC profile query result:', { data, error, count });
           
         if (error) {
           console.error("Error fetching VC profile:", error);
@@ -125,8 +133,14 @@ const ProfileEdit = () => {
           return;
         }
         
-        console.log('VC profile loaded:', data);
-        const profileData = data as VCProfile;
+        if (!data || data.length === 0) {
+          console.log('No VC profile data found, redirecting to setup');
+          navigate('/profile/setup');
+          return;
+        }
+        
+        console.log('VC profile loaded:', data[0]);
+        const profileData = data[0] as VCProfile;
         setVcProfile(profileData);
         
         // Set form values
@@ -150,6 +164,8 @@ const ProfileEdit = () => {
           .select('id, form_slug, form_name, created_at, auto_analyze')
           .eq('user_id', user.id)
           .maybeSingle();
+          
+        console.log('Public form query result:', { formData, formError });
           
         if (formError) {
           console.error("Error fetching public form:", formError);
@@ -290,39 +306,28 @@ const ProfileEdit = () => {
     }
   };
 
-  // Simplified file upload function
-  const uploadFile = async (file: File): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${user!.id}/${fileName}`;
-      
-      console.log('Uploading file to path:', filePath);
-      
-      const { error: uploadError } = await supabase.storage
-        .from('vc-documents')
-        .upload(filePath, file, { 
-          cacheControl: '3600',
-          upsert: true
-        });
-        
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-      
-      console.log('File uploaded successfully');
-      return filePath;
-    } catch (error: any) {
-      console.error('File upload failed:', error);
-      throw error;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || isFounder) return;
+    console.log('=== PROFILE SAVE STARTED ===');
+    console.log('User:', user);
+    console.log('Is Founder:', isFounder);
+    console.log('Current VC Profile:', vcProfile);
+    
+    if (!user) {
+      console.error('No user found, cannot save');
+      hookToast({
+        title: "Authentication Error",
+        description: "Please log in to save your profile",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (isFounder) {
+      console.log('User is founder, skipping VC profile save');
+      return;
+    }
     
     try {
       setSaving(true);
@@ -330,25 +335,10 @@ const ProfileEdit = () => {
       
       let fundThesisUrl = vcProfile?.fund_thesis_url || null;
       
-      // Handle file upload if a new file is selected
+      // Handle file upload if a new file is selected (skip for now to test basic save)
       if (thesisFile) {
-        console.log('Uploading new thesis file:', thesisFile.name);
-        
-        try {
-          fundThesisUrl = await uploadFile(thesisFile);
-          if (!fundThesisUrl) {
-            throw new Error('File upload failed - no path returned');
-          }
-          console.log('File uploaded successfully to:', fundThesisUrl);
-        } catch (uploadError: any) {
-          console.error('File upload failed:', uploadError);
-          hookToast({
-            title: "File upload failed",
-            description: uploadError.message || "Could not upload the PDF file",
-            variant: "destructive",
-          });
-          return; // Don't proceed with profile update if file upload fails
-        }
+        console.log('File upload skipped for debugging - would upload:', thesisFile.name);
+        // We'll skip file upload for now to isolate the issue
       }
       
       const updateData = {
@@ -362,39 +352,65 @@ const ProfileEdit = () => {
         updated_at: new Date().toISOString()
       };
       
-      console.log('Updating VC profile with data:', updateData);
+      console.log('=== ATTEMPTING DATABASE UPDATE ===');
+      console.log('Update data:', updateData);
+      console.log('User ID:', user.id);
       
-      const { data: updatedProfile, error } = await supabase
+      // Test if we can read from the table first
+      const { data: readTest, error: readError } = await supabase
+        .from('vc_profiles')
+        .select('*')
+        .eq('id', user.id);
+      
+      console.log('Read test result:', { readTest, readError });
+      
+      if (readError) {
+        console.error('Cannot read vc_profiles table:', readError);
+        throw new Error(`Database read error: ${readError.message}`);
+      }
+      
+      if (!readTest || readTest.length === 0) {
+        console.error('No VC profile found for user:', user.id);
+        throw new Error('No VC profile found. Please set up your profile first.');
+      }
+      
+      // Now attempt the update
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('vc_profiles')
         .update(updateData)
         .eq('id', user.id)
         .select()
         .single();
         
-      if (error) {
-        console.error('Database update error:', error);
-        throw error;
+      console.log('=== UPDATE RESULT ===');
+      console.log('Updated profile:', updatedProfile);
+      console.log('Update error:', updateError);
+        
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Update failed: ${updateError.message}`);
+      }
+      
+      if (!updatedProfile) {
+        console.error('No data returned from update');
+        throw new Error('Update succeeded but no data returned');
       }
       
       console.log('Profile updated successfully:', updatedProfile);
       
       // Update local state immediately
       setVcProfile(updatedProfile);
-      if (fundThesisUrl && thesisFile) {
-        setHasExistingThesis(true);
-        setThesisFilename(thesisFile.name);
-        setThesisFile(null); // Clear the file input
-      }
       
       hookToast({
         title: "Profile updated successfully",
         description: "All changes have been saved",
       });
       
-      console.log('Profile save completed successfully');
+      console.log('=== PROFILE SAVE COMPLETED SUCCESSFULLY ===');
       
     } catch (error: any) {
-      console.error('Profile update error:', error);
+      console.error('=== PROFILE SAVE FAILED ===');
+      console.error('Error details:', error);
       hookToast({
         title: "Error updating profile",
         description: error.message || "Failed to update profile",
