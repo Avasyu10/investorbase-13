@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -130,7 +129,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
             const notificationMessage: Message = {
               id: `notification-${Date.now()}`,
               user: systemUser,
-              content: `🔔 Team POC updated: "${newRecord.teammember_name || 'Not assigned'}" for a company`,
+              content: `🔔 Team POC updated: "${newRecord.teammember_name || 'Not assigned'}" assigned to a company`,
               timestamp: new Date(),
               isSystemNotification: true
             };
