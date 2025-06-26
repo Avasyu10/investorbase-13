@@ -254,19 +254,7 @@ serve(async (req) => {
 
     // Build analysis prompt with submission data - Enhanced for IIT Bombay users
     const analysisPrompt = `
-    You are an expert startup evaluator with STRICT AND RIGOROUS SCORING STANDARDS for IIT Bombay's startup evaluation program. Your scoring must be EVIDENCE-BASED and reflect the actual quality and depth of responses provided.
-
-    CRITICAL JSON FORMATTING REQUIREMENTS:
-    - You MUST return ONLY valid JSON with no markdown formatting, code blocks, or additional text
-    - Use simple quotes and avoid complex escape sequences
-    - When mentioning dollar amounts, use "USD" instead of the dollar symbol
-    - When mentioning percentages, write them as "8-10 percent" instead of using % symbol
-    - Avoid using ampersand (&) symbols - write "and" instead
-    - No backticks, no explanatory text - just pure JSON
-
-    IMPORTANT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes (in billions USD), growth rates (as percentages written as "percent"), funding rounds, competitor valuations, and industry benchmarks whenever possible. All strengths and weaknesses must include specific market data and numbers.
-
-    EMPTY FORM DETECTION: This submission has ${emptyAnswerCount} out of 5 questions with empty or minimal answers (less than 10 characters). ${hasMinimalAnswers ? 'This indicates a low-effort submission that should receive very low scores.' : 'This has some substantial content that can be evaluated.'}
+    You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
 
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
@@ -274,163 +262,176 @@ serve(async (req) => {
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and STRICT EVALUATION METRICS:
+    Application Responses and Specific Metrics for Evaluation:
 
-    1. PROBLEM AND SOLUTION: "${submission.question_1 || 'Not provided'}"
+    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
-    Rate this section from 0-100 based on these STRICT criteria:
-    - Clear problem identification (25 points): Must identify SPECIFIC, VALIDATED problems with evidence
-    - Solution viability (25 points): Solution must logically and effectively address the identified problem
-    - Market validation (25 points): Must show evidence of market research, customer interviews, or validation
-    - Innovation level (25 points): Must demonstrate clear differentiation and novel approach
+    Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
+    - Problem Clarity (30 pts): Is it real, urgent, and well-articulated with specific details?
+    - Current Alternatives (30 pts): Are existing coping methods explained clearly with depth?
+    - Solution Fit (30 pts): Is the solution directly tackling the core pain point with thoughtful reasoning?
     
-    SCORING RULES: Empty/minimal responses (under 10 chars) = 0-15 points. Generic responses without specifics = 15-35 points. Detailed responses with examples = 35-70 points. Exceptional responses with validation = 70-100 points.
+    Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
+    Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
-    Rate this section from 0-100 based on these STRICT criteria:
-    - Customer segmentation specificity (30 points): Must define SPECIFIC customer segments with demographics/characteristics
-    - Market size quantification (25 points): Must provide actual market size data and addressable market estimates
-    - Customer pain validation (25 points): Must show evidence of understanding actual customer pain points through research
-    - Go-to-market strategy (20 points): Must outline realistic, specific customer acquisition strategies
+    Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
+    - Customer Definition (35 pts): Are the segments specific and realistic with detailed descriptions?
+    - Use Case Relevance (35 pts): Does the product clearly serve these users with specific examples?
+    - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight with evidence?
     
-    SCORING RULES: Empty/minimal responses = 0-15 points. Vague customer descriptions = 15-35 points. Specific segments with some data = 35-70 points. Detailed segments with market research = 70-100 points.
+    Score harshly if: Describes "everyone" or is overly broad, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
+    Score highly if: Defined personas, nuanced insights, matched offering + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
-    Rate this section from 0-100 based on these STRICT criteria:
-    - Competitive landscape awareness (35 points): Must identify SPECIFIC competitors with detailed analysis
-    - Differentiation strategy (30 points): Must clearly articulate unique value proposition vs competitors
-    - Competitive analysis depth (20 points): Must analyze competitor strengths, weaknesses, and market positioning
-    - Market positioning clarity (15 points): Must explain how they position differently in the market
+    Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
+    - Competitor Awareness (35 pts): Are both direct and indirect players mentioned with specific names and details?
+    - Comparison Clarity (35 pts): Is differentiation from competitors clear with specific comparisons?
+    - Strategic Positioning (30 pts): Do they show where they fit in the landscape with thoughtful analysis?
     
-    SCORING RULES: Empty/minimal responses = 0-15 points. Generic competitor mentions = 15-35 points. Specific competitors with basic analysis = 35-70 points. Detailed competitive analysis with positioning = 70-100 points.
+    Score harshly if: Misses obvious competitors or gives vague comparisons, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
+    Score highly if: Deep landscape awareness and sharp positioning + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
    
-    Rate this section from 0-100 based on these STRICT criteria:
-    - Revenue stream clarity (30 points): Must clearly explain HOW they generate revenue with specific mechanisms
-    - Pricing strategy justification (25 points): Must provide pricing with market-based justification
-    - Financial projections realism (25 points): Must include realistic financial expectations with assumptions
-    - Scalability demonstration (20 points): Must explain how the revenue model scales with growth
+    Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
+    - Monetization Clarity (30 pts): Is revenue generation clearly explained with specific mechanisms?
+    - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified with details?
+    - Scalability & Growth (35 pts): Is there a future roadmap for expansion with concrete plans?
     
-    SCORING RULES: Empty/minimal responses = 0-15 points. Basic revenue mentions without details = 15-35 points. Clear revenue model with some projections = 35-70 points. Detailed model with market-based pricing = 70-100 points.
+    Score harshly if: No revenue clarity or hand-wavy growth claims, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
+    Score highly if: Structured, feasible model + strong growth potential + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
-    Rate this section from 0-100 based on these STRICT criteria:
-    - Unique value proposition clarity (35 points): Must articulate CLEAR, SPECIFIC unique advantages
-    - Sustainable competitive advantages (25 points): Must identify defensible competitive moats
-    - Innovation factor demonstration (25 points): Must show genuine innovation in technology, approach, or business model
-    - Market opportunity alignment (15 points): Must connect differentiation to specific market opportunities
+    Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
+    - USP Clarity (30 pts): Clear, strong differentiator from others with specific advantages?
+    - Customer Pull Strategy (35 pts): Effective tactics to attract and retain users with detailed plans?
+    - IP or Moat (35 pts): Any defensibility—tech, brand, data, or network effects with specifics?
     
-    SCORING RULES: Empty/minimal responses = 0-15 points. Generic differentiation claims = 15-35 points. Specific advantages with some evidence = 35-70 points. Strong differentiation with clear moats = 70-100 points.
+    Score harshly if: No meaningful edge, or vague marketing, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
+    Score highly if: Compelling USP + solid GTM + proprietary advantage + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
-    STRICT SCORING REQUIREMENTS FOR IIT BOMBAY:
+    CRITICAL SCORING GUIDELINES - BE EXTREMELY HARSH ON POOR ANSWERS:
 
-    1. EVIDENCE-BASED SCORING: Scores must reflect actual content quality, depth, and evidence provided
-    2. EMPTY RESPONSES PENALTY: Empty or minimal responses (under 10 characters) should score 0-15 points maximum
-    3. NO GRADE INFLATION: Do not give high scores for generic or unsupported claims
-    4. OVERALL SCORE = (PROBLEM_SOLUTION × 0.25) + (TARGET_CUSTOMERS × 0.25) + (COMPETITORS × 0.20) + (REVENUE_MODEL × 0.15) + (DIFFERENTIATION × 0.15)
+    ANSWER LENGTH AND QUALITY REQUIREMENTS (THESE ARE HARD LIMITS):
+    - ONE-WORD ANSWERS OR UNDER 5 WORDS: Score 5-15 MAXIMUM (regardless of market potential)
+    - UNDER 10 WORDS: Score 5-20 MAXIMUM (regardless of market potential)
+    - UNDER 20 WORDS: Score 10-30 MAXIMUM (regardless of market potential)
+    - UNDER 50 WORDS: Score 15-45 MAXIMUM (rarely above 40)
+    - 50-100 WORDS: Can score up to 60-70 if high quality
+    - 100+ WORDS with specifics: Can score 70-85
+    - 150+ WORDS with comprehensive analysis: Can score 80-95
+    - 200+ WORDS with exceptional depth: Can score 90-100
 
-    RECOMMENDATION LOGIC:
-    - Accept: Overall score ≥ 75 (exceptional applications with strong evidence and detailed responses)
-    - Consider: Overall score 50-74 (solid applications with good potential but some gaps)
-    - Reject: Overall score < 50 (applications with significant gaps or minimal effort)
+    ANSWER QUALITY IS THE PRIMARY FACTOR - Market data should only be used as context, NOT to inflate scores for poor answers.
 
-    MANDATORY MARKET DATA REQUIREMENTS FOR ALL ANALYSES:
-    - Include actual market size figures in billions or millions USD for the industry
-    - Reference real growth rates and industry trends using percentages written as "percent"
-    - Mention specific competitor companies and their valuations/funding when possible
-    - Include funding data for similar companies in the space (Series A, B, etc. amounts)
-    - Use actual industry statistics and benchmarks from credible sources
-    - Reference real market research data and analyst reports
+    90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding, DETAILED RESPONSES (150+ words with specific examples, data, and thorough explanations)
+    80-89: Strong responses with good evidence and understanding, minor gaps, GOOD DETAIL (100-150 words with some specifics)
+    70-79: Adequate responses with some evidence, moderate understanding, MODERATE DETAIL (50-100 words)
+    60-69: Weak responses with limited evidence, significant gaps, BRIEF RESPONSES (20-50 words)
+    40-59: Poor responses with minimal substance, major deficiencies, VERY SHORT (10-20 words)
+    20-39: Very poor responses, largely inadequate or missing key elements, EXTREMELY SHORT (5-10 words)
+    1-19: Extremely poor or non-responses, ONE-WORD ANSWERS OR MEANINGLESS TEXT (under 5 words)
 
-    CRITICAL: You MUST provide a "scoring_reason" that is SHORT AND COMPACT (maximum 2-3 sentences) explaining the overall score based on content quality and evidence level.
+    MARKET INTEGRATION REQUIREMENT:
+    For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context. However, POOR ANSWER QUALITY CANNOT BE COMPENSATED BY GOOD MARKET DATA.
 
-    CRITICAL: ALL strengths and weaknesses MUST include specific market data, competitor information, industry benchmarks, and quantified metrics. No generic statements allowed.
+    For ASSESSMENT POINTS (8-10 points required):
+    Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation. Each assessment point should provide substantial market intelligence that connects startup positioning with industry realities, competitive dynamics, and growth opportunities.
 
-    CRITICAL ASSESSMENT POINTS REQUIREMENTS:
-    - Each assessment point MUST be a complete, detailed sentence with specific market data and numbers
-    - Include market size in billions USD, growth rates as percentages, competitor valuations, funding amounts
-    - Reference specific companies, their funding rounds, market share data
-    - Include customer acquisition costs, lifetime values, market penetration rates
-    - Mention industry benchmarks, pricing data, and market positioning metrics
-    - NO single words or generic phrases - each point must be comprehensive and data-driven
+    CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
+    WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
+    - Market saturation concerns (X% of market already captured by incumbents)
+    - High customer acquisition costs in this sector ($X CAC vs industry average)
+    - Regulatory challenges affecting X% of similar companies
+    - Economic headwinds impacting sector growth (X% decline in funding)
+    - Technology adoption barriers affecting X% of target market
+    - Competitive pressure from well-funded players with $X backing
+    - Market timing risks based on industry cycles
 
-    WEAKNESSES REQUIREMENTS:
-    - Weaknesses MUST be based on market realities and competitive landscape analysis
-    - Focus on market challenges, competitive threats, industry dynamics, economic factors
-    - Include specific market data, competitor advantages, industry trends that pose challenges
-    - Reference actual market conditions, regulatory challenges, economic factors
-    - DO NOT mention what the form is missing or lacks - focus on market-based challenges
-    - Each weakness must include quantified market data and industry benchmarks
+    For STRENGTHS (exactly 4-5 each per section):
+    - STRENGTHS: Highlight what they did well, supported by market validation and data
 
-    Return ONLY this JSON structure with no additional text, markdown, or formatting:
-    {
-      "overall_score": 35,
-      "scoring_reason": "Short, compact 2-3 sentence explanation of score based on actual content quality and evidence provided.",
-      "recommendation": "Consider",
+    CRITICAL ADDITION - SCORING REASON REQUIREMENT:
+    Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating. This should be concise but specific about what drove the score up or down.
+    
+      "overall_score": number (1-100),
+      "scoring_reason": "Brief 1-2 sentence explanation of the key factors that determined this overall score",
+      "recommendation": "Accept" | "Consider" | "Reject",
       "company_info": {
         "industry": "string (infer from application)",
         "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description WITH MARKET CONTEXT and industry statistics)"
+        "introduction": "string (2-3 sentence description)"
       },
       "sections": {
         "problem_solution_fit": {
-          "score": 35,
-          "analysis": "Evidence-based analysis highlighting specific content quality WITH MARKET SIZE DATA and industry growth statistics",
-          "strengths": ["2-3 specific strengths with REAL MARKET NUMBERS, competitor valuations, and industry benchmarks"],
-          "improvements": ["3-4 market-based challenges with SPECIFIC MARKET DATA including competitor advantages, market dynamics, industry trends that create challenges, economic factors, and regulatory hurdles - each with quantified metrics and industry benchmarks"]
+          "score": number (1-100),
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "target_customers": {
-          "score": 35,
-          "analysis": "Evidence-based analysis of customer understanding WITH MARKET SIZING DATA and customer acquisition costs",
-          "strengths": ["2-3 specific strengths with CUSTOMER SEGMENT SIZES, market penetration rates, and acquisition benchmarks"],
-          "improvements": ["3-4 market-based customer challenges with SPECIFIC DATA including market saturation rates, customer acquisition costs in the industry, competitive customer retention metrics, and market dynamics affecting customer segments"]
+          "score": number (1-100),
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "competitors": {
-          "score": 35,
-          "analysis": "Evidence-based analysis of competitive understanding WITH COMPETITOR VALUATIONS and market share data",
-          "strengths": ["2-3 specific strengths with COMPETITIVE MARKET SHARE DATA, competitor funding amounts, and positioning analysis"],
-          "improvements": ["3-4 competitive market challenges with SPECIFIC DATA including dominant competitor market shares, competitor funding advantages, market positioning challenges, and competitive dynamics that create barriers"]
+          "score": number (1-100),
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "revenue_model": {
-          "score": 35,
-          "analysis": "Evidence-based analysis of revenue strategy WITH INDUSTRY PRICING DATA and revenue benchmarks",
-          "strengths": ["2-3 specific strengths with REVENUE BENCHMARKS, pricing comparisons, and industry monetization data"],
-          "improvements": ["3-4 revenue model challenges based on MARKET DATA including industry pricing pressures, market monetization challenges, competitive pricing advantages, and economic factors affecting revenue generation"]
+          "score": number (1-100),
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "differentiation": {
-          "score": 35,
-          "analysis": "Evidence-based analysis of differentiation WITH MARKET POSITIONING DATA and innovation metrics",
-          "strengths": ["2-3 specific strengths with INNOVATION METRICS, patent data, and differentiation benchmarks"],
-          "improvements": ["3-4 differentiation challenges with MARKET DATA including competitive innovation rates, market commoditization trends, technology adoption barriers, and industry factors that limit differentiation advantages"]
+          "score": number (1-100),
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
       },
       "summary": {
-        "overall_feedback": "Comprehensive evidence-based feedback WITH MARKET CONTEXT and industry benchmarks",
-        "key_factors": ["Key success factors with INDUSTRY DATA and market statistics"],
-        "next_steps": ["Specific recommendations with MARKET-BASED TARGETS and industry benchmarks"],
+        "overall_feedback": "comprehensive feedback integrating response quality with market context",
+        "key_factors": ["key decision factors with market validation"],
+        "next_steps": ["specific recommendations with market-informed guidance"],
         "assessment_points": [
-          "The global SaaS market is valued at approximately 273 billion USD as of 2025 with an annual growth rate of 13.7 percent, indicating strong market potential for software solutions targeting enterprise customers",
-          "Customer acquisition costs in the SaaS industry average between 200-500 USD per customer depending on the segment, with enterprise customers requiring 1000-3000 USD investment for successful acquisition",
-          "Leading competitors like Salesforce (market cap 285 billion USD) and Microsoft (market cap 3.2 trillion USD) dominate with 19.8 percent and 14.2 percent market share respectively in the CRM space",
-          "Series A funding rounds in SaaS companies average 15-25 million USD with typical valuations of 50-100 million USD for companies showing 2-5 million USD annual recurring revenue",
-          "Customer lifetime value in B2B SaaS averages 3-5 times the customer acquisition cost, with successful companies achieving LTV/CAC ratios above 3:1 within 12-18 months",
-          "Market penetration in enterprise software segments typically ranges from 15-25 percent for established players, with new entrants achieving 1-3 percent market share within first 3 years",
-          "Industry pricing benchmarks show per-user monthly costs ranging from 10-100 USD for basic solutions to 200-500 USD for enterprise-grade platforms with advanced features",
-          "Competitive analysis reveals funding disparities where established players raised 100+ million USD in growth capital while emerging startups secure 5-15 million USD in early-stage funding",
-          "Market research indicates 65-75 percent of enterprises evaluate 3-5 competing solutions before purchase decisions, with evaluation cycles lasting 6-12 months for enterprise deals",
-          "Revenue growth rates for successful SaaS companies typically achieve 100+ percent year-over-year growth in early stages, declining to 30-50 percent growth as they scale beyond 10 million USD ARR"
+          "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
+          "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
+          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
+          "Weave in insights from the startup's responses to show market positioning and strategic implications",
+          "Focus on quantifiable market opportunities, risks, and benchmarks with actionable intelligence",
+          "Connect startup's approach to broader industry trends, competitive dynamics, and market timing factors",
+          "Provide detailed analysis of how their solution fits within current market conditions and future projections",
+          "Examples: 'Operating in the $47B EdTech market growing at 16.3% CAGR, this startup faces typical customer acquisition challenges where the average CAC of $89 affects 73% of similar companies. However, their university partnership approach could potentially reduce acquisition costs by 40% based on sector data, while competing against established players like Coursera ($2.9B market cap) and emerging AI-powered platforms that have collectively raised $1.2B in the last 18 months. The regulatory environment shows favorable trends with 67% of educational institutions increasing digital adoption budgets by an average of 23% annually.'",
+          "Prioritize hard numbers, market intelligence, competitive analysis, and strategic positioning over qualitative assessments",
+          "Each assessment point should provide substantial business intelligence that investors can act upon"
         ]
       }
     }
 
-    CRITICAL: Every analysis section MUST be evidence-based, reflecting the actual quality and depth of responses provided. Empty or minimal responses must be scored accordingly (0-15 points). All "improvements" sections must focus on market-based challenges with quantified data and industry benchmarks - NOT on what the form is missing.
-
-    IMPORTANT: Scoring must be STRICT and EVIDENCE-BASED. Do not inflate scores. Base all evaluations on actual content provided and its quality, depth, and evidence level. ALL market data, competitor information, and industry statistics must be SPECIFIC and QUANTIFIED. Assessment points must be comprehensive sentences with detailed market data and numbers.
-
+    CRITICAL REQUIREMENTS:
+    1. ANSWER QUALITY IS THE PRIMARY SCORING FACTOR - poor answers cannot be saved by market potential
+    2. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent detailed responses (80-100), poor short responses (5-30)
+    3. Use the exact metrics provided for each question in your evaluation
+    4. HEAVILY PENALIZE SHORT, SUPERFICIAL ANSWERS - follow the strict word count limits above
+    5. REWARD DETAILED, THOUGHTFUL RESPONSES - comprehensive answers with specifics should score 80-100
+    6. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
+    7. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
+    8. Provide exactly 4-5 strengths and 4-5 weaknesses per section
+    9. All scores must be 1-100 scale
+    10. Return only valid JSON without markdown formatting
+    11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
+    12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
+    13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
+    `;
     ${linkedInDataSection}
     `;
 
