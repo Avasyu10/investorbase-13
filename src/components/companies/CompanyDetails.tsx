@@ -346,13 +346,16 @@ const CompanyDetails = () => {
                     </Button>
                   )}
                   {id && <FormResponsesDialog companyId={id} />}
-                  <Button
-                    onClick={handleChatbotClick}
-                    variant={showChat ? "secondary" : "default"}
-                    className="flex items-center gap-2"
-                  >
-                    <BotMessageSquare className="h-4 w-4" />
-                  </Button>
+                  {/* Only show chatbot button for non-IIT Bombay users */}
+                  {!isIITBombayUser && (
+                    <Button
+                      onClick={handleChatbotClick}
+                      variant={showChat ? "secondary" : "default"}
+                      className="flex items-center gap-2"
+                    >
+                      <BotMessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
               
@@ -412,8 +415,8 @@ const CompanyDetails = () => {
           </div>
         </div>
         
-        {/* Chat sidebar remains the same */}
-        {showChat && (
+        {/* Chat sidebar - only show for non-IIT Bombay users */}
+        {showChat && !isIITBombayUser && (
           <div className="w-1/2 border-l border-border bg-background shadow-card fixed right-0 top-0 h-screen flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center flex-shrink-0">
               <div>
