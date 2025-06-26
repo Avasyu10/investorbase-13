@@ -1,4 +1,3 @@
-
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
@@ -13,20 +12,32 @@ import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarCh
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
-
 const Dashboard = () => {
-  const { user, isLoading } = useAuth();
-  const { profile, isIITBombay, isVC, isLoading: profileLoading } = useProfile();
+  const {
+    user,
+    isLoading
+  } = useAuth();
+  const {
+    profile,
+    isIITBombay,
+    isVC,
+    isLoading: profileLoading
+  } = useProfile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("User not authenticated, redirecting to home");
-      navigate('/', { state: { from: '/dashboard' } });
+      navigate('/', {
+        state: {
+          from: '/dashboard'
+        }
+      });
     } else if (user) {
       console.log("Dashboard loaded for user:", user.id);
       console.log("Profile data:", profile);
@@ -38,7 +49,6 @@ const Dashboard = () => {
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
   }, [user, isLoading, navigate, profile, isIITBombay, isVC]);
-
   const checkAdminStatus = async () => {
     if (!user) return;
     try {
@@ -49,11 +59,10 @@ const Dashboard = () => {
         return;
       }
       console.log("Checking admin status for user:", user.id);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle to avoid errors if no profile exists
+      const {
+        data,
+        error
+      } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle(); // Use maybeSingle to avoid errors if no profile exists
 
       if (error) {
         console.error('Error checking admin status:', error);
@@ -65,19 +74,14 @@ const Dashboard = () => {
       console.error('Error in admin check:', err);
     }
   };
-
   if (isLoading || profileLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
+    return <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
   if (!user) return null; // Will redirect in useEffect
 
-  return (
-    <div className="animate-fade-in">
+  return <div className="animate-fade-in">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -87,37 +91,27 @@ const Dashboard = () => {
             </h1>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-            {isAdmin && (
-              <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
+            {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Panel
-              </Button>
-            )}
-            {isIITBombay && (
-              <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
+              </Button>}
+            {isIITBombay && <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
                 <Settings className="mr-2 h-4 w-4" />
                 Public Forms
-              </Button>
-            )}
-            {isIITBombay && (
-              <EurekaSampleButton />
-            )}
-            {isVC && (
-              <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
+              </Button>}
+            {isIITBombay && <EurekaSampleButton />}
+            {isVC && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Upload Deck
-              </Button>
-            )}
+              </Button>}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
               <Newspaper className="mr-2 h-4 w-4" />
               News Feed
             </Button>
-            {!isIITBombay && !isVC && (
-              <Button onClick={() => navigate("/upload")}>
+            {!isIITBombay && !isVC && <Button onClick={() => navigate("/upload")}>
                 <FileUp className="mr-2 h-4 w-4" />
                 Upload New Deck
-              </Button>
-            )}
+              </Button>}
           </div>
         </div>
 
@@ -129,22 +123,15 @@ const Dashboard = () => {
                   {isIITBombay ? "Eureka Prospects" : "Prospects"}
                 </TabsTrigger>
                 <TabsTrigger value="submissions">New Applications</TabsTrigger>
-                {!isIITBombay && (
-                  <TabsTrigger value="reports">
+                {!isIITBombay && <TabsTrigger value="reports">
                     Pitch Decks
-                  </TabsTrigger>
-                )}
+                  </TabsTrigger>}
               </TabsList>
               
-              {isVC && (
-                <Button
-                  onClick={() => setChatOpen(true)}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 h-10 text-base font-medium"
-                >
+              {isVC && <Button onClick={() => setChatOpen(true)} className="flex items-center gap-2 px-6 py-2 h-10 text-base font-medium bg-amber-500 hover:bg-amber-400 text-slate-950">
                   <MessageSquare className="h-5 w-5" />
                   Chat with Team
-                </Button>
-              )}
+                </Button>}
             </div>
             
             <div className="mt-6">
@@ -154,25 +141,16 @@ const Dashboard = () => {
               <TabsContent value="submissions">
                 <PublicSubmissionsList />
               </TabsContent>
-              {!isIITBombay && (
-                <TabsContent value="reports">
+              {!isIITBombay && <TabsContent value="reports">
                   <ReportsList />
-                </TabsContent>
-              )}
+                </TabsContent>}
             </div>
           </Tabs>
         </div>
       </div>
 
       {/* VC Chat Interface */}
-      {isVC && (
-        <VCChatInterface
-          open={chatOpen}
-          onOpenChange={setChatOpen}
-        />
-      )}
-    </div>
-  );
+      {isVC && <VCChatInterface open={chatOpen} onOpenChange={setChatOpen} />}
+    </div>;
 };
-
 export default Dashboard;
