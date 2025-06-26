@@ -337,7 +337,7 @@ CRITICAL REQUIREMENTS:
 
 2. MANDATORY SECTION STRUCTURE: You MUST provide analysis for ALL 10 sections listed above. Each section MUST have exactly the structure shown with all required fields.
 
-3. STRENGTHS & WEAKNESSES ARE NEVER OPTIONAL: Every single section MUST have exactly 3-4 strengths and exactly 3-4 weaknesses. There are NO EXCEPTIONS to this rule. Even if a section seems weak or strong, you must find both strengths and weaknesses.
+3. STRENGTHS & WEAKNESSES ARE NEVER OPTIONAL: Every single section MUST have exactly 3-4 strengths and exactly 3-4 weaknesses which are detailed. There are NO EXCEPTIONS to this rule. Even if a section seems weak or strong, you must find both strengths and weaknesses.
 
 4. ASSESSMENT POINTS: Must contain exactly 7-8 comprehensive detailed bullet points that include:
    - Specific market size data, growth rates, and TAM/SAM numbers from the deck
