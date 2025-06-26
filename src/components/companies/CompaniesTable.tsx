@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
-import { Star, Trash2, Phone, Mail, Globe, Download, Edit } from "lucide-react";
+import { Star, Trash2, Phone, Mail, Globe, Download, Edit, FileText, ExternalLink } from "lucide-react";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -165,6 +166,52 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     });
   };
 
+  const handleViewDeck = async (e: React.MouseEvent, company: Company) => {
+    e.stopPropagation(); // Prevent row click event
+    
+    try {
+      // Get the report associated with this company to find the PDF
+      const { data: reportData, error } = await supabase
+        .from('reports')
+        .select('pdf_url, user_id')
+        .eq('company_id', company.id)
+        .single();
+
+      if (error || !reportData?.pdf_url) {
+        toast({
+          title: "No deck found",
+          description: "No PDF deck is available for this company.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Generate a signed URL for the PDF from report-pdfs bucket
+      const { data: signedUrlData, error: urlError } = await supabase.storage
+        .from('report-pdfs')
+        .createSignedUrl(reportData.pdf_url, 3600); // 1 hour expiry
+
+      if (urlError || !signedUrlData?.signedUrl) {
+        toast({
+          title: "Error accessing deck",
+          description: "Failed to access the PDF deck. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Open the PDF in a new tab
+      window.open(signedUrlData.signedUrl, '_blank');
+    } catch (error) {
+      console.error('Error opening deck:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open the deck. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isIITBombay) {
     return (
       <Card>
@@ -291,6 +338,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
+                <TableHead className="font-semibold w-[80px]">Deck</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -373,6 +421,20 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">{teamMemberName || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleViewDeck(e, company)}
+                        className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        title="View Deck"
+                      >
+                        <div className="flex items-center gap-1">
+                          <FileText className="h-4 w-4" />
+                          <ExternalLink className="h-3 w-3" />
+                        </div>
+                      </Button>
                     </TableCell>
                     <TableCell>
                       <div 

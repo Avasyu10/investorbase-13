@@ -61,6 +61,59 @@ export async function analyzeReport(reportId: string): Promise<void> {
   }
 }
 
+export async function uploadReportPdf(file: File, userId: string): Promise<string> {
+  console.log('Uploading PDF to report-pdfs bucket:', file.name);
+  
+  // Generate a unique filename
+  const timestamp = Date.now();
+  const fileName = `${userId}/${timestamp}_${file.name}`;
+  
+  const { data, error } = await supabase.storage
+    .from('report-pdfs')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) {
+    console.error('Error uploading PDF:', error);
+    throw new Error(`Failed to upload PDF: ${error.message}`);
+  }
+
+  console.log('PDF uploaded successfully:', data.path);
+  return data.path;
+}
+
+export async function createReportWithPdf(
+  title: string, 
+  description: string, 
+  file: File, 
+  userId: string
+): Promise<Report> {
+  // First upload the PDF
+  const pdfPath = await uploadReportPdf(file, userId);
+  
+  // Then create the report record
+  const { data, error } = await supabase
+    .from('reports')
+    .insert({
+      title,
+      description,
+      pdf_url: pdfPath,
+      user_id: userId,
+      analysis_status: 'pending'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating report:', error);
+    throw new Error(`Failed to create report: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function debugStorageBucket(): Promise<void> {
   console.log('=== STORAGE BUCKET DEBUG START ===');
   
@@ -72,7 +125,7 @@ export async function debugStorageBucket(): Promise<void> {
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     console.log('Available buckets:', buckets, 'Error:', bucketsError);
     
-    // Check the report-pdfs bucket specifically (with hyphen)
+    // Check the report-pdfs bucket specifically
     const bucketName = 'report-pdfs';
     console.log(`Checking bucket: ${bucketName}`);
     
