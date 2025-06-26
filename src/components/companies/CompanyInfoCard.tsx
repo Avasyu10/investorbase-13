@@ -145,26 +145,35 @@ export function CompanyInfoCard({
     setChatbotOpen(true);
   };
   return <div className="mb-7">
-      <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-        <Briefcase className="h-5 w-5 text-primary" />
-        Company Overview
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xl font-semibold flex items-center gap-2">
+          <Briefcase className="h-5 w-5 text-primary" />
+          Company Overview
+        </h3>
+        {shouldShowMoreInfoButton && (
+          <Button 
+            variant="outline" 
+            onClick={handleChatbot} 
+            size="sm" 
+            className="h-10 w-10 p-0 bg-yellow-500 hover:bg-yellow-400"
+          >
+            <Bot className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
       
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
-          {/* Company Description with More Information and Chatbot Buttons */}
+          {/* Company Description with More Information Button */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyData?.name || companyName}</h4>
-              {shouldShowMoreInfoButton && <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={handleChatbot} size="sm" className="h-8 w-8 p-0 bg-yellow-500 hover:bg-yellow-400">
-                    <Bot className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
-                    <Info className="mr-2 h-4 w-4" />
-                    More Information
-                  </Button>
-                </div>}
+              {shouldShowMoreInfoButton && (
+                <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
+                  <Info className="mr-2 h-4 w-4" />
+                  More Information
+                </Button>
+              )}
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
               {displayIntroduction}

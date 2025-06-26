@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,31 @@ export function CompanyChatbotDialog({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Add greeting message when dialog opens
+  useEffect(() => {
+    if (open && messages.length === 0) {
+      const greetingMessage: Message = {
+        id: "greeting",
+        role: "assistant",
+        content: `Hello! I'm here to help you learn more about ${companyName}. I have access to their pitch deck analysis, including their business model, market opportunity, team background, and investment potential. Feel free to ask me anything about the company!`,
+        timestamp: new Date(),
+      };
+      setMessages([greetingMessage]);
+    }
+  }, [open, companyName, messages.length]);
+
+  // Function to clean markdown formatting from response
+  const cleanMarkdownFormatting = (text: string): string => {
+    return text
+      .replace(/\*\*/g, '') // Remove bold markdown
+      .replace(/\*/g, '') // Remove italic markdown
+      .replace(/#{1,6}\s/g, '') // Remove heading markdown
+      .replace(/`{1,3}/g, '') // Remove code block markdown
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to plain text
+      .replace(/\n\s*[-*+]\s/g, '\n• ') // Convert markdown lists to bullet points
+      .trim();
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
@@ -76,10 +101,13 @@ export function CompanyChatbotDialog({
       }
 
       if (data?.success && data?.response) {
+        // Clean the response of markdown formatting
+        const cleanedResponse = cleanMarkdownFormatting(data.response);
+        
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: data.response,
+          content: cleanedResponse,
           timestamp: new Date(),
         };
 
@@ -118,13 +146,6 @@ export function CompanyChatbotDialog({
 
         <div className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 p-4 border rounded-lg">
-            {messages.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Ask me anything about {companyName}!</p>
-              </div>
-            )}
-            
             {messages.map((message) => (
               <div
                 key={message.id}
