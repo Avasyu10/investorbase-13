@@ -156,13 +156,179 @@ function getVCAnalysisPrompt(): string {
         "<market-based challenge 3 with data/numbers>",
         "<market-based challenge 4 with data/numbers>"
       ]
+    },
+    {
+      "type": "MARKET",
+      "title": "Market Opportunity & Size",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "SOLUTION",
+      "title": "Solution & Product Overview",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "COMPETITIVE_LANDSCAPE",
+      "title": "Competitive Analysis & Positioning",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "TRACTION",
+      "title": "Traction, Metrics & Milestones",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "BUSINESS_MODEL",
+      "title": "Business Model & Revenue Streams",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "GTM_STRATEGY",
+      "title": "Go-to-Market Strategy & Sales",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "TEAM",
+      "title": "Founder & Team Background",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "FINANCIALS",
+      "title": "Financial Overview & Projections",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
+    },
+    {
+      "type": "ASK",
+      "title": "Investment Ask & Use of Funds",
+      "score": <number between 1-100>,
+      "description": "<detailed analysis>",
+      "strengths": [
+        "<strength 1 with market data/numbers>", 
+        "<strength 2 with market data/numbers>", 
+        "<strength 3 with market data/numbers>",
+        "<strength 4 with market data/numbers>"
+      ],
+      "weaknesses": [
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
+      ]
     }
   ]
 }
 
 CRITICAL REQUIREMENTS:
 
-1. ASSESSMENT POINTS: Must contain exactly 7-8 comprehensive detailed bullet points that include:
+1. MANDATORY SECTION STRUCTURE: You MUST provide analysis for ALL 10 sections listed above. Each section MUST have exactly the structure shown with all required fields.
+
+2. STRENGTHS & WEAKNESSES ARE NEVER OPTIONAL: Every single section MUST have exactly 3-4 strengths and exactly 3-4 weaknesses. There are NO EXCEPTIONS to this rule. Even if a section seems weak or strong, you must find both strengths and weaknesses.
+
+3. ASSESSMENT POINTS: Must contain exactly 7-8 comprehensive detailed bullet points that include:
    - Specific market size data, growth rates, and TAM/SAM numbers from the deck
    - Financial metrics, revenue figures, projections, and unit economics mentioned
    - Traction metrics including user numbers, growth rates, customer acquisition costs
@@ -174,7 +340,7 @@ CRITICAL REQUIREMENTS:
 
    Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
 
-2. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and exactly 3-4 weaknesses.
+4. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and exactly 3-4 weaknesses.
 
    STRENGTHS should include:
    - Specific market data, numbers, percentages, or metrics from the deck
@@ -209,17 +375,7 @@ CRITICAL REQUIREMENTS:
    - "Regulatory compliance costs average $3.1M annually for companies in this space, representing 22% of typical revenue according to industry surveys"
    - "Economic data shows 34% contraction in target market spending over past 18 months, with consumer discretionary income in this demographic falling 28%"
 
-Please analyze these sections:
-1. PROBLEM - Problem Statement & Market Need
-2. MARKET - Market Opportunity & Size  
-3. SOLUTION - Solution & Product Overview
-4. COMPETITIVE_LANDSCAPE - Competitive Analysis & Positioning
-5. TRACTION - Traction, Metrics & Milestones
-6. BUSINESS_MODEL - Business Model & Revenue Streams
-7. GTM_STRATEGY - Go-to-Market Strategy & Sales
-8. TEAM - Founder & Team Background
-9. FINANCIALS - Financial Overview & Projections
-10. ASK - Investment Ask & Use of Funds
+5. NEVER SKIP SECTIONS: You must analyze all 10 sections even if some information is not present in the pitch deck. If a section is not well-covered in the deck, still provide the analysis based on industry standards and market context.
 
 Score each section from 1-100 based on investment attractiveness:
 - 1-20: Poor - Significant red flags or missing critical information
