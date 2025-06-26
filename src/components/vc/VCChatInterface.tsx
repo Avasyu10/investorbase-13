@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -169,7 +170,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full h-[98vh] max-h-[98vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[95vw] w-full h-[95vh] max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="border-b px-4 py-3 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
@@ -177,9 +178,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
           {/* Users Sidebar */}
-          <div className="w-60 border-r flex flex-col min-h-0 p-3">
+          <div className="w-60 border-r flex flex-col p-3">
             <div className="mb-3 p-2 bg-muted/30 rounded-lg flex-shrink-0">
               <p className="text-xs text-muted-foreground mb-1">Logged in as:</p>
               <div className="flex items-center gap-2">
@@ -200,7 +201,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
             <h3 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-wide flex-shrink-0">
               Team Members ({otherUsers.length})
             </h3>
-            <div className="space-y-1 flex-1 overflow-y-auto min-h-0">
+            <div className="space-y-1 flex-1 overflow-y-auto">
               {otherUsers.map((user) => (
                 <div
                   key={user.id}
@@ -232,8 +233,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col min-h-0 p-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col p-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
               <TabsList className="flex-shrink-0 mb-3">
                 <TabsTrigger value="group" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -245,9 +246,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="group" className="flex-1 flex flex-col min-h-0 m-0 data-[state=active]:flex">
-                <div className="flex-1 flex flex-col min-h-0">
-                  <ScrollArea className="flex-1 border rounded-lg min-h-0">
+              <TabsContent value="group" className="flex-1 flex flex-col m-0 data-[state=active]:flex">
+                <div className="flex-1 flex flex-col">
+                  <ScrollArea className="flex-1 border rounded-lg">
                     {renderMessages(groupMessages)}
                   </ScrollArea>
                   <div className="border-t pt-3 mt-3 flex-shrink-0">
@@ -276,9 +277,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="private" className="flex-1 flex flex-col min-h-0 m-0 data-[state=active]:flex">
+              <TabsContent value="private" className="flex-1 flex flex-col m-0 data-[state=active]:flex">
                 {selectedPrivateUser ? (
-                  <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 flex flex-col">
                     <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg flex-shrink-0 mb-3">
                       <Avatar className="h-6 w-6">
                         <AvatarFallback className={`${selectedPrivateUser.color} text-white text-xs`}>
@@ -288,7 +289,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       <span className="text-sm font-medium">Private chat with {selectedPrivateUser.name}</span>
                     </div>
                     
-                    <ScrollArea className="flex-1 border rounded-lg min-h-0">
+                    <ScrollArea className="flex-1 border rounded-lg">
                       {renderMessages(getPrivateMessages(selectedPrivateUser.id))}
                     </ScrollArea>
                     
