@@ -34,7 +34,16 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
     return "destructive";
   };
 
-  const formatSectionTitle = (sectionType: string) => {
+  const formatSectionTitle = (sectionType: string, title: string) => {
+    // For IIT Bombay sections, use specific mappings based on section_type
+    const iitBombayTitleMappings: { [key: string]: string } = {
+      'problem_solution_fit': 'Problem & Solution',
+      'target_customers': 'Target Customers', 
+      'competitors': 'Competitors',
+      'revenue_model': 'Revenue Model',
+      'differentiation': 'Differentiation'
+    };
+
     // Custom VC section title mappings based on section type
     const vcTitleMappings: { [key: string]: string } = {
       'PROBLEM': 'Problem Statement',
@@ -48,8 +57,23 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
       'ASK': 'Ask'
     };
 
-    // Return the mapped title or fallback to formatted section type
-    return vcTitleMappings[sectionType] || sectionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    // Check if it's an IIT Bombay section first (these have section_type)
+    if (sectionType && iitBombayTitleMappings[sectionType]) {
+      return iitBombayTitleMappings[sectionType];
+    }
+    
+    // Then check VC section mappings (these use the type field)
+    if (vcTitleMappings[sectionType]) {
+      return vcTitleMappings[sectionType];
+    }
+    
+    // Use the title from database if available
+    if (title && title !== sectionType) {
+      return title;
+    }
+    
+    // Fallback to formatted section type
+    return sectionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const displayScore = isHundredScale ? score : normalizedScore;
@@ -61,7 +85,7 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
     >
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="flex items-center justify-between text-base">
-          <span className="truncate">{formatSectionTitle(section.type)}</span>
+          <span className="truncate">{formatSectionTitle(section.section_type || section.type, section.title)}</span>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-500" />
             <Badge variant={getScoreBadgeVariant(score)} className="text-xs">

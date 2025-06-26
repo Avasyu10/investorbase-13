@@ -264,7 +264,7 @@ serve(async (req) => {
     - Avoid using ampersand (&) symbols - write "and" instead
     - No backticks, no explanatory text - just pure JSON
 
-    IMPORTANT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible. When writing monetary amounts, always use "billion USD" or "million USD" format instead of symbols.
+    IMPORTANT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes (in billions USD), growth rates (as percentages written as "percent"), funding rounds, competitor valuations, and industry benchmarks whenever possible. All strengths and weaknesses must include specific market data and numbers.
 
     EMPTY FORM DETECTION: This submission has ${emptyAnswerCount} out of 5 questions with empty or minimal answers (less than 10 characters). ${hasMinimalAnswers ? 'This indicates a low-effort submission that should receive very low scores.' : 'This has some substantial content that can be evaluated.'}
 
@@ -338,77 +338,80 @@ serve(async (req) => {
     - Consider: Overall score 50-74 (solid applications with good potential but some gaps)
     - Reject: Overall score < 50 (applications with significant gaps or minimal effort)
 
-    MANDATORY MARKET DATA REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
+    MANDATORY MARKET DATA REQUIREMENTS FOR ALL ANALYSES:
     - Include actual market size figures in billions or millions USD for the industry
-    - Reference real growth rates and industry trends using percentage figures written as "percent"
-    - Mention specific competitor companies and their valuations when possible
-    - Include funding data for similar companies in the space
-    - Use actual industry statistics and benchmarks
-    - Reference real market research data and sources
+    - Reference real growth rates and industry trends using percentages written as "percent"
+    - Mention specific competitor companies and their valuations/funding when possible
+    - Include funding data for similar companies in the space (Series A, B, etc. amounts)
+    - Use actual industry statistics and benchmarks from credible sources
+    - Reference real market research data and analyst reports
 
-    CRITICAL: You MUST provide a detailed "scoring_reason" that explains why this overall score was given, referencing the specific answers provided (or lack thereof) and the evidence-based evaluation criteria. This reason will be stored for IIT Bombay's review process.
+    CRITICAL: You MUST provide a "scoring_reason" that is SHORT AND COMPACT (maximum 2-3 sentences) explaining the overall score based on content quality and evidence level.
+
+    CRITICAL: ALL strengths and weaknesses MUST include specific market data, competitor information, industry benchmarks, and quantified metrics. No generic statements allowed.
 
     Return ONLY this JSON structure with no additional text, markdown, or formatting:
     {
       "overall_score": 35,
-      "scoring_reason": "Detailed explanation of why this specific score was assigned, referencing the quality and depth of actual responses provided, noting any empty or minimal answers, and explaining how the score reflects the evidence-based evaluation criteria",
+      "scoring_reason": "Short, compact 2-3 sentence explanation of score based on actual content quality and evidence provided.",
       "recommendation": "Consider",
       "company_info": {
         "industry": "string (infer from application)",
         "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description WITH MARKET CONTEXT)"
+        "introduction": "string (2-3 sentence description WITH MARKET CONTEXT and industry statistics)"
       },
       "sections": {
         "problem_solution_fit": {
           "score": 35,
-          "analysis": "Evidence-based analysis highlighting specific content quality and gaps WITH MARKET DATA",
-          "strengths": ["2-3 specific strengths based on actual content provided INCLUDING REAL MARKET NUMBERS"],
-          "improvements": ["3-4 evidence-based improvement areas with industry benchmarks and competitive data focusing on content gaps and market validation needs"]
+          "analysis": "Evidence-based analysis highlighting specific content quality WITH MARKET SIZE DATA and industry growth statistics",
+          "strengths": ["2-3 specific strengths with REAL MARKET NUMBERS, competitor valuations, and industry benchmarks"],
+          "improvements": ["3-4 specific improvements with MARKET DATA, funding benchmarks, and quantified industry metrics"]
         },
         "target_customers": {
           "score": 35,
-          "analysis": "Evidence-based analysis of customer understanding depth WITH MARKET SIZING DATA",
-          "strengths": ["2-3 specific strengths based on actual customer analysis provided INCLUDING CUSTOMER SEGMENT SIZES"],
-          "improvements": ["3-4 evidence-based improvement areas with customer acquisition benchmarks and market penetration data focusing on segmentation and validation gaps"]
+          "analysis": "Evidence-based analysis of customer understanding WITH MARKET SIZING DATA and customer acquisition costs",
+          "strengths": ["2-3 specific strengths with CUSTOMER SEGMENT SIZES, market penetration rates, and acquisition benchmarks"],
+          "improvements": ["3-4 specific improvements with CUSTOMER ACQUISITION DATA, market penetration statistics, and segmentation benchmarks"]
         },
         "competitors": {
           "score": 35,
-          "analysis": "Evidence-based analysis of competitive understanding WITH COMPETITOR VALUATIONS",
-          "strengths": ["2-3 specific strengths based on actual competitive analysis provided INCLUDING COMPETITIVE MARKET SHARE DATA"],
-          "improvements": ["3-4 evidence-based improvement areas with competitor analysis and market positioning insights focusing on analysis depth and differentiation clarity"]
+          "analysis": "Evidence-based analysis of competitive understanding WITH COMPETITOR VALUATIONS and market share data",
+          "strengths": ["2-3 specific strengths with COMPETITIVE MARKET SHARE DATA, competitor funding amounts, and positioning analysis"],
+          "improvements": ["3-4 specific improvements with COMPETITOR ANALYSIS including funding rounds, valuations, and market positioning data"]
         },
         "revenue_model": {
           "score": 35,
-          "analysis": "Evidence-based analysis of revenue strategy depth WITH INDUSTRY PRICING DATA",
-          "strengths": ["2-3 specific strengths based on actual revenue model provided INCLUDING REVENUE BENCHMARKS"],
-          "improvements": ["3-4 evidence-based improvement areas with pricing strategy insights and revenue optimization based on model clarity and projection quality"]
+          "analysis": "Evidence-based analysis of revenue strategy WITH INDUSTRY PRICING DATA and revenue benchmarks",
+          "strengths": ["2-3 specific strengths with REVENUE BENCHMARKS, pricing comparisons, and industry monetization data"],
+          "improvements": ["3-4 specific improvements with PRICING STRATEGY DATA, revenue optimization metrics, and industry benchmarks"]
         },
         "differentiation": {
           "score": 35,
-          "analysis": "Evidence-based analysis of differentiation clarity WITH MARKET POSITIONING DATA",
-          "strengths": ["2-3 specific strengths based on actual differentiation provided INCLUDING INNOVATION METRICS"],
-          "improvements": ["3-4 evidence-based improvement areas with innovation benchmarks and market gap analysis focusing on unique value proposition clarity and competitive advantages"]
+          "analysis": "Evidence-based analysis of differentiation WITH MARKET POSITIONING DATA and innovation metrics",
+          "strengths": ["2-3 specific strengths with INNOVATION METRICS, patent data, and differentiation benchmarks"],
+          "improvements": ["3-4 specific improvements with INNOVATION BENCHMARKS, market gap analysis, and competitive advantage data"]
         }
       },
       "summary": {
-        "overall_feedback": "Comprehensive evidence-based feedback reflecting actual response quality WITH MARKET CONTEXT",
-        "key_factors": ["Key success factors and critical gaps based on actual content WITH INDUSTRY DATA"],
-        "next_steps": ["Specific recommendations based on identified gaps WITH MARKET-BASED GUIDANCE"],
+        "overall_feedback": "Comprehensive evidence-based feedback WITH MARKET CONTEXT and industry benchmarks",
+        "key_factors": ["Key success factors with INDUSTRY DATA and market statistics"],
+        "next_steps": ["Specific recommendations with MARKET-BASED TARGETS and industry benchmarks"],
         "assessment_points": [
-          "6-8 detailed assessment points combining market analysis with evidence-based startup evaluation",
-          "Focus on realistic market opportunities and strategic recommendations WITH ACTUAL NUMBERS based on content provided",
-          "Include SPECIFIC market data, competitor analysis, and industry benchmarks relevant to responses",
-          "Emphasize actionable insights based on identified content gaps WITH QUANTIFIED TARGETS",
-          "Balance constructive criticism with recognition of actual good content USING MARKET STANDARDS",
-          "Reference actual funding rounds, market sizes, and growth rates where relevant to industry",
-          "Include specific competitor companies, their valuations, and market positions for context"
+          "8-10 detailed assessment points with SPECIFIC MARKET DATA, competitor analysis, and industry benchmarks",
+          "Each point must include QUANTIFIED METRICS like market sizes in billions USD, growth rates as percentages, funding amounts, customer acquisition costs, etc.",
+          "Reference ACTUAL COMPANIES, their valuations, funding rounds, and market positions",
+          "Include INDUSTRY STATISTICS from credible sources like McKinsey, BCG, CB Insights, PitchBook",
+          "Mention SPECIFIC MARKET OPPORTUNITIES with addressable market sizes and growth projections",
+          "Include COMPETITIVE INTELLIGENCE with market share data, pricing comparisons, and positioning analysis",
+          "Reference FUNDING BENCHMARKS for similar stage companies and industry average funding amounts",
+          "Provide CUSTOMER METRICS like acquisition costs, lifetime value, and market penetration rates"
         ]
       }
     }
 
-    CRITICAL: Every analysis section MUST be evidence-based, reflecting the actual quality and depth of responses provided. Empty or minimal responses must be scored accordingly (0-15 points). All "improvements" sections must focus on specific gaps identified in the actual responses and provide market-driven solutions.
+    CRITICAL: Every analysis section MUST be evidence-based, reflecting the actual quality and depth of responses provided. Empty or minimal responses must be scored accordingly (0-15 points). All "improvements" sections must focus on specific gaps identified in the actual responses and provide market-driven solutions with quantified data.
 
-    IMPORTANT: Scoring must be STRICT and EVIDENCE-BASED. Do not inflate scores. Base all evaluations on actual content provided and its quality, depth, and evidence level.
+    IMPORTANT: Scoring must be STRICT and EVIDENCE-BASED. Do not inflate scores. Base all evaluations on actual content provided and its quality, depth, and evidence level. ALL market data, competitor information, and industry statistics must be SPECIFIC and QUANTIFIED.
 
     ${linkedInDataSection}
     `;
@@ -543,11 +546,11 @@ serve(async (req) => {
 
     // Map the sections to the correct IIT Bombay structure
     const sectionMapping = {
-      'problem_solution_fit': 'PROBLEM AND SOLUTION',
-      'target_customers': 'TARGET CUSTOMERS', 
-      'competitors': 'COMPETITORS',
-      'revenue_model': 'REVENUE MODEL',
-      'differentiation': 'DIFFERENTIATION'
+      'problem_solution_fit': 'Problem & Solution',
+      'target_customers': 'Target Customers', 
+      'competitors': 'Competitors',
+      'revenue_model': 'Revenue Model',
+      'differentiation': 'Differentiation'
     };
 
     const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionKey, sectionData]: [string, any]) => ({
