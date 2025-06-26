@@ -151,10 +151,10 @@ function getVCAnalysisPrompt(): string {
         "<strength 4 with market data/numbers>"
       ],
       "weaknesses": [
-        "<weakness 1 with market data/numbers>", 
-        "<weakness 2 with market data/numbers>", 
-        "<weakness 3 with market data/numbers>",
-        "<weakness 4 with market data/numbers>"
+        "<market-based challenge 1 with data/numbers>", 
+        "<market-based challenge 2 with data/numbers>", 
+        "<market-based challenge 3 with data/numbers>",
+        "<market-based challenge 4 with data/numbers>"
       ]
     }
   ]
@@ -174,18 +174,32 @@ CRITICAL REQUIREMENTS:
 
    Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
 
-2. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and 3-4 weaknesses. Each strength and weakness MUST include:
+2. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and 3-4 weaknesses. 
+
+   STRENGTHS should include:
    - Specific market data, numbers, percentages, or metrics from the deck
    - Industry benchmarks or comparative data when available
    - Quantifiable insights (revenue figures, growth rates, market share, user metrics, etc.)
    - Financial projections, unit economics, or cost structures mentioned
    - Competitive analysis data and positioning metrics
 
-   Examples of data-rich strengths/weaknesses:
-   - "TAM of $50B with 15% CAGR demonstrates significant market opportunity, exceeding typical SaaS market growth of 12%"
-   - "Customer acquisition cost of $200 with LTV of $2,400 shows strong unit economics with 12:1 LTV/CAC ratio"
-   - "Limited to 2% market penetration despite claiming $10B TAM, suggesting execution challenges or market barriers"
-   - "Burn rate of $500K/month with 18 months runway creates immediate funding pressure without clear path to profitability"
+   WEAKNESSES must focus ONLY on market-based challenges and should include:
+   - Market saturation data and competitive intensity metrics
+   - Economic headwinds or market contraction data affecting the industry
+   - Regulatory challenges or compliance costs with specific figures
+   - Market adoption barriers with supporting data points
+   - Customer acquisition challenges based on market dynamics
+   - Pricing pressure from market conditions with actual cost/revenue impacts
+   - Supply chain or operational cost pressures with quantified impacts
+   - Market timing risks supported by industry trend data
+
+   IMPORTANT: Weaknesses should NOT mention what's missing from the deck, presentation quality, or what could be improved. Focus ONLY on external market factors, industry challenges, and data-driven market risks that could impact the business regardless of how well the deck is prepared.
+
+   Examples of market-based weaknesses:
+   - "Market research shows 73% customer churn rate industry-wide due to economic pressures, with average contract values declining 15% year-over-year"
+   - "Regulatory compliance costs average $2.3M annually for similar companies, representing 18% of typical revenue in this sector"
+   - "Market saturation analysis shows 89% of target demographic already using competing solutions, limiting organic growth potential"
+   - "Industry reports indicate 34% decline in venture funding for this sector over past 12 months, creating capital constraints"
 
 Please analyze these sections:
 1. PROBLEM - Problem Statement & Market Need
@@ -208,5 +222,5 @@ Score each section from 1-100 based on investment attractiveness:
 
 The overall score should reflect the comprehensive investment potential considering market opportunity, execution capability, scalability, and risk-adjusted returns.
 
-IMPORTANT: Every strength and weakness must contain specific numbers, metrics, percentages, growth rates, financial data, or market statistics from the pitch deck. Do not include generic statements without quantifiable data.`;
+IMPORTANT: Every strength and weakness must contain specific numbers, metrics, percentages, growth rates, financial data, or market statistics. Weaknesses must focus exclusively on market conditions, industry challenges, and external factors - NOT on deck quality or missing information.`;
 }
