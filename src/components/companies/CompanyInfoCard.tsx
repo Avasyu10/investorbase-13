@@ -1,12 +1,12 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp, Briefcase, Info, MessageCircle } from "lucide-react";
+import { Globe, TrendingUp, Briefcase, Info, Bot } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
+import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
 
 type CompanyInfoProps = {
   website?: string;
@@ -34,6 +34,7 @@ interface AnalysisResult {
     website: string;
     description: string;
   };
+  assessmentPoints?: string[];
   [key: string]: any;
 }
 
@@ -173,10 +174,10 @@ export function CompanyInfoCard({
                   <Button
                     variant="outline"
                     onClick={handleChatbot}
-                    className="h-8 px-4"
+                    size="sm"
+                    className="h-8 w-8 p-0"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Chatbot
+                    <Bot className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
@@ -244,15 +245,18 @@ export function CompanyInfoCard({
         />
       )}
 
-      {/* TODO: Add Chatbot Dialog when chatbotOpen is true */}
-      {chatbotOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Company Chatbot</h3>
-            <p className="text-sm text-muted-foreground mb-4">Chatbot functionality will be implemented here.</p>
-            <Button onClick={() => setChatbotOpen(false)}>Close</Button>
-          </div>
-        </div>
+      {/* Company Chatbot Dialog */}
+      {companyData?.id && chatbotOpen && (
+        <CompanyChatbotDialog
+          companyId={companyData.id}
+          companyName={companyData.name || companyName}
+          companyIntroduction={displayIntroduction}
+          companyIndustry={displayIndustry}
+          companyStage={displayStage}
+          assessmentPoints={analysisData?.assessmentPoints || []}
+          open={chatbotOpen}
+          onOpenChange={setChatbotOpen}
+        />
       )}
     </div>
   );
