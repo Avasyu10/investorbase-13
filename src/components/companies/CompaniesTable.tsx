@@ -199,25 +199,40 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         return;
       }
 
-      console.log('Found PDF URL:', reportData.pdf_url);
-      console.log('Report user ID:', reportData.user_id);
+      console.log('Found PDF URL in database:', reportData.pdf_url);
 
-      // Construct the full path including user folder - this is the key fix
-      const fullPdfPath = `${reportData.user_id}/${reportData.pdf_url}`;
-      console.log('Full PDF path:', fullPdfPath);
-
-      // Generate a signed URL for the PDF from report-pdfs bucket
+      // Use the path exactly as stored in the database
+      // The uploadReportPdf function already stores the full path including user folder
       const { data: signedUrlData, error: urlError } = await supabase.storage
         .from('report-pdfs')
-        .createSignedUrl(fullPdfPath, 3600); // 1 hour expiry
+        .createSignedUrl(reportData.pdf_url, 3600); // 1 hour expiry
 
       if (urlError) {
         console.error('Error creating signed URL:', urlError);
-        toast({
-          title: "Error accessing deck",
-          description: "Failed to access the PDF deck. Please try again.",
-          variant: "destructive",
-        });
+        // If the direct path fails, try to construct it with user folder
+        console.log('Trying alternative path construction...');
+        const alternativePath = reportData.pdf_url.includes('/') 
+          ? reportData.pdf_url 
+          : `${reportData.user_id}/${reportData.pdf_url}`;
+        
+        console.log('Trying alternative path:', alternativePath);
+        
+        const { data: altSignedUrlData, error: altUrlError } = await supabase.storage
+          .from('report-pdfs')
+          .createSignedUrl(alternativePath, 3600);
+        
+        if (altUrlError || !altSignedUrlData?.signedUrl) {
+          console.error('Alternative path also failed:', altUrlError);
+          toast({
+            title: "Error accessing deck",
+            description: "Failed to access the PDF deck. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log('Alternative path worked, opening PDF');
+        window.open(altSignedUrlData.signedUrl, '_blank');
         return;
       }
 

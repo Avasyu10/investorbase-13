@@ -64,13 +64,14 @@ export async function analyzeReport(reportId: string): Promise<void> {
 export async function uploadReportPdf(file: File, userId: string): Promise<string> {
   console.log('Uploading PDF to report-pdfs bucket:', file.name);
   
-  // Generate a unique filename
+  // Generate a unique filename with user folder structure
   const timestamp = Date.now();
-  const fileName = `${userId}/${timestamp}_${file.name}`;
+  const fileName = `${timestamp}_${file.name}`;
+  const fullPath = `${userId}/${fileName}`;
   
   const { data, error } = await supabase.storage
     .from('report-pdfs')
-    .upload(fileName, file, {
+    .upload(fullPath, file, {
       cacheControl: '3600',
       upsert: false
     });
@@ -80,7 +81,8 @@ export async function uploadReportPdf(file: File, userId: string): Promise<strin
     throw new Error(`Failed to upload PDF: ${error.message}`);
   }
 
-  console.log('PDF uploaded successfully:', data.path);
+  console.log('PDF uploaded successfully to path:', data.path);
+  // Return the full path as stored in Supabase storage
   return data.path;
 }
 
@@ -90,16 +92,18 @@ export async function createReportWithPdf(
   file: File, 
   userId: string
 ): Promise<Report> {
-  // First upload the PDF
+  // First upload the PDF - this returns the full path including user folder
   const pdfPath = await uploadReportPdf(file, userId);
   
-  // Then create the report record
+  console.log('Creating report with PDF path:', pdfPath);
+  
+  // Then create the report record with the full path
   const { data, error } = await supabase
     .from('reports')
     .insert({
       title,
       description,
-      pdf_url: pdfPath,
+      pdf_url: pdfPath, // Store the full path returned from storage
       user_id: userId,
       analysis_status: 'pending'
     })
@@ -111,11 +115,12 @@ export async function createReportWithPdf(
     throw new Error(`Failed to create report: ${error.message}`);
   }
 
+  console.log('Report created successfully with PDF path:', data.pdf_url);
   return data;
 }
 
 export async function getSignedPdfUrl(pdfPath: string): Promise<string> {
-  console.log('Getting signed URL for PDF:', pdfPath);
+  console.log('Getting signed URL for PDF path:', pdfPath);
   
   const { data, error } = await supabase.storage
     .from('report-pdfs')
