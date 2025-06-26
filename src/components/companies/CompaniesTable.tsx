@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -287,15 +286,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 {localCompanies.length} companies found
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadPdf}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download PDF
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
