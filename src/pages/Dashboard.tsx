@@ -2,13 +2,14 @@
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
+import { VCChatInterface } from "@/components/vc/VCChatInterface";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3 } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3, MessageSquare } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
@@ -19,6 +20,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -126,7 +128,22 @@ const Dashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="submissions">New Applications</TabsTrigger>
             {!isIITBombay && (
-              <TabsTrigger value="reports">Pitch Decks</TabsTrigger>
+              <TabsTrigger value="reports" className="relative">
+                Pitch Decks
+                {isVC && (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setChatOpen(true);
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="ml-2 h-6 w-6 p-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                  </Button>
+                )}
+              </TabsTrigger>
             )}
           </TabsList>
           <TabsContent value="companies">
@@ -137,11 +154,32 @@ const Dashboard = () => {
           </TabsContent>
           {!isIITBombay && (
             <TabsContent value="reports">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Pitch Decks</h2>
+                {isVC && (
+                  <Button
+                    onClick={() => setChatOpen(true)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Team Chat
+                  </Button>
+                )}
+              </div>
               <ReportsList />
             </TabsContent>
           )}
         </Tabs>
       </div>
+
+      {/* VC Chat Interface */}
+      {isVC && (
+        <VCChatInterface
+          open={chatOpen}
+          onOpenChange={setChatOpen}
+        />
+      )}
     </div>
   );
 };
