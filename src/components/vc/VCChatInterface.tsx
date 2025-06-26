@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -93,8 +92,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
 
-  // Handle POC change notifications
+  // Handle POC change notifications with useCallback to ensure stable reference
   const handlePocChanged = useCallback((companyId: string, oldPoc: string | null, newPoc: string | null) => {
+    console.log('🎯 POC change handler called:', { companyId, oldPoc, newPoc });
+    
     const systemMessage: Message = {
       id: `poc_change_${Date.now()}`,
       user: {
@@ -109,11 +110,22 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       messageType: 'poc_change'
     };
 
-    setGroupMessages(prev => [...prev, systemMessage]);
+    console.log('📨 Adding system message to group chat:', systemMessage);
+    setGroupMessages(prev => {
+      const newMessages = [...prev, systemMessage];
+      console.log('📝 Updated group messages count:', newMessages.length);
+      return newMessages;
+    });
   }, []);
 
   // Set up realtime subscription
   useCompanyDetailsRealtime({ onPocChanged: handlePocChanged });
+
+  // Add a test function to manually trigger a notification (for debugging)
+  const testNotification = useCallback(() => {
+    console.log('🧪 Testing notification manually...');
+    handlePocChanged('test-company-id', 'Old POC', 'New POC');
+  }, [handlePocChanged]);
 
   const handleSendMessage = (isPrivate = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
@@ -214,6 +226,15 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
             VC Team Chat
+            {/* Add test button for debugging */}
+            <Button 
+              onClick={testNotification}
+              size="sm" 
+              variant="outline"
+              className="ml-auto text-xs"
+            >
+              Test Notification
+            </Button>
           </DialogTitle>
         </DialogHeader>
         
