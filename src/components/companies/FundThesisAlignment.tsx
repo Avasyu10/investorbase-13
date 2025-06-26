@@ -145,10 +145,9 @@ export function FundThesisAlignment({
     return sections.map(section => {
       const lines = section.trim().split('\n');
       let title = lines[0]?.replace(/^##\s*/, '') || '';
-      
+
       // Remove numbered prefixes like "1.", "2.", etc. from titles
       title = title.replace(/^\d+\.\s*/, '');
-      
       const body = lines.slice(1).join('\n').trim();
       return {
         title,
@@ -156,7 +155,6 @@ export function FundThesisAlignment({
       };
     }).filter(section => section.title && section.body);
   };
-
   const getSectionIcon = (title: string) => {
     if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
       return <TrendingUp className="h-5 w-5 text-blue-500" />;
@@ -169,7 +167,6 @@ export function FundThesisAlignment({
     }
     return <FileText className="h-5 w-5 text-gray-500" />;
   };
-
   const getSectionBadgeColor = (title: string) => {
     if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
       return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -186,14 +183,10 @@ export function FundThesisAlignment({
   // Function to determine if a title should have larger heading
   const isImportantHeading = (title: string) => {
     const lowerTitle = title.toLowerCase();
-    return lowerTitle.includes('similarities') || 
-           lowerTitle.includes('differences') || 
-           lowerTitle.includes('alignment') ||
-           lowerTitle.includes('gaps');
+    return lowerTitle.includes('similarities') || lowerTitle.includes('differences') || lowerTitle.includes('alignment') || lowerTitle.includes('gaps');
   };
-
   return <>
-      <Button onClick={handleAnalyzeClick} disabled={isLoading || !hasFundThesis} variant="outline" className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 border-blue-200 hover:border-blue-300">
+      <Button onClick={handleAnalyzeClick} disabled={isLoading || !hasFundThesis} variant="outline" className="flex items-center gap-2 border-blue-200 hover:border-blue-300 bg-amber-600 hover:bg-amber-500 text-zinc-50">
         {isLoading ? <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Analyzing...
