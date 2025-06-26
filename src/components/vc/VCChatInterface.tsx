@@ -1,13 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Users, User } from "lucide-react";
+import { Send, MessageCircle, Users, User, Bell, BellRing } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -16,6 +18,7 @@ interface Message {
   timestamp: Date;
   isPrivate?: boolean;
   targetUserId?: string;
+  isSystemNotification?: boolean;
 }
 
 interface User {
@@ -33,6 +36,14 @@ const mockUsers: User[] = [
   { id: "4", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
   { id: "5", name: "Himanshu", role: "intern", color: "bg-orange-500" },
 ];
+
+// System user for notifications
+const systemUser: User = {
+  id: "system",
+  name: "System",
+  role: "admin",
+  color: "bg-gray-500"
+};
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -89,6 +100,77 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [currentUser] = useState(mockUsers[0]); // Admin user (Roohi Sharma)
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const { toast } = useToast();
+
+  // Real-time subscription effect
+  useEffect(() => {
+    if (!open) return;
+
+    console.log('Setting up real-time subscription for company_details updates...');
+
+    const channel = supabase
+      .channel('company-details-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'company_details',
+          filter: 'teammember_name=not.is.null'
+        },
+        (payload) => {
+          console.log('Received company_details update:', payload);
+          
+          const oldRecord = payload.old as any;
+          const newRecord = payload.new as any;
+          
+          // Check if teammember_name was actually changed
+          if (oldRecord?.teammember_name !== newRecord?.teammember_name) {
+            const notificationMessage: Message = {
+              id: `notification-${Date.now()}`,
+              user: systemUser,
+              content: `🔔 Team POC updated: "${newRecord.teammember_name || 'Not assigned'}" for a company`,
+              timestamp: new Date(),
+              isSystemNotification: true
+            };
+
+            console.log('Adding notification message:', notificationMessage);
+            
+            setGroupMessages(prev => [...prev, notificationMessage]);
+            setNotificationCount(prev => prev + 1);
+            
+            toast({
+              title: "Team POC Updated",
+              description: `New team member assigned: ${newRecord.teammember_name || 'Not assigned'}`,
+              duration: 5000,
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to company_details changes');
+          toast({
+            title: "Real-time notifications enabled",
+            description: "You'll be notified of Team POC updates",
+          });
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to real-time updates');
+          toast({
+            title: "Connection Error",
+            description: "Real-time notifications may not work properly",
+            variant: "destructive",
+          });
+        }
+      });
+
+    return () => {
+      console.log('Cleaning up real-time subscription...');
+      supabase.removeChannel(channel);
+    };
+  }, [open, toast]);
 
   const handleSendMessage = (isPrivate = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
@@ -140,24 +222,31 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const renderMessages = (messages: Message[]) => (
     <div className="space-y-3 p-4">
       {messages.map((message) => (
-        <div key={message.id} className="flex gap-3">
+        <div key={message.id} className={`flex gap-3 ${message.isSystemNotification ? 'bg-blue-50 p-2 rounded-lg border border-blue-200' : ''}`}>
           <Avatar className="h-8 w-8 flex-shrink-0">
             <AvatarImage src={message.user.avatar} />
             <AvatarFallback className={`${message.user.color} text-white text-xs`}>
-              {message.user.name.split(' ').map(n => n[0]).join('')}
+              {message.isSystemNotification ? <Bell className="h-4 w-4" /> : message.user.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">{message.user.name}</span>
-              <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
-                {message.user.role}
-              </Badge>
+              {!message.isSystemNotification && (
+                <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
+                  {message.user.role}
+                </Badge>
+              )}
+              {message.isSystemNotification && (
+                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                  notification
+                </Badge>
+              )}
               <span className="text-xs text-muted-foreground">
                 {formatTime(message.timestamp)}
               </span>
             </div>
-            <div className="bg-muted/30 rounded-lg p-3">
+            <div className={`${message.isSystemNotification ? 'bg-blue-100/50' : 'bg-muted/30'} rounded-lg p-3`}>
               <p className="text-sm leading-relaxed">{message.content}</p>
             </div>
           </div>
@@ -175,6 +264,12 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
             VC Team Chat
+            {notificationCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                <BellRing className="h-3 w-3 mr-1" />
+                {notificationCount}
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
         
@@ -246,6 +341,11 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                   <TabsTrigger value="group" className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     Group Chat
+                    {notificationCount > 0 && (
+                      <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0.5">
+                        {notificationCount}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                   <TabsTrigger value="private" className="flex items-center gap-2" disabled={!selectedPrivateUser}>
                     <User className="h-4 w-4" />
@@ -280,7 +380,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Press Enter to send • Click on team members for private chat
+                      Press Enter to send • Click on team members for private chat • Real-time notifications enabled
                     </p>
                   </div>
                 </>
