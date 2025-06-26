@@ -4,41 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Company } from '@/lib/api/apiContract';
 
-// Type for the analysis result structure
-interface AnalysisResult {
-  companyInfo?: {
-    website?: string;
-    stage?: string;
-    industry?: string;
-    description?: string;
-    company_description?: string;
-  };
-  company_info?: {
-    website?: string;
-    stage?: string;
-    industry?: string;
-    description?: string;
-    company_description?: string;
-  };
-  sections?: Array<{
-    type?: string;
-    title?: string;
-    companyInfo?: {
-      website?: string;
-      stage?: string;
-      industry?: string;
-      description?: string;
-      company_description?: string;
-    };
-  }>;
-  website?: string;
-  stage?: string;
-  industry?: string;
-  description?: string;
-  company_description?: string;
-  [key: string]: any;
-}
-
 export function useCompanyDetails(companyId: string) {
   const {
     data: company,
@@ -117,13 +82,8 @@ export function useCompanyDetails(companyId: string) {
       console.log("Retrieved company details data:", companyDetailsData);
 
       // Get report data to extract company info from analysis_result
-      let reportAnalysisData: AnalysisResult | null = null;
-      let analysisCompanyInfo: {
-        website?: string;
-        stage?: string;
-        industry?: string;
-        description?: string;
-      } = {};
+      let reportAnalysisData = null;
+      let analysisCompanyInfo = {};
       
       if (companyData.report_id) {
         const { data: reportData, error: reportError } = await supabase
@@ -133,7 +93,7 @@ export function useCompanyDetails(companyId: string) {
           .maybeSingle();
           
         if (!reportError && reportData?.analysis_result) {
-          reportAnalysisData = reportData.analysis_result as AnalysisResult;
+          reportAnalysisData = reportData.analysis_result;
           console.log("Retrieved analysis result:", reportAnalysisData);
           
           // Extract company info from multiple possible locations in analysis result
@@ -212,7 +172,7 @@ export function useCompanyDetails(companyId: string) {
         website: analysisCompanyInfo.website || companyDetailsData?.website || '',
         stage: analysisCompanyInfo.stage || companyDetailsData?.stage || '',
         industry: analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry || '',
-        introduction: analysisCompanyInfo.description || companyDetailsData?.introduction || '',
+        introduction: analysisCompanyInfo.description || analysisCompanyInfo.company_description || companyDetailsData?.introduction || '',
       };
       
       console.log("Final company info to be used:", finalCompanyInfo);
