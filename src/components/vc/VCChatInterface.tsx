@@ -6,13 +6,16 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, Users, User } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Message {
   id: string;
   user: User;
   content: string;
   timestamp: Date;
+  isPrivate?: boolean;
+  targetUserId?: string;
 }
 
 interface User {
@@ -24,11 +27,11 @@ interface User {
 }
 
 const mockUsers: User[] = [
-  { id: "1", name: "Sarah Chen", role: "admin", color: "bg-red-500" },
-  { id: "2", name: "Michael Rodriguez", role: "manager", color: "bg-blue-500" },
-  { id: "3", name: "Emily Johnson", role: "analyst", color: "bg-green-500" },
-  { id: "4", name: "David Kim", role: "associate", color: "bg-purple-500" },
-  { id: "5", name: "Alex Thompson", role: "intern", color: "bg-orange-500" },
+  { id: "1", name: "Roohi Sharma", role: "admin", color: "bg-red-500" },
+  { id: "2", name: "Kanishk Saxena", role: "manager", color: "bg-blue-500" },
+  { id: "3", name: "Avasyu Sharma", role: "analyst", color: "bg-green-500" },
+  { id: "4", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
+  { id: "5", name: "Himunshu", role: "intern", color: "bg-orange-500" },
 ];
 
 const getRoleColor = (role: string) => {
@@ -48,7 +51,7 @@ interface VCChatInterfaceProps {
 }
 
 export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([
+  const [groupMessages, setGroupMessages] = useState<Message[]>([
     {
       id: "1",
       user: mockUsers[0],
@@ -70,7 +73,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     {
       id: "4",
       user: mockUsers[3],
-      content: "I agree with Emily. The CAC to LTV ratio needs more work. Should we schedule a follow-up call?",
+      content: "I agree with Avasyu. The CAC to LTV ratio needs more work. Should we schedule a follow-up call?",
       timestamp: new Date(Date.now() - 45 * 60 * 1000)
     },
     {
@@ -81,10 +84,13 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     },
   ]);
   
+  const [privateMessages, setPrivateMessages] = useState<{ [key: string]: Message[] }>({});
   const [newMessage, setNewMessage] = useState("");
-  const [currentUser, setCurrentUser] = useState(mockUsers[0]);
+  const [currentUser] = useState(mockUsers[0]); // Admin user (Roohi Sharma)
+  const [activeTab, setActiveTab] = useState("group");
+  const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = (isPrivate = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
 
     const message: Message = {
@@ -92,9 +98,20 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       user: currentUser,
       content: newMessage,
       timestamp: new Date(),
+      isPrivate,
+      targetUserId: targetUser?.id,
     };
 
-    setMessages(prev => [...prev, message]);
+    if (isPrivate && targetUser) {
+      const chatKey = `${currentUser.id}-${targetUser.id}`;
+      setPrivateMessages(prev => ({
+        ...prev,
+        [chatKey]: [...(prev[chatKey] || []), message]
+      }));
+    } else {
+      setGroupMessages(prev => [...prev, message]);
+    }
+
     setNewMessage("");
   };
 
@@ -105,13 +122,55 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (activeTab === "group") {
+        handleSendMessage();
+      } else if (selectedPrivateUser) {
+        handleSendMessage(true, selectedPrivateUser);
+      }
     }
   };
 
+  const getPrivateMessages = (userId: string) => {
+    const chatKey = `${currentUser.id}-${userId}`;
+    const reverseChatKey = `${userId}-${currentUser.id}`;
+    return [...(privateMessages[chatKey] || []), ...(privateMessages[reverseChatKey] || [])]
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  };
+
+  const renderMessages = (messages: Message[]) => (
+    <div className="space-y-4 py-4">
+      {messages.map((message) => (
+        <div key={message.id} className="flex gap-3">
+          <Avatar className="h-8 w-8 flex-shrink-0">
+            <AvatarImage src={message.user.avatar} />
+            <AvatarFallback className={`${message.user.color} text-white text-xs`}>
+              {message.user.name.split(' ').map(n => n[0]).join('')}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-sm">{message.user.name}</span>
+              <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
+                {message.user.role}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {formatTime(message.timestamp)}
+              </span>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-sm leading-relaxed">{message.content}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const otherUsers = mockUsers.filter(user => user.id !== currentUser.id);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+      <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
@@ -122,19 +181,39 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         <div className="flex flex-1 gap-4 min-h-0">
           {/* Users Sidebar */}
           <div className="w-64 border-r pr-4 flex flex-col">
+            <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Logged in as:</p>
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className={`${currentUser.color} text-white text-xs`}>
+                    {currentUser.name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <span className="text-sm font-medium">{currentUser.name}</span>
+                  <Badge variant="outline" className={`ml-1 text-xs ${getRoleColor(currentUser.role)}`}>
+                    {currentUser.role}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
             <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">
-              Team Members ({mockUsers.length})
+              Team Members ({otherUsers.length})
             </h3>
             <div className="space-y-2">
-              {mockUsers.map((user) => (
+              {otherUsers.map((user) => (
                 <div
                   key={user.id}
                   className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                    currentUser.id === user.id 
+                    selectedPrivateUser?.id === user.id && activeTab === "private"
                       ? 'bg-primary/10 border border-primary/20' 
                       : 'hover:bg-muted/50'
                   }`}
-                  onClick={() => setCurrentUser(user)}
+                  onClick={() => {
+                    setSelectedPrivateUser(user);
+                    setActiveTab("private");
+                  }}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.avatar} />
@@ -148,81 +227,104 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       {user.role}
                     </Badge>
                   </div>
-                  {currentUser.id === user.id && (
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  )}
                 </div>
               ))}
-            </div>
-            
-            <div className="mt-4 p-3 bg-muted/30 rounded-lg">
-              <p className="text-xs text-muted-foreground mb-1">Currently speaking as:</p>
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className={`${currentUser.color} text-white text-xs`}>
-                    {currentUser.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium">{currentUser.name}</span>
-              </div>
             </div>
           </div>
 
           {/* Chat Area */}
           <div className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1 px-4">
-              <div className="space-y-4 py-4">
-                {messages.map((message) => (
-                  <div key={message.id} className="flex gap-3">
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={message.user.avatar} />
-                      <AvatarFallback className={`${message.user.color} text-white text-xs`}>
-                        {message.user.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{message.user.name}</span>
-                        <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
-                          {message.user.role}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTime(message.timestamp)}
-                        </span>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+              <TabsList className="mb-4">
+                <TabsTrigger value="group" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Group Chat
+                </TabsTrigger>
+                <TabsTrigger value="private" className="flex items-center gap-2" disabled={!selectedPrivateUser}>
+                  <User className="h-4 w-4" />
+                  {selectedPrivateUser ? `Chat with ${selectedPrivateUser.name}` : "Private Chat"}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="group" className="flex-1 flex flex-col min-h-0">
+                <ScrollArea className="flex-1 px-4">
+                  {renderMessages(groupMessages)}
+                </ScrollArea>
+                <div className="border-t pt-4 px-4">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Message the team..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="w-full"
+                      />
+                    </div>
+                    <Button 
+                      onClick={() => handleSendMessage()}
+                      disabled={!newMessage.trim()}
+                      size="icon"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Press Enter to send • Click on team members for private chat
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="private" className="flex-1 flex flex-col min-h-0">
+                {selectedPrivateUser ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-4 p-2 bg-muted/30 rounded-lg">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className={`${selectedPrivateUser.color} text-white text-xs`}>
+                          {selectedPrivateUser.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">Private chat with {selectedPrivateUser.name}</span>
+                    </div>
+                    
+                    <ScrollArea className="flex-1 px-4">
+                      {renderMessages(getPrivateMessages(selectedPrivateUser.id))}
+                    </ScrollArea>
+                    
+                    <div className="border-t pt-4 px-4">
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Input
+                            placeholder={`Private message to ${selectedPrivateUser.name}...`}
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="w-full"
+                          />
+                        </div>
+                        <Button 
+                          onClick={() => handleSendMessage(true, selectedPrivateUser)}
+                          disabled={!newMessage.trim()}
+                          size="icon"
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="bg-muted/30 rounded-lg p-3">
-                        <p className="text-sm leading-relaxed">{message.content}</p>
-                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Press Enter to send private message
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Select a team member to start a private conversation</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-
-            {/* Message Input */}
-            <div className="border-t pt-4 px-4">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Input
-                    placeholder={`Message as ${currentUser.name}...`}
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="w-full"
-                  />
-                </div>
-                <Button 
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim()}
-                  size="icon"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Press Enter to send • Click on team members to switch perspectives
-              </p>
-            </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </DialogContent>
