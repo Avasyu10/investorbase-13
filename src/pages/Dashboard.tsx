@@ -91,7 +91,7 @@ const Dashboard = () => {
                 Admin Panel
               </Button>
             )}
-            {!isIITBombay && (
+            {isIITBombay && (
               <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
                 <Settings className="mr-2 h-4 w-4" />
                 Public Forms
