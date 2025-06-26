@@ -144,7 +144,11 @@ export function FundThesisAlignment({
     const sections = content.split(/(?=## )/);
     return sections.map(section => {
       const lines = section.trim().split('\n');
-      const title = lines[0]?.replace(/^##\s*/, '') || '';
+      let title = lines[0]?.replace(/^##\s*/, '') || '';
+      
+      // Remove numbered prefixes like "1.", "2.", etc. from titles
+      title = title.replace(/^\d+\.\s*/, '');
+      
       const body = lines.slice(1).join('\n').trim();
       return {
         title,
@@ -152,6 +156,7 @@ export function FundThesisAlignment({
       };
     }).filter(section => section.title && section.body);
   };
+
   const getSectionIcon = (title: string) => {
     if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
       return <TrendingUp className="h-5 w-5 text-blue-500" />;
@@ -164,6 +169,7 @@ export function FundThesisAlignment({
     }
     return <FileText className="h-5 w-5 text-gray-500" />;
   };
+
   const getSectionBadgeColor = (title: string) => {
     if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
       return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -176,6 +182,16 @@ export function FundThesisAlignment({
     }
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
+
+  // Function to determine if a title should have larger heading
+  const isImportantHeading = (title: string) => {
+    const lowerTitle = title.toLowerCase();
+    return lowerTitle.includes('similarities') || 
+           lowerTitle.includes('differences') || 
+           lowerTitle.includes('alignment') ||
+           lowerTitle.includes('gaps');
+  };
+
   return <>
       <Button onClick={handleAnalyzeClick} disabled={isLoading || !hasFundThesis} variant="outline" className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 border-blue-200 hover:border-blue-300">
         {isLoading ? <>
@@ -222,12 +238,9 @@ export function FundThesisAlignment({
               return sections.length > 0 ? <div className="space-y-6">
                       {sections.map((section, index) => <Card key={index} className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50">
                           <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-3 text-lg">
+                            <CardTitle className={`flex items-center gap-3 ${isImportantHeading(section.title) ? 'text-xl' : 'text-lg'}`}>
                               {getSectionIcon(section.title)}
                               <span className="flex-1 text-slate-950">{section.title}</span>
-                              <Badge variant="outline" className={`${getSectionBadgeColor(section.title)} text-xs`}>
-                                Section {index + 1}
-                              </Badge>
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="pt-0">
