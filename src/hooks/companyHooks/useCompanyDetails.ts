@@ -83,8 +83,6 @@ export function useCompanyDetails(companyId: string) {
 
       // Get report data to extract company info from analysis_result
       let reportAnalysisData = null;
-      let analysisCompanyInfo = {};
-      
       if (companyData.report_id) {
         const { data: reportData, error: reportError } = await supabase
           .from('reports')
@@ -94,49 +92,7 @@ export function useCompanyDetails(companyId: string) {
           
         if (!reportError && reportData?.analysis_result) {
           reportAnalysisData = reportData.analysis_result;
-          console.log("Retrieved analysis result:", reportAnalysisData);
-          
-          // Extract company info from multiple possible locations in analysis result
-          if (reportAnalysisData.companyInfo) {
-            analysisCompanyInfo = reportAnalysisData.companyInfo;
-            console.log("Found companyInfo in analysis result:", analysisCompanyInfo);
-          } else if (reportAnalysisData.company_info) {
-            analysisCompanyInfo = reportAnalysisData.company_info;
-            console.log("Found company_info in analysis result:", analysisCompanyInfo);
-          } else if (reportAnalysisData.sections) {
-            // Sometimes company info might be in the first section or a company overview section
-            const companySection = reportAnalysisData.sections.find((section: any) => 
-              section.type === 'COMPANY_OVERVIEW' || 
-              section.title?.toLowerCase().includes('company') ||
-              section.title?.toLowerCase().includes('overview')
-            );
-            
-            if (companySection && companySection.companyInfo) {
-              analysisCompanyInfo = companySection.companyInfo;
-              console.log("Found company info in section:", analysisCompanyInfo);
-            }
-          }
-          
-          // Also check root level of analysis result for common fields
-          if (!analysisCompanyInfo.website && reportAnalysisData.website) {
-            analysisCompanyInfo.website = reportAnalysisData.website;
-          }
-          if (!analysisCompanyInfo.stage && reportAnalysisData.stage) {
-            analysisCompanyInfo.stage = reportAnalysisData.stage;
-          }
-          if (!analysisCompanyInfo.industry && reportAnalysisData.industry) {
-            analysisCompanyInfo.industry = reportAnalysisData.industry;
-          }
-          if (!analysisCompanyInfo.description && reportAnalysisData.description) {
-            analysisCompanyInfo.description = reportAnalysisData.description;
-          }
-          if (!analysisCompanyInfo.description && reportAnalysisData.company_description) {
-            analysisCompanyInfo.description = reportAnalysisData.company_description;
-          }
-          
-          console.log("Final extracted company info:", analysisCompanyInfo);
-        } else {
-          console.log("No analysis result found or error:", reportError);
+          console.log("Retrieved analysis result company info:", reportAnalysisData.companyInfo);
         }
       }
       
@@ -167,15 +123,8 @@ export function useCompanyDetails(companyId: string) {
       
       console.log("Mapped sections with details:", sectionsWithDetails);
 
-      // Prioritize company info from analysis result, then from company_details table, then fallbacks
-      const finalCompanyInfo = {
-        website: analysisCompanyInfo.website || companyDetailsData?.website || '',
-        stage: analysisCompanyInfo.stage || companyDetailsData?.stage || '',
-        industry: analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry || '',
-        introduction: analysisCompanyInfo.description || analysisCompanyInfo.company_description || companyDetailsData?.introduction || '',
-      };
-      
-      console.log("Final company info to be used:", finalCompanyInfo);
+      // Prioritize company info from analysis result, then from company_details table
+      const analysisCompanyInfo = reportAnalysisData?.companyInfo || {};
       
       return {
         id: companyData.id,
@@ -187,15 +136,14 @@ export function useCompanyDetails(companyId: string) {
         updated_at: companyData.updated_at,
         source: companyData.source,
         report_id: companyData.report_id,
-        // Use the prioritized company info
-        website: finalCompanyInfo.website,
-        stage: finalCompanyInfo.stage,
-        industry: finalCompanyInfo.industry,
-        introduction: finalCompanyInfo.introduction,
+        // Use analysis result first, then company_details, then fallback
+        website: analysisCompanyInfo.website || companyDetailsData?.website || '',
+        stage: analysisCompanyInfo.stage || companyDetailsData?.stage || '',
+        industry: analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry || '',
+        introduction: analysisCompanyInfo.description || companyDetailsData?.introduction || '',
       };
     },
     enabled: !!companyId,
-    staleTime: 30000, // Consider data fresh for 30 seconds
     meta: {
       onError: (err: any) => {
         toast({
