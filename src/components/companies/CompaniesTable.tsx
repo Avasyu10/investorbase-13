@@ -1,17 +1,16 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
-import { Star, Trash2, Phone, Mail, Globe, Download, Edit, Upload, ExternalLink } from "lucide-react";
+import { Star, Trash2, Phone, Mail, Globe, Download, Edit } from "lucide-react";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
-import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -29,7 +28,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     teamMember: string;
     status: string;
   } | null>(null);
-  const [uploadingDecks, setUploadingDecks] = useState<Set<string>>(new Set());
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const { downloadCompaniesAsPdf } = usePdfDownload();
 
@@ -82,110 +80,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         return "bg-lime-100 text-lime-800";
       default:
         return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const handleDeckUpload = async (e: React.ChangeEvent<HTMLInputElement>, companyId: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit
-      toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 50MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploadingDecks(prev => new Set(prev).add(companyId));
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Create file path similar to how reports are stored
-      const fileName = `${Date.now()}-${file.name}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      // Upload to report-pdfs bucket
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('report-pdfs')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Update company with deck path
-      const { error: updateError } = await supabase
-        .from('companies')
-        .update({ deck_pdf_path: filePath })
-        .eq('id', companyId);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Update local state
-      setLocalCompanies(prev => prev.map(company => 
-        company.id === companyId 
-          ? { ...company, deck_pdf_path: filePath } as Company
-          : company
-      ));
-
-      toast({
-        title: "Deck uploaded successfully",
-        description: "The deck has been saved and can now be viewed.",
-      });
-
-    } catch (error: any) {
-      console.error('Error uploading deck:', error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload deck. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingDecks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(companyId);
-        return newSet;
-      });
-      // Reset file input
-      e.target.value = '';
-    }
-  };
-
-  const handleViewDeck = async (deckPath: string) => {
-    try {
-      const { data } = supabase.storage
-        .from('report-pdfs')
-        .getPublicUrl(deckPath);
-
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
-      } else {
-        throw new Error('Failed to get deck URL');
-      }
-    } catch (error: any) {
-      console.error('Error viewing deck:', error);
-      toast({
-        title: "Error opening deck",
-        description: "Failed to open the deck. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -397,7 +291,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
-                <TableHead className="font-semibold w-[120px]">Deck</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -405,14 +298,16 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const companyDetails = (company as any).company_details;
+                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
                 const status = companyDetails?.status || 'New';
                 const isCompanyDeleting = deletingCompanies.has(company.id);
-                const isUploadingDeck = uploadingDecks.has(company.id);
-                const deckPath = (company as any).deck_pdf_path;
                 
+                // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
                 const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
                 const contactEmail = (company as any).email || companyDetails?.contact_email || '';
                 const phoneNumber = (company as any).phonenumber || '';
+                
+                // Display industry directly from public_form_submissions
                 const industry = company.industry || "—";
                 const teamMemberName = companyDetails?.teammember_name || '';
                 
@@ -478,43 +373,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">{teamMemberName || "—"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div 
-                        className="flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {deckPath ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewDeck(deckPath)}
-                            className="h-8 px-2 text-xs flex items-center gap-1"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            View
-                          </Button>
-                        ) : (
-                          <div className="relative">
-                            <Input
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) => handleDeckUpload(e, company.id)}
-                              className="absolute inset-0 opacity-0 cursor-pointer"
-                              disabled={isUploadingDeck}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={isUploadingDeck}
-                              className="h-8 px-2 text-xs flex items-center gap-1"
-                            >
-                              <Upload className="h-3 w-3" />
-                              {isUploadingDeck ? 'Uploading...' : 'Upload'}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
                     </TableCell>
                     <TableCell>
                       <div 
