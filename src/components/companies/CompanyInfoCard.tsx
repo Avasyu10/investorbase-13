@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
+import { FundThesisAlignment } from "./FundThesisAlignment";
+
 type CompanyInfoProps = {
   website?: string;
   stage?: string;
@@ -150,9 +152,17 @@ export function CompanyInfoCard({
           <Briefcase className="h-5 w-5 text-primary" />
           Company Overview
         </h3>
-        {shouldShowMoreInfoButton && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300">
-            <Bot className="h-5 w-5" />
-          </Button>}
+        <div className="flex items-center gap-2">
+          {shouldShowMoreInfoButton && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300">
+              <Bot className="h-5 w-5" />
+            </Button>}
+          {companyData?.id && (
+            <FundThesisAlignment 
+              companyId={companyData.id} 
+              companyName={companyData.name || companyName} 
+            />
+          )}
+        </div>
       </div>
       
       <Card className="border-0 shadow-card">
