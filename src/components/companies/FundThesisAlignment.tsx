@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from 'react-markdown';
+
 interface FundThesisAlignmentProps {
   companyId: string;
   companyName?: string;
@@ -157,27 +158,27 @@ export function FundThesisAlignment({
   };
   const getSectionIcon = (title: string) => {
     if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
-      return <TrendingUp className="h-5 w-5 text-blue-500" />;
+      return <TrendingUp className="h-5 w-5 text-blue-400" />;
     }
     if (title.toLowerCase().includes('similarities') || title.toLowerCase().includes('alignment')) {
-      return <Target className="h-5 w-5 text-green-500" />;
+      return <Target className="h-5 w-5 text-green-400" />;
     }
     if (title.toLowerCase().includes('differences') || title.toLowerCase().includes('gaps')) {
-      return <GitCompare className="h-5 w-5 text-orange-500" />;
+      return <GitCompare className="h-5 w-5 text-orange-400" />;
     }
-    return <FileText className="h-5 w-5 text-gray-500" />;
+    return <FileText className="h-5 w-5 text-gray-400" />;
   };
   const getSectionBadgeColor = (title: string) => {
     if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'bg-blue-900/30 text-blue-300 border-blue-700';
     }
     if (title.toLowerCase().includes('similarities') || title.toLowerCase().includes('alignment')) {
-      return 'bg-green-100 text-green-800 border-green-200';
+      return 'bg-green-900/30 text-green-300 border-green-700';
     }
     if (title.toLowerCase().includes('differences') || title.toLowerCase().includes('gaps')) {
-      return 'bg-orange-100 text-orange-800 border-orange-200';
+      return 'bg-orange-900/30 text-orange-300 border-orange-700';
     }
-    return 'bg-gray-100 text-gray-800 border-gray-200';
+    return 'bg-gray-800/30 text-gray-300 border-gray-600';
   };
 
   // Function to determine if a title should have larger heading
@@ -209,15 +210,15 @@ export function FundThesisAlignment({
         </div>}
 
       <Dialog open={isAnalysisModalOpen} onOpenChange={setIsAnalysisModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-          <DialogHeader className="border-b pb-4 bg-gradient-to-r from-blue-50 to-purple-50 -m-6 mb-0 p-6 rounded-t-lg">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-slate-900 border-slate-700">
+          <DialogHeader className="border-b border-slate-700 pb-4 bg-gradient-to-r from-slate-800 to-blue-900/50 -m-6 mb-0 p-6 rounded-t-lg">
             <DialogTitle className="flex items-center gap-3 text-xl">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-blue-900/50 rounded-lg border border-blue-700">
+                <FileText className="h-6 w-6 text-blue-400" />
               </div>
               <div>
-                <div className="font-semibold text-gray-900">Fund Thesis Alignment Analysis</div>
-                <div className="text-sm font-normal text-gray-600 mt-1">
+                <div className="font-semibold text-slate-100">Fund Thesis Alignment Analysis</div>
+                <div className="text-sm font-normal text-slate-400 mt-1">
                   Strategic alignment assessment for {companyName}
                 </div>
               </div>
@@ -229,28 +230,28 @@ export function FundThesisAlignment({
               {analysis ? (() => {
               const sections = parseAnalysisContent(analysis);
               return sections.length > 0 ? <div className="space-y-6">
-                      {sections.map((section, index) => <Card key={index} className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50">
+                      {sections.map((section, index) => <Card key={index} className="border-0 shadow-sm bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
                           <CardHeader className="pb-3">
-                            <CardTitle className={`flex items-center gap-3 ${isImportantHeading(section.title) ? 'text-xl' : 'text-lg'}`}>
+                            <CardTitle className={`flex items-center gap-3 ${isImportantHeading(section.title) ? 'text-xl' : 'text-lg'} text-slate-100`}>
                               {getSectionIcon(section.title)}
-                              <span className="flex-1 text-slate-950">{section.title}</span>
+                              <span className="flex-1">{section.title}</span>
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="pt-0">
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <div className="prose prose-sm prose-invert max-w-none">
                               <ReactMarkdown components={{
                         // Enhanced paragraph styling
                         p: ({
                           children
-                        }) => <p className="mb-4 leading-relaxed text-sm text-gray-700 last:mb-0">{children}</p>,
+                        }) => <p className="mb-4 leading-relaxed text-sm text-slate-300 last:mb-0">{children}</p>,
                         // Enhanced bullet points with custom styling
                         ul: ({
                           children
                         }) => <ul className="mb-6 space-y-2 last:mb-0">{children}</ul>,
                         li: ({
                           children
-                        }) => <li className="text-sm leading-relaxed text-gray-700 flex items-start gap-3 py-1">
-                                      <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-2"></span>
+                        }) => <li className="text-sm leading-relaxed text-slate-300 flex items-start gap-3 py-1">
+                                      <span className="w-2 h-2 bg-blue-400 rounded-full shrink-0 mt-2"></span>
                                       <span className="flex-1">{children}</span>
                                     </li>,
                         // Enhanced numbered lists with custom styling
@@ -261,33 +262,33 @@ export function FundThesisAlignment({
                         // Enhanced headers
                         h1: ({
                           children
-                        }) => <h1 className="text-lg font-bold mb-4 mt-6 first:mt-0 text-gray-900 border-b border-gray-200 pb-2">{children}</h1>,
+                        }) => <h1 className="text-lg font-bold mb-4 mt-6 first:mt-0 text-slate-100 border-b border-slate-600 pb-2">{children}</h1>,
                         h2: ({
                           children
-                        }) => <h2 className="text-base font-semibold mb-3 mt-5 first:mt-0 text-gray-800 flex items-center gap-2">
-                                      <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                        }) => <h2 className="text-base font-semibold mb-3 mt-5 first:mt-0 text-slate-200 flex items-center gap-2">
+                                      <span className="w-1 h-4 bg-blue-400 rounded-full"></span>
                                       {children}
                                     </h2>,
                         h3: ({
                           children
-                        }) => <h3 className="text-sm font-medium mb-2 mt-4 first:mt-0 text-gray-700">{children}</h3>,
+                        }) => <h3 className="text-sm font-medium mb-2 mt-4 first:mt-0 text-slate-300">{children}</h3>,
                         // Enhanced strong text
                         strong: ({
                           children
-                        }) => <strong className="font-semibold text-gray-900 bg-yellow-100 px-1 py-0.5 rounded">{children}</strong>,
+                        }) => <strong className="font-semibold text-slate-100 bg-blue-900/30 px-1 py-0.5 rounded">{children}</strong>,
                         // Enhanced emphasis
                         em: ({
                           children
-                        }) => <em className="italic text-blue-600 font-medium">{children}</em>,
+                        }) => <em className="italic text-blue-300 font-medium">{children}</em>,
                         // Enhanced code blocks
                         code: ({
                           children
-                        }) => <code className="bg-gray-100 border border-gray-200 px-2 py-1 rounded text-xs font-mono text-gray-800">{children}</code>,
+                        }) => <code className="bg-slate-800 border border-slate-600 px-2 py-1 rounded text-xs font-mono text-slate-200">{children}</code>,
                         // Enhanced blockquotes
                         blockquote: ({
                           children
-                        }) => <blockquote className="border-l-4 border-blue-400 bg-blue-50 pl-4 pr-4 py-3 ml-0 my-4 rounded-r-lg">
-                                      <div className="text-blue-800 text-sm font-medium">{children}</div>
+                        }) => <blockquote className="border-l-4 border-blue-400 bg-blue-900/20 pl-4 pr-4 py-3 ml-0 my-4 rounded-r-lg">
+                                      <div className="text-blue-200 text-sm font-medium">{children}</div>
                                     </blockquote>
                       }}>
                                 {section.body}
@@ -295,67 +296,67 @@ export function FundThesisAlignment({
                             </div>
                           </CardContent>
                         </Card>)}
-                    </div> : <div className="prose prose-sm dark:prose-invert max-w-none">
+                    </div> : <div className="prose prose-sm prose-invert max-w-none">
                       <ReactMarkdown components={{
                   p: ({
                     children
-                  }) => <p className="mb-4 leading-relaxed text-sm text-foreground">{children}</p>,
+                  }) => <p className="mb-4 leading-relaxed text-sm text-slate-300">{children}</p>,
                   ul: ({
                     children
                   }) => <ul className="mb-6 space-y-2 pl-6 list-disc">{children}</ul>,
                   li: ({
                     children
-                  }) => <li className="text-sm leading-relaxed text-foreground pl-1">{children}</li>,
+                  }) => <li className="text-sm leading-relaxed text-slate-300 pl-1">{children}</li>,
                   ol: ({
                     children
                   }) => <ol className="mb-6 space-y-2 pl-6 list-decimal">{children}</ol>,
                   h1: ({
                     children
-                  }) => <h1 className="text-xl font-bold mb-4 mt-6 first:mt-0 text-foreground border-b pb-2">{children}</h1>,
+                  }) => <h1 className="text-xl font-bold mb-4 mt-6 first:mt-0 text-slate-100 border-b border-slate-600 pb-2">{children}</h1>,
                   h2: ({
                     children
-                  }) => <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0 text-foreground">{children}</h2>,
+                  }) => <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0 text-slate-200">{children}</h2>,
                   h3: ({
                     children
-                  }) => <h3 className="text-base font-medium mb-2 mt-4 first:mt-0 text-foreground">{children}</h3>,
+                  }) => <h3 className="text-base font-medium mb-2 mt-4 first:mt-0 text-slate-300">{children}</h3>,
                   h4: ({
                     children
-                  }) => <h4 className="text-sm font-medium mb-2 mt-3 first:mt-0 text-foreground">{children}</h4>,
+                  }) => <h4 className="text-sm font-medium mb-2 mt-3 first:mt-0 text-slate-300">{children}</h4>,
                   strong: ({
                     children
-                  }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                  }) => <strong className="font-semibold text-slate-100">{children}</strong>,
                   em: ({
                     children
-                  }) => <em className="italic text-muted-foreground">{children}</em>,
+                  }) => <em className="italic text-slate-400">{children}</em>,
                   code: ({
                     children
-                  }) => <code className="bg-secondary px-2 py-1 rounded text-xs font-mono text-foreground">{children}</code>,
+                  }) => <code className="bg-slate-800 px-2 py-1 rounded text-xs font-mono text-slate-200">{children}</code>,
                   blockquote: ({
                     children
-                  }) => <blockquote className="border-l-4 border-blue-500 pl-4 ml-2 italic text-muted-foreground my-4 bg-secondary/20 py-2">
+                  }) => <blockquote className="border-l-4 border-blue-400 pl-4 ml-2 italic text-slate-400 my-4 bg-slate-800/20 py-2">
                               {children}
                             </blockquote>,
                   table: ({
                     children
                   }) => <div className="overflow-x-auto my-4">
-                              <table className="min-w-full border border-border">{children}</table>
+                              <table className="min-w-full border border-slate-600">{children}</table>
                             </div>,
                   th: ({
                     children
-                  }) => <th className="border border-border px-3 py-2 bg-secondary text-left font-medium text-sm">{children}</th>,
+                  }) => <th className="border border-slate-600 px-3 py-2 bg-slate-800 text-left font-medium text-sm text-slate-200">{children}</th>,
                   td: ({
                     children
-                  }) => <td className="border border-border px-3 py-2 text-sm">{children}</td>
+                  }) => <td className="border border-slate-600 px-3 py-2 text-sm text-slate-300">{children}</td>
                 }}>
                         {analysis}
                       </ReactMarkdown>
                     </div>;
             })() : <div className="flex justify-center items-center py-12">
-                  <Card className="text-center p-8 bg-gradient-to-br from-gray-50 to-gray-100 border-0 shadow-sm">
+                  <Card className="text-center p-8 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 shadow-sm">
                     <CardContent className="pt-0">
-                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                      <h3 className="text-lg font-medium text-gray-600 mb-2">No Analysis Available</h3>
-                      <p className="text-sm text-gray-500">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+                      <h3 className="text-lg font-medium text-slate-300 mb-2">No Analysis Available</h3>
+                      <p className="text-sm text-slate-400">
                         Click "Refresh Analysis" to generate a new fund thesis alignment report.
                       </p>
                     </CardContent>
@@ -364,13 +365,13 @@ export function FundThesisAlignment({
             </div>
           </ScrollArea>
           
-          <div className="border-t bg-gray-50 pt-4 pb-2 -m-6 mt-0 p-6 rounded-b-lg flex justify-between items-center">
-            <Button variant="outline" className="flex items-center gap-2 bg-white hover:bg-gray-100" onClick={handleRefreshAnalysis} disabled={isLoading}>
+          <div className="border-t border-slate-700 bg-slate-800 pt-4 pb-2 -m-6 mt-0 p-6 rounded-b-lg flex justify-between items-center">
+            <Button variant="outline" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-200" onClick={handleRefreshAnalysis} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh Analysis
             </Button>
             
-            <Button variant="default" onClick={() => setIsAnalysisModalOpen(false)} className="bg-blue-600 hover:bg-blue-700">
+            <Button variant="default" onClick={() => setIsAnalysisModalOpen(false)} className="bg-blue-600 hover:bg-blue-700 text-white">
               Close
             </Button>
           </div>
