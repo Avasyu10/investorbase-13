@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
+import { DeckActions } from "./DeckActions";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -152,6 +152,19 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }));
   };
 
+  const handleDeckUpdated = (companyId: string, deckUrl: string) => {
+    // Update local state to reflect the change immediately
+    setLocalCompanies(prev => prev.map(company => {
+      if (company.id === companyId) {
+        return {
+          ...company,
+          deck_url: deckUrl
+        };
+      }
+      return company;
+    }));
+  };
+
   const handleDownloadPdf = () => {
     const title = isIITBombay ? 'IIT Bombay Companies Prospects' : 'Companies Prospects';
     downloadCompaniesAsPdf(localCompanies, { 
@@ -198,6 +211,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold">Reason for Scoring</TableHead>
+                <TableHead className="font-semibold w-[80px]">Deck</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -242,6 +256,15 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                         <span className="text-sm text-muted-foreground">
                           {company.scoring_reason || "Scoring analysis is being generated for this company."}
                         </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DeckActions
+                          companyId={company.id}
+                          deckUrl={(company as any).deck_url}
+                          onDeckUpdated={(deckUrl) => handleDeckUpdated(company.id, deckUrl)}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>
@@ -291,6 +314,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
+                <TableHead className="font-semibold w-[80px]">Deck</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -298,7 +322,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const companyDetails = (company as any).company_details;
-                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
                 const status = companyDetails?.status || 'New';
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 
@@ -373,6 +396,15 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">{teamMemberName || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DeckActions
+                          companyId={company.id}
+                          deckUrl={(company as any).deck_url}
+                          onDeckUpdated={(deckUrl) => handleDeckUpdated(company.id, deckUrl)}
+                        />
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div 
