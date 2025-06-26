@@ -350,6 +350,22 @@ serve(async (req) => {
 
     CRITICAL: ALL strengths and weaknesses MUST include specific market data, competitor information, industry benchmarks, and quantified metrics. No generic statements allowed.
 
+    CRITICAL ASSESSMENT POINTS REQUIREMENTS:
+    - Each assessment point MUST be a complete, detailed sentence with specific market data and numbers
+    - Include market size in billions USD, growth rates as percentages, competitor valuations, funding amounts
+    - Reference specific companies, their funding rounds, market share data
+    - Include customer acquisition costs, lifetime values, market penetration rates
+    - Mention industry benchmarks, pricing data, and market positioning metrics
+    - NO single words or generic phrases - each point must be comprehensive and data-driven
+
+    WEAKNESSES REQUIREMENTS:
+    - Weaknesses MUST be based on market realities and competitive landscape analysis
+    - Focus on market challenges, competitive threats, industry dynamics, economic factors
+    - Include specific market data, competitor advantages, industry trends that pose challenges
+    - Reference actual market conditions, regulatory challenges, economic factors
+    - DO NOT mention what the form is missing or lacks - focus on market-based challenges
+    - Each weakness must include quantified market data and industry benchmarks
+
     Return ONLY this JSON structure with no additional text, markdown, or formatting:
     {
       "overall_score": 35,
@@ -365,31 +381,31 @@ serve(async (req) => {
           "score": 35,
           "analysis": "Evidence-based analysis highlighting specific content quality WITH MARKET SIZE DATA and industry growth statistics",
           "strengths": ["2-3 specific strengths with REAL MARKET NUMBERS, competitor valuations, and industry benchmarks"],
-          "improvements": ["3-4 specific improvements with MARKET DATA, funding benchmarks, and quantified industry metrics"]
+          "improvements": ["3-4 market-based challenges with SPECIFIC MARKET DATA including competitor advantages, market dynamics, industry trends that create challenges, economic factors, and regulatory hurdles - each with quantified metrics and industry benchmarks"]
         },
         "target_customers": {
           "score": 35,
           "analysis": "Evidence-based analysis of customer understanding WITH MARKET SIZING DATA and customer acquisition costs",
           "strengths": ["2-3 specific strengths with CUSTOMER SEGMENT SIZES, market penetration rates, and acquisition benchmarks"],
-          "improvements": ["3-4 specific improvements with CUSTOMER ACQUISITION DATA, market penetration statistics, and segmentation benchmarks"]
+          "improvements": ["3-4 market-based customer challenges with SPECIFIC DATA including market saturation rates, customer acquisition costs in the industry, competitive customer retention metrics, and market dynamics affecting customer segments"]
         },
         "competitors": {
           "score": 35,
           "analysis": "Evidence-based analysis of competitive understanding WITH COMPETITOR VALUATIONS and market share data",
           "strengths": ["2-3 specific strengths with COMPETITIVE MARKET SHARE DATA, competitor funding amounts, and positioning analysis"],
-          "improvements": ["3-4 specific improvements with COMPETITOR ANALYSIS including funding rounds, valuations, and market positioning data"]
+          "improvements": ["3-4 competitive market challenges with SPECIFIC DATA including dominant competitor market shares, competitor funding advantages, market positioning challenges, and competitive dynamics that create barriers"]
         },
         "revenue_model": {
           "score": 35,
           "analysis": "Evidence-based analysis of revenue strategy WITH INDUSTRY PRICING DATA and revenue benchmarks",
           "strengths": ["2-3 specific strengths with REVENUE BENCHMARKS, pricing comparisons, and industry monetization data"],
-          "improvements": ["3-4 specific improvements with PRICING STRATEGY DATA, revenue optimization metrics, and industry benchmarks"]
+          "improvements": ["3-4 revenue model challenges based on MARKET DATA including industry pricing pressures, market monetization challenges, competitive pricing advantages, and economic factors affecting revenue generation"]
         },
         "differentiation": {
           "score": 35,
           "analysis": "Evidence-based analysis of differentiation WITH MARKET POSITIONING DATA and innovation metrics",
           "strengths": ["2-3 specific strengths with INNOVATION METRICS, patent data, and differentiation benchmarks"],
-          "improvements": ["3-4 specific improvements with INNOVATION BENCHMARKS, market gap analysis, and competitive advantage data"]
+          "improvements": ["3-4 differentiation challenges with MARKET DATA including competitive innovation rates, market commoditization trends, technology adoption barriers, and industry factors that limit differentiation advantages"]
         }
       },
       "summary": {
@@ -397,21 +413,23 @@ serve(async (req) => {
         "key_factors": ["Key success factors with INDUSTRY DATA and market statistics"],
         "next_steps": ["Specific recommendations with MARKET-BASED TARGETS and industry benchmarks"],
         "assessment_points": [
-          "8-10 detailed assessment points with SPECIFIC MARKET DATA, competitor analysis, and industry benchmarks",
-          "Each point must include QUANTIFIED METRICS like market sizes in billions USD, growth rates as percentages, funding amounts, customer acquisition costs, etc.",
-          "Reference ACTUAL COMPANIES, their valuations, funding rounds, and market positions",
-          "Include INDUSTRY STATISTICS from credible sources like McKinsey, BCG, CB Insights, PitchBook",
-          "Mention SPECIFIC MARKET OPPORTUNITIES with addressable market sizes and growth projections",
-          "Include COMPETITIVE INTELLIGENCE with market share data, pricing comparisons, and positioning analysis",
-          "Reference FUNDING BENCHMARKS for similar stage companies and industry average funding amounts",
-          "Provide CUSTOMER METRICS like acquisition costs, lifetime value, and market penetration rates"
+          "The global SaaS market is valued at approximately 273 billion USD as of 2025 with an annual growth rate of 13.7 percent, indicating strong market potential for software solutions targeting enterprise customers",
+          "Customer acquisition costs in the SaaS industry average between 200-500 USD per customer depending on the segment, with enterprise customers requiring 1000-3000 USD investment for successful acquisition",
+          "Leading competitors like Salesforce (market cap 285 billion USD) and Microsoft (market cap 3.2 trillion USD) dominate with 19.8 percent and 14.2 percent market share respectively in the CRM space",
+          "Series A funding rounds in SaaS companies average 15-25 million USD with typical valuations of 50-100 million USD for companies showing 2-5 million USD annual recurring revenue",
+          "Customer lifetime value in B2B SaaS averages 3-5 times the customer acquisition cost, with successful companies achieving LTV/CAC ratios above 3:1 within 12-18 months",
+          "Market penetration in enterprise software segments typically ranges from 15-25 percent for established players, with new entrants achieving 1-3 percent market share within first 3 years",
+          "Industry pricing benchmarks show per-user monthly costs ranging from 10-100 USD for basic solutions to 200-500 USD for enterprise-grade platforms with advanced features",
+          "Competitive analysis reveals funding disparities where established players raised 100+ million USD in growth capital while emerging startups secure 5-15 million USD in early-stage funding",
+          "Market research indicates 65-75 percent of enterprises evaluate 3-5 competing solutions before purchase decisions, with evaluation cycles lasting 6-12 months for enterprise deals",
+          "Revenue growth rates for successful SaaS companies typically achieve 100+ percent year-over-year growth in early stages, declining to 30-50 percent growth as they scale beyond 10 million USD ARR"
         ]
       }
     }
 
-    CRITICAL: Every analysis section MUST be evidence-based, reflecting the actual quality and depth of responses provided. Empty or minimal responses must be scored accordingly (0-15 points). All "improvements" sections must focus on specific gaps identified in the actual responses and provide market-driven solutions with quantified data.
+    CRITICAL: Every analysis section MUST be evidence-based, reflecting the actual quality and depth of responses provided. Empty or minimal responses must be scored accordingly (0-15 points). All "improvements" sections must focus on market-based challenges with quantified data and industry benchmarks - NOT on what the form is missing.
 
-    IMPORTANT: Scoring must be STRICT and EVIDENCE-BASED. Do not inflate scores. Base all evaluations on actual content provided and its quality, depth, and evidence level. ALL market data, competitor information, and industry statistics must be SPECIFIC and QUANTIFIED.
+    IMPORTANT: Scoring must be STRICT and EVIDENCE-BASED. Do not inflate scores. Base all evaluations on actual content provided and its quality, depth, and evidence level. ALL market data, competitor information, and industry statistics must be SPECIFIC and QUANTIFIED. Assessment points must be comprehensive sentences with detailed market data and numbers.
 
     ${linkedInDataSection}
     `;
