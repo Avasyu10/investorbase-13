@@ -231,7 +231,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
             </div>
           </div>
 
-          {/* Chat Area */}
+          {/* Chat Area - Optimized layout */}
           <div className="flex-1 flex flex-col min-h-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
               <TabsList className="mb-2 flex-shrink-0">
@@ -245,7 +245,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="group" className="flex-1 flex flex-col min-h-0 mt-0">
+              <TabsContent value="group" className="flex-1 flex flex-col min-h-0 m-0">
                 <ScrollArea className="flex-1 border rounded-lg min-h-0">
                   {renderMessages(groupMessages)}
                 </ScrollArea>
@@ -274,10 +274,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="private" className="flex-1 flex flex-col min-h-0 mt-0">
+              <TabsContent value="private" className="flex-1 flex flex-col min-h-0 m-0">
                 {selectedPrivateUser ? (
-                  <>
-                    <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg flex-shrink-0">
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg flex-shrink-0 mb-2">
                       <Avatar className="h-6 w-6">
                         <AvatarFallback className={`${selectedPrivateUser.color} text-white text-xs`}>
                           {selectedPrivateUser.name.split(' ').map(n => n[0]).join('')}
@@ -286,7 +286,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       <span className="text-sm font-medium">Private chat with {selectedPrivateUser.name}</span>
                     </div>
                     
-                    <ScrollArea className="flex-1 border rounded-lg min-h-0 mt-2">
+                    <ScrollArea className="flex-1 border rounded-lg min-h-0">
                       {renderMessages(getPrivateMessages(selectedPrivateUser.id))}
                     </ScrollArea>
                     
@@ -313,7 +313,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                         Press Enter to send private message
                       </p>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground border rounded-lg">
                     <div className="text-center">
