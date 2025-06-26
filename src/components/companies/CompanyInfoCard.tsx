@@ -31,7 +31,7 @@ export function CompanyInfoCard({
   stage = "",
   industry = "",
   founderLinkedIns = [],
-  introduction = "No detailed information available for this company.",
+  introduction = "",
   description, // For backward compatibility
   pitchUrl,    // For backward compatibility
   reportId,     // For backward compatibility
@@ -42,20 +42,20 @@ export function CompanyInfoCard({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Use introduction or description (for backward compatibility)
-  const displayIntroduction = introduction || description || "No detailed information available for this company.";
+  const displayIntroduction = introduction || description || "";
 
   // Format website URL for display and linking
-  const displayWebsite = website && website !== "" 
+  const displayWebsite = website && website.trim() !== "" 
     ? website.replace(/^https?:\/\/(www\.)?/, '') 
-    : "Not available";
+    : "";
   
-  const websiteUrl = website && website !== "" 
+  const websiteUrl = website && website.trim() !== "" 
     ? (website.startsWith('http') ? website : `https://${website}`)
     : null;
 
-  // Display stage and industry with fallbacks
-  const displayStage = stage && stage !== "" ? stage : "Not specified";
-  const displayIndustry = industry && industry !== "" ? industry : "Not specified";
+  // Display stage and industry with proper handling of empty values
+  const displayStage = stage && stage.trim() !== "" ? stage : "";
+  const displayIndustry = industry && industry.trim() !== "" ? industry : "";
 
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
@@ -113,6 +113,10 @@ export function CompanyInfoCard({
     setDialogOpen(true);
   };
 
+  // Create a proper fallback introduction if none is provided
+  const finalIntroduction = displayIntroduction || 
+    `${companyData?.name || companyName} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
+
   return (
     <div className="mb-7">
       <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
@@ -138,7 +142,7 @@ export function CompanyInfoCard({
               )}
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-              {displayIntroduction}
+              {finalIntroduction}
             </p>
           </div>
           
@@ -167,7 +171,9 @@ export function CompanyInfoCard({
               <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Stage</p>
-                <p className="text-sm text-muted-foreground">{displayStage}</p>
+                <p className="text-sm text-muted-foreground">
+                  {displayStage || "Not specified"}
+                </p>
               </div>
             </div>
             
@@ -175,7 +181,9 @@ export function CompanyInfoCard({
               <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium">Industry</p>
-                <p className="text-sm text-muted-foreground">{displayIndustry}</p>
+                <p className="text-sm text-muted-foreground">
+                  {displayIndustry || "Not specified"}
+                </p>
               </div>
             </div>
           </div>
