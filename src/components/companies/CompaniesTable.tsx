@@ -170,14 +170,17 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     e.stopPropagation(); // Prevent row click event
     
     try {
+      console.log('Attempting to view deck for company:', company.id);
+      
       // Get the report associated with this company to find the PDF
       const { data: reportData, error } = await supabase
         .from('reports')
-        .select('pdf_url, user_id')
+        .select('pdf_url, user_id, title')
         .eq('company_id', company.id)
         .single();
 
-      if (error || !reportData?.pdf_url) {
+      if (error) {
+        console.error('Error fetching report:', error);
         toast({
           title: "No deck found",
           description: "No PDF deck is available for this company.",
@@ -186,12 +189,26 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         return;
       }
 
+      if (!reportData?.pdf_url) {
+        console.log('No PDF URL found in report data');
+        toast({
+          title: "No deck found",
+          description: "No PDF deck is available for this company.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Found PDF URL:', reportData.pdf_url);
+      console.log('Report user ID:', reportData.user_id);
+
       // Generate a signed URL for the PDF from report-pdfs bucket
       const { data: signedUrlData, error: urlError } = await supabase.storage
         .from('report-pdfs')
         .createSignedUrl(reportData.pdf_url, 3600); // 1 hour expiry
 
-      if (urlError || !signedUrlData?.signedUrl) {
+      if (urlError) {
+        console.error('Error creating signed URL:', urlError);
         toast({
           title: "Error accessing deck",
           description: "Failed to access the PDF deck. Please try again.",
@@ -200,8 +217,20 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         return;
       }
 
+      if (!signedUrlData?.signedUrl) {
+        console.error('No signed URL returned');
+        toast({
+          title: "Error accessing deck",
+          description: "Failed to generate access URL for the PDF deck.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Successfully created signed URL, opening PDF');
       // Open the PDF in a new tab
       window.open(signedUrlData.signedUrl, '_blank');
+      
     } catch (error) {
       console.error('Error opening deck:', error);
       toast({

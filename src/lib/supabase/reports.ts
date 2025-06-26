@@ -114,6 +114,26 @@ export async function createReportWithPdf(
   return data;
 }
 
+export async function getSignedPdfUrl(pdfPath: string): Promise<string> {
+  console.log('Getting signed URL for PDF:', pdfPath);
+  
+  const { data, error } = await supabase.storage
+    .from('report-pdfs')
+    .createSignedUrl(pdfPath, 3600); // 1 hour expiry
+
+  if (error) {
+    console.error('Error creating signed URL:', error);
+    throw new Error(`Failed to create signed URL: ${error.message}`);
+  }
+
+  if (!data?.signedUrl) {
+    throw new Error('No signed URL returned');
+  }
+
+  console.log('Signed URL created successfully');
+  return data.signedUrl;
+}
+
 export async function debugStorageBucket(): Promise<void> {
   console.log('=== STORAGE BUCKET DEBUG START ===');
   
