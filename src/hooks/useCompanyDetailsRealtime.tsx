@@ -3,15 +3,9 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface CompanyDetailsChange {
-  old_record?: {
-    company_id: string;
-    teammember_name: string | null;
-  };
-  new_record: {
-    company_id: string;
-    teammember_name: string | null;
-  };
+interface CompanyDetailsRecord {
+  company_id: string;
+  teammember_name: string | null;
 }
 
 interface UseCompanyDetailsRealtimeProps {
@@ -44,15 +38,18 @@ export const useCompanyDetailsRealtime = ({ onPocChanged }: UseCompanyDetailsRea
         },
         (payload) => {
           console.log('Company details updated:', payload);
-          const change = payload as CompanyDetailsChange;
+          
+          // Use Supabase's actual payload structure (old/new instead of old_record/new_record)
+          const oldRecord = payload.old as CompanyDetailsRecord;
+          const newRecord = payload.new as CompanyDetailsRecord;
           
           // Check if teammember_name (POC) has changed
-          const oldPoc = change.old_record?.teammember_name;
-          const newPoc = change.new_record?.teammember_name;
+          const oldPoc = oldRecord?.teammember_name;
+          const newPoc = newRecord?.teammember_name;
           
           if (oldPoc !== newPoc) {
-            console.log('POC changed:', { oldPoc, newPoc, companyId: change.new_record.company_id });
-            onPocChanged(change.new_record.company_id, oldPoc || null, newPoc || null);
+            console.log('POC changed:', { oldPoc, newPoc, companyId: newRecord.company_id });
+            onPocChanged(newRecord.company_id, oldPoc || null, newPoc || null);
           }
         }
       )
