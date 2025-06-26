@@ -103,7 +103,7 @@ const Dashboard = () => {
             {isVC && (
               <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Analyze Deck
+                Upload Deck
               </Button>
             )}
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
