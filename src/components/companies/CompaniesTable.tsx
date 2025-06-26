@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -199,48 +198,24 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         return;
       }
 
-      console.log('Found PDF URL in database:', reportData.pdf_url);
+      console.log('Found PDF filename in database:', reportData.pdf_url);
+      console.log('Report user ID:', reportData.user_id);
 
-      // Use the path exactly as stored in the database
-      // The uploadReportPdf function already stores the full path including user folder
+      // Construct the full path: user_id/filename
+      // This matches how the PDF was stored in the storage bucket
+      const fullPdfPath = `${reportData.user_id}/${reportData.pdf_url}`;
+      console.log('Constructed full PDF path for storage:', fullPdfPath);
+
+      // Create signed URL using the full path
       const { data: signedUrlData, error: urlError } = await supabase.storage
         .from('report-pdfs')
-        .createSignedUrl(reportData.pdf_url, 3600); // 1 hour expiry
+        .createSignedUrl(fullPdfPath, 3600); // 1 hour expiry
 
-      if (urlError) {
+      if (urlError || !signedUrlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);
-        // If the direct path fails, try to construct it with user folder
-        console.log('Trying alternative path construction...');
-        const alternativePath = reportData.pdf_url.includes('/') 
-          ? reportData.pdf_url 
-          : `${reportData.user_id}/${reportData.pdf_url}`;
-        
-        console.log('Trying alternative path:', alternativePath);
-        
-        const { data: altSignedUrlData, error: altUrlError } = await supabase.storage
-          .from('report-pdfs')
-          .createSignedUrl(alternativePath, 3600);
-        
-        if (altUrlError || !altSignedUrlData?.signedUrl) {
-          console.error('Alternative path also failed:', altUrlError);
-          toast({
-            title: "Error accessing deck",
-            description: "Failed to access the PDF deck. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        console.log('Alternative path worked, opening PDF');
-        window.open(altSignedUrlData.signedUrl, '_blank');
-        return;
-      }
-
-      if (!signedUrlData?.signedUrl) {
-        console.error('No signed URL returned');
         toast({
           title: "Error accessing deck",
-          description: "Failed to generate access URL for the PDF deck.",
+          description: "Failed to access the PDF deck. Please try again.",
           variant: "destructive",
         });
         return;

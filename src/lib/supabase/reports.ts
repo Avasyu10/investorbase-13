@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Report {
@@ -64,9 +63,10 @@ export async function analyzeReport(reportId: string): Promise<void> {
 export async function uploadReportPdf(file: File, userId: string): Promise<string> {
   console.log('Uploading PDF to report-pdfs bucket:', file.name);
   
-  // Generate a unique filename with user folder structure
+  // Generate a unique filename with timestamp
   const timestamp = Date.now();
   const fileName = `${timestamp}_${file.name}`;
+  // Store directly in user folder structure
   const fullPath = `${userId}/${fileName}`;
   
   const { data, error } = await supabase.storage
@@ -81,9 +81,10 @@ export async function uploadReportPdf(file: File, userId: string): Promise<strin
     throw new Error(`Failed to upload PDF: ${error.message}`);
   }
 
-  console.log('PDF uploaded successfully to path:', data.path);
-  // Return the full path as stored in Supabase storage
-  return data.path;
+  console.log('PDF uploaded successfully to storage path:', data.path);
+  // Return only the filename part, not the full path
+  // This matches how the existing system expects it
+  return fileName;
 }
 
 export async function createReportWithPdf(
@@ -92,18 +93,19 @@ export async function createReportWithPdf(
   file: File, 
   userId: string
 ): Promise<Report> {
-  // First upload the PDF - this returns the full path including user folder
-  const pdfPath = await uploadReportPdf(file, userId);
+  // Upload the PDF and get just the filename
+  const fileName = await uploadReportPdf(file, userId);
   
-  console.log('Creating report with PDF path:', pdfPath);
+  console.log('Creating report with PDF filename:', fileName);
   
-  // Then create the report record with the full path
+  // Store just the filename in the database (not the full path)
+  // The full path will be constructed when needed for retrieval
   const { data, error } = await supabase
     .from('reports')
     .insert({
       title,
       description,
-      pdf_url: pdfPath, // Store the full path returned from storage
+      pdf_url: fileName, // Store just the filename
       user_id: userId,
       analysis_status: 'pending'
     })
@@ -115,7 +117,7 @@ export async function createReportWithPdf(
     throw new Error(`Failed to create report: ${error.message}`);
   }
 
-  console.log('Report created successfully with PDF path:', data.pdf_url);
+  console.log('Report created successfully with PDF filename:', data.pdf_url);
   return data;
 }
 
