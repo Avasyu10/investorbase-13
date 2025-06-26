@@ -1,13 +1,13 @@
-import { useState, useCallback } from "react";
+
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Users, User, UserCheck, Wifi, WifiOff } from "lucide-react";
+import { Send, MessageCircle, Users, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCompanyDetailsRealtime } from "@/hooks/useCompanyDetailsRealtime";
 
 interface Message {
   id: string;
@@ -16,8 +16,6 @@ interface Message {
   timestamp: Date;
   isPrivate?: boolean;
   targetUserId?: string;
-  isSystemMessage?: boolean;
-  messageType?: 'poc_change';
 }
 
 interface User {
@@ -92,41 +90,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
 
-  // Handle POC change notifications with useCallback to ensure stable reference
-  const handlePocChanged = useCallback((companyId: string, oldPoc: string | null, newPoc: string | null) => {
-    console.log('🎯 POC change handler called:', { companyId, oldPoc, newPoc });
-    
-    const systemMessage: Message = {
-      id: `poc_change_${Date.now()}`,
-      user: {
-        id: "system",
-        name: "System",
-        role: "admin",
-        color: "bg-blue-500"
-      },
-      content: `🔔 Team POC updated for company ${companyId.substring(0, 8)}... - Changed from "${oldPoc || 'None'}" to "${newPoc || 'None'}"`,
-      timestamp: new Date(),
-      isSystemMessage: true,
-      messageType: 'poc_change'
-    };
-
-    console.log('📨 Adding system message to group chat:', systemMessage);
-    setGroupMessages(prev => {
-      const newMessages = [...prev, systemMessage];
-      console.log('📝 Updated group messages count:', newMessages.length);
-      return newMessages;
-    });
-  }, []);
-
-  // Set up realtime subscription and get connection status
-  const { isConnected, retryCount } = useCompanyDetailsRealtime({ onPocChanged: handlePocChanged });
-
-  // Add a test function to manually trigger a notification (for debugging)
-  const testNotification = useCallback(() => {
-    console.log('🧪 Testing notification manually...');
-    handlePocChanged('test-company-id', 'Old POC', 'New POC');
-  }, [handlePocChanged]);
-
   const handleSendMessage = (isPrivate = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
 
@@ -181,35 +144,21 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           <Avatar className="h-8 w-8 flex-shrink-0">
             <AvatarImage src={message.user.avatar} />
             <AvatarFallback className={`${message.user.color} text-white text-xs`}>
-              {message.isSystemMessage ? (
-                <UserCheck className="h-4 w-4" />
-              ) : (
-                message.user.name.split(' ').map(n => n[0]).join('')
-              )}
+              {message.user.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">{message.user.name}</span>
-              {!message.isSystemMessage && (
-                <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
-                  {message.user.role}
-                </Badge>
-              )}
+              <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
+                {message.user.role}
+              </Badge>
               <span className="text-xs text-muted-foreground">
                 {formatTime(message.timestamp)}
               </span>
             </div>
-            <div className={`rounded-lg p-3 ${
-              message.isSystemMessage 
-                ? 'bg-blue-50 border border-blue-200' 
-                : 'bg-muted/30'
-            }`}>
-              <p className={`text-sm leading-relaxed ${
-                message.isSystemMessage ? 'text-blue-800 font-medium' : ''
-              }`}>
-                {message.content}
-              </p>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-sm leading-relaxed">{message.content}</p>
             </div>
           </div>
         </div>
@@ -226,23 +175,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
             VC Team Chat
-            
-            {/* Connection Status Indicator */}
-            <div className="ml-auto flex items-center gap-2">
-              {isConnected ? (
-                <div className="flex items-center gap-1 text-green-600">
-                  <Wifi className="h-4 w-4" />
-                  <span className="text-xs">Live</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-red-600">
-                  <WifiOff className="h-4 w-4" />
-                  <span className="text-xs">
-                    {retryCount > 0 ? `Retry ${retryCount}/5` : 'Connecting...'}
-                  </span>
-                </div>
-              )}
-            </div>
           </DialogTitle>
         </DialogHeader>
         
@@ -347,16 +279,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-muted-foreground">
-                        Press Enter to send • Click on team members for private chat
-                      </p>
-                      {!isConnected && (
-                        <p className="text-xs text-amber-600">
-                          Real-time notifications disabled
-                        </p>
-                      )}
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Press Enter to send • Click on team members for private chat
+                    </p>
                   </div>
                 </>
               ) : selectedPrivateUser ? (
