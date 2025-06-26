@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -233,20 +234,22 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col p-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-              <TabsList className="flex-shrink-0 mb-3">
-                <TabsTrigger value="group" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Group Chat
-                </TabsTrigger>
-                <TabsTrigger value="private" className="flex items-center gap-2" disabled={!selectedPrivateUser}>
-                  <User className="h-4 w-4" />
-                  {selectedPrivateUser ? `Chat with ${selectedPrivateUser.name}` : "Private Chat"}
-                </TabsTrigger>
-              </TabsList>
+          <div className="flex-1 flex flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+              <div className="px-3 pt-3 pb-0">
+                <TabsList className="flex-shrink-0">
+                  <TabsTrigger value="group" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Group Chat
+                  </TabsTrigger>
+                  <TabsTrigger value="private" className="flex items-center gap-2" disabled={!selectedPrivateUser}>
+                    <User className="h-4 w-4" />
+                    {selectedPrivateUser ? `Chat with ${selectedPrivateUser.name}` : "Private Chat"}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-              <TabsContent value="group" className="flex-1 flex flex-col m-0 data-[state=active]:flex">
+              <TabsContent value="group" className="flex-1 flex flex-col m-0 mt-3 px-3 pb-3 data-[state=active]:flex">
                 <div className="flex-1 flex flex-col">
                   <ScrollArea className="flex-1 border rounded-lg">
                     {renderMessages(groupMessages)}
@@ -277,7 +280,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="private" className="flex-1 flex flex-col m-0 data-[state=active]:flex">
+              <TabsContent value="private" className="flex-1 flex flex-col m-0 mt-3 px-3 pb-3 data-[state=active]:flex">
                 {selectedPrivateUser ? (
                   <div className="flex-1 flex flex-col">
                     <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg flex-shrink-0 mb-3">
@@ -293,7 +296,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       {renderMessages(getPrivateMessages(selectedPrivateUser.id))}
                     </ScrollArea>
                     
-                    <div className="border-t pt-3 mt-3 flex-shrink-0">
+                    <div className="pt-3 mt-3 flex-shrink-0">
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <Input
@@ -333,3 +336,4 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     </Dialog>
   );
 }
+
