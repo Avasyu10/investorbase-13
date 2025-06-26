@@ -35,30 +35,47 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
   };
 
   const formatSectionTitle = (title: string, sectionType?: string) => {
-    // Handle Eureka form specific section types
-    if (sectionType) {
-      switch (sectionType) {
-        case 'problem_solution_fit':
-          return 'Problem & Solution';
-        case 'target_customers':
-          return 'Target Customers';
-        case 'competitors':
-          return 'Competitors';
-        case 'revenue_model':
-          return 'Revenue Model';
-        case 'differentiation':
-          return 'Differentiation';
-        default:
-          break;
-      }
+    // Custom VC section title mappings
+    const vcTitleMappings: { [key: string]: string } = {
+      'problem_solution_fit': 'Problem Statement',
+      'problem_and_solution': 'Problem Statement',
+      'problem': 'Problem Statement',
+      'market_size': 'Market Size',
+      'market_opportunity': 'Market Size',
+      'market': 'Market Size',
+      'solution': 'Solution',
+      'product': 'Solution',
+      'traction': 'Traction',
+      'growth': 'Traction',
+      'competitors': 'Competitor',
+      'competition': 'Competitor',
+      'competitive_analysis': 'Competitor',
+      'revenue_model': 'Business Model',
+      'business_model': 'Business Model',
+      'monetization': 'Business Model',
+      'team': 'Team',
+      'management': 'Team',
+      'founders': 'Team',
+      'financials': 'Financials',
+      'financial_projections': 'Financials',
+      'funding': 'Financials',
+      'ask': 'Ask',
+      'funding_ask': 'Ask',
+      'investment_ask': 'Ask'
+    };
+
+    // Check section type first
+    if (sectionType && vcTitleMappings[sectionType]) {
+      return vcTitleMappings[sectionType];
     }
-    
-    // Use the title from the section directly if it's already formatted
-    if (title && title.includes('&')) {
-      return title; // Already formatted titles like "Problem & Solution"
+
+    // Check title (convert to lowercase and replace spaces with underscores)
+    const normalizedTitle = title.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, 'and');
+    if (vcTitleMappings[normalizedTitle]) {
+      return vcTitleMappings[normalizedTitle];
     }
-    
-    // Fallback to formatting for older sections
+
+    // Fallback to formatted title
     return title
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))

@@ -175,6 +175,52 @@ function CompanyDetails() {
   const filteredSections = company?.sections ? 
     company.sections.filter(section => section.type !== 'SLIDE_NOTES') : [];
 
+  // Custom sorting for VC users with specific order
+  const getSortedSections = () => {
+    if (!filteredSections.length) return [];
+    
+    // Define the custom order for VC section display
+    const vcSectionOrder = [
+      'problem_statement', 'problem_solution_fit', 'problem_and_solution', 'problem',
+      'market_size', 'market_opportunity', 'market',
+      'solution', 'product',
+      'traction', 'growth',
+      'competitors', 'competition', 'competitive_analysis',
+      'business_model', 'revenue_model', 'monetization',
+      'team', 'management', 'founders',
+      'financials', 'financial_projections', 'funding',
+      'ask', 'funding_ask', 'investment_ask'
+    ];
+
+    return [...filteredSections].sort((a, b) => {
+      // Normalize section identifiers for comparison
+      const getNormalizedKey = (section: any) => {
+        if (section.section_type) return section.section_type.toLowerCase();
+        return section.title.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, 'and');
+      };
+
+      const keyA = getNormalizedKey(a);
+      const keyB = getNormalizedKey(b);
+
+      const indexA = vcSectionOrder.findIndex(order => keyA.includes(order) || order.includes(keyA));
+      const indexB = vcSectionOrder.findIndex(order => keyB.includes(order) || order.includes(keyB));
+
+      // If both sections are in the custom order, sort by that order
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+
+      // If only one is in the custom order, prioritize it
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+
+      // If neither is in the custom order, maintain original order
+      return 0;
+    });
+  };
+
+  const sortedSections = getSortedSections();
+
   console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
   console.log('Is VC User:', isVCUser);
@@ -238,9 +284,9 @@ function CompanyDetails() {
                 Section Metrics
               </h2>
               
-              {filteredSections.length > 0 ? (
+              {sortedSections.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  {filteredSections.map((section) => (
+                  {sortedSections.map((section) => (
                     <SectionCard 
                       key={section.id} 
                       section={section} 
