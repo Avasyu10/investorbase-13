@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { ProgressIndicator } from "@/components/reports/upload/ProgressIndicator";
@@ -120,19 +119,13 @@ export function VCAnalysisUpload() {
       
       console.log('VCAnalysisUpload - VC analysis completed successfully');
       
+      // Show success message and redirect to dashboard
       toast({
-        title: "Analysis Complete",
-        description: "Your pitch deck has been successfully analyzed with VC insights.",
+        title: "Analysis Complete!",
+        description: "Your pitch deck has been analyzed with VC insights. You can view the results in your dashboard.",
       });
       
-      // Navigate to the company details page
-      if (data.companyId) {
-        console.log('VCAnalysisUpload - Navigating to company:', data.companyId);
-        navigate(`/company/${data.companyId}`);
-      } else {
-        console.log('VCAnalysisUpload - No company ID returned, navigating to dashboard');
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     } catch (error) {
       console.error('VCAnalysisUpload - Error in upload/analysis process:', error);
       setIsUploading(false);

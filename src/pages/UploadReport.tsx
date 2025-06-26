@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -231,16 +230,12 @@ const UploadReport = () => {
         const result = await analyzeReport(report.id);
         console.log("Analysis complete, result:", result);
         
-        toast.success("Analysis complete", {
-          description: "Your pitch deck has been analyzed successfully!"
+        // Show success message and redirect to dashboard
+        toast.success("Analysis Complete!", {
+          description: "Your pitch deck has been analyzed successfully. You can view the results in your dashboard."
         });
         
-        if (result && result.companyId) {
-          navigate(`/company/${result.companyId}`);
-        } else {
-          console.error("No company ID returned from analysis");
-          navigate('/dashboard');
-        }
+        navigate('/dashboard');
       } catch (analysisError: any) {
         console.error("Error analyzing report:", analysisError);
         
