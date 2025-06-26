@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -234,9 +235,9 @@ serve(async (req) => {
         ).join('\n\n')}`
       : '\n\nNo LinkedIn data available for founders.';
 
-    // Build analysis prompt with submission data - FIXED to avoid problematic characters
+    // Build analysis prompt with submission data - ENHANCED for better analysis
     const analysisPrompt = `
-    You are an expert startup evaluator with BALANCED AND FAIR SCORING STANDARDS. Your goal is to evaluate startup applications fairly while providing meaningful score differentiation. Most good applications should score between 60-80, with exceptional ones reaching 80-90.
+    You are an expert startup evaluator for IIT Bombay's incubation program. Your analysis should be thorough, practical, and include specific actionable insights with real market data.
 
     CRITICAL JSON FORMATTING REQUIREMENTS:
     - You MUST return ONLY valid JSON with no markdown formatting, code blocks, or additional text
@@ -246,148 +247,116 @@ serve(async (req) => {
     - Avoid using ampersand (&) symbols - write "and" instead
     - No backticks, no explanatory text - just pure JSON
 
-    IMPORTANT: You MUST incorporate real market data, numbers, and industry statistics in your analysis. Reference actual market sizes, growth rates, funding rounds, competitor valuations, and industry benchmarks whenever possible. When writing monetary amounts, always use "billion USD" or "million USD" format instead of symbols.
-
     Company Information:
     - Company Name: ${submission.company_name || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
 
-    Application Responses and FAIR EVALUATION METRICS:
+    Application Analysis Framework:
 
-    1. PROBLEM AND SOLUTION: "${submission.question_1 || 'Not provided'}"
+    1. PROBLEM AND SOLUTION ANALYSIS: "${submission.question_1 || 'Not provided'}"
+    Evaluate: Problem clarity, solution viability, market timing, innovation level
     
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Clear problem identification (25 points): Look for specific pain points and market needs
-    - Solution viability (25 points): Assess if the solution logically addresses the problem
-    - Market understanding (25 points): Evidence of market research and validation
-    - Innovation level (25 points): How unique or differentiated the approach is
+    2. TARGET MARKET ASSESSMENT: "${submission.question_2 || 'Not provided'}"
+    Evaluate: Customer segmentation, market size, accessibility, validation evidence
     
-    Be generous with scoring - if someone provides detailed explanations with specific examples, they should score 70+ in this section.
-
-    2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
+    3. COMPETITIVE LANDSCAPE: "${submission.question_3 || 'Not provided'}"
+    Evaluate: Competitor awareness, differentiation strategy, market positioning, barriers to entry
     
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Customer segmentation clarity (30 points): How well-defined their target customers are
-    - Market size understanding (25 points): Realistic assessment of addressable market
-    - Customer pain validation (25 points): Evidence of understanding customer needs
-    - Go-to-market feasibility (20 points): Realistic customer acquisition strategy
+    4. REVENUE MODEL EVALUATION: "${submission.question_4 || 'Not provided'}"
+    Evaluate: Revenue streams, pricing strategy, scalability, financial projections
     
-    Reward detailed customer analysis - specific customer segments with clear characteristics should score 70+.
+    5. DIFFERENTIATION STRATEGY: "${submission.question_5 || 'Not provided'}"
+    Evaluate: Unique value proposition, competitive advantages, IP potential, market opportunity
 
-    3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
-    
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Competitive landscape awareness (35 points): Knowledge of direct and indirect competitors
-    - Differentiation strategy (30 points): Clear unique value proposition
-    - Competitive analysis depth (20 points): Understanding of competitor strengths/weaknesses
-    - Market positioning (15 points): How they plan to position against competition
-    
-    Give credit for acknowledging competition and showing differentiation - should easily score 65+ if they identify competitors and explain differences.
+    SCORING GUIDELINES (0-100 scale):
+    - 85-100: Exceptional - Ready for top-tier funding
+    - 70-84: Strong - High potential with minor improvements needed
+    - 55-69: Moderate - Good foundation but significant development required
+    - 40-54: Weak - Major improvements needed across multiple areas
+    - 0-39: Poor - Fundamental issues that need addressing
 
-    4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
-   
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Revenue stream clarity (30 points): Clear explanation of how they make money
-    - Pricing strategy logic (25 points): Reasonable pricing with market justification
-    - Financial projections (25 points): Realistic financial expectations
-    - Scalability potential (20 points): How the model can grow over time
-    
-    Reward clear revenue thinking - if they explain multiple revenue streams or show market research on pricing, score 70+.
+    ASSESSMENT POINTS REQUIREMENTS:
+    Generate 8-12 specific, actionable assessment points that include:
+    - Market size data and growth projections for the specific industry
+    - Competitor analysis with actual company names and valuations
+    - Technology trends and adoption rates
+    - Customer acquisition cost benchmarks for the industry
+    - Revenue model comparisons with similar successful startups
+    - Regulatory considerations and compliance requirements
+    - Team composition recommendations based on industry standards
+    - Funding landscape analysis for the sector
+    - Go-to-market strategy recommendations with timeline
+    - Risk assessment with mitigation strategies
 
-    5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
-    
-    Rate this section from 0-100 based on these FAIR criteria:
-    - Unique value proposition (35 points): What makes them different from alternatives
-    - Competitive advantages (25 points): Sustainable advantages they can maintain
-    - Innovation factor (25 points): Technology or approach innovations
-    - Market opportunity (15 points): How differentiation creates market opportunity
-    
-    Value creative solutions - unique approaches to known problems should score 70+, truly innovative solutions should score 80+.
+    OVERALL SCORE CALCULATION:
+    Weight sections as: Problem/Solution (30%), Market (25%), Competition (20%), Revenue (15%), Differentiation (10%)
 
-    BALANCED SCORING REQUIREMENTS:
-
-    1. BE GENEROUS WITH GOOD RESPONSES: If someone provides detailed, thoughtful answers with specific examples, they should score 70-85 in each section
-    2. REWARD EFFORT AND DEPTH: Don't penalize for not having everything perfect - reward comprehensive thinking
-    3. REALISTIC EXPECTATIONS: These are early-stage startups, not established companies with perfect market data
-    4. OVERALL SCORE = (PROBLEM_SOLUTION × 0.25) + (TARGET_CUSTOMERS × 0.25) + (COMPETITORS × 0.20) + (REVENUE_MODEL × 0.15) + (DIFFERENTIATION × 0.15)
-
-    RECOMMENDATION LOGIC:
-    - Accept: Overall score ≥ 75 (top tier applications with strong execution potential)
-    - Consider: Overall score 60-74 (solid applications with good potential)
-    - Reject: Overall score < 60 (applications needing significant development)
-
-    MANDATORY MARKET DATA REQUIREMENTS FOR STRENGTHS AND WEAKNESSES:
-    - Include actual market size figures in billions or millions USD for the industry
-    - Reference real growth rates and industry trends using percentage figures written as "percent"
-    - Mention specific competitor companies and their valuations when possible
-    - Include funding data for similar companies in the space
-    - Use actual industry statistics and benchmarks
-    - Reference real market research data and sources
-
-    Return ONLY this JSON structure with no additional text, markdown, or formatting:
+    Return ONLY this JSON structure:
     {
       "overall_score": 75,
-      "scoring_reason": "One concise sentence explaining the overall assessment WITH SPECIFIC MARKET DATA",
-      "recommendation": "Accept",
+      "scoring_reason": "Comprehensive one-sentence assessment with specific market context and key strengths/weaknesses",
+      "recommendation": "Accept/Consider/Reject with brief justification",
       "company_info": {
-        "industry": "string (infer from application)",
-        "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description WITH MARKET CONTEXT)"
+        "industry": "specific industry classification",
+        "stage": "Idea/MVP/Early Revenue/Growth based on application maturity",
+        "introduction": "2-3 sentence company description with market context and potential"
       },
       "sections": {
         "problem_solution_fit": {
           "score": 75,
-          "analysis": "Balanced analysis highlighting what they did well and areas for improvement WITH MARKET DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REAL MARKET NUMBERS"],
-          "improvements": ["4-5 market-driven improvement areas with industry benchmarks and competitive data - DO NOT mention missing form information, focus entirely on market challenges and opportunities"]
+          "analysis": "Detailed analysis of problem identification and solution approach with market validation",
+          "strengths": ["4-5 specific strengths with market data and examples"],
+          "improvements": ["4-5 specific recommendations with industry benchmarks and actionable steps"]
         },
-        "target_customers": {
+        "target_market": {
           "score": 75,
-          "analysis": "Balanced analysis of their customer understanding WITH MARKET SIZING DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING CUSTOMER SEGMENT SIZES"],
-          "improvements": ["4-5 market-driven improvement areas with customer acquisition benchmarks and market penetration data - focus on market challenges, not form gaps"]
+          "analysis": "Comprehensive market analysis with sizing, segmentation, and accessibility assessment",
+          "strengths": ["4-5 specific strengths with customer data and market research"],
+          "improvements": ["4-5 specific recommendations with market penetration strategies and metrics"]
         },
-        "competitors": {
+        "competitive_analysis": {
           "score": 75,
-          "analysis": "Balanced analysis of their competitive understanding WITH COMPETITOR VALUATIONS",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING COMPETITIVE MARKET SHARE DATA"],
-          "improvements": ["4-5 market-driven improvement areas with competitor analysis and market positioning insights - focus on competitive challenges, not missing information"]
+          "analysis": "Thorough competitive landscape review with positioning and differentiation assessment",
+          "strengths": ["4-5 specific strengths with competitor comparisons and market positioning"],
+          "improvements": ["4-5 specific recommendations with competitive strategy and market entry tactics"]
         },
-        "revenue_model": {
+        "business_model": {
           "score": 75,
-          "analysis": "Balanced analysis of their revenue strategy WITH INDUSTRY PRICING DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING REVENUE BENCHMARKS"],
-          "improvements": ["4-5 market-driven improvement areas with pricing strategy insights and revenue optimization based on industry data - focus on market dynamics, not missing details"]
+          "analysis": "Detailed revenue model evaluation with scalability and sustainability assessment",
+          "strengths": ["4-5 specific strengths with revenue benchmarks and financial projections"],
+          "improvements": ["4-5 specific recommendations with pricing optimization and revenue diversification"]
         },
-        "differentiation": {
+        "innovation_differentiation": {
           "score": 75,
-          "analysis": "Balanced analysis of their differentiation strategy WITH MARKET POSITIONING DATA",
-          "strengths": ["4-5 specific strengths with detailed explanations INCLUDING INNOVATION METRICS"],
-          "improvements": ["4-5 market-driven improvement areas with innovation benchmarks and market gap analysis - focus on market opportunities and challenges, not form completeness"]
+          "analysis": "Innovation assessment with differentiation strategy and competitive advantage evaluation",
+          "strengths": ["4-5 specific strengths with technology trends and market opportunities"],
+          "improvements": ["4-5 specific recommendations with innovation roadmap and IP strategy"]
         }
       },
       "summary": {
-        "overall_feedback": "Comprehensive feedback focusing on strengths and growth opportunities WITH MARKET CONTEXT",
-        "key_factors": ["Key success factors and potential challenges WITH INDUSTRY DATA"],
-        "next_steps": ["Specific recommendations for next steps WITH MARKET-BASED GUIDANCE"],
+        "overall_feedback": "Comprehensive 3-4 sentence evaluation highlighting key strengths, challenges, and potential",
+        "key_factors": ["5-6 critical success factors with specific metrics and benchmarks"],
+        "next_steps": ["5-6 prioritized action items with timelines and success metrics"],
         "assessment_points": [
-          "8-10 detailed assessment points combining market analysis with startup evaluation",
-          "Focus on realistic market opportunities and strategic recommendations WITH ACTUAL NUMBERS",
-          "Include SPECIFIC market data, competitor analysis, and industry benchmarks",
-          "Emphasize actionable insights and growth potential WITH QUANTIFIED TARGETS",
-          "Balance constructive criticism with recognition of good work USING MARKET STANDARDS",
-          "Reference actual funding rounds, market sizes, and growth rates where relevant",
-          "Include specific competitor companies, their valuations, and market positions",
-          "Provide industry-specific metrics and benchmarks for comparison"
+          "Market size analysis: The industry is valued at X billion USD with Y percent annual growth",
+          "Competitive landscape: Key players include Company A (valued at X USD) and Company B (market share Y percent)",
+          "Customer acquisition: Industry CAC averages X USD with CLTV ratios of Y:1",
+          "Technology adoption: Current market penetration is X percent with projected growth to Y percent by 2025",
+          "Revenue benchmarks: Similar startups achieve X USD ARR at this stage with Y percent growth rates",
+          "Funding environment: Seed rounds in this sector average X million USD with Series A at Y million USD",
+          "Regulatory landscape: Key compliance requirements include X, Y, and Z with typical costs of A USD",
+          "Team requirements: Successful companies in this space typically have X technical roles and Y business roles",
+          "Go-to-market timeline: Industry standard is X months for MVP, Y months for market entry",
+          "Risk factors: Primary risks include market timing, competition from big tech, and regulatory changes",
+          "Success metrics: Key KPIs should include user acquisition rate, retention, revenue per user, and market share",
+          "Strategic partnerships: Consider alliances with established players in adjacent markets for faster growth"
         ]
       }
     }
 
-    CRITICAL: Every analysis section MUST include real market data, specific numbers, competitor information, industry statistics, and quantified benchmarks. All "improvements" sections must be market-driven insights focusing on industry challenges and opportunities, NOT gaps in the application form.
-
-    IMPORTANT: Be fair and generous in your scoring. If someone has put effort into their answers and shows understanding of their business, they should score well. Don't be overly critical - focus on recognizing good work while providing constructive guidance for improvement with real market data.
+    IMPORTANT: Every analysis must include specific market data, competitor information, financial benchmarks, and actionable recommendations. Assessment points should be detailed insights that demonstrate deep market understanding and provide clear guidance for the startup's development.
 
     ${linkedInDataSection}
     `;
@@ -407,8 +376,8 @@ serve(async (req) => {
           }]
         }],
         generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 4000,
+          temperature: 0.2,
+          maxOutputTokens: 6000,
         }
       }),
     });
@@ -457,7 +426,9 @@ serve(async (req) => {
         assessment_points: analysisResult.summary?.assessment_points || [],
         user_id: effectiveUserId,
         source: 'eureka_form',
-        industry: submission.company_type || null,
+        industry: analysisResult.company_info?.industry || submission.company_type || null,
+        stage: analysisResult.company_info?.stage || 'Early Stage',
+        introduction: analysisResult.company_info?.introduction || `${submission.company_name} is an innovative startup in the ${submission.company_type || 'technology'} sector.`,
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
         phonenumber: submission.phoneno || null
@@ -484,7 +455,9 @@ serve(async (req) => {
       const updateData = {
         overall_score: analysisResult.overall_score,
         assessment_points: analysisResult.summary?.assessment_points || [],
-        industry: submission.company_type || null,
+        industry: analysisResult.company_info?.industry || submission.company_type || null,
+        stage: analysisResult.company_info?.stage || 'Early Stage',
+        introduction: analysisResult.company_info?.introduction || `${submission.company_name} is an innovative startup in the ${submission.company_type || 'technology'} sector.`,
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
         phonenumber: submission.phoneno || null
@@ -503,7 +476,7 @@ serve(async (req) => {
       console.log('Successfully updated existing company with ID:', companyId);
     }
 
-    // Create sections
+    // Create sections with proper mapping
     console.log('Creating sections for company:', companyId);
     
     // Delete old sections first
@@ -518,23 +491,26 @@ serve(async (req) => {
       console.log('Deleted old sections');
     }
 
-    // Map the sections to the correct structure
+    // Map the sections with proper names and types
     const sectionMapping = {
-      'problem_solution_fit': 'Problem Solution Fit',
-      'target_customers': 'Target Customers', 
-      'competitors': 'Competitors',
-      'revenue_model': 'Revenue Model',
-      'differentiation': 'Differentiation'
+      'problem_solution_fit': { title: 'Problem & Solution Analysis', type: 'PROBLEM_SOLUTION' },
+      'target_market': { title: 'Target Market Assessment', type: 'MARKET_ANALYSIS' },
+      'competitive_analysis': { title: 'Competitive Landscape', type: 'COMPETITIVE_ANALYSIS' },
+      'business_model': { title: 'Business Model & Revenue', type: 'BUSINESS_MODEL' },
+      'innovation_differentiation': { title: 'Innovation & Differentiation', type: 'INNOVATION' }
     };
 
-    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionKey, sectionData]: [string, any]) => ({
-      company_id: companyId,
-      score: sectionData.score || 0,
-      section_type: sectionKey,
-      type: 'analysis',
-      title: sectionMapping[sectionKey as keyof typeof sectionMapping] || sectionKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      description: sectionData.analysis || ''
-    }));
+    const sectionsToCreate = Object.entries(analysisResult.sections || {}).map(([sectionKey, sectionData]: [string, any]) => {
+      const mappingData = sectionMapping[sectionKey as keyof typeof sectionMapping];
+      return {
+        company_id: companyId,
+        score: sectionData.score || 0,
+        section_type: sectionKey,
+        type: mappingData?.type || 'ANALYSIS',
+        title: mappingData?.title || sectionKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: sectionData.analysis || 'Analysis not available'
+      };
+    });
 
     if (sectionsToCreate.length > 0) {
       const { data: createdSections, error: sectionsError } = await supabase
@@ -547,72 +523,76 @@ serve(async (req) => {
         throw new Error(`Failed to create sections: ${sectionsError.message}`);
       }
 
-      console.log('Created sections:', sectionsToCreate.length);
+      console.log('Created sections:', createdSections?.length || 0);
 
-      // Create section details (strengths and weaknesses)
-      const sectionDetails = [];
-      
-      for (const section of createdSections) {
+      // Create section details for each section
+      let totalDetailsCreated = 0;
+      for (const section of createdSections || []) {
         const sectionKey = section.section_type;
         const sectionData = analysisResult.sections[sectionKey];
         
-        if (sectionData) {
+        if (sectionData && (sectionData.strengths || sectionData.improvements)) {
+          const detailsToCreate = [];
+          
           // Add strengths
           if (sectionData.strengths && Array.isArray(sectionData.strengths)) {
-            for (const strength of sectionData.strengths) {
-              sectionDetails.push({
+            sectionData.strengths.forEach((strength: string, index: number) => {
+              detailsToCreate.push({
                 section_id: section.id,
                 detail_type: 'strength',
-                content: strength
+                content: strength,
+                order_index: index
               });
-            }
+            });
           }
           
-          // Add improvements (weaknesses)
+          // Add improvements  
           if (sectionData.improvements && Array.isArray(sectionData.improvements)) {
-            for (const improvement of sectionData.improvements) {
-              sectionDetails.push({
+            sectionData.improvements.forEach((improvement: string, index: number) => {
+              detailsToCreate.push({
                 section_id: section.id,
                 detail_type: 'weakness',
-                content: improvement
+                content: improvement,
+                order_index: index
               });
+            });
+          }
+          
+          if (detailsToCreate.length > 0) {
+            const { error: detailsError } = await supabase
+              .from('section_details')
+              .insert(detailsToCreate);
+              
+            if (detailsError) {
+              console.error('Error creating section details:', detailsError);
+            } else {
+              totalDetailsCreated += detailsToCreate.length;
             }
           }
         }
       }
-
-      if (sectionDetails.length > 0) {
-        const { error: detailsError } = await supabase
-          .from('section_details')
-          .insert(sectionDetails);
-
-        if (detailsError) {
-          console.error('Error creating section details:', detailsError);
-          throw new Error(`Failed to create section details: ${detailsError.message}`);
-        }
-
-        console.log('Created section details:', sectionDetails.length);
-      }
+      
+      console.log('Created section details:', totalDetailsCreated);
     }
 
-    // Update submission with final results
+    // Update submission with final analysis results
     console.log('Updating submission with final analysis results...');
     const { error: finalUpdateError } = await supabase
       .from('eureka_form_submissions')
       .update({
         analysis_status: 'completed',
+        company_id: companyId,
         analysis_result: analysisResult,
-        analyzed_at: new Date().toISOString(),
-        company_id: companyId
+        updated_at: new Date().toISOString()
       })
       .eq('id', submissionId);
 
     if (finalUpdateError) {
-      console.error('Failed to update submission:', finalUpdateError);
+      console.error('Error updating submission with final results:', finalUpdateError);
       throw new Error(`Failed to update submission: ${finalUpdateError.message}`);
     }
 
-    console.log('Successfully analyzed Eureka submission', submissionId, 'and', isNewCompany ? 'created' : 'updated', 'company', companyId);
+    console.log(`Successfully analyzed Eureka submission ${submissionId} and created company ${companyId}`);
 
     return new Response(
       JSON.stringify({ 
@@ -630,35 +610,33 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-eureka-form function:', error);
 
-    // Update submission with error status if we have submissionId
+    // Update submission status to failed if we have a submissionId
     if (submissionId) {
       try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
         
-        if (supabaseUrl && supabaseServiceKey) {
-          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        await supabase
+          .from('eureka_form_submissions')
+          .update({
+            analysis_status: 'failed',
+            analysis_error: error instanceof Error ? error.message : 'Analysis failed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', submissionId);
           
-          await supabase
-            .from('eureka_form_submissions')
-            .update({
-              analysis_status: 'failed',
-              analysis_error: error instanceof Error ? error.message : 'Unknown error'
-            })
-            .eq('id', submissionId);
-          
-          console.log('Updated submission status to failed');
-        }
+        console.log('Updated submission status to failed');
       } catch (updateError) {
-        console.error('Failed to update error status:', updateError);
+        console.error('Error updating submission status:', updateError);
       }
     }
 
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        submissionId
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
       {
         status: 500,
