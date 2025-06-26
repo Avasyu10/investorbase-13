@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp, Briefcase, Info } from "lucide-react";
+import { Globe, TrendingUp, Briefcase, Info, MessageCircle } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +24,17 @@ type CompanyInfoProps = {
 interface Company {
   id: string;
   name: string;
+  report_id?: string;
+}
+
+interface AnalysisResult {
+  companyInfo?: {
+    stage: string;
+    industry: string;
+    website: string;
+    description: string;
+  };
+  [key: string]: any;
 }
 
 export function CompanyInfoCard({
@@ -40,22 +51,7 @@ export function CompanyInfoCard({
 }: CompanyInfoProps) {
   const { id } = useParams<{ id: string }>();
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  // Use introduction or description (for backward compatibility)
-  const displayIntroduction = introduction || description || "No detailed information available for this company.";
-
-  // Format website URL for display and linking
-  const displayWebsite = website && website !== "" 
-    ? website.replace(/^https?:\/\/(www\.)?/, '') 
-    : "Not available";
-  
-  const websiteUrl = website && website !== "" 
-    ? (website.startsWith('http') ? website : `https://${website}`)
-    : null;
-
-  // Display stage and industry with fallbacks
-  const displayStage = stage && stage !== "" ? stage : "Not specified";
-  const displayIndustry = industry && industry !== "" ? industry : "Not specified";
+  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
@@ -66,7 +62,7 @@ export function CompanyInfoCard({
       console.log("Fetching company data for ID:", id);
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name')
+        .select('id, name, report_id')
         .eq('id', id)
         .single();
 
@@ -79,6 +75,30 @@ export function CompanyInfoCard({
       return data as Company;
     },
     enabled: !!id,
+  });
+
+  // Fetch PDF analysis data from the report to get company info
+  const { data: analysisData } = useQuery({
+    queryKey: ['analysis-company-info', companyData?.report_id],
+    queryFn: async () => {
+      if (!companyData?.report_id) return null;
+      
+      console.log("Fetching analysis data for report ID:", companyData.report_id);
+      const { data, error } = await supabase
+        .from('reports')
+        .select('analysis_result')
+        .eq('id', companyData.report_id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching analysis data:', error);
+        return null;
+      }
+
+      console.log("Analysis data fetched:", data);
+      return data?.analysis_result as AnalysisResult;
+    },
+    enabled: !!companyData?.report_id,
   });
 
   // Now fetch BARC submission using the company ID from the companies table
@@ -105,12 +125,34 @@ export function CompanyInfoCard({
     enabled: !!companyData?.id,
   });
 
+  // Use analysis data first, then fallback to props
+  const analysisCompanyInfo = analysisData?.companyInfo;
+  
+  const displayIntroduction = analysisCompanyInfo?.description || introduction || description || "No detailed information available for this company.";
+  
+  // Format website URL for display and linking - prioritize analysis data
+  const analysisWebsite = analysisCompanyInfo?.website || website;
+  const displayWebsite = analysisWebsite && analysisWebsite !== "" 
+    ? analysisWebsite.replace(/^https?:\/\/(www\.)?/, '') 
+    : "Not available";
+  
+  const websiteUrl = analysisWebsite && analysisWebsite !== "" 
+    ? (analysisWebsite.startsWith('http') ? analysisWebsite : `https://${analysisWebsite}`)
+    : null;
+
+  // Display stage and industry with analysis data priority
+  const displayStage = analysisCompanyInfo?.stage || stage || "Not specified";
+  const displayIndustry = analysisCompanyInfo?.industry || industry || "Not specified";
+
   // Show the "More Information" button for all analyzed companies
-  // (companies that exist in the database and have been analyzed)
   const shouldShowMoreInfoButton = !!companyData?.id;
 
   const handleMoreInformation = () => {
     setDialogOpen(true);
+  };
+
+  const handleChatbot = () => {
+    setChatbotOpen(true);
   };
 
   return (
@@ -122,19 +164,29 @@ export function CompanyInfoCard({
       
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
-          {/* Company Description with More Information Button */}
+          {/* Company Description with More Information and Chatbot Buttons */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyData?.name || companyName}</h4>
               {shouldShowMoreInfoButton && (
-                <Button
-                  variant="outline"
-                  onClick={handleMoreInformation}
-                  className="h-8 px-4"
-                >
-                  <Info className="mr-2 h-4 w-4" />
-                  More Information
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleChatbot}
+                    className="h-8 px-4"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Chatbot
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleMoreInformation}
+                    className="h-8 px-4"
+                  >
+                    <Info className="mr-2 h-4 w-4" />
+                    More Information
+                  </Button>
+                </div>
               )}
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
@@ -190,6 +242,17 @@ export function CompanyInfoCard({
           open={dialogOpen}
           onOpenChange={setDialogOpen}
         />
+      )}
+
+      {/* TODO: Add Chatbot Dialog when chatbotOpen is true */}
+      {chatbotOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Company Chatbot</h3>
+            <p className="text-sm text-muted-foreground mb-4">Chatbot functionality will be implemented here.</p>
+            <Button onClick={() => setChatbotOpen(false)}>Close</Button>
+          </div>
+        </div>
       )}
     </div>
   );

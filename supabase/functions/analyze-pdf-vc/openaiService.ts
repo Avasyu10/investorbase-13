@@ -1,4 +1,3 @@
-
 import { encode } from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 export interface AnalysisResult {
@@ -138,6 +137,12 @@ function getVCAnalysisPrompt(): string {
     "<comprehensive assessment point 7 with specific data/numbers>",
     "<comprehensive assessment point 8 with specific data/numbers>"
   ],
+  "companyInfo": {
+    "stage": "<extract funding stage from pitch deck content - look for mentions like 'seed', 'series A', 'pre-seed', 'growth stage', etc.>",
+    "industry": "<extract industry/sector from pitch deck content - look for business domain, market category, technology sector>",
+    "website": "<extract website URL if mentioned in the deck>",
+    "description": "<create a comprehensive 3-4 sentence description of what the company does based on the pitch content, their value proposition, and target market>"
+  },
   "sections": [
     {
       "type": "PROBLEM",
@@ -324,11 +329,17 @@ function getVCAnalysisPrompt(): string {
 
 CRITICAL REQUIREMENTS:
 
-1. MANDATORY SECTION STRUCTURE: You MUST provide analysis for ALL 10 sections listed above. Each section MUST have exactly the structure shown with all required fields.
+1. COMPANY INFORMATION EXTRACTION: You MUST extract and include company information from the pitch deck content:
+   - Stage: Look for funding stage mentions (seed, pre-seed, series A/B/C, growth, bootstrap, etc.)
+   - Industry: Identify the business sector/domain (fintech, healthcare, edtech, saas, marketplace, etc.)
+   - Website: Extract any website URLs mentioned in the deck
+   - Description: Create a comprehensive description of what the company does, their value proposition, target market, and key differentiators based on the pitch content
 
-2. STRENGTHS & WEAKNESSES ARE NEVER OPTIONAL: Every single section MUST have exactly 3-4 strengths and exactly 3-4 weaknesses. There are NO EXCEPTIONS to this rule. Even if a section seems weak or strong, you must find both strengths and weaknesses.
+2. MANDATORY SECTION STRUCTURE: You MUST provide analysis for ALL 10 sections listed above. Each section MUST have exactly the structure shown with all required fields.
 
-3. ASSESSMENT POINTS: Must contain exactly 7-8 comprehensive detailed bullet points that include:
+3. STRENGTHS & WEAKNESSES ARE NEVER OPTIONAL: Every single section MUST have exactly 3-4 strengths and exactly 3-4 weaknesses. There are NO EXCEPTIONS to this rule. Even if a section seems weak or strong, you must find both strengths and weaknesses.
+
+4. ASSESSMENT POINTS: Must contain exactly 7-8 comprehensive detailed bullet points that include:
    - Specific market size data, growth rates, and TAM/SAM numbers from the deck
    - Financial metrics, revenue figures, projections, and unit economics mentioned
    - Traction metrics including user numbers, growth rates, customer acquisition costs
@@ -340,7 +351,7 @@ CRITICAL REQUIREMENTS:
 
    Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
 
-4. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and exactly 3-4 weaknesses.
+5. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and exactly 3-4 weaknesses.
 
    STRENGTHS should include:
    - Specific market data, numbers, percentages, or metrics from the deck
@@ -375,7 +386,7 @@ CRITICAL REQUIREMENTS:
    - "Regulatory compliance costs average $3.1M annually for companies in this space, representing 22% of typical revenue according to industry surveys"
    - "Economic data shows 34% contraction in target market spending over past 18 months, with consumer discretionary income in this demographic falling 28%"
 
-5. NEVER SKIP SECTIONS: You must analyze all 10 sections even if some information is not present in the pitch deck. If a section is not well-covered in the deck, still provide the analysis based on industry standards and market context.
+6. NEVER SKIP SECTIONS: You must analyze all 10 sections even if some information is not present in the pitch deck. If a section is not well-covered in the deck, still provide the analysis based on industry standards and market context.
 
 Score each section from 1-100 based on investment attractiveness:
 - 1-20: Poor - Significant red flags or missing critical information
