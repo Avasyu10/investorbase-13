@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -51,6 +50,10 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
         } else if (data) {
           setResearchData(data);
           console.log('Found existing research data:', data);
+        } else {
+          // No existing research found, start analysis automatically
+          console.log('No existing research found, starting analysis automatically');
+          await handleRequestResearch();
         }
       } catch (error) {
         console.error('Error in checkExistingResearch:', error);
@@ -277,10 +280,10 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
           </div>
           
           <Button 
-            variant={researchData ? "outline" : "default"}
+            variant="outline"
             onClick={handleRequestResearch}
             disabled={isLoading || isCheckingExisting}
-            className={researchData ? "" : "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"}
+            className=""
           >
             {isLoading ? (
               <>
@@ -290,7 +293,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             ) : (
               <>
                 <Sparkle className="mr-2 h-4 w-4" />
-                {researchData ? "Update Research" : "Start Analysis"}
+                Update Research
               </>
             )}
           </Button>
@@ -301,7 +304,7 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
         {isCheckingExisting ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-pulse">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-muted-foreground">Checking for existing research...</p>
+            <p className="text-muted-foreground">Starting market research analysis...</p>
           </div>
         ) : researchData ? (
           <div>
