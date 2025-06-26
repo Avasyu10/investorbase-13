@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Report {
@@ -60,87 +61,6 @@ export async function analyzeReport(reportId: string): Promise<void> {
   }
 }
 
-export async function uploadReportPdf(file: File, userId: string): Promise<string> {
-  console.log('Uploading PDF to report-pdfs bucket:', file.name);
-  
-  // Generate a unique filename with timestamp
-  const timestamp = Date.now();
-  const fileName = `${timestamp}_${file.name}`;
-  // Store directly in user folder structure
-  const fullPath = `${userId}/${fileName}`;
-  
-  const { data, error } = await supabase.storage
-    .from('report-pdfs')
-    .upload(fullPath, file, {
-      cacheControl: '3600',
-      upsert: false
-    });
-
-  if (error) {
-    console.error('Error uploading PDF:', error);
-    throw new Error(`Failed to upload PDF: ${error.message}`);
-  }
-
-  console.log('PDF uploaded successfully to storage path:', data.path);
-  // Return only the filename part, not the full path
-  // This matches how the existing system expects it
-  return fileName;
-}
-
-export async function createReportWithPdf(
-  title: string, 
-  description: string, 
-  file: File, 
-  userId: string
-): Promise<Report> {
-  // Upload the PDF and get just the filename
-  const fileName = await uploadReportPdf(file, userId);
-  
-  console.log('Creating report with PDF filename:', fileName);
-  
-  // Store just the filename in the database (not the full path)
-  // The full path will be constructed when needed for retrieval
-  const { data, error } = await supabase
-    .from('reports')
-    .insert({
-      title,
-      description,
-      pdf_url: fileName, // Store just the filename
-      user_id: userId,
-      analysis_status: 'pending'
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating report:', error);
-    throw new Error(`Failed to create report: ${error.message}`);
-  }
-
-  console.log('Report created successfully with PDF filename:', data.pdf_url);
-  return data;
-}
-
-export async function getSignedPdfUrl(pdfPath: string): Promise<string> {
-  console.log('Getting signed URL for PDF path:', pdfPath);
-  
-  const { data, error } = await supabase.storage
-    .from('report-pdfs')
-    .createSignedUrl(pdfPath, 3600); // 1 hour expiry
-
-  if (error) {
-    console.error('Error creating signed URL:', error);
-    throw new Error(`Failed to create signed URL: ${error.message}`);
-  }
-
-  if (!data?.signedUrl) {
-    throw new Error('No signed URL returned');
-  }
-
-  console.log('Signed URL created successfully');
-  return data.signedUrl;
-}
-
 export async function debugStorageBucket(): Promise<void> {
   console.log('=== STORAGE BUCKET DEBUG START ===');
   
@@ -152,7 +72,7 @@ export async function debugStorageBucket(): Promise<void> {
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     console.log('Available buckets:', buckets, 'Error:', bucketsError);
     
-    // Check the report-pdfs bucket specifically
+    // Check the report-pdfs bucket specifically (with hyphen)
     const bucketName = 'report-pdfs';
     console.log(`Checking bucket: ${bucketName}`);
     
