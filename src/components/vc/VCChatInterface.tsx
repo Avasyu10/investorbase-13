@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Send, MessageCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 interface Message {
   id: string;
@@ -21,15 +22,8 @@ interface User {
   role: "admin" | "manager" | "analyst" | "associate" | "intern";
   avatar?: string;
   color: string;
+  email?: string;
 }
-
-const mockUsers: User[] = [
-  { id: "1", name: "Sarah Chen", role: "admin", color: "bg-red-500" },
-  { id: "2", name: "Michael Rodriguez", role: "manager", color: "bg-blue-500" },
-  { id: "3", name: "Emily Johnson", role: "analyst", color: "bg-green-500" },
-  { id: "4", name: "David Kim", role: "associate", color: "bg-purple-500" },
-  { id: "5", name: "Alex Thompson", role: "intern", color: "bg-orange-500" },
-];
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -48,48 +42,70 @@ interface VCChatInterfaceProps {
 }
 
 export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
+  const { user } = useAuth();
+  const { profile } = useProfile();
+
+  // Create current user as admin
+  const currentUser: User = {
+    id: user?.id || "current-user",
+    name: profile?.full_name || user?.email?.split('@')[0] || "You",
+    role: "admin",
+    color: "bg-red-500",
+    email: user?.email || ""
+  };
+
+  // Other mock users for the team
+  const otherUsers: User[] = [
+    { id: "2", name: "Michael Rodriguez", role: "manager", color: "bg-blue-500" },
+    { id: "3", name: "Emily Johnson", role: "analyst", color: "bg-green-500" },
+    { id: "4", name: "David Kim", role: "associate", color: "bg-purple-500" },
+    { id: "5", name: "Alex Thompson", role: "intern", color: "bg-orange-500" },
+  ];
+
+  const allUsers = [currentUser, ...otherUsers];
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      user: mockUsers[0],
+      user: currentUser,
       content: "Good morning team! Let's discuss the latest pitch decks that came in.",
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
     },
     {
       id: "2",
-      user: mockUsers[1],
+      user: otherUsers[0],
       content: "I've reviewed the three submissions from yesterday. The fintech startup looks promising.",
       timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000)
     },
     {
       id: "3",
-      user: mockUsers[2],
+      user: otherUsers[1],
       content: "Their market analysis is solid, but I have concerns about their customer acquisition strategy.",
       timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000)
     },
     {
       id: "4",
-      user: mockUsers[3],
+      user: otherUsers[2],
       content: "I agree with Emily. The CAC to LTV ratio needs more work. Should we schedule a follow-up call?",
       timestamp: new Date(Date.now() - 45 * 60 * 1000)
     },
     {
       id: "5",
-      user: mockUsers[4],
+      user: otherUsers[3],
       content: "I can prepare a comparative analysis with similar companies in our portfolio.",
       timestamp: new Date(Date.now() - 30 * 60 * 1000)
     },
   ]);
   
   const [newMessage, setNewMessage] = useState("");
-  const [currentUser, setCurrentUser] = useState(mockUsers[0]);
+  const [selectedUser, setSelectedUser] = useState(currentUser);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
 
     const message: Message = {
       id: Date.now().toString(),
-      user: currentUser,
+      user: selectedUser,
       content: newMessage,
       timestamp: new Date(),
     };
@@ -123,18 +139,18 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           {/* Users Sidebar */}
           <div className="w-64 border-r pr-4 flex flex-col">
             <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">
-              Team Members ({mockUsers.length})
+              Team Members ({allUsers.length})
             </h3>
             <div className="space-y-2">
-              {mockUsers.map((user) => (
+              {allUsers.map((user) => (
                 <div
                   key={user.id}
                   className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                    currentUser.id === user.id 
+                    selectedUser.id === user.id 
                       ? 'bg-primary/10 border border-primary/20' 
                       : 'hover:bg-muted/50'
                   }`}
-                  onClick={() => setCurrentUser(user)}
+                  onClick={() => setSelectedUser(user)}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.avatar} />
@@ -143,12 +159,14 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user.name}</p>
+                    <p className="text-sm font-medium truncate">
+                      {user.id === currentUser.id ? `${user.name} (You)` : user.name}
+                    </p>
                     <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
                       {user.role}
                     </Badge>
                   </div>
-                  {currentUser.id === user.id && (
+                  {selectedUser.id === user.id && (
                     <div className="w-2 h-2 bg-green-500 rounded-full" />
                   )}
                 </div>
@@ -159,11 +177,13 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
               <p className="text-xs text-muted-foreground mb-1">Currently speaking as:</p>
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarFallback className={`${currentUser.color} text-white text-xs`}>
-                    {currentUser.name.split(' ').map(n => n[0]).join('')}
+                  <AvatarFallback className={`${selectedUser.color} text-white text-xs`}>
+                    {selectedUser.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">{currentUser.name}</span>
+                <span className="text-sm font-medium">
+                  {selectedUser.id === currentUser.id ? `${selectedUser.name} (You)` : selectedUser.name}
+                </span>
               </div>
             </div>
           </div>
@@ -182,7 +202,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{message.user.name}</span>
+                        <span className="font-medium text-sm">
+                          {message.user.id === currentUser.id ? `${message.user.name} (You)` : message.user.name}
+                        </span>
                         <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
                           {message.user.role}
                         </Badge>
@@ -204,7 +226,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Input
-                    placeholder={`Message as ${currentUser.name}...`}
+                    placeholder={`Message as ${selectedUser.id === currentUser.id ? `${selectedUser.name} (You)` : selectedUser.name}...`}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
