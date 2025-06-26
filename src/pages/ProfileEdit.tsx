@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -24,7 +23,6 @@ import { AreaOfInterestOptions } from "@/lib/constants";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { toast } from "sonner";
-import { uploadVCDocument } from "@/lib/supabase/documents";
 
 interface VCProfile {
   id: string;
@@ -292,6 +290,35 @@ const ProfileEdit = () => {
     }
   };
 
+  // Simplified file upload function
+  const uploadFile = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user!.id}/${fileName}`;
+      
+      console.log('Uploading file to path:', filePath);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('vc-documents')
+        .upload(filePath, file, { 
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+      
+      console.log('File uploaded successfully');
+      return filePath;
+    } catch (error: any) {
+      console.error('File upload failed:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -308,18 +335,11 @@ const ProfileEdit = () => {
         console.log('Uploading new thesis file:', thesisFile.name);
         
         try {
-          // Use the improved upload function
-          const uploadedPath = await uploadVCDocument(thesisFile, user.id, {
-            useSignedUrls: false, // Use direct upload for reliability
-            showToasts: false // We'll handle toasts manually
-          });
-          
-          if (uploadedPath) {
-            fundThesisUrl = uploadedPath;
-            console.log('File uploaded successfully to:', fundThesisUrl);
-          } else {
+          fundThesisUrl = await uploadFile(thesisFile);
+          if (!fundThesisUrl) {
             throw new Error('File upload failed - no path returned');
           }
+          console.log('File uploaded successfully to:', fundThesisUrl);
         } catch (uploadError: any) {
           console.error('File upload failed:', uploadError);
           hookToast({
@@ -331,28 +351,22 @@ const ProfileEdit = () => {
         }
       }
       
-      console.log('Updating VC profile with data:', {
-        fund_name: fundName,
-        fund_size: fundSize,
+      const updateData = {
+        fund_name: fundName.trim(),
+        fund_size: fundSize.trim(),
         areas_of_interest: areasOfInterest,
         investment_stage: investmentStage,
         companies_invested: companiesInvested,
-        website_url: websiteUrl,
-        fund_thesis_url: fundThesisUrl
-      });
+        website_url: websiteUrl.trim(),
+        fund_thesis_url: fundThesisUrl,
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Updating VC profile with data:', updateData);
       
       const { data: updatedProfile, error } = await supabase
         .from('vc_profiles')
-        .update({
-          fund_name: fundName,
-          fund_size: fundSize,
-          areas_of_interest: areasOfInterest,
-          investment_stage: investmentStage,
-          companies_invested: companiesInvested,
-          website_url: websiteUrl,
-          fund_thesis_url: fundThesisUrl,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', user.id)
         .select()
         .single();
@@ -364,7 +378,7 @@ const ProfileEdit = () => {
       
       console.log('Profile updated successfully:', updatedProfile);
       
-      // Update local state
+      // Update local state immediately
       setVcProfile(updatedProfile);
       if (fundThesisUrl && thesisFile) {
         setHasExistingThesis(true);
@@ -373,14 +387,11 @@ const ProfileEdit = () => {
       }
       
       hookToast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated",
+        title: "Profile updated successfully",
+        description: "All changes have been saved",
       });
       
-      // Navigate back to profile after successful save
-      setTimeout(() => {
-        navigate('/profile');
-      }, 1000);
+      console.log('Profile save completed successfully');
       
     } catch (error: any) {
       console.error('Profile update error:', error);
