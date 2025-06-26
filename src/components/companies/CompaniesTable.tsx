@@ -379,7 +379,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-yellow-500" />
+                        
                         <Badge className={getScoreBadgeColor(formattedScore)}>
                           <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
                             {formattedScore}
