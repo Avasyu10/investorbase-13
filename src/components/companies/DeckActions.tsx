@@ -48,17 +48,21 @@ export function DeckActions({ companyId, deckUrl, onDeckUpdated }: DeckActionsPr
         className="hidden"
       />
       
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleUploadClick}
-        disabled={isUploading}
-        className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-        title="Upload deck"
-      >
-        <Upload className="h-4 w-4" />
-      </Button>
+      {/* Only show upload button if no deck exists */}
+      {!deckUrl && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleUploadClick}
+          disabled={isUploading}
+          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+          title="Upload deck"
+        >
+          <Upload className="h-4 w-4" />
+        </Button>
+      )}
 
+      {/* Only show redirection button if deck exists */}
       {deckUrl && (
         <Button
           variant="ghost"
