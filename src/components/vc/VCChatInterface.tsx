@@ -169,7 +169,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full h-[98vh] flex flex-col p-0">
+      <DialogContent className="max-w-[95vw] w-full h-[98vh] max-h-[98vh] flex flex-col p-0 gap-0">
         <DialogHeader className="border-b px-4 py-3 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
@@ -177,9 +177,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-1 gap-3 min-h-0 px-3 pb-3">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Users Sidebar */}
-          <div className="w-60 border-r pr-3 flex flex-col min-h-0">
+          <div className="w-60 border-r flex flex-col min-h-0 p-3">
             <div className="mb-3 p-2 bg-muted/30 rounded-lg flex-shrink-0">
               <p className="text-xs text-muted-foreground mb-1">Logged in as:</p>
               <div className="flex items-center gap-2">
@@ -231,10 +231,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
             </div>
           </div>
 
-          {/* Chat Area - Optimized layout */}
-          <div className="flex-1 flex flex-col min-h-0">
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col min-h-0 p-3">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <TabsList className="mb-2 flex-shrink-0">
+              <TabsList className="flex-shrink-0 mb-3">
                 <TabsTrigger value="group" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Group Chat
@@ -245,39 +245,41 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="group" className="flex-1 flex flex-col min-h-0 m-0">
-                <ScrollArea className="flex-1 border rounded-lg min-h-0">
-                  {renderMessages(groupMessages)}
-                </ScrollArea>
-                <div className="border-t pt-3 mt-3 flex-shrink-0">
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        placeholder="Message the team..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        className="w-full"
-                      />
+              <TabsContent value="group" className="flex-1 flex flex-col min-h-0 m-0 data-[state=active]:flex">
+                <div className="flex-1 flex flex-col min-h-0">
+                  <ScrollArea className="flex-1 border rounded-lg min-h-0">
+                    {renderMessages(groupMessages)}
+                  </ScrollArea>
+                  <div className="border-t pt-3 mt-3 flex-shrink-0">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Message the team..."
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          className="w-full"
+                        />
+                      </div>
+                      <Button 
+                        onClick={() => handleSendMessage()}
+                        disabled={!newMessage.trim()}
+                        size="icon"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button 
-                      onClick={() => handleSendMessage()}
-                      disabled={!newMessage.trim()}
-                      size="icon"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Press Enter to send • Click on team members for private chat
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Press Enter to send • Click on team members for private chat
-                  </p>
                 </div>
               </TabsContent>
 
-              <TabsContent value="private" className="flex-1 flex flex-col min-h-0 m-0">
+              <TabsContent value="private" className="flex-1 flex flex-col min-h-0 m-0 data-[state=active]:flex">
                 {selectedPrivateUser ? (
                   <div className="flex-1 flex flex-col min-h-0">
-                    <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg flex-shrink-0 mb-2">
+                    <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg flex-shrink-0 mb-3">
                       <Avatar className="h-6 w-6">
                         <AvatarFallback className={`${selectedPrivateUser.color} text-white text-xs`}>
                           {selectedPrivateUser.name.split(' ').map(n => n[0]).join('')}
