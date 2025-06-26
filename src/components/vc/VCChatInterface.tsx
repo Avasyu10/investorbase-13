@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ interface Message {
   timestamp: Date;
   isPrivate?: boolean;
   targetUserId?: string;
+  isSystemMessage?: boolean;
 }
 
 interface User {
@@ -65,10 +65,24 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000)
     },
     {
+      id: "system-1",
+      user: mockUsers[0], // System messages still need a user object, but won't be displayed
+      content: "Team POC for Metafuels changed to Avasyu",
+      timestamp: new Date(Date.now() - 1.3 * 60 * 60 * 1000),
+      isSystemMessage: true
+    },
+    {
       id: "3",
       user: mockUsers[2],
       content: "Their market analysis is solid, but I have concerns about their customer acquisition strategy.",
       timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000)
+    },
+    {
+      id: "system-2",
+      user: mockUsers[0],
+      content: "Team POC for TuteDude changed to Tanisha",
+      timestamp: new Date(Date.now() - 50 * 60 * 1000),
+      isSystemMessage: true
     },
     {
       id: "4",
@@ -81,6 +95,13 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       user: mockUsers[4],
       content: "I can prepare a comparative analysis with similar companies in our portfolio.",
       timestamp: new Date(Date.now() - 30 * 60 * 1000)
+    },
+    {
+      id: "system-3",
+      user: mockUsers[0],
+      content: "Team POC for Test 1 changed to Roohi",
+      timestamp: new Date(Date.now() - 25 * 60 * 1000),
+      isSystemMessage: true
     },
   ]);
   
@@ -139,30 +160,44 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   const renderMessages = (messages: Message[]) => (
     <div className="space-y-3 p-4">
-      {messages.map((message) => (
-        <div key={message.id} className="flex gap-3">
-          <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarImage src={message.user.avatar} />
-            <AvatarFallback className={`${message.user.color} text-white text-xs`}>
-              {message.user.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-sm">{message.user.name}</span>
-              <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
-                {message.user.role}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                {formatTime(message.timestamp)}
-              </span>
+      {messages.map((message) => {
+        // Render system messages differently
+        if (message.isSystemMessage) {
+          return (
+            <div key={message.id} className="flex justify-center my-2">
+              <div className="bg-muted/50 text-muted-foreground text-xs px-3 py-1 rounded-full border">
+                {message.content}
+              </div>
             </div>
-            <div className="bg-muted/30 rounded-lg p-3">
-              <p className="text-sm leading-relaxed">{message.content}</p>
+          );
+        }
+
+        // Regular message rendering
+        return (
+          <div key={message.id} className="flex gap-3">
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarImage src={message.user.avatar} />
+              <AvatarFallback className={`${message.user.color} text-white text-xs`}>
+                {message.user.name.split(' ').map(n => n[0]).join('')}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-medium text-sm">{message.user.name}</span>
+                <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
+                  {message.user.role}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {formatTime(message.timestamp)}
+                </span>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-3">
+                <p className="text-sm leading-relaxed">{message.content}</p>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
