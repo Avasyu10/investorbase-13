@@ -1,11 +1,12 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, RefreshCw, FileText } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, FileText, TrendingUp, GitCompare, Target } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from 'react-markdown';
 
 interface FundThesisAlignmentProps {
@@ -141,13 +142,50 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     analyzeThesisAlignment(true);
   };
 
+  // Function to parse and structure the analysis content
+  const parseAnalysisContent = (content: string) => {
+    const sections = content.split(/(?=## )/);
+    return sections.map(section => {
+      const lines = section.trim().split('\n');
+      const title = lines[0]?.replace(/^##\s*/, '') || '';
+      const body = lines.slice(1).join('\n').trim();
+      return { title, body };
+    }).filter(section => section.title && section.body);
+  };
+
+  const getSectionIcon = (title: string) => {
+    if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
+      return <TrendingUp className="h-5 w-5 text-blue-500" />;
+    }
+    if (title.toLowerCase().includes('similarities') || title.toLowerCase().includes('alignment')) {
+      return <Target className="h-5 w-5 text-green-500" />;
+    }
+    if (title.toLowerCase().includes('differences') || title.toLowerCase().includes('gaps')) {
+      return <GitCompare className="h-5 w-5 text-orange-500" />;
+    }
+    return <FileText className="h-5 w-5 text-gray-500" />;
+  };
+
+  const getSectionBadgeColor = (title: string) => {
+    if (title.toLowerCase().includes('summary') || title.toLowerCase().includes('overview')) {
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    }
+    if (title.toLowerCase().includes('similarities') || title.toLowerCase().includes('alignment')) {
+      return 'bg-green-100 text-green-800 border-green-200';
+    }
+    if (title.toLowerCase().includes('differences') || title.toLowerCase().includes('gaps')) {
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    }
+    return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
   return (
     <>
       <Button
         onClick={handleAnalyzeClick}
         disabled={isLoading || !hasFundThesis}
         variant="outline"
-        className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
+        className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 border-blue-200 hover:border-blue-300"
       >
         {isLoading ? (
           <>
@@ -163,9 +201,9 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       </Button>
 
       {error && (
-        <div className="mt-2 p-3 border border-red-200 bg-red-50 rounded-md">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+        <div className="mt-2 p-4 border border-red-200 bg-red-50 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-red-700">{error}</p>
               <p className="text-sm text-red-600 mt-1">
@@ -177,101 +215,186 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       )}
 
       <Dialog open={isAnalysisModalOpen} onOpenChange={setIsAnalysisModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-          <DialogHeader className="border-b pb-4">
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <FileText className="h-5 w-5 text-blue-600" />
-              Fund Thesis Alignment Analysis
-              <span className="text-sm font-normal text-muted-foreground">
-                - {companyName}
-              </span>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+          <DialogHeader className="border-b pb-4 bg-gradient-to-r from-blue-50 to-purple-50 -m-6 mb-0 p-6 rounded-t-lg">
+            <DialogTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">Fund Thesis Alignment Analysis</div>
+                <div className="text-sm font-normal text-gray-600 mt-1">
+                  Strategic alignment assessment for {companyName}
+                </div>
+              </div>
             </DialogTitle>
           </DialogHeader>
           
           <ScrollArea className="h-[75vh] pr-4">
-            <div className="space-y-6 py-4">
+            <div className="space-y-6 py-6">
               {analysis ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown
-                    components={{
-                      // Enhanced paragraph styling with proper spacing
-                      p: ({ children }) => (
-                        <p className="mb-4 leading-relaxed text-sm text-foreground">{children}</p>
-                      ),
-                      // Enhanced bullet points with better spacing and indentation
-                      ul: ({ children }) => (
-                        <ul className="mb-6 space-y-2 pl-6 list-disc">{children}</ul>
-                      ),
-                      li: ({ children }) => (
-                        <li className="text-sm leading-relaxed text-foreground pl-1">{children}</li>
-                      ),
-                      // Enhanced numbered lists
-                      ol: ({ children }) => (
-                        <ol className="mb-6 space-y-2 pl-6 list-decimal">{children}</ol>
-                      ),
-                      // Enhanced headers with better spacing and colors
-                      h1: ({ children }) => (
-                        <h1 className="text-xl font-bold mb-4 mt-6 first:mt-0 text-foreground border-b pb-2">{children}</h1>
-                      ),
-                      h2: ({ children }) => (
-                        <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0 text-foreground">{children}</h2>
-                      ),
-                      h3: ({ children }) => (
-                        <h3 className="text-base font-medium mb-2 mt-4 first:mt-0 text-foreground">{children}</h3>
-                      ),
-                      h4: ({ children }) => (
-                        <h4 className="text-sm font-medium mb-2 mt-3 first:mt-0 text-foreground">{children}</h4>
-                      ),
-                      // Enhanced strong text
-                      strong: ({ children }) => (
-                        <strong className="font-semibold text-foreground">{children}</strong>
-                      ),
-                      // Enhanced emphasis
-                      em: ({ children }) => (
-                        <em className="italic text-muted-foreground">{children}</em>
-                      ),
-                      // Enhanced code blocks
-                      code: ({ children }) => (
-                        <code className="bg-secondary px-2 py-1 rounded text-xs font-mono text-foreground">{children}</code>
-                      ),
-                      // Enhanced blockquotes
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-4 border-blue-500 pl-4 ml-2 italic text-muted-foreground my-4 bg-secondary/20 py-2">
-                          {children}
-                        </blockquote>
-                      ),
-                      // Enhanced tables
-                      table: ({ children }) => (
-                        <div className="overflow-x-auto my-4">
-                          <table className="min-w-full border border-border">{children}</table>
-                        </div>
-                      ),
-                      th: ({ children }) => (
-                        <th className="border border-border px-3 py-2 bg-secondary text-left font-medium text-sm">{children}</th>
-                      ),
-                      td: ({ children }) => (
-                        <td className="border border-border px-3 py-2 text-sm">{children}</td>
-                      ),
-                    }}
-                  >
-                    {analysis}
-                  </ReactMarkdown>
-                </div>
+                (() => {
+                  const sections = parseAnalysisContent(analysis);
+                  return sections.length > 0 ? (
+                    <div className="space-y-6">
+                      {sections.map((section, index) => (
+                        <Card key={index} className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-3 text-lg">
+                              {getSectionIcon(section.title)}
+                              <span className="flex-1">{section.title}</span>
+                              <Badge 
+                                variant="outline" 
+                                className={`${getSectionBadgeColor(section.title)} text-xs`}
+                              >
+                                Section {index + 1}
+                              </Badge>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <ReactMarkdown
+                                components={{
+                                  // Enhanced paragraph styling
+                                  p: ({ children }) => (
+                                    <p className="mb-4 leading-relaxed text-sm text-gray-700 last:mb-0">{children}</p>
+                                  ),
+                                  // Enhanced bullet points with custom styling
+                                  ul: ({ children }) => (
+                                    <ul className="mb-6 space-y-2 last:mb-0">{children}</ul>
+                                  ),
+                                  li: ({ children }) => (
+                                    <li className="text-sm leading-relaxed text-gray-700 flex items-start gap-3 py-1">
+                                      <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-2"></span>
+                                      <span className="flex-1">{children}</span>
+                                    </li>
+                                  ),
+                                  // Enhanced numbered lists with custom styling
+                                  ol: ({ children, ...props }) => (
+                                    <ol className="mb-6 space-y-3 last:mb-0" {...props}>{children}</ol>
+                                  ),
+                                  // Enhanced headers
+                                  h1: ({ children }) => (
+                                    <h1 className="text-lg font-bold mb-4 mt-6 first:mt-0 text-gray-900 border-b border-gray-200 pb-2">{children}</h1>
+                                  ),
+                                  h2: ({ children }) => (
+                                    <h2 className="text-base font-semibold mb-3 mt-5 first:mt-0 text-gray-800 flex items-center gap-2">
+                                      <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                                      {children}
+                                    </h2>
+                                  ),
+                                  h3: ({ children }) => (
+                                    <h3 className="text-sm font-medium mb-2 mt-4 first:mt-0 text-gray-700">{children}</h3>
+                                  ),
+                                  // Enhanced strong text
+                                  strong: ({ children }) => (
+                                    <strong className="font-semibold text-gray-900 bg-yellow-100 px-1 py-0.5 rounded">{children}</strong>
+                                  ),
+                                  // Enhanced emphasis
+                                  em: ({ children }) => (
+                                    <em className="italic text-blue-600 font-medium">{children}</em>
+                                  ),
+                                  // Enhanced code blocks
+                                  code: ({ children }) => (
+                                    <code className="bg-gray-100 border border-gray-200 px-2 py-1 rounded text-xs font-mono text-gray-800">{children}</code>
+                                  ),
+                                  // Enhanced blockquotes
+                                  blockquote: ({ children }) => (
+                                    <blockquote className="border-l-4 border-blue-400 bg-blue-50 pl-4 pr-4 py-3 ml-0 my-4 rounded-r-lg">
+                                      <div className="text-blue-800 text-sm font-medium">{children}</div>
+                                    </blockquote>
+                                  ),
+                                }}
+                              >
+                                {section.body}
+                              </ReactMarkdown>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown
+                        components={{
+                          
+                          p: ({ children }) => (
+                            <p className="mb-4 leading-relaxed text-sm text-foreground">{children}</p>
+                          ),
+                          ul: ({ children }) => (
+                            <ul className="mb-6 space-y-2 pl-6 list-disc">{children}</ul>
+                          ),
+                          li: ({ children }) => (
+                            <li className="text-sm leading-relaxed text-foreground pl-1">{children}</li>
+                          ),
+                          ol: ({ children }) => (
+                            <ol className="mb-6 space-y-2 pl-6 list-decimal">{children}</ol>
+                          ),
+                          h1: ({ children }) => (
+                            <h1 className="text-xl font-bold mb-4 mt-6 first:mt-0 text-foreground border-b pb-2">{children}</h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0 text-foreground">{children}</h2>
+                          ),
+                          h3: ({ children }) => (
+                            <h3 className="text-base font-medium mb-2 mt-4 first:mt-0 text-foreground">{children}</h3>
+                          ),
+                          h4: ({ children }) => (
+                            <h4 className="text-sm font-medium mb-2 mt-3 first:mt-0 text-foreground">{children}</h4>
+                          ),
+                          strong: ({ children }) => (
+                            <strong className="font-semibold text-foreground">{children}</strong>
+                          ),
+                          em: ({ children }) => (
+                            <em className="italic text-muted-foreground">{children}</em>
+                          ),
+                          code: ({ children }) => (
+                            <code className="bg-secondary px-2 py-1 rounded text-xs font-mono text-foreground">{children}</code>
+                          ),
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-4 border-blue-500 pl-4 ml-2 italic text-muted-foreground my-4 bg-secondary/20 py-2">
+                              {children}
+                            </blockquote>
+                          ),
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-4">
+                              <table className="min-w-full border border-border">{children}</table>
+                            </div>
+                          ),
+                          th: ({ children }) => (
+                            <th className="border border-border px-3 py-2 bg-secondary text-left font-medium text-sm">{children}</th>
+                          ),
+                          td: ({ children }) => (
+                            <td className="border border-border px-3 py-2 text-sm">{children}</td>
+                          ),
+                        }}
+                      >
+                        {analysis}
+                      </ReactMarkdown>
+                    </div>
+                  );
+                })()
               ) : (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-center">
-                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">No analysis available</p>
-                  </div>
+                  <Card className="text-center p-8 bg-gradient-to-br from-gray-50 to-gray-100 border-0 shadow-sm">
+                    <CardContent className="pt-0">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <h3 className="text-lg font-medium text-gray-600 mb-2">No Analysis Available</h3>
+                      <p className="text-sm text-gray-500">
+                        Click "Refresh Analysis" to generate a new fund thesis alignment report.
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
             </div>
           </ScrollArea>
           
-          <div className="border-t pt-4 flex justify-between items-center">
+          <div className="border-t bg-gray-50 pt-4 pb-2 -m-6 mt-0 p-6 rounded-b-lg flex justify-between items-center">
             <Button
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-white hover:bg-gray-100"
               onClick={handleRefreshAnalysis}
               disabled={isLoading}
             >
@@ -280,8 +403,9 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
             </Button>
             
             <Button
-              variant="secondary"
+              variant="default"
               onClick={() => setIsAnalysisModalOpen(false)}
+              className="bg-blue-600 hover:bg-blue-700"
             >
               Close
             </Button>
