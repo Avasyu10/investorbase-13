@@ -55,53 +55,51 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     {
       id: "1",
       user: mockUsers[0],
-      content: "Good morning team! Let's discuss the latest pitch decks that came in.",
+      content: "Good morning team! Let's discuss how many decks we got today.",
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
     },
     {
       id: "2",
       user: mockUsers[1],
-      content: "I've reviewed the three submissions from yesterday. The fintech startup looks promising.",
+      content: "Good Morning, we got around 70 decks today and have been reviewing them. Any updates Avasyu?",
       timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000)
-    },
-    {
-      id: "system-1",
-      user: mockUsers[0], // System messages still need a user object, but won't be displayed
-      content: "Team POC for Metafuels changed to Avasyu",
-      timestamp: new Date(Date.now() - 1.3 * 60 * 60 * 1000),
-      isSystemMessage: true
     },
     {
       id: "3",
       user: mockUsers[2],
-      content: "Their market analysis is solid, but I have concerns about their customer acquisition strategy.",
+      content: "Hi everyone, I have been able to review some of them and a few have great potential and market analysis. We should definately take a look at them and have a proper discussion",
       timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000)
     },
     {
-      id: "system-2",
-      user: mockUsers[0],
-      content: "Team POC for TuteDude changed to Tanisha",
-      timestamp: new Date(Date.now() - 50 * 60 * 1000),
-      isSystemMessage: true
-    },
-    {
       id: "4",
-      user: mockUsers[3],
-      content: "I agree with Avasyu. The CAC to LTV ratio needs more work. Should we schedule a follow-up call?",
+      user: mockUsers[1],
+      content: "I agree with Avasyu. Are there any decks in particular that you want that someone should look into in detail? ",
       timestamp: new Date(Date.now() - 45 * 60 * 1000)
     },
     {
       id: "5",
-      user: mockUsers[4],
-      content: "I can prepare a comparative analysis with similar companies in our portfolio.",
+      user: mockUsers[3],
+      content: "I think Metafuels shows great potential and should be properly looked at once before we sync on it.",
+      timestamp: new Date(Date.now() - 30 * 60 * 1000)
+    },
+    {
+      id: "6",
+      user: mockUsers[0],
+      content: "Okay then, Himanshu I want you to take a proper look at the deck of Metafuels with all the details and after sometime we can discuss that and all potential decks over a call.",
       timestamp: new Date(Date.now() - 30 * 60 * 1000)
     },
     {
       id: "system-3",
       user: mockUsers[0],
-      content: "Team POC for Test 1 changed to Roohi",
+      content: "Team POC for Metafuels changed to Himanshu",
       timestamp: new Date(Date.now() - 25 * 60 * 1000),
       isSystemMessage: true
+    },
+      {
+      id: "7",
+      user: mockUsers[4],
+      content: "Yes sure, I will definitely look into it.",
+      timestamp: new Date(Date.now() - 30 * 60 * 1000)
     },
   ]);
   
