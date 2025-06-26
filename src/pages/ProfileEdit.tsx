@@ -439,8 +439,8 @@ const ProfileEdit = () => {
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading profile information...</p>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   return (
@@ -578,7 +578,7 @@ const ProfileEdit = () => {
                 <div>
                   <div className="flex items-center mb-3">
                     <Tag className="h-5 w-5 text-primary mr-2" />
-                    <h3 className="text-base font-semibold text-foreground/80">Investment Focus</h3>
+                    <h3 className="text-base font-semibold text-foreground/80">Investment Focus</h3>  
                   </div>
                   <Separator className="mb-4" />
                   
