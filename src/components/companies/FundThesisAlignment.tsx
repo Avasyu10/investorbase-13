@@ -186,7 +186,7 @@ export function FundThesisAlignment({
     return lowerTitle.includes('similarities') || lowerTitle.includes('differences') || lowerTitle.includes('alignment') || lowerTitle.includes('gaps');
   };
   return <>
-      <Button onClick={handleAnalyzeClick} disabled={isLoading || !hasFundThesis} variant="outline" className="flex items-center gap-2 border-blue-200 hover:border-blue-300 bg-yellow-500 hover:bg-yellow-400 text-white">
+      <Button onClick={handleAnalyzeClick} disabled={isLoading || !hasFundThesis} variant="outline" className="flex items-center gap-2 border-blue-200 hover:border-blue-300 text-white bg-gold-DEFAULT">
         {isLoading ? <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Analyzing...

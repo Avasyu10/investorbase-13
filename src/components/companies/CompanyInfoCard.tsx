@@ -150,16 +150,9 @@ export function CompanyInfoCard({
           <Briefcase className="h-5 w-5 text-primary" />
           Company Overview
         </h3>
-        {shouldShowMoreInfoButton && (
-          <Button 
-            variant="outline" 
-            onClick={handleChatbot} 
-            size="sm" 
-            className="h-10 w-10 p-0 bg-yellow-500 hover:bg-yellow-400"
-          >
+        {shouldShowMoreInfoButton && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300">
             <Bot className="h-5 w-5" />
-          </Button>
-        )}
+          </Button>}
       </div>
       
       <Card className="border-0 shadow-card">
@@ -168,12 +161,10 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyData?.name || companyName}</h4>
-              {shouldShowMoreInfoButton && (
-                <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
+              {shouldShowMoreInfoButton && <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
                   <Info className="mr-2 h-4 w-4" />
                   More Information
-                </Button>
-              )}
+                </Button>}
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
               {displayIntroduction}
