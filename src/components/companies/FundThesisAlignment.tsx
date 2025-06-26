@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, FileText } from "lucide-react";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { AnalysisModal } from '@/components/submissions/AnalysisModal';
-import type { CombinedSubmission } from '@/components/submissions/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import ReactMarkdown from 'react-markdown';
 
 interface FundThesisAlignmentProps {
   companyId: string;
@@ -13,12 +14,10 @@ interface FundThesisAlignmentProps {
 }
 
 export function FundThesisAlignment({ companyId, companyName = "This company" }: FundThesisAlignmentProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [hasFundThesis, setHasFundThesis] = useState(false);
 
@@ -28,7 +27,6 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       setError(null);
       
       if (forceRefresh) {
-        setRefreshing(true);
         setAnalysis(null);
       }
       
@@ -57,7 +55,6 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         toast.error("Failed to analyze fund thesis alignment");
         setError(`API error: ${error.message}`);
         setIsLoading(false);
-        setRefreshing(false);
         return;
       }
       
@@ -68,7 +65,6 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         toast.error(data.error);
         setError(`API error: ${data.error}`);
         setIsLoading(false);
-        setRefreshing(false);
         return;
       }
       
@@ -77,6 +73,7 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
         setAnalysis(data.analysis);
         // Automatically open the analysis modal once the data is loaded
         setIsAnalysisModalOpen(true);
+        toast.success("Fund thesis analysis completed!");
       } else {
         setError("No analysis data received from API");
       }
@@ -86,11 +83,10 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
       setError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
     }
   };
   
-  // Check if user has a fund thesis
+  // Check if user has a fund thesis on component mount
   useEffect(() => {
     const checkUser = async () => {
       try {
@@ -132,83 +128,166 @@ export function FundThesisAlignment({ companyId, companyName = "This company" }:
     
     checkUser();
   }, []);
-  
-  useEffect(() => {
-    analyzeThesisAlignment();
-  }, [companyId]);
+
+  const handleAnalyzeClick = () => {
+    if (!hasFundThesis) {
+      toast.error("Please upload a fund thesis document in your profile first");
+      return;
+    }
+    analyzeThesisAlignment(false);
+  };
 
   const handleRefreshAnalysis = () => {
     analyzeThesisAlignment(true);
   };
 
-  // If there's an error loading, show an error message
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-4" />
-        <p className="text-sm text-muted-foreground ml-3">Analyzing alignment with your fund thesis...</p>
-      </div>
-    );
-  }
+  return (
+    <>
+      <Button
+        onClick={handleAnalyzeClick}
+        disabled={isLoading || !hasFundThesis}
+        variant="outline"
+        className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Analyzing...
+          </>
+        ) : (
+          <>
+            <FileText className="h-4 w-4" />
+            Fund Thesis Analysis
+          </>
+        )}
+      </Button>
 
-  if (error) {
-    return (
-      <div className="p-4 border border-red-200 bg-red-50 rounded-md">
-        <div className="flex items-start gap-2">
-          <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-red-700">{error}</p>
-            <p className="text-sm text-red-600 mt-1">
-              Please make sure you have uploaded a fund thesis document in your profile.
-            </p>
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
-                onClick={handleRefreshAnalysis}
-                disabled={refreshing}
-              >
-                <span>Refresh Analysis</span>
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              </Button>
+      {error && (
+        <div className="mt-2 p-3 border border-red-200 bg-red-50 rounded-md">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-700">{error}</p>
+              <p className="text-sm text-red-600 mt-1">
+                Please make sure you have uploaded a fund thesis document in your profile.
+              </p>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Create a mock submission that matches CombinedSubmission type
-  const mockSubmission: CombinedSubmission = {
-    id: companyId,
-    company_name: companyName,
-    submitter_email: '',
-    created_at: new Date().toISOString(),
-    source: 'public_form' as const,
-    analysis_result: analysis,
-    title: `${companyName} Fund Thesis Analysis`,
-    description: 'Fund thesis alignment analysis'
-  };
-
-  return (
-    <>
-      <div className="flex gap-4">
-        <Button
-          variant="outline"
-          className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 mt-4"
-          onClick={handleRefreshAnalysis}
-          disabled={refreshing}
-        >
-          <span>Refresh Analysis</span>
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
-
-      <AnalysisModal
-        open={isAnalysisModalOpen}
-        onOpenChange={setIsAnalysisModalOpen}
-        submission={mockSubmission}
-      />
+      <Dialog open={isAnalysisModalOpen} onOpenChange={setIsAnalysisModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Fund Thesis Alignment Analysis
+              <span className="text-sm font-normal text-muted-foreground">
+                - {companyName}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[75vh] pr-4">
+            <div className="space-y-6 py-4">
+              {analysis ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      // Enhanced paragraph styling with proper spacing
+                      p: ({ children }) => (
+                        <p className="mb-4 leading-relaxed text-sm text-foreground">{children}</p>
+                      ),
+                      // Enhanced bullet points with better spacing and indentation
+                      ul: ({ children }) => (
+                        <ul className="mb-6 space-y-2 pl-6 list-disc">{children}</ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-sm leading-relaxed text-foreground pl-1">{children}</li>
+                      ),
+                      // Enhanced numbered lists
+                      ol: ({ children }) => (
+                        <ol className="mb-6 space-y-2 pl-6 list-decimal">{children}</ol>
+                      ),
+                      // Enhanced headers with better spacing and colors
+                      h1: ({ children }) => (
+                        <h1 className="text-xl font-bold mb-4 mt-6 first:mt-0 text-foreground border-b pb-2">{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0 text-foreground">{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-base font-medium mb-2 mt-4 first:mt-0 text-foreground">{children}</h3>
+                      ),
+                      h4: ({ children }) => (
+                        <h4 className="text-sm font-medium mb-2 mt-3 first:mt-0 text-foreground">{children}</h4>
+                      ),
+                      // Enhanced strong text
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-foreground">{children}</strong>
+                      ),
+                      // Enhanced emphasis
+                      em: ({ children }) => (
+                        <em className="italic text-muted-foreground">{children}</em>
+                      ),
+                      // Enhanced code blocks
+                      code: ({ children }) => (
+                        <code className="bg-secondary px-2 py-1 rounded text-xs font-mono text-foreground">{children}</code>
+                      ),
+                      // Enhanced blockquotes
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-blue-500 pl-4 ml-2 italic text-muted-foreground my-4 bg-secondary/20 py-2">
+                          {children}
+                        </blockquote>
+                      ),
+                      // Enhanced tables
+                      table: ({ children }) => (
+                        <div className="overflow-x-auto my-4">
+                          <table className="min-w-full border border-border">{children}</table>
+                        </div>
+                      ),
+                      th: ({ children }) => (
+                        <th className="border border-border px-3 py-2 bg-secondary text-left font-medium text-sm">{children}</th>
+                      ),
+                      td: ({ children }) => (
+                        <td className="border border-border px-3 py-2 text-sm">{children}</td>
+                      ),
+                    }}
+                  >
+                    {analysis}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-center">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No analysis available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+          
+          <div className="border-t pt-4 flex justify-between items-center">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={handleRefreshAnalysis}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh Analysis
+            </Button>
+            
+            <Button
+              variant="secondary"
+              onClick={() => setIsAnalysisModalOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
