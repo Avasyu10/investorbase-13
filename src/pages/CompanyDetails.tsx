@@ -16,6 +16,7 @@ import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
 import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
 import { MarketResearch } from "@/components/companies/MarketResearch";
+import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
 
 interface SlideNote {
   slideNumber: number;
@@ -68,6 +69,19 @@ function CompanyDetails() {
 
     checkUserType();
   }, [user]);
+
+  // Define the desired order for VC analysis sections
+  const VC_SECTION_ORDER = [
+    'PROBLEM',
+    'MARKET', 
+    'SOLUTION',
+    'TRACTION',
+    'COMPETITIVE_LANDSCAPE',
+    'BUSINESS_MODEL',
+    'TEAM',
+    'FINANCIALS',
+    'ASK'
+  ];
 
   // Extract slide notes and improvement suggestions from company data
   useEffect(() => {
@@ -139,6 +153,35 @@ function CompanyDetails() {
     }
   }, [company?.report_id]);
 
+  // Filter and sort sections based on user type
+  const filteredSections = company?.sections ? 
+    company.sections.filter(section => {
+      // Always exclude slide notes for regular section display
+      if (section.type === 'SLIDE_NOTES') return false;
+      
+      // For VC users, only show sections in the desired order and exclude GTM_STRATEGY
+      if (isVCUser) {
+        return VC_SECTION_ORDER.includes(section.type);
+      }
+      
+      // For non-VC users, show all sections except slide notes
+      return true;
+    }).sort((a, b) => {
+      // For VC users, sort by the defined order
+      if (isVCUser) {
+        const indexA = VC_SECTION_ORDER.indexOf(a.type);
+        const indexB = VC_SECTION_ORDER.indexOf(b.type);
+        return indexA - indexB;
+      }
+      
+      // For non-VC users, keep original order
+      return 0;
+    }) : [];
+
+  console.log('Filtered sections:', filteredSections);
+  console.log('Should show slide viewer:', !!company.report_id);
+  console.log('Is VC User:', isVCUser);
+
   // Early return for loading state
   if (authLoading || isLoading) {
     return (
@@ -170,14 +213,6 @@ function CompanyDetails() {
   const stageToShow = company.stage || "Not specified";
   const industryToShow = company.industry || "Not specified";
   const introductionToShow = company.introduction || `${company.name} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
-
-  // Filter sections based on user type - exclude slide notes for regular section display
-  const filteredSections = company?.sections ? 
-    company.sections.filter(section => section.type !== 'SLIDE_NOTES') : [];
-
-  console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
-  console.log('Should show slide viewer:', !!company.report_id);
-  console.log('Is VC User:', isVCUser);
 
   return (
     <div className="min-h-screen">
@@ -220,6 +255,16 @@ function CompanyDetails() {
               companyId={company.id}
               companyName={company.name}
             />
+          )}
+
+          {/* For VC users, show Fund Thesis Alignment */}
+          {isVCUser && company.id && (
+            <div className="mb-8">
+              <FundThesisAlignment 
+                companyId={company.id}
+                companyName={company.name}
+              />
+            </div>
           )}
 
           {/* For VC users, show Real-time Market Analysis */}
