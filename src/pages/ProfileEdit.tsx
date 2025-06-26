@@ -24,6 +24,7 @@ import { AreaOfInterestOptions } from "@/lib/constants";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone";
 import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { toast } from "sonner";
+import { uploadVCDocument } from "@/lib/supabase/documents";
 
 interface VCProfile {
   id: string;
@@ -103,6 +104,8 @@ const ProfileEdit = () => {
       
       // Only fetch VC profile if user is not a founder
       if (!isFounder) {
+        console.log('Fetching VC profile for user:', user.id);
+        
         const { data, error } = await supabase
           .from('vc_profiles')
           .select('*')
@@ -110,16 +113,25 @@ const ProfileEdit = () => {
           .single();
           
         if (error) {
-          console.error("Error fetching profile:", error);
+          console.error("Error fetching VC profile:", error);
           if (error.code === 'PGRST116') {
+            console.log('No VC profile found, redirecting to setup');
             navigate('/profile/setup');
+          } else {
+            hookToast({
+              title: "Error loading profile",
+              description: error.message,
+              variant: "destructive",
+            });
           }
           return;
         }
         
+        console.log('VC profile loaded:', data);
         const profileData = data as VCProfile;
         setVcProfile(profileData);
         
+        // Set form values
         setFundName(profileData.fund_name || '');
         setFundSize(profileData.fund_size || '');
         setAreasOfInterest(profileData.areas_of_interest || []);
@@ -148,7 +160,12 @@ const ProfileEdit = () => {
         }
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Fetch profile error:", error);
+      hookToast({
+        title: "Error loading profile",
+        description: "Failed to load profile data",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -222,7 +239,9 @@ const ProfileEdit = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setThesisFile(e.target.files[0]);
+      const file = e.target.files[0];
+      console.log('File selected:', file.name, file.type, file.size);
+      setThesisFile(file);
     }
   };
 
@@ -231,22 +250,30 @@ const ProfileEdit = () => {
     
     try {
       setDeletingThesis(true);
+      console.log('Deleting thesis file:', vcProfile.fund_thesis_url);
       
       const { error: storageError } = await supabase.storage
         .from('vc-documents')
         .remove([vcProfile.fund_thesis_url]);
         
-      if (storageError) throw storageError;
+      if (storageError) {
+        console.error('Storage deletion error:', storageError);
+        // Don't throw here, continue with database update
+      }
       
       const { error: updateError } = await supabase
         .from('vc_profiles')
         .update({ fund_thesis_url: null })
         .eq('id', user.id);
         
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw updateError;
+      }
       
       setHasExistingThesis(false);
       setThesisFilename(null);
+      setVcProfile(prev => prev ? { ...prev, fund_thesis_url: null } : null);
       
       hookToast({
         title: "Thesis deleted",
@@ -254,6 +281,7 @@ const ProfileEdit = () => {
       });
       
     } catch (error: any) {
+      console.error('Delete thesis error:', error);
       hookToast({
         title: "Error deleting thesis",
         description: error.message,
@@ -271,70 +299,49 @@ const ProfileEdit = () => {
     
     try {
       setSaving(true);
+      console.log('Starting profile save process...');
       
       let fundThesisUrl = vcProfile?.fund_thesis_url || null;
       
+      // Handle file upload if a new file is selected
       if (thesisFile) {
-        if (vcProfile?.fund_thesis_url) {
-          try {
-            const { error: removeError } = await supabase.storage
-              .from('vc-documents')
-              .remove([vcProfile.fund_thesis_url]);
-              
-            if (removeError) {
-              console.error('Error removing existing thesis:', removeError);
-            }
-          } catch (removeErr) {
-            console.error('Error during thesis removal:', removeErr);
-          }
-        }
-        
-        const fileExt = thesisFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
-        
-        console.log('Attempting to upload thesis to path:', filePath);
+        console.log('Uploading new thesis file:', thesisFile.name);
         
         try {
-          const { error: uploadError } = await supabase.storage
-            .from('vc-documents')
-            .upload(filePath, thesisFile, {
-              cacheControl: '3600',
-              upsert: true
-            });
-            
-          if (uploadError) {
-            console.error('Error with structured path upload:', uploadError);
-            throw uploadError;
+          // Use the improved upload function
+          const uploadedPath = await uploadVCDocument(thesisFile, user.id, {
+            useSignedUrls: false, // Use direct upload for reliability
+            showToasts: false // We'll handle toasts manually
+          });
+          
+          if (uploadedPath) {
+            fundThesisUrl = uploadedPath;
+            console.log('File uploaded successfully to:', fundThesisUrl);
+          } else {
+            throw new Error('File upload failed - no path returned');
           }
-          
-          fundThesisUrl = filePath;
-          console.log('File uploaded successfully to:', filePath);
-        } catch (uploadErr) {
-          console.error('Upload failed with structured path, trying simple filename:', uploadErr);
-          
-          const simpleFilePath = fileName;
-          
-          const { error: fallbackError } = await supabase.storage
-            .from('vc-documents')
-            .upload(simpleFilePath, thesisFile, {
-              cacheControl: '3600',
-              upsert: true
-            });
-            
-          if (fallbackError) {
-            console.error('Error with simple path upload:', fallbackError);
-            throw fallbackError;
-          }
-          
-          fundThesisUrl = simpleFilePath;
-          console.log('File uploaded successfully with simple path:', simpleFilePath);
+        } catch (uploadError: any) {
+          console.error('File upload failed:', uploadError);
+          hookToast({
+            title: "File upload failed",
+            description: uploadError.message || "Could not upload the PDF file",
+            variant: "destructive",
+          });
+          return; // Don't proceed with profile update if file upload fails
         }
       }
       
-      console.log('Updating profile with thesis URL:', fundThesisUrl);
+      console.log('Updating VC profile with data:', {
+        fund_name: fundName,
+        fund_size: fundSize,
+        areas_of_interest: areasOfInterest,
+        investment_stage: investmentStage,
+        companies_invested: companiesInvested,
+        website_url: websiteUrl,
+        fund_thesis_url: fundThesisUrl
+      });
       
-      const { error } = await supabase
+      const { data: updatedProfile, error } = await supabase
         .from('vc_profiles')
         .update({
           fund_name: fundName,
@@ -346,11 +353,23 @@ const ProfileEdit = () => {
           fund_thesis_url: fundThesisUrl,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select()
+        .single();
         
       if (error) {
-        console.error('Error updating profile:', error);
+        console.error('Database update error:', error);
         throw error;
+      }
+      
+      console.log('Profile updated successfully:', updatedProfile);
+      
+      // Update local state
+      setVcProfile(updatedProfile);
+      if (fundThesisUrl && thesisFile) {
+        setHasExistingThesis(true);
+        setThesisFilename(thesisFile.name);
+        setThesisFile(null); // Clear the file input
       }
       
       hookToast({
@@ -358,12 +377,16 @@ const ProfileEdit = () => {
         description: "Your profile has been successfully updated",
       });
       
-      navigate('/profile');
+      // Navigate back to profile after successful save
+      setTimeout(() => {
+        navigate('/profile');
+      }, 1000);
+      
     } catch (error: any) {
       console.error('Profile update error:', error);
       hookToast({
         title: "Error updating profile",
-        description: error.message,
+        description: error.message || "Failed to update profile",
         variant: "destructive",
       });
     } finally {
@@ -375,11 +398,16 @@ const ProfileEdit = () => {
     if (!vcProfile?.fund_thesis_url) return;
     
     try {
+      console.log('Downloading thesis from:', vcProfile.fund_thesis_url);
+      
       const { data, error } = await supabase.storage
         .from('vc-documents')
         .download(vcProfile.fund_thesis_url);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Download error:', error);
+        throw error;
+      }
       
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
@@ -391,6 +419,7 @@ const ProfileEdit = () => {
       document.body.removeChild(a);
       
     } catch (error: any) {
+      console.error('Download failed:', error);
       hookToast({
         title: "Download failed",
         description: error.message,
@@ -410,8 +439,8 @@ const ProfileEdit = () => {
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading profile information...</p>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (
@@ -530,6 +559,17 @@ const ProfileEdit = () => {
                           buttonText="Choose file"
                         />
                       )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="website-url" className="text-foreground/80">Website URL</Label>
+                      <Input
+                        id="website-url"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        placeholder="https://your-fund-website.com"
+                        className="bg-secondary/20 border-border/20 focus-visible:ring-primary"
+                      />
                     </div>
                   </div>
                 </div>
