@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Users, User, UserCheck } from "lucide-react";
+import { Send, MessageCircle, Users, User, UserCheck, Wifi, WifiOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompanyDetailsRealtime } from "@/hooks/useCompanyDetailsRealtime";
 
@@ -104,7 +104,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         role: "admin",
         color: "bg-blue-500"
       },
-      content: `Team POC updated for company ${companyId.substring(0, 8)}... - Changed from "${oldPoc || 'None'}" to "${newPoc || 'None'}"`,
+      content: `🔔 Team POC updated for company ${companyId.substring(0, 8)}... - Changed from "${oldPoc || 'None'}" to "${newPoc || 'None'}"`,
       timestamp: new Date(),
       isSystemMessage: true,
       messageType: 'poc_change'
@@ -118,8 +118,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     });
   }, []);
 
-  // Set up realtime subscription
-  useCompanyDetailsRealtime({ onPocChanged: handlePocChanged });
+  // Set up realtime subscription and get connection status
+  const { isConnected, retryCount } = useCompanyDetailsRealtime({ onPocChanged: handlePocChanged });
 
   // Add a test function to manually trigger a notification (for debugging)
   const testNotification = useCallback(() => {
@@ -226,15 +226,23 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
             VC Team Chat
-            {/* Add test button for debugging */}
-            <Button 
-              onClick={testNotification}
-              size="sm" 
-              variant="outline"
-              className="ml-auto text-xs"
-            >
-              Test Notification
-            </Button>
+            
+            {/* Connection Status Indicator */}
+            <div className="ml-auto flex items-center gap-2">
+              {isConnected ? (
+                <div className="flex items-center gap-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs">Live</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-red-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs">
+                    {retryCount > 0 ? `Retry ${retryCount}/5` : 'Connecting...'}
+                  </span>
+                </div>
+              )}
+            </div>
           </DialogTitle>
         </DialogHeader>
         
@@ -339,9 +347,16 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Press Enter to send • Click on team members for private chat
-                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Press Enter to send • Click on team members for private chat
+                      </p>
+                      {!isConnected && (
+                        <p className="text-xs text-amber-600">
+                          Real-time notifications disabled
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </>
               ) : selectedPrivateUser ? (
