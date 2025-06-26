@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from 'react-markdown';
-
 interface FundThesisAlignmentProps {
   companyId: string;
   companyName?: string;
@@ -187,7 +186,7 @@ export function FundThesisAlignment({
     return lowerTitle.includes('similarities') || lowerTitle.includes('differences') || lowerTitle.includes('alignment') || lowerTitle.includes('gaps');
   };
   return <>
-      <Button onClick={handleAnalyzeClick} disabled={isLoading || !hasFundThesis} variant="outline" className="flex items-center gap-2 border-blue-200 hover:border-blue-300 bg-amber-600 hover:bg-amber-500 text-zinc-50">
+      <Button onClick={handleAnalyzeClick} disabled={isLoading || !hasFundThesis} variant="outline" className="flex items-center gap-2 border-blue-200 hover:border-blue-300 text-zinc-50 bg-yellow-500 hover:bg-yellow-400">
         {isLoading ? <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Analyzing...
