@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FileUploadZone } from "./upload/FileUploadZone";
 import { CompanyInfoForm } from "./upload/CompanyInfoForm";
@@ -6,7 +5,6 @@ import { ProgressIndicator } from "./upload/ProgressIndicator";
 import { uploadReport } from "@/lib/supabase/analysis";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
 
 export function ReportUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -111,22 +109,18 @@ export function ReportUpload() {
       
       console.log('ReportUpload - Regular analysis completed successfully');
       
-      // Show success message and redirect to dashboard
-      toast.success("Analysis Complete!", {
-        description: "Your pitch deck has been analyzed successfully. You can view the results in your dashboard.",
-      });
-      
-      navigate('/dashboard');
+      // Navigate to the company details page
+      if (data.companyId) {
+        navigate(`/company/${data.companyId}`);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Error in upload/analysis process:', error);
       setIsUploading(false);
       setIsAnalyzing(false);
       setUploadProgress(0);
       setAnalysisProgress(0);
-      
-      toast.error("Analysis Failed", {
-        description: error instanceof Error ? error.message : "An error occurred during analysis",
-      });
     }
   };
 
