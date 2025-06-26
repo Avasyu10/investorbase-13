@@ -123,7 +123,7 @@ const Dashboard = () => {
 
         <div className="flex items-center justify-between mb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <TabsList>
                 <TabsTrigger value="companies">
                   {isIITBombay ? "Eureka Prospects" : "Prospects"}
