@@ -174,7 +174,7 @@ CRITICAL REQUIREMENTS:
 
    Each assessment point should be substantive (2-3 sentences) and include specific numbers, percentages, or quantifiable data wherever possible from the pitch deck.
 
-2. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and 3-4 weaknesses. 
+2. SECTION STRENGTHS & WEAKNESSES: Each section must have exactly 3-4 strengths and exactly 3-4 weaknesses.
 
    STRENGTHS should include:
    - Specific market data, numbers, percentages, or metrics from the deck
@@ -183,23 +183,31 @@ CRITICAL REQUIREMENTS:
    - Financial projections, unit economics, or cost structures mentioned
    - Competitive analysis data and positioning metrics
 
-   WEAKNESSES must focus ONLY on market-based challenges and should include:
-   - Market saturation data and competitive intensity metrics
-   - Economic headwinds or market contraction data affecting the industry
-   - Regulatory challenges or compliance costs with specific figures
-   - Market adoption barriers with supporting data points
-   - Customer acquisition challenges based on market dynamics
-   - Pricing pressure from market conditions with actual cost/revenue impacts
-   - Supply chain or operational cost pressures with quantified impacts
-   - Market timing risks supported by industry trend data
+   WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS AND DATA:
+   - Market saturation data and competitive intensity metrics with specific percentages
+   - Economic headwinds or market contraction data affecting the target industry
+   - Regulatory challenges or compliance costs with quantified financial impacts
+   - Market adoption barriers supported by industry research and data points
+   - Customer acquisition challenges based on market dynamics and sector benchmarks
+   - Pricing pressure from market conditions with actual cost/revenue impact data
+   - Supply chain or operational cost pressures with quantified industry-wide impacts
+   - Market timing risks supported by industry trend data and forecasts
+   - Sector-specific challenges backed by market research and industry reports
 
-   IMPORTANT: Weaknesses should NOT mention what's missing from the deck, presentation quality, or what could be improved. Focus ONLY on external market factors, industry challenges, and data-driven market risks that could impact the business regardless of how well the deck is prepared.
+   FORBIDDEN IN WEAKNESSES:
+   - Do NOT mention what's missing from the deck or presentation
+   - Do NOT suggest what could be improved in the pitch
+   - Do NOT mention lack of information or data in the deck
+   - Do NOT reference presentation quality or structure
+   - Do NOT mention what should be added or clarified
+   - Do NOT discuss gaps in the pitch deck content
 
-   Examples of market-based weaknesses:
-   - "Market research shows 73% customer churn rate industry-wide due to economic pressures, with average contract values declining 15% year-over-year"
-   - "Regulatory compliance costs average $2.3M annually for similar companies, representing 18% of typical revenue in this sector"
-   - "Market saturation analysis shows 89% of target demographic already using competing solutions, limiting organic growth potential"
-   - "Industry reports indicate 34% decline in venture funding for this sector over past 12 months, creating capital constraints"
+   REQUIRED FORMAT FOR WEAKNESSES:
+   Each weakness must start with market data and include specific numbers. Examples:
+   - "Industry reports show 67% of startups in this sector fail within 2 years due to market saturation, with customer acquisition costs rising 45% year-over-year across the industry"
+   - "Market research indicates 78% decline in venture funding for EdTech companies in Q3 2024, creating capital constraints with average deal sizes dropping from $4.2M to $1.8M"
+   - "Regulatory compliance costs average $3.1M annually for companies in this space, representing 22% of typical revenue according to industry surveys"
+   - "Economic data shows 34% contraction in target market spending over past 18 months, with consumer discretionary income in this demographic falling 28%"
 
 Please analyze these sections:
 1. PROBLEM - Problem Statement & Market Need
@@ -222,5 +230,5 @@ Score each section from 1-100 based on investment attractiveness:
 
 The overall score should reflect the comprehensive investment potential considering market opportunity, execution capability, scalability, and risk-adjusted returns.
 
-IMPORTANT: Every strength and weakness must contain specific numbers, metrics, percentages, growth rates, financial data, or market statistics. Weaknesses must focus exclusively on market conditions, industry challenges, and external factors - NOT on deck quality or missing information.`;
+MANDATORY: Every weakness MUST be based on external market data, industry statistics, economic conditions, or sector-specific challenges. Do NOT reference the pitch deck's content, structure, or what information it lacks. Focus solely on market realities and industry challenges that could impact the business regardless of how well the deck is prepared.`;
 }
