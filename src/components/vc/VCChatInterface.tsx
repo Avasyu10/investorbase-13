@@ -1,13 +1,14 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Users, User } from "lucide-react";
+import { Send, MessageCircle, Users, User, UserCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCompanyDetailsRealtime } from "@/hooks/useCompanyDetailsRealtime";
 
 interface Message {
   id: string;
@@ -16,6 +17,8 @@ interface Message {
   timestamp: Date;
   isPrivate?: boolean;
   targetUserId?: string;
+  isSystemMessage?: boolean;
+  messageType?: 'poc_change';
 }
 
 interface User {
@@ -90,6 +93,28 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
 
+  // Handle POC change notifications
+  const handlePocChanged = useCallback((companyId: string, oldPoc: string | null, newPoc: string | null) => {
+    const systemMessage: Message = {
+      id: `poc_change_${Date.now()}`,
+      user: {
+        id: "system",
+        name: "System",
+        role: "admin",
+        color: "bg-blue-500"
+      },
+      content: `Team POC updated for company ${companyId.substring(0, 8)}... - Changed from "${oldPoc || 'None'}" to "${newPoc || 'None'}"`,
+      timestamp: new Date(),
+      isSystemMessage: true,
+      messageType: 'poc_change'
+    };
+
+    setGroupMessages(prev => [...prev, systemMessage]);
+  }, []);
+
+  // Set up realtime subscription
+  useCompanyDetailsRealtime({ onPocChanged: handlePocChanged });
+
   const handleSendMessage = (isPrivate = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
 
@@ -144,21 +169,35 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           <Avatar className="h-8 w-8 flex-shrink-0">
             <AvatarImage src={message.user.avatar} />
             <AvatarFallback className={`${message.user.color} text-white text-xs`}>
-              {message.user.name.split(' ').map(n => n[0]).join('')}
+              {message.isSystemMessage ? (
+                <UserCheck className="h-4 w-4" />
+              ) : (
+                message.user.name.split(' ').map(n => n[0]).join('')
+              )}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">{message.user.name}</span>
-              <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
-                {message.user.role}
-              </Badge>
+              {!message.isSystemMessage && (
+                <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
+                  {message.user.role}
+                </Badge>
+              )}
               <span className="text-xs text-muted-foreground">
                 {formatTime(message.timestamp)}
               </span>
             </div>
-            <div className="bg-muted/30 rounded-lg p-3">
-              <p className="text-sm leading-relaxed">{message.content}</p>
+            <div className={`rounded-lg p-3 ${
+              message.isSystemMessage 
+                ? 'bg-blue-50 border border-blue-200' 
+                : 'bg-muted/30'
+            }`}>
+              <p className={`text-sm leading-relaxed ${
+                message.isSystemMessage ? 'text-blue-800 font-medium' : ''
+              }`}>
+                {message.content}
+              </p>
             </div>
           </div>
         </div>
