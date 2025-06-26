@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart2, Lightbulb, ExternalLink, FileText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -112,11 +111,11 @@ export function OverallAssessment({
           />
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-1">
           {displayPoints.map((point, index) => (
             <div 
               key={index} 
-              className="flex items-start gap-3 p-2 rounded-lg border-0"
+              className="flex items-start gap-3 p-1.5 rounded-lg border-0"
             >
               <Lightbulb className="h-5 w-5 mt-0.5 text-amber-500 shrink-0" />
               <span className="text-sm leading-relaxed">{point}</span>
