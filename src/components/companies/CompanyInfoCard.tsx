@@ -157,7 +157,7 @@ export function CompanyInfoCard({
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyData?.name || companyName}</h4>
               {shouldShowMoreInfoButton && <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={handleChatbot} size="sm" className="h-8 w-8 p-0 bg-amber-500 hover:bg-amber-400">
+                  <Button variant="outline" onClick={handleChatbot} size="sm" className="h-8 w-8 p-0 bg-yellow-500 hover:bg-yellow-400">
                     <Bot className="h-4 w-4" />
                   </Button>
                   <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
