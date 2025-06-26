@@ -1,20 +1,17 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
 import { SectionChecklist } from "@/components/companies/SectionChecklist";
-import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
+import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
-import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Loader2, BarChart2, ListChecks } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
-import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
-import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
 import { MarketResearch } from "@/components/companies/MarketResearch";
 
 interface SlideNote {
@@ -171,9 +168,12 @@ function CompanyDetails() {
   const industryToShow = company.industry || "Not specified";
   const introductionToShow = company.introduction || `${company.name} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
 
-  // Filter sections based on user type - exclude slide notes for regular section display
+  // Filter sections based on user type - exclude slide notes and GTM strategy for display
   const filteredSections = company?.sections ? 
-    company.sections.filter(section => section.type !== 'SLIDE_NOTES') : [];
+    company.sections.filter(section => 
+      section.type !== 'SLIDE_NOTES' && 
+      section.type !== 'GTM_STRATEGY'
+    ) : [];
 
   // Custom sorting for VC users with specific order
   const getSortedSections = () => {
@@ -181,29 +181,20 @@ function CompanyDetails() {
     
     // Define the custom order for VC section display
     const vcSectionOrder = [
-      'problem_statement', 'problem_solution_fit', 'problem_and_solution', 'problem',
-      'market_size', 'market_opportunity', 'market',
-      'solution', 'product',
-      'traction', 'growth',
-      'competitors', 'competition', 'competitive_analysis',
-      'business_model', 'revenue_model', 'monetization',
-      'team', 'management', 'founders',
-      'financials', 'financial_projections', 'funding',
-      'ask', 'funding_ask', 'investment_ask'
+      'PROBLEM',
+      'MARKET', 
+      'SOLUTION',
+      'TRACTION',
+      'COMPETITIVE_LANDSCAPE',
+      'BUSINESS_MODEL',
+      'TEAM',
+      'FINANCIALS',
+      'ASK'
     ];
 
     return [...filteredSections].sort((a, b) => {
-      // Normalize section identifiers for comparison
-      const getNormalizedKey = (section: any) => {
-        if (section.section_type) return section.section_type.toLowerCase();
-        return section.title.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, 'and');
-      };
-
-      const keyA = getNormalizedKey(a);
-      const keyB = getNormalizedKey(b);
-
-      const indexA = vcSectionOrder.findIndex(order => keyA.includes(order) || order.includes(keyA));
-      const indexB = vcSectionOrder.findIndex(order => keyB.includes(order) || order.includes(keyB));
+      const indexA = vcSectionOrder.indexOf(a.type);
+      const indexB = vcSectionOrder.indexOf(b.type);
 
       // If both sections are in the custom order, sort by that order
       if (indexA !== -1 && indexB !== -1) {
@@ -221,7 +212,7 @@ function CompanyDetails() {
 
   const sortedSections = getSortedSections();
 
-  console.log('Filtered sections (excluding SLIDE_NOTES):', filteredSections);
+  console.log('Filtered sections (excluding SLIDE_NOTES and GTM_STRATEGY):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
   console.log('Is VC User:', isVCUser);
 

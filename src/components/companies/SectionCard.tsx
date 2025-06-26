@@ -34,52 +34,22 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
     return "destructive";
   };
 
-  const formatSectionTitle = (title: string, sectionType?: string) => {
-    // Custom VC section title mappings
+  const formatSectionTitle = (sectionType: string) => {
+    // Custom VC section title mappings based on section type
     const vcTitleMappings: { [key: string]: string } = {
-      'problem_solution_fit': 'Problem Statement',
-      'problem_and_solution': 'Problem Statement',
-      'problem': 'Problem Statement',
-      'market_size': 'Market Size',
-      'market_opportunity': 'Market Size',
-      'market': 'Market Size',
-      'solution': 'Solution',
-      'product': 'Solution',
-      'traction': 'Traction',
-      'growth': 'Traction',
-      'competitors': 'Competitor',
-      'competition': 'Competitor',
-      'competitive_analysis': 'Competitor',
-      'revenue_model': 'Business Model',
-      'business_model': 'Business Model',
-      'monetization': 'Business Model',
-      'team': 'Team',
-      'management': 'Team',
-      'founders': 'Team',
-      'financials': 'Financials',
-      'financial_projections': 'Financials',
-      'funding': 'Financials',
-      'ask': 'Ask',
-      'funding_ask': 'Ask',
-      'investment_ask': 'Ask'
+      'PROBLEM': 'Problem Statement',
+      'MARKET': 'Market Size',
+      'SOLUTION': 'Solution',
+      'TRACTION': 'Traction',
+      'COMPETITIVE_LANDSCAPE': 'Competitor',
+      'BUSINESS_MODEL': 'Business Model',
+      'TEAM': 'Team',
+      'FINANCIALS': 'Financials',
+      'ASK': 'Ask'
     };
 
-    // Check section type first
-    if (sectionType && vcTitleMappings[sectionType]) {
-      return vcTitleMappings[sectionType];
-    }
-
-    // Check title (convert to lowercase and replace spaces with underscores)
-    const normalizedTitle = title.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, 'and');
-    if (vcTitleMappings[normalizedTitle]) {
-      return vcTitleMappings[normalizedTitle];
-    }
-
-    // Fallback to formatted title
-    return title
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    // Return the mapped title or fallback to formatted section type
+    return vcTitleMappings[sectionType] || sectionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const displayScore = isHundredScale ? score : normalizedScore;
@@ -91,7 +61,7 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
     >
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="flex items-center justify-between text-base">
-          <span className="truncate">{formatSectionTitle(section.title, section.section_type)}</span>
+          <span className="truncate">{formatSectionTitle(section.type)}</span>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-500" />
             <Badge variant={getScoreBadgeVariant(score)} className="text-xs">
