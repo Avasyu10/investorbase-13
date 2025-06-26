@@ -1,15 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Users, User, Bell, BellRing } from "lucide-react";
+import { Send, MessageCircle, Users, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -18,7 +16,6 @@ interface Message {
   timestamp: Date;
   isPrivate?: boolean;
   targetUserId?: string;
-  isSystemNotification?: boolean;
 }
 
 interface User {
@@ -36,14 +33,6 @@ const mockUsers: User[] = [
   { id: "4", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
   { id: "5", name: "Himanshu", role: "intern", color: "bg-orange-500" },
 ];
-
-// System user for notifications
-const systemUser: User = {
-  id: "system",
-  name: "System",
-  role: "admin",
-  color: "bg-gray-500"
-};
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -100,153 +89,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [currentUser] = useState(mockUsers[0]); // Admin user (Roohi Sharma)
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('disconnected');
-  const { toast } = useToast();
-
-  // Real-time subscription effect with proper error handling
-  useEffect(() => {
-    if (!open) {
-      setConnectionStatus('disconnected');
-      return;
-    }
-
-    console.log('Setting up real-time subscription for company_details updates...');
-    setConnectionStatus('connecting');
-
-    let channel: any = null;
-    let retryTimeout: NodeJS.Timeout | null = null;
-    let isSubscribing = true;
-
-    const setupRealtimeSubscription = () => {
-      if (!isSubscribing) return;
-
-      try {
-        console.log('Creating new real-time channel...');
-        
-        channel = supabase
-          .channel('company-poc-updates', {
-            config: {
-              broadcast: { self: false },
-              presence: { key: 'company-poc-channel' }
-            }
-          })
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'company_details',
-              filter: 'teammember_name=not.is.null'
-            },
-            (payload) => {
-              console.log('Received real-time update:', payload);
-              
-              try {
-                const oldRecord = payload.old as any;
-                const newRecord = payload.new as any;
-                
-                // Check if teammember_name was actually changed
-                if (oldRecord?.teammember_name !== newRecord?.teammember_name) {
-                  const notificationMessage: Message = {
-                    id: `notification-${Date.now()}`,
-                    user: systemUser,
-                    content: `🔔 Team POC updated: "${newRecord.teammember_name || 'Not assigned'}" assigned to a company`,
-                    timestamp: new Date(),
-                    isSystemNotification: true
-                  };
-
-                  console.log('Adding notification message:', notificationMessage);
-                  
-                  setGroupMessages(prev => [...prev, notificationMessage]);
-                  setNotificationCount(prev => prev + 1);
-                  
-                  toast({
-                    title: "Team POC Updated",
-                    description: `New team member assigned: ${newRecord.teammember_name || 'Not assigned'}`,
-                    duration: 5000,
-                  });
-                }
-              } catch (error) {
-                console.error('Error processing real-time update:', error);
-              }
-            }
-          )
-          .subscribe(async (status, err) => {
-            console.log('Real-time subscription status:', status, err);
-            
-            if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to company_details changes');
-              setConnectionStatus('connected');
-              
-              // Clear any retry timeout since we're now connected
-              if (retryTimeout) {
-                clearTimeout(retryTimeout);
-                retryTimeout = null;
-              }
-              
-              toast({
-                title: "Real-time notifications enabled",
-                description: "You'll receive Team POC updates in real-time",
-              });
-            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-              console.error('Real-time subscription error:', status, err);
-              setConnectionStatus('error');
-              
-              // Clean up the current channel
-              if (channel) {
-                try {
-                  await supabase.removeChannel(channel);
-                } catch (cleanupError) {
-                  console.error('Error cleaning up channel:', cleanupError);
-                }
-                channel = null;
-              }
-              
-              // Retry connection after a delay if still subscribing
-              if (isSubscribing && !retryTimeout) {
-                console.log('Scheduling retry in 5 seconds...');
-                retryTimeout = setTimeout(() => {
-                  if (isSubscribing) {
-                    console.log('Retrying real-time connection...');
-                    setConnectionStatus('connecting');
-                    setupRealtimeSubscription();
-                  }
-                }, 5000);
-              }
-            }
-          });
-      } catch (error) {
-        console.error('Error setting up real-time subscription:', error);
-        setConnectionStatus('error');
-        
-        // Retry after error
-        if (isSubscribing && !retryTimeout) {
-          retryTimeout = setTimeout(() => {
-            if (isSubscribing) {
-              setupRealtimeSubscription();
-            }
-          }, 5000);
-        }
-      }
-    };
-
-    setupRealtimeSubscription();
-
-    return () => {
-      console.log('Cleaning up real-time subscription...');
-      isSubscribing = false;
-      setConnectionStatus('disconnected');
-      
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-      
-      if (channel) {
-        supabase.removeChannel(channel).catch(console.error);
-      }
-    };
-  }, [open, toast]);
 
   const handleSendMessage = (isPrivate = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
@@ -295,52 +137,27 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   };
 
-  const getConnectionStatusColor = () => {
-    switch (connectionStatus) {
-      case 'connected': return 'text-green-600';
-      case 'connecting': return 'text-yellow-600';
-      case 'error': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const getConnectionStatusText = () => {
-    switch (connectionStatus) {
-      case 'connected': return 'Connected';
-      case 'connecting': return 'Connecting...';
-      case 'error': return 'Connection Error';
-      default: return 'Disconnected';
-    }
-  };
-
   const renderMessages = (messages: Message[]) => (
     <div className="space-y-3 p-4">
       {messages.map((message) => (
-        <div key={message.id} className={`flex gap-3 ${message.isSystemNotification ? 'bg-blue-50 p-2 rounded-lg border border-blue-200' : ''}`}>
+        <div key={message.id} className="flex gap-3">
           <Avatar className="h-8 w-8 flex-shrink-0">
             <AvatarImage src={message.user.avatar} />
             <AvatarFallback className={`${message.user.color} text-white text-xs`}>
-              {message.isSystemNotification ? <Bell className="h-4 w-4" /> : message.user.name.split(' ').map(n => n[0]).join('')}
+              {message.user.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">{message.user.name}</span>
-              {!message.isSystemNotification && (
-                <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
-                  {message.user.role}
-                </Badge>
-              )}
-              {message.isSystemNotification && (
-                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
-                  notification
-                </Badge>
-              )}
+              <Badge variant="outline" className={`text-xs ${getRoleColor(message.user.role)}`}>
+                {message.user.role}
+              </Badge>
               <span className="text-xs text-muted-foreground">
                 {formatTime(message.timestamp)}
               </span>
             </div>
-            <div className={`${message.isSystemNotification ? 'bg-blue-100/50' : 'bg-muted/30'} rounded-lg p-3`}>
+            <div className="bg-muted/30 rounded-lg p-3">
               <p className="text-sm leading-relaxed">{message.content}</p>
             </div>
           </div>
@@ -358,22 +175,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
             VC Team Chat
-            {notificationCount > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                <BellRing className="h-3 w-3 mr-1" />
-                {notificationCount}
-              </Badge>
-            )}
-            <div className="ml-auto flex items-center gap-2">
-              <span className={`text-xs ${getConnectionStatusColor()}`}>
-                {getConnectionStatusText()}
-              </span>
-              <div className={`h-2 w-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-500' :
-                connectionStatus === 'connecting' ? 'bg-yellow-500' :
-                connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-400'
-              }`} />
-            </div>
           </DialogTitle>
         </DialogHeader>
         
@@ -445,11 +246,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                   <TabsTrigger value="group" className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     Group Chat
-                    {notificationCount > 0 && (
-                      <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0.5">
-                        {notificationCount}
-                      </Badge>
-                    )}
                   </TabsTrigger>
                   <TabsTrigger value="private" className="flex items-center gap-2" disabled={!selectedPrivateUser}>
                     <User className="h-4 w-4" />
@@ -484,10 +280,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Press Enter to send • Click on team members for private chat • 
-                      <span className={`ml-1 ${getConnectionStatusColor()}`}>
-                        Real-time: {getConnectionStatusText()}
-                      </span>
+                      Press Enter to send • Click on team members for private chat
                     </p>
                   </div>
                 </>
