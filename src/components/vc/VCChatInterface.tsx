@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Send, MessageCircle, Users, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -24,6 +27,16 @@ interface User {
   role: "admin" | "manager" | "analyst" | "associate" | "intern";
   avatar?: string;
   color: string;
+}
+
+interface DbMessage {
+  id: string;
+  name: string;
+  message: string;
+  time: string;
+  to_recipient: string;
+  user_id: string;
+  created_at: string;
 }
 
 const mockUsers: User[] = [
@@ -51,65 +64,136 @@ interface VCChatInterfaceProps {
 }
 
 export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
-  const [groupMessages, setGroupMessages] = useState<Message[]>([
-    {
-      id: "1",
-      user: mockUsers[0],
-      content: "Good morning team! Let's discuss how many decks we got today.",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
-    },
-    {
-      id: "2",
-      user: mockUsers[1],
-      content: "Good Morning, we got around 70 decks today and have been reviewing them. Any updates Avasyu?",
-      timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000)
-    },
-    {
-      id: "3",
-      user: mockUsers[2],
-      content: "Hi everyone, I have been able to review some of them and a few have great potential and market analysis. We should definately take a look at them and have a proper discussion",
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000)
-    },
-    {
-      id: "4",
-      user: mockUsers[1],
-      content: "I agree with Avasyu. Are there any decks in particular that you want that someone should look into in detail? ",
-      timestamp: new Date(Date.now() - 45 * 60 * 1000)
-    },
-    {
-      id: "5",
-      user: mockUsers[3],
-      content: "I think Metafuels shows great potential and should be properly looked at once before we sync on it.",
-      timestamp: new Date(Date.now() - 30 * 60 * 1000)
-    },
-    {
-      id: "6",
-      user: mockUsers[0],
-      content: "Okay then, Himanshu I want you to take a proper look at the deck of Metafuels with all the details and after sometime we can discuss that and all potential decks over a call.",
-      timestamp: new Date(Date.now() - 30 * 60 * 1000)
-    },
-    {
-      id: "system-3",
-      user: mockUsers[0],
-      content: "Team POC for Metafuels changed to Himanshu",
-      timestamp: new Date(Date.now() - 25 * 60 * 1000),
-      isSystemMessage: true
-    },
-      {
-      id: "7",
-      user: mockUsers[4],
-      content: "Yes sure, I will definitely look into it.",
-      timestamp: new Date(Date.now() - 30 * 60 * 1000)
-    },
-  ]);
-  
+  const { user } = useAuth();
+  const [groupMessages, setGroupMessages] = useState<Message[]>([]);
   const [privateMessages, setPrivateMessages] = useState<{ [key: string]: Message[] }>({});
   const [newMessage, setNewMessage] = useState("");
   const [currentUser] = useState(mockUsers[0]); // Admin user (Roohi Sharma)
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
 
-  const handleSendMessage = (isPrivate = false, targetUser?: User) => {
+  // Convert database message to UI message format
+  const convertDbMessageToMessage = (dbMessage: DbMessage): Message => {
+    // Find user by name or use a default
+    const messageUser = mockUsers.find(u => u.name === dbMessage.name) || currentUser;
+    
+    return {
+      id: dbMessage.id,
+      user: messageUser,
+      content: dbMessage.message,
+      timestamp: new Date(dbMessage.time),
+      isPrivate: dbMessage.to_recipient !== 'group_chat',
+      targetUserId: dbMessage.to_recipient !== 'group_chat' ? dbMessage.to_recipient : undefined,
+    };
+  };
+
+  // Load existing messages from database
+  const loadMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vc_chat_messages')
+        .select('*')
+        .order('time', { ascending: true });
+
+      if (error) {
+        console.error('Error loading messages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load chat messages",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data) {
+        const messages = data.map(convertDbMessageToMessage);
+        
+        // Separate group and private messages
+        const group = messages.filter(msg => !msg.isPrivate);
+        const private: { [key: string]: Message[] } = {};
+        
+        messages.filter(msg => msg.isPrivate).forEach(msg => {
+          const chatKey = msg.targetUserId ? `${currentUser.id}-${msg.targetUserId}` : 'unknown';
+          if (!private[chatKey]) {
+            private[chatKey] = [];
+          }
+          private[chatKey].push(msg);
+        });
+
+        setGroupMessages(group);
+        setPrivateMessages(private);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+
+  // Save message to database
+  const saveMessage = async (message: Message, isPrivate = false, targetUser?: User) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('vc_chat_messages')
+        .insert({
+          name: message.user.name,
+          message: message.content,
+          time: message.timestamp.toISOString(),
+          to_recipient: isPrivate && targetUser ? targetUser.id : 'group_chat',
+          user_id: user.id
+        });
+
+      if (error) {
+        console.error('Error saving message:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save message",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  };
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!open) return;
+
+    loadMessages();
+
+    const channel = supabase
+      .channel('vc_chat_messages_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'vc_chat_messages'
+        },
+        (payload) => {
+          const dbMessage = payload.new as DbMessage;
+          const newMessage = convertDbMessageToMessage(dbMessage);
+          
+          if (newMessage.isPrivate) {
+            const chatKey = newMessage.targetUserId ? `${currentUser.id}-${newMessage.targetUserId}` : 'unknown';
+            setPrivateMessages(prev => ({
+              ...prev,
+              [chatKey]: [...(prev[chatKey] || []), newMessage]
+            }));
+          } else {
+            setGroupMessages(prev => [...prev, newMessage]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, currentUser.id]);
+
+  const handleSendMessage = async (isPrivate = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
 
     const message: Message = {
@@ -121,16 +205,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       targetUserId: targetUser?.id,
     };
 
-    if (isPrivate && targetUser) {
-      const chatKey = `${currentUser.id}-${targetUser.id}`;
-      setPrivateMessages(prev => ({
-        ...prev,
-        [chatKey]: [...(prev[chatKey] || []), message]
-      }));
-    } else {
-      setGroupMessages(prev => [...prev, message]);
-    }
-
+    // Save to database (which will trigger real-time update)
+    await saveMessage(message, isPrivate, targetUser);
+    
     setNewMessage("");
   };
 

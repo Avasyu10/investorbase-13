@@ -1171,6 +1171,36 @@ export type Database = {
         }
         Relationships: []
       }
+      vc_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          name: string
+          time: string
+          to_recipient: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          name: string
+          time?: string
+          to_recipient?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          name?: string
+          time?: string
+          to_recipient?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       vc_profiles: {
         Row: {
           areas_of_interest: string[] | null
