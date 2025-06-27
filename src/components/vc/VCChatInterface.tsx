@@ -36,6 +36,7 @@ interface DbMessage {
   time: string;
   to_recipient: string;
   user_id: string;
+  recipient_id: string | null;
   created_at: string;
 }
 
@@ -82,8 +83,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       user: messageUser,
       content: dbMessage.message,
       timestamp: new Date(dbMessage.time),
-      isPrivate: dbMessage.to_recipient !== 'group_chat',
-      targetUserId: dbMessage.to_recipient !== 'group_chat' ? dbMessage.to_recipient : undefined,
+      isPrivate: dbMessage.recipient_id !== null,
+      targetUserId: dbMessage.recipient_id || undefined,
     };
   };
 
@@ -148,6 +149,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           message: message.content,
           time: message.timestamp.toISOString(),
           to_recipient: isPrivateMessage && targetUser ? targetUser.id : 'group_chat',
+          recipient_id: isPrivateMessage && targetUser ? targetUser.id : null,
           user_id: user.id
         });
 
