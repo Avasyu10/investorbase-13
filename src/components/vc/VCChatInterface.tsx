@@ -81,7 +81,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user profiles from database
+  // Load user profiles from database and create static team members
   const loadUserProfiles = async () => {
     try {
       const { data: profiles, error } = await supabase
@@ -94,39 +94,88 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         return;
       }
 
-      if (profiles) {
-        const userProfiles: UserProfile[] = profiles.map(profile => {
-          let displayName = profile.full_name || profile.username || profile.email?.split('@')[0] || 'Unknown User';
-          let role: UserProfile['role'] = 'intern';
-          
-          // Handle manager role with special display
-          if (profile.is_manager) {
-            role = 'manager';
-            if (profile.email === 'kanishksaxena1103@gmail.com') {
-              displayName = 'Kanishk Saxena (manager)';
-            }
-          } else if (profile.is_admin) {
-            role = 'admin';
-          } else if (profile.is_vc) {
-            role = 'analyst';
+      // Create static team members array with 4 members
+      const staticTeamMembers: UserProfile[] = [
+        {
+          id: 'static-kanishk',
+          name: 'Kanishk Saxena (manager)',
+          role: 'manager',
+          color: getUserColor('kanishksaxena1103@gmail.com'),
+          email: 'kanishksaxena1103@gmail.com',
+          is_manager: true,
+          is_vc: false
+        },
+        {
+          id: 'static-roohi',
+          name: 'Roohi Sharma (admin)', 
+          role: 'admin',
+          color: getUserColor('roohi@example.com'),
+          email: 'roohi@example.com',
+          is_vc: true,
+          is_manager: false
+        },
+        {
+          id: 'static-alex',
+          name: 'Alex Johnson',
+          role: 'analyst',
+          color: getUserColor('alex@example.com'),
+          email: 'alex@example.com',
+          is_vc: false,
+          is_manager: false
+        },
+        {
+          id: 'static-sarah',
+          name: 'Sarah Wilson',
+          role: 'associate', 
+          color: getUserColor('sarah@example.com'),
+          email: 'sarah@example.com',
+          is_vc: false,
+          is_manager: false
+        }
+      ];
+
+      if (profiles && user) {
+        // Find current user and determine their display info
+        const dbProfile = profiles.find(p => p.id === user.id);
+        let current: UserProfile | null = null;
+
+        if (dbProfile) {
+          if (dbProfile.is_manager) {
+            // Map real Kanishk to static Kanishk
+            current = {
+              ...staticTeamMembers[0],
+              id: dbProfile.id // Use real database ID for messaging
+            };
+          } else if (dbProfile.is_vc && !dbProfile.is_manager) {
+            // Map real VC user to static Roohi
+            current = {
+              ...staticTeamMembers[1],
+              id: dbProfile.id // Use real database ID for messaging
+            };
           }
+        }
 
-          return {
-            id: profile.id,
-            name: displayName,
-            role,
-            color: getUserColor(profile.email || profile.id),
-            email: profile.email,
-            is_vc: profile.is_vc,
-            is_manager: profile.is_manager
-          };
-        });
-
-        // Find current user
-        const current = userProfiles.find(p => p.id === user?.id);
         if (current) {
           setCurrentUser(current);
-          setOtherUsers(userProfiles.filter(p => p.id !== user?.id));
+          
+          // Set other users - filter out current user's static equivalent and only show members who can cross-message
+          const others = staticTeamMembers.filter(member => {
+            if (current.role === 'manager') {
+              // If current user is manager (Kanishk), show Roohi for cross-messaging
+              return member.role === 'admin';
+            } else if (current.role === 'admin') {
+              // If current user is admin (Roohi), show Kanishk for cross-messaging  
+              return member.role === 'manager';
+            }
+            return false;
+          });
+          
+          // Add the other static members for display only (they can't cross-message yet)
+          const displayOnlyMembers = staticTeamMembers.filter(member => 
+            member.role !== 'manager' && member.role !== 'admin'
+          );
+          
+          setOtherUsers([...others, ...displayOnlyMembers]);
         }
       }
     } catch (error) {
@@ -138,15 +187,17 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   // Convert database message to UI message format
   const convertDbMessageToMessage = (dbMessage: DbMessage): Message => {
-    // Find user by ID first, then by name as fallback
-    let messageUser = otherUsers.find(u => u.id === dbMessage.user_id) || 
-                     currentUser && currentUser.id === dbMessage.user_id ? currentUser : null;
+    // Try to map database user to current user or team members
+    let messageUser: UserProfile | null = null;
     
-    if (!messageUser) {
-      messageUser = otherUsers.find(u => u.name === dbMessage.name) || currentUser;
+    if (currentUser && currentUser.id === dbMessage.user_id) {
+      messageUser = currentUser;
+    } else {
+      // Try to find in other users by ID
+      messageUser = otherUsers.find(u => u.id === dbMessage.user_id);
     }
     
-    // If still no user found, create a placeholder
+    // If still no user found, create a placeholder based on the name
     if (!messageUser) {
       messageUser = {
         id: dbMessage.user_id || 'unknown',
@@ -235,7 +286,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       if (error) {
         console.error('Error saving message:', error);
         toast({
-          title: "Error",
+          title: "Error", 
           description: "Failed to save message",
           variant: "destructive"
         });
@@ -346,6 +397,11 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   };
 
+  // Check if user can cross-message (only Kanishk and Roohi for now)
+  const canCrossMessage = (user: UserProfile) => {
+    return user.role === 'manager' || user.role === 'admin';
+  };
+
   // Render messages function
   const renderMessages = (messages: Message[]) => (
     <div className="space-y-3 p-4">
@@ -446,14 +502,20 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 {otherUsers.map((user) => (
                   <div
                     key={user.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                      selectedPrivateUser?.id === user.id && activeTab === "private"
-                        ? 'bg-primary/10 border border-primary/20' 
-                        : 'hover:bg-muted/50'
+                    className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                      canCrossMessage(user)
+                        ? `cursor-pointer ${
+                            selectedPrivateUser?.id === user.id && activeTab === "private"
+                              ? 'bg-primary/10 border border-primary/20' 
+                              : 'hover:bg-muted/50'
+                          }`
+                        : 'opacity-60 cursor-not-allowed'
                     }`}
                     onClick={() => {
-                      setSelectedPrivateUser(user);
-                      setActiveTab("private");
+                      if (canCrossMessage(user)) {
+                        setSelectedPrivateUser(user);
+                        setActiveTab("private");
+                      }
                     }}
                   >
                     <Avatar className="h-7 w-7">
@@ -467,6 +529,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
                         {user.role}
                       </Badge>
+                      {!canCrossMessage(user) && (
+                        <p className="text-xs text-muted-foreground">Chat coming soon</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -484,7 +549,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                     <Users className="h-4 w-4" />
                     Group Chat
                   </TabsTrigger>
-                  <TabsTrigger value="private" className="flex items-center gap-2" disabled={!selectedPrivateUser}>
+                  <TabsTrigger value="private" className="flex items-center gap-2" disabled={!selectedPrivateUser || !canCrossMessage(selectedPrivateUser)}>
                     <User className="h-4 w-4" />
                     {selectedPrivateUser ? `Chat with ${selectedPrivateUser.name}` : "Private Chat"}
                   </TabsTrigger>
@@ -517,11 +582,11 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Press Enter to send • Click on team members for private chat
+                      Press Enter to send • Click on available team members for private chat
                     </p>
                   </div>
                 </>
-              ) : selectedPrivateUser ? (
+              ) : selectedPrivateUser && canCrossMessage(selectedPrivateUser) ? (
                 <>
                   <div className="p-4 bg-muted/30 border-b flex-shrink-0">
                     <div className="flex items-center gap-2">
@@ -564,7 +629,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Select a team member to start a private conversation</p>
+                    <p>Select an available team member to start a private conversation</p>
+                    <p className="text-sm mt-2">Private messaging coming soon for other members</p>
                   </div>
                 </div>
               )}
