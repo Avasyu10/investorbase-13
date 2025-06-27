@@ -5,9 +5,12 @@ import { SectionCard } from "@/components/companies/SectionCard";
 import { SectionChecklist } from "@/components/companies/SectionChecklist";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
+import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
+import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, BarChart2, ListChecks } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2, ListChecks, Lightbulb, FileText } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
@@ -29,9 +32,9 @@ function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isLoading: authLoading, user } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
-  const [isVCUser, setIsVCUser] = useState(false);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
 
@@ -41,30 +44,10 @@ function CompanyDetails() {
     sections: company.sections || []
   } : null;
 
-  // Check if current user is VC user
-  useEffect(() => {
-    const checkUserType = async () => {
-      if (!user) return;
-      
-      try {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('is_vc')
-          .eq('id', user.id)
-          .single();
-        
-        setIsVCUser(userProfile?.is_vc || false);
-        console.log('User type checked:', { 
-          userId: user.id, 
-          isVC: userProfile?.is_vc || false 
-        });
-      } catch (error) {
-        console.error('Error checking user type:', error);
-      }
-    };
-
-    checkUserType();
-  }, [user]);
+  // Determine user type based on profile
+  const isVCUser = profile?.isVC || false;
+  const isIITBombayUser = profile?.isIITBombay || false;
+  const isRegularUser = !isVCUser && !isIITBombayUser;
 
   // Extract slide notes and improvement suggestions from company data
   useEffect(() => {
@@ -112,7 +95,6 @@ function CompanyDetails() {
               console.log('Found suggestions in sections:', suggestions.length);
             }
             
-            // Always show improvement suggestions section, even if empty (for debugging)
             setImprovementSuggestions(suggestions);
             console.log('Final improvement suggestions count:', suggestions.length);
             console.log('Improvement suggestions:', suggestions);
@@ -137,7 +119,7 @@ function CompanyDetails() {
   }, [company?.report_id]);
 
   // Early return for loading state
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || profileLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -168,7 +150,7 @@ function CompanyDetails() {
   const industryToShow = company.industry || "Not specified";
   const introductionToShow = company.introduction || `${company.name} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
 
-  // Filter sections based on user type - exclude slide notes and GTM strategy for display
+  // Filter sections based on user type - exclude slide notes and GTM strategy for display in section cards
   const filteredSections = company?.sections ? 
     company.sections.filter(section => 
       section.type !== 'SLIDE_NOTES' && 
@@ -212,9 +194,9 @@ function CompanyDetails() {
 
   const sortedSections = getSortedSections();
 
+  console.log('User types:', { isVCUser, isIITBombayUser, isRegularUser });
   console.log('Filtered sections (excluding SLIDE_NOTES and GTM_STRATEGY):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
-  console.log('Is VC User:', isVCUser);
 
   return (
     <div className="min-h-screen">
@@ -300,8 +282,24 @@ function CompanyDetails() {
             </>
           )}
 
-          {/* Show section checklist for non-VC users */}
-          {!isVCUser && filteredSections.length > 0 && (
+          {/* For regular users (not VC and not IIT Bombay), show slide by slide notes */}
+          {isRegularUser && company.report_id && slideNotes.length > 0 && (
+            <>
+              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Slide by Slide Notes
+              </h2>
+              
+              <div className="mb-8">
+                <SlideBySlideViewer 
+                  slideNotes={slideNotes} 
+                />
+              </div>
+            </>
+          )}
+
+          {/* Show section checklist for regular users */}
+          {isRegularUser && filteredSections.length > 0 && (
             <>  
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <ListChecks className="h-5 w-5 text-primary" />
@@ -311,6 +309,23 @@ function CompanyDetails() {
               <div className="mb-8">
                 <SectionChecklist 
                   sections={filteredSections}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Show improvement suggestions for regular users */}
+          {isRegularUser && (
+            <>
+              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                <Lightbulb className="h-5 w-5 text-primary" />
+                Improvement Suggestions
+              </h2>
+              
+              <div className="mb-8">
+                <ImprovementSuggestions 
+                  suggestions={improvementSuggestions}
+                  companyName={company.name}
                 />
               </div>
             </>
