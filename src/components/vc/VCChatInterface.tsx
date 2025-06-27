@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -157,6 +156,12 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     }
   };
 
+  // Helper function to determine which chat key to use for private messages
+  const getChatKey = (userId1: string, userId2: string) => {
+    // Always use the same key regardless of who is sending
+    return [userId1, userId2].sort().join('-');
+  };
+
   // Set up real-time subscription
   useEffect(() => {
     if (!open) return;
@@ -176,13 +181,15 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           const dbMessage = payload.new as DbMessage;
           const newMessage = convertDbMessageToMessage(dbMessage);
           
-          if (newMessage.isPrivate) {
-            const chatKey = newMessage.targetUserId ? `${currentUser.id}-${newMessage.targetUserId}` : 'unknown';
+          if (newMessage.isPrivate && newMessage.targetUserId) {
+            // For private messages, use a consistent chat key
+            const chatKey = getChatKey(currentUser.id, newMessage.targetUserId);
             setPrivateMessages(prev => ({
               ...prev,
               [chatKey]: [...(prev[chatKey] || []), newMessage]
             }));
           } else {
+            // For group messages
             setGroupMessages(prev => [...prev, newMessage]);
           }
         }
@@ -228,12 +235,12 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   const getPrivateMessages = (userId: string) => {
-    const chatKey = `${currentUser.id}-${userId}`;
-    const reverseChatKey = `${userId}-${currentUser.id}`;
-    return [...(privateMessages[chatKey] || []), ...(privateMessages[reverseChatKey] || [])]
+    const chatKey = getChatKey(currentUser.id, userId);
+    return (privateMessages[chatKey] || [])
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   };
 
+  // Render messages function
   const renderMessages = (messages: Message[]) => (
     <div className="space-y-3 p-4">
       {messages.map((message) => {
