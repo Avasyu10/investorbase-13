@@ -147,7 +147,7 @@ function getVCAnalysisPrompt(): string {
   "sections": [
     {
       "type": "PROBLEM",
-      "title": "Problem Statement",
+      "title": "Problem Clarity",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": [
@@ -165,7 +165,7 @@ function getVCAnalysisPrompt(): string {
     },
     {
       "type": "MARKET",
-      "title": "Market Opportunity & Size",
+      "title": "Market Fit & Opportunity",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": [
@@ -183,7 +183,7 @@ function getVCAnalysisPrompt(): string {
     },
     {
       "type": "SOLUTION",
-      "title": "Solution & Product Overview",
+      "title": "Demand Signals & Product Overview",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": [
@@ -201,7 +201,7 @@ function getVCAnalysisPrompt(): string {
     },
     {
       "type": "COMPETITIVE_LANDSCAPE",
-      "title": "Competitive Analysis & Positioning",
+      "title": "Differentiation & Competitive Edge",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": [
@@ -219,7 +219,7 @@ function getVCAnalysisPrompt(): string {
     },
     {
       "type": "TRACTION",
-      "title": "Traction, Metrics & Milestones",
+      "title": "Early Proof",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": [
@@ -255,7 +255,7 @@ function getVCAnalysisPrompt(): string {
     },
     {
       "type": "GTM_STRATEGY",
-      "title": "Go-to-Market Strategy & Sales",
+      "title": "Entry Strategy",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": [
@@ -273,7 +273,7 @@ function getVCAnalysisPrompt(): string {
     },
     {
       "type": "TEAM",
-      "title": "Founder & Team Background",
+      "title": "Founder Insight & Capability",
       "score": <number between 1-100>,
       "description": "<detailed analysis>",
       "strengths": [
@@ -393,12 +393,78 @@ CRITICAL REQUIREMENTS:
 
 6. NEVER SKIP SECTIONS: You must analyze all 10 sections even if some information is not present in the pitch deck. If a section is not well-covered in the deck, still provide the analysis based on industry standards and market context.
 
-Score each section from 1-100 based on investment attractiveness:
-- 1-20: Poor - Significant red flags or missing critical information
-- 21-40: Below Average - Major concerns that impact investability
-- 41-60: Average - Meets basic investment criteria with some concerns
-- 61-80: Good - Strong investment potential with minor issues
-- 81-100: Excellent - Outstanding investment opportunity
+Score each section from 1-100 based on these:
+1. Problem Clarity & Founder Insight
+Key Questions
+● Is the problem real, relevant, and urgent?
+● Does the team demonstrate first-hand or deep insight into the user pain point?
+● Is this a surface-level problem or one rooted in need or behavior?
+What to Look For
+● Clear articulation of the user’s pain — not generic or fabricated
+● Strong signal of understanding: lived experience, research, or user engagement
+● Evidence the problem is happening now or increasing in intensity
+● Framing that shows insight others might miss
+Score Examples
+● 1: Vague or fabricated problem with no real evidence
+● 3: A real problem but generically stated; insight unclear
+● 5: Sharp, grounded articulation with strong founder insight and urgency
+2. Founder Capability & Market Fit
+Key Questions
+● Do the founders have the skills, background, or context to solve this problem better than
+others?
+● Have they executed before — in startups, domain, or related roles?
+● Do their abilities match the demands of this particular market?
+What to Look For
+● Evidence of execution: built MVPs, shipped product, driven sales, etc.
+● Complementary founder mix: technical + GTM, ops + domain, etc.
+● Scrappiness, initiative, or relevant lived experience — not just resumes
+● Ability to build in a competitive space
+Score Examples
+● 1: Single founder with little relevant experience or traction
+● 3: Founders with some aligned skillsets, but gaps in execution or fit
+● 5: Strongly complementary team with relevant context and action orientation
+3. Market Opportunity & Entry Strategy
+Key Questions
+● Is the market large, growing, or undergoing disruption?
+● Do they have a believable way to enter and win early?
+● Why now — and what tailwinds help them?
+What to Look For
+● Clear user segment they’re starting with
+● Strong “why now” (regulatory, tech, behavior shift, etc.)
+● Compelling wedge strategy to break in and expand
+● Not just big TAM — focused opportunity with urgency
+Score Examples
+● 1: Saturated or niche market with no timing logic or entry path
+● 3: Reasonable market size and opportunity but entry strategy feels vague
+● 5: Large or emerging market with a focused and disruptive entry approach
+4. Early Proof or Demand Signals
+Key Questions
+● Have they validated the idea through user interaction or early testing?
+● Is there evidence of real demand (not vanity metrics)?
+● Is the product or prototype already in use, even informally?
+What to Look For
+● MVPs built or tested, even if lightweight
+● Feedback loops: user interviews, alpha users, conversions
+● Early traction, waitlists, signed pilots, or usage stats
+● Signals they’ve done something, not just thought about it
+Score Examples
+● 1: Idea-stage only, no product or validation efforts
+● 3: MVP exists or some user interest shown, but light or unclear
+● 5: Clear signs of demand, product feedback, or pull from market
+5. Differentiation & Competitive Edge
+Key Questions
+● How is this startup meaningfully different from competitors?
+● Do they have — or could they build — a long-term moat?
+● Is their approach uniquely disruptive, not just marginally better?
+What to Look For
+● Clear USP: different user, workflow, pricing, or experience
+● Strong narrative on how they compete and win
+● Potential for durable edge (tech, data, network, ecosystem)
+● Demonstrates awareness of the competitive landscape
+Score Examples
+● 1: No clear differentiation or knowledge of existing players
+● 3: Some uniqueness, but risk of being a “nice-to-have” or lookalike
+● 5: Standout wedge with strong moat-building potential and competitor clarity
 
 The overall score should reflect the comprehensive investment potential considering market opportunity, execution capability, scalability, and risk-adjusted returns.
 
