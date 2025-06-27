@@ -187,6 +187,14 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
               return member.role === 'manager';
             }
             return false;
+          }).map(member => {
+            // Map the static user to real user for messaging if available
+            const realUserId = mappings[member.id];
+            return {
+              ...member,
+              // Keep static ID for display but store real user ID in a custom property
+              realUserId: realUserId
+            };
           });
           
           // Add the other static members for display only (they can't cross-message yet)
@@ -307,8 +315,12 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       // Get the real recipient ID if this is a private message
       let realRecipientId: string | null = null;
       if (isPrivateMessage && targetUser) {
-        // If the target user ID starts with 'static-', map it to the real user ID
-        if (targetUser.id.startsWith('static-')) {
+        // Check if the target user has a realUserId property (our custom mapping)
+        if ((targetUser as any).realUserId) {
+          realRecipientId = (targetUser as any).realUserId;
+          console.log(`Using realUserId property: ${realRecipientId}`);
+        } else if (targetUser.id.startsWith('static-')) {
+          // Fallback to mapping lookup
           realRecipientId = realUserMappings[targetUser.id] || null;
           console.log(`Mapping ${targetUser.id} to real user ID: ${realRecipientId}`);
         } else {
@@ -317,6 +329,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         
         if (!realRecipientId) {
           console.error('Could not find real user ID for target user:', targetUser);
+          console.error('Available mappings:', realUserMappings);
           toast({
             title: "Error",
             description: "Could not find recipient user",
@@ -571,6 +584,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                     }`}
                     onClick={() => {
                       if (canCrossMessage(user)) {
+                        console.log('Selected user for private chat:', user);
                         setSelectedPrivateUser(user);
                         setActiveTab("private");
                       }
