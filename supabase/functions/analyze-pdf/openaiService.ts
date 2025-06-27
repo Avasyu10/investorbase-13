@@ -285,7 +285,7 @@ IMPROVEMENT SUGGESTIONS REQUIREMENTS:
   * "Enhance chart readability by adding proper legends, data labels, and using a consistent color scheme throughout all visualizations"
   * "Reduce visual clutter by increasing white space, improving text alignment, and using bullet points more effectively"
   * "Standardize typography by using consistent font sizes, weights, and colors across all slides for better professional appearance"
-- Content improvement suggestions should include:
+- Content improvement suggestions chould include:
   * "Add a Market Sizing slide using TAM/SAM/SOM format with specific market data and growth projections"
   * "Include a competitive analysis matrix showing direct and indirect competitors with feature comparisons"
   * "Add customer testimonials or case studies to strengthen traction evidence and build credibility"
@@ -293,6 +293,7 @@ IMPROVEMENT SUGGESTIONS REQUIREMENTS:
   * "Include team member profiles with relevant experience, achievements, and advisory board information"
   * "Add a product roadmap showing future development milestones and feature releases"
 - Each suggestion should include WHY it's important and HOW to implement it
+- Don't be very strict and if there is a slide of their team members or a slide of their market size and information then don't explicitly give those improvement suggestions.
 - Consider industry best practices and investor expectations
 - Balance content gaps and presentation improvements
 
