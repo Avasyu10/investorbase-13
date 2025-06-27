@@ -81,9 +81,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user profiles from database - simplified approach
+  // Load user profiles from database
   const loadUserProfiles = async () => {
     try {
+      console.log('Loading user profiles...');
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -105,14 +106,17 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           return;
         }
 
+        console.log('Current user profile:', currentProfile);
+
         // Create current user profile with proper role mapping
         let role: "admin" | "manager" | "analyst" | "associate" | "intern" = "intern";
         let displayName = currentProfile.full_name || currentProfile.email || "Unknown";
         
-        if (currentProfile.is_manager) {
+        // Role mapping based on is_vc and is_manager flags
+        if (currentProfile.is_vc && currentProfile.is_manager) {
           role = "manager";
           displayName = "Kanishk Saxena";
-        } else if (currentProfile.is_vc) {
+        } else if (currentProfile.is_vc && !currentProfile.is_manager) {
           role = "admin";
           displayName = "Roohi Sharma";
         }
@@ -130,34 +134,36 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         setCurrentUser(current);
         console.log('Set current user:', current);
 
-        // Find other users (the other person in the chat)
-        const others = profiles
-          .filter(p => p.id !== user.id && (p.is_vc || p.is_manager))
-          .map(p => {
-            let otherRole: "admin" | "manager" | "analyst" | "associate" | "intern" = "intern";
-            let otherDisplayName = p.full_name || p.email || "Unknown";
-            
-            if (p.is_manager) {
-              otherRole = "manager";
-              otherDisplayName = "Kanishk Saxena";
-            } else if (p.is_vc) {
-              otherRole = "admin";
-              otherDisplayName = "Roohi Sharma";
-            }
+        // Find other users (exclude current user)
+        const otherProfiles = profiles.filter(p => p.id !== user.id);
+        console.log('Other profiles found:', otherProfiles);
+        
+        const others = otherProfiles.map(p => {
+          let otherRole: "admin" | "manager" | "analyst" | "associate" | "intern" = "intern";
+          let otherDisplayName = p.full_name || p.email || "Unknown";
+          
+          // Role mapping based on is_vc and is_manager flags
+          if (p.is_vc && p.is_manager) {
+            otherRole = "manager";
+            otherDisplayName = "Kanishk Saxena";
+          } else if (p.is_vc && !p.is_manager) {
+            otherRole = "admin";
+            otherDisplayName = "Roohi Sharma";
+          }
 
-            return {
-              id: p.id,
-              name: otherDisplayName,
-              role: otherRole,
-              color: getUserColor(p.email || ''),
-              email: p.email,
-              is_vc: p.is_vc,
-              is_manager: p.is_manager
-            };
-          });
+          return {
+            id: p.id,
+            name: otherDisplayName,
+            role: otherRole,
+            color: getUserColor(p.email || ''),
+            email: p.email,
+            is_vc: p.is_vc,
+            is_manager: p.is_manager
+          };
+        });
 
+        console.log('Other users mapped:', others);
         setOtherUsers(others);
-        console.log('Set other users:', others);
       }
     } catch (error) {
       console.error('Error loading user profiles:', error);
@@ -251,7 +257,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     }
   };
 
-  // Save message to database - simplified
+  // Save message to database
   const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: UserProfile) => {
     if (!user || !currentUser) return false;
 
@@ -296,6 +302,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   // Initialize user profiles when component opens
   useEffect(() => {
     if (open && user) {
+      console.log('Component opened, loading user profiles...');
       loadUserProfiles();
     }
   }, [open, user]);
@@ -303,6 +310,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   // Load messages when current user is set
   useEffect(() => {
     if (currentUser) {
+      console.log('Current user set, loading messages...');
       loadMessages();
     }
   }, [currentUser]);
@@ -393,9 +401,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   };
 
-  // Check if user can cross-message (only Kanishk and Roohi for now)
+  // Check if user can cross-message (only VC users can message each other)
   const canCrossMessage = (user: UserProfile) => {
-    return user.role === 'manager' || user.role === 'admin';
+    return user.is_vc === true || user.is_manager === true;
   };
 
   // Render messages function
@@ -495,40 +503,46 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
             
             <div className="flex-1 px-3 pb-3 overflow-y-auto">
               <div className="space-y-1">
-                {otherUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                      canCrossMessage(user)
-                        ? `cursor-pointer ${
-                            selectedPrivateUser?.id === user.id && activeTab === "private"
-                              ? 'bg-primary/10 border border-primary/20' 
-                              : 'hover:bg-muted/50'
-                          }`
-                        : 'opacity-60 cursor-not-allowed'
-                    }`}
-                    onClick={() => {
-                      if (canCrossMessage(user)) {
-                        console.log('Selected user for private chat:', user);
-                        setSelectedPrivateUser(user);
-                        setActiveTab("private");
-                      }
-                    }}
-                  >
-                    <Avatar className="h-7 w-7">
-                      <AvatarImage src={user.avatar} />
-                      <AvatarFallback className={`${user.color} text-white text-xs`}>
-                        {user.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{user.name}</p>
-                      <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
-                        {user.role}
-                      </Badge>
-                    </div>
+                {otherUsers.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-2">
+                    No other team members found
                   </div>
-                ))}
+                ) : (
+                  otherUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                        canCrossMessage(user)
+                          ? `cursor-pointer ${
+                              selectedPrivateUser?.id === user.id && activeTab === "private"
+                                ? 'bg-primary/10 border border-primary/20' 
+                                : 'hover:bg-muted/50'
+                            }`
+                          : 'opacity-60 cursor-not-allowed'
+                      }`}
+                      onClick={() => {
+                        if (canCrossMessage(user)) {
+                          console.log('Selected user for private chat:', user);
+                          setSelectedPrivateUser(user);
+                          setActiveTab("private");
+                        }
+                      }}
+                    >
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback className={`${user.color} text-white text-xs`}>
+                          {user.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{user.name}</p>
+                        <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
+                          {user.role}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
