@@ -94,11 +94,11 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         return;
       }
 
-      // Create static team members array with 4 members
+      // Create static team members array with 4 members - Fixed names without role suffixes
       const staticTeamMembers: UserProfile[] = [
         {
           id: 'static-kanishk',
-          name: 'Kanishk Saxena (manager)',
+          name: 'Kanishk Saxena',
           role: 'manager',
           color: getUserColor('kanishksaxena1103@gmail.com'),
           email: 'kanishksaxena1103@gmail.com',
@@ -107,7 +107,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         },
         {
           id: 'static-roohi',
-          name: 'Roohi Sharma (admin)', 
+          name: 'Roohi Sharma', 
           role: 'admin',
           color: getUserColor('roohi@example.com'),
           email: 'roohi@example.com',
@@ -227,6 +227,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     if (!currentUser) return;
     
     try {
+      console.log('Loading messages for user:', currentUser.id);
       const { data, error } = await supabase
         .from('vc_chat_messages')
         .select('*')
@@ -243,6 +244,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       }
 
       if (data) {
+        console.log('Loaded messages from database:', data.length);
         const messages = data.map(convertDbMessageToMessage);
         
         // Separate group and private messages
@@ -261,6 +263,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
         setGroupMessages(group);
         setPrivateMessages(privateMessagesByKey);
+        console.log('Set group messages:', group.length);
+        console.log('Set private messages:', Object.keys(privateMessagesByKey).length);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -272,6 +276,13 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     if (!user || !currentUser) return false;
 
     try {
+      console.log('Saving message:', {
+        content: message.content,
+        isPrivate: isPrivateMessage,
+        targetUser: targetUser?.name,
+        currentUser: currentUser.name
+      });
+
       const { error } = await supabase
         .from('vc_chat_messages')
         .insert({
@@ -292,6 +303,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         });
         return false;
       }
+      
+      console.log('Message saved successfully');
       return true;
     } catch (error) {
       console.error('Error saving message:', error);
@@ -370,8 +383,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     const success = await saveMessage(message, isPrivateMessage, targetUser);
     
     if (success) {
-      console.log('Message saved successfully');
+      console.log('Message saved successfully, reloading messages');
       setNewMessage("");
+      // Immediately reload messages to ensure they appear right away
+      await loadMessages();
     }
   };
 
