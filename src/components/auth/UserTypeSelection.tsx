@@ -11,21 +11,21 @@ const UserTypeSelection = ({ onUserTypeSelect }: UserTypeSelectionProps) => {
   const userTypes = [
     {
       id: 'founder' as const,
-      title: 'General Founder',
+      title: 'Founder',
       description: 'I\'m a founder looking to pitch my startup',
       icon: <Users className="h-8 w-8 text-blue-600" />,
       buttonText: 'Continue as Founder'
     },
     {
       id: 'accelerator' as const,
-      title: 'Accelerator/Incubator',
+      title: 'Accelerator & Incubator',
       description: 'I represent an accelerator or incubator program',
       icon: <Building className="h-8 w-8 text-green-600" />,
       buttonText: 'Continue as Accelerator'
     },
     {
       id: 'vc' as const,
-      title: 'VC (Venture Capitalist)',
+      title: 'Venture Capitalist',
       description: 'I\'m a venture capitalist looking to evaluate startups',
       icon: <TrendingUp className="h-8 w-8 text-purple-600" />,
       buttonText: 'Continue as VC'
