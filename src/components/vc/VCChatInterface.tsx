@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -79,9 +80,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [realUserMappings, setRealUserMappings] = useState<{ [staticId: string]: string }>({});
 
-  // Load user profiles from database and create static team members
+  // Load user profiles from database - simplified approach
   const loadUserProfiles = async () => {
     try {
       const { data: profiles, error } = await supabase
@@ -94,116 +94,70 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         return;
       }
 
-      // Create static team members array with 4 members - Fixed names without role suffixes
-      const staticTeamMembers: UserProfile[] = [
-        {
-          id: 'static-kanishk',
-          name: 'Kanishk Saxena',
-          role: 'manager',
-          color: getUserColor('kanishksaxena1103@gmail.com'),
-          email: 'kanishksaxena1103@gmail.com',
-          is_manager: true,
-          is_vc: false
-        },
-        {
-          id: 'static-roohi',
-          name: 'Roohi Sharma', 
-          role: 'admin',
-          color: getUserColor('roohi@example.com'),
-          email: 'roohi@example.com',
-          is_vc: true,
-          is_manager: false
-        },
-        {
-          id: 'static-alex',
-          name: 'Alex Johnson',
-          role: 'analyst',
-          color: getUserColor('alex@example.com'),
-          email: 'alex@example.com',
-          is_vc: false,
-          is_manager: false
-        },
-        {
-          id: 'static-sarah',
-          name: 'Sarah Wilson',
-          role: 'associate', 
-          color: getUserColor('sarah@example.com'),
-          email: 'sarah@example.com',
-          is_vc: false,
-          is_manager: false
-        }
-      ];
-
-      // Create mapping from static IDs to real database user IDs
-      const mappings: { [staticId: string]: string } = {};
-      
       if (profiles && user) {
-        // Find current user and determine their display info
-        const dbProfile = profiles.find(p => p.id === user.id);
-        let current: UserProfile | null = null;
-
-        if (dbProfile) {
-          if (dbProfile.is_manager) {
-            // Map real Kanishk to static Kanishk
-            current = {
-              ...staticTeamMembers[0],
-              id: dbProfile.id // Use real database ID for messaging
-            };
-            // Create reverse mapping: static-kanishk -> real user ID
-            mappings['static-kanishk'] = dbProfile.id;
-          } else if (dbProfile.is_vc && !dbProfile.is_manager) {
-            // Map real VC user to static Roohi
-            current = {
-              ...staticTeamMembers[1],
-              id: dbProfile.id // Use real database ID for messaging
-            };
-            // Create reverse mapping: static-roohi -> real user ID
-            mappings['static-roohi'] = dbProfile.id;
-          }
+        console.log('Loaded profiles:', profiles);
+        console.log('Current user ID:', user.id);
+        
+        // Find current user profile
+        const currentProfile = profiles.find(p => p.id === user.id);
+        if (!currentProfile) {
+          console.error('Current user profile not found');
+          return;
         }
 
-        // Find other real users and create mappings
-        profiles.forEach(profile => {
-          if (profile.is_manager && profile.id !== user.id) {
-            mappings['static-kanishk'] = profile.id;
-          } else if (profile.is_vc && !profile.is_manager && profile.id !== user.id) {
-            mappings['static-roohi'] = profile.id;
-          }
-        });
+        // Create current user profile with proper role mapping
+        let role: "admin" | "manager" | "analyst" | "associate" | "intern" = "intern";
+        let displayName = currentProfile.full_name || currentProfile.email || "Unknown";
+        
+        if (currentProfile.is_manager) {
+          role = "manager";
+          displayName = "Kanishk Saxena";
+        } else if (currentProfile.is_vc) {
+          role = "admin";
+          displayName = "Roohi Sharma";
+        }
 
-        console.log('Created user mappings:', mappings);
-        setRealUserMappings(mappings);
+        const current: UserProfile = {
+          id: currentProfile.id,
+          name: displayName,
+          role: role,
+          color: getUserColor(currentProfile.email || ''),
+          email: currentProfile.email,
+          is_vc: currentProfile.is_vc,
+          is_manager: currentProfile.is_manager
+        };
 
-        if (current) {
-          setCurrentUser(current);
-          
-          // Set other users - filter out current user's static equivalent and only show members who can cross-message
-          const others = staticTeamMembers.filter(member => {
-            if (current.role === 'manager') {
-              // If current user is manager (Kanishk), show Roohi for cross-messaging
-              return member.role === 'admin';
-            } else if (current.role === 'admin') {
-              // If current user is admin (Roohi), show Kanishk for cross-messaging  
-              return member.role === 'manager';
+        setCurrentUser(current);
+        console.log('Set current user:', current);
+
+        // Find other users (the other person in the chat)
+        const others = profiles
+          .filter(p => p.id !== user.id && (p.is_vc || p.is_manager))
+          .map(p => {
+            let otherRole: "admin" | "manager" | "analyst" | "associate" | "intern" = "intern";
+            let otherDisplayName = p.full_name || p.email || "Unknown";
+            
+            if (p.is_manager) {
+              otherRole = "manager";
+              otherDisplayName = "Kanishk Saxena";
+            } else if (p.is_vc) {
+              otherRole = "admin";
+              otherDisplayName = "Roohi Sharma";
             }
-            return false;
-          }).map(member => {
-            // Map the static user to real user for messaging if available
-            const realUserId = mappings[member.id];
+
             return {
-              ...member,
-              // Keep static ID for display but store real user ID in a custom property
-              realUserId: realUserId
+              id: p.id,
+              name: otherDisplayName,
+              role: otherRole,
+              color: getUserColor(p.email || ''),
+              email: p.email,
+              is_vc: p.is_vc,
+              is_manager: p.is_manager
             };
           });
-          
-          // Add the other static members for display only (they can't cross-message yet)
-          const displayOnlyMembers = staticTeamMembers.filter(member => 
-            member.role !== 'manager' && member.role !== 'admin'
-          );
-          
-          setOtherUsers([...others, ...displayOnlyMembers]);
-        }
+
+        setOtherUsers(others);
+        console.log('Set other users:', others);
       }
     } catch (error) {
       console.error('Error loading user profiles:', error);
@@ -214,17 +168,16 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   // Convert database message to UI message format
   const convertDbMessageToMessage = (dbMessage: DbMessage): Message => {
-    // Try to map database user to current user or team members
+    // Try to find the user in current user or other users
     let messageUser: UserProfile | null = null;
     
     if (currentUser && currentUser.id === dbMessage.user_id) {
       messageUser = currentUser;
     } else {
-      // Try to find in other users by ID
-      messageUser = otherUsers.find(u => u.id === dbMessage.user_id);
+      messageUser = otherUsers.find(u => u.id === dbMessage.user_id) || null;
     }
     
-    // If still no user found, create a placeholder based on the name
+    // If still no user found, create a placeholder
     if (!messageUser) {
       messageUser = {
         id: dbMessage.user_id || 'unknown',
@@ -298,7 +251,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     }
   };
 
-  // Save message to database
+  // Save message to database - simplified
   const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: UserProfile) => {
     if (!user || !currentUser) return false;
 
@@ -308,36 +261,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         isPrivate: isPrivateMessage,
         targetUser: targetUser?.name,
         targetUserId: targetUser?.id,
-        currentUser: currentUser.name,
-        realUserMappings: realUserMappings
+        currentUser: currentUser.name
       });
-
-      // Get the real recipient ID if this is a private message
-      let realRecipientId: string | null = null;
-      if (isPrivateMessage && targetUser) {
-        // Check if the target user has a realUserId property (our custom mapping)
-        if ((targetUser as any).realUserId) {
-          realRecipientId = (targetUser as any).realUserId;
-          console.log(`Using realUserId property: ${realRecipientId}`);
-        } else if (targetUser.id.startsWith('static-')) {
-          // Fallback to mapping lookup
-          realRecipientId = realUserMappings[targetUser.id] || null;
-          console.log(`Mapping ${targetUser.id} to real user ID: ${realRecipientId}`);
-        } else {
-          realRecipientId = targetUser.id;
-        }
-        
-        if (!realRecipientId) {
-          console.error('Could not find real user ID for target user:', targetUser);
-          console.error('Available mappings:', realUserMappings);
-          toast({
-            title: "Error",
-            description: "Could not find recipient user",
-            variant: "destructive"
-          });
-          return false;
-        }
-      }
 
       const { error } = await supabase
         .from('vc_chat_messages')
@@ -345,8 +270,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           name: currentUser.name,
           message: message.content,
           time: message.timestamp.toISOString(),
-          to_recipient: isPrivateMessage && targetUser ? realRecipientId : 'group_chat',
-          recipient_id: realRecipientId,
+          to_recipient: isPrivateMessage && targetUser ? targetUser.id : 'group_chat',
+          recipient_id: isPrivateMessage && targetUser ? targetUser.id : null,
           user_id: user.id
         });
 
@@ -601,9 +526,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                       <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
                         {user.role}
                       </Badge>
-                      {!canCrossMessage(user) && (
-                        <p className="text-xs text-muted-foreground">Chat coming soon</p>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -702,7 +624,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
                   <div className="text-center">
                     <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Select an available team member to start a private conversation</p>
-                    <p className="text-sm mt-2">Private messaging coming soon for other members</p>
                   </div>
                 </div>
               )}
