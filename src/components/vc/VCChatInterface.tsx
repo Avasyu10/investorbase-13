@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
-  user: User;
+  user: UserProfile;
   content: string;
   timestamp: Date;
   isPrivate?: boolean;
@@ -21,12 +22,15 @@ interface Message {
   isSystemMessage?: boolean;
 }
 
-interface User {
+interface UserProfile {
   id: string;
   name: string;
   role: "admin" | "manager" | "analyst" | "associate" | "intern";
   avatar?: string;
   color: string;
+  email?: string;
+  is_vc?: boolean;
+  is_manager?: boolean;
 }
 
 interface DbMessage {
@@ -40,14 +44,6 @@ interface DbMessage {
   created_at: string;
 }
 
-const mockUsers: User[] = [
-  { id: "1", name: "Roohi Sharma", role: "admin", color: "bg-red-500" },
-  { id: "2", name: "Kanishk Saxena", role: "manager", color: "bg-blue-500" },
-  { id: "3", name: "Avasyu Sharma", role: "analyst", color: "bg-green-500" },
-  { id: "4", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
-  { id: "5", name: "Himanshu", role: "intern", color: "bg-orange-500" },
-];
-
 const getRoleColor = (role: string) => {
   switch (role) {
     case "admin": return "bg-red-100 text-red-800 border-red-200";
@@ -57,6 +53,16 @@ const getRoleColor = (role: string) => {
     case "intern": return "bg-orange-100 text-orange-800 border-orange-200";
     default: return "bg-gray-100 text-gray-800 border-gray-200";
   }
+};
+
+const getUserColor = (email: string) => {
+  const colors = ["bg-red-500", "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500", "bg-indigo-500"];
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = ((hash << 5) - hash) + email.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return colors[Math.abs(hash) % colors.length];
 };
 
 interface VCChatInterfaceProps {
@@ -69,14 +75,86 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [groupMessages, setGroupMessages] = useState<Message[]>([]);
   const [privateMessages, setPrivateMessages] = useState<{ [key: string]: Message[] }>({});
   const [newMessage, setNewMessage] = useState("");
-  const [currentUser] = useState(mockUsers[0]); // Admin user (Roohi Sharma)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [otherUsers, setOtherUsers] = useState<UserProfile[]>([]);
   const [activeTab, setActiveTab] = useState("group");
-  const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
+  const [selectedPrivateUser, setSelectedPrivateUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load user profiles from database
+  const loadUserProfiles = async () => {
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .or('is_vc.eq.true,is_manager.eq.true');
+
+      if (error) {
+        console.error('Error loading user profiles:', error);
+        return;
+      }
+
+      if (profiles) {
+        const userProfiles: UserProfile[] = profiles.map(profile => {
+          let displayName = profile.full_name || profile.username || profile.email?.split('@')[0] || 'Unknown User';
+          let role: UserProfile['role'] = 'intern';
+          
+          // Handle manager role with special display
+          if (profile.is_manager) {
+            role = 'manager';
+            if (profile.email === 'kanishksaxena1103@gmail.com') {
+              displayName = 'Kanishk Saxena (manager)';
+            }
+          } else if (profile.is_admin) {
+            role = 'admin';
+          } else if (profile.is_vc) {
+            role = 'analyst';
+          }
+
+          return {
+            id: profile.id,
+            name: displayName,
+            role,
+            color: getUserColor(profile.email || profile.id),
+            email: profile.email,
+            is_vc: profile.is_vc,
+            is_manager: profile.is_manager
+          };
+        });
+
+        // Find current user
+        const current = userProfiles.find(p => p.id === user?.id);
+        if (current) {
+          setCurrentUser(current);
+          setOtherUsers(userProfiles.filter(p => p.id !== user?.id));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user profiles:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Convert database message to UI message format
   const convertDbMessageToMessage = (dbMessage: DbMessage): Message => {
-    // Find user by name or use a default
-    const messageUser = mockUsers.find(u => u.name === dbMessage.name) || currentUser;
+    // Find user by ID first, then by name as fallback
+    let messageUser = otherUsers.find(u => u.id === dbMessage.user_id) || 
+                     currentUser && currentUser.id === dbMessage.user_id ? currentUser : null;
+    
+    if (!messageUser) {
+      messageUser = otherUsers.find(u => u.name === dbMessage.name) || currentUser;
+    }
+    
+    // If still no user found, create a placeholder
+    if (!messageUser) {
+      messageUser = {
+        id: dbMessage.user_id || 'unknown',
+        name: dbMessage.name,
+        role: 'intern',
+        color: getUserColor(dbMessage.name)
+      };
+    }
     
     return {
       id: dbMessage.id,
@@ -90,12 +168,13 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   // Helper function to determine which chat key to use for private messages
   const getChatKey = (userId1: string, userId2: string) => {
-    // Always use the same key regardless of who is sending
     return [userId1, userId2].sort().join('-');
   };
 
   // Load existing messages from database
   const loadMessages = async () => {
+    if (!currentUser) return;
+    
     try {
       const { data, error } = await supabase
         .from('vc_chat_messages')
@@ -138,14 +217,14 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   // Save message to database
-  const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: User) => {
-    if (!user) return;
+  const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: UserProfile) => {
+    if (!user || !currentUser) return false;
 
     try {
       const { error } = await supabase
         .from('vc_chat_messages')
         .insert({
-          name: message.user.name,
+          name: currentUser.name,
           message: message.content,
           time: message.timestamp.toISOString(),
           to_recipient: isPrivateMessage && targetUser ? targetUser.id : 'group_chat',
@@ -169,11 +248,23 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     }
   };
 
+  // Initialize user profiles when component opens
+  useEffect(() => {
+    if (open && user) {
+      loadUserProfiles();
+    }
+  }, [open, user]);
+
+  // Load messages when current user is set
+  useEffect(() => {
+    if (currentUser) {
+      loadMessages();
+    }
+  }, [currentUser]);
+
   // Set up real-time subscription
   useEffect(() => {
-    if (!open) return;
-
-    loadMessages();
+    if (!open || !currentUser) return;
 
     const channel = supabase
       .channel('vc_chat_messages_channel')
@@ -191,7 +282,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           console.log('New message received via realtime:', newMessage);
           
           if (newMessage.isPrivate && newMessage.targetUserId) {
-            // For private messages, use a consistent chat key
             const chatKey = getChatKey(currentUser.id, newMessage.targetUserId);
             console.log('Adding private message to chat key:', chatKey);
             setPrivateMessages(prev => ({
@@ -199,7 +289,6 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
               [chatKey]: [...(prev[chatKey] || []), newMessage]
             }));
           } else {
-            // For group messages
             console.log('Adding group message via realtime');
             setGroupMessages(prev => [...prev, newMessage]);
           }
@@ -210,10 +299,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [open, currentUser.id]);
+  }, [open, currentUser]);
 
-  const handleSendMessage = async (isPrivateMessage = false, targetUser?: User) => {
-    if (!newMessage.trim()) return;
+  const handleSendMessage = async (isPrivateMessage = false, targetUser?: UserProfile) => {
+    if (!newMessage.trim() || !currentUser) return;
 
     const message: Message = {
       id: Date.now().toString(),
@@ -230,9 +319,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     const success = await saveMessage(message, isPrivateMessage, targetUser);
     
     if (success) {
-      console.log('Message saved successfully, reloading messages...');
-      // Immediately reload messages after successful save
-      await loadMessages();
+      console.log('Message saved successfully');
       setNewMessage("");
     }
   };
@@ -253,6 +340,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   const getPrivateMessages = (userId: string) => {
+    if (!currentUser) return [];
     const chatKey = getChatKey(currentUser.id, userId);
     return (privateMessages[chatKey] || [])
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -302,7 +390,20 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     </div>
   );
 
-  const otherUsers = mockUsers.filter(user => user.id !== currentUser.id);
+  if (isLoading || !currentUser) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Loading chat...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
