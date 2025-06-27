@@ -134,11 +134,13 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         setCurrentUser(current);
         console.log('Set current user:', current);
 
-        // Find other users (exclude current user)
-        const otherProfiles = profiles.filter(p => p.id !== user.id);
-        console.log('Other profiles found:', otherProfiles);
+        // Find other VC/Manager users (exclude current user)
+        const otherVCProfiles = profiles.filter(p => 
+          p.id !== user.id && (p.is_vc === true || p.is_manager === true)
+        );
+        console.log('Other VC/Manager profiles found:', otherVCProfiles);
         
-        const others = otherProfiles.map(p => {
+        const others = otherVCProfiles.map(p => {
           let otherRole: "admin" | "manager" | "analyst" | "associate" | "intern" = "intern";
           let otherDisplayName = p.full_name || p.email || "Unknown";
           
@@ -164,6 +166,14 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
         console.log('Other users mapped:', others);
         setOtherUsers(others);
+        
+        // Debug logging to understand the issue
+        console.log('Current user is_vc:', currentProfile.is_vc);
+        console.log('Current user is_manager:', currentProfile.is_manager);
+        console.log('Found other VC/Manager users:', others.length);
+        others.forEach(user => {
+          console.log(`- ${user.name} (is_vc: ${user.is_vc}, is_manager: ${user.is_manager})`);
+        });
       }
     } catch (error) {
       console.error('Error loading user profiles:', error);
