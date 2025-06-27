@@ -44,9 +44,9 @@ function CompanyDetails() {
     sections: company.sections || []
   } : null;
 
-  // Determine user type based on profile
-  const isVCUser = profile?.isVC || false;
-  const isIITBombayUser = profile?.isIITBombay || false;
+  // Determine user type based on profile - using correct property names
+  const isVCUser = profile?.is_vc || false;
+  const isIITBombayUser = profile?.is_iitbombay || false;
   const isRegularUser = !isVCUser && !isIITBombayUser;
 
   // Extract slide notes and improvement suggestions from company data
@@ -292,7 +292,9 @@ function CompanyDetails() {
               
               <div className="mb-8">
                 <SlideBySlideViewer 
-                  slideNotes={slideNotes} 
+                  reportId={company.report_id}
+                  slideNotes={slideNotes}
+                  companyName={company.name}
                 />
               </div>
             </>
