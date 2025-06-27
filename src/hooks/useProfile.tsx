@@ -12,7 +12,6 @@ interface Profile {
   is_admin: boolean;
   is_iitbombay: boolean;
   is_vc: boolean;
-  is_manager: boolean;
   signup_source: string | null;
   created_at: string;
   updated_at: string;
@@ -64,7 +63,6 @@ export function useProfile() {
     error,
     isIITBombay: profile?.is_iitbombay || false,
     isAdmin: profile?.is_admin || false,
-    isVC: profile?.is_vc || false,
-    isManager: profile?.is_manager || false
+    isVC: profile?.is_vc || false
   };
 }

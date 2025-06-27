@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
-  user: UserProfile;
+  user: User;
   content: string;
   timestamp: Date;
   isPrivate?: boolean;
@@ -22,15 +21,12 @@ interface Message {
   isSystemMessage?: boolean;
 }
 
-interface UserProfile {
+interface User {
   id: string;
   name: string;
   role: "admin" | "manager" | "analyst" | "associate" | "intern";
   avatar?: string;
   color: string;
-  email?: string;
-  is_vc?: boolean;
-  is_manager?: boolean;
 }
 
 interface DbMessage {
@@ -40,9 +36,16 @@ interface DbMessage {
   time: string;
   to_recipient: string;
   user_id: string;
-  recipient_id: string | null;
   created_at: string;
 }
+
+const mockUsers: User[] = [
+  { id: "1", name: "Roohi Sharma", role: "admin", color: "bg-red-500" },
+  { id: "2", name: "Kanishk Saxena", role: "manager", color: "bg-blue-500" },
+  { id: "3", name: "Avasyu Sharma", role: "analyst", color: "bg-green-500" },
+  { id: "4", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
+  { id: "5", name: "Himanshu", role: "intern", color: "bg-orange-500" },
+];
 
 const getRoleColor = (role: string) => {
   switch (role) {
@@ -55,16 +58,6 @@ const getRoleColor = (role: string) => {
   }
 };
 
-const getUserColor = (email: string) => {
-  const colors = ["bg-red-500", "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500", "bg-indigo-500"];
-  let hash = 0;
-  for (let i = 0; i < email.length; i++) {
-    hash = ((hash << 5) - hash) + email.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return colors[Math.abs(hash) % colors.length];
-};
-
 interface VCChatInterfaceProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -75,134 +68,14 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [groupMessages, setGroupMessages] = useState<Message[]>([]);
   const [privateMessages, setPrivateMessages] = useState<{ [key: string]: Message[] }>({});
   const [newMessage, setNewMessage] = useState("");
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [otherUsers, setOtherUsers] = useState<UserProfile[]>([]);
+  const [currentUser] = useState(mockUsers[0]); // Admin user (Roohi Sharma)
   const [activeTab, setActiveTab] = useState("group");
-  const [selectedPrivateUser, setSelectedPrivateUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Hardcoded team members for simplicity
-  const teamMembers = [
-    {
-      id: "kanishk",
-      name: "Kanishk Saxena",
-      role: "manager" as const,
-      email: "kanishksaxena1103@gmail.com",
-      is_manager: true,
-      is_vc: true
-    },
-    {
-      id: "roohi", 
-      name: "Roohi Sharma",
-      role: "admin" as const,
-      email: "roohi@example.com",
-      is_vc: true,
-      is_manager: false
-    }
-  ];
-
-  // Load user profiles from database
-  const loadUserProfiles = async () => {
-    try {
-      console.log('Loading user profiles...');
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .or('is_vc.eq.true,is_manager.eq.true');
-
-      if (error) {
-        console.error('Error loading user profiles:', error);
-        return;
-      }
-
-      if (profiles && user) {
-        console.log('Loaded profiles:', profiles);
-        console.log('Current user ID:', user.id);
-        
-        // Find current user profile
-        const currentProfile = profiles.find(p => p.id === user.id);
-        if (!currentProfile) {
-          console.error('Current user profile not found');
-          return;
-        }
-
-        console.log('Current user profile:', currentProfile);
-
-        // Determine which team member this user is
-        let currentTeamMember;
-        if (currentProfile.email === "kanishksaxena1103@gmail.com") {
-          currentTeamMember = teamMembers[0]; // Kanishk
-        } else if (currentProfile.is_vc) {
-          currentTeamMember = teamMembers[1]; // Roohi
-        } else {
-          console.error('User is not a recognized team member');
-          return;
-        }
-
-        const current: UserProfile = {
-          id: currentProfile.id,
-          name: currentTeamMember.name,
-          role: currentTeamMember.role,
-          color: getUserColor(currentProfile.email || ''),
-          email: currentProfile.email,
-          is_vc: currentProfile.is_vc,
-          is_manager: currentProfile.is_manager
-        };
-
-        setCurrentUser(current);
-        console.log('Set current user:', current);
-
-        // Set the other team member
-        const otherTeamMember = teamMembers.find(tm => tm.id !== (currentTeamMember.id));
-        if (otherTeamMember) {
-          const otherProfile = profiles.find(p => 
-            p.email === otherTeamMember.email || 
-            (otherTeamMember.id === "roohi" && p.is_vc && !p.is_manager)
-          );
-
-          if (otherProfile) {
-            const other: UserProfile = {
-              id: otherProfile.id,
-              name: otherTeamMember.name,
-              role: otherTeamMember.role,
-              color: getUserColor(otherProfile.email || ''),
-              email: otherProfile.email,
-              is_vc: otherProfile.is_vc,
-              is_manager: otherProfile.is_manager
-            };
-
-            setOtherUsers([other]);
-            console.log('Set other user:', other);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user profiles:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
 
   // Convert database message to UI message format
   const convertDbMessageToMessage = (dbMessage: DbMessage): Message => {
-    // Try to find the user in current user or other users
-    let messageUser: UserProfile | null = null;
-    
-    if (currentUser && currentUser.id === dbMessage.user_id) {
-      messageUser = currentUser;
-    } else {
-      messageUser = otherUsers.find(u => u.id === dbMessage.user_id) || null;
-    }
-    
-    // If still no user found, create a placeholder
-    if (!messageUser) {
-      messageUser = {
-        id: dbMessage.user_id || 'unknown',
-        name: dbMessage.name,
-        role: 'intern',
-        color: getUserColor(dbMessage.name)
-      };
-    }
+    // Find user by name or use a default
+    const messageUser = mockUsers.find(u => u.name === dbMessage.name) || currentUser;
     
     return {
       id: dbMessage.id,
@@ -214,12 +87,15 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     };
   };
 
+  // Helper function to determine which chat key to use for private messages
+  const getChatKey = (userId1: string, userId2: string) => {
+    // Always use the same key regardless of who is sending
+    return [userId1, userId2].sort().join('-');
+  };
+
   // Load existing messages from database
   const loadMessages = async () => {
-    if (!currentUser) return;
-    
     try {
-      console.log('Loading messages for user:', currentUser.id);
       const { data, error } = await supabase
         .from('vc_chat_messages')
         .select('*')
@@ -236,28 +112,24 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       }
 
       if (data) {
-        console.log('Loaded messages from database:', data.length);
         const messages = data.map(convertDbMessageToMessage);
         
         // Separate group and private messages
         const group = messages.filter(msg => !msg.isPrivate);
-        const privateMessagesByUser: { [key: string]: Message[] } = {};
+        const privateMessagesByKey: { [key: string]: Message[] } = {};
         
         messages.filter(msg => msg.isPrivate).forEach(msg => {
           if (msg.targetUserId) {
-            // For private messages, group by the other user's ID
-            const otherUserId = msg.user.id === currentUser.id ? msg.targetUserId : msg.user.id;
-            if (!privateMessagesByUser[otherUserId]) {
-              privateMessagesByUser[otherUserId] = [];
+            const chatKey = getChatKey(currentUser.id, msg.targetUserId);
+            if (!privateMessagesByKey[chatKey]) {
+              privateMessagesByKey[chatKey] = [];
             }
-            privateMessagesByUser[otherUserId].push(msg);
+            privateMessagesByKey[chatKey].push(msg);
           }
         });
 
         setGroupMessages(group);
-        setPrivateMessages(privateMessagesByUser);
-        console.log('Set group messages:', group.length);
-        console.log('Set private messages:', Object.keys(privateMessagesByUser).length);
+        setPrivateMessages(privateMessagesByKey);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -265,40 +137,29 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   // Save message to database
-  const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: UserProfile) => {
-    if (!user || !currentUser) return false;
+  const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: User) => {
+    if (!user) return;
 
     try {
-      console.log('Saving message:', {
-        content: message.content,
-        isPrivate: isPrivateMessage,
-        targetUser: targetUser?.name,
-        targetUserId: targetUser?.id,
-        currentUser: currentUser.name
-      });
-
       const { error } = await supabase
         .from('vc_chat_messages')
         .insert({
-          name: currentUser.name,
+          name: message.user.name,
           message: message.content,
           time: message.timestamp.toISOString(),
           to_recipient: isPrivateMessage && targetUser ? targetUser.id : 'group_chat',
-          recipient_id: null, // Not using this column anymore
           user_id: user.id
         });
 
       if (error) {
         console.error('Error saving message:', error);
         toast({
-          title: "Error", 
+          title: "Error",
           description: "Failed to save message",
           variant: "destructive"
         });
         return false;
       }
-      
-      console.log('Message saved successfully');
       return true;
     } catch (error) {
       console.error('Error saving message:', error);
@@ -306,25 +167,11 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     }
   };
 
-  // Initialize user profiles when component opens
-  useEffect(() => {
-    if (open && user) {
-      console.log('Component opened, loading user profiles...');
-      loadUserProfiles();
-    }
-  }, [open, user]);
-
-  // Load messages when current user is set
-  useEffect(() => {
-    if (currentUser) {
-      console.log('Current user set, loading messages...');
-      loadMessages();
-    }
-  }, [currentUser]);
-
   // Set up real-time subscription
   useEffect(() => {
-    if (!open || !currentUser) return;
+    if (!open) return;
+
+    loadMessages();
 
     const channel = supabase
       .channel('vc_chat_messages_channel')
@@ -342,13 +189,15 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           console.log('New message received via realtime:', newMessage);
           
           if (newMessage.isPrivate && newMessage.targetUserId) {
-            const otherUserId = newMessage.user.id === currentUser.id ? newMessage.targetUserId : newMessage.user.id;
-            console.log('Adding private message for user:', otherUserId);
+            // For private messages, use a consistent chat key
+            const chatKey = getChatKey(currentUser.id, newMessage.targetUserId);
+            console.log('Adding private message to chat key:', chatKey);
             setPrivateMessages(prev => ({
               ...prev,
-              [otherUserId]: [...(prev[otherUserId] || []), newMessage]
+              [chatKey]: [...(prev[chatKey] || []), newMessage]
             }));
           } else {
+            // For group messages
             console.log('Adding group message via realtime');
             setGroupMessages(prev => [...prev, newMessage]);
           }
@@ -359,10 +208,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [open, currentUser]);
+  }, [open, currentUser.id]);
 
-  const handleSendMessage = async (isPrivateMessage = false, targetUser?: UserProfile) => {
-    if (!newMessage.trim() || !currentUser) return;
+  const handleSendMessage = async (isPrivateMessage = false, targetUser?: User) => {
+    if (!newMessage.trim()) return;
 
     const message: Message = {
       id: Date.now().toString(),
@@ -379,10 +228,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     const success = await saveMessage(message, isPrivateMessage, targetUser);
     
     if (success) {
-      console.log('Message saved successfully, reloading messages');
-      setNewMessage("");
-      // Immediately reload messages to ensure they appear right away
+      console.log('Message saved successfully, reloading messages...');
+      // Immediately reload messages after successful save
       await loadMessages();
+      setNewMessage("");
     }
   };
 
@@ -402,7 +251,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   const getPrivateMessages = (userId: string) => {
-    return (privateMessages[userId] || [])
+    const chatKey = getChatKey(currentUser.id, userId);
+    return (privateMessages[chatKey] || [])
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   };
 
@@ -450,20 +300,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     </div>
   );
 
-  if (isLoading || !currentUser) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p>Loading chat...</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const otherUsers = mockUsers.filter(user => user.id !== currentUser.id);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -503,40 +340,33 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
             
             <div className="flex-1 px-3 pb-3 overflow-y-auto">
               <div className="space-y-1">
-                {otherUsers.length === 0 ? (
-                  <div className="text-sm text-muted-foreground p-2">
-                    No other team members found
-                  </div>
-                ) : (
-                  otherUsers.map((user) => (
-                    <div
-                      key={user.id}
-                      className={`flex items-center gap-2 p-2 rounded-lg transition-colors cursor-pointer ${
-                        selectedPrivateUser?.id === user.id && activeTab === "private"
-                          ? 'bg-primary/10 border border-primary/20' 
-                          : 'hover:bg-muted/50'
-                      }`}
-                      onClick={() => {
-                        console.log('Selected user for private chat:', user);
-                        setSelectedPrivateUser(user);
-                        setActiveTab("private");
-                      }}
-                    >
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback className={`${user.color} text-white text-xs`}>
-                          {user.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{user.name}</p>
-                        <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
-                          {user.role}
-                        </Badge>
-                      </div>
+                {otherUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                      selectedPrivateUser?.id === user.id && activeTab === "private"
+                        ? 'bg-primary/10 border border-primary/20' 
+                        : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => {
+                      setSelectedPrivateUser(user);
+                      setActiveTab("private");
+                    }}
+                  >
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={user.avatar} />
+                      <AvatarFallback className={`${user.color} text-white text-xs`}>
+                        {user.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{user.name}</p>
+                      <Badge variant="outline" className={`text-xs ${getRoleColor(user.role)}`}>
+                        {user.role}
+                      </Badge>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
