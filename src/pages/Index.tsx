@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import UserTypeSelection from "@/components/auth/UserTypeSelection";
 import AuthForm from "@/components/auth/AuthForm";
+import InstitutionalSignin from "@/components/auth/InstitutionalSignin";
 
 const Index = () => {
   const { user, isLoading } = useAuth();
@@ -24,12 +25,12 @@ const Index = () => {
     setSelectedUserType(null);
   };
 
-  // Show user type selection or auth form
+  // Show user type selection or appropriate auth form
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       {!selectedUserType ? (
         <UserTypeSelection onUserTypeSelect={handleUserTypeSelect} />
-      ) : (
+      ) : selectedUserType === 'founder' ? (
         <div className="max-w-md w-full space-y-6 animate-fade-in">
           <div className="flex justify-center mb-6">
             <img 
@@ -40,11 +41,7 @@ const Index = () => {
           </div>
           
           <div className="text-center space-y-2 mb-6">
-            <h1 className="text-2xl font-bold">
-              {selectedUserType === 'founder' && 'Founder Signup'}
-              {selectedUserType === 'accelerator' && 'Accelerator Signup'}
-              {selectedUserType === 'vc' && 'VC Signup'}
-            </h1>
+            <h1 className="text-2xl font-bold">Founder Authentication</h1>
             <button 
               onClick={handleBackToUserSelection}
               className="text-sm text-primary hover:underline"
@@ -55,6 +52,11 @@ const Index = () => {
           
           <AuthForm />
         </div>
+      ) : (
+        <InstitutionalSignin 
+          userType={selectedUserType}
+          onBack={handleBackToUserSelection}
+        />
       )}
     </div>
   );
