@@ -150,7 +150,7 @@ export function CompanyInfoCard({
           <Briefcase className="h-5 w-5 text-primary" />
           Company Overview
         </h3>
-        {shouldShowMoreInfoButton && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300">
+        {shouldShowMoreInfoButton && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950">
             <Bot className="h-5 w-5" />
           </Button>}
       </div>
