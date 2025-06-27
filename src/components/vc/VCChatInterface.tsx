@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -159,9 +158,12 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           description: "Failed to save message",
           variant: "destructive"
         });
+        return false;
       }
+      return true;
     } catch (error) {
       console.error('Error saving message:', error);
+      return false;
     }
   };
 
@@ -184,7 +186,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           const dbMessage = payload.new as DbMessage;
           const newMessage = convertDbMessageToMessage(dbMessage);
           
-          console.log('New message received:', newMessage);
+          console.log('New message received via realtime:', newMessage);
           
           if (newMessage.isPrivate && newMessage.targetUserId) {
             // For private messages, use a consistent chat key
@@ -196,7 +198,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
             }));
           } else {
             // For group messages
-            console.log('Adding group message');
+            console.log('Adding group message via realtime');
             setGroupMessages(prev => [...prev, newMessage]);
           }
         }
@@ -220,10 +222,17 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       targetUserId: targetUser?.id,
     };
 
-    // Save to database (which will trigger real-time update)
-    await saveMessage(message, isPrivateMessage, targetUser);
+    console.log('Sending message:', message);
     
-    setNewMessage("");
+    // Save to database
+    const success = await saveMessage(message, isPrivateMessage, targetUser);
+    
+    if (success) {
+      console.log('Message saved successfully, reloading messages...');
+      // Immediately reload messages after successful save
+      await loadMessages();
+      setNewMessage("");
+    }
   };
 
   const formatTime = (date: Date) => {
