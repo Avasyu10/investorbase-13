@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -110,18 +111,18 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         
         // Separate group and private messages
         const group = messages.filter(msg => !msg.isPrivate);
-        const private: { [key: string]: Message[] } = {};
+        const privateMessagesByKey: { [key: string]: Message[] } = {};
         
         messages.filter(msg => msg.isPrivate).forEach(msg => {
           const chatKey = msg.targetUserId ? `${currentUser.id}-${msg.targetUserId}` : 'unknown';
-          if (!private[chatKey]) {
-            private[chatKey] = [];
+          if (!privateMessagesByKey[chatKey]) {
+            privateMessagesByKey[chatKey] = [];
           }
-          private[chatKey].push(msg);
+          privateMessagesByKey[chatKey].push(msg);
         });
 
         setGroupMessages(group);
-        setPrivateMessages(private);
+        setPrivateMessages(privateMessagesByKey);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -129,7 +130,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   // Save message to database
-  const saveMessage = async (message: Message, isPrivate = false, targetUser?: User) => {
+  const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: User) => {
     if (!user) return;
 
     try {
@@ -139,7 +140,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           name: message.user.name,
           message: message.content,
           time: message.timestamp.toISOString(),
-          to_recipient: isPrivate && targetUser ? targetUser.id : 'group_chat',
+          to_recipient: isPrivateMessage && targetUser ? targetUser.id : 'group_chat',
           user_id: user.id
         });
 
@@ -193,7 +194,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     };
   }, [open, currentUser.id]);
 
-  const handleSendMessage = async (isPrivate = false, targetUser?: User) => {
+  const handleSendMessage = async (isPrivateMessage = false, targetUser?: User) => {
     if (!newMessage.trim()) return;
 
     const message: Message = {
@@ -201,12 +202,12 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
       user: currentUser,
       content: newMessage,
       timestamp: new Date(),
-      isPrivate,
+      isPrivate: isPrivateMessage,
       targetUserId: targetUser?.id,
     };
 
     // Save to database (which will trigger real-time update)
-    await saveMessage(message, isPrivate, targetUser);
+    await saveMessage(message, isPrivateMessage, targetUser);
     
     setNewMessage("");
   };
