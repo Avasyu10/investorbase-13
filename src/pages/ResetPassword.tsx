@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,36 +16,78 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isValidSession, setIsValidSession] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we have a valid session from the reset link
-    const checkSession = async () => {
+    const checkResetSession = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        setIsChecking(true);
+        console.log("Current URL:", window.location.href);
+        console.log("Location hash:", location.hash);
         
-        if (error) {
-          console.error("Session error:", error);
-          setError("Invalid or expired password reset link. Please request a new one.");
-          return;
-        }
+        // Check if we have hash fragments (tokens from the email link)
+        const hashParams = new URLSearchParams(location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
         
-        if (data.session) {
-          console.log("Valid session found for password reset");
-          setIsValidSession(true);
+        console.log("Hash params:", { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+        
+        // If we have reset tokens in the URL, this is from an email link
+        if (accessToken && type === 'recovery') {
+          console.log("Found password reset tokens in URL");
+          
+          // Set the session using the tokens from the URL
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+          
+          if (error) {
+            console.error("Error setting session from tokens:", error);
+            setError("Invalid or expired password reset link. Please request a new one.");
+            setIsValidSession(false);
+          } else if (data.session && data.user) {
+            console.log("Successfully set session from reset tokens");
+            setIsValidSession(true);
+            setError("");
+          } else {
+            console.log("No session established from tokens");
+            setError("Invalid or expired password reset link. Please request a new one.");
+            setIsValidSession(false);
+          }
         } else {
-          console.log("No active session found for password reset");
-          setError("Invalid or expired password reset link. Please request a new one.");
+          // Check for existing session (in case user already went through the token exchange)
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Session error:", error);
+            setError("Invalid or expired password reset link. Please request a new one.");
+            setIsValidSession(false);
+          } else if (session && session.user) {
+            console.log("Found existing valid session");
+            setIsValidSession(true);
+            setError("");
+          } else {
+            console.log("No valid session found");
+            setError("Invalid or expired password reset link. Please request a new one.");
+            setIsValidSession(false);
+          }
         }
       } catch (err) {
-        console.error("Error checking session:", err);
+        console.error("Error checking reset session:", err);
         setError("An error occurred. Please try again.");
+        setIsValidSession(false);
+      } finally {
+        setIsChecking(false);
       }
     };
 
-    checkSession();
-  }, []);
+    checkResetSession();
+  }, [location.hash]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +112,6 @@ const ResetPassword = () => {
     try {
       setLoading(true);
       
-      // Update the password using the Supabase client
       const { error } = await supabase.auth.updateUser({ 
         password 
       });
@@ -104,14 +145,14 @@ const ResetPassword = () => {
     }
   };
 
-  if (!isValidSession && !error) {
+  if (isChecking) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
         <div className="max-w-md w-full space-y-6">
           <Card className="w-full">
             <CardContent className="p-6">
               <div className="text-center">
-                <p>Loading...</p>
+                <p>Verifying reset link...</p>
               </div>
             </CardContent>
           </Card>

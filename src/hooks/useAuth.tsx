@@ -48,10 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession.user);
           console.log('User updated');
         } else if (event === 'PASSWORD_RECOVERY') {
-          // Handle password recovery event
+          // Handle password recovery event - keep any existing session
           console.log('Password recovery event detected');
-          setSession(currentSession);
-          setUser(currentSession?.user || null);
+          if (currentSession) {
+            setSession(currentSession);
+            setUser(currentSession.user);
+          }
         }
         
         setIsLoading(false);
