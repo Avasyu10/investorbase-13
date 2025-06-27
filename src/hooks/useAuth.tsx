@@ -47,6 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(currentSession);
           setUser(currentSession.user);
           console.log('User updated');
+        } else if (event === 'PASSWORD_RECOVERY') {
+          // Handle password recovery event
+          console.log('Password recovery event detected');
+          setSession(currentSession);
+          setUser(currentSession?.user || null);
         }
         
         setIsLoading(false);
@@ -293,7 +298,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Your password has been successfully updated.",
       });
       
-      navigate('/');
       return true;
     } catch (error: any) {
       console.error('Password update error:', error);
