@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -80,6 +79,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [realUserMappings, setRealUserMappings] = useState<{ [staticId: string]: string }>({});
 
   // Load user profiles from database and create static team members
   const loadUserProfiles = async () => {
@@ -134,6 +134,9 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         }
       ];
 
+      // Create mapping from static IDs to real database user IDs
+      const mappings: { [staticId: string]: string } = {};
+      
       if (profiles && user) {
         // Find current user and determine their display info
         const dbProfile = profiles.find(p => p.id === user.id);
@@ -146,14 +149,30 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
               ...staticTeamMembers[0],
               id: dbProfile.id // Use real database ID for messaging
             };
+            // Create reverse mapping: static-kanishk -> real user ID
+            mappings['static-kanishk'] = dbProfile.id;
           } else if (dbProfile.is_vc && !dbProfile.is_manager) {
             // Map real VC user to static Roohi
             current = {
               ...staticTeamMembers[1],
               id: dbProfile.id // Use real database ID for messaging
             };
+            // Create reverse mapping: static-roohi -> real user ID
+            mappings['static-roohi'] = dbProfile.id;
           }
         }
+
+        // Find other real users and create mappings
+        profiles.forEach(profile => {
+          if (profile.is_manager && profile.id !== user.id) {
+            mappings['static-kanishk'] = profile.id;
+          } else if (profile.is_vc && !profile.is_manager && profile.id !== user.id) {
+            mappings['static-roohi'] = profile.id;
+          }
+        });
+
+        console.log('Created user mappings:', mappings);
+        setRealUserMappings(mappings);
 
         if (current) {
           setCurrentUser(current);
@@ -280,8 +299,32 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         content: message.content,
         isPrivate: isPrivateMessage,
         targetUser: targetUser?.name,
-        currentUser: currentUser.name
+        targetUserId: targetUser?.id,
+        currentUser: currentUser.name,
+        realUserMappings: realUserMappings
       });
+
+      // Get the real recipient ID if this is a private message
+      let realRecipientId: string | null = null;
+      if (isPrivateMessage && targetUser) {
+        // If the target user ID starts with 'static-', map it to the real user ID
+        if (targetUser.id.startsWith('static-')) {
+          realRecipientId = realUserMappings[targetUser.id] || null;
+          console.log(`Mapping ${targetUser.id} to real user ID: ${realRecipientId}`);
+        } else {
+          realRecipientId = targetUser.id;
+        }
+        
+        if (!realRecipientId) {
+          console.error('Could not find real user ID for target user:', targetUser);
+          toast({
+            title: "Error",
+            description: "Could not find recipient user",
+            variant: "destructive"
+          });
+          return false;
+        }
+      }
 
       const { error } = await supabase
         .from('vc_chat_messages')
@@ -289,8 +332,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           name: currentUser.name,
           message: message.content,
           time: message.timestamp.toISOString(),
-          to_recipient: isPrivateMessage && targetUser ? targetUser.id : 'group_chat',
-          recipient_id: isPrivateMessage && targetUser ? targetUser.id : null,
+          to_recipient: isPrivateMessage && targetUser ? realRecipientId : 'group_chat',
+          recipient_id: realRecipientId,
           user_id: user.id
         });
 
