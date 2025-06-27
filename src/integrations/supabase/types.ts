@@ -808,6 +808,7 @@ export type Database = {
           id: string
           is_admin: boolean
           is_iitbombay: boolean
+          is_manager: boolean
           is_vc: boolean
           signup_source: string | null
           updated_at: string
@@ -821,6 +822,7 @@ export type Database = {
           id: string
           is_admin?: boolean
           is_iitbombay?: boolean
+          is_manager?: boolean
           is_vc?: boolean
           signup_source?: string | null
           updated_at?: string
@@ -834,6 +836,7 @@ export type Database = {
           id?: string
           is_admin?: boolean
           is_iitbombay?: boolean
+          is_manager?: boolean
           is_vc?: boolean
           signup_source?: string | null
           updated_at?: string
@@ -1177,6 +1180,7 @@ export type Database = {
           id: string
           message: string
           name: string
+          recipient_id: string | null
           time: string
           to_recipient: string
           user_id: string | null
@@ -1186,6 +1190,7 @@ export type Database = {
           id?: string
           message: string
           name: string
+          recipient_id?: string | null
           time?: string
           to_recipient?: string
           user_id?: string | null
@@ -1195,6 +1200,7 @@ export type Database = {
           id?: string
           message?: string
           name?: string
+          recipient_id?: string | null
           time?: string
           to_recipient?: string
           user_id?: string | null

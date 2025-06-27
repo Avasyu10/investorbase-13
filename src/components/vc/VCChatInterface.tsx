@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Send, MessageCircle, Users, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "@/hooks/use-toast";
 
 interface Message {
@@ -39,12 +41,13 @@ interface DbMessage {
   created_at: string;
 }
 
-const mockUsers: User[] = [
-  { id: "1", name: "Roohi Sharma", role: "admin", color: "bg-red-500" },
-  { id: "2", name: "Kanishk Saxena", role: "manager", color: "bg-blue-500" },
-  { id: "3", name: "Avasyu Sharma", role: "analyst", color: "bg-green-500" },
-  { id: "4", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
-  { id: "5", name: "Himanshu", role: "intern", color: "bg-orange-500" },
+// Define all team members including both Kanishk and Roohi
+const allTeamMembers: User[] = [
+  { id: "kanishk", name: "Kanishk Saxena", role: "manager", color: "bg-blue-500" },
+  { id: "roohi", name: "Roohi Sharma", role: "admin", color: "bg-red-500" },
+  { id: "avasyu", name: "Avasyu Sharma", role: "analyst", color: "bg-green-500" },
+  { id: "tanisha", name: "Tanisha Singh", role: "associate", color: "bg-purple-500" },
+  { id: "himanshu", name: "Himanshu", role: "intern", color: "bg-orange-500" },
 ];
 
 const getRoleColor = (role: string) => {
@@ -65,21 +68,46 @@ interface VCChatInterfaceProps {
 
 export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [groupMessages, setGroupMessages] = useState<Message[]>([]);
   const [privateMessages, setPrivateMessages] = useState<{ [key: string]: Message[] }>({});
   const [newMessage, setNewMessage] = useState("");
-  const [currentUser] = useState(mockUsers[0]); // Admin user (Roohi Sharma)
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [otherUsers, setOtherUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState("group");
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<User | null>(null);
 
+  // Set current user based on authentication
+  useEffect(() => {
+    if (user && profile) {
+      // Check if the current user is Kanishk Saxena (manager)
+      if (user.email === "kanishksaxena1103@gmail.com" && profile.is_manager) {
+        const kanishkUser = allTeamMembers.find(member => member.id === "kanishk");
+        if (kanishkUser) {
+          setCurrentUser(kanishkUser);
+          // Set other users (everyone except Kanishk)
+          setOtherUsers(allTeamMembers.filter(member => member.id !== "kanishk"));
+        }
+      } else {
+        // For other users, default to Roohi (admin) - you can modify this logic as needed
+        const roohiUser = allTeamMembers.find(member => member.id === "roohi");
+        if (roohiUser) {
+          setCurrentUser(roohiUser);
+          // Set other users (everyone except Roohi)  
+          setOtherUsers(allTeamMembers.filter(member => member.id !== "roohi"));
+        }
+      }
+    }
+  }, [user, profile]);
+
   // Convert database message to UI message format
   const convertDbMessageToMessage = (dbMessage: DbMessage): Message => {
-    // Find user by name or use a default
-    const messageUser = mockUsers.find(u => u.name === dbMessage.name) || currentUser;
+    // Find user by name or use current user as fallback
+    const messageUser = allTeamMembers.find(u => u.name === dbMessage.name) || currentUser;
     
     return {
       id: dbMessage.id,
-      user: messageUser,
+      user: messageUser!,
       content: dbMessage.message,
       timestamp: new Date(dbMessage.time),
       isPrivate: dbMessage.to_recipient !== 'group_chat',
@@ -95,6 +123,8 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   // Load existing messages from database
   const loadMessages = async () => {
+    if (!currentUser) return;
+
     try {
       const { data, error } = await supabase
         .from('vc_chat_messages')
@@ -138,7 +168,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   // Save message to database
   const saveMessage = async (message: Message, isPrivateMessage = false, targetUser?: User) => {
-    if (!user) return;
+    if (!user || !currentUser) return;
 
     try {
       const { error } = await supabase
@@ -169,7 +199,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
 
   // Set up real-time subscription
   useEffect(() => {
-    if (!open) return;
+    if (!open || !currentUser) return;
 
     loadMessages();
 
@@ -208,10 +238,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [open, currentUser.id]);
+  }, [open, currentUser]);
 
   const handleSendMessage = async (isPrivateMessage = false, targetUser?: User) => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentUser) return;
 
     const message: Message = {
       id: Date.now().toString(),
@@ -251,6 +281,7 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
   };
 
   const getPrivateMessages = (userId: string) => {
+    if (!currentUser) return [];
     const chatKey = getChatKey(currentUser.id, userId);
     return (privateMessages[chatKey] || [])
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -300,7 +331,10 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
     </div>
   );
 
-  const otherUsers = mockUsers.filter(user => user.id !== currentUser.id);
+  // Don't render if currentUser is not set
+  if (!currentUser) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
