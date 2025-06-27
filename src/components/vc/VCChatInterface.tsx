@@ -148,13 +148,27 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
         const group = messages.filter(msg => !msg.isPrivate);
         const privateMessagesByKey: { [key: string]: Message[] } = {};
         
+        // Process private messages - only include messages where current user is involved
         messages.filter(msg => msg.isPrivate).forEach(msg => {
           if (msg.targetUserId) {
-            const chatKey = getChatKey(currentUser.id, msg.targetUserId);
-            if (!privateMessagesByKey[chatKey]) {
-              privateMessagesByKey[chatKey] = [];
+            // Check if this message involves the current user (either as sender or recipient)
+            const senderUser = allTeamMembers.find(u => u.name === msg.user.name);
+            const isCurrentUserSender = senderUser?.id === currentUser.id;
+            const isCurrentUserRecipient = msg.targetUserId === currentUser.id;
+            
+            // Only include messages where current user is either sender or recipient
+            if (isCurrentUserSender || isCurrentUserRecipient) {
+              // Determine the other user in this private conversation
+              const otherUserId = isCurrentUserSender ? msg.targetUserId : senderUser?.id;
+              
+              if (otherUserId) {
+                const chatKey = getChatKey(currentUser.id, otherUserId);
+                if (!privateMessagesByKey[chatKey]) {
+                  privateMessagesByKey[chatKey] = [];
+                }
+                privateMessagesByKey[chatKey].push(msg);
+              }
             }
-            privateMessagesByKey[chatKey].push(msg);
           }
         });
 
@@ -219,13 +233,24 @@ export function VCChatInterface({ open, onOpenChange }: VCChatInterfaceProps) {
           console.log('New message received via realtime:', newMessage);
           
           if (newMessage.isPrivate && newMessage.targetUserId) {
-            // For private messages, use a consistent chat key
-            const chatKey = getChatKey(currentUser.id, newMessage.targetUserId);
-            console.log('Adding private message to chat key:', chatKey);
-            setPrivateMessages(prev => ({
-              ...prev,
-              [chatKey]: [...(prev[chatKey] || []), newMessage]
-            }));
+            // Check if this private message involves the current user
+            const senderUser = allTeamMembers.find(u => u.name === newMessage.user.name);
+            const isCurrentUserSender = senderUser?.id === currentUser.id;
+            const isCurrentUserRecipient = newMessage.targetUserId === currentUser.id;
+            
+            // Only add the message if current user is involved
+            if (isCurrentUserSender || isCurrentUserRecipient) {
+              const otherUserId = isCurrentUserSender ? newMessage.targetUserId : senderUser?.id;
+              
+              if (otherUserId) {
+                const chatKey = getChatKey(currentUser.id, otherUserId);
+                console.log('Adding private message to chat key:', chatKey);
+                setPrivateMessages(prev => ({
+                  ...prev,
+                  [chatKey]: [...(prev[chatKey] || []), newMessage]
+                }));
+              }
+            }
           } else {
             // For group messages
             console.log('Adding group message via realtime');
