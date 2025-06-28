@@ -431,7 +431,7 @@ serve(async (req) => {
     11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
     12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
     13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
-    `;
+
     ${linkedInDataSection}
     `;
 
