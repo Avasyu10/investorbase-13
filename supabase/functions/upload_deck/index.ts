@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -73,15 +74,36 @@ serve(async (req) => {
       console.log('Processing analysis result for deck:', deck_name)
 
       try {
-        // Create company record
+        // Extract company name from analysis_result.companyInfo.name, fallback to deck_name
+        const companyName = analysis_result.companyInfo?.name || deck_name;
+        const companyStage = analysis_result.companyInfo?.stage || null;
+        const companyIndustry = analysis_result.companyInfo?.industry || null;
+        const companyWebsite = analysis_result.companyInfo?.website || null;
+        const companyDescription = analysis_result.companyInfo?.description || null;
+
+        console.log('Extracted company info:', {
+          name: companyName,
+          stage: companyStage,
+          industry: companyIndustry,
+          website: companyWebsite
+        });
+
+        // Create company record with extracted company information
         const { data: company, error: companyError } = await supabaseClient
           .from('companies')
           .insert([{
-            name: deck_name,
+            name: companyName,
             overall_score: analysis_result.overallScore || 0,
             assessment_points: analysis_result.assessmentPoints || [],
             user_id: FIXED_USER_ID,
-            source: 'deck_upload'
+            source: 'deck_upload',
+            industry: companyIndustry,
+            // Store additional company info in a structured way
+            response_received: companyDescription ? JSON.stringify({
+              stage: companyStage,
+              website: companyWebsite,
+              description: companyDescription
+            }) : null
           }])
           .select()
           .single();
@@ -92,7 +114,7 @@ serve(async (req) => {
         }
         
         companyId = company.id;
-        console.log("Company created:", companyId);
+        console.log("Company created with extracted name:", companyName, "ID:", companyId);
         
         // Save sections if they exist
         if (analysis_result.sections && analysis_result.sections.length > 0) {
@@ -183,3 +205,4 @@ serve(async (req) => {
     )
   }
 })
+
