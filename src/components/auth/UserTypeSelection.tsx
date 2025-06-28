@@ -25,7 +25,7 @@ const UserTypeSelection = ({ onUserTypeSelect }: UserTypeSelectionProps) => {
     },
     {
       id: 'vc' as const,
-      title: 'Venture Capitalist',
+      title: 'Venture Capitalists',
       description: 'I\'m a venture capitalist looking to evaluate startups',
       icon: <TrendingUp className="h-8 w-8 text-purple-600" />,
       buttonText: 'Continue as VC'
