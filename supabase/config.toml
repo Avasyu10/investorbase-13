@@ -43,3 +43,6 @@ timeout_seconds = 300
 
 [functions.scrape-company-direct]
 verify_jwt = false
+
+[functions.upload_deck]
+verify_jwt = false

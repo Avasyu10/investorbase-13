@@ -125,6 +125,30 @@ export type Database = {
           },
         ]
       }
+      bitsanalysis: {
+        Row: {
+          analysis_result: Json | null
+          created_at: string
+          deck_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_result?: Json | null
+          created_at?: string
+          deck_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_result?: Json | null
+          created_at?: string
+          deck_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           assessment_points: string[] | null
@@ -807,6 +831,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_admin: boolean
+          is_bits: boolean | null
           is_iitbombay: boolean
           is_manager: boolean
           is_vc: boolean
@@ -821,6 +846,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_admin?: boolean
+          is_bits?: boolean | null
           is_iitbombay?: boolean
           is_manager?: boolean
           is_vc?: boolean
@@ -835,6 +861,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean
+          is_bits?: boolean | null
           is_iitbombay?: boolean
           is_manager?: boolean
           is_vc?: boolean
