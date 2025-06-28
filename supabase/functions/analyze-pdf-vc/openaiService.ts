@@ -139,6 +139,7 @@ function getVCAnalysisPrompt(): string {
     "<comprehensive assessment point 8 with specific data/numbers>"
   ],
   "companyInfo": {
+    "name": "<extract company name from pitch deck>",
     "stage": "<extract funding stage from pitch deck content - look for mentions like 'seed', 'series A', 'pre-seed', 'growth stage', etc.>",
     "industry": "<extract industry/sector from pitch deck content - look for business domain, market category, technology sector>",
     "website": "<extract website URL if mentioned in the deck>",
