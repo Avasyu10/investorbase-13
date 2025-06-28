@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Fixed user ID for all deck uploads
+const FIXED_USER_ID = "a3808d4b-6ae3-44e3-be54-afcff6779df7";
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -16,7 +19,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     if (req.method !== 'POST') {
@@ -38,10 +41,10 @@ serve(async (req) => {
       )
     }
 
-    console.log('Uploading deck:', deck_name)
+    console.log('Processing deck:', deck_name)
 
     // Insert data into the bitsanalysis table
-    const { data, error } = await supabaseClient
+    const { data: bitsData, error: bitsError } = await supabaseClient
       .from('bitsanalysis')
       .insert({
         deck_name,
@@ -50,10 +53,10 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (error) {
-      console.error('Error inserting data:', error)
+    if (bitsError) {
+      console.error('Error inserting into bitsanalysis:', bitsError)
       return new Response(
-        JSON.stringify({ error: 'Failed to upload deck data', details: error.message }), 
+        JSON.stringify({ error: 'Failed to upload deck data', details: bitsError.message }), 
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -61,13 +64,107 @@ serve(async (req) => {
       )
     }
 
-    console.log('Successfully uploaded deck:', data)
+    console.log('Successfully uploaded to bitsanalysis:', bitsData)
+
+    let companyId = null;
+
+    // Process analysis_result if provided
+    if (analysis_result && typeof analysis_result === 'object') {
+      console.log('Processing analysis result for deck:', deck_name)
+
+      try {
+        // Create company record
+        const { data: company, error: companyError } = await supabaseClient
+          .from('companies')
+          .insert([{
+            name: deck_name,
+            overall_score: analysis_result.overallScore || 0,
+            assessment_points: analysis_result.assessmentPoints || [],
+            user_id: FIXED_USER_ID,
+            source: 'deck_upload'
+          }])
+          .select()
+          .single();
+        
+        if (companyError) {
+          console.error("Error creating company:", companyError);
+          throw companyError;
+        }
+        
+        companyId = company.id;
+        console.log("Company created:", companyId);
+        
+        // Save sections if they exist
+        if (analysis_result.sections && analysis_result.sections.length > 0) {
+          console.log("Saving sections:", analysis_result.sections.length);
+          
+          for (const section of analysis_result.sections) {
+            // Insert section
+            const { data: savedSection, error: sectionError } = await supabaseClient
+              .from('sections')
+              .insert([{
+                company_id: companyId,
+                title: section.title,
+                type: section.type,
+                score: section.score || 0,
+                description: section.description || ''
+              }])
+              .select()
+              .single();
+            
+            if (sectionError) {
+              console.error("Error saving section:", sectionError);
+              continue; // Continue with other sections
+            }
+            
+            // Save section details (strengths and weaknesses)
+            const details = [];
+            
+            if (section.strengths && Array.isArray(section.strengths)) {
+              for (const strength of section.strengths) {
+                details.push({
+                  section_id: savedSection.id,
+                  detail_type: 'strength',
+                  content: strength
+                });
+              }
+            }
+            
+            if (section.weaknesses && Array.isArray(section.weaknesses)) {
+              for (const weakness of section.weaknesses) {
+                details.push({
+                  section_id: savedSection.id,
+                  detail_type: 'weakness',
+                  content: weakness
+                });
+              }
+            }
+            
+            if (details.length > 0) {
+              const { error: detailsError } = await supabaseClient
+                .from('section_details')
+                .insert(details);
+              
+              if (detailsError) {
+                console.error("Error saving section details:", detailsError);
+              }
+            }
+          }
+        }
+        
+        console.log("Analysis processing completed successfully");
+      } catch (analysisError) {
+        console.error('Error processing analysis result:', analysisError);
+        // Don't fail the entire operation, just log the error
+      }
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Deck uploaded successfully',
-        data: data
+        data: bitsData,
+        companyId: companyId
       }), 
       { 
         status: 200, 
