@@ -511,10 +511,12 @@ export type Database = {
           company_registration_type: string | null
           company_type: string | null
           created_at: string
+          eureka_id: string | null
           executive_summary: string | null
           form_slug: string
           founder_linkedin_urls: string[] | null
           id: string
+          idea_id: string | null
           phoneno: string | null
           poc_name: string | null
           question_1: string | null
@@ -522,6 +524,10 @@ export type Database = {
           question_3: string | null
           question_4: string | null
           question_5: string | null
+          question_6: string | null
+          question_7: string | null
+          question_8: string | null
+          question_9: string | null
           report_id: string | null
           submitter_email: string
           updated_at: string
@@ -538,10 +544,12 @@ export type Database = {
           company_registration_type?: string | null
           company_type?: string | null
           created_at?: string
+          eureka_id?: string | null
           executive_summary?: string | null
           form_slug: string
           founder_linkedin_urls?: string[] | null
           id?: string
+          idea_id?: string | null
           phoneno?: string | null
           poc_name?: string | null
           question_1?: string | null
@@ -549,6 +557,10 @@ export type Database = {
           question_3?: string | null
           question_4?: string | null
           question_5?: string | null
+          question_6?: string | null
+          question_7?: string | null
+          question_8?: string | null
+          question_9?: string | null
           report_id?: string | null
           submitter_email: string
           updated_at?: string
@@ -565,10 +577,12 @@ export type Database = {
           company_registration_type?: string | null
           company_type?: string | null
           created_at?: string
+          eureka_id?: string | null
           executive_summary?: string | null
           form_slug?: string
           founder_linkedin_urls?: string[] | null
           id?: string
+          idea_id?: string | null
           phoneno?: string | null
           poc_name?: string | null
           question_1?: string | null
@@ -576,6 +590,10 @@ export type Database = {
           question_3?: string | null
           question_4?: string | null
           question_5?: string | null
+          question_6?: string | null
+          question_7?: string | null
+          question_8?: string | null
+          question_9?: string | null
           report_id?: string | null
           submitter_email?: string
           updated_at?: string
