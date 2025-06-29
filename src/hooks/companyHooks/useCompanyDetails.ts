@@ -96,6 +96,17 @@ export function useCompanyDetails(companyId: string) {
         }
       }
       
+      // Parse response_received JSON if it exists
+      let responseReceivedData = null;
+      if (companyData.response_received) {
+        try {
+          responseReceivedData = JSON.parse(companyData.response_received);
+          console.log("Parsed response_received data:", responseReceivedData);
+        } catch (error) {
+          console.error('Error parsing response_received JSON:', error);
+        }
+      }
+      
       // Map sections with their details
       const sectionsWithDetails = sectionsData.map(section => {
         const sectionDetails = sectionDetailsData.filter(detail => detail.section_id === section.id);
@@ -123,7 +134,7 @@ export function useCompanyDetails(companyId: string) {
       
       console.log("Mapped sections with details:", sectionsWithDetails);
 
-      // Prioritize company info from analysis result, then from company_details table
+      // Prioritize data sources: response_received, then analysis result, then company_details table
       const analysisCompanyInfo = reportAnalysisData?.companyInfo || {};
       
       return {
@@ -136,11 +147,11 @@ export function useCompanyDetails(companyId: string) {
         updated_at: companyData.updated_at,
         source: companyData.source,
         report_id: companyData.report_id,
-        // Use analysis result first, then company_details, then fallback
-        website: analysisCompanyInfo.website || companyDetailsData?.website || '',
-        stage: analysisCompanyInfo.stage || companyDetailsData?.stage || '',
-        industry: analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry || '',
-        introduction: analysisCompanyInfo.description || companyDetailsData?.introduction || '',
+        // Use response_received first, then analysis result, then company_details, then fallback
+        website: responseReceivedData?.website || analysisCompanyInfo.website || companyDetailsData?.website || '',
+        stage: responseReceivedData?.stage || analysisCompanyInfo.stage || companyDetailsData?.stage || '',
+        industry: responseReceivedData?.industry || analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry || '',
+        introduction: responseReceivedData?.description || analysisCompanyInfo.description || companyDetailsData?.introduction || '',
       };
     },
     enabled: !!companyId,
