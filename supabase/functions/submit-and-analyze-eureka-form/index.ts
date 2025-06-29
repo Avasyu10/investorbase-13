@@ -239,7 +239,7 @@ serve(async (req) => {
     You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
 
     Company Information:
-    - Company Name: ${submission.company_name || 'Not provided'}
+    - Company Name: ${submission.eureka_id || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
     - Industry: ${submission.company_type || 'Not provided'}
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
