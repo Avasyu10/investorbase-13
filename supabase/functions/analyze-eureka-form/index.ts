@@ -247,7 +247,11 @@ serve(async (req) => {
       submission.question_2, 
       submission.question_3,
       submission.question_4,
-      submission.question_5
+      submission.question_5,
+      submission.question_6,
+      submission.question_7,
+      submission.question_8,
+      submission.question_9      
     ].filter(checkIfAnswerIsEmpty).length;
 
     const hasMinimalAnswers = emptyAnswerCount >= 3; // If 3 or more answers are empty/minimal
