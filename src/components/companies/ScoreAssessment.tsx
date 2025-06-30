@@ -17,20 +17,20 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   
   // Format overall score based on user type
   const rawScore = company.overall_score;
-  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
-  const displayMaxScore = isVCAndBits ? 5 : 100;
+  const displayScore = isVCAndBits ? Math.min(35, Math.max(0, rawScore)) : rawScore;
+  const displayMaxScore = isVCAndBits ? 35 : 100;
   
   // Calculate progress percentage
-  const progressPercentage = isVCAndBits ? (displayScore / 5) * 100 : rawScore;
+  const progressPercentage = isVCAndBits ? (displayScore / 35) * 100 : rawScore;
   
   // Get score color class based on user type
   const getScoreColor = (score: number) => {
     if (isVCAndBits) {
-      // 5-point scale colors
-      if (score >= 4.5) return "text-emerald-600";
-      if (score >= 3.5) return "text-blue-600"; 
-      if (score >= 2.5) return "text-amber-600";
-      if (score >= 1.5) return "text-orange-600";
+      // 35-point scale colors
+      if (score >= 31.5) return "text-emerald-600";
+      if (score >= 24.5) return "text-blue-600"; 
+      if (score >= 17.5) return "text-amber-600";
+      if (score >= 10.5) return "text-orange-600";
       return "text-red-600";
     } else {
       // 100-point scale colors
@@ -45,12 +45,12 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   // Get score description based on user type
   const getScoreDescription = (score: number): string => {
     if (isVCAndBits) {
-      // 5-point scale descriptions
-      if (score >= 4.5) return `Excellent Investment Opportunity (${score.toFixed(1)}/5): Outstanding company with exceptional potential, strong fundamentals, and minimal risk factors.`;
-      if (score >= 3.5) return `Good Investment Candidate (${score.toFixed(1)}/5): Solid company with good potential and manageable risks. Worth serious consideration.`;
-      if (score >= 2.5) return `Average Investment Potential (${score.toFixed(1)}/5): Decent fundamentals but several areas need improvement. Moderate risk factors exist.`;
-      if (score >= 1.5) return `Below Average Investment (${score.toFixed(1)}/5): Significant concerns exist. Requires extensive due diligence and improvements.`;
-      return `Poor Investment Prospect (${score.toFixed(1)}/5): Major deficiencies across multiple areas. High risk, not recommended without substantial changes.`;
+      // 35-point scale descriptions
+      if (score >= 31.5) return `Excellent Investment Opportunity (${score.toFixed(1)}/35): Outstanding company with exceptional potential, strong fundamentals, and minimal risk factors.`;
+      if (score >= 24.5) return `Good Investment Candidate (${score.toFixed(1)}/35): Solid company with good potential and manageable risks. Worth serious consideration.`;
+      if (score >= 17.5) return `Average Investment Potential (${score.toFixed(1)}/35): Decent fundamentals but several areas need improvement. Moderate risk factors exist.`;
+      if (score >= 10.5) return `Below Average Investment (${score.toFixed(1)}/35): Significant concerns exist. Requires extensive due diligence and improvements.`;
+      return `Poor Investment Prospect (${score.toFixed(1)}/35): Major deficiencies across multiple areas. High risk, not recommended without substantial changes.`;
     } else {
       // 100-point scale descriptions
       if (score >= 90) return `Outstanding Investment Opportunity (${score}/100): This company demonstrates exceptional market position, business model, and growth metrics. Clear competitive advantages with minimal risk factors. Recommended for immediate investment consideration.`;

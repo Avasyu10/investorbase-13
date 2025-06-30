@@ -30,9 +30,9 @@ export function OverallAssessment({
   const { isVCAndBits } = useProfile();
   
   // Calculate score and display values based on user type
-  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, score)) : score;
-  const displayMaxScore = isVCAndBits ? 5 : maxScore;
-  const progressPercentage = isVCAndBits ? (displayScore / 5) * 100 : (score / maxScore) * 100;
+  const displayScore = isVCAndBits ? Math.min(35, Math.max(0, score)) : score;
+  const displayMaxScore = isVCAndBits ? 35 : maxScore;
+  const progressPercentage = isVCAndBits ? (displayScore / 35) * 100 : (score / maxScore) * 100;
   
   // Format score to appropriate decimal places
   const formattedScore = isVCAndBits ? displayScore.toFixed(1) : Math.round(score);
@@ -52,19 +52,19 @@ export function OverallAssessment({
     ? assessmentPoints 
     : defaultAssessmentPoints;
 
-  // Comprehensive section breakdown data - convert to 5-point scale for VC+Bits users
+  // Comprehensive section breakdown data - convert to 35-point scale for VC+Bits users
   const sectionBreakdownData = [
-    { name: "Problem", score: isVCAndBits ? 4.1 : 82, color: "hsl(var(--chart-1))" },
-    { name: "Market", score: isVCAndBits ? 3.9 : 78, color: "hsl(var(--chart-2))" },
-    { name: "Solution", score: isVCAndBits ? 4.25 : 85, color: "hsl(var(--chart-3))" },
-    { name: "Product", score: isVCAndBits ? 3.75 : 75, color: "hsl(var(--chart-4))" },
-    { name: "Competition", score: isVCAndBits ? 3.5 : 70, color: "hsl(var(--chart-5))" },
-    { name: "Traction", score: isVCAndBits ? 4.4 : 88, color: "hsl(var(--chart-1))" },
-    { name: "Business Model", score: isVCAndBits ? 4.0 : 80, color: "hsl(var(--chart-2))" },
-    { name: "GTM Strategy", score: isVCAndBits ? 3.65 : 73, color: "hsl(var(--chart-3))" },
-    { name: "Team", score: isVCAndBits ? 4.5 : 90, color: "hsl(var(--chart-4))" },
-    { name: "Financials", score: isVCAndBits ? 3.85 : 77, color: "hsl(var(--chart-5))" },
-    { name: "Ask & Use", score: isVCAndBits ? 4.05 : 81, color: "hsl(var(--chart-1))" }
+    { name: "Problem", score: isVCAndBits ? 28.7 : 82, color: "hsl(var(--chart-1))" },
+    { name: "Market", score: isVCAndBits ? 27.3 : 78, color: "hsl(var(--chart-2))" },
+    { name: "Solution", score: isVCAndBits ? 29.75 : 85, color: "hsl(var(--chart-3))" },
+    { name: "Product", score: isVCAndBits ? 26.25 : 75, color: "hsl(var(--chart-4))" },
+    { name: "Competition", score: isVCAndBits ? 24.5 : 70, color: "hsl(var(--chart-5))" },
+    { name: "Traction", score: isVCAndBits ? 30.8 : 88, color: "hsl(var(--chart-1))" },
+    { name: "Business Model", score: isVCAndBits ? 28.0 : 80, color: "hsl(var(--chart-2))" },
+    { name: "GTM Strategy", score: isVCAndBits ? 25.55 : 73, color: "hsl(var(--chart-3))" },
+    { name: "Team", score: isVCAndBits ? 31.5 : 90, color: "hsl(var(--chart-4))" },
+    { name: "Financials", score: isVCAndBits ? 26.95 : 77, color: "hsl(var(--chart-5))" },
+    { name: "Ask & Use", score: isVCAndBits ? 28.35 : 81, color: "hsl(var(--chart-1))" }
   ];
 
   const chartConfig = {
@@ -76,11 +76,11 @@ export function OverallAssessment({
 
   const getScoreColor = (score: number) => {
     if (isVCAndBits) {
-      // 5-point scale colors
-      if (score >= 4.5) return "text-emerald-600";
-      if (score >= 3.5) return "text-blue-600";
-      if (score >= 2.5) return "text-amber-600";
-      if (score >= 1.5) return "text-orange-600";
+      // 35-point scale colors
+      if (score >= 31.5) return "text-emerald-600";
+      if (score >= 24.5) return "text-blue-600";
+      if (score >= 17.5) return "text-amber-600";
+      if (score >= 10.5) return "text-orange-600";
       return "text-red-600";
     } else {
       // 100-point scale colors
@@ -93,11 +93,11 @@ export function OverallAssessment({
 
   const getScoreLabel = (score: number) => {
     if (isVCAndBits) {
-      // 5-point scale labels
-      if (score >= 4.5) return "Excellent";
-      if (score >= 3.5) return "Good";
-      if (score >= 2.5) return "Average";
-      if (score >= 1.5) return "Below Average";
+      // 35-point scale labels
+      if (score >= 31.5) return "Excellent";
+      if (score >= 24.5) return "Good";
+      if (score >= 17.5) return "Average";
+      if (score >= 10.5) return "Below Average";
       return "Poor";
     } else {
       // 100-point scale labels
@@ -203,10 +203,10 @@ export function OverallAssessment({
                               height={80}
                               fontSize={12}
                             />
-                            <YAxis domain={isVCAndBits ? [0, 5] : [0, 100]} />
+                            <YAxis domain={isVCAndBits ? [0, 35] : [0, 100]} />
                             <ChartTooltip 
                               content={<ChartTooltipContent />}
-                              formatter={(value) => [isVCAndBits ? `${Number(value).toFixed(1)}/5` : `${value}%`, "Score"]}
+                              formatter={(value) => [isVCAndBits ? `${Number(value).toFixed(1)}/35` : `${value}%`, "Score"]}
                             />
                             <Bar 
                               dataKey="score" 
@@ -253,15 +253,15 @@ export function OverallAssessment({
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium">{section.name}</span>
                             <span className="text-sm text-muted-foreground">
-                              {isVCAndBits ? `${section.score.toFixed(1)}/5` : `${section.score}%`}
+                              {isVCAndBits ? `${section.score.toFixed(1)}/35` : `${section.score}%`}
                             </span>
                           </div>
-                          <Progress value={isVCAndBits ? (section.score / 5) * 100 : section.score} className="h-2" />
+                          <Progress value={isVCAndBits ? (section.score / 35) * 100 : section.score} className="h-2" />
                           <div className="mt-2 text-xs text-muted-foreground">
                             {isVCAndBits 
-                              ? (section.score >= 4.5 ? "Excellent" : 
-                                 section.score >= 3.5 ? "Good" : 
-                                 section.score >= 2.5 ? "Average" : "Needs Improvement")
+                              ? (section.score >= 31.5 ? "Excellent" : 
+                                 section.score >= 24.5 ? "Good" : 
+                                 section.score >= 17.5 ? "Average" : "Needs Improvement")
                               : (section.score >= 80 ? "Excellent" : 
                                  section.score >= 60 ? "Good" : 
                                  section.score >= 40 ? "Average" : "Needs Improvement")
