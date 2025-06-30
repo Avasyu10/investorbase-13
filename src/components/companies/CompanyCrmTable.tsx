@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -30,6 +31,7 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { ExternalLink, Edit2, Phone } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -63,6 +65,33 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
+  const { isVCAndBits } = useProfile();
+
+  // Get score display formatting based on user type
+  const formatScore = (score: number) => {
+    if (isVCAndBits) {
+      const displayScore = Math.min(5, Math.max(0, score));
+      return displayScore.toFixed(1);
+    }
+    return Math.round(score).toString();
+  };
+
+  // Get score color based on user type
+  const getScoreColor = (score: number) => {
+    if (isVCAndBits) {
+      const displayScore = Math.min(5, Math.max(0, score));
+      if (displayScore >= 4.5) return "text-emerald-600 bg-emerald-50";
+      if (displayScore >= 3.5) return "text-blue-600 bg-blue-50";
+      if (displayScore >= 2.5) return "text-amber-600 bg-amber-50";
+      if (displayScore >= 1.5) return "text-orange-600 bg-orange-50";
+      return "text-red-600 bg-red-50";
+    } else {
+      if (score >= 80) return "text-emerald-600 bg-emerald-50";
+      if (score >= 60) return "text-blue-600 bg-blue-50";
+      if (score >= 40) return "text-amber-600 bg-amber-50";
+      return "text-red-600 bg-red-50";
+    }
+  };
 
   const handleEditClick = async (company: CompanyListItem, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row click when clicking on edit button
@@ -209,6 +238,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
               <TableHead className="w-[120px]">Source</TableHead>
               <TableHead className="w-[100px]">Industry</TableHead>
               <TableHead className="w-[120px]">LinkedIn</TableHead>
+              <TableHead className="w-[80px]">Score</TableHead>
               <TableHead className="w-[120px]">Status</TableHead>
               <TableHead className="w-[120px]">Status Changed</TableHead>
               <TableHead className="w-[120px]">Account Manager</TableHead>
@@ -261,6 +291,13 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                       isUrl={true}
                       refreshTrigger={refreshTrigger}
                     />
+                  </TableCell>
+                  <TableCell title="Overall Score">
+                    <span 
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(company.overall_score || 0)}`}
+                    >
+                      {formatScore(company.overall_score || 0)}
+                    </span>
                   </TableCell>
                   <TableCell title="Status">
                     <CompanyCrmField 

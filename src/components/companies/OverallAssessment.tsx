@@ -52,19 +52,19 @@ export function OverallAssessment({
     ? assessmentPoints 
     : defaultAssessmentPoints;
 
-  // Comprehensive section breakdown data
+  // Comprehensive section breakdown data - convert to 5-point scale for VC+Bits users
   const sectionBreakdownData = [
-    { name: "Problem", score: 82, color: "hsl(var(--chart-1))" },
-    { name: "Market", score: 78, color: "hsl(var(--chart-2))" },
-    { name: "Solution", score: 85, color: "hsl(var(--chart-3))" },
-    { name: "Product", score: 75, color: "hsl(var(--chart-4))" },
-    { name: "Competition", score: 70, color: "hsl(var(--chart-5))" },
-    { name: "Traction", score: 88, color: "hsl(var(--chart-1))" },
-    { name: "Business Model", score: 80, color: "hsl(var(--chart-2))" },
-    { name: "GTM Strategy", score: 73, color: "hsl(var(--chart-3))" },
-    { name: "Team", score: 90, color: "hsl(var(--chart-4))" },
-    { name: "Financials", score: 77, color: "hsl(var(--chart-5))" },
-    { name: "Ask & Use", score: 81, color: "hsl(var(--chart-1))" }
+    { name: "Problem", score: isVCAndBits ? 4.1 : 82, color: "hsl(var(--chart-1))" },
+    { name: "Market", score: isVCAndBits ? 3.9 : 78, color: "hsl(var(--chart-2))" },
+    { name: "Solution", score: isVCAndBits ? 4.25 : 85, color: "hsl(var(--chart-3))" },
+    { name: "Product", score: isVCAndBits ? 3.75 : 75, color: "hsl(var(--chart-4))" },
+    { name: "Competition", score: isVCAndBits ? 3.5 : 70, color: "hsl(var(--chart-5))" },
+    { name: "Traction", score: isVCAndBits ? 4.4 : 88, color: "hsl(var(--chart-1))" },
+    { name: "Business Model", score: isVCAndBits ? 4.0 : 80, color: "hsl(var(--chart-2))" },
+    { name: "GTM Strategy", score: isVCAndBits ? 3.65 : 73, color: "hsl(var(--chart-3))" },
+    { name: "Team", score: isVCAndBits ? 4.5 : 90, color: "hsl(var(--chart-4))" },
+    { name: "Financials", score: isVCAndBits ? 3.85 : 77, color: "hsl(var(--chart-5))" },
+    { name: "Ask & Use", score: isVCAndBits ? 4.05 : 81, color: "hsl(var(--chart-1))" }
   ];
 
   const chartConfig = {
@@ -203,10 +203,10 @@ export function OverallAssessment({
                               height={80}
                               fontSize={12}
                             />
-                            <YAxis domain={[0, 100]} />
+                            <YAxis domain={isVCAndBits ? [0, 5] : [0, 100]} />
                             <ChartTooltip 
                               content={<ChartTooltipContent />}
-                              formatter={(value) => [`${value}%`, "Score"]}
+                              formatter={(value) => [isVCAndBits ? `${Number(value).toFixed(1)}/5` : `${value}%`, "Score"]}
                             />
                             <Bar 
                               dataKey="score" 
@@ -252,13 +252,20 @@ export function OverallAssessment({
                         <div key={index} className="bg-card border rounded-lg p-4">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium">{section.name}</span>
-                            <span className="text-sm text-muted-foreground">{section.score}%</span>
+                            <span className="text-sm text-muted-foreground">
+                              {isVCAndBits ? `${section.score.toFixed(1)}/5` : `${section.score}%`}
+                            </span>
                           </div>
-                          <Progress value={section.score} className="h-2" />
+                          <Progress value={isVCAndBits ? (section.score / 5) * 100 : section.score} className="h-2" />
                           <div className="mt-2 text-xs text-muted-foreground">
-                            {section.score >= 80 ? "Excellent" : 
-                             section.score >= 60 ? "Good" : 
-                             section.score >= 40 ? "Average" : "Needs Improvement"}
+                            {isVCAndBits 
+                              ? (section.score >= 4.5 ? "Excellent" : 
+                                 section.score >= 3.5 ? "Good" : 
+                                 section.score >= 2.5 ? "Average" : "Needs Improvement")
+                              : (section.score >= 80 ? "Excellent" : 
+                                 section.score >= 60 ? "Good" : 
+                                 section.score >= 40 ? "Average" : "Needs Improvement")
+                            }
                           </div>
                         </div>
                       ))}
