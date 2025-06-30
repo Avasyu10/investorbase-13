@@ -46,13 +46,13 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
 
     // Custom VC section title mappings based on section type
     const vcTitleMappings: { [key: string]: string } = {
-      'PROBLEM': 'Problem Statement',
+      'PROBLEM': 'Problem Clarity & Founder Insight',
       'MARKET': 'Market Size',
       'SOLUTION': 'Solution',
-      'TRACTION': 'Traction',
-      'COMPETITIVE_LANDSCAPE': 'Competitor',
+      'TRACTION': 'Early Proof or Demand Signals',
+      'COMPETITIVE_LANDSCAPE': 'Differentiation & Competitive Edge',
       'BUSINESS_MODEL': 'Business Model',
-      'TEAM': 'Team',
+      'TEAM': 'Founder Capability & Market Fit',
       'FINANCIALS': 'Financials',
       'ASK': 'Ask'
     };
