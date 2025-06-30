@@ -309,7 +309,7 @@ const CompanyDetails = () => {
   const progressPercentage = formattedScore * 20;
 
   const getScoreColor = (score: number) => {
-    if (score >= 4.5) return "score-excellent";
+    if (score >= 4.0) return "score-excellent";
     if (score >= 3.5) return "score-good";
     if (score >= 2.5) return "score-average";
     if (score >= 1.5) return "score-poor";
