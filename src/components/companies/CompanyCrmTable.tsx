@@ -68,7 +68,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const { isVCAndBits } = useProfile();
 
   // Get score display formatting based on user type
-  const formatScore = (score: number) => {
+  const formatScore = (score: double) => {
     if (isVCAndBits) {
       // For VC+Bits users, convert 100-scale to 35-scale and show with one decimal
       const scaledScore = (score / 100) * 5;
@@ -83,7 +83,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   };
 
   // Get score color based on user type and scaled appropriately
-  const getScoreColor = (score: number) => {
+  const getScoreColor = (score: double) => {
     if (isVCAndBits) {
       // Scale the score to 5-point scale for color determination
       const scaledScore = (score / 100) * 5;
