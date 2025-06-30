@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -30,8 +31,6 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { ExternalLink, Edit2, Phone } from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
-import { CompanyCrmTableVCBits } from "./CompanyCrmTableVCBits";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -46,7 +45,7 @@ interface CrmData {
   phonenumber?: string | null;
 }
 
-interface CompanyCrmTableProps {
+interface CompanyCrmTableVCBitsProps {
   companies: CompanyListItem[];
   onCompanyClick: (companyId: string) => void;
 }
@@ -60,34 +59,30 @@ const STATUS_OPTIONS = [
   "New", "Contacted", "Meeting Scheduled", "In Review", "Interested", "Not Interested", "Passed"
 ];
 
-export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTableProps) {
-  const { isVCAndBits } = useProfile();
-
-  // Use the specialized VC+Bits component if user is VC+Bits
-  if (isVCAndBits) {
-    return <CompanyCrmTableVCBits companies={companies} onCompanyClick={onCompanyClick} />;
-  }
-
+export function CompanyCrmTableVCBits({ companies, onCompanyClick }: CompanyCrmTableVCBitsProps) {
   const [editingCompany, setEditingCompany] = useState<{ id: string, crmData: CrmData } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
 
-  // Format score display for regular users (100-point scale)
+  // Convert 100-point scale to 5-point scale for VC+Bits users
+  const convertTo5PointScale = (score100: number): number => {
+    return (score100 / 100) * 5;
+  };
+
+  // Format score display with 1 decimal place
   const formatScore = (score: number) => {
-    return Math.round(score).toString();
+    const convertedScore = convertTo5PointScale(score);
+    return convertedScore.toFixed(1);
   };
 
-  // Get max score for regular users
-  const getMaxScore = () => {
-    return 100;
-  };
-
-  // Get score color for regular users (100-point scale)
+  // Get score color based on 5-point scale
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-600 bg-emerald-50";
-    if (score >= 60) return "text-blue-600 bg-blue-50";
-    if (score >= 40) return "text-amber-600 bg-amber-50";
+    const convertedScore = convertTo5PointScale(score);
+    
+    if (convertedScore >= 4.0) return "text-emerald-600 bg-emerald-50";
+    if (convertedScore >= 3.0) return "text-blue-600 bg-blue-50";
+    if (convertedScore >= 2.0) return "text-amber-600 bg-amber-50";
     return "text-red-600 bg-red-50";
   };
 
@@ -247,14 +242,14 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                 >
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell className="max-w-[120px] truncate" title="Point of Contact">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="point_of_contact"
                       refreshTrigger={refreshTrigger}
                     />
                   </TableCell>
                   <TableCell className="max-w-[150px] truncate" title="Contact Email">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="contact_email"
                       isEmail={true}
@@ -262,21 +257,21 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     />
                   </TableCell>
                   <TableCell className="max-w-[120px] truncate" title="Source of Introduction">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="source_of_introduction"
                       refreshTrigger={refreshTrigger}
                     />
                   </TableCell>
                   <TableCell title="Industry">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="industry"
                       refreshTrigger={refreshTrigger}
                     />
                   </TableCell>
                   <TableCell title="LinkedIn URL">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="linkedin_url"
                       isUrl={true}
@@ -287,18 +282,18 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     <span 
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(rawScore)}`}
                     >
-                      {formatScore(rawScore)}/{getMaxScore()}
+                      {formatScore(rawScore)}/5.0
                     </span>
                   </TableCell>
                   <TableCell title="Status">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="status"
                       refreshTrigger={refreshTrigger}
                     />
                   </TableCell>
                   <TableCell title="Status Date">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="status_date"
                       isDate={true}
@@ -306,14 +301,14 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     />
                   </TableCell>
                   <TableCell className="max-w-[120px] truncate" title="Account Manager">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="account_manager"
                       refreshTrigger={refreshTrigger}
                     />
                   </TableCell>
                   <TableCell className="max-w-[150px] truncate" title="Notes">
-                    <CompanyCrmField 
+                    <CompanyCrmFieldVCBits 
                       companyId={company.id.toString()} 
                       field="notes"
                       refreshTrigger={refreshTrigger}
@@ -496,7 +491,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
 }
 
 // Helper component to display CRM fields with data fetched from the database
-function CompanyCrmField({ 
+function CompanyCrmFieldVCBits({ 
   companyId, 
   field, 
   isUrl = false, 
