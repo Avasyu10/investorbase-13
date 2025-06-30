@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -30,7 +31,6 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { ExternalLink, Edit2, Phone } from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -64,54 +64,27 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
-  const { isVCAndBits } = useProfile();
 
-  // Convert score from 100-point to 5-point scale for VC+Bits users
-  const convertScore = (rawScore: number) => {
-    if (isVCAndBits) {
-      // Convert from 100-point scale to 5-point scale (100 -> 5, 80 -> 4, etc.)
-      return (rawScore / 100) * 5;
-    }
-    return rawScore;
+  // Convert score from 100-point to 5-point scale
+  const convertScoreTo5Point = (rawScore: number) => {
+    // Convert from 100-point scale to 5-point scale
+    return (rawScore / 100) * 5;
   };
 
-  // Format score display - preserve decimal places for VC+Bits users
+  // Format score display - always show 1 decimal place
   const formatScore = (score: number) => { 
-    const convertedScore = convertScore(score);
-    console.log('Original score:', score, 'Converted score:', convertedScore, 'isVCAndBits:', isVCAndBits);
-    
-    if (isVCAndBits) {
-      // For VC+Bits users, ensure we always show 1 decimal place
-      return convertedScore.toFixed(1);
-    } else {
-      // For regular users, show as integer
-      return Math.round(convertedScore).toString();
-    }
+    const convertedScore = convertScoreTo5Point(score);
+    return convertedScore.toFixed(1);
   };
 
-  // Get max score based on user type
-  const getMaxScore = () => {
-    return isVCAndBits ? 5 : 100;
-  };
-
-  // Get score color based on user type
+  // Get score color based on 5-point scale
   const getScoreColor = (score: number) => {
-    const convertedScore = convertScore(score);
-    console.log('Getting color for original score:', score, 'converted score:', convertedScore, 'isVCAndBits:', isVCAndBits);
+    const convertedScore = convertScoreTo5Point(score);
     
-    if (isVCAndBits) {
-      // For VC+Bits users, use 5-point scale thresholds
-      if (convertedScore >= 4.0) return "text-emerald-600 bg-emerald-50";
-      if (convertedScore >= 3.0) return "text-blue-600 bg-blue-50";
-      if (convertedScore >= 2.0) return "text-amber-600 bg-amber-50";
-      return "text-red-600 bg-red-50";
-    } else {
-      // For regular users, use 100-point scale thresholds
-      if (convertedScore >= 80) return "text-emerald-600 bg-emerald-50";
-      if (convertedScore >= 60) return "text-blue-600 bg-blue-50";
-      if (convertedScore >= 40) return "text-amber-600 bg-amber-50";
-      return "text-red-600 bg-red-50";
-    }
+    if (convertedScore >= 4.0) return "text-emerald-600 bg-emerald-50";
+    if (convertedScore >= 3.0) return "text-blue-600 bg-blue-50";
+    if (convertedScore >= 2.0) return "text-amber-600 bg-amber-50";
+    return "text-red-600 bg-red-50";
   };
 
   const handleEditClick = async (company: CompanyListItem, e: React.MouseEvent) => {
@@ -269,9 +242,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
-              // Ensure we get the raw score as a number and preserve its decimal value
+              // Ensure we get the raw score as a number
               const rawScore = Number(company.overall_score) || 0;
-              console.log('Company:', company.name, 'Raw score from DB:', company.overall_score, 'Converted:', rawScore);
               
               return (
                 <TableRow
@@ -321,7 +293,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     <span 
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(rawScore)}`}
                     >
-                      {formatScore(rawScore)}/{getMaxScore()}
+                      {formatScore(rawScore)}/5.0
                     </span>
                   </TableCell>
                   <TableCell title="Status">
