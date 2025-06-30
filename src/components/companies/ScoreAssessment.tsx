@@ -13,7 +13,7 @@ interface ScoreAssessmentProps {
 
 export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   // Format overall score to whole number
-  const formattedScore = Math.round(company.overall_score);
+  const formattedScore = company.overall_score;
   
   // Calculate progress percentage (already 0-100 scale)
   const progressPercentage = formattedScore;
