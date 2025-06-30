@@ -180,7 +180,7 @@ export type Database = {
           id?: string
           industry?: string | null
           name: string
-          overall_score: number
+          overall_score?: number
           perplexity_prompt?: string | null
           perplexity_requested_at?: string | null
           perplexity_response?: string | null

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart2, Lightbulb, ExternalLink, FileText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +8,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 import { FundThesisAlignment } from "./FundThesisAlignment";
-import { useProfile } from "@/hooks/useProfile";
 
 interface OverallAssessmentProps {
   score: number;
@@ -27,15 +25,12 @@ export function OverallAssessment({
   companyName
 }: OverallAssessmentProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { isVCAndBits } = useProfile();
   
-  // Calculate score and display values based on user type
-  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, score)) : score;
-  const displayMaxScore = isVCAndBits ? 5 : maxScore;
-  const progressPercentage = isVCAndBits ? (displayScore / 5) * 100 : (score / maxScore) * 100;
+  // Calculate progress percentage
+  const progressPercentage = (score / maxScore) * 100;
   
-  // Format score to appropriate decimal places
-  const formattedScore = isVCAndBits ? displayScore.toFixed(1) : Math.round(score);
+  // Format score to whole number
+  const formattedScore = Math.round(score);
 
   // Default assessment points if none provided (6-7 points)
   const defaultAssessmentPoints = [
@@ -52,19 +47,19 @@ export function OverallAssessment({
     ? assessmentPoints 
     : defaultAssessmentPoints;
 
-  // Comprehensive section breakdown data - convert to 5-point scale for VC+Bits users
+  // Comprehensive section breakdown data
   const sectionBreakdownData = [
-    { name: "Problem", score: isVCAndBits ? 4.1 : 82, color: "hsl(var(--chart-1))" },
-    { name: "Market", score: isVCAndBits ? 3.9 : 78, color: "hsl(var(--chart-2))" },
-    { name: "Solution", score: isVCAndBits ? 4.25 : 85, color: "hsl(var(--chart-3))" },
-    { name: "Product", score: isVCAndBits ? 3.75 : 75, color: "hsl(var(--chart-4))" },
-    { name: "Competition", score: isVCAndBits ? 3.5 : 70, color: "hsl(var(--chart-5))" },
-    { name: "Traction", score: isVCAndBits ? 4.4 : 88, color: "hsl(var(--chart-1))" },
-    { name: "Business Model", score: isVCAndBits ? 4.0 : 80, color: "hsl(var(--chart-2))" },
-    { name: "GTM Strategy", score: isVCAndBits ? 3.65 : 73, color: "hsl(var(--chart-3))" },
-    { name: "Team", score: isVCAndBits ? 4.5 : 90, color: "hsl(var(--chart-4))" },
-    { name: "Financials", score: isVCAndBits ? 3.85 : 77, color: "hsl(var(--chart-5))" },
-    { name: "Ask & Use", score: isVCAndBits ? 4.05 : 81, color: "hsl(var(--chart-1))" }
+    { name: "Problem", score: 82, color: "hsl(var(--chart-1))" },
+    { name: "Market", score: 78, color: "hsl(var(--chart-2))" },
+    { name: "Solution", score: 85, color: "hsl(var(--chart-3))" },
+    { name: "Product", score: 75, color: "hsl(var(--chart-4))" },
+    { name: "Competition", score: 70, color: "hsl(var(--chart-5))" },
+    { name: "Traction", score: 88, color: "hsl(var(--chart-1))" },
+    { name: "Business Model", score: 80, color: "hsl(var(--chart-2))" },
+    { name: "GTM Strategy", score: 73, color: "hsl(var(--chart-3))" },
+    { name: "Team", score: 90, color: "hsl(var(--chart-4))" },
+    { name: "Financials", score: 77, color: "hsl(var(--chart-5))" },
+    { name: "Ask & Use", score: 81, color: "hsl(var(--chart-1))" }
   ];
 
   const chartConfig = {
@@ -75,37 +70,17 @@ export function OverallAssessment({
   };
 
   const getScoreColor = (score: number) => {
-    if (isVCAndBits) {
-      // 5-point scale colors
-      if (score >= 4.5) return "text-emerald-600";
-      if (score >= 3.5) return "text-blue-600";
-      if (score >= 2.5) return "text-amber-600";
-      if (score >= 1.5) return "text-orange-600";
-      return "text-red-600";
-    } else {
-      // 100-point scale colors
-      if (score >= 80) return "text-green-500";
-      if (score >= 60) return "text-yellow-500";
-      if (score >= 40) return "text-orange-500";
-      return "text-red-500";
-    }
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    if (score >= 40) return "text-orange-500";
+    return "text-red-500";
   };
 
   const getScoreLabel = (score: number) => {
-    if (isVCAndBits) {
-      // 5-point scale labels
-      if (score >= 4.5) return "Excellent";
-      if (score >= 3.5) return "Good";
-      if (score >= 2.5) return "Average";
-      if (score >= 1.5) return "Below Average";
-      return "Poor";
-    } else {
-      // 100-point scale labels
-      if (score >= 80) return "Excellent";
-      if (score >= 60) return "Good";
-      if (score >= 40) return "Average";
-      return "Needs Improvement";
-    }
+    if (score >= 80) return "Excellent";
+    if (score >= 60) return "Good";
+    if (score >= 40) return "Average";
+    return "Needs Improvement";
   };
 
   return (
@@ -121,10 +96,8 @@ export function OverallAssessment({
               <FundThesisAlignment companyId={companyId} companyName={companyName} />
             )}
             <div className="flex items-center gap-1">
-              <span className={`text-xl font-bold ${getScoreColor(displayScore)}`}>
-                {formattedScore}
-              </span>
-              <span className="text-sm text-muted-foreground">/{displayMaxScore}</span>
+              <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
+              <span className="text-sm text-muted-foreground">/{maxScore}</span>
             </div>
           </div>
         </div>
@@ -174,13 +147,11 @@ export function OverallAssessment({
                     <h3 className="text-lg font-semibold mb-4">Score Overview</h3>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">
-                        <div className={`text-3xl font-bold ${getScoreColor(displayScore)}`}>
-                          {formattedScore}
-                        </div>
-                        <div className="text-sm text-muted-foreground">out of {displayMaxScore}</div>
+                        <div className="text-3xl font-bold text-primary">{formattedScore}</div>
+                        <div className="text-sm text-muted-foreground">out of {maxScore}</div>
                       </div>
-                      <div className={`text-sm font-medium ${getScoreColor(displayScore)}`}>
-                        {getScoreLabel(displayScore)}
+                      <div className={`text-sm font-medium ${getScoreColor(formattedScore)}`}>
+                        {getScoreLabel(formattedScore)}
                       </div>
                     </div>
                     <Progress value={progressPercentage} className="h-3" />
@@ -203,10 +174,10 @@ export function OverallAssessment({
                               height={80}
                               fontSize={12}
                             />
-                            <YAxis domain={isVCAndBits ? [0, 5] : [0, 100]} />
+                            <YAxis domain={[0, 100]} />
                             <ChartTooltip 
                               content={<ChartTooltipContent />}
-                              formatter={(value) => [isVCAndBits ? `${Number(value).toFixed(1)}/5` : `${value}%`, "Score"]}
+                              formatter={(value) => [`${value}%`, "Score"]}
                             />
                             <Bar 
                               dataKey="score" 
@@ -252,20 +223,13 @@ export function OverallAssessment({
                         <div key={index} className="bg-card border rounded-lg p-4">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium">{section.name}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {isVCAndBits ? `${section.score.toFixed(1)}/5` : `${section.score}%`}
-                            </span>
+                            <span className="text-sm text-muted-foreground">{section.score}%</span>
                           </div>
-                          <Progress value={isVCAndBits ? (section.score / 5) * 100 : section.score} className="h-2" />
+                          <Progress value={section.score} className="h-2" />
                           <div className="mt-2 text-xs text-muted-foreground">
-                            {isVCAndBits 
-                              ? (section.score >= 4.5 ? "Excellent" : 
-                                 section.score >= 3.5 ? "Good" : 
-                                 section.score >= 2.5 ? "Average" : "Needs Improvement")
-                              : (section.score >= 80 ? "Excellent" : 
-                                 section.score >= 60 ? "Good" : 
-                                 section.score >= 40 ? "Average" : "Needs Improvement")
-                            }
+                            {section.score >= 80 ? "Excellent" : 
+                             section.score >= 60 ? "Good" : 
+                             section.score >= 40 ? "Average" : "Needs Improvement"}
                           </div>
                         </div>
                       ))}
