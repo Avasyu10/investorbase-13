@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart2, Lightbulb, ExternalLink, FileText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -8,6 +9,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 import { FundThesisAlignment } from "./FundThesisAlignment";
+import { useProfile } from "@/hooks/useProfile";
 
 interface OverallAssessmentProps {
   score: number;
@@ -25,12 +27,15 @@ export function OverallAssessment({
   companyName
 }: OverallAssessmentProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { isVCAndBits } = useProfile();
   
-  // Calculate progress percentage
-  const progressPercentage = (score / maxScore) * 100;
+  // Calculate score and display values based on user type
+  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, score)) : score;
+  const displayMaxScore = isVCAndBits ? 5 : maxScore;
+  const progressPercentage = isVCAndBits ? (displayScore / 5) * 100 : (score / maxScore) * 100;
   
-  // Format score to whole number
-  const formattedScore = Math.round(score);
+  // Format score to appropriate decimal places
+  const formattedScore = isVCAndBits ? displayScore.toFixed(1) : Math.round(score);
 
   // Default assessment points if none provided (6-7 points)
   const defaultAssessmentPoints = [
@@ -70,17 +75,37 @@ export function OverallAssessment({
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    if (score >= 40) return "text-orange-500";
-    return "text-red-500";
+    if (isVCAndBits) {
+      // 5-point scale colors
+      if (score >= 4.5) return "text-emerald-600";
+      if (score >= 3.5) return "text-blue-600";
+      if (score >= 2.5) return "text-amber-600";
+      if (score >= 1.5) return "text-orange-600";
+      return "text-red-600";
+    } else {
+      // 100-point scale colors
+      if (score >= 80) return "text-green-500";
+      if (score >= 60) return "text-yellow-500";
+      if (score >= 40) return "text-orange-500";
+      return "text-red-500";
+    }
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 80) return "Excellent";
-    if (score >= 60) return "Good";
-    if (score >= 40) return "Average";
-    return "Needs Improvement";
+    if (isVCAndBits) {
+      // 5-point scale labels
+      if (score >= 4.5) return "Excellent";
+      if (score >= 3.5) return "Good";
+      if (score >= 2.5) return "Average";
+      if (score >= 1.5) return "Below Average";
+      return "Poor";
+    } else {
+      // 100-point scale labels
+      if (score >= 80) return "Excellent";
+      if (score >= 60) return "Good";
+      if (score >= 40) return "Average";
+      return "Needs Improvement";
+    }
   };
 
   return (
@@ -96,8 +121,10 @@ export function OverallAssessment({
               <FundThesisAlignment companyId={companyId} companyName={companyName} />
             )}
             <div className="flex items-center gap-1">
-              <span className="text-xl font-bold text-emerald-400">{formattedScore}</span>
-              <span className="text-sm text-muted-foreground">/{maxScore}</span>
+              <span className={`text-xl font-bold ${getScoreColor(displayScore)}`}>
+                {formattedScore}
+              </span>
+              <span className="text-sm text-muted-foreground">/{displayMaxScore}</span>
             </div>
           </div>
         </div>
@@ -147,11 +174,13 @@ export function OverallAssessment({
                     <h3 className="text-lg font-semibold mb-4">Score Overview</h3>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">
-                        <div className="text-3xl font-bold text-primary">{formattedScore}</div>
-                        <div className="text-sm text-muted-foreground">out of {maxScore}</div>
+                        <div className={`text-3xl font-bold ${getScoreColor(displayScore)}`}>
+                          {formattedScore}
+                        </div>
+                        <div className="text-sm text-muted-foreground">out of {displayMaxScore}</div>
                       </div>
-                      <div className={`text-sm font-medium ${getScoreColor(formattedScore)}`}>
-                        {getScoreLabel(formattedScore)}
+                      <div className={`text-sm font-medium ${getScoreColor(displayScore)}`}>
+                        {getScoreLabel(displayScore)}
                       </div>
                     </div>
                     <Progress value={progressPercentage} className="h-3" />

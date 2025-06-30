@@ -17,11 +17,11 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   
   // Format overall score based on user type
   const rawScore = company.overall_score;
-  const formattedScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
-  const maxScore = isVCAndBits ? 5 : 100;
+  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
+  const displayMaxScore = isVCAndBits ? 5 : 100;
   
   // Calculate progress percentage
-  const progressPercentage = isVCAndBits ? (formattedScore / 5) * 100 : formattedScore;
+  const progressPercentage = isVCAndBits ? (displayScore / 5) * 100 : rawScore;
   
   // Get score color class based on user type
   const getScoreColor = (score: number) => {
@@ -61,6 +61,9 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
     }
   };
 
+  // Format the displayed score
+  const formattedScore = isVCAndBits ? displayScore.toFixed(1) : Math.round(displayScore);
+
   // Highlight numbers in assessment points
   const highlightNumbers = (text: string) => {
     return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
@@ -77,8 +80,8 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
               Overall Assessment
             </CardTitle>
             <div className="flex items-center">
-              <span className={`text-xl font-bold ${getScoreColor(formattedScore)}`}>
-                {isVCAndBits ? formattedScore.toFixed(1) : Math.round(formattedScore)}/{maxScore}
+              <span className={`text-xl font-bold ${getScoreColor(displayScore)}`}>
+                {formattedScore}/{displayMaxScore}
               </span>
               <TooltipProvider>
                 <Tooltip delayDuration={300}>
@@ -88,7 +91,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top" align="center" className="max-w-[320px] text-xs">
-                    <p>{getScoreDescription(formattedScore)}</p>
+                    <p>{getScoreDescription(displayScore)}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
