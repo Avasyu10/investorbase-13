@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -66,13 +67,15 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const { toast } = useToast();
   const { isVCAndBits } = useProfile();
 
-  // Format score display for VC+Bits users (out of 5) vs regular users (out of 100)
+  // Format score display - preserve decimal places for VC+Bits users
   const formatScore = (score: number) => { 
+    console.log('Formatting score:', score, 'isVCAndBits:', isVCAndBits);
+    
     if (isVCAndBits) {
-      // For VC+Bits users, score is already out of 5, just format to 1 decimal place
-      return score.toFixed(1);
+      // For VC+Bits users, ensure we always show 1 decimal place
+      return Number(score).toFixed(1);
     } else {
-      // For regular users, score is out of 100, show as integer
+      // For regular users, show as integer
       return Math.round(score).toString();
     }
   };
@@ -84,6 +87,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
 
   // Get score color based on user type
   const getScoreColor = (score: number) => {
+    console.log('Getting color for score:', score, 'isVCAndBits:', isVCAndBits);
+    
     if (isVCAndBits) {
       // For VC+Bits users, score is already out of 5
       if (score >= 4.0) return "text-emerald-600 bg-emerald-50";
@@ -254,7 +259,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
-              const rawScore = company.overall_score || 0;
+              // Ensure we get the raw score as a number and preserve its decimal value
+              const rawScore = Number(company.overall_score) || 0;
+              console.log('Company:', company.name, 'Raw score from DB:', company.overall_score, 'Converted:', rawScore);
               
               return (
                 <TableRow
