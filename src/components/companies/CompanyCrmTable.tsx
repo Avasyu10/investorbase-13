@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -67,26 +66,32 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const { toast } = useToast();
   const { isVCAndBits } = useProfile();
 
-  // Get score display formatting based on user type
- const formatScore = (score: number) => { 
-  const scaledScore = (score / 100) * 5;
-  return scaledScore.toFixed(1);
-};
+  // Format score display for VC+Bits users (out of 5) vs regular users (out of 100)
+  const formatScore = (score: number) => { 
+    if (isVCAndBits) {
+      // For VC+Bits users, score is already out of 5, just format to 1 decimal place
+      return score.toFixed(1);
+    } else {
+      // For regular users, score is out of 100, show as integer
+      return Math.round(score).toString();
+    }
+  };
+
   // Get max score based on user type
   const getMaxScore = () => {
     return isVCAndBits ? 5 : 100;
   };
 
-  // Get score color based on user type and scaled appropriately
-  const getScoreColor = (score: double) => {
+  // Get score color based on user type
+  const getScoreColor = (score: number) => {
     if (isVCAndBits) {
-      // Scale the score to 5-point scale for color determination
-      const scaledScore = (score / 100) * 5;
-      if (scaledScore >= 4.0) return "text-emerald-600 bg-emerald-50"; // 80% of 35
-      if (scaledScore >= 3.0) return "text-blue-600 bg-blue-50";       // 60% of 35
-      if (scaledScore >= 2.0) return "text-amber-600 bg-amber-50";     // 40% of 35
+      // For VC+Bits users, score is already out of 5
+      if (score >= 4.0) return "text-emerald-600 bg-emerald-50";
+      if (score >= 3.0) return "text-blue-600 bg-blue-50";
+      if (score >= 2.0) return "text-amber-600 bg-amber-50";
       return "text-red-600 bg-red-50";
     } else {
+      // For regular users, score is out of 100
       if (score >= 80) return "text-emerald-600 bg-emerald-50";
       if (score >= 60) return "text-blue-600 bg-blue-50";
       if (score >= 40) return "text-amber-600 bg-amber-50";
