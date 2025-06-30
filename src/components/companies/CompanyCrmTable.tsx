@@ -70,20 +70,26 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   // Get score display formatting based on user type
   const formatScore = (score: number) => {
     if (isVCAndBits) {
-      const displayScore = Math.min(5, Math.max(0, score));
-      return displayScore.toFixed(1);
+      // For VC+Bits users, convert 100-scale to 35-scale and show with one decimal
+      const scaledScore = (score / 100) * 35;
+      return scaledScore.toFixed(1);
     }
     return Math.round(score).toString();
   };
 
-  // Get score color based on user type
+  // Get max score based on user type
+  const getMaxScore = () => {
+    return isVCAndBits ? 35 : 100;
+  };
+
+  // Get score color based on user type and scaled appropriately
   const getScoreColor = (score: number) => {
     if (isVCAndBits) {
-      const displayScore = Math.min(5, Math.max(0, score));
-      if (displayScore >= 4.5) return "text-emerald-600 bg-emerald-50";
-      if (displayScore >= 3.5) return "text-blue-600 bg-blue-50";
-      if (displayScore >= 2.5) return "text-amber-600 bg-amber-50";
-      if (displayScore >= 1.5) return "text-orange-600 bg-orange-50";
+      // Scale the score to 35-point scale for color determination
+      const scaledScore = (score / 100) * 35;
+      if (scaledScore >= 28) return "text-emerald-600 bg-emerald-50"; // 80% of 35
+      if (scaledScore >= 21) return "text-blue-600 bg-blue-50";       // 60% of 35
+      if (scaledScore >= 14) return "text-amber-600 bg-amber-50";     // 40% of 35
       return "text-red-600 bg-red-50";
     } else {
       if (score >= 80) return "text-emerald-600 bg-emerald-50";
@@ -249,7 +255,6 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           <TableBody>
             {companies.map((company) => {
               const rawScore = company.overall_score || 0;
-              const displayScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
               
               return (
                 <TableRow
@@ -299,7 +304,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                     <span 
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(rawScore)}`}
                     >
-                      {formatScore(rawScore)}
+                      {formatScore(rawScore)}/{getMaxScore()}
                     </span>
                   </TableCell>
                   <TableCell title="Status">
