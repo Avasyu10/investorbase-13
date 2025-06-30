@@ -64,6 +64,7 @@ export function useProfile() {
     isLoading,
     error,
     isIITBombay: profile?.is_iitbombay || false,
+    isIITBombayUser: profile?.is_iitbombay || false,
     isAdmin: profile?.is_admin || false,
     isVC: profile?.is_vc || false,
     isManager: profile?.is_manager || false,
