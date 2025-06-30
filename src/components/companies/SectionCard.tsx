@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Star, TrendingUp, TrendingDown } from "lucide-react";
 import { Section } from "@/lib/api/apiContract";
+import { useProfile } from "@/hooks/useProfile";
 
 interface SectionCardProps {
   section: Section;
@@ -11,27 +12,58 @@ interface SectionCardProps {
 }
 
 export const SectionCard = ({ section, onClick }: SectionCardProps) => {
-  // Handle both 1-5 and 1-100 scoring scales
-  const score = parseFloat(section.score.toString());
-  const isHundredScale = score > 5;
-  const normalizedScore = isHundredScale ? score / 20 : score; // Convert 1-100 to 1-5
-  const progressValue = isHundredScale ? score : score * 20; // Convert to 0-100 for progress bar
+  const { isVCAndBits } = useProfile();
+  
+  // Handle scoring based on user type
+  const rawScore = parseFloat(section.score.toString());
+  let displayScore: number;
+  let progressValue: number;
+  
+  if (isVCAndBits) {
+    // For VC+Bits users, scores are already out of 5
+    displayScore = Math.min(5, Math.max(0, rawScore));
+    progressValue = (displayScore / 5) * 100;
+  } else {
+    // For other users, handle both 1-5 and 1-100 scoring scales
+    const isHundredScale = rawScore > 5;
+    displayScore = isHundredScale ? rawScore : rawScore;
+    progressValue = isHundredScale ? rawScore : rawScore * 20;
+  }
 
   const getScoreColor = (score: number) => {
-    const displayScore = isHundredScale ? score / 20 : score;
-    if (displayScore >= 4.5) return "text-green-600";
-    if (displayScore >= 3.5) return "text-blue-600";
-    if (displayScore >= 2.5) return "text-yellow-600";
-    if (displayScore >= 1.5) return "text-orange-600";
-    return "text-red-600";
+    if (isVCAndBits) {
+      // 5-point scale colors for VC+Bits users
+      if (score >= 4.5) return "text-emerald-600";
+      if (score >= 3.5) return "text-blue-600";
+      if (score >= 2.5) return "text-amber-600";
+      if (score >= 1.5) return "text-orange-600";
+      return "text-red-600";
+    } else {
+      // Original logic for other users
+      const normalizedScore = rawScore > 5 ? rawScore / 20 : rawScore;
+      if (normalizedScore >= 4.5) return "text-green-600";
+      if (normalizedScore >= 3.5) return "text-blue-600";
+      if (normalizedScore >= 2.5) return "text-yellow-600";
+      if (normalizedScore >= 1.5) return "text-orange-600";
+      return "text-red-600";
+    }
   };
 
   const getScoreBadgeVariant = (score: number) => {
-    const displayScore = isHundredScale ? score / 20 : score;
-    if (displayScore >= 4.5) return "default";
-    if (displayScore >= 3.5) return "secondary";
-    if (displayScore >= 2.5) return "outline";
-    return "destructive";
+    if (isVCAndBits) {
+      // 5-point scale badge variants for VC+Bits users
+      if (score >= 4.5) return "default";
+      if (score >= 3.5) return "secondary";
+      if (score >= 2.5) return "outline";
+      return "destructive";
+    } else {
+      // Original logic for other users
+      const normalizedScore = rawScore > 5 ? rawScore / 20 : rawScore;
+      if (normalizedScore >= 4.5) return "default";
+      if (normalizedScore >= 3.5) return "secondary";
+      if (normalizedScore >= 2.5) return "outline";
+      return "destructive";
+    }
   };
 
   const formatSectionTitle = (sectionType: string, title: string) => {
@@ -76,8 +108,6 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
     return sectionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const displayScore = isHundredScale ? score : normalizedScore;
-
   return (
     <Card 
       className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-subtle hover:scale-105 h-full flex flex-col"
@@ -88,8 +118,8 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
           <span className="truncate">{formatSectionTitle(section.section_type || section.type, section.title)}</span>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-500" />
-            <Badge variant={getScoreBadgeVariant(score)} className="text-xs">
-              {isHundredScale ? Math.round(score) : normalizedScore.toFixed(1)}
+            <Badge variant={getScoreBadgeVariant(displayScore)} className="text-xs">
+              {isVCAndBits ? displayScore.toFixed(1) : (rawScore > 5 ? Math.round(rawScore) : displayScore.toFixed(1))}
             </Badge>
           </div>
         </CardTitle>

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -32,7 +31,7 @@ function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isLoading: authLoading, user } = useAuth();
-  const { profile, isLoading: profileLoading } = useProfile();
+  const { profile, isLoading: profileLoading, isVCAndBits } = useProfile();
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
@@ -194,9 +193,12 @@ function CompanyDetails() {
 
   const sortedSections = getSortedSections();
 
-  console.log('User types:', { isVCUser, isIITBombayUser, isRegularUser });
+  console.log('User types:', { isVCUser, isIITBombayUser, isRegularUser, isVCAndBits });
   console.log('Filtered sections (excluding SLIDE_NOTES and GTM_STRATEGY):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
+
+  // Calculate score based on user type for OverallAssessment
+  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, company.overall_score || 0)) : (company.overall_score || 0);
 
   return (
     <div className="min-h-screen">
@@ -234,7 +236,7 @@ function CompanyDetails() {
           {/* For VC users, show Overall Assessment */}
           {isVCUser && (
             <OverallAssessment
-              score={company.overall_score || 0}
+              score={displayScore}
               assessmentPoints={company.assessment_points || []}
               companyId={company.id}
               companyName={company.name}

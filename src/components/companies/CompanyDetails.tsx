@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import FormResponsesDialog from "./FormResponsesDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ const CompanyDetails = () => {
   const queryClient = useQueryClient();
   const { company, isLoading } = useCompanyDetails(id || "");
   const { user } = useAuth();
+  const { isVCAndBits, isIITBombayUser } = useProfile();
   const [companyInfo, setCompanyInfo] = useState({
     website: "",
     stage: "",
@@ -36,7 +38,6 @@ const CompanyDetails = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isFromBarcForm, setIsFromBarcForm] = useState(false);
-  const [isIITBombayUser, setIsIITBombayUser] = useState(false);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = useMemo(() => {
@@ -60,7 +61,6 @@ const CompanyDetails = () => {
           .single();
         
         const isIITBombay = userProfile?.is_iitbombay || false;
-        setIsIITBombayUser(isIITBombay);
         
         // Redirect non-IIT Bombay users to the dedicated company details page
         if (!isIITBombay && id) {
@@ -304,16 +304,27 @@ const CompanyDetails = () => {
     );
   }
 
-  const formattedScore = company ? parseFloat(company.overall_score.toFixed(1)) : 0;
-  
-  const progressPercentage = formattedScore * 20;
+  // Calculate score and progress based on user type
+  const rawScore = company.overall_score;
+  const formattedScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : parseFloat(rawScore.toFixed(1));
+  const progressPercentage = isVCAndBits ? (formattedScore / 5) * 100 : formattedScore * 20;
 
   const getScoreColor = (score: number) => {
-    if (score >= 4.0) return "score-excellent";
-    if (score >= 3.5) return "score-good";
-    if (score >= 2.5) return "score-average";
-    if (score >= 1.5) return "score-poor";
-    return "score-critical";
+    if (isVCAndBits) {
+      // 5-point scale colors
+      if (score >= 4.0) return "score-excellent";
+      if (score >= 3.0) return "score-good";
+      if (score >= 2.0) return "score-average";
+      if (score >= 1.0) return "score-poor";
+      return "score-critical";
+    } else {
+      // Original 5-point scale colors
+      if (score >= 4.0) return "score-excellent";
+      if (score >= 3.5) return "score-good";
+      if (score >= 2.5) return "score-average";
+      if (score >= 1.5) return "score-poor";
+      return "score-critical";
+    }
   };
 
   return (
@@ -373,7 +384,7 @@ const CompanyDetails = () => {
               <div className="mb-5">
                 <Progress 
                   value={progressPercentage} 
-                  className={`h-2 ${getScoreColor(company.overall_score)}`} 
+                  className={`h-2 ${getScoreColor(formattedScore)}`} 
                 />
               </div>
 
