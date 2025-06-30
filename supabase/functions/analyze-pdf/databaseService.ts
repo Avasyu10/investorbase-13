@@ -9,19 +9,12 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     const companyInfo = analysis.companyInfo || {};
     console.log("Extracted company info:", companyInfo);
     
-    // Convert overall score to 5-point scale if it's in 100-point scale
-    let overallScore = analysis.overallScore || 0;
-    if (overallScore > 5) {
-      // Assuming it's in 100-point scale, convert to 5-point scale
-      overallScore = (overallScore / 100) * 5;
-    }
-    
     // Create company entry
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
         name: report.title || 'Unknown Company',
-        overall_score: overallScore,
+        overall_score: analysis.overallScore || 0,
         assessment_points: analysis.assessmentPoints || [],
         report_id: report.id,
         user_id: report.user_id,
@@ -63,23 +56,15 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
 
     // Save sections
     if (analysis.sections && analysis.sections.length > 0) {
-      const sectionsToInsert = analysis.sections.map((section: any) => {
-        // Convert section score to 5-point scale if needed
-        let sectionScore = section.score || 0;
-        if (sectionScore > 5) {
-          sectionScore = (sectionScore / 100) * 5;
-        }
-        
-        return {
-          company_id: company.id,
-          title: section.title,
-          type: section.type,
-          score: sectionScore,
-          description: section.description || '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-      });
+      const sectionsToInsert = analysis.sections.map((section: any) => ({
+        company_id: company.id,
+        title: section.title,
+        type: section.type,
+        score: section.score || 0,
+        description: section.description || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
 
       const { data: sections, error: sectionsError } = await supabase
         .from('sections')
@@ -149,13 +134,13 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
       analysis_status: 'completed',
       analyzed_at: new Date().toISOString(),
       company_id: company.id,
-      overall_score: overallScore
+      overall_score: analysis.overallScore
     };
 
     // Store the full analysis result including slide notes, improvement suggestions, and company info
     if (analysis.slideBySlideNotes || analysis.improvementSuggestions || analysis.companyInfo) {
       reportUpdateData.analysis_result = {
-        overallScore: overallScore,
+        overallScore: analysis.overallScore,
         assessmentPoints: analysis.assessmentPoints,
         slideBySlideNotes: analysis.slideBySlideNotes || [],
         improvementSuggestions: analysis.improvementSuggestions || [],

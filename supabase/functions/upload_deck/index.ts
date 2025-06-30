@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -87,19 +88,12 @@ serve(async (req) => {
           website: companyWebsite
         });
 
-        // Convert overall score to 5-point scale if it's in 100-point scale
-        let overallScore = analysis_result.overallScore || 0;
-        if (overallScore > 5) {
-          // Assuming it's in 100-point scale, convert to 5-point scale
-          overallScore = (overallScore / 100) * 5;
-        }
-
         // Create company record with extracted company information
         const { data: company, error: companyError } = await supabaseClient
           .from('companies')
           .insert([{
             name: companyName,
-            overall_score: overallScore,
+            overall_score: analysis_result.overallScore || 0,
             assessment_points: analysis_result.assessmentPoints || [],
             user_id: FIXED_USER_ID,
             source: 'deck_upload',
@@ -127,12 +121,6 @@ serve(async (req) => {
           console.log("Saving sections:", analysis_result.sections.length);
           
           for (const section of analysis_result.sections) {
-            // Convert section score to 5-point scale if needed
-            let sectionScore = section.score || 0;
-            if (sectionScore > 5) {
-              sectionScore = (sectionScore / 100) * 5;
-            }
-            
             // Insert section
             const { data: savedSection, error: sectionError } = await supabaseClient
               .from('sections')
@@ -140,7 +128,7 @@ serve(async (req) => {
                 company_id: companyId,
                 title: section.title,
                 type: section.type,
-                score: sectionScore,
+                score: section.score || 0,
                 description: section.description || ''
               }])
               .select()
@@ -217,3 +205,4 @@ serve(async (req) => {
     )
   }
 })
+
