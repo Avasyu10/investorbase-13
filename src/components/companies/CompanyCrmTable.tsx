@@ -73,7 +73,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
       const displayScore = Math.min(5, Math.max(0, score));
       return displayScore.toFixed(1);
     }
-    return Math.round(score).toString();
+    return score.toFixed(1);
   };
 
   // Get score color based on user type
