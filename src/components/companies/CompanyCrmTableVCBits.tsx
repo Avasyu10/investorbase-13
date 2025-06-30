@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -70,16 +69,8 @@ export function CompanyCrmTableVCBits({ companies, onCompanyClick }: CompanyCrmT
     return (score100 / 100) * 5;
   };
 
-  // Format score display with 1 decimal place
-  const formatScore = (score: number) => {
-    const convertedScore = convertTo5PointScale(score);
-    return convertedScore.toFixed(1);
-  };
-
   // Get score color based on 5-point scale
-  const getScoreColor = (score: number) => {
-    const convertedScore = convertTo5PointScale(score);
-    
+  const getScoreColor = (convertedScore: number) => {
     if (convertedScore >= 4.0) return "text-emerald-600 bg-emerald-50";
     if (convertedScore >= 3.0) return "text-blue-600 bg-blue-50";
     if (convertedScore >= 2.0) return "text-amber-600 bg-amber-50";
@@ -233,6 +224,7 @@ export function CompanyCrmTableVCBits({ companies, onCompanyClick }: CompanyCrmT
           <TableBody>
             {companies.map((company) => {
               const rawScore = Number(company.overall_score) || 0;
+              const convertedScore = convertTo5PointScale(rawScore);
               
               return (
                 <TableRow
@@ -280,9 +272,9 @@ export function CompanyCrmTableVCBits({ companies, onCompanyClick }: CompanyCrmT
                   </TableCell>
                   <TableCell title="Overall Score">
                     <span 
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(rawScore)}`}
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(convertedScore)}`}
                     >
-                      {formatScore(rawScore)}/5.0
+                      {convertedScore.toFixed(1)}/5.0
                     </span>
                   </TableCell>
                   <TableCell title="Status">
