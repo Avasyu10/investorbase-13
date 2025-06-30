@@ -6,63 +6,49 @@ import { ArrowUpRight, Lightbulb, BarChart2, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { MarketResearch } from "./MarketResearch";
-import { useProfile } from "@/hooks/useProfile";
 
 interface ScoreAssessmentProps {
   company: CompanyDetailed;
 }
 
 export function ScoreAssessment({ company }: ScoreAssessmentProps) {
-  const { isVCAndBits } = useProfile();
-  
-  // Format overall score based on user type
-  const rawScore = company.overall_score;
-  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
-  const displayMaxScore = isVCAndBits ? 5 : 100;
-  
-  // Calculate progress percentage
-  const progressPercentage = isVCAndBits ? (displayScore / 5) * 100 : rawScore;
-  
-  // Get score color class based on user type
-  const getScoreColor = (score: number) => {
-    if (isVCAndBits) {
-      // 5-point scale colors
-      if (score >= 4.5) return "text-emerald-600";
-      if (score >= 3.5) return "text-blue-600"; 
-      if (score >= 2.5) return "text-amber-600";
-      if (score >= 1.5) return "text-orange-600";
-      return "text-red-600";
-    } else {
-      // 100-point scale colors
-      if (score >= 90) return "text-emerald-600";
-      if (score >= 70) return "text-blue-600";
-      if (score >= 50) return "text-amber-600";
-      if (score >= 30) return "text-orange-600";
-      return "text-red-600";
+  // Convert any score to 5-point scale
+  const convertToFivePointScale = (score: number) => {
+    // If score is already between 0-5, assume it's already on 5-point scale
+    if (score <= 5) {
+      return score;
     }
+    // If score is on 100-point scale, convert to 5-point scale
+    return (score / 100) * 5;
   };
   
-  // Get score description based on user type
+  // Format overall score to 5-point scale
+  const rawScore = company.overall_score;
+  const displayScore = convertToFivePointScale(rawScore);
+  
+  // Calculate progress percentage
+  const progressPercentage = (displayScore / 5) * 100;
+  
+  // Get score color class based on 5-point scale
+  const getScoreColor = (score: number) => {
+    if (score >= 4.5) return "text-emerald-600";
+    if (score >= 3.5) return "text-blue-600"; 
+    if (score >= 2.5) return "text-amber-600";
+    if (score >= 1.5) return "text-orange-600";
+    return "text-red-600";
+  };
+  
+  // Get score description based on 5-point scale
   const getScoreDescription = (score: number): string => {
-    if (isVCAndBits) {
-      // 5-point scale descriptions
-      if (score >= 4.5) return `Excellent Investment Opportunity (${score.toFixed(1)}/5): Outstanding company with exceptional potential, strong fundamentals, and minimal risk factors.`;
-      if (score >= 3.5) return `Good Investment Candidate (${score.toFixed(1)}/5): Solid company with good potential and manageable risks. Worth serious consideration.`;
-      if (score >= 2.5) return `Average Investment Potential (${score.toFixed(1)}/5): Decent fundamentals but several areas need improvement. Moderate risk factors exist.`;
-      if (score >= 1.5) return `Below Average Investment (${score.toFixed(1)}/5): Significant concerns exist. Requires extensive due diligence and improvements.`;
-      return `Poor Investment Prospect (${score.toFixed(1)}/5): Major deficiencies across multiple areas. High risk, not recommended without substantial changes.`;
-    } else {
-      // 100-point scale descriptions
-      if (score >= 90) return `Outstanding Investment Opportunity (${score}/100): This company demonstrates exceptional market position, business model, and growth metrics. Clear competitive advantages with minimal risk factors. Recommended for immediate investment consideration.`;
-      if (score >= 70) return `Strong Investment Candidate (${score}/100): This company shows solid fundamentals with some competitive advantages, though minor concerns exist. Good potential for returns with manageable risk profile. Worth serious investment consideration.`;
-      if (score >= 50) return `Moderate Investment Potential (${score}/100): This company has sound basic operations but several areas need improvement. Moderate risk factors exist that could impact growth. Requires careful due diligence before investment.`;
-      if (score >= 30) return `High-Risk Investment (${score}/100): Significant flaws in business model, market approach, or financials create substantial concerns. Many improvements needed before being investment-ready. Consider only with extensive restructuring.`;
-      return `Not Recommended (${score}/100): This company shows critical deficiencies across multiple dimensions, presenting unacceptable investment risk. Fundamental business model or execution issues require complete overhaul.`;
-    }
+    if (score >= 4.5) return `Excellent Investment Opportunity (${score.toFixed(1)}/5.0): Outstanding company with exceptional potential, strong fundamentals, and minimal risk factors.`;
+    if (score >= 3.5) return `Good Investment Candidate (${score.toFixed(1)}/5.0): Solid company with good potential and manageable risks. Worth serious consideration.`;
+    if (score >= 2.5) return `Average Investment Potential (${score.toFixed(1)}/5.0): Decent fundamentals but several areas need improvement. Moderate risk factors exist.`;
+    if (score >= 1.5) return `Below Average Investment (${score.toFixed(1)}/5.0): Significant concerns exist. Requires extensive due diligence and improvements.`;
+    return `Poor Investment Prospect (${score.toFixed(1)}/5.0): Major deficiencies across multiple areas. High risk, not recommended without substantial changes.`;
   };
 
   // Format the displayed score
-  const formattedScore = isVCAndBits ? displayScore.toFixed(1) : Math.round(displayScore);
+  const formattedScore = displayScore.toFixed(1);
 
   // Highlight numbers in assessment points
   const highlightNumbers = (text: string) => {
@@ -81,7 +67,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
             </CardTitle>
             <div className="flex items-center">
               <span className={`text-xl font-bold ${getScoreColor(displayScore)}`}>
-                {formattedScore}/{displayMaxScore}
+                {formattedScore}/5.0
               </span>
               <TooltipProvider>
                 <Tooltip delayDuration={300}>
