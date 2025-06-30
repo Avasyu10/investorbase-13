@@ -87,7 +87,6 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
         <CardTitle className="flex items-center justify-between text-base">
           <span className="truncate">{formatSectionTitle(section.section_type || section.type, section.title)}</span>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Star className="h-4 w-4 text-yellow-500" />
             <Badge variant={getScoreBadgeVariant(score)} className="text-xs">
               {isHundredScale ? Math.round(score) : normalizedScore.toFixed(1)}
             </Badge>
