@@ -31,7 +31,6 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { ExternalLink, Edit2, Phone } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
-import { CompanyCrmTableVCBits } from "./CompanyCrmTableVCBits";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -61,40 +60,65 @@ const STATUS_OPTIONS = [
 ];
 
 export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTableProps) {
-  const { isVCAndBits } = useProfile();
-
-  // Use the specialized VC+Bits component if user is VC+Bits
-  if (isVCAndBits) {
-    return <CompanyCrmTableVCBits companies={companies} onCompanyClick={onCompanyClick} />;
-  }
-
   const [editingCompany, setEditingCompany] = useState<{ id: string, crmData: CrmData } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
+  const { isVCAndBits } = useProfile();
 
-  // Format score display for regular users (100-point scale)
-  const formatScore = (score: number) => {
-    return Math.round(score).toString();
+  // Convert score from 100-point to 5-point scale for VC+Bits users
+  const convertScore = (rawScore: number) => {
+    if (isVCAndBits) {
+      // Convert from 100-point scale to 5-point scale (100 -> 5, 80 -> 4, etc.)
+      return (rawScore / 100) * 5;
+    }
+    return rawScore;
   };
 
-  // Get max score for regular users
+  // Format score display - preserve decimal places for VC+Bits users
+  const formatScore = (score: number) => { 
+    const convertedScore = convertScore(score);
+    console.log('Original score:', score, 'Converted score:', convertedScore, 'isVCAndBits:', isVCAndBits);
+    
+    if (isVCAndBits) {
+      // For VC+Bits users, ensure we always show 1 decimal place
+      return convertedScore.toFixed(1);
+    } else {
+      // For regular users, show as integer
+      return Math.round(convertedScore).toString();
+    }
+  };
+
+  // Get max score based on user type
   const getMaxScore = () => {
-    return 100;
+    return isVCAndBits ? 5 : 100;
   };
 
-  // Get score color for regular users (100-point scale)
+  // Get score color based on user type
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-600 bg-emerald-50";
-    if (score >= 60) return "text-blue-600 bg-blue-50";
-    if (score >= 40) return "text-amber-600 bg-amber-50";
-    return "text-red-600 bg-red-50";
+    const convertedScore = convertScore(score);
+    console.log('Getting color for original score:', score, 'converted score:', convertedScore, 'isVCAndBits:', isVCAndBits);
+    
+    if (isVCAndBits) {
+      // For VC+Bits users, use 5-point scale thresholds
+      if (convertedScore >= 4.0) return "text-emerald-600 bg-emerald-50";
+      if (convertedScore >= 3.0) return "text-blue-600 bg-blue-50";
+      if (convertedScore >= 2.0) return "text-amber-600 bg-amber-50";
+      return "text-red-600 bg-red-50";
+    } else {
+      // For regular users, use 100-point scale thresholds
+      if (convertedScore >= 80) return "text-emerald-600 bg-emerald-50";
+      if (convertedScore >= 60) return "text-blue-600 bg-blue-50";
+      if (convertedScore >= 40) return "text-amber-600 bg-amber-50";
+      return "text-red-600 bg-red-50";
+    }
   };
 
   const handleEditClick = async (company: CompanyListItem, e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent row click when clicking on edit button
     
     try {
+      // Fetch existing CRM data for this company
       const { data, error } = await supabase
         .from('company_details')
         .select('*')
@@ -106,6 +130,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
         throw error;
       }
       
+      // Set the editing company with existing data or default values
       setEditingCompany({
         id: company.id.toString(),
         crmData: {
@@ -137,6 +162,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
     if (!editingCompany) return;
     
     try {
+      // Check if we need to update status_date (only if status has changed)
       const { data: existingData } = await supabase
         .from('company_details')
         .select('status')
@@ -145,10 +171,12 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
         
       const updateData = { ...editingCompany.crmData };
       
+      // If status has changed, update the status_date
       if (existingData?.status !== updateData.status) {
         updateData.status_date = new Date().toISOString();
       }
       
+      // First check if there is an existing record
       const { data: existingRecord } = await supabase
         .from('company_details')
         .select('id')
@@ -158,6 +186,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
       let result;
       
       if (existingRecord) {
+        // Update existing record
         result = await supabase
           .from('company_details')
           .update({
@@ -165,6 +194,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           })
           .eq('company_id', editingCompany.id);
       } else {
+        // Insert new record
         result = await supabase
           .from('company_details')
           .insert({
@@ -182,6 +212,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
       
       setIsDialogOpen(false);
       setEditingCompany(null);
+      
+      // Trigger a refresh of the CRM fields
       setRefreshTrigger(prev => prev + 1);
       
       toast({
@@ -237,7 +269,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
+              // Ensure we get the raw score as a number and preserve its decimal value
               const rawScore = Number(company.overall_score) || 0;
+              console.log('Company:', company.name, 'Raw score from DB:', company.overall_score, 'Converted:', rawScore);
               
               return (
                 <TableRow
@@ -516,6 +550,7 @@ function CompanyCrmField({
   const [value, setValue] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch the field value when the component mounts or when refreshTrigger changes
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -526,7 +561,7 @@ function CompanyCrmField({
           .eq('company_id', companyId)
           .maybeSingle();
         
-        if (error && error.code !== 'PGRST116') {
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
           console.error(`Error fetching ${field}:`, error);
         }
         
