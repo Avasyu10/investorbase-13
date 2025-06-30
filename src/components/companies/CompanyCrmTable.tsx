@@ -248,6 +248,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
+              const rawScore = company.overall_score || 0;
+              const displayScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
+              
               return (
                 <TableRow
                   key={company.id}
@@ -294,9 +297,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                   </TableCell>
                   <TableCell title="Overall Score">
                     <span 
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(company.overall_score || 0)}`}
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(rawScore)}`}
                     >
-                      {formatScore(company.overall_score || 0)}
+                      {formatScore(rawScore)}
                     </span>
                   </TableCell>
                   <TableCell title="Status">
