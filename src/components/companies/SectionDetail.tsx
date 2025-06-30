@@ -59,7 +59,7 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   if (title.includes('problem')) {
     return SECTION_TITLES[SECTION_TYPES.PROBLEM];
   }
-  if (title.includes('market') || title.includes('opportunity')) {
+  if (title.includes('opportunity')) {
     return SECTION_TITLES[SECTION_TYPES.MARKET];
   }
   if (title.includes('competitive') || title.includes('landscape')) {
