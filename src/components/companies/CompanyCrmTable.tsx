@@ -70,20 +70,20 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   // Get score display formatting based on user type
   const formatScore = (score: number) => {
     if (isVCAndBits) {
-      const displayScore = Math.min(35, Math.max(0, score));
+      const displayScore = Math.min(5, Math.max(0, score));
       return displayScore.toFixed(1);
     }
-    return score.toFixed(1);
+    return Math.round(score).toString();
   };
 
   // Get score color based on user type
   const getScoreColor = (score: number) => {
     if (isVCAndBits) {
-      const displayScore = Math.min(35, Math.max(0, score));
-      if (displayScore >= 31.5) return "text-emerald-600 bg-emerald-50";
-      if (displayScore >= 24.5) return "text-blue-600 bg-blue-50";
-      if (displayScore >= 17.5) return "text-amber-600 bg-amber-50";
-      if (displayScore >= 10.5) return "text-orange-600 bg-orange-50";
+      const displayScore = Math.min(5, Math.max(0, score));
+      if (displayScore >= 4.5) return "text-emerald-600 bg-emerald-50";
+      if (displayScore >= 3.5) return "text-blue-600 bg-blue-50";
+      if (displayScore >= 2.5) return "text-amber-600 bg-amber-50";
+      if (displayScore >= 1.5) return "text-orange-600 bg-orange-50";
       return "text-red-600 bg-red-50";
     } else {
       if (score >= 80) return "text-emerald-600 bg-emerald-50";
@@ -248,9 +248,8 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
-              // Ensure we're using the overall_score from the database
               const rawScore = company.overall_score || 0;
-              console.log(`Company ${company.name} - Raw score: ${rawScore}, Type: ${typeof rawScore}`);
+              const displayScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
               
               return (
                 <TableRow
