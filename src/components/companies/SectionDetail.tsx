@@ -47,7 +47,7 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   if (title.includes('traction') || title.includes('milestone')) {
     return SECTION_TITLES[SECTION_TYPES.TRACTION];
   }
-  if (title.includes('team') || title.includes('founder')) {
+  if (title.includes('team') || title.includes('founder capability')) {
     return SECTION_TITLES[SECTION_TYPES.TEAM];
   }
   if (title.includes('financial') || title.includes('projection')) {
