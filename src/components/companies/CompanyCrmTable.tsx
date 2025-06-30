@@ -71,7 +71,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const formatScore = (score: number) => {
     if (isVCAndBits) {
       // For VC+Bits users, convert 100-scale to 35-scale and show with one decimal
-      const scaledScore = (score / 100) * 35;
+      const scaledScore = (score / 100) * 5;
       return scaledScore.toFixed(1);
     }
     return Math.round(score).toString();
@@ -79,17 +79,17 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
 
   // Get max score based on user type
   const getMaxScore = () => {
-    return isVCAndBits ? 35 : 100;
+    return isVCAndBits ? 5 : 100;
   };
 
   // Get score color based on user type and scaled appropriately
   const getScoreColor = (score: number) => {
     if (isVCAndBits) {
-      // Scale the score to 35-point scale for color determination
-      const scaledScore = (score / 100) * 35;
-      if (scaledScore >= 28) return "text-emerald-600 bg-emerald-50"; // 80% of 35
-      if (scaledScore >= 21) return "text-blue-600 bg-blue-50";       // 60% of 35
-      if (scaledScore >= 14) return "text-amber-600 bg-amber-50";     // 40% of 35
+      // Scale the score to 5-point scale for color determination
+      const scaledScore = (score / 100) * 5;
+      if (scaledScore >= 4.0) return "text-emerald-600 bg-emerald-50"; // 80% of 35
+      if (scaledScore >= 3.0) return "text-blue-600 bg-blue-50";       // 60% of 35
+      if (scaledScore >= 2.0) return "text-amber-600 bg-amber-50";     // 40% of 35
       return "text-red-600 bg-red-50";
     } else {
       if (score >= 80) return "text-emerald-600 bg-emerald-50";
