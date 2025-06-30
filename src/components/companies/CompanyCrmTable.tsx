@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -67,16 +66,26 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const { toast } = useToast();
   const { isVCAndBits } = useProfile();
 
+  // Convert score from 100-point to 5-point scale for VC+Bits users
+  const convertScore = (rawScore: number) => {
+    if (isVCAndBits) {
+      // Convert from 100-point scale to 5-point scale (100 -> 5, 80 -> 4, etc.)
+      return (rawScore / 100) * 5;
+    }
+    return rawScore;
+  };
+
   // Format score display - preserve decimal places for VC+Bits users
   const formatScore = (score: number) => { 
-    console.log('Formatting score:', score, 'isVCAndBits:', isVCAndBits);
+    const convertedScore = convertScore(score);
+    console.log('Original score:', score, 'Converted score:', convertedScore, 'isVCAndBits:', isVCAndBits);
     
     if (isVCAndBits) {
       // For VC+Bits users, ensure we always show 1 decimal place
-      return Number(score).toFixed(1);
+      return convertedScore.toFixed(1);
     } else {
       // For regular users, show as integer
-      return Math.round(score).toString();
+      return Math.round(convertedScore).toString();
     }
   };
 
@@ -87,19 +96,20 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
 
   // Get score color based on user type
   const getScoreColor = (score: number) => {
-    console.log('Getting color for score:', score, 'isVCAndBits:', isVCAndBits);
+    const convertedScore = convertScore(score);
+    console.log('Getting color for original score:', score, 'converted score:', convertedScore, 'isVCAndBits:', isVCAndBits);
     
     if (isVCAndBits) {
-      // For VC+Bits users, score is already out of 5
-      if (score >= 4.0) return "text-emerald-600 bg-emerald-50";
-      if (score >= 3.0) return "text-blue-600 bg-blue-50";
-      if (score >= 2.0) return "text-amber-600 bg-amber-50";
+      // For VC+Bits users, use 5-point scale thresholds
+      if (convertedScore >= 4.0) return "text-emerald-600 bg-emerald-50";
+      if (convertedScore >= 3.0) return "text-blue-600 bg-blue-50";
+      if (convertedScore >= 2.0) return "text-amber-600 bg-amber-50";
       return "text-red-600 bg-red-50";
     } else {
-      // For regular users, score is out of 100
-      if (score >= 80) return "text-emerald-600 bg-emerald-50";
-      if (score >= 60) return "text-blue-600 bg-blue-50";
-      if (score >= 40) return "text-amber-600 bg-amber-50";
+      // For regular users, use 100-point scale thresholds
+      if (convertedScore >= 80) return "text-emerald-600 bg-emerald-50";
+      if (convertedScore >= 60) return "text-blue-600 bg-blue-50";
+      if (convertedScore >= 40) return "text-amber-600 bg-amber-50";
       return "text-red-600 bg-red-50";
     }
   };
