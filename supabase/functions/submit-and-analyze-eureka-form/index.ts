@@ -482,7 +482,7 @@ serve(async (req) => {
       isNewCompany = true;
       
       const companyData = {
-        name: submission.company_name,
+        name: submission.eureka_id,
         overall_score: analysisResult.overall_score,
         scoring_reason: analysisResult.scoring_reason || '',
         assessment_points: analysisResult.summary?.assessment_points || [],
