@@ -9,7 +9,7 @@ const corsHeaders = {
 }
 
 // Fixed user ID for all deck uploads
-const FIXED_USER_ID = "a3808d4b-6ae3-44e3-be54-afcff6779df7";
+const FIXED_USER_ID = "b5e64c54-46a0-49ca-953e-c44188abd15f";
 
 serve(async (req) => {
   // Handle CORS preflight requests
