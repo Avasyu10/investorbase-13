@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -248,8 +247,9 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
+              // Ensure we're using the overall_score from the database
               const rawScore = company.overall_score || 0;
-              const displayScore = isVCAndBits ? Math.min(5, Math.max(0, rawScore)) : rawScore;
+              console.log(`Company ${company.name} - Raw score: ${rawScore}, Type: ${typeof rawScore}`);
               
               return (
                 <TableRow
