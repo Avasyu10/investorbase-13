@@ -17,10 +17,10 @@ interface CompaniesTableProps {
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
-  isBITS?: boolean;
+  isBits?: boolean;
 }
 
-export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBITS = false }: CompaniesTableProps) {
+export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -265,7 +265,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       </Card>
     );
   }
-    if (isBITS) {
+    if (isBits) {
     return (
       <Card>
         <CardHeader className="pb-3">
