@@ -47,7 +47,8 @@ function mapDbCompanyToApi(company: any) {
       point_of_contact: company.company_details[0].point_of_contact,
       industry: company.company_details[0].industry,
       teammember_name: company.company_details[0].teammember_name
-    } : null
+    } : null,
+    response_received: company.response_received 
   };
 }
 
