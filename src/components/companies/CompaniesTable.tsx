@@ -1,10 +1,15 @@
+Here's the `CompaniesTable.tsx` file again, with the identified build error (`getScoreBadgeBadgeColor` typo) corrected and ensuring the `getStageFromResponseReceived` helper is properly defined and used.
+
+Please make sure you have also updated your `src/lib/api/apiContract.ts` file with the `Company` interface as suggested in the previous response, including `response_received?: string | null;` and other fields like `poc_name`, `phonenumber`, `email`. This is crucial for TypeScript to correctly understand the data types.
+
+```typescript
 // CompaniesTable.tsx
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Company } from "@/lib/api/apiContract"; // <-- This import is now crucial
+import { Company } from "@/lib/api/apiContract"; // Ensure this Company interface is correctly updated in apiContract.ts
 import { Star, Trash2, Phone, Mail, Globe, Download, ArrowUpDown } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
@@ -23,10 +28,10 @@ interface CompaniesTableProps {
   isVC?: boolean;
 }
 
-// This helper function should be placed outside the CompaniesTable component
+// This helper function to safely parse response_received and get the stage
+// It should be placed outside the CompaniesTable component function
 function getStageFromResponseReceived(responseReceived: string | null | undefined): string {
   if (!responseReceived || typeof responseReceived !== 'string' || responseReceived.trim() === '') {
-    // Log this warning if the input isn't a string or is empty
     // console.warn(`getStageFromResponseReceived: Input is not a string, is empty, or null/undefined. Type: ${typeof responseReceived}, Value: ${responseReceived}`);
     return "—";
   }
@@ -34,13 +39,11 @@ function getStageFromResponseReceived(responseReceived: string | null | undefine
   try {
     const parsedData = JSON.parse(responseReceived);
     if (parsedData && typeof parsedData === 'object' && 'stage' in parsedData) {
-      return parsedData.stage || "—";
+      return (parsedData as { stage: string }).stage || "—"; // Explicitly cast and return stage
     } else {
-      // Log if parsing succeeded but 'stage' was missing or not an object
       // console.warn(`getStageFromResponseReceived: Parsed data missing 'stage' or not an object. Parsed:`, parsedData);
     }
   } catch (error) {
-    // Log if JSON.parse fails due to malformed JSON
     // console.error("Failed to parse response_received JSON:", responseReceived, error);
   }
   return "—";
@@ -79,7 +82,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         return sortOrder === 'asc' ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
       }
       if (sortColumn === 'stage') {
-        // Get stage for sorting
+        // Get stage for sorting using the helper
         const stageA = getStageFromResponseReceived(a.response_received);
         const stageB = getStageFromResponseReceived(b.response_received);
         valA = stageA;
@@ -211,7 +214,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   };
 
   if (isIITBombay) {
-    // ... (IIT Bombay table code - use company.poc_name, company.phonenumber, company.email directly here)
     return (
         <Card>
           <CardHeader className="pb-3">
@@ -287,7 +289,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Star className="h-4 w-4 text-yellow-500" />
-                          <Badge className={getScoreBadgeBadgeColor(formattedScore)}>
+                          <Badge className={getScoreBadgeColor(formattedScore)}> {/* Corrected typo here */}
                             <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
                               {formattedScore}/100
                             </span>
@@ -435,3 +437,4 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     </>
   );
 }
+```
