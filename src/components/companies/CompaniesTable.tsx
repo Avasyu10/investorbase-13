@@ -3,9 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
-import { formatDistanceToNow } from "date-fns"; // This import is also unused now, consider removing if not used elsewhere
-import { Star, Trash2, Phone, Mail, Globe, Download, ArrowUpDown } from "lucide-react"; // Added ArrowUpDown
-import { useState, useEffect, useMemo } from "react"; // Added useMemo
+import { formatDistanceToNow } from "date-fns";
+import { Star, Trash2, Phone, Mail, Globe, Download, ArrowUpDown } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
@@ -13,8 +13,15 @@ import { usePdfDownload } from "@/hooks/usePdfDownload";
 // Define sort order type
 type SortOrder = 'asc' | 'desc' | null;
 
+// Extend Company type if response_received is not properly typed in apiContract
+// This is a safe way to tell TypeScript that `response_received` might be a string
+interface CompanyWithResponse extends Company {
+  response_received?: string; // Explicitly define it as a string
+}
+
+
 interface CompaniesTableProps {
-  companies: Company[];
+  companies: CompanyWithResponse[]; // Use the extended type here
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
@@ -28,7 +35,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
 
   // State for sorting
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
-  const [sortColumn, setSortColumn] = useState<string | null>(null); // To track which column is sorted
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
 
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const { downloadCompaniesAsPdf } = usePdfDownload();
@@ -66,12 +73,12 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     if (sortColumn === column) {
       setSortOrder(prev => {
         if (prev === 'asc') return 'desc';
-        if (prev === 'desc') return null; // Cycle through asc, desc, none
-        return 'asc'; // If currently null, start with 'asc'
+        if (prev === 'desc') return null;
+        return 'asc';
       });
     } else {
       setSortColumn(column);
-      setSortOrder('asc'); // Default to ascending when changing column
+      setSortOrder('asc');
     }
   };
 
@@ -131,7 +138,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   };
 
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
-    e.stopPropagation(); // Prevent row click event
+    e.stopPropagation();
 
     if (deletingCompanies.has(companyId)) {
       console.log('Company deletion already in progress:', companyId);
@@ -227,7 +234,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCompanies.map((company) => { // Use sortedCompanies here
+              {sortedCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const isCompanyDeleting = deletingCompanies.has(company.id);
 
@@ -289,7 +296,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       </Card>
     );
   }
-  // New table format for non-IIT Bombay users
+  // Table format for non-IIT Bombay users
   return (
     <>
       <Card>
@@ -309,10 +316,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[100px]">Company</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                {/* Stage Column Header */}
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
                 <TableHead className="font-semibold w-[80px]">
-                  {/* Sorting control for Score */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -328,34 +333,30 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCompanies.map((company) => { // Use sortedCompanies here
+              {sortedCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const companyDetails = (company as any).company_details;
                 const status = companyDetails?.status || 'New';
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
 
-                // CORRECTED: Extract stage from response_received
+                // **** CRITICAL CHANGE HERE ****
                 let stage = "—";
-                try {
-                  if (company.response_received) {
-                    let responseData: any;
-                    // Check if it's a string, attempt to parse
-                    if (typeof company.response_received === 'string') {
-                      responseData = JSON.parse(company.response_received);
-                    } else if (typeof company.response_received === 'object') {
-                      // If it's already an object, use it directly
-                      responseData = company.response_received;
+                if (company.response_received && typeof company.response_received === 'string') {
+                  try {
+                    const parsedResponse = JSON.parse(company.response_received);
+                    if (parsedResponse && typeof parsedResponse === 'object' && parsedResponse.stage) {
+                      stage = parsedResponse.stage;
                     }
-
-                    if (responseData && typeof responseData === 'object' && 'stage' in responseData) {
-                      stage = responseData.stage || "—";
-                    }
+                  } catch (e) {
+                    console.error("Error parsing response_received JSON for company:", company.name, e);
+                    stage = "Invalid Data"; // Indicate an error if JSON parsing fails
                   }
-                } catch (e) {
-                  console.error("Error parsing response_received or accessing stage:", e);
-                  stage = "Error"; // Indicate an error in the UI if parsing fails
+                } else if (company.response_received && typeof company.response_received === 'object' && (company.response_received as any).stage) {
+                  // Fallback for if it's already an object, though the user states it's a string
+                  stage = (company.response_received as any).stage;
                 }
+                // **** END CRITICAL CHANGE ****
 
                 return (
                   <TableRow
@@ -371,7 +372,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     <TableCell>
                       <span className="text-sm">{industry}</span>
                     </TableCell>
-                    {/* Stage Column Cell */}
                     <TableCell>
                       <span className="text-sm">{stage}</span>
                     </TableCell>
