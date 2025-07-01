@@ -14,35 +14,22 @@ export interface Section {
 export interface Company {
   id: string;
   name: string;
+  overall_score: number;
+  assessment_points?: string[];
+  source?: string;
+  created_at?: string;
+  updated_at?: string;
+  report_id?: string;
+  reportId?: string;
+  user_id?: string;
+  sections?: Section[];
+  website?: string;
+  stage?: string;
   industry?: string;
-  overall_score?: number;
+  introduction?: string;
   scoring_reason?: string;
-  company_details?: { // Start of company_details object
-    status?: string;
-    // ... other company_details fields
-  }; 
-
-  report_id?: string; // Add this if not present, as CompanyInfoCard fetches it
-  response_received?: string | null; // THIS IS THE CRITICAL LINE. Must be string | null.
-  // Add any other fields your 'companies' table directly returns
-  // that are relevant to the CompaniesTable or CompanyInfoCard.
-  // For example, if you fetch 'poc_name', 'phonenumber', 'email' for IITBombay table
-  poc_name?: string | null;
-  phonenumber?: string | null;
-  email?: string | null;
 }
 
-// Also ensure this interface exists if you use it in CompanyInfoCard
-export interface AnalysisResult {
-  companyInfo?: {
-    stage: string;
-    industry: string;
-    website: string;
-    description: string;
-  };
-  assessmentPoints?: string[];
-  [key: string]: any; // Allow for other properties
-}
 export interface CompanyDetailed extends Company {
   sections: Section[];
 }
