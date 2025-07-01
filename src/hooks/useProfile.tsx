@@ -1,32 +1,31 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from './useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Profile {
   id: string;
   username: string | null;
+  email: string | null;
   full_name: string | null;
   avatar_url: string | null;
-  email: string | null;
-  is_bits: boolean | null;
   is_admin: boolean;
   is_iitbombay: boolean;
-  is_manager: boolean;
   is_vc: boolean;
+  is_manager: boolean;
+  signup_source: string | null;
   created_at: string;
   updated_at: string;
-  signup_source: string | null;
 }
 
-export const useProfile = () => {
+export function useProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    async function fetchProfile() {
       if (!user) {
         setProfile(null);
         setIsLoading(false);
@@ -35,43 +34,37 @@ export const useProfile = () => {
 
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
+        setError(null);
+
+        const { data, error: fetchError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (error) {
-          throw error;
+        if (fetchError) {
+          throw fetchError;
         }
 
         setProfile(data);
-        setError(null);
       } catch (err) {
         console.error('Error fetching profile:', err);
-        setError(err as Error);
+        setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
       } finally {
         setIsLoading(false);
       }
-    };
+    }
 
     fetchProfile();
   }, [user]);
-
-  const isIITBombay = profile?.is_iitbombay || false;
-  const isBits = profile?.is_bits || false;
-  const isVC = profile?.is_vc || false;
-  const isAdmin = profile?.is_admin || false;
-  const isManager = profile?.is_manager || false;
 
   return {
     profile,
     isLoading,
     error,
-    isIITBombay,
-    isBits,
-    isVC,
-    isAdmin,
-    isManager,
+    isIITBombay: profile?.is_iitbombay || false,
+    isAdmin: profile?.is_admin || false,
+    isVC: profile?.is_vc || false,
+    isManager: profile?.is_manager || false
   };
-};
+}

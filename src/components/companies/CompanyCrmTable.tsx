@@ -29,9 +29,7 @@ import { CompanyListItem } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { useProfile } from "@/hooks/useProfile";
 import { ExternalLink, Edit2, Phone } from "lucide-react";
-import { BitsCrmTable } from "./BitsCrmTable";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -49,7 +47,6 @@ interface CrmData {
 interface CompanyCrmTableProps {
   companies: CompanyListItem[];
   onCompanyClick: (companyId: string) => void;
-  onDeleteCompany?: (companyId: string) => void;
 }
 
 const INDUSTRY_OPTIONS = [
@@ -61,23 +58,11 @@ const STATUS_OPTIONS = [
   "New", "Contacted", "Meeting Scheduled", "In Review", "Interested", "Not Interested", "Passed"
 ];
 
-export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: CompanyCrmTableProps) {
-  const { isBits } = useProfile();
+export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTableProps) {
   const [editingCompany, setEditingCompany] = useState<{ id: string, crmData: CrmData } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
-
-  // If user is BITS user, render the simplified table
-  if (isBits && onDeleteCompany) {
-    return (
-      <BitsCrmTable 
-        companies={companies} 
-        onCompanyClick={onCompanyClick} 
-        onDeleteCompany={onDeleteCompany}
-      />
-    );
-  }
 
   const handleEditClick = async (company: CompanyListItem, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row click when clicking on edit button
