@@ -3,13 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
-import { formatDistanceToNow } from "date-fns"; // This import is also unused now, consider removing if not used elsewhere
-import { Star, Trash2, Phone, Mail, Globe, Download } from "lucide-react"; // Removed Edit
-// import { EditCompanyDialog } from "./EditCompanyDialog"; // Removed EditCompanyDialog import
+// import { formatDistanceToNow } from "date-fns"; // This import is still unused, consider removing
+import { Star, Trash2, Phone, Mail, Globe, Download, Edit } from "lucide-react"; // Added Edit icon back
+import { EditCompanyDialog } from "./EditCompanyDialog"; // Re-added EditCompanyDialog import
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
+import { supabase } from "@/integrations/supabase/client"; // Ensure supabase is imported if you're using it directly here
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -23,13 +24,14 @@ interface CompaniesTableProps {
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
-  // Removed state for EditCompanyDialog:
-  // const [editDialogOpen, setEditDialogOpen] = useState(false);
-  // const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
-  //   id: string;
-  //   teamMember: string;
-  //   status: string;
-  // } | null>(null);
+
+  // Re-added state for EditCompanyDialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
+    id: string;
+    teamMember: string;
+    status: string;
+  } | null>(null);
 
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const { downloadCompaniesAsPdf } = usePdfDownload();
@@ -89,23 +91,23 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
 
-    // FIXED: Prevent duplicate deletion calls
     if (deletingCompanies.has(companyId)) {
       console.log('Company deletion already in progress:', companyId);
       return;
     }
 
-    // Add company to deleting set
     setDeletingCompanies(prev => new Set(prev).add(companyId));
 
     try {
       await deleteCompany(companyId);
-      // Remove from local state immediately
       setLocalCompanies(prev => prev.filter(company => company.id !== companyId));
-      // Call the parent callback if provided
       if (onDeleteCompany) {
         onDeleteCompany(companyId);
       }
+      toast({
+        title: "Company Deleted",
+        description: "The company has been successfully removed.",
+      });
     } catch (error: any) {
       console.error('Failed to delete company:', error);
       toast({
@@ -114,7 +116,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         variant: "destructive",
       });
     } finally {
-      // Remove from deleting set
       setDeletingCompanies(prev => {
         const newSet = new Set(prev);
         newSet.delete(companyId);
@@ -123,39 +124,73 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
   };
 
-  // Removed handleEditClick function:
-  // const handleEditClick = (e: React.MouseEvent, company: Company) => {
-  //   e.stopPropagation(); // Prevent row click event
-  //   const companyDetails = (company as any).company_details;
-  //   const teamMemberName = companyDetails?.teammember_name || '';
-  //   const status = companyDetails?.status || 'New';
+  // Re-added handleEditClick function
+  const handleEditClick = (e: React.MouseEvent, company: Company) => {
+    e.stopPropagation(); // Prevent row click event
+    const companyDetails = (company as any).company_details;
+    const teamMemberName = companyDetails?.teammember_name || '';
+    const status = companyDetails?.status || 'New';
 
-  //   setSelectedCompanyForEdit({
-  //     id: company.id,
-  //     teamMember: teamMemberName,
-  //     status: status
-  //   });
-  //   setEditDialogOpen(true);
-  // };
+    setSelectedCompanyForEdit({
+      id: company.id,
+      teamMember: teamMemberName,
+      status: status
+    });
+    setEditDialogOpen(true);
+  };
 
-  // Removed handleCompanyUpdate function:
-  // const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
-  //   // Update local state to reflect the change immediately
-  //   setLocalCompanies(prev => prev.map(company => {
-  //     if (company.id === companyId) {
-  //       return {
-  //         ...company,
-  //         company_details: {
-  //           ...(company as any).company_details,
-  //           status: newStatus,
-  //           status_date: new Date().toISOString(),
-  //           teammember_name: newTeamMember
-  //         }
-  //       };
-  //     }
-  //     return company;
-  //   }));
-  // };
+  // Modified handleCompanyUpdate to interact with Supabase
+  const handleCompanyUpdate = async (companyId: string, newTeamMember: string, newStatus: string) => {
+    try {
+      // Update the database
+      const { data, error } = await supabase
+        .from('companies') // Replace 'companies' with your actual table name
+        .update({
+          company_details: {
+            // Merge existing company_details to preserve other fields
+            ...(localCompanies.find(c => c.id === companyId) as any)?.company_details,
+            status: newStatus,
+            status_date: new Date().toISOString(),
+            teammember_name: newTeamMember
+          }
+        })
+        .eq('id', companyId)
+        .select(); // Select the updated row to get the latest data
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        // Update local state to reflect the change immediately
+        setLocalCompanies(prev => prev.map(company => {
+          if (company.id === companyId) {
+            return {
+              ...company,
+              company_details: data[0].company_details // Use the updated details from the database response
+            };
+          }
+          return company;
+        }));
+        toast({
+          title: "Company Updated",
+          description: "Company status and team member updated successfully.",
+        });
+      } else {
+        throw new Error("Failed to update company in database.");
+      }
+    } catch (error: any) {
+      console.error("Error updating company:", error);
+      toast({
+        title: "Update Failed",
+        description: error.message || "Could not update company details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setEditDialogOpen(false); // Close the dialog after update attempt
+    }
+  };
+
 
   const handleDownloadPdf = () => {
     const title = isIITBombay ? 'IIT Bombay Companies Prospects' : 'Companies Prospects';
@@ -203,7 +238,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold">Reason for Scoring</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead> {/* Increased width for Actions if adding Edit */}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -250,15 +285,29 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleDeleteClick(e, company.id)}
-                        disabled={isCompanyDeleting || isDeleting}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        {/* Edit Button for IITBombay */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleEditClick(e, company)}
+                          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDeleteClick(e, company.id)}
+                          disabled={isCompanyDeleting || isDeleting}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -298,11 +347,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const companyDetails = (company as any).company_details;
-                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
                 const status = companyDetails?.status || 'New';
                 const isCompanyDeleting = deletingCompanies.has(company.id);
-
-                // Display industry directly from public_form_submissions
                 const industry = company.industry || "—";
 
                 return (
@@ -338,6 +384,15 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                         className="flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
+                        {/* Edit Button for non-IITBombay users */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleEditClick(e, company)}
+                          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -357,8 +412,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         </CardContent>
       </Card>
 
-      {/* Removed EditCompanyDialog component entirely */}
-      {/* <EditCompanyDialog
+      {/* Re-added EditCompanyDialog component */}
+      <EditCompanyDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         companyId={selectedCompanyForEdit?.id || ""}
@@ -369,7 +424,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
             handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
           }
         }}
-      /> */}
+      />
     </>
   );
 }
