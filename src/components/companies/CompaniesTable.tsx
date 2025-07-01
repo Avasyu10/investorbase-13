@@ -37,7 +37,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   }, [companies]);
 
   const getScoreColor = (score: number): string => {
-    if (score >= 90) return "text-emerald-600";
+    if (score >= 75) return "text-emerald-600";
     if (score >= 70) return "text-blue-600";
     if (score >= 50) return "text-amber-600";
     if (score >= 30) return "text-orange-600";
@@ -45,7 +45,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   };
 
   const getScoreBadgeColor = (score: number): string => {
-    if (score >= 90) return "bg-emerald-100 text-emerald-800";
+    if (score >= 75) return "bg-emerald-100 text-emerald-800";
     if (score >= 70) return "bg-blue-100 text-blue-800";
     if (score >= 50) return "bg-amber-100 text-amber-800";
     if (score >= 30) return "bg-orange-100 text-orange-800";
