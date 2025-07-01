@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 // import { formatDistanceToNow } from "date-fns"; // This import is still unused, consider removing
-import { Star, Trash2, Phone, Mail, Globe, Download, Edit } from "lucide-react"; // Added Edit icon back
+import { Star, Trash2, Download, Edit, ArrowUpDown } from "lucide-react"; // Added Edit and ArrowUpDown
 import { EditCompanyDialog } from "./EditCompanyDialog"; // Re-added EditCompanyDialog import
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react"; // Added useMemo
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
-import { supabase } from "@/integrations/supabase/client"; // Ensure supabase is imported if you're using it directly here
+import { supabase } from "@/integrations/supabase/client"; // Ensure supabase is imported
+
+// Define sort order type
+type SortOrder = 'asc' | 'desc' | null;
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -29,9 +32,13 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
     id: string;
-    teamMember: string;
+    // teamMember is no longer needed here
     status: string;
   } | null>(null);
+
+  // State for sorting
+  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null); // To track which column is sorted
 
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const { downloadCompaniesAsPdf } = usePdfDownload();
@@ -40,6 +47,51 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   useEffect(() => {
     setLocalCompanies(companies);
   }, [companies]);
+
+  // Sorting logic using useMemo for performance
+  const sortedCompanies = useMemo(() => {
+    if (!sortColumn || !sortOrder) {
+      return localCompanies;
+    }
+
+    return [...localCompanies].sort((a, b) => {
+      let valA = 0;
+      let valB = 0;
+
+      if (sortColumn === 'overall_score') {
+        valA = a.overall_score || 0;
+        valB = b.overall_score || 0;
+      }
+      // Add other columns here if you want to sort by them later
+
+      if (sortOrder === 'asc') {
+        return valA - valB;
+      } else { // 'desc'
+        return valB - valA;
+      }
+    });
+  }, [localCompanies, sortOrder, sortColumn]);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortOrder(prev => {
+        if (prev === 'asc') return 'desc';
+        if (prev === 'desc') return null; // Cycle through asc, desc, none
+        return 'asc';
+      });
+    } else {
+      setSortColumn(column);
+      setSortOrder('asc'); // Default to ascending when changing column
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn === column) {
+      if (sortOrder === 'asc') return <ArrowUpDown className="h-4 w-4 ml-1 rotate-180" />;
+      if (sortOrder === 'desc') return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    }
+    return <ArrowUpDown className="h-4 w-4 ml-1 text-muted-foreground opacity-50" />;
+  };
 
   const getScoreColor = (score: number): string => {
     if (score >= 75) return "text-green-700";
@@ -124,37 +176,37 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
   };
 
-  // Re-added handleEditClick function
+  // Modified handleEditClick function
   const handleEditClick = (e: React.MouseEvent, company: Company) => {
     e.stopPropagation(); // Prevent row click event
     const companyDetails = (company as any).company_details;
-    const teamMemberName = companyDetails?.teammember_name || '';
     const status = companyDetails?.status || 'New';
 
     setSelectedCompanyForEdit({
       id: company.id,
-      teamMember: teamMemberName,
       status: status
     });
     setEditDialogOpen(true);
   };
 
-  // Modified handleCompanyUpdate to interact with Supabase
-  const handleCompanyUpdate = async (companyId: string, newTeamMember: string, newStatus: string) => {
+  // Modified handleCompanyUpdate to only update status
+  const handleCompanyUpdate = async (newStatus: string) => {
+    if (!selectedCompanyForEdit?.id) return; // Ensure we have a company ID
+
     try {
       // Update the database
       const { data, error } = await supabase
         .from('companies') // Replace 'companies' with your actual table name
         .update({
           company_details: {
-            // Merge existing company_details to preserve other fields
-            ...(localCompanies.find(c => c.id === companyId) as any)?.company_details,
+            // Keep existing company_details, but specifically update status and status_date
+            ...(localCompanies.find(c => c.id === selectedCompanyForEdit.id) as any)?.company_details,
             status: newStatus,
             status_date: new Date().toISOString(),
-            teammember_name: newTeamMember
+            // teammember_name is no longer updated here
           }
         })
-        .eq('id', companyId)
+        .eq('id', selectedCompanyForEdit.id)
         .select(); // Select the updated row to get the latest data
 
       if (error) {
@@ -164,7 +216,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       if (data && data.length > 0) {
         // Update local state to reflect the change immediately
         setLocalCompanies(prev => prev.map(company => {
-          if (company.id === companyId) {
+          if (company.id === selectedCompanyForEdit.id) {
             return {
               ...company,
               company_details: data[0].company_details // Use the updated details from the database response
@@ -174,7 +226,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         }));
         toast({
           title: "Company Updated",
-          description: "Company status and team member updated successfully.",
+          description: "Company status updated successfully.",
         });
       } else {
         throw new Error("Failed to update company in database.");
@@ -191,7 +243,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
   };
 
-
   const handleDownloadPdf = () => {
     const title = isIITBombay ? 'IIT Bombay Companies Prospects' : 'Companies Prospects';
     downloadCompaniesAsPdf(localCompanies, {
@@ -205,6 +256,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     });
   };
 
+  // Render logic for IIT Bombay and other users remains mostly the same,
+  // but with the addition of the Edit button and sorting header.
   if (isIITBombay) {
     return (
       <Card>
@@ -236,13 +289,23 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[110px]">Phone Number</TableHead>
                 <TableHead className="font-semibold w-[120px]">Email</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">Score</TableHead>
+                <TableHead className="font-semibold w-[80px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 inline-flex items-center group"
+                    onClick={() => handleSort('overall_score')}
+                  >
+                    Score
+                    {getSortIcon('overall_score')}
+                  </Button>
+                </TableHead>
                 <TableHead className="font-semibold">Reason for Scoring</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead> {/* Increased width for Actions if adding Edit */}
+                <TableHead className="w-[100px]">Actions</TableHead> {/* Increased width for Actions */}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {localCompanies.map((company) => {
+              {sortedCompanies.map((company) => { // Use sortedCompanies here
                 const formattedScore = Math.round(company.overall_score);
                 const isCompanyDeleting = deletingCompanies.has(company.id);
 
@@ -338,13 +401,23 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[100px]">Company</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">Score</TableHead>
+                <TableHead className="font-semibold w-[80px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 inline-flex items-center group"
+                    onClick={() => handleSort('overall_score')}
+                  >
+                    Score
+                    {getSortIcon('overall_score')}
+                  </Button>
+                </TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {localCompanies.map((company) => {
+              {sortedCompanies.map((company) => { // Use sortedCompanies here
                 const formattedScore = Math.round(company.overall_score);
                 const companyDetails = (company as any).company_details;
                 const status = companyDetails?.status || 'New';
@@ -417,11 +490,11 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         companyId={selectedCompanyForEdit?.id || ""}
-        currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
+        // currentTeamMember is removed from here
         currentStatus={selectedCompanyForEdit?.status || "New"}
-        onUpdate={(teamMember, status) => {
+        onUpdate={(status) => { // onUpdate now only accepts status
           if (selectedCompanyForEdit) {
-            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+            handleCompanyUpdate(status); // Call handleCompanyUpdate with only status
           }
         }}
       />
