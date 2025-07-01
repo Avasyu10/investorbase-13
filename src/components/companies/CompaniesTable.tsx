@@ -265,6 +265,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       </Card>
     );
   }
+    if (isBITS) {
     return (
       <Card>
         <CardHeader className="pb-3">
