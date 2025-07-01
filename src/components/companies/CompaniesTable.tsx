@@ -1,12 +1,11 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
-import { formatDistanceToNow } from "date-fns";
-import { Star, Trash2, Phone, Mail, Globe, Download, Edit } from "lucide-react";
-import { EditCompanyDialog } from "./EditCompanyDialog";
+import { formatDistanceToNow } from "date-fns"; // This import is also unused now, consider removing if not used elsewhere
+import { Star, Trash2, Phone, Mail, Globe, Download } from "lucide-react"; // Removed Edit
+// import { EditCompanyDialog } from "./EditCompanyDialog"; // Removed EditCompanyDialog import
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
@@ -19,18 +18,19 @@ interface CompaniesTableProps {
   isIITBombay?: boolean;
   isBits?: boolean;
   isVC?: boolean;
-  
 }
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
-    id: string;
-    teamMember: string;
-    status: string;
-  } | null>(null);
+  // Removed state for EditCompanyDialog:
+  // const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
+  //   id: string;
+  //   teamMember: string;
+  //   status: string;
+  // } | null>(null);
+
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const { downloadCompaniesAsPdf } = usePdfDownload();
 
@@ -88,7 +88,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
 
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
-    
+
     // FIXED: Prevent duplicate deletion calls
     if (deletingCompanies.has(companyId)) {
       console.log('Company deletion already in progress:', companyId);
@@ -97,7 +97,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
 
     // Add company to deleting set
     setDeletingCompanies(prev => new Set(prev).add(companyId));
-    
+
     try {
       await deleteCompany(companyId);
       // Remove from local state immediately
@@ -123,45 +123,47 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
   };
 
-  const handleEditClick = (e: React.MouseEvent, company: Company) => {
-    e.stopPropagation(); // Prevent row click event
-    const companyDetails = (company as any).company_details;
-    const teamMemberName = companyDetails?.teammember_name || '';
-    const status = companyDetails?.status || 'New';
-    
-    setSelectedCompanyForEdit({
-      id: company.id,
-      teamMember: teamMemberName,
-      status: status
-    });
-    setEditDialogOpen(true);
-  };
+  // Removed handleEditClick function:
+  // const handleEditClick = (e: React.MouseEvent, company: Company) => {
+  //   e.stopPropagation(); // Prevent row click event
+  //   const companyDetails = (company as any).company_details;
+  //   const teamMemberName = companyDetails?.teammember_name || '';
+  //   const status = companyDetails?.status || 'New';
 
-  const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
-    // Update local state to reflect the change immediately
-    setLocalCompanies(prev => prev.map(company => {
-      if (company.id === companyId) {
-        return {
-          ...company,
-          company_details: {
-            ...(company as any).company_details,
-            status: newStatus,
-            status_date: new Date().toISOString(),
-            teammember_name: newTeamMember
-          }
-        };
-      }
-      return company;
-    }));
-  };
+  //   setSelectedCompanyForEdit({
+  //     id: company.id,
+  //     teamMember: teamMemberName,
+  //     status: status
+  //   });
+  //   setEditDialogOpen(true);
+  // };
+
+  // Removed handleCompanyUpdate function:
+  // const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
+  //   // Update local state to reflect the change immediately
+  //   setLocalCompanies(prev => prev.map(company => {
+  //     if (company.id === companyId) {
+  //       return {
+  //         ...company,
+  //         company_details: {
+  //           ...(company as any).company_details,
+  //           status: newStatus,
+  //           status_date: new Date().toISOString(),
+  //           teammember_name: newTeamMember
+  //         }
+  //       };
+  //     }
+  //     return company;
+  //   }));
+  // };
 
   const handleDownloadPdf = () => {
     const title = isIITBombay ? 'IIT Bombay Companies Prospects' : 'Companies Prospects';
-    downloadCompaniesAsPdf(localCompanies, { 
+    downloadCompaniesAsPdf(localCompanies, {
       filename: `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`,
-      title 
+      title
     });
-    
+
     toast({
       title: "PDF Downloaded",
       description: "Companies table has been downloaded successfully.",
@@ -208,10 +210,10 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const isCompanyDeleting = deletingCompanies.has(company.id);
-                
+
                 return (
-                  <TableRow 
-                    key={company.id} 
+                  <TableRow
+                    key={company.id}
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => onCompanyClick(company.id)}
                   >
@@ -268,105 +270,106 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     );
   }
   // New table format for non-IIT Bombay users
-return (
-  <>
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-semibold">Companies Prospects</h3>
-            <p className="text-sm text-muted-foreground">
-              {localCompanies.length} companies found
-            </p>
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Companies Prospects</h3>
+              <p className="text-sm text-muted-foreground">
+                {localCompanies.length} companies found
+              </p>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-semibold w-[100px]">Company</TableHead>
-              <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-              <TableHead className="font-semibold w-[80px]">Score</TableHead>
-              <TableHead className="font-semibold w-[100px]">Status</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {localCompanies.map((company) => {
-              const formattedScore = Math.round(company.overall_score);
-              const companyDetails = (company as any).company_details;
-              // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
-              const status = companyDetails?.status || 'New';
-              const isCompanyDeleting = deletingCompanies.has(company.id);
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-semibold w-[100px]">Company</TableHead>
+                <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+                <TableHead className="font-semibold w-[80px]">Score</TableHead>
+                <TableHead className="font-semibold w-[100px]">Status</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {localCompanies.map((company) => {
+                const formattedScore = Math.round(company.overall_score);
+                const companyDetails = (company as any).company_details;
+                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
+                const status = companyDetails?.status || 'New';
+                const isCompanyDeleting = deletingCompanies.has(company.id);
 
-              // Display industry directly from public_form_submissions
-              const industry = company.industry || "—";
+                // Display industry directly from public_form_submissions
+                const industry = company.industry || "—";
 
-              return (
-                <TableRow
-                  key={company.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => onCompanyClick(company.id)}
-                >
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-foreground">{company.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{industry}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getScoreBadgeColor(formattedScore)}>
-                        <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                          {formattedScore}
-                        </span>
+                return (
+                  <TableRow
+                    key={company.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => onCompanyClick(company.id)}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-foreground">{company.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getScoreBadgeColor(formattedScore)}>
+                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                            {formattedScore}
+                          </span>
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(status)}>
+                        <span className="text-xs font-medium">{status}</span>
                       </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusBadgeColor(status)}>
-                      <span className="text-xs font-medium">{status}</span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className="flex items-center gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Removed Edit Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleDeleteClick(e, company.id)}
-                        disabled={isCompanyDeleting || isDeleting}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    </TableCell>
+                    <TableCell>
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDeleteClick(e, company.id)}
+                          disabled={isCompanyDeleting || isDeleting}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-    <EditCompanyDialog
-      open={editDialogOpen}
-      onOpenChange={setEditDialogOpen}
-      companyId={selectedCompanyForEdit?.id || ""}
-      currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
-      currentStatus={selectedCompanyForEdit?.status || "New"}
-      onUpdate={(teamMember, status) => {
-        if (selectedCompanyForEdit) {
-          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-        }
-      }}
-    />
-  </>
-);
+      {/* Removed EditCompanyDialog component entirely */}
+      {/* <EditCompanyDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        companyId={selectedCompanyForEdit?.id || ""}
+        currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
+        currentStatus={selectedCompanyForEdit?.status || "New"}
+        onUpdate={(teamMember, status) => {
+          if (selectedCompanyForEdit) {
+            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+          }
+        }}
+      /> */}
+    </>
+  );
+}
