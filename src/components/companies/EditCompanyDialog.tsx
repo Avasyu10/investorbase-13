@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"; // Added useEffect for resetting status
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-// Removed Input import as it's no longer needed
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,10 +26,9 @@ interface EditCompanyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   companyId: string;
-  // currentTeamMember is removed as it's no longer relevant
+  currentTeamMember?: string;
   currentStatus: string;
-  // onUpdate now only expects status
-  onUpdate: (status: string) => void;
+  onUpdate: (teamMember: string, status: string) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -50,21 +50,14 @@ export function EditCompanyDialog({
   open,
   onOpenChange,
   companyId,
-  // currentTeamMember prop is removed
+  currentTeamMember = "",
   currentStatus,
   onUpdate,
 }: EditCompanyDialogProps) {
-  // teamMember state is removed
+  const [teamMember, setTeamMember] = useState(currentTeamMember);
   const [status, setStatus] = useState(currentStatus);
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
-
-  // Reset status when dialog opens or currentStatus changes
-  useEffect(() => {
-    if (open) {
-      setStatus(currentStatus);
-    }
-  }, [open, currentStatus]);
 
   const handleSave = async () => {
     if (isUpdating) return;
@@ -84,26 +77,26 @@ export function EditCompanyDialog({
       }
 
       if (existingDetails) {
-        // Update existing record, only changing status and status_date
+        // Update existing record
         const { error: updateError } = await supabase
           .from('company_details')
-          .update({
+          .update({ 
             status: status,
             status_date: new Date().toISOString(),
-            // teammember_name is removed from update payload
+            teammember_name: teamMember
           })
           .eq('company_id', companyId);
 
         if (updateError) throw updateError;
       } else {
-        // Create new record if it doesn't exist, only inserting status and status_date
+        // Create new record if it doesn't exist
         const { error: insertError } = await supabase
           .from('company_details')
           .insert({
             company_id: companyId,
             status: status,
             status_date: new Date().toISOString(),
-            // teammember_name is removed from insert payload
+            teammember_name: teamMember
           });
 
         if (insertError) throw insertError;
@@ -111,11 +104,11 @@ export function EditCompanyDialog({
 
       toast({
         title: "Company updated",
-        description: "Status has been updated successfully", // Updated description
+        description: "Team POC and status have been updated successfully",
       });
 
-      // Call the callback to update parent component state, only passing status
-      onUpdate(status);
+      // Call the callback to update parent component state
+      onUpdate(teamMember, status);
       onOpenChange(false);
 
     } catch (error: any) {
@@ -134,14 +127,12 @@ export function EditCompanyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Company Status</DialogTitle> {/* Updated title */}
+          <DialogTitle>Edit Company Details</DialogTitle>
           <DialogDescription>
-            Update the status for this company. {/* Updated description */}
+            Update the team POC and status for this company.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {/* Removed the Team POC input field */}
-          {/*
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="team-member" className="text-right">
               Team POC
@@ -154,7 +145,6 @@ export function EditCompanyDialog({
               placeholder="Enter team member name"
             />
           </div>
-          */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">
               Status

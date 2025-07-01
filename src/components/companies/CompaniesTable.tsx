@@ -3,17 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
-// import { formatDistanceToNow } from "date-fns"; // This import is still unused, consider removing
-import { Star, Trash2, Download, Edit, ArrowUpDown } from "lucide-react"; // Added Edit and ArrowUpDown
-import { EditCompanyDialog } from "./EditCompanyDialog"; // Re-added EditCompanyDialog import
-import { useState, useEffect, useMemo } from "react"; // Added useMemo
+import { formatDistanceToNow } from "date-fns"; // This import is also unused now, consider removing if not used elsewhere
+import { Star, Trash2, Phone, Mail, Globe, Download } from "lucide-react"; // Removed Edit
+// import { EditCompanyDialog } from "./EditCompanyDialog"; // Removed EditCompanyDialog import
+import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
-import { supabase } from "@/integrations/supabase/client"; // Ensure supabase is imported
-
-// Define sort order type
-type SortOrder = 'asc' | 'desc' | null;
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -27,18 +23,13 @@ interface CompaniesTableProps {
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
-
-  // Re-added state for EditCompanyDialog
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
-    id: string;
-    // teamMember is no longer needed here
-    status: string;
-  } | null>(null);
-
-  // State for sorting
-  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
-  const [sortColumn, setSortColumn] = useState<string | null>(null); // To track which column is sorted
+  // Removed state for EditCompanyDialog:
+  // const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // const [selectedCompanyForEdit, setSelectedCompanyForEdit] = useState<{
+  //   id: string;
+  //   teamMember: string;
+  //   status: string;
+  // } | null>(null);
 
   const { deleteCompany, isDeleting } = useDeleteCompany();
   const { downloadCompaniesAsPdf } = usePdfDownload();
@@ -47,51 +38,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   useEffect(() => {
     setLocalCompanies(companies);
   }, [companies]);
-
-  // Sorting logic using useMemo for performance
-  const sortedCompanies = useMemo(() => {
-    if (!sortColumn || !sortOrder) {
-      return localCompanies;
-    }
-
-    return [...localCompanies].sort((a, b) => {
-      let valA = 0;
-      let valB = 0;
-
-      if (sortColumn === 'overall_score') {
-        valA = a.overall_score || 0;
-        valB = b.overall_score || 0;
-      }
-      // Add other columns here if you want to sort by them later
-
-      if (sortOrder === 'asc') {
-        return valA - valB;
-      } else { // 'desc'
-        return valB - valA;
-      }
-    });
-  }, [localCompanies, sortOrder, sortColumn]);
-
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortOrder(prev => {
-        if (prev === 'asc') return 'desc';
-        if (prev === 'desc') return null; // Cycle through asc, desc, none
-        return 'asc';
-      });
-    } else {
-      setSortColumn(column);
-      setSortOrder('asc'); // Default to ascending when changing column
-    }
-  };
-
-  const getSortIcon = (column: string) => {
-    if (sortColumn === column) {
-      if (sortOrder === 'asc') return <ArrowUpDown className="h-4 w-4 ml-1 rotate-180" />;
-      if (sortOrder === 'desc') return <ArrowUpDown className="h-4 w-4 ml-1" />;
-    }
-    return <ArrowUpDown className="h-4 w-4 ml-1 text-muted-foreground opacity-50" />;
-  };
 
   const getScoreColor = (score: number): string => {
     if (score >= 75) return "text-green-700";
@@ -143,23 +89,23 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
 
+    // FIXED: Prevent duplicate deletion calls
     if (deletingCompanies.has(companyId)) {
       console.log('Company deletion already in progress:', companyId);
       return;
     }
 
+    // Add company to deleting set
     setDeletingCompanies(prev => new Set(prev).add(companyId));
 
     try {
       await deleteCompany(companyId);
+      // Remove from local state immediately
       setLocalCompanies(prev => prev.filter(company => company.id !== companyId));
+      // Call the parent callback if provided
       if (onDeleteCompany) {
         onDeleteCompany(companyId);
       }
-      toast({
-        title: "Company Deleted",
-        description: "The company has been successfully removed.",
-      });
     } catch (error: any) {
       console.error('Failed to delete company:', error);
       toast({
@@ -168,6 +114,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         variant: "destructive",
       });
     } finally {
+      // Remove from deleting set
       setDeletingCompanies(prev => {
         const newSet = new Set(prev);
         newSet.delete(companyId);
@@ -176,72 +123,39 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
   };
 
-  // Modified handleEditClick function
-  const handleEditClick = (e: React.MouseEvent, company: Company) => {
-    e.stopPropagation(); // Prevent row click event
-    const companyDetails = (company as any).company_details;
-    const status = companyDetails?.status || 'New';
+  // Removed handleEditClick function:
+  // const handleEditClick = (e: React.MouseEvent, company: Company) => {
+  //   e.stopPropagation(); // Prevent row click event
+  //   const companyDetails = (company as any).company_details;
+  //   const teamMemberName = companyDetails?.teammember_name || '';
+  //   const status = companyDetails?.status || 'New';
 
-    setSelectedCompanyForEdit({
-      id: company.id,
-      status: status
-    });
-    setEditDialogOpen(true);
-  };
+  //   setSelectedCompanyForEdit({
+  //     id: company.id,
+  //     teamMember: teamMemberName,
+  //     status: status
+  //   });
+  //   setEditDialogOpen(true);
+  // };
 
-  // Modified handleCompanyUpdate to only update status
-  const handleCompanyUpdate = async (newStatus: string) => {
-    if (!selectedCompanyForEdit?.id) return; // Ensure we have a company ID
-
-    try {
-      // Update the database
-      const { data, error } = await supabase
-        .from('companies') // Replace 'companies' with your actual table name
-        .update({
-          company_details: {
-            // Keep existing company_details, but specifically update status and status_date
-            ...(localCompanies.find(c => c.id === selectedCompanyForEdit.id) as any)?.company_details,
-            status: newStatus,
-            status_date: new Date().toISOString(),
-            // teammember_name is no longer updated here
-          }
-        })
-        .eq('id', selectedCompanyForEdit.id)
-        .select(); // Select the updated row to get the latest data
-
-      if (error) {
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        // Update local state to reflect the change immediately
-        setLocalCompanies(prev => prev.map(company => {
-          if (company.id === selectedCompanyForEdit.id) {
-            return {
-              ...company,
-              company_details: data[0].company_details // Use the updated details from the database response
-            };
-          }
-          return company;
-        }));
-        toast({
-          title: "Company Updated",
-          description: "Company status updated successfully.",
-        });
-      } else {
-        throw new Error("Failed to update company in database.");
-      }
-    } catch (error: any) {
-      console.error("Error updating company:", error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "Could not update company details. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setEditDialogOpen(false); // Close the dialog after update attempt
-    }
-  };
+  // Removed handleCompanyUpdate function:
+  // const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
+  //   // Update local state to reflect the change immediately
+  //   setLocalCompanies(prev => prev.map(company => {
+  //     if (company.id === companyId) {
+  //       return {
+  //         ...company,
+  //         company_details: {
+  //           ...(company as any).company_details,
+  //           status: newStatus,
+  //           status_date: new Date().toISOString(),
+  //           teammember_name: newTeamMember
+  //         }
+  //       };
+  //     }
+  //     return company;
+  //   }));
+  // };
 
   const handleDownloadPdf = () => {
     const title = isIITBombay ? 'IIT Bombay Companies Prospects' : 'Companies Prospects';
@@ -256,8 +170,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     });
   };
 
-  // Render logic for IIT Bombay and other users remains mostly the same,
-  // but with the addition of the Edit button and sorting header.
   if (isIITBombay) {
     return (
       <Card>
@@ -289,23 +201,13 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[110px]">Phone Number</TableHead>
                 <TableHead className="font-semibold w-[120px]">Email</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 inline-flex items-center group"
-                    onClick={() => handleSort('overall_score')}
-                  >
-                    Score
-                    {getSortIcon('overall_score')}
-                  </Button>
-                </TableHead>
+                <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold">Reason for Scoring</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead> {/* Increased width for Actions */}
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCompanies.map((company) => { // Use sortedCompanies here
+              {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const isCompanyDeleting = deletingCompanies.has(company.id);
 
@@ -348,29 +250,15 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div
-                        className="flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteClick(e, company.id)}
+                        disabled={isCompanyDeleting || isDeleting}
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
-                        {/* Edit Button for IITBombay */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleEditClick(e, company)}
-                          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleDeleteClick(e, company.id)}
-                          disabled={isCompanyDeleting || isDeleting}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -401,27 +289,20 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[100px]">Company</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 inline-flex items-center group"
-                    onClick={() => handleSort('overall_score')}
-                  >
-                    Score
-                    {getSortIcon('overall_score')}
-                  </Button>
-                </TableHead>
+                <TableHead className="font-semibold w-[80px]">Score</TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCompanies.map((company) => { // Use sortedCompanies here
+              {localCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
                 const companyDetails = (company as any).company_details;
+                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
                 const status = companyDetails?.status || 'New';
                 const isCompanyDeleting = deletingCompanies.has(company.id);
+
+                // Display industry directly from public_form_submissions
                 const industry = company.industry || "—";
 
                 return (
@@ -457,15 +338,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                         className="flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {/* Edit Button for non-IITBombay users */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleEditClick(e, company)}
-                          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -485,19 +357,19 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
         </CardContent>
       </Card>
 
-      {/* Re-added EditCompanyDialog component */}
-      <EditCompanyDialog
+      {/* Removed EditCompanyDialog component entirely */}
+      {/* <EditCompanyDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         companyId={selectedCompanyForEdit?.id || ""}
-        // currentTeamMember is removed from here
+        currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
         currentStatus={selectedCompanyForEdit?.status || "New"}
-        onUpdate={(status) => { // onUpdate now only accepts status
+        onUpdate={(teamMember, status) => {
           if (selectedCompanyForEdit) {
-            handleCompanyUpdate(status); // Call handleCompanyUpdate with only status
+            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
           }
         }}
-      />
+      /> */}
     </>
   );
 }
