@@ -100,10 +100,7 @@ const Dashboard = () => {
                 Public Forms
               </Button>}
             {isIITBombay && <EurekaSampleButton />}
-            {isVC && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Upload Deck
-              </Button>}
+
             <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
               <Newspaper className="mr-2 h-4 w-4" />
               News Feed
