@@ -171,7 +171,20 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     });
   };
 
-  // VC and BITS combined view - simplified table
+  // Helper function to extract stage from response_received
+  const getStageFromResponseReceived = (company: Company): string => {
+    try {
+      if ((company as any).response_received) {
+        const responseData = JSON.parse((company as any).response_received);
+        return responseData.stage || "—";
+      }
+    } catch (error) {
+      console.log('Error parsing response_received for stage:', error);
+    }
+    return "—";
+  };
+
+  // VC and BITS combined view - simplified table with Stage instead of Source
   if (isVCAndBits) {
     return (
       <Card>
@@ -200,7 +213,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[200px]">Company</TableHead>
                 <TableHead className="font-semibold w-[150px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[100px]">Source</TableHead>
+                <TableHead className="font-semibold w-[100px]">Stage</TableHead>
                 <TableHead className="font-semibold w-[100px]">Score</TableHead>
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
@@ -210,6 +223,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 const formattedScore = Math.round(company.overall_score);
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
+                const stage = getStageFromResponseReceived(company);
                 
                 return (
                   <TableRow 
@@ -225,7 +239,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize text-xs">
-                        {company.source || 'Dashboard'}
+                        {stage}
                       </Badge>
                     </TableCell>
                     <TableCell>
