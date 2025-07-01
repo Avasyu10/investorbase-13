@@ -1,9 +1,3 @@
-Here's the `CompaniesTable.tsx` file again, with the identified build error (`getScoreBadgeBadgeColor` typo) corrected and ensuring the `getStageFromResponseReceived` helper is properly defined and used.
-
-Please make sure you have also updated your `src/lib/api/apiContract.ts` file with the `Company` interface as suggested in the previous response, including `response_received?: string | null;` and other fields like `poc_name`, `phonenumber`, `email`. This is crucial for TypeScript to correctly understand the data types.
-
-```typescript
-// CompaniesTable.tsx
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -437,4 +431,4 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     </>
   );
 }
-```
+
