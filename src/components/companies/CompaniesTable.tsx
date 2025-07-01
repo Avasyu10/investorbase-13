@@ -2,8 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Company } from "@/lib/api/apiContract";
-import { formatDistanceToNow } from "date-fns";
+import { Company } from "@/lib/api/apiContract"; // Assuming Company is now correctly typed here
 import { Star, Trash2, Phone, Mail, Globe, Download, ArrowUpDown } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
@@ -13,21 +12,18 @@ import { usePdfDownload } from "@/hooks/usePdfDownload";
 // Define sort order type
 type SortOrder = 'asc' | 'desc' | null;
 
-// Extend Company type if response_received is not properly typed in apiContract
-// This is a safe way to tell TypeScript that `response_received` might be a string
-interface CompanyWithResponse extends Company {
-  response_received?: string; // Explicitly define it as a string
-}
-
-
 interface CompaniesTableProps {
-  companies: CompanyWithResponse[]; // Use the extended type here
+  companies: Company[]; // Use the original Company type, assuming it's correctly defined in apiContract
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
   isBits?: boolean;
   isVC?: boolean;
 }
+
+// REMOVED getStageFromResponseReceived helper.
+// We'll put the logic directly in the render to simplify and debug.
+
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
@@ -187,114 +183,115 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   };
 
   if (isIITBombay) {
+    // ... (IIT Bombay table code remains unchanged)
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Companies Prospects</h3>
-              <p className="text-sm text-muted-foreground">
-                {localCompanies.length} companies found
-              </p>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold">Companies Prospects</h3>
+                <p className="text-sm text-muted-foreground">
+                  {localCompanies.length} companies found
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPdf}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadPdf}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download PDF
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-semibold w-[140px]">Company Name</TableHead>
-                <TableHead className="font-semibold w-[100px]">Name</TableHead>
-                <TableHead className="font-semibold w-[110px]">Phone Number</TableHead>
-                <TableHead className="font-semibold w-[120px]">Email</TableHead>
-                <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">
-                  {/* Sorting control for Score */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 inline-flex items-center group"
-                    onClick={() => handleSort('overall_score')}
-                  >
-                    Score
-                    {getSortIcon('overall_score')}
-                  </Button>
-                </TableHead>
-                <TableHead className="font-semibold">Reason for Scoring</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedCompanies.map((company) => {
-                const formattedScore = Math.round(company.overall_score);
-                const isCompanyDeleting = deletingCompanies.has(company.id);
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-semibold w-[140px]">Company Name</TableHead>
+                  <TableHead className="font-semibold w-[100px]">Name</TableHead>
+                  <TableHead className="font-semibold w-[110px]">Phone Number</TableHead>
+                  <TableHead className="font-semibold w-[120px]">Email</TableHead>
+                  <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+                  <TableHead className="font-semibold w-[80px]">
+                    {/* Sorting control for Score */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 inline-flex items-center group"
+                      onClick={() => handleSort('overall_score')}
+                    >
+                      Score
+                      {getSortIcon('overall_score')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="font-semibold">Reason for Scoring</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedCompanies.map((company) => {
+                  const formattedScore = Math.round(company.overall_score);
+                  const isCompanyDeleting = deletingCompanies.has(company.id);
 
-                return (
-                  <TableRow
-                    key={company.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => onCompanyClick(company.id)}
-                  >
-                    <TableCell className="font-medium">
-                      {company.name}
-                    </TableCell>
-                    <TableCell>
-                      {(company as any).poc_name || "—"}
-                    </TableCell>
-                    <TableCell>
-                      {(company as any).phonenumber || "—"}
-                    </TableCell>
-                    <TableCell>
-                      {(company as any).email || "—"}
-                    </TableCell>
-                    <TableCell>
-                      {company.industry || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-yellow-500" />
-                        <Badge className={getScoreBadgeColor(formattedScore)}>
-                          <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
-                            {formattedScore}/100
+                  return (
+                    <TableRow
+                      key={company.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => onCompanyClick(company.id)}
+                    >
+                      <TableCell className="font-medium">
+                        {company.name}
+                      </TableCell>
+                      <TableCell>
+                        {(company as any).poc_name || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {(company as any).phonenumber || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {(company as any).email || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {company.industry || "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          <Badge className={getScoreBadgeColor(formattedScore)}>
+                            <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
+                              {formattedScore}/100
+                            </span>
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-none">
+                          <span className="text-sm text-muted-foreground">
+                            {company.scoring_reason || "Scoring analysis is being generated for this company."}
                           </span>
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-none">
-                        <span className="text-sm text-muted-foreground">
-                          {company.scoring_reason || "Scoring analysis is being generated for this company."}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleDeleteClick(e, company.id)}
-                        disabled={isCompanyDeleting || isDeleting}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    );
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDeleteClick(e, company.id)}
+                          disabled={isCompanyDeleting || isDeleting}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      );
   }
   // Table format for non-IIT Bombay users
   return (
@@ -340,23 +337,35 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
 
-                // **** CRITICAL CHANGE HERE ****
                 let stage = "—";
-                if (company.response_received && typeof company.response_received === 'string') {
-                  try {
-                    const parsedResponse = JSON.parse(company.response_received);
-                    if (parsedResponse && typeof parsedResponse === 'object' && parsedResponse.stage) {
-                      stage = parsedResponse.stage;
-                    }
-                  } catch (e) {
-                    console.error("Error parsing response_received JSON for company:", company.name, e);
-                    stage = "Invalid Data"; // Indicate an error if JSON parsing fails
-                  }
-                } else if (company.response_received && typeof company.response_received === 'object' && (company.response_received as any).stage) {
-                  // Fallback for if it's already an object, though the user states it's a string
-                  stage = (company.response_received as any).stage;
+                // Step 1: Check if 'stage' is already a direct property (less likely but possible from a pre-processed list)
+                if ((company as any).stage) {
+                    stage = (company as any).stage;
+                    console.log(`Company: ${company.name}, Stage (direct): ${stage}`); // Debug
                 }
-                // **** END CRITICAL CHANGE ****
+                // Step 2: Check if response_received is ALREADY an object (parsed upstream)
+                else if (company.response_received && typeof company.response_received === 'object' && 'stage' in company.response_received) {
+                    stage = (company.response_received as { stage: string }).stage || "—";
+                    console.log(`Company: ${company.name}, Stage (from parsed object): ${stage}`); // Debug
+                }
+                // Step 3: If response_received is still a string (meaning it hasn't been parsed upstream or is a different data source)
+                else if (company.response_received && typeof company.response_received === 'string') {
+                    try {
+                        const parsedResponse = JSON.parse(company.response_received);
+                        if (parsedResponse && typeof parsedResponse === 'object' && parsedResponse.stage) {
+                            stage = parsedResponse.stage;
+                            console.log(`Company: ${company.name}, Stage (from parsed string): ${stage}`); // Debug
+                        } else {
+                            console.warn(`Company: ${company.name}, Parsed response_received missing stage or not object:`, parsedResponse); // Debug
+                        }
+                    } catch (e) {
+                        console.error(`Company: ${company.name}, Error parsing response_received string:`, company.response_received, e); // Debug
+                        stage = "Invalid Data";
+                    }
+                } else {
+                    console.warn(`Company: ${company.name}, response_received is not a string, object, or null:`, company.response_received); // Debug
+                }
+
 
                 return (
                   <TableRow
