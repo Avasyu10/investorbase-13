@@ -20,7 +20,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
   
   // Get score color class
   const getScoreColor = (score: number) => {
-    if (score >= 75) return "text-emerald-600";
+    if (score >= 90) return "text-emerald-600";
     if (score >= 70) return "text-blue-600";
     if (score >= 50) return "text-amber-600";
     if (score >= 30) return "text-orange-600";

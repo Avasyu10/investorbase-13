@@ -14,7 +14,7 @@ export function CompaniesList() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(100); // Increased default page size
   const { deleteCompany } = useDeleteCompany();
 
   const { companies, totalCount, isLoading, error } = useCompanies(currentPage, pageSize, 'created_at', 'desc', searchTerm);
@@ -42,13 +42,19 @@ export function CompaniesList() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when changing page size
   };
+
+  // Calculate rating-based stats - use totalCount from database, not just current page
+  const totalProspects = totalCount;
+  const highPotential = companies.filter(c => c.overall_score > 70).length;
+  const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
+  const badPotential = companies.filter(c => c.overall_score < 50).length;
 
   // Calculate pagination info
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -113,6 +119,26 @@ export function CompaniesList() {
           <p className="text-muted-foreground">
             Track and manage your investment prospects
           </p>
+        </div>
+      </div>
+
+      {/* Stats section for all users */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-primary">{totalProspects}</div>
+          <div className="text-sm text-muted-foreground">Total Prospects</div>
+        </div>
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-green-600">{highPotential}</div>
+          <div className="text-sm text-muted-foreground">High Potential (Current Page)</div>
+        </div>
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-yellow-600">{mediumPotential}</div>
+          <div className="text-sm text-muted-foreground">Medium Potential (Current Page)</div>
+        </div>
+        <div className="bg-card rounded-lg p-4 border">
+          <div className="text-2xl font-bold text-red-600">{badPotential}</div>
+          <div className="text-sm text-muted-foreground">Bad Potential (Current Page)</div>
         </div>
       </div>
 

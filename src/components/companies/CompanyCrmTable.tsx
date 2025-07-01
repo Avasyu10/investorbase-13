@@ -29,9 +29,7 @@ import { CompanyListItem } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { useProfile } from "@/hooks/useProfile";
 import { ExternalLink, Edit2, Phone } from "lucide-react";
-import { BitsCrmTable } from "./BitsCrmTable";
 
 interface CrmData {
   point_of_contact: string | null;
@@ -49,7 +47,6 @@ interface CrmData {
 interface CompanyCrmTableProps {
   companies: CompanyListItem[];
   onCompanyClick: (companyId: string) => void;
-  onDeleteCompany?: (companyId: string) => void;
 }
 
 const INDUSTRY_OPTIONS = [
@@ -61,28 +58,17 @@ const STATUS_OPTIONS = [
   "New", "Contacted", "Meeting Scheduled", "In Review", "Interested", "Not Interested", "Passed"
 ];
 
-export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: CompanyCrmTableProps) {
-  const { isVC, isBits } = useProfile();
+export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTableProps) {
   const [editingCompany, setEditingCompany] = useState<{ id: string, crmData: CrmData } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
 
-  // If user is both VC and BITS, show the simplified table
-  if (isVC && isBits) {
-    return (
-      <BitsCrmTable 
-        companies={companies} 
-        onCompanyClick={onCompanyClick}
-        onDeleteCompany={onDeleteCompany || (() => {})}
-      />
-    );
-  }
-
   const handleEditClick = async (company: CompanyListItem, e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent row click when clicking on edit button
     
     try {
+      // Fetch existing CRM data for this company
       const { data, error } = await supabase
         .from('company_details')
         .select('*')
@@ -94,6 +80,7 @@ export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: 
         throw error;
       }
       
+      // Set the editing company with existing data or default values
       setEditingCompany({
         id: company.id.toString(),
         crmData: {
@@ -125,6 +112,7 @@ export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: 
     if (!editingCompany) return;
     
     try {
+      // Check if we need to update status_date (only if status has changed)
       const { data: existingData } = await supabase
         .from('company_details')
         .select('status')
@@ -133,10 +121,12 @@ export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: 
         
       const updateData = { ...editingCompany.crmData };
       
+      // If status has changed, update the status_date
       if (existingData?.status !== updateData.status) {
         updateData.status_date = new Date().toISOString();
       }
       
+      // First check if there is an existing record
       const { data: existingRecord } = await supabase
         .from('company_details')
         .select('id')
@@ -146,6 +136,7 @@ export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: 
       let result;
       
       if (existingRecord) {
+        // Update existing record
         result = await supabase
           .from('company_details')
           .update({
@@ -153,6 +144,7 @@ export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: 
           })
           .eq('company_id', editingCompany.id);
       } else {
+        // Insert new record
         result = await supabase
           .from('company_details')
           .insert({
@@ -171,6 +163,7 @@ export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: 
       setIsDialogOpen(false);
       setEditingCompany(null);
       
+      // Trigger a refresh of the CRM fields
       setRefreshTrigger(prev => prev + 1);
       
       toast({
@@ -474,6 +467,7 @@ export function CompanyCrmTable({ companies, onCompanyClick, onDeleteCompany }: 
   );
 }
 
+// Helper component to display CRM fields with data fetched from the database
 function CompanyCrmField({ 
   companyId, 
   field, 
@@ -494,6 +488,7 @@ function CompanyCrmField({
   const [value, setValue] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch the field value when the component mounts or when refreshTrigger changes
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -504,7 +499,7 @@ function CompanyCrmField({
           .eq('company_id', companyId)
           .maybeSingle();
         
-        if (error && error.code !== 'PGRST116') {
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
           console.error(`Error fetching ${field}:`, error);
         }
         

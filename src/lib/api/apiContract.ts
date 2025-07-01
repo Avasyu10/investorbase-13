@@ -21,7 +21,6 @@ export interface Company {
   updated_at?: string;
   report_id?: string;
   reportId?: string;
-  response_received?: string;
   user_id?: string;
   sections?: Section[];
   website?: string;
