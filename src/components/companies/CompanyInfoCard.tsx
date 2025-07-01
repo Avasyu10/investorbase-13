@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
+import { Company, AnalysisResult } from "@/lib/api/apiContract";
 
 type CompanyInfoProps = {
   website?: string;
@@ -22,23 +23,7 @@ type CompanyInfoProps = {
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
 };
 
-interface Company {
-  id: string;
-  name: string;
-  report_id?: string;
-  response_received?: string;
-}
 
-interface AnalysisResult {
-  companyInfo?: {
-    stage: string;
-    industry: string;
-    website: string;
-    description: string;
-  };
-  assessmentPoints?: string[];
-  [key: string]: any;
-}
 
 export function CompanyInfoCard({
   website = "",
