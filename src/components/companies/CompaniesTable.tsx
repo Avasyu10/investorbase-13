@@ -1,8 +1,10 @@
+// CompaniesTable.tsx
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Company } from "@/lib/api/apiContract"; // Assuming Company is now correctly typed here
+import { Company } from "@/lib/api/apiContract"; // Ensure this Company interface is correctly updated in apiContract.ts
 import { Star, Trash2, Phone, Mail, Globe, Download, ArrowUpDown } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
@@ -13,7 +15,7 @@ import { usePdfDownload } from "@/hooks/usePdfDownload";
 type SortOrder = 'asc' | 'desc' | null;
 
 interface CompaniesTableProps {
-  companies: Company[]; // Use the original Company type, assuming it's correctly defined in apiContract
+  companies: Company[];
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
@@ -21,8 +23,26 @@ interface CompaniesTableProps {
   isVC?: boolean;
 }
 
-// REMOVED getStageFromResponseReceived helper.
-// We'll put the logic directly in the render to simplify and debug.
+// This helper function to safely parse response_received and get the stage
+// It should be placed outside the CompaniesTable component function
+function getStageFromResponseReceived(responseReceived: string | null | undefined): string {
+  if (!responseReceived || typeof responseReceived !== 'string' || responseReceived.trim() === '') {
+    // console.warn(`getStageFromResponseReceived: Input is not a string, is empty, or null/undefined. Type: ${typeof responseReceived}, Value: ${responseReceived}`);
+    return "—";
+  }
+
+  try {
+    const parsedData = JSON.parse(responseReceived);
+    if (parsedData && typeof parsedData === 'object' && 'stage' in parsedData) {
+      return (parsedData as { stage: string }).stage || "—"; // Explicitly cast and return stage
+    } else {
+      // console.warn(`getStageFromResponseReceived: Parsed data missing 'stage' or not an object. Parsed:`, parsedData);
+    }
+  } catch (error) {
+    // console.error("Failed to parse response_received JSON:", responseReceived, error);
+  }
+  return "—";
+}
 
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
@@ -48,20 +68,26 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     }
 
     return [...localCompanies].sort((a, b) => {
-      let valA = 0;
-      let valB = 0;
+      let valA: number | string = 0;
+      let valB: number | string = 0;
 
       if (sortColumn === 'overall_score') {
         valA = a.overall_score || 0;
         valB = b.overall_score || 0;
+        return sortOrder === 'asc' ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
+      }
+      if (sortColumn === 'stage') {
+        // Get stage for sorting using the helper
+        const stageA = getStageFromResponseReceived(a.response_received);
+        const stageB = getStageFromResponseReceived(b.response_received);
+        valA = stageA;
+        valB = stageB;
+        // Basic string comparison for stage
+        return sortOrder === 'asc' ? stageA.localeCompare(stageB) : stageB.localeCompare(stageA);
       }
       // Add other columns here if you want to sort by them later
 
-      if (sortOrder === 'asc') {
-        return valA - valB;
-      } else { // 'desc'
-        return valB - valA;
-      }
+      return 0; // Fallback
     });
   }, [localCompanies, sortOrder, sortColumn]);
 
@@ -183,7 +209,6 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   };
 
   if (isIITBombay) {
-    // ... (IIT Bombay table code remains unchanged)
     return (
         <Card>
           <CardHeader className="pb-3">
@@ -245,13 +270,13 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                         {company.name}
                       </TableCell>
                       <TableCell>
-                        {(company as any).poc_name || "—"}
+                        {company.poc_name || "—"} {/* Use directly */}
                       </TableCell>
                       <TableCell>
-                        {(company as any).phonenumber || "—"}
+                        {company.phonenumber || "—"} {/* Use directly */}
                       </TableCell>
                       <TableCell>
-                        {(company as any).email || "—"}
+                        {company.email || "—"} {/* Use directly */}
                       </TableCell>
                       <TableCell>
                         {company.industry || "—"}
@@ -259,7 +284,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Star className="h-4 w-4 text-yellow-500" />
-                          <Badge className={getScoreBadgeColor(formattedScore)}>
+                          <Badge className={getScoreBadgeColor(formattedScore)}> {/* Corrected typo here */}
                             <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
                               {formattedScore}/100
                             </span>
@@ -313,7 +338,17 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[100px]">Company</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[100px]">Stage</TableHead>
+                <TableHead className="font-semibold w-[100px]">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 inline-flex items-center group"
+                        onClick={() => handleSort('stage')} {/* Added sorting for stage */}
+                    >
+                        Stage
+                        {getSortIcon('stage')}
+                    </Button>
+                </TableHead>
                 <TableHead className="font-semibold w-[80px]">
                   <Button
                     variant="ghost"
@@ -337,35 +372,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
 
-                let stage = "—";
-                // Step 1: Check if 'stage' is already a direct property (less likely but possible from a pre-processed list)
-                if ((company as any).stage) {
-                    stage = (company as any).stage;
-                    console.log(`Company: ${company.name}, Stage (direct): ${stage}`); // Debug
-                }
-                // Step 2: Check if response_received is ALREADY an object (parsed upstream)
-                else if (company.response_received && typeof company.response_received === 'object' && 'stage' in company.response_received) {
-                    stage = (company.response_received as { stage: string }).stage || "—";
-                    console.log(`Company: ${company.name}, Stage (from parsed object): ${stage}`); // Debug
-                }
-                // Step 3: If response_received is still a string (meaning it hasn't been parsed upstream or is a different data source)
-                else if (company.response_received && typeof company.response_received === 'string') {
-                    try {
-                        const parsedResponse = JSON.parse(company.response_received);
-                        if (parsedResponse && typeof parsedResponse === 'object' && parsedResponse.stage) {
-                            stage = parsedResponse.stage;
-                            console.log(`Company: ${company.name}, Stage (from parsed string): ${stage}`); // Debug
-                        } else {
-                            console.warn(`Company: ${company.name}, Parsed response_received missing stage or not object:`, parsedResponse); // Debug
-                        }
-                    } catch (e) {
-                        console.error(`Company: ${company.name}, Error parsing response_received string:`, company.response_received, e); // Debug
-                        stage = "Invalid Data";
-                    }
-                } else {
-                    console.warn(`Company: ${company.name}, response_received is not a string, object, or null:`, company.response_received); // Debug
-                }
-
+                // Use the helper function here
+                const stage = getStageFromResponseReceived(company.response_received);
 
                 return (
                   <TableRow
@@ -382,7 +390,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                       <span className="text-sm">{industry}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm">{stage}</span>
+                      <span className="text-sm">{stage}</span> {/* Display the extracted stage */}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
