@@ -64,6 +64,35 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const { toast } = useToast();
 
+  // Convert any score to 5-point scale
+  const convertToFivePointScale = (score: number) => {
+    // If score is already between 0-5, assume it's already on 5-point scale
+    if (score <= 5) {
+      return score;
+    }
+    // If score is on 100-point scale, convert to 5-point scale
+    return (score / 100) * 5;
+  };
+
+  // Format score display - always show as decimal out of 5
+  const formatScore = (score: number) => { 
+    const convertedScore = convertToFivePointScale(score);
+    console.log('Original score:', score, 'Converted score:', convertedScore);
+    return convertedScore.toFixed(1);
+  };
+
+  // Get score color based on 5-point scale
+  const getScoreColor = (score: number) => {
+    const convertedScore = convertToFivePointScale(score);
+    console.log('Getting color for original score:', score, 'converted score:', convertedScore);
+    
+    // Use 5-point scale thresholds
+    if (convertedScore >= 4.0) return "text-emerald-600 bg-emerald-50";
+    if (convertedScore >= 3.0) return "text-blue-600 bg-blue-50";
+    if (convertedScore >= 2.0) return "text-amber-600 bg-amber-50";
+    return "text-red-600 bg-red-50";
+  };
+
   const handleEditClick = async (company: CompanyListItem, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row click when clicking on edit button
     
@@ -209,6 +238,7 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
               <TableHead className="w-[120px]">Source</TableHead>
               <TableHead className="w-[100px]">Industry</TableHead>
               <TableHead className="w-[120px]">LinkedIn</TableHead>
+              <TableHead className="w-[80px]">Score</TableHead>
               <TableHead className="w-[120px]">Status</TableHead>
               <TableHead className="w-[120px]">Status Changed</TableHead>
               <TableHead className="w-[120px]">Account Manager</TableHead>
@@ -218,6 +248,10 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
           </TableHeader>
           <TableBody>
             {companies.map((company) => {
+              // Ensure we get the raw score as a number and convert it
+              const rawScore = Number(company.overall_score) || 0;
+              console.log('Company:', company.name, 'Raw score from DB:', company.overall_score, 'Converted:', rawScore);
+              
               return (
                 <TableRow
                   key={company.id}
@@ -261,6 +295,13 @@ export function CompanyCrmTable({ companies, onCompanyClick }: CompanyCrmTablePr
                       isUrl={true}
                       refreshTrigger={refreshTrigger}
                     />
+                  </TableCell>
+                  <TableCell title="Overall Score">
+                    <span 
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(rawScore)}`}
+                    >
+                      {formatScore(rawScore)}/5.0
+                    </span>
                   </TableCell>
                   <TableCell title="Status">
                     <CompanyCrmField 

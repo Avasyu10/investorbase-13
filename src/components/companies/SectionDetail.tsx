@@ -47,7 +47,7 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   if (title.includes('traction') || title.includes('milestone')) {
     return SECTION_TITLES[SECTION_TYPES.TRACTION];
   }
-  if (title.includes('team') || title.includes('founder capability')) {
+  if (title.includes('team') || title.includes('founder')) {
     return SECTION_TITLES[SECTION_TYPES.TEAM];
   }
   if (title.includes('financial') || title.includes('projection')) {
@@ -59,7 +59,7 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   if (title.includes('problem')) {
     return SECTION_TITLES[SECTION_TYPES.PROBLEM];
   }
-  if (title.includes('opportunity')) {
+  if (title.includes('market') || title.includes('opportunity')) {
     return SECTION_TITLES[SECTION_TYPES.MARKET];
   }
   if (title.includes('competitive') || title.includes('landscape')) {
