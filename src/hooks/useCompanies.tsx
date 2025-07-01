@@ -90,7 +90,7 @@ export function useCompanies(
           .from('companies')
           .select(`
             id, name, overall_score, created_at, updated_at, 
-            assessment_points, report_id, user_id, source,
+            assessment_points, report_id, response_received, user_id, source,
             poc_name, phonenumber, email, industry, scoring_reason,
             report:report_id (
               pdf_url, 
@@ -141,7 +141,8 @@ export function useCompanies(
           return mapDbCompanyToApi({
             ...company,
             // Use industry from public_form_submissions if available, otherwise fallback to existing industry
-            industry: publicFormIndustry || company.industry
+            industry: publicFormIndustry || company.industry,
+            response_received: company.response_received
           });
         }));
         
