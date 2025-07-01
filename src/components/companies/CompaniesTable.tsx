@@ -17,9 +17,10 @@ interface CompaniesTableProps {
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
+  isBITS?: boolean;
 }
 
-export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false }: CompaniesTableProps) {
+export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBITS = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -264,7 +265,102 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       </Card>
     );
   }
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">BITS Companies Prospects</h3>
+              <p className="text-sm text-muted-foreground">
+                {localCompanies.length} companies found
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-semibold w-[150px]">Company</TableHead>
+                <TableHead className="font-semibold w-[120px]">Industry</TableHead>
+                <TableHead className="font-semibold w-[100px]">Stage</TableHead> {/* Stage extracted from response_received */}
+                <TableHead className="font-semibold w-[80px]">Score</TableHead>
+                <TableHead className="font-semibold w-[100px]">Status</TableHead>
+                <TableHead className="w-[60px]">Actions</TableHead> {/* Only delete action */}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {localCompanies.map((company) => {
+                const formattedScore = Math.round(company.overall_score);
+                const companyDetails = (company as any).company_details;
+                const status = companyDetails?.status || 'New';
+                const isCompanyDeleting = deletingCompanies.has(company.id);
 
+                // Extract stage from response_received
+                let extractedStage = 'N/A';
+                try {
+                  if (company.response_received) {
+                    const parsedResponse = JSON.parse(company.response_received);
+                    extractedStage = parsedResponse.stage || 'N/A';
+                  }
+                } catch (e) {
+                  console.error("Failed to parse response_received for stage:", e);
+                }
+
+                return (
+                  <TableRow
+                    key={company.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => onCompanyClick(company.id)}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-foreground">{company.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{company.industry || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{extractedStage}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getScoreBadgeColor(formattedScore)}>
+                        <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                          {formattedScore}
+                        </span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(status)}>
+                        <span className="text-xs font-medium">{status}</span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDeleteClick(e, company.id)}
+                          disabled={isCompanyDeleting || isDeleting}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  }
   // New table format for non-IIT Bombay users
   return (
     <>
