@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, User, Send } from "lucide-react";
+import { User, Send } from "lucide-react"; // Removed Bot from import
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -103,7 +102,7 @@ export function CompanyChatbotDialog({
       if (data?.success && data?.response) {
         // Clean the response of markdown formatting
         const cleanedResponse = cleanMarkdownFormatting(data.response);
-        
+
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -137,7 +136,12 @@ export function CompanyChatbotDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[600px] flex flex-col">
-
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {/* Removed the Bot icon */}
+            Chat about {companyName}
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 p-4 border rounded-lg">
@@ -148,12 +152,13 @@ export function CompanyChatbotDialog({
                   message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {message.role === "assistant" && (
+                {/* Removed the Bot icon from assistant messages */}
+                {/* {message.role === "assistant" && (
                   <div className="flex-shrink-0">
                     <Bot className="h-6 w-6 text-primary" />
                   </div>
-                )}
-                
+                )} */}
+
                 <div
                   className={`max-w-[80%] rounded-lg px-3 py-2 ${
                     message.role === "user"
@@ -165,7 +170,7 @@ export function CompanyChatbotDialog({
                     {message.content}
                   </div>
                 </div>
-                
+
                 {message.role === "user" && (
                   <div className="flex-shrink-0">
                     <User className="h-6 w-6 text-muted-foreground" />
@@ -173,12 +178,13 @@ export function CompanyChatbotDialog({
                 )}
               </div>
             ))}
-            
+
             {isLoading && (
               <div className="flex gap-3 mb-4">
-                <div className="flex-shrink-0">
+                {/* Removed the Bot icon from loading indicator */}
+                {/* <div className="flex-shrink-0">
                   <Bot className="h-6 w-6 text-primary" />
-                </div>
+                </div> */}
                 <div className="bg-muted rounded-lg px-3 py-2">
                   <div className="text-sm text-muted-foreground">
                     Thinking...
