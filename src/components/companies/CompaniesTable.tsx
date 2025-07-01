@@ -21,8 +21,29 @@ interface CompaniesTableProps {
   isVC?: boolean;
 }
 
-// REMOVED getStageFromResponseReceived helper.
-// We'll put the logic directly in the render to simplify and debug.
+/**
+ * Helper function to extract the 'stage' from the 'response_received' JSON string.
+ * This function specifically looks for the 'stage' property at the root level of the JSON.
+ */
+function getStageFromResponseReceived(responseReceived: string | null | undefined): string {
+  if (!responseReceived || typeof responseReceived !== 'string' || responseReceived.trim() === '') {
+    // console.log("getStageFromResponseReceived: Input is null, undefined, or empty string."); // Debug
+    return "—"; // Return default if input is invalid
+  }
+
+  try {
+    const parsedData = JSON.parse(responseReceived);
+    // console.log("getStageFromResponseReceived: Parsed data:", parsedData); // Debug
+
+    // As per CompanyInfoCard's usage, 'stage' is expected as a direct property
+    if (parsedData && typeof parsedData === 'object' && parsedData.stage) {
+      return parsedData.stage;
+    }
+  } catch (error) {
+    // console.error("Failed to parse response_received JSON for stage:", responseReceived, error); // Debug
+  }
+  return "—"; // Default if no stage is found or parsing fails
+}
 
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
@@ -332,40 +353,13 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
             <TableBody>
               {sortedCompanies.map((company) => {
                 const formattedScore = Math.round(company.overall_score);
-                const companyDetails = (company as any).company_details;
+                const companyDetails = (company as any).company_details; // Keep as any if company_details isn't in main Company type
                 const status = companyDetails?.status || 'New';
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
 
-                let stage = "—";
-                // Step 1: Check if 'stage' is already a direct property (less likely but possible from a pre-processed list)
-                if ((company as any).stage) {
-                    stage = (company as any).stage;
-                    console.log(`Company: ${company.name}, Stage (direct): ${stage}`); // Debug
-                }
-                // Step 2: Check if response_received is ALREADY an object (parsed upstream)
-                else if (company.response_received && typeof company.response_received === 'object' && 'stage' in company.response_received) {
-                    stage = (company.response_received as { stage: string }).stage || "—";
-                    console.log(`Company: ${company.name}, Stage (from parsed object): ${stage}`); // Debug
-                }
-                // Step 3: If response_received is still a string (meaning it hasn't been parsed upstream or is a different data source)
-                else if (company.response_received && typeof company.response_received === 'string') {
-                    try {
-                        const parsedResponse = JSON.parse(company.response_received);
-                        if (parsedResponse && typeof parsedResponse === 'object' && parsedResponse.stage) {
-                            stage = parsedResponse.stage;
-                            console.log(`Company: ${company.name}, Stage (from parsed string): ${stage}`); // Debug
-                        } else {
-                            console.warn(`Company: ${company.name}, Parsed response_received missing stage or not object:`, parsedResponse); // Debug
-                        }
-                    } catch (e) {
-                        console.error(`Company: ${company.name}, Error parsing response_received string:`, company.response_received, e); // Debug
-                        stage = "Invalid Data";
-                    }
-                } else {
-                    console.warn(`Company: ${company.name}, response_received is not a string, object, or null:`, company.response_received); // Debug
-                }
-
+                // Explicitly use the helper for stage extraction, prioritizing direct 'stage' column if present
+                const stage = company.stage || getStageFromResponseReceived(company.response_received);
 
                 return (
                   <TableRow
