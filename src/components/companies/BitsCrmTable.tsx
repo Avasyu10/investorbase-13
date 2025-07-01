@@ -96,6 +96,7 @@ export function BitsCrmTable({ companies, onCompanyClick, onDeleteCompany }: Bit
                 <TableCell>{stage}</TableCell>
                 <TableCell>
                   <span className={`font-medium ${
+                    company.overall_score > 75 ? 'text-green-900' :
                     company.overall_score > 70 ? 'text-green-600' :
                     company.overall_score >= 50 ? 'text-yellow-600' : 'text-red-600'
                   }`}>
