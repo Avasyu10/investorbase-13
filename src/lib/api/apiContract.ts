@@ -17,9 +17,10 @@ export interface Company {
   industry?: string;
   overall_score?: number;
   scoring_reason?: string;
-  company_details?: { // This might be dynamically added or fetched separately
+  company_details?: { // Start of company_details object
     status?: string;
     // ... other company_details fields
+  }; 
 
   report_id?: string; // Add this if not present, as CompanyInfoCard fetches it
   response_received?: string | null; // THIS IS THE CRITICAL LINE. Must be string | null.
@@ -29,7 +30,7 @@ export interface Company {
   poc_name?: string | null;
   phonenumber?: string | null;
   email?: string | null;
-};
+}
 
 // Also ensure this interface exists if you use it in CompanyInfoCard
 export interface AnalysisResult {
