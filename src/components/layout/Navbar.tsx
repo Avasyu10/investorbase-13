@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isIITBombay } = useProfile();
+  const { isIITBombay, isVCAndBits } = useProfile();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -91,7 +91,7 @@ export function Navbar() {
                 </Button>
               )}
               
-              {!isIITBombay && (
+              {!isIITBombay && !isVCAndBits && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -141,7 +141,7 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  {!isIITBombay && (
+                  {!isIITBombay && !isVCAndBits && (
                     <DropdownMenuItem asChild>
                       <Link to="/profile" className="flex items-center">
                         <User className="h-4 w-4 mr-2" />
