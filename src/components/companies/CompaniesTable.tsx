@@ -309,7 +309,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[100px]">Company</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                {/* NEW: Stage Column Header */}
+                {/* Stage Column Header */}
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
                 <TableHead className="font-semibold w-[80px]">
                   {/* Sorting control for Score */}
@@ -335,22 +335,27 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
 
-                // NEW: Extract stage from response_received
+                // CORRECTED: Extract stage from response_received
                 let stage = "—";
-                if (company.response_received && typeof company.response_received === 'string') {
-                  try {
-                    const responseData = JSON.parse(company.response_received);
+                try {
+                  if (company.response_received) {
+                    let responseData: any;
+                    // Check if it's a string, attempt to parse
+                    if (typeof company.response_received === 'string') {
+                      responseData = JSON.parse(company.response_received);
+                    } else if (typeof company.response_received === 'object') {
+                      // If it's already an object, use it directly
+                      responseData = company.response_received;
+                    }
+
                     if (responseData && typeof responseData === 'object' && 'stage' in responseData) {
                       stage = responseData.stage || "—";
                     }
-                  } catch (e) {
-                    console.error("Error parsing response_received JSON:", e);
                   }
-                } else if (company.response_received && typeof company.response_received === 'object' && 'stage' in company.response_received) {
-                  // If response_received is already an object
-                  stage = (company.response_received as any).stage || "—";
+                } catch (e) {
+                  console.error("Error parsing response_received or accessing stage:", e);
+                  stage = "Error"; // Indicate an error in the UI if parsing fails
                 }
-
 
                 return (
                   <TableRow
@@ -366,7 +371,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     <TableCell>
                       <span className="text-sm">{industry}</span>
                     </TableCell>
-                    {/* NEW: Stage Column Cell */}
+                    {/* Stage Column Cell */}
                     <TableCell>
                       <span className="text-sm">{stage}</span>
                     </TableCell>
