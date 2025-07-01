@@ -18,9 +18,11 @@ interface CompaniesTableProps {
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
   isBits?: boolean;
+  isVC?: boolean;
+  
 }
 
-export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false }: CompaniesTableProps) {
+export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -265,7 +267,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       </Card>
     );
   }
-    if (isBits) {
+    if (isVC && isBits) {
     return (
       <Card>
         <CardHeader className="pb-3">
