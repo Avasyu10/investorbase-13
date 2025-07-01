@@ -268,154 +268,105 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     );
   }
   // New table format for non-IIT Bombay users
-  return (
-    <>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Companies Prospects</h3>
-              <p className="text-sm text-muted-foreground">
-                {localCompanies.length} companies found
-              </p>
-            </div>
+return (
+  <>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">Companies Prospects</h3>
+            <p className="text-sm text-muted-foreground">
+              {localCompanies.length} companies found
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-semibold w-[100px]">Company</TableHead>
-                <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">Score</TableHead>
-                <TableHead className="font-semibold w-[100px]">Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {localCompanies.map((company) => {
-                const formattedScore = Math.round(company.overall_score);
-                const companyDetails = (company as any).company_details;
-                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
-                const status = companyDetails?.status || 'New';
-                const isCompanyDeleting = deletingCompanies.has(company.id);
-                
-                // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
-                const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
-                const contactEmail = (company as any).email || companyDetails?.contact_email || '';
-                const phoneNumber = (company as any).phonenumber || '';
-                
-                // Display industry directly from public_form_submissions
-                const industry = company.industry || "—";
-                const teamMemberName = companyDetails?.teammember_name || '';
-                
-                return (
-                  <TableRow 
-                    key={company.id} 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => onCompanyClick(company.id)}
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-foreground">{company.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        {contactInfo && (
-                          <span className="text-sm">{contactInfo}</span>
-                        )}
-                        {phoneNumber && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            <span>{phoneNumber}</span>
-                          </div>
-                        )}
-                        {!contactInfo && !phoneNumber && (
-                          <span className="text-sm">—</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {contactEmail ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="h-3 w-3 text-muted-foreground" />
-                          <span className="truncate">{contactEmail}</span>
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize text-xs">
-                        {company.source || 'Dashboard'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{industry}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        
-                        <Badge className={getScoreBadgeColor(formattedScore)}>
-                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                            {formattedScore}
-                          </span>
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(status)}>
-                        <span className="text-xs font-medium">{status}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{teamMemberName || "—"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div 
-                        className="flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleEditClick(e, company)}
-                          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleDeleteClick(e, company.id)}
-                          disabled={isCompanyDeleting || isDeleting}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="font-semibold w-[100px]">Company</TableHead>
+              <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+              <TableHead className="font-semibold w-[80px]">Score</TableHead>
+              <TableHead className="font-semibold w-[100px]">Status</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {localCompanies.map((company) => {
+              const formattedScore = Math.round(company.overall_score);
+              const companyDetails = (company as any).company_details;
+              // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
+              const status = companyDetails?.status || 'New';
+              const isCompanyDeleting = deletingCompanies.has(company.id);
 
-      <EditCompanyDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        companyId={selectedCompanyForEdit?.id || ""}
-        currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
-        currentStatus={selectedCompanyForEdit?.status || "New"}
-        onUpdate={(teamMember, status) => {
-          if (selectedCompanyForEdit) {
-            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-          }
-        }}
-      />
-    </>
-  );
-}
+              // Display industry directly from public_form_submissions
+              const industry = company.industry || "—";
+
+              return (
+                <TableRow
+                  key={company.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => onCompanyClick(company.id)}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-foreground">{company.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{industry}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getScoreBadgeColor(formattedScore)}>
+                        <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                          {formattedScore}
+                        </span>
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusBadgeColor(status)}>
+                      <span className="text-xs font-medium">{status}</span>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      className="flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Removed Edit Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteClick(e, company.id)}
+                        disabled={isCompanyDeleting || isDeleting}
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+
+    <EditCompanyDialog
+      open={editDialogOpen}
+      onOpenChange={setEditDialogOpen}
+      companyId={selectedCompanyForEdit?.id || ""}
+      currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
+      currentStatus={selectedCompanyForEdit?.status || "New"}
+      onUpdate={(teamMember, status) => {
+        if (selectedCompanyForEdit) {
+          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+        }
+      }}
+    />
+  </>
+);
