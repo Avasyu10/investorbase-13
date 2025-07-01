@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -6,15 +7,21 @@ import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
 import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
+import { ScoreAssessment } from "@/components/companies/ScoreAssessment";
+import { Progress } from "@/components/ui/progress";
+import FormResponsesDialog from "@/components/companies/FormResponsesDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, BarChart2, ListChecks, Lightbulb, FileText } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2, ListChecks, Lightbulb, FileText, BotMessageSquare, Send, X } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketResearch } from "@/components/companies/MarketResearch";
+import { ORDERED_SECTIONS } from "@/lib/constants";
+import { toast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
 
 interface SlideNote {
   slideNumber: number;
@@ -36,6 +43,19 @@ function CompanyDetails() {
   const [error, setError] = useState<string | null>(null);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
+  const [isFromBarcForm, setIsFromBarcForm] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState({
+    website: "",
+    stage: "",
+    industry: "",
+    founderLinkedIns: [] as string[],
+    introduction: ""
+  });
+  const [infoLoading, setInfoLoading] = useState(true);
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState<Array<{content: string, role: 'user' | 'assistant'}>>([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = company ? {
@@ -117,12 +137,6 @@ function CompanyDetails() {
     }
   }, [company?.report_id]);
 
-  // Early return for loading state
-  // Early return for error state
-  // Ensure we have values to display, using fallbacks and proper defaults
-  // Filter sections based on user type - exclude slide notes and GTM strategy for display in section cards
-  // Custom sorting for VC users with specific order
-  // Debug logging for sections
   // Check if current user is IIT Bombay user
   useEffect(() => {
     const checkUserType = async () => {
@@ -552,6 +566,135 @@ function CompanyDetails() {
             )}
           </div>
         </div>
+        
+        {/* Chat sidebar - only show for non-IIT Bombay users */}
+        {showChat && !isIITBombayUser && (
+          <div className="w-1/2 border-l border-border bg-background shadow-card fixed right-0 top-0 h-screen flex flex-col">
+            <div className="p-4 border-b border-border flex justify-between items-center flex-shrink-0">
+              <div>
+                <h2 className="font-semibold text-lg flex items-center gap-2 text-primary">
+                  InsightMaster
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Discuss {company?.name}'s investment opportunity with InsightMaster
+                </p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleChatbotClick} 
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex-1 p-4 bg-secondary/10 overflow-y-auto">
+              <div className="flex flex-col space-y-4">
+                {messages.map((message, index) => (
+                  <div 
+                    key={index} 
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div 
+                      className={`max-w-[80%] rounded-lg p-4 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground ml-4' 
+                          : 'bg-muted text-foreground mr-4'
+                      }`}
+                    >
+                      {message.role === 'user' ? (
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                      ) : (
+                        <ReactMarkdown 
+                          className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                          components={{
+                            // Enhanced paragraph styling with proper spacing
+                            p: ({ children }) => (
+                              <p className="mb-3 last:mb-0 leading-relaxed text-sm">{children}</p>
+                            ),
+                            // Enhanced bullet points with better spacing and indentation
+                            ul: ({ children }) => (
+                              <ul className="mb-4 last:mb-0 space-y-1 pl-4">{children}</ul>
+                            ),
+                            li: ({ children }) => (
+                              <li className="text-sm leading-relaxed list-disc ml-1 pl-1">{children}</li>
+                            ),
+                            // Enhanced numbered lists
+                            ol: ({ children }) => (
+                              <ol className="mb-4 last:mb-0 space-y-1 pl-4 list-decimal">{children}</ol>
+                            ),
+                            // Enhanced headers with better spacing
+                            h1: ({ children }) => (
+                              <h1 className="text-base font-semibold mb-3 mt-4 first:mt-0">{children}</h1>
+                            ),
+                            h2: ({ children }) => (
+                              <h2 className="text-sm font-semibold mb-2 mt-3 first:mt-0">{children}</h2>
+                            ),
+                            h3: ({ children }) => (
+                              <h3 className="text-sm font-medium mb-2 mt-3 first:mt-0">{children}</h3>
+                            ),
+                            // Enhanced strong text
+                            strong: ({ children }) => (
+                              <strong className="font-semibold text-foreground">{children}</strong>
+                            ),
+                            // Enhanced code blocks
+                            code: ({ children }) => (
+                              <code className="bg-secondary/50 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                            ),
+                            // Enhanced blockquotes
+                            blockquote: ({ children }) => (
+                              <blockquote className="border-l-2 border-border pl-3 ml-2 italic text-muted-foreground my-3">
+                                {children}
+                              </blockquote>
+                            ),
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {isSendingMessage && (
+                  <div className="flex justify-start">
+                    <div className="bg-muted text-foreground max-w-[80%] rounded-lg p-4 mr-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 bg-primary rounded-full animate-pulse"></div>
+                        <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-75"></div>
+                        <div className="h-2 w-2 bg-primary rounded-full animate-pulse delay-150"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-border flex-shrink-0">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about this company..."
+                  className="flex-1 p-2 rounded-md border border-input bg-background"
+                  disabled={isSendingMessage}
+                />
+                <Button 
+                  onClick={handleSendMessage} 
+                  size="icon"
+                  disabled={isSendingMessage || !currentMessage.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Press Enter to send your message
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
