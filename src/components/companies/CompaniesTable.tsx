@@ -38,7 +38,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
 
   const getScoreColor = (score: number): string => {
     if (score >= 75) return "text-emerald-900";
-    if (score >= 70) return "text-blue-400";
+    if (score >= 70) return "text-blue-500";
     if (score >= 50) return "text-amber-600";
     if (score >= 30) return "text-orange-600";
     return "text-red-600";
