@@ -309,6 +309,8 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[100px]">Company</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+                {/* NEW: Stage Column Header */}
+                <TableHead className="font-semibold w-[100px]">Stage</TableHead>
                 <TableHead className="font-semibold w-[80px]">
                   {/* Sorting control for Score */}
                   <Button
@@ -333,6 +335,23 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
 
+                // NEW: Extract stage from response_received
+                let stage = "—";
+                if (company.response_received && typeof company.response_received === 'string') {
+                  try {
+                    const responseData = JSON.parse(company.response_received);
+                    if (responseData && typeof responseData === 'object' && 'stage' in responseData) {
+                      stage = responseData.stage || "—";
+                    }
+                  } catch (e) {
+                    console.error("Error parsing response_received JSON:", e);
+                  }
+                } else if (company.response_received && typeof company.response_received === 'object' && 'stage' in company.response_received) {
+                  // If response_received is already an object
+                  stage = (company.response_received as any).stage || "—";
+                }
+
+
                 return (
                   <TableRow
                     key={company.id}
@@ -346,6 +365,10 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    {/* NEW: Stage Column Cell */}
+                    <TableCell>
+                      <span className="text-sm">{stage}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
