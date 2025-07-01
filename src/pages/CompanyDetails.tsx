@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -197,8 +198,8 @@ function CompanyDetails() {
   console.log('Filtered sections (excluding SLIDE_NOTES and GTM_STRATEGY):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
 
-  // Calculate score based on user type for OverallAssessment
-  const displayScore = isVCAndBits ? Math.min(5, Math.max(0, company.overall_score || 0)) : (company.overall_score || 0);
+  // Always use 100-point scale for display
+  const displayScore = company.overall_score > 5 ? company.overall_score : company.overall_score * 20;
 
   return (
     <div className="min-h-screen">

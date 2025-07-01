@@ -12,43 +12,33 @@ interface ScoreAssessmentProps {
 }
 
 export function ScoreAssessment({ company }: ScoreAssessmentProps) {
-  // Convert any score to 5-point scale
-  const convertToFivePointScale = (score: number) => {
-    // If score is already between 0-5, assume it's already on 5-point scale
-    if (score <= 5) {
-      return score;
-    }
-    // If score is on 100-point scale, convert to 5-point scale
-    return (score / 100) * 5;
-  };
-  
-  // Format overall score to 5-point scale
+  // Always use 100-point scale
   const rawScore = company.overall_score;
-  const displayScore = convertToFivePointScale(rawScore);
+  const displayScore = rawScore > 5 ? rawScore : rawScore * 20; // Convert 5-point to 100-point if needed
   
   // Calculate progress percentage
-  const progressPercentage = (displayScore / 5) * 100;
+  const progressPercentage = displayScore;
   
-  // Get score color class based on 5-point scale
+  // Get score color class based on 100-point scale
   const getScoreColor = (score: number) => {
-    if (score >= 4.5) return "text-emerald-600";
-    if (score >= 3.5) return "text-blue-600"; 
-    if (score >= 2.5) return "text-amber-600";
-    if (score >= 1.5) return "text-orange-600";
+    if (score >= 80) return "text-emerald-600";
+    if (score >= 60) return "text-blue-600"; 
+    if (score >= 40) return "text-amber-600";
+    if (score >= 20) return "text-orange-600";
     return "text-red-600";
   };
   
-  // Get score description based on 5-point scale
+  // Get score description based on 100-point scale
   const getScoreDescription = (score: number): string => {
-    if (score >= 4.5) return `Excellent Investment Opportunity (${score.toFixed(1)}/5.0): Outstanding company with exceptional potential, strong fundamentals, and minimal risk factors.`;
-    if (score >= 3.5) return `Good Investment Candidate (${score.toFixed(1)}/5.0): Solid company with good potential and manageable risks. Worth serious consideration.`;
-    if (score >= 2.5) return `Average Investment Potential (${score.toFixed(1)}/5.0): Decent fundamentals but several areas need improvement. Moderate risk factors exist.`;
-    if (score >= 1.5) return `Below Average Investment (${score.toFixed(1)}/5.0): Significant concerns exist. Requires extensive due diligence and improvements.`;
-    return `Poor Investment Prospect (${score.toFixed(1)}/5.0): Major deficiencies across multiple areas. High risk, not recommended without substantial changes.`;
+    if (score >= 80) return `Excellent Investment Opportunity (${Math.round(score)}/100): Outstanding company with exceptional potential, strong fundamentals, and minimal risk factors.`;
+    if (score >= 60) return `Good Investment Candidate (${Math.round(score)}/100): Solid company with good potential and manageable risks. Worth serious consideration.`;
+    if (score >= 40) return `Average Investment Potential (${Math.round(score)}/100): Decent fundamentals but several areas need improvement. Moderate risk factors exist.`;
+    if (score >= 20) return `Below Average Investment (${Math.round(score)}/100): Significant concerns exist. Requires extensive due diligence and improvements.`;
+    return `Poor Investment Prospect (${Math.round(score)}/100): Major deficiencies across multiple areas. High risk, not recommended without substantial changes.`;
   };
 
   // Format the displayed score
-  const formattedScore = displayScore.toFixed(1);
+  const formattedScore = Math.round(displayScore);
 
   // Highlight numbers in assessment points
   const highlightNumbers = (text: string) => {
@@ -67,7 +57,7 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
             </CardTitle>
             <div className="flex items-center">
               <span className={`text-xl font-bold ${getScoreColor(displayScore)}`}>
-                {formattedScore}/5.0
+                {formattedScore}/100
               </span>
               <TooltipProvider>
                 <Tooltip delayDuration={300}>

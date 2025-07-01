@@ -11,32 +11,23 @@ interface SectionCardProps {
 }
 
 export const SectionCard = ({ section, onClick }: SectionCardProps) => {
-  // Convert any score to 5-point scale
-  const convertToFivePointScale = (score: number) => {
-    // If score is already between 0-5, assume it's already on 5-point scale
-    if (score <= 5) {
-      return score;
-    }
-    // If score is on 100-point scale, convert to 5-point scale
-    return (score / 100) * 5;
-  };
-
+  // Always use 100-point scale
   const rawScore = parseFloat(section.score.toString());
-  const displayScore = convertToFivePointScale(rawScore);
-  const progressValue = (displayScore / 5) * 100;
+  const displayScore = rawScore > 5 ? rawScore : rawScore * 20; // Convert 5-point to 100-point if needed
+  const progressValue = displayScore;
 
   const getScoreColor = (score: number) => {
-    if (score >= 4.5) return "text-emerald-600";
-    if (score >= 3.5) return "text-blue-600";
-    if (score >= 2.5) return "text-amber-600";
-    if (score >= 1.5) return "text-orange-600";
+    if (score >= 80) return "text-emerald-600";
+    if (score >= 60) return "text-blue-600";
+    if (score >= 40) return "text-amber-600";
+    if (score >= 20) return "text-orange-600";
     return "text-red-600";
   };
 
   const getScoreBadgeVariant = (score: number) => {
-    if (score >= 4.5) return "default";
-    if (score >= 3.5) return "secondary";
-    if (score >= 2.5) return "outline";
+    if (score >= 80) return "default";
+    if (score >= 60) return "secondary";
+    if (score >= 40) return "outline";
     return "destructive";
   };
 
@@ -93,7 +84,7 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
           <div className="flex items-center gap-2 flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-500" />
             <Badge variant={getScoreBadgeVariant(displayScore)} className="text-xs">
-              {displayScore.toFixed(1)}/5.0
+              {Math.round(displayScore)}/100
             </Badge>
           </div>
         </CardTitle>
