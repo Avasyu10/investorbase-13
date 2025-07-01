@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -17,9 +16,10 @@ interface CompaniesTableProps {
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
+  isVCAndBits?: boolean;
 }
 
-export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false }: CompaniesTableProps) {
+export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isVCAndBits = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -153,7 +153,13 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
   };
 
   const handleDownloadPdf = () => {
-    const title = isIITBombay ? 'IIT Bombay Companies Prospects' : 'Companies Prospects';
+    let title = 'Companies Prospects';
+    if (isIITBombay) {
+      title = 'IIT Bombay Companies Prospects';
+    } else if (isVCAndBits) {
+      title = 'VC & BITS Companies Prospects';
+    }
+    
     downloadCompaniesAsPdf(localCompanies, { 
       filename: `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`,
       title 
@@ -165,6 +171,94 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     });
   };
 
+  // VC and BITS combined view - simplified table
+  if (isVCAndBits) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Companies Prospects</h3>
+              <p className="text-sm text-muted-foreground">
+                {localCompanies.length} companies found
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-semibold w-[200px]">Company</TableHead>
+                <TableHead className="font-semibold w-[150px]">Industry</TableHead>
+                <TableHead className="font-semibold w-[100px]">Source</TableHead>
+                <TableHead className="font-semibold w-[100px]">Score</TableHead>
+                <TableHead className="w-[60px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {localCompanies.map((company) => {
+                const formattedScore = Math.round(company.overall_score);
+                const isCompanyDeleting = deletingCompanies.has(company.id);
+                const industry = company.industry || "—";
+                
+                return (
+                  <TableRow 
+                    key={company.id} 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => onCompanyClick(company.id)}
+                  >
+                    <TableCell className="font-medium">
+                      <span className="font-semibold text-foreground">{company.name}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {company.source || 'Dashboard'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getScoreBadgeColor(formattedScore)}>
+                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                            {formattedScore}
+                          </span>
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteClick(e, company.id)}
+                        disabled={isCompanyDeleting || isDeleting}
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // IIT Bombay table format
   if (isIITBombay) {
     return (
       <Card>
@@ -265,7 +359,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
     );
   }
 
-  // New table format for non-IIT Bombay users
+  // Regular table format for other users with edit functionality
   return (
     <>
       <Card>

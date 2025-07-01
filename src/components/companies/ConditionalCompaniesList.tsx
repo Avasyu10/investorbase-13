@@ -1,11 +1,12 @@
 
 import { CompaniesList } from "./CompaniesList";
 import { IITBombayCompaniesList } from "./IITBombayCompaniesList";
+import { VCAndBitsCompaniesList } from "./VCAndBitsCompaniesList";
 import { useProfile } from "@/hooks/useProfile";
 import { Loader2, Building2 } from "lucide-react";
 
 export function ConditionalCompaniesList() {
-  const { profile, isLoading, error, isIITBombay } = useProfile();
+  const { profile, isLoading, error, isIITBombay, isVCAndBits } = useProfile();
 
   if (isLoading) {
     return (
@@ -29,6 +30,11 @@ export function ConditionalCompaniesList() {
         </div>
       </div>
     );
+  }
+
+  // Show VC & BITS specific UI if user has both is_vc: true and is_bits: true
+  if (isVCAndBits) {
+    return <VCAndBitsCompaniesList />;
   }
 
   // Show IIT Bombay specific UI if user has is_iitbombay: true
