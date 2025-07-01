@@ -17,7 +17,6 @@ export interface Company {
   overall_score: number;
   assessment_points?: string[];
   source?: string;
-  response_received?: string | null;
   created_at?: string;
   updated_at?: string;
   report_id?: string;

@@ -2,7 +2,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Company } from "@/lib/api/apiContract"; // Assuming Company is now correctly typed here
+import { Company } from "@/lib/api/apiContract";
+import { formatDistanceToNow } from "date-fns";
 import { Star, Trash2, Phone, Mail, Globe, Download, ArrowUpDown } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
@@ -12,34 +13,21 @@ import { usePdfDownload } from "@/hooks/usePdfDownload";
 // Define sort order type
 type SortOrder = 'asc' | 'desc' | null;
 
-// No need for CompanyWithResponse if Company in apiContract.ts is updated
+// Extend Company type if response_received is not properly typed in apiContract
+// This is a safe way to tell TypeScript that `response_received` might be a string
+interface CompanyWithResponse extends Company {
+  response_received?: string; // Explicitly define it as a string
+}
+
+
 interface CompaniesTableProps {
-  companies: Company[]; // Use the original Company type now
+  companies: CompanyWithResponse[]; // Use the extended type here
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   isIITBombay?: boolean;
   isBits?: boolean;
   isVC?: boolean;
 }
-
-// Helper function to safely parse response_received and get the stage
-function getStageFromResponseReceived(responseReceived: string | null | undefined): string {
-  if (!responseReceived || typeof responseReceived !== 'string') {
-    return "—"; // Return default if not a string or empty
-  }
-
-  try {
-    const parsedData = JSON.parse(responseReceived);
-    if (parsedData && typeof parsedData === 'object' && 'stage' in parsedData) {
-      return parsedData.stage || "—"; // Return stage or default if stage is empty/null
-    }
-  } catch (error) {
-    // Log the actual error and the problematic string for debugging
-    console.error("Failed to parse response_received JSON:", responseReceived, error);
-  }
-  return "—"; // Return default if parsing fails or 'stage' not found
-}
-
 
 export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isBits = false, isVC = false }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
@@ -328,7 +316,7 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
               <TableRow>
                 <TableHead className="font-semibold w-[100px]">Company</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[100px]">Stage</TableHead> {/* Stage Header */}
+                <TableHead className="font-semibold w-[100px]">Stage</TableHead>
                 <TableHead className="font-semibold w-[80px]">
                   <Button
                     variant="ghost"
@@ -352,8 +340,23 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
 
-                // Use the helper function here for clean extraction
-                const stage = getStageFromResponseReceived(company.response_received);
+                // **** CRITICAL CHANGE HERE ****
+                let stage = "—";
+                if (company.response_received && typeof company.response_received === 'string') {
+                  try {
+                    const parsedResponse = JSON.parse(company.response_received);
+                    if (parsedResponse && typeof parsedResponse === 'object' && parsedResponse.stage) {
+                      stage = parsedResponse.stage;
+                    }
+                  } catch (e) {
+                    console.error("Error parsing response_received JSON for company:", company.name, e);
+                    stage = "Invalid Data"; // Indicate an error if JSON parsing fails
+                  }
+                } else if (company.response_received && typeof company.response_received === 'object' && (company.response_received as any).stage) {
+                  // Fallback for if it's already an object, though the user states it's a string
+                  stage = (company.response_received as any).stage;
+                }
+                // **** END CRITICAL CHANGE ****
 
                 return (
                   <TableRow
