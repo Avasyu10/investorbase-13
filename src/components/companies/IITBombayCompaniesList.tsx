@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Building2, GraduationCap, ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Building2, GraduationCap, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -13,7 +14,7 @@ export function IITBombayCompaniesList() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 50;
+  const [pageSize, setPageSize] = useState(100); // Increased default page size
   const { deleteCompany } = useDeleteCompany();
 
   const { companies, totalCount, isLoading, error } = useCompanies(currentPage, pageSize, 'created_at', 'desc', searchTerm);
@@ -39,8 +40,18 @@ export function IITBombayCompaniesList() {
     }
   };
 
-  // Calculate rating-based stats
-  const totalProspects = totalCount; // Use the actual total count from the database
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  // Calculate rating-based stats - use totalCount from database, not just current page
+  const totalProspects = totalCount;
   const highPotential = companies.filter(c => c.overall_score > 70).length;
   const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
   const badPotential = companies.filter(c => c.overall_score < 50).length;
@@ -122,15 +133,51 @@ export function IITBombayCompaniesList() {
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-green-600">{highPotential}</div>
-          <div className="text-sm text-muted-foreground">High Potential</div>
+          <div className="text-sm text-muted-foreground">High Potential (Current Page)</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-yellow-600">{mediumPotential}</div>
-          <div className="text-sm text-muted-foreground">Medium Potential</div>
+          <div className="text-sm text-muted-foreground">Medium Potential (Current Page)</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-red-600">{badPotential}</div>
-          <div className="text-sm text-muted-foreground">Bad Potential</div>
+          <div className="text-sm text-muted-foreground">Bad Potential (Current Page)</div>
+        </div>
+      </div>
+
+      {/* Search and filter controls */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search companies..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant={pageSize === 50 ? "default" : "outline"}
+            size="sm"
+            onClick={() => handlePageSizeChange(50)}
+          >
+            50 per page
+          </Button>
+          <Button
+            variant={pageSize === 100 ? "default" : "outline"}
+            size="sm"
+            onClick={() => handlePageSizeChange(100)}
+          >
+            100 per page
+          </Button>
+          <Button
+            variant={pageSize === totalCount ? "default" : "outline"}
+            size="sm"
+            onClick={() => handlePageSizeChange(totalCount)}
+          >
+            Show All
+          </Button>
         </div>
       </div>
 
@@ -140,6 +187,7 @@ export function IITBombayCompaniesList() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
             <div className="text-sm text-muted-foreground">
               Showing {startRecord} to {endRecord} of {totalCount} prospects
+              {searchTerm && ` (filtered by "${searchTerm}")`}
             </div>
             
             {totalPages > 1 && (
@@ -218,8 +266,17 @@ export function IITBombayCompaniesList() {
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">No prospects found</h3>
           <p className="mt-2 text-muted-foreground">
-            No prospects available at the moment.
+            {searchTerm ? `No prospects found matching "${searchTerm}"` : "No prospects available at the moment."}
           </p>
+          {searchTerm && (
+            <Button 
+              onClick={() => setSearchTerm("")} 
+              className="mt-4"
+              variant="outline"
+            >
+              Clear Search
+            </Button>
+          )}
         </div>
       )}
     </div>
