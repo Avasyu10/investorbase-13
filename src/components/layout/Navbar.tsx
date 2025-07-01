@@ -91,19 +91,7 @@ export function Navbar() {
                 </Button>
               )}
               
-              {!isIITBombay && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  asChild
-                  className="transition-colors hidden sm:flex"
-                >
-                  <Link to="/profile">
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </Link>
-                </Button>
-              )}
+
               
               <Button 
                 variant="ghost" 
