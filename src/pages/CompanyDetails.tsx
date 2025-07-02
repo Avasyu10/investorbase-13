@@ -263,21 +263,6 @@ function CompanyDetails() {
         </div>
 
         <div className="container mx-auto">
-          {/* For VC+BITS users, show Questions to Ask section right after company overview */}
-          {isVCAndBits && (
-            <>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-primary" />
-                Questions to Ask
-              </h2>
-              
-              <QuestionsToAsk 
-                companyId={company.id}
-                companyName={company.name}
-              />
-            </>
-          )}
-
           {/* For VC users, show Overall Assessment */}
           {isVCUser && (
             <OverallAssessment
@@ -294,6 +279,21 @@ function CompanyDetails() {
               companyId={company.id} 
               assessmentPoints={company.assessment_points || []}
             />
+          )}
+
+          {/* For VC+BITS users, show Questions to Ask section */}
+          {isVCAndBits && (
+            <>
+              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                <HelpCircle className="h-5 w-5 text-primary" />
+                Questions to Ask
+              </h2>
+              
+              <QuestionsToAsk 
+                companyId={company.id}
+                companyName={company.name}
+              />
+            </>
           )}
 
           {/* For VC users, show section metrics */}

@@ -9,9 +9,12 @@ interface QuestionsToAskProps {
   companyName: string;
 }
 
-interface BitsAnalysisResult {
-  questions?: string[];
-  [key: string]: any;
+interface BitsAnalysis {
+  id: string;
+  analysis_result: {
+    questions?: string[];
+    [key: string]: any;
+  };
 }
 
 export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) {
@@ -40,13 +43,8 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
           return;
         }
 
-        if (data?.analysis_result) {
-          const analysisResult = data.analysis_result as BitsAnalysisResult;
-          if (analysisResult.questions && Array.isArray(analysisResult.questions)) {
-            setQuestions(analysisResult.questions);
-          } else {
-            setQuestions([]);
-          }
+        if (data?.analysis_result?.questions && Array.isArray(data.analysis_result.questions)) {
+          setQuestions(data.analysis_result.questions);
         } else {
           setQuestions([]);
         }
@@ -66,6 +64,12 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
   if (isLoading) {
     return (
       <Card className="mb-8 shadow-card border-0">
+        <CardHeader className="bg-secondary/50 border-b pb-4">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <HelpCircle className="h-5 w-5" />
+            Questions to Ask
+          </CardTitle>
+        </CardHeader>
         <CardContent className="pt-5">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -78,6 +82,12 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
   if (error) {
     return (
       <Card className="mb-8 shadow-card border-0">
+        <CardHeader className="bg-secondary/50 border-b pb-4">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <HelpCircle className="h-5 w-5" />
+            Questions to Ask
+          </CardTitle>
+        </CardHeader>
         <CardContent className="pt-5">
           <div className="flex items-center justify-center py-8">
             <p className="text-muted-foreground">{error}</p>
@@ -90,6 +100,12 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
   if (questions.length === 0) {
     return (
       <Card className="mb-8 shadow-card border-0">
+        <CardHeader className="bg-secondary/50 border-b pb-4">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <HelpCircle className="h-5 w-5" />
+            Questions to Ask
+          </CardTitle>
+        </CardHeader>
         <CardContent className="pt-5">
           <div className="flex items-center justify-center py-8">
             <p className="text-muted-foreground">No questions available for this company.</p>
@@ -101,6 +117,12 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
 
   return (
     <Card className="mb-8 shadow-card border-0">
+      <CardHeader className="bg-secondary/50 border-b pb-4">
+        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+          <HelpCircle className="h-5 w-5" />
+          Questions to Ask
+        </CardTitle>
+      </CardHeader>
       <CardContent className="pt-5">
         <div className="space-y-3">
           {questions.map((question, index) => (
