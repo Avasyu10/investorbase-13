@@ -48,13 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession.user);
           console.log('User updated');
         } else if (event === 'PASSWORD_RECOVERY') {
-          // Handle password recovery event - this is triggered when user clicks reset link
+          // Handle password recovery event - but don't auto-navigate
+          // Let the ResetPassword page handle the URL tokens directly
           console.log('Password recovery event detected');
           if (currentSession) {
             setSession(currentSession);
             setUser(currentSession.user);
-            // Navigate to reset password page when password recovery is detected
-            navigate('/reset-password');
           }
         }
         

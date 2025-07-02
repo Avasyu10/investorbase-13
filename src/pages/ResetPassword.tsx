@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ const ResetPassword = () => {
         console.log("Location search:", location.search);
         console.log("Location hash:", location.hash);
         
-        // Check both URL params and hash for tokens
+        // Check both URL params and hash for tokens - Supabase can use either
         const urlParams = new URLSearchParams(location.search);
         const hashParams = new URLSearchParams(location.hash.substring(1));
         
@@ -70,10 +71,22 @@ const ResetPassword = () => {
             setError("Unable to validate reset link. Please request a new one.");
             setIsValidSession(false);
           }
+        } else if (type === 'recovery' && !accessToken) {
+          console.log("Recovery type found but no access token");
+          setError("Invalid password reset link format. Please request a new one.");
+          setIsValidSession(false);
         } else {
           console.log("No valid reset tokens found in URL");
-          setError("Invalid password reset link. Please request a new password reset.");
-          setIsValidSession(false);
+          // Check if there's already a valid session (user might be logged in)
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log("User already has valid session");
+            setIsValidSession(true);
+            setError("");
+          } else {
+            setError("Invalid password reset link. Please request a new password reset.");
+            setIsValidSession(false);
+          }
         }
       } catch (err) {
         console.error("Error handling password reset:", err);
@@ -126,10 +139,9 @@ const ResetPassword = () => {
         description: "Your password has been successfully updated. Please sign in with your new password.",
       });
       
-      // Sign out the user and redirect to home
-      await supabase.auth.signOut();
-      
-      setTimeout(() => {
+      // Sign out the user and redirect to home after a delay
+      setTimeout(async () => {
+        await supabase.auth.signOut();
         navigate("/");
       }, 2000);
     } catch (err: any) {
