@@ -1,9 +1,8 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { LogOut, Building, User, MessageCircle, ShieldCheck } from "lucide-react";
+import { LogOut, Building, User, MessageCircle, ShieldCheck, Eye } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isIITBombay, isVCAndBits } = useProfile();
+  const { isIITBombay, isVCAndBits, isViewOnly } = useProfile();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -53,7 +52,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-lg transition-all">
       <div className="container flex h-16 items-center justify-between px-3 sm:px-4 md:px-8">
-        <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2 transition-transform hover:scale-[1.01]">
+        <Link to={user ? (isViewOnly ? "/view-dashboard" : "/dashboard") : "/"} className="flex items-center space-x-2 transition-transform hover:scale-[1.01]">
           <img 
             src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
             alt="InvestorBase Logo" 
@@ -63,7 +62,23 @@ export function Navbar() {
         <nav className="flex items-center">
           {user && (
             <div className="flex items-center space-x-2 sm:space-x-4">
-              {isCompanyOrSectionPage && (
+              {/* View-only users get a simple companies link */}
+              {isViewOnly && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  asChild
+                  className="transition-colors hidden sm:flex"
+                >
+                  <Link to="/view-dashboard">
+                    <Eye className="h-4 w-4 mr-2" />
+                    Companies
+                  </Link>
+                </Button>
+              )}
+              
+              {/* Regular users get navigation back to companies */}
+              {!isViewOnly && isCompanyOrSectionPage && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -77,7 +92,7 @@ export function Navbar() {
                 </Button>
               )}
               
-              {isAdmin && (
+              {!isViewOnly && isAdmin && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -91,7 +106,7 @@ export function Navbar() {
                 </Button>
               )}
               
-              {!isIITBombay && !isVCAndBits && (
+              {!isViewOnly && !isIITBombay && !isVCAndBits && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -105,17 +120,19 @@ export function Navbar() {
                 </Button>
               )}
               
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                asChild
-                className="transition-colors hidden sm:flex"
-              >
-                <Link to="/feedback">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Feedback
-                </Link>
-              </Button>
+              {!isViewOnly && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  asChild
+                  className="transition-colors hidden sm:flex"
+                >
+                  <Link to="/feedback">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Feedback
+                  </Link>
+                </Button>
+              )}
               
               {/* Mobile navigation dropdown */}
               <DropdownMenu>
@@ -125,7 +142,15 @@ export function Navbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {isCompanyOrSectionPage && (
+                  {isViewOnly && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/view-dashboard" className="flex items-center">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Companies
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {!isViewOnly && isCompanyOrSectionPage && (
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" className="flex items-center">
                         <Building className="h-4 w-4 mr-2" />
@@ -133,7 +158,7 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  {isAdmin && (
+                  {!isViewOnly && isAdmin && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="flex items-center">
                         <ShieldCheck className="h-4 w-4 mr-2" />
@@ -141,7 +166,7 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  {!isIITBombay && !isVCAndBits && (
+                  {!isViewOnly && !isIITBombay && !isVCAndBits && (
                     <DropdownMenuItem asChild>
                       <Link to="/profile" className="flex items-center">
                         <User className="h-4 w-4 mr-2" />
@@ -149,12 +174,14 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild>
-                    <Link to="/feedback" className="flex items-center">
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Feedback
-                    </Link>
-                  </DropdownMenuItem>
+                  {!isViewOnly && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/feedback" className="flex items-center">
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Feedback
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={signOut} className="flex items-center">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign out

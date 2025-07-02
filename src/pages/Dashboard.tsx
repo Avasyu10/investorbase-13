@@ -15,7 +15,7 @@ import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
 
 const Dashboard = () => {
   const { user, isLoading } = useAuth();
-  const { profile, isIITBombay, isVC, isVCAndBits, isLoading: profileLoading } = useProfile();
+  const { profile, isIITBombay, isVC, isVCAndBits, isViewOnly, isLoading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -30,7 +30,14 @@ const Dashboard = () => {
           from: '/dashboard'
         }
       });
-    } else if (user) {
+    } else if (user && !profileLoading) {
+      // Redirect view-only users to the view-only dashboard
+      if (isViewOnly) {
+        console.log("User has view-only access, redirecting to view dashboard");
+        navigate('/view-dashboard');
+        return;
+      }
+      
       console.log("Dashboard loaded for user:", user.id);
       console.log("Profile data:", profile);
       console.log("Is IIT Bombay user:", isIITBombay);
@@ -40,7 +47,7 @@ const Dashboard = () => {
 
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
-  }, [user, isLoading, navigate, profile, isIITBombay, isVC]);
+  }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading]);
 
   const checkAdminStatus = async () => {
     if (!user) return;
