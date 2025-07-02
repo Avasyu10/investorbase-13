@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -244,25 +245,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                   }} />
                 </div>
               )}
-            </div>
-          )}
-
-          {researchData.sources && researchData.sources.length > 0 && (
-            <div className="mt-8 pt-4 border-t">
-              <h4 className="text-sm font-medium mb-2">Sources</h4>
-              <div className="flex flex-wrap gap-2">
-                {researchData.sources.map((source: any, index: number) => (
-                  <a
-                    key={index}
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs flex items-center gap-1 text-blue-500 hover:underline bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded"
-                  >
-                    Source {index + 1} <ExternalLink className="h-3 w-3" />
-                  </a>
-                ))}
-              </div>
             </div>
           )}
         </ScrollArea>
