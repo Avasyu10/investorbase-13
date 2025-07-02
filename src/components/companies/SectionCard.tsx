@@ -8,9 +8,11 @@ import { Section } from "@/lib/api/apiContract";
 interface SectionCardProps {
   section: Section;
   onClick: () => void;
+  // Add props to determine user type
+  isVCAndBits?: boolean;
 }
 
-export const SectionCard = ({ section, onClick }: SectionCardProps) => {
+export const SectionCard = ({ section, onClick, isVCAndBits = false }: SectionCardProps) => {
   // Always use 100-point scale
   const rawScore = parseFloat(section.score.toString());
   const displayScore = rawScore > 5 ? rawScore : rawScore * 20; // Convert 5-point to 100-point if needed
@@ -32,6 +34,21 @@ export const SectionCard = ({ section, onClick }: SectionCardProps) => {
   };
 
   const formatSectionTitle = (sectionType: string, title: string) => {
+    // Special handling for VC & BITS users - specific section name mappings
+    if (isVCAndBits) {
+      const vcAndBitsTitleMappings: { [key: string]: string } = {
+        'PROBLEM': 'Problem Clarity & Founder Insight',
+        'TEAM': 'Founder Capability & Market Fit',
+        'MARKET': 'Market Opportunity & Entry Strategy', 
+        'TRACTION': 'Early Proof or Demand Signals',
+        'COMPETITIVE_LANDSCAPE': 'Differentiation & Competitive Edge'
+      };
+
+      if (vcAndBitsTitleMappings[sectionType]) {
+        return vcAndBitsTitleMappings[sectionType];
+      }
+    }
+
     // For IIT Bombay sections, use specific mappings based on section_type
     const iitBombayTitleMappings: { [key: string]: string } = {
       'problem_solution_fit': 'Problem & Solution',

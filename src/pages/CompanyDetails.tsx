@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -48,6 +47,7 @@ function CompanyDetails() {
   const isVCUser = profile?.is_vc || false;
   const isIITBombayUser = profile?.is_iitbombay || false;
   const isRegularUser = !isVCUser && !isIITBombayUser;
+  const isVCAndBits = isVCUser && profile?.is_bits;
 
   // Extract slide notes and improvement suggestions from company data
   useEffect(() => {
@@ -161,7 +161,35 @@ function CompanyDetails() {
   const getSortedSections = () => {
     if (!filteredSections.length) return [];
     
-    // Define the custom order for VC section display
+    // Special order for VC & BITS users
+    if (isVCAndBits) {
+      const vcAndBitsSectionOrder = [
+        'PROBLEM',      // Problem Clarity & Founder Insight
+        'TEAM',         // Founder Capability & Market Fit  
+        'MARKET',       // Market Opportunity & Entry Strategy
+        'TRACTION',     // Early Proof or Demand Signals
+        'COMPETITIVE_LANDSCAPE' // Differentiation & Competitive Edge
+      ];
+
+      return [...filteredSections].sort((a, b) => {
+        const indexA = vcAndBitsSectionOrder.indexOf(a.type);
+        const indexB = vcAndBitsSectionOrder.indexOf(b.type);
+
+        // If both sections are in the custom order, sort by that order
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+
+        // If only one is in the custom order, prioritize it
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+
+        // If neither is in the custom order, maintain original order
+        return 0;
+      });
+    }
+
+    // Define the custom order for regular VC section display
     const vcSectionOrder = [
       'PROBLEM',
       'MARKET', 
@@ -267,6 +295,7 @@ function CompanyDetails() {
                       key={section.id} 
                       section={section} 
                       onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
+                      isVCAndBits={isVCAndBits}
                     />
                   ))}
                 </div>
