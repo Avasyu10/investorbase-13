@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -19,6 +20,7 @@ interface CompaniesTableProps {
   currentSort?: { field: string; order: 'asc' | 'desc' };
   isIITBombay?: boolean;
   isVCAndBits?: boolean;
+  isGeneralUser?: boolean;
 }
 
 export function CompaniesTable({ 
@@ -28,7 +30,8 @@ export function CompaniesTable({
   onSortChange,
   currentSort,
   isIITBombay = false, 
-  isVCAndBits = false 
+  isVCAndBits = false,
+  isGeneralUser = false
 }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
@@ -213,6 +216,114 @@ export function CompaniesTable({
     }
     return "—";
   };
+
+  // General users table format (is_bits, is_iitbombay, is_vc all false)
+  if (isGeneralUser) {
+    return (
+      <>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold">Companies Prospects</h3>
+                <p className="text-sm text-muted-foreground">
+                  {localCompanies.length} companies found
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-semibold w-[200px]">Company</TableHead>
+                  <TableHead className="font-semibold w-[120px]">Source</TableHead>
+                  <TableHead className="font-semibold w-[150px]">Industry</TableHead>
+                  <TableHead className="font-semibold w-[120px]">Status</TableHead>
+                  <TableHead className="font-semibold w-[150px]">Team POC</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {localCompanies.map((company) => {
+                  const companyDetails = (company as any).company_details;
+                  const status = companyDetails?.status || 'New';
+                  const teamMemberName = companyDetails?.teammember_name || '';
+                  const isCompanyDeleting = deletingCompanies.has(company.id);
+                  const industry = company.industry || "—";
+                  
+                  return (
+                    <TableRow 
+                      key={company.id} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => onCompanyClick(company.id)}
+                    >
+                      <TableCell className="font-medium">
+                        <span className="font-semibold text-foreground">{company.name}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize text-xs">
+                          {company.source || 'Dashboard'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{industry}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadgeColor(status)}>
+                          <span className="text-xs font-medium">{status}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{teamMemberName || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div 
+                          className="flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleEditClick(e, company)}
+                            className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleDeleteClick(e, company.id)}
+                            disabled={isCompanyDeleting || isDeleting}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <EditCompanyDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          companyId={selectedCompanyForEdit?.id || ""}
+          currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
+          currentStatus={selectedCompanyForEdit?.status || "New"}
+          onUpdate={(teamMember, status) => {
+            if (selectedCompanyForEdit) {
+              handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+            }
+          }}
+        />
+      </>
+    );
+  }
 
   // VC and BITS combined view - simplified table with Stage instead of Source
   if (isVCAndBits) {
