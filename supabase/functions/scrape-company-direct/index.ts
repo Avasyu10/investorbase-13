@@ -12,7 +12,7 @@ const corsHeaders = {
 // CoreSignal API configuration
 const CORESIGNAL_SEARCH_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/search/es_dsl";
 const CORESIGNAL_COLLECT_URL = "https://api.coresignal.com/cdapi/v2/company_multi_source/collect";
-const CORESIGNAL_API_KEY = "xm2kAqJbIZDVjE877BKO72AO00XNBaEk";
+const CORESIGNAL_API_KEY = "yIKsZwEQOwJk0xd2ZN2lBgDYCn2mk2ej";
 
 serve(async (req) => {
   // Handle CORS preflight requests
