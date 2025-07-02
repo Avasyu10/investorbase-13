@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,14 +21,16 @@ export function VCAndBitsCompaniesList() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const pageSize = 20;
   const { deleteCompany } = useDeleteCompany();
 
   const { companies, totalCount, isLoading, error, refetch } = useCompanies(
     currentPage, 
     pageSize, 
-    'created_at', 
-    'desc', 
+    sortBy, 
+    sortOrder, 
     searchTerm
   );
 
@@ -51,6 +52,12 @@ export function VCAndBitsCompaniesList() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleSortChange = (field: string, order: 'asc' | 'desc') => {
+    setSortBy(field);
+    setSortOrder(order);
+    setCurrentPage(1); // Reset to first page when sorting changes
   };
 
   if (isLoading) {
@@ -136,6 +143,8 @@ export function VCAndBitsCompaniesList() {
             companies={companies} 
             onCompanyClick={handleCompanyClick} 
             onDeleteCompany={handleDeleteCompany}
+            onSortChange={handleSortChange}
+            currentSort={{ field: sortBy, order: sortOrder }}
             isVCAndBits={true} 
           />
           

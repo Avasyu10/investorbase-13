@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
-import { Star, Trash2, Phone, Mail, Globe, Download, Edit } from "lucide-react";
+import { Star, Trash2, Phone, Mail, Globe, Download, Edit, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
@@ -15,11 +15,21 @@ interface CompaniesTableProps {
   companies: Company[];
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
+  onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
+  currentSort?: { field: string; order: 'asc' | 'desc' };
   isIITBombay?: boolean;
   isVCAndBits?: boolean;
 }
 
-export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isIITBombay = false, isVCAndBits = false }: CompaniesTableProps) {
+export function CompaniesTable({ 
+  companies, 
+  onCompanyClick, 
+  onDeleteCompany, 
+  onSortChange,
+  currentSort,
+  isIITBombay = false, 
+  isVCAndBits = false 
+}: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -81,6 +91,26 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handleSortClick = (field: string) => {
+    if (!onSortChange) return;
+    
+    let newOrder: 'asc' | 'desc' = 'desc';
+    if (currentSort?.field === field && currentSort?.order === 'desc') {
+      newOrder = 'asc';
+    }
+    
+    onSortChange(field, newOrder);
+  };
+
+  const getSortIcon = (field: string) => {
+    if (!currentSort || currentSort.field !== field) {
+      return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />;
+    }
+    return currentSort.order === 'asc' 
+      ? <ArrowUp className="h-4 w-4 text-primary" />
+      : <ArrowDown className="h-4 w-4 text-primary" />;
   };
 
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
@@ -214,7 +244,16 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[200px]">Company</TableHead>
                 <TableHead className="font-semibold w-[150px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
-                <TableHead className="font-semibold w-[100px]">Score</TableHead>
+                <TableHead className="font-semibold w-[100px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSortClick('overall_score')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
+                  >
+                    Score
+                    {getSortIcon('overall_score')}
+                  </Button>
+                </TableHead>
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -304,7 +343,16 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[110px]">Phone Number</TableHead>
                 <TableHead className="font-semibold w-[120px]">Email</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">Score</TableHead>
+                <TableHead className="font-semibold w-[80px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSortClick('overall_score')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
+                  >
+                    Score
+                    {getSortIcon('overall_score')}
+                  </Button>
+                </TableHead>
                 <TableHead className="font-semibold">Reason for Scoring</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
@@ -396,7 +444,16 @@ export function CompaniesTable({ companies, onCompanyClick, onDeleteCompany, isI
                 <TableHead className="font-semibold w-[100px]">Email</TableHead>
                 <TableHead className="font-semibold w-[80px]">Source</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">Score</TableHead>
+                <TableHead className="font-semibold w-[80px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSortClick('overall_score')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
+                  >
+                    Score
+                    {getSortIcon('overall_score')}
+                  </Button>
+                </TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
