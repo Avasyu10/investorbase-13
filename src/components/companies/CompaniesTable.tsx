@@ -19,6 +19,7 @@ interface CompaniesTableProps {
   currentSort?: { field: string; order: 'asc' | 'desc' };
   isIITBombay?: boolean;
   isVCAndBits?: boolean;
+  totalCount?: number;
 }
 
 export function CompaniesTable({ 
@@ -28,7 +29,8 @@ export function CompaniesTable({
   onSortChange,
   currentSort,
   isIITBombay = false, 
-  isVCAndBits = false 
+  isVCAndBits = false,
+  totalCount 
 }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
@@ -223,7 +225,7 @@ export function CompaniesTable({
             <div>
               <h3 className="text-lg font-semibold">Companies Prospects</h3>
               <p className="text-sm text-muted-foreground">
-                {localCompanies.length} companies found
+                {totalCount || localCompanies.length} companies found
               </p>
             </div>
           </div>
