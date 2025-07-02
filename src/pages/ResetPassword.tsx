@@ -26,60 +26,43 @@ const ResetPassword = () => {
       try {
         setIsChecking(true);
         console.log("Current URL:", window.location.href);
-        console.log("Location search:", location.search);
-        console.log("Location hash:", location.hash);
         
-        // Parse tokens from URL - Supabase typically uses hash fragments
-        let accessToken = null;
-        let refreshToken = null;
-        let type = null;
+        // Get the full URL including hash
+        const fullUrl = window.location.href;
+        console.log("Full URL:", fullUrl);
         
-        // First check hash parameters (most common for Supabase auth)
-        if (location.hash) {
-          const hashParams = new URLSearchParams(location.hash.substring(1));
-          accessToken = hashParams.get('access_token');
-          refreshToken = hashParams.get('refresh_token');
-          type = hashParams.get('type');
-          console.log("Found tokens in hash:", { accessToken: !!accessToken, type });
-        }
-        
-        // Fallback to search parameters if not found in hash
-        if (!accessToken && location.search) {
-          const urlParams = new URLSearchParams(location.search);
-          accessToken = urlParams.get('access_token');
-          refreshToken = urlParams.get('refresh_token');
-          type = urlParams.get('type');
-          console.log("Found tokens in search:", { accessToken: !!accessToken, type });
-        }
-        
-        if (accessToken && type === 'recovery') {
-          console.log("Valid recovery tokens found, setting session");
+        // Check if URL contains recovery tokens
+        if (fullUrl.includes('access_token') && fullUrl.includes('type=recovery')) {
+          console.log("Recovery URL detected, attempting to handle auth change");
           
-          // Set the session using tokens from the email link
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || ''
-          });
+          // Let Supabase handle the auth change automatically
+          // The onAuthStateChange in useAuth should pick this up
           
-          if (error) {
-            console.error("Error setting session:", error);
-            setError("Invalid or expired password reset link. Please request a new one.");
-            setIsValidSession(false);
-          } else if (data.session) {
-            console.log("Session set successfully for password reset");
-            setIsValidSession(true);
-            setError("");
+          // Wait a moment for the auth state to update
+          setTimeout(async () => {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            console.log("Session after URL processing:", { session: !!session, error });
             
-            // Clear the parameters from URL for security
-            window.history.replaceState(null, '', window.location.pathname);
-          } else {
-            console.log("No session returned from setSession");
-            setError("Unable to validate reset link. Please request a new one.");
-            setIsValidSession(false);
-          }
+            if (error) {
+              console.error("Session error:", error);
+              setError("Invalid or expired password reset link. Please request a new one.");
+              setIsValidSession(false);
+            } else if (session) {
+              console.log("Valid session found for password reset");
+              setIsValidSession(true);
+              setError("");
+            } else {
+              console.log("No session found");
+              setError("Invalid password reset link. Please request a new password reset.");
+              setIsValidSession(false);
+            }
+            setIsChecking(false);
+          }, 1000);
+          
         } else {
-          console.log("No valid reset tokens found or wrong type");
-          // Check if there's already a valid session (user might be logged in)
+          console.log("No recovery tokens in URL, checking existing session");
+          
+          // Check if there's already a valid session
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           if (sessionError) {
             console.error("Error getting session:", sessionError);
@@ -93,18 +76,18 @@ const ResetPassword = () => {
             setError("Invalid password reset link. Please request a new password reset.");
             setIsValidSession(false);
           }
+          setIsChecking(false);
         }
       } catch (err) {
         console.error("Error handling password reset:", err);
         setError("An error occurred while validating the reset link.");
         setIsValidSession(false);
-      } finally {
         setIsChecking(false);
       }
     };
 
     handlePasswordReset();
-  }, [location.search, location.hash]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
