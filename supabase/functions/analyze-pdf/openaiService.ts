@@ -296,6 +296,7 @@ IMPROVEMENT SUGGESTIONS REQUIREMENTS:
 - Don't be very strict and if there is a slide of their team members or a slide of their market size and information then don't explicitly give those improvement suggestions.
 - Consider industry best practices and investor expectations
 - Balance content gaps and presentation improvements
+-**Important:** In the team part of improvement suggestions make sure if a slide or page having details of founders or team members are mentioned then don't give suggestion that its not there instead you can see if team background is bad related to the company or product. Don't necessarily put this part if not needed. Same goes for market part and if market size and everything is mentioned don't give suggestion for it.
 
 Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
 
