@@ -14,6 +14,7 @@ interface Profile {
   is_vc: boolean;
   is_manager: boolean;
   is_bits: boolean;
+  is_view: boolean;
   signup_source: string | null;
   created_at: string;
   updated_at: string;
@@ -69,6 +70,7 @@ export function useProfile() {
     isVC: profile?.is_vc || false,
     isManager: profile?.is_manager || false,
     isBits: profile?.is_bits || false,
+    isViewOnly: profile?.is_view || false,
     isVCAndBits: (profile?.is_vc && profile?.is_bits) || false
   };
 }

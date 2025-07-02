@@ -853,6 +853,7 @@ export type Database = {
           is_iitbombay: boolean
           is_manager: boolean
           is_vc: boolean
+          is_view: boolean | null
           signup_source: string | null
           updated_at: string
           username: string | null
@@ -868,6 +869,7 @@ export type Database = {
           is_iitbombay?: boolean
           is_manager?: boolean
           is_vc?: boolean
+          is_view?: boolean | null
           signup_source?: string | null
           updated_at?: string
           username?: string | null
@@ -883,6 +885,7 @@ export type Database = {
           is_iitbombay?: boolean
           is_manager?: boolean
           is_vc?: boolean
+          is_view?: boolean | null
           signup_source?: string | null
           updated_at?: string
           username?: string | null

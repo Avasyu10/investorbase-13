@@ -29,6 +29,7 @@ import SupplementaryMaterials from "@/pages/SupplementaryMaterials";
 import ThankYou from "@/pages/ThankYou";
 import EurekaSample from "@/pages/EurekaSample";
 import VCAnalysis from "@/pages/VCAnalysis";
+import ViewOnlyDashboard from "@/pages/ViewOnlyDashboard";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -46,6 +47,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <Dashboard />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/view-dashboard", 
+    element: (
+      <ProtectedRoute>
+        <ViewOnlyDashboard />
       </ProtectedRoute>
     )
   },
