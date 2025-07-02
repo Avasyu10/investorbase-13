@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -6,10 +7,11 @@ import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { ImprovementSuggestions } from "@/components/companies/ImprovementSuggestions";
 import { SlideBySlideViewer } from "@/components/companies/SlideBySlideViewer";
+import { QuestionsToAsk } from "@/components/companies/QuestionsToAsk";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, BarChart2, ListChecks, Lightbulb, FileText } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2, ListChecks, Lightbulb, FileText, HelpCircle } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
@@ -277,6 +279,21 @@ function CompanyDetails() {
               companyId={company.id} 
               assessmentPoints={company.assessment_points || []}
             />
+          )}
+
+          {/* For VC+BITS users, show Questions to Ask section */}
+          {isVCAndBits && (
+            <>
+              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+                <HelpCircle className="h-5 w-5 text-primary" />
+                Questions to Ask
+              </h2>
+              
+              <QuestionsToAsk 
+                companyId={company.id}
+                companyName={company.name}
+              />
+            </>
           )}
 
           {/* For VC users, show section metrics */}
