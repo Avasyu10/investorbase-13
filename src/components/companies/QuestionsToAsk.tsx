@@ -9,12 +9,9 @@ interface QuestionsToAskProps {
   companyName: string;
 }
 
-interface BitsAnalysis {
-  id: string;
-  analysis_result: {
-    questions?: string[];
-    [key: string]: any;
-  };
+interface BitsAnalysisResult {
+  questions?: string[];
+  [key: string]: any;
 }
 
 export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) {
@@ -43,8 +40,13 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
           return;
         }
 
-        if (data?.analysis_result?.questions && Array.isArray(data.analysis_result.questions)) {
-          setQuestions(data.analysis_result.questions);
+        if (data?.analysis_result) {
+          const analysisResult = data.analysis_result as BitsAnalysisResult;
+          if (analysisResult.questions && Array.isArray(analysisResult.questions)) {
+            setQuestions(analysisResult.questions);
+          } else {
+            setQuestions([]);
+          }
         } else {
           setQuestions([]);
         }
