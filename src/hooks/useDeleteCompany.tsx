@@ -12,9 +12,6 @@ export function useDeleteCompany() {
       console.log('Starting company deletion process for:', companyId);
       
       try {
-        // Use service role or admin privileges for deletion to bypass RLS
-        // Delete all related records in the correct order
-        
         // 1. First, get all sections for this company
         console.log('Fetching sections for company:', companyId);
         const { data: sections, error: sectionsSelectError } = await supabase
@@ -27,7 +24,7 @@ export function useDeleteCompany() {
           throw sectionsSelectError;
         }
 
-        // 2. Delete section_details for all sections
+        // 2. Delete section_details for all sections FIRST (this fixes the foreign key constraint issue)
         if (sections && sections.length > 0) {
           const sectionIds = sections.map(section => section.id);
           console.log('Deleting section_details for sections:', sectionIds);
@@ -44,7 +41,7 @@ export function useDeleteCompany() {
           console.log('Successfully deleted section_details');
         }
 
-        // 3. Delete sections
+        // 3. Now delete sections (no foreign key constraint violations)
         console.log('Deleting sections for company:', companyId);
         const { error: sectionsError } = await supabase
           .from('sections')
@@ -57,25 +54,12 @@ export function useDeleteCompany() {
         }
         console.log('Successfully deleted sections');
 
-        // 4. Delete ALL market_research records - force delete without RLS constraints
-        console.log('Force deleting ALL market_research records for company:', companyId);
-        const { data: marketResearchRecords, error: marketResearchSelectError } = await supabase
+        // 4. Delete market_research records
+        console.log('Deleting market_research records for company:', companyId);
+        const { error: marketResearchError } = await supabase
           .from('market_research')
-          .select('id')
+          .delete()
           .eq('company_id', companyId);
-
-        console.log('Found market_research records:', marketResearchRecords?.length || 0);
-
-        if (marketResearchSelectError) {
-          console.error('Error selecting market research records:', marketResearchSelectError);
-        }
-
-        const { error: marketResearchError, count: deletedMarketResearchCount } = await supabase
-          .from('market_research')
-          .delete({ count: 'exact' })
-          .eq('company_id', companyId);
-
-        console.log('Deleted market_research count:', deletedMarketResearchCount);
 
         if (marketResearchError) {
           console.error('Error deleting market research:', marketResearchError);
@@ -163,20 +147,7 @@ export function useDeleteCompany() {
           console.log('Successfully updated reports to remove company reference');
         }
 
-        // 11. Verify no market_research records exist before deleting company
-        console.log('Final verification - checking for remaining market_research records...');
-        const { data: remainingMarketResearch, error: verifyError } = await supabase
-          .from('market_research')
-          .select('id')
-          .eq('company_id', companyId);
-
-        if (verifyError) {
-          console.error('Error verifying market research cleanup:', verifyError);
-        } else {
-          console.log('Remaining market_research records:', remainingMarketResearch?.length || 0);
-        }
-
-        // 12. Finally, delete the company itself
+        // 11. Finally, delete the company itself
         console.log('Deleting company:', companyId);
         const { error: companyError } = await supabase
           .from('companies')
