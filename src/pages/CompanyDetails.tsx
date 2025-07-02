@@ -47,7 +47,6 @@ function CompanyDetails() {
   const isVCUser = profile?.is_vc || false;
   const isIITBombayUser = profile?.is_iitbombay || false;
   const isRegularUser = !isVCUser && !isIITBombayUser;
-  const isVCAndBits = isVCUser && profile?.is_bits;
 
   // Extract slide notes and improvement suggestions from company data
   useEffect(() => {
