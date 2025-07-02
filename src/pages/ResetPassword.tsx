@@ -22,71 +22,63 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const checkResetSession = async () => {
+    const handlePasswordReset = async () => {
       try {
         setIsChecking(true);
         console.log("Current URL:", window.location.href);
         console.log("Location hash:", location.hash);
         
-        // Check if we have hash fragments (tokens from the email link)
+        // Parse the hash parameters from the email link
         const hashParams = new URLSearchParams(location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
         
-        console.log("Hash params:", { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+        console.log("Reset tokens found:", { 
+          hasAccessToken: !!accessToken, 
+          hasRefreshToken: !!refreshToken, 
+          type 
+        });
         
-        // If we have reset tokens in the URL, this is from an email link
         if (accessToken && type === 'recovery') {
-          console.log("Found password reset tokens in URL");
+          console.log("Setting session with recovery tokens");
           
-          // Set the session using the tokens from the URL
+          // Set the session using tokens from the email link
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || ''
           });
           
           if (error) {
-            console.error("Error setting session from tokens:", error);
+            console.error("Error setting session:", error);
             setError("Invalid or expired password reset link. Please request a new one.");
             setIsValidSession(false);
-          } else if (data.session && data.user) {
-            console.log("Successfully set session from reset tokens");
+          } else if (data.session) {
+            console.log("Session set successfully for password reset");
             setIsValidSession(true);
             setError("");
+            
+            // Clear the hash from URL for security
+            window.history.replaceState(null, '', window.location.pathname);
           } else {
-            console.log("No session established from tokens");
-            setError("Invalid or expired password reset link. Please request a new one.");
+            setError("Unable to validate reset link. Please request a new one.");
             setIsValidSession(false);
           }
         } else {
-          // Check for existing session (in case user already went through the token exchange)
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error("Session error:", error);
-            setError("Invalid or expired password reset link. Please request a new one.");
-            setIsValidSession(false);
-          } else if (session && session.user) {
-            console.log("Found existing valid session");
-            setIsValidSession(true);
-            setError("");
-          } else {
-            console.log("No valid session found");
-            setError("Invalid or expired password reset link. Please request a new one.");
-            setIsValidSession(false);
-          }
+          console.log("No valid reset tokens found in URL");
+          setError("Invalid password reset link. Please request a new password reset.");
+          setIsValidSession(false);
         }
       } catch (err) {
-        console.error("Error checking reset session:", err);
-        setError("An error occurred. Please try again.");
+        console.error("Error handling password reset:", err);
+        setError("An error occurred while validating the reset link.");
         setIsValidSession(false);
       } finally {
         setIsChecking(false);
       }
     };
 
-    checkResetSession();
+    handlePasswordReset();
   }, [location.hash]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,27 +104,30 @@ const ResetPassword = () => {
     try {
       setLoading(true);
       
+      // Update the user's password
       const { error } = await supabase.auth.updateUser({ 
-        password 
+        password: password 
       });
       
       if (error) {
         throw error;
       }
       
-      setMessage("Password updated successfully!");
+      setMessage("Password updated successfully! Redirecting to sign in...");
       
       toast({
         title: "Password Updated",
-        description: "Your password has been successfully updated.",
+        description: "Your password has been successfully updated. Please sign in with your new password.",
       });
       
-      // Navigate to home page after a short delay
+      // Sign out the user and redirect to home
+      await supabase.auth.signOut();
+      
       setTimeout(() => {
         navigate("/");
       }, 2000);
     } catch (err: any) {
-      console.error("Password reset error:", err);
+      console.error("Password update error:", err);
       setError(err.message || "Failed to update password. Please try again.");
       
       toast({
@@ -152,7 +147,7 @@ const ResetPassword = () => {
           <Card className="w-full">
             <CardContent className="p-6">
               <div className="text-center">
-                <p>Verifying reset link...</p>
+                <p>Validating password reset link...</p>
               </div>
             </CardContent>
           </Card>
@@ -174,7 +169,7 @@ const ResetPassword = () => {
                 <CardTitle>Set New Password</CardTitle>
               </div>
               <CardDescription>
-                {error ? "There was an issue with your password reset link" : "Create a new password for your account"}
+                {error && !isValidSession ? "There was an issue with your password reset link" : "Create a new password for your account"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -198,6 +193,7 @@ const ResetPassword = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={6}
+                      placeholder="Enter your new password"
                     />
                   </div>
                   <div className="space-y-2">
@@ -209,6 +205,7 @@ const ResetPassword = () => {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       minLength={6}
+                      placeholder="Confirm your new password"
                     />
                   </div>
                   {error && (
@@ -222,8 +219,12 @@ const ResetPassword = () => {
             </CardContent>
             {isValidSession && (
               <CardFooter>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Updating..." : "Update Password"}
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={loading || !password || !confirmPassword}
+                >
+                  {loading ? "Updating Password..." : "Update Password"}
                 </Button>
               </CardFooter>
             )}

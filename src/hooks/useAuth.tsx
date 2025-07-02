@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession.user);
           console.log('User updated');
         } else if (event === 'PASSWORD_RECOVERY') {
-          // Handle password recovery event - keep any existing session
+          // Handle password recovery event - this is triggered when user clicks reset link
           console.log('Password recovery event detected');
           if (currentSession) {
             setSession(currentSession);
