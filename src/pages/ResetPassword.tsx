@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,18 +25,24 @@ const ResetPassword = () => {
       try {
         setIsChecking(true);
         console.log("Current URL:", window.location.href);
+        console.log("Location search:", location.search);
         console.log("Location hash:", location.hash);
         
-        // Parse the hash parameters from the email link
+        // Check both URL params and hash for tokens
+        const urlParams = new URLSearchParams(location.search);
         const hashParams = new URLSearchParams(location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const type = hashParams.get('type');
+        
+        // Try to get tokens from either source
+        let accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+        let refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
+        let type = urlParams.get('type') || hashParams.get('type');
         
         console.log("Reset tokens found:", { 
           hasAccessToken: !!accessToken, 
           hasRefreshToken: !!refreshToken, 
-          type 
+          type,
+          fromSearch: !!urlParams.get('access_token'),
+          fromHash: !!hashParams.get('access_token')
         });
         
         if (accessToken && type === 'recovery') {
@@ -58,9 +63,10 @@ const ResetPassword = () => {
             setIsValidSession(true);
             setError("");
             
-            // Clear the hash from URL for security
+            // Clear the parameters from URL for security
             window.history.replaceState(null, '', window.location.pathname);
           } else {
+            console.log("No session returned from setSession");
             setError("Unable to validate reset link. Please request a new one.");
             setIsValidSession(false);
           }
@@ -79,7 +85,7 @@ const ResetPassword = () => {
     };
 
     handlePasswordReset();
-  }, [location.hash]);
+  }, [location.search, location.hash]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -53,6 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (currentSession) {
             setSession(currentSession);
             setUser(currentSession.user);
+            // Navigate to reset password page when password recovery is detected
+            navigate('/reset-password');
           }
         }
         
@@ -93,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   const signInWithEmail = async (email: string, password: string, userType?: 'founder' | 'accelerator' | 'vc') => {
     try {
@@ -261,8 +263,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       setIsLoading(true);
+      // Use the exact URL format and ensure it points to reset-password page
+      const resetUrl = `${window.location.origin}/reset-password`;
+      console.log('Sending password reset email with redirect URL:', resetUrl);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: resetUrl,
       });
 
       if (error) throw error;
