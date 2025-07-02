@@ -16,10 +16,13 @@ export function CompaniesList({ isGeneralUser = false }: CompaniesListProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const navigate = useNavigate();
   
-  const { data: companies, isLoading, error, refetch } = useCompanies({
+  const { companies, isLoading, error, refetch } = useCompanies(
+    1, // page
+    20, // pageSize
     sortBy,
-    sortOrder
-  });
+    sortOrder,
+    '' // search
+  );
 
   const handleCompanyClick = (companyId: string) => {
     navigate(`/company/${companyId}`);
