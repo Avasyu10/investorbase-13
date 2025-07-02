@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -26,9 +25,8 @@ const UploadReport = () => {
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
   const [companyStage, setCompanyStage] = useState("");
-  const [industry, setIndustry] = useState("");
+  const [sector, setSector] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [supplementFiles, setSupplementFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
@@ -74,28 +72,6 @@ const UploadReport = () => {
       }
       
       setFile(selectedFile);
-    }
-  };
-
-  const handleSupplementFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      
-      if (selectedFile.type !== 'application/pdf') {
-        toast.error("Invalid file type", {
-          description: "Please upload a PDF file"
-        });
-        return;
-      }
-      
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        toast.error("File too large", {
-          description: "Please upload a file smaller than 10MB"
-        });
-        return;
-      }
-      
-      setSupplementFiles(prev => [...prev, selectedFile]);
     }
   };
 
@@ -180,8 +156,8 @@ const UploadReport = () => {
         description += `\n\nCompany Stage: ${companyStage}`;
       }
       
-      if (industry) {
-        description += `\n\nIndustry: ${industry}`;
+      if (sector) {
+        description += `\n\nSector: ${sector}`;
       }
       
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
@@ -196,29 +172,6 @@ const UploadReport = () => {
       toast.success("Upload complete", {
         description: "Your pitch deck has been uploaded successfully"
       });
-      
-      if (supplementFiles.length > 0) {
-        for (const supplementFile of supplementFiles) {
-          try {
-            const { error: uploadError } = await supabase.storage
-              .from('report-pdfs')
-              .upload(`${user.id}/supplementary/${report.id}/${supplementFile.name}`, supplementFile);
-              
-            if (uploadError) {
-              console.error("Error uploading supplementary file:", uploadError);
-              toast.error("Error uploading supplementary file", {
-                description: uploadError.message
-              });
-            }
-          } catch (err) {
-            console.error("Error processing supplementary file:", err);
-          }
-        }
-        
-        toast.success("Supplementary materials uploaded", {
-          description: `${supplementFiles.length} file(s) uploaded successfully`
-        });
-      }
       
       setIsAnalyzing(true);
       
@@ -416,15 +369,15 @@ const UploadReport = () => {
               </div>
               
               <div>
-                <Label htmlFor="industry">Industry</Label>
+                <Label htmlFor="sector">Sector</Label>
                 <select
-                  id="industry"
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
+                  id="sector"
+                  value={sector}
+                  onChange={(e) => setSector(e.target.value)}
                   disabled={isProcessing}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
                 >
-                  <option value="">Select industry</option>
+                  <option value="">Select sector</option>
                   <option value="SaaS">SaaS</option>
                   <option value="Fintech">Fintech</option>
                   <option value="Healthtech">Healthtech</option>
@@ -480,44 +433,6 @@ const UploadReport = () => {
                     required
                   />
                 </div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between items-center">
-                <Label>Supplementary Materials</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById('supplement-file')?.click()}
-                  disabled={isProcessing}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add File
-                </Button>
-                
-                <input
-                  id="supplement-file"
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleSupplementFileChange}
-                  className="hidden"
-                  disabled={isProcessing}
-                />
-              </div>
-              
-              <div className="mt-2">
-                {supplementFiles.length > 0 ? (
-                  <ul className="space-y-2">
-                    {supplementFiles.map((file, index) => (
-                      <li key={index} className="text-sm">
-                        {file.name}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No supplementary files added (PDF only, max 10MB)</p>
-                )}
               </div>
             </div>
             
