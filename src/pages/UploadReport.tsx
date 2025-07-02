@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +27,7 @@ const UploadReport = () => {
   const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
   const [companyStage, setCompanyStage] = useState("");
   const [sector, setSector] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -142,6 +144,13 @@ const UploadReport = () => {
       return;
     }
 
+    if (!companyEmail.trim()) {
+      toast.error("Email required", {
+        description: "Please provide a company email address"
+      });
+      return;
+    }
+
     const canProceed = await checkAnalysisLimits();
     if (!canProceed) {
       return;
@@ -158,6 +167,10 @@ const UploadReport = () => {
       
       if (sector) {
         description += `\n\nSector: ${sector}`;
+      }
+
+      if (companyEmail) {
+        description += `\n\nCompany Email: ${companyEmail}`;
       }
       
       const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
@@ -183,6 +196,14 @@ const UploadReport = () => {
         console.log("Starting analysis with report ID:", report.id);
         const result = await analyzeReport(report.id);
         console.log("Analysis complete, result:", result);
+
+        // Update the company with email after analysis
+        if (result && result.companyId && companyEmail) {
+          await supabase
+            .from('companies')
+            .update({ email: companyEmail })
+            .eq('id', result.companyId);
+        }
         
         toast.success("Analysis complete", {
           description: "Your pitch deck has been analyzed successfully!"
@@ -434,6 +455,22 @@ const UploadReport = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="company-email" className="flex items-center">
+                Company Email <span className="text-red-500 ml-1">*</span>
+              </Label>
+              <Input 
+                id="company-email" 
+                type="email"
+                placeholder="Enter company email address" 
+                value={companyEmail}
+                onChange={(e) => setCompanyEmail(e.target.value)}
+                disabled={isProcessing}
+                required
+                className="mt-1"
+              />
             </div>
             
             <div className="pt-2">
