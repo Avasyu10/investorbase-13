@@ -29,25 +29,31 @@ const ResetPassword = () => {
         console.log("Location search:", location.search);
         console.log("Location hash:", location.hash);
         
-        // Check both URL params and hash for tokens - Supabase can use either
-        const urlParams = new URLSearchParams(location.search);
-        const hashParams = new URLSearchParams(location.hash.substring(1));
+        // Parse tokens from URL - Supabase typically uses hash fragments
+        let accessToken = null;
+        let refreshToken = null;
+        let type = null;
         
-        // Try to get tokens from either source
-        let accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-        let refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
-        let type = urlParams.get('type') || hashParams.get('type');
+        // First check hash parameters (most common for Supabase auth)
+        if (location.hash) {
+          const hashParams = new URLSearchParams(location.hash.substring(1));
+          accessToken = hashParams.get('access_token');
+          refreshToken = hashParams.get('refresh_token');
+          type = hashParams.get('type');
+          console.log("Found tokens in hash:", { accessToken: !!accessToken, type });
+        }
         
-        console.log("Reset tokens found:", { 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken, 
-          type,
-          fromSearch: !!urlParams.get('access_token'),
-          fromHash: !!hashParams.get('access_token')
-        });
+        // Fallback to search parameters if not found in hash
+        if (!accessToken && location.search) {
+          const urlParams = new URLSearchParams(location.search);
+          accessToken = urlParams.get('access_token');
+          refreshToken = urlParams.get('refresh_token');
+          type = urlParams.get('type');
+          console.log("Found tokens in search:", { accessToken: !!accessToken, type });
+        }
         
         if (accessToken && type === 'recovery') {
-          console.log("Setting session with recovery tokens");
+          console.log("Valid recovery tokens found, setting session");
           
           // Set the session using tokens from the email link
           const { data, error } = await supabase.auth.setSession({
@@ -71,15 +77,15 @@ const ResetPassword = () => {
             setError("Unable to validate reset link. Please request a new one.");
             setIsValidSession(false);
           }
-        } else if (type === 'recovery' && !accessToken) {
-          console.log("Recovery type found but no access token");
-          setError("Invalid password reset link format. Please request a new one.");
-          setIsValidSession(false);
         } else {
-          console.log("No valid reset tokens found in URL");
+          console.log("No valid reset tokens found or wrong type");
           // Check if there's already a valid session (user might be logged in)
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) {
+            console.error("Error getting session:", sessionError);
+            setError("Invalid password reset link. Please request a new password reset.");
+            setIsValidSession(false);
+          } else if (session) {
             console.log("User already has valid session");
             setIsValidSession(true);
             setError("");
