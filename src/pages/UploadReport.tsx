@@ -459,12 +459,12 @@ const UploadReport = () => {
 
             <div>
               <Label htmlFor="company-email" className="flex items-center">
-                Company Email <span className="text-red-500 ml-1">*</span>
+               Email <span className="text-red-500 ml-1">*</span>
               </Label>
               <Input 
                 id="company-email" 
                 type="email"
-                placeholder="Enter company email address" 
+                placeholder="Enter email address" 
                 value={companyEmail}
                 onChange={(e) => setCompanyEmail(e.target.value)}
                 disabled={isProcessing}
