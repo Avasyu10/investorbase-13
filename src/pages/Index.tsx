@@ -1,13 +1,14 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Building2, TrendingUp } from "lucide-react";
+import { User, Building2, TrendingUp, Eye, EyeOff } from "lucide-react"; // Import Eye and EyeOff
+
 const Index = () => {
   const {
     user,
@@ -20,15 +21,19 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
+
   useEffect(() => {
     if (user && !isLoading) {
       navigate('/dashboard');
     }
   }, [user, isLoading, navigate]);
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     await signInWithEmail(email, password, selectedUserType);
   };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await signUpWithEmail(email, password);
@@ -38,12 +43,14 @@ const Index = () => {
       setActiveTab("signin");
     }
   };
+
   const handleUserTypeChange = (userType: 'founder' | 'accelerator' | 'vc') => {
     setSelectedUserType(userType);
     if (userType === 'accelerator' || userType === 'vc') {
       setActiveTab("signin");
     }
   };
+
   const getUserTypeIcon = (type: string) => {
     switch (type) {
       case 'founder':
@@ -56,7 +63,9 @@ const Index = () => {
         return <User className="h-4 w-4" />;
     }
   };
-  return <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
+
+  return (
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
         <div className="flex justify-center mb-6">
           <img src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" alt="InvestorBase Logo" className="h-16 w-auto" />
@@ -81,8 +90,8 @@ const Index = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <Label htmlFor="userType" className="text-base font-semibold text-primary">User Type</Label>
-                
+                {/* Changed text-primary to text-muted-foreground for grey color */}
+                <Label htmlFor="userType" className="text-base font-semibold text-muted-foreground">User Type</Label>
               </div>
               <Select value={selectedUserType} onValueChange={handleUserTypeChange}>
                 <SelectTrigger className="w-full h-12 text-base border-2 border-primary/50 bg-background/80 hover:border-primary transition-colors">
@@ -93,15 +102,12 @@ const Index = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-background border-primary/20">
                   <SelectItem value="founder" className="text-base py-3">
-                    {/* Removed User icon from here */}
                     <span>Founder</span>
                   </SelectItem>
                   <SelectItem value="accelerator" className="text-base py-3">
-                    {/* Removed Building2 icon from here */}
                     <span>Accelerator & Incubator</span>
                   </SelectItem>
                   <SelectItem value="vc" className="text-base py-3">
-                    {/* Removed TrendingUp icon from here */}
                     <span>Venture Capitalist</span>
                   </SelectItem>
                 </SelectContent>
@@ -113,11 +119,14 @@ const Index = () => {
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-muted-foreground/20" />
               </div>
-              
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-base text-amber-500 font-semibold">Step 2: Authentication</span>
+              </div>
             </div>
 
             {/* Authentication Forms */}
-            {selectedUserType === 'founder' ? <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {selectedUserType === 'founder' ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -130,13 +139,32 @@ const Index = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                      {/* Password input with toggle */}
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"} // Toggle type
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          required
+                          className="pr-10" // Add padding for the icon
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? <div className="flex items-center space-x-2">
+                      {isLoading ? (
+                        <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Signing in...</span>
-                        </div> : "Sign In"}
+                        </div>
+                      ) : "Sign In"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -148,39 +176,84 @@ const Index = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
-                      <Input id="signup-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                      {/* Password input with toggle */}
+                      <div className="relative">
+                        <Input
+                          id="signup-password"
+                          type={showPassword ? "text" : "password"} // Toggle type
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          required
+                          className="pr-10" // Add padding for the icon
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? <div className="flex items-center space-x-2">
+                      {isLoading ? (
+                        <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Creating account...</span>
-                        </div> : "Sign Up"}
+                        </div>
+                      ) : "Sign Up"}
                     </Button>
                   </form>
                 </TabsContent>
-              </Tabs> : <form onSubmit={handleSignIn} className="space-y-4">
+              </Tabs>
+            ) : (
+              <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="institutional-email">Email</Label>
                   <Input id="institutional-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="institutional-password">Password</Label>
-                  <Input id="institutional-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                  {/* Password input with toggle */}
+                  <div className="relative">
+                    <Input
+                      id="institutional-password"
+                      type={showPassword ? "text" : "password"} // Toggle type
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      required
+                      className="pr-10" // Add padding for the icon
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? <div className="flex items-center space-x-2">
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
                       <span className="loader"></span>
                       <span>Signing in...</span>
-                    </div> : "Sign In"}
+                    </div>
+                  ) : "Sign In"}
                 </Button>
-              </form>}
+              </form>
+            )}
 
-            {selectedUserType !== 'founder' && <p className="text-center text-sm text-muted-foreground mt-4">
+            {selectedUserType !== 'founder' && (
+              <p className="text-center text-sm text-muted-foreground mt-4">
                 Don't have an account? Please contact your administrator for access.
-              </p>}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
