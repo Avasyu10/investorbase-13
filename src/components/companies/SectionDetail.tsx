@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -16,7 +17,8 @@ import {
   Globe,
   BookOpen,
   FileText,
-  Wrench
+  Wrench,
+  Zap
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
@@ -72,8 +74,8 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   if (title.includes('go-to-market') || title.includes('strategy')) {
     return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
   }
-  // Handle USP/Differentiation mapping
-  if (title.includes('differentiation') || title.includes('usp') || title.includes('unique')) {
+  // Handle USP/Differentiation mapping - now prioritize USP
+  if (title.includes('usp') || title.includes('unique') || title.includes('differentiation')) {
     return SECTION_TITLES[SECTION_TYPES.USP];
   }
   // Handle Prototype section
