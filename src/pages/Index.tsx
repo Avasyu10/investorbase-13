@@ -50,18 +50,7 @@ const Index = () => {
     }
   };
 
-  const getUserTypeIcon = (type: string) => {
-    switch (type) {
-      case 'founder':
-        return <User className="h-4 w-4" />;
-      case 'accelerator':
-        return <Building2 className="h-4 w-4" />;
-      case 'vc':
-        return <TrendingUp className="h-4 w-4" />;
-      default:
-        return <User className="h-4 w-4" />;
-    }
-  };
+
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
