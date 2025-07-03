@@ -7,6 +7,7 @@ import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
+import { useProfile } from "@/hooks/useProfile";
 import {
   Pagination,
   PaginationContent,
@@ -19,6 +20,7 @@ import {
 export function VCAndBitsCompaniesList() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isBitsQuestion } = useProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('created_at');
@@ -146,7 +148,7 @@ export function VCAndBitsCompaniesList() {
             onSortChange={handleSortChange}
             currentSort={{ field: sortBy, order: sortOrder }}
             isVCAndBits={true}
-            isBitsQuestion={true}
+            isBitsQuestion={isBitsQuestion}
           />
           
           {/* Pagination */}
