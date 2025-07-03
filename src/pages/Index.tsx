@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Building2, TrendingUp } from "lucide-react";
-
 const Index = () => {
   const {
     user,
@@ -21,18 +20,15 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
-
   useEffect(() => {
     if (user && !isLoading) {
       navigate('/dashboard');
     }
   }, [user, isLoading, navigate]);
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     await signInWithEmail(email, password, selectedUserType);
   };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await signUpWithEmail(email, password);
@@ -42,14 +38,12 @@ const Index = () => {
       setActiveTab("signin");
     }
   };
-
   const handleUserTypeChange = (userType: 'founder' | 'accelerator' | 'vc') => {
     setSelectedUserType(userType);
     if (userType === 'accelerator' || userType === 'vc') {
       setActiveTab("signin");
     }
   };
-
   const getUserTypeIcon = (type: string) => {
     switch (type) {
       case 'founder':
@@ -62,9 +56,7 @@ const Index = () => {
         return <User className="h-4 w-4" />;
     }
   };
-
-  return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
+  return <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
         <div className="flex justify-center mb-6">
           <img src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" alt="InvestorBase Logo" className="h-16 w-auto" />
@@ -89,9 +81,7 @@ const Index = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <Label htmlFor="userType" className="text-base font-semibold text-primary">
-                  Step 1: Select Your User Type
-                </Label>
+                <Label htmlFor="userType" className="text-base font-semibold text-primary">User Type</Label>
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               </div>
               <Select value={selectedUserType} onValueChange={handleUserTypeChange}>
@@ -129,8 +119,7 @@ const Index = () => {
             </div>
 
             {/* Authentication Forms */}
-            {selectedUserType === 'founder' ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {selectedUserType === 'founder' ? <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -146,12 +135,10 @@ const Index = () => {
                       <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
+                      {isLoading ? <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Signing in...</span>
-                        </div>
-                      ) : "Sign In"}
+                        </div> : "Sign In"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -166,18 +153,14 @@ const Index = () => {
                       <Input id="signup-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
+                      {isLoading ? <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Creating account...</span>
-                        </div>
-                      ) : "Sign Up"}
+                        </div> : "Sign Up"}
                     </Button>
                   </form>
                 </TabsContent>
-              </Tabs>
-            ) : (
-              <form onSubmit={handleSignIn} className="space-y-4">
+              </Tabs> : <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="institutional-email">Email</Label>
                   <Input id="institutional-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
@@ -187,26 +170,19 @@ const Index = () => {
                   <Input id="institutional-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
+                  {isLoading ? <div className="flex items-center space-x-2">
                       <span className="loader"></span>
                       <span>Signing in...</span>
-                    </div>
-                  ) : "Sign In"}
+                    </div> : "Sign In"}
                 </Button>
-              </form>
-            )}
+              </form>}
 
-            {selectedUserType !== 'founder' && (
-              <p className="text-center text-sm text-muted-foreground mt-4">
+            {selectedUserType !== 'founder' && <p className="text-center text-sm text-muted-foreground mt-4">
                 Don't have an account? Please contact your administrator for access.
-              </p>
-            )}
+              </p>}
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
