@@ -69,7 +69,7 @@ const Index = () => {
         <div className="flex justify-center mb-6">
           <img src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" alt="InvestorBase Logo" className="h-16 w-auto" />
         </div>
-        
+
         <div className="text-center space-y-2 mb-6">
           <h1 className="text-4xl font-bold tracking-tight">Login/Signup</h1>
           <p className="text-xl text-muted-foreground">
@@ -103,22 +103,16 @@ const Index = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-background border-primary/20">
                   <SelectItem value="founder" className="text-base py-3">
-                    <div className="flex items-center gap-3">
-                      <User className="h-4 w-4" />
-                      <span>Founder</span>
-                    </div>
+                    {/* Removed User icon from here */}
+                    <span>Founder</span>
                   </SelectItem>
                   <SelectItem value="accelerator" className="text-base py-3">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="h-4 w-4" />
-                      <span>Accelerator & Incubator</span>
-                    </div>
+                    {/* Removed Building2 icon from here */}
+                    <span>Accelerator & Incubator</span>
                   </SelectItem>
                   <SelectItem value="vc" className="text-base py-3">
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="h-4 w-4" />
-                      <span>Venture Capitalist</span>
-                    </div>
+                    {/* Removed TrendingUp icon from here */}
+                    <span>Venture Capitalist</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
