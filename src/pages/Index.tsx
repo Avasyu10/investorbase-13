@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -9,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Building2, TrendingUp } from "lucide-react";
-
 const Index = () => {
   const {
     user,
@@ -22,18 +20,15 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
-
   useEffect(() => {
     if (user && !isLoading) {
       navigate('/dashboard');
     }
   }, [user, isLoading, navigate]);
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     await signInWithEmail(email, password, selectedUserType);
   };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await signUpWithEmail(email, password);
@@ -43,14 +38,12 @@ const Index = () => {
       setActiveTab("signin");
     }
   };
-
   const handleUserTypeChange = (userType: 'founder' | 'accelerator' | 'vc') => {
     setSelectedUserType(userType);
     if (userType === 'accelerator' || userType === 'vc') {
       setActiveTab("signin");
     }
   };
-
   const getUserTypeIcon = (type: string) => {
     switch (type) {
       case 'founder':
@@ -63,9 +56,7 @@ const Index = () => {
         return <User className="h-4 w-4" />;
     }
   };
-
-  return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
+  return <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
         <div className="flex justify-center mb-6">
           <img src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" alt="InvestorBase Logo" className="h-16 w-auto" />
@@ -80,7 +71,7 @@ const Index = () => {
 
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>Authentication</CardTitle>
+            <CardTitle>Welcome</CardTitle>
             <CardDescription>
               Select your user type and enter your credentials
             </CardDescription>
@@ -133,13 +124,12 @@ const Index = () => {
                 <span className="w-full border-t border-muted-foreground/20" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Step 2: Authentication</span>
+                <span className="bg-card px-2 text-base text-amber-500 font-semibold">Step 2: Authentication</span>
               </div>
             </div>
 
             {/* Authentication Forms */}
-            {selectedUserType === 'founder' ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {selectedUserType === 'founder' ? <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -148,34 +138,17 @@ const Index = () => {
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
+                      <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
+                      <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
+                      {isLoading ? <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Signing in...</span>
-                        </div>
-                      ) : (
-                        "Sign In"
-                      )}
+                        </div> : "Sign In"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -183,84 +156,43 @@ const Index = () => {
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="signup-email">Email</Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
+                      <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
+                      <Input id="signup-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
+                      {isLoading ? <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Creating account...</span>
-                        </div>
-                      ) : (
-                        "Sign Up"
-                      )}
+                        </div> : "Sign Up"}
                     </Button>
                   </form>
                 </TabsContent>
-              </Tabs>
-            ) : (
-              <form onSubmit={handleSignIn} className="space-y-4">
+              </Tabs> : <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="institutional-email">Email</Label>
-                  <Input
-                    id="institutional-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+                  <Input id="institutional-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="institutional-password">Password</Label>
-                  <Input
-                    id="institutional-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <Input id="institutional-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
+                  {isLoading ? <div className="flex items-center space-x-2">
                       <span className="loader"></span>
                       <span>Signing in...</span>
-                    </div>
-                  ) : (
-                    "Sign In"
-                  )}
+                    </div> : "Sign In"}
                 </Button>
-              </form>
-            )}
+              </form>}
 
-            {selectedUserType !== 'founder' && (
-              <p className="text-center text-sm text-muted-foreground mt-4">
+            {selectedUserType !== 'founder' && <p className="text-center text-sm text-muted-foreground mt-4">
                 Don't have an account? Please contact your administrator for access.
-              </p>
-            )}
+              </p>}
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
