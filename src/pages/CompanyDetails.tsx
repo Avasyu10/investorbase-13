@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -33,7 +32,7 @@ function CompanyDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isLoading: authLoading, user } = useAuth();
-  const { profile, isLoading: profileLoading, isVCAndBits } = useProfile();
+  const { profile, isLoading: profileLoading, isVCAndBits, isBitsQuestion } = useProfile();
   const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
@@ -48,7 +47,7 @@ function CompanyDetails() {
   // Determine user type based on profile - using correct property names
   const isVCUser = profile?.is_vc || false;
   const isIITBombayUser = profile?.is_iitbombay || false;
-  const isRegularUser = !isVCUser && !isIITBombayUser;
+  const isRegularUser = !isVCUser && !isIITBombayUser && !isBitsQuestion;
 
   // Extract slide notes and improvement suggestions from company data
   useEffect(() => {
@@ -145,6 +144,52 @@ function CompanyDetails() {
     );
   }
 
+  // For BITS question users, show only the Questions to Ask section
+  if (isBitsQuestion) {
+    return (
+      <div className="min-h-screen">
+        <div className="w-full px-4 pt-0 pb-6 animate-fade-in">
+          {/* Back Button */}
+          <div className="container mx-auto mb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+              className="flex items-center"
+            >
+              <ChevronLeft className="mr-1" /> Back
+            </Button>
+          </div>
+
+          {/* Company Overview - Full width */}
+          <div className="w-full mb-8">
+            <div className="container mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-4">
+                  <CompanyInfoCard
+                    website={websiteToShow}
+                    stage={stageToShow}
+                    industry={industryToShow}
+                    introduction={introductionToShow}
+                    companyName={company.name}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="container mx-auto">
+            {/* Only show Questions to Ask section for BITS question users */}
+            <QuestionsToAsk 
+              companyId={company.id}
+              companyName={company.name}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Ensure we have values to display, using fallbacks and proper defaults
   const websiteToShow = company.website || "";
   const stageToShow = company.stage || "Not specified";
@@ -223,7 +268,7 @@ function CompanyDetails() {
 
   const sortedSections = getSortedSections();
 
-  console.log('User types:', { isVCUser, isIITBombayUser, isRegularUser, isVCAndBits });
+  console.log('User types:', { isVCUser, isIITBombayUser, isRegularUser, isVCAndBits, isBitsQuestion });
   console.log('Filtered sections (excluding SLIDE_NOTES and GTM_STRATEGY):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
 
@@ -283,17 +328,10 @@ function CompanyDetails() {
 
           {/* For VC+BITS users, show Questions to Ask section */}
           {isVCAndBits && (
-            <>
-              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-primary" />
-                Questions to Ask
-              </h2>
-              
-              <QuestionsToAsk 
-                companyId={company.id}
-                companyName={company.name}
-              />
-            </>
+            <QuestionsToAsk 
+              companyId={company.id}
+              companyName={company.name}
+            />
           )}
 
           {/* For VC users, show section metrics */}
