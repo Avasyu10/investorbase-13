@@ -110,11 +110,13 @@ const Index = () => {
                   </SelectItem>
                   <SelectItem value="accelerator" className="text-base py-3">
                     <div className="flex items-center gap-3">
+                      <Building2 className="h-4 w-4" />
                       <span>Accelerator & Incubator</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="vc" className="text-base py-3">
                     <div className="flex items-center gap-3">
+                      <TrendingUp className="h-4 w-4" />
                       <span>Venture Capitalist</span>
                     </div>
                   </SelectItem>
