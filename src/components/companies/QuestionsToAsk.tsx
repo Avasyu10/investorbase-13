@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, Loader2 } from "lucide-react";
+import { HelpCircle, Loader2, MessageSquare, ArrowRight } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 
 interface QuestionsToAskProps {
@@ -66,16 +66,24 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
 
   if (isLoading) {
     return (
-      <Card className="mb-8 shadow-card border-0">
-        <CardHeader className="bg-secondary/50 border-b pb-4">
-          <CardTitle className="text-xl font-semibold flex items-center gap-2">
-            <HelpCircle className="h-5 w-5" />
-            Questions to Ask
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
+          <CardTitle className="text-2xl font-bold flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <HelpCircle className="h-6 w-6" />
+            </div>
+            Strategic Questions
           </CardTitle>
+          <p className="text-blue-100 mt-2">
+            Curated questions to help you evaluate this investment opportunity
+          </p>
         </CardHeader>
-        <CardContent className="pt-5">
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <CardContent className="pt-8 pb-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+              <p className="text-gray-600">Loading strategic questions...</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -84,16 +92,24 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
 
   if (error) {
     return (
-      <Card className="mb-8 shadow-card border-0">
-        <CardHeader className="bg-secondary/50 border-b pb-4">
-          <CardTitle className="text-xl font-semibold flex items-center gap-2">
-            <HelpCircle className="h-5 w-5" />
-            Questions to Ask
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-t-lg">
+          <CardTitle className="text-2xl font-bold flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <HelpCircle className="h-6 w-6" />
+            </div>
+            Strategic Questions
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-5">
-          <div className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">{error}</p>
+        <CardContent className="pt-8 pb-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <HelpCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <p className="text-red-600 font-medium">{error}</p>
+              <p className="text-gray-500 text-sm mt-2">Please try refreshing the page</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -102,16 +118,24 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
 
   if (questions.length === 0) {
     return (
-      <Card className="mb-8 shadow-card border-0">
-        <CardHeader className="bg-secondary/50 border-b pb-4">
-          <CardTitle className="text-xl font-semibold flex items-center gap-2">
-            <HelpCircle className="h-5 w-5" />
-            Questions to Ask
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-t-lg">
+          <CardTitle className="text-2xl font-bold flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <HelpCircle className="h-6 w-6" />
+            </div>
+            Strategic Questions
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-5">
-          <div className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">No questions available for this company.</p>
+        <CardContent className="pt-8 pb-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-gray-600 font-medium">No questions available</p>
+              <p className="text-gray-500 text-sm mt-2">Questions for this company haven't been generated yet</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -119,25 +143,49 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
   }
 
   return (
-    <Card className="mb-8 shadow-card border-0">
-      <CardHeader className="bg-secondary/50 border-b pb-4">
-        <CardTitle className="text-xl font-semibold flex items-center gap-2">
-          <HelpCircle className="h-5 w-5" />
-          Questions to Ask
+    <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
+        <CardTitle className="text-2xl font-bold flex items-center gap-3">
+          <div className="p-2 bg-white/20 rounded-lg">
+            <HelpCircle className="h-6 w-6" />
+          </div>
+          Strategic Questions
         </CardTitle>
+        <p className="text-blue-100 mt-2">
+          {questions.length} curated questions to help you evaluate this investment opportunity
+        </p>
       </CardHeader>
-      <CardContent className="pt-5">
-        <div className="space-y-3">
+      <CardContent className="pt-8 pb-8">
+        <div className="space-y-6">
           {questions.map((question, index) => (
-            <div key={index} className="flex gap-3 items-start">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium flex items-center justify-center mt-0.5">
-                {index + 1}
+            <div key={index} className="group">
+              <div className="flex gap-4 items-start p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                    {index + 1}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-gray-800 dark:text-gray-200 leading-relaxed font-medium text-lg">
+                    {question}
+                  </p>
+                </div>
+                <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ArrowRight className="h-5 w-5 text-blue-500" />
+                </div>
               </div>
-              <p className="text-sm text-foreground leading-relaxed">
-                {question}
-              </p>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/30">
+          <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+            <MessageSquare className="h-5 w-5" />
+            <span className="font-medium">Pro Tip</span>
+          </div>
+          <p className="text-blue-600 dark:text-blue-400 text-sm mt-1">
+            Use these questions during your due diligence process to gain deeper insights into the company's potential and risks.
+          </p>
         </div>
       </CardContent>
     </Card>
