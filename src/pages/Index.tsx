@@ -113,7 +113,7 @@ const Index = () => {
                     <span>Accelerator & Incubator</span>
                   </SelectItem>
                   <SelectItem value="vc" className="text-base py-3">
-                    <span>Venture Capitalist</span>
+                    <span>Investor</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
