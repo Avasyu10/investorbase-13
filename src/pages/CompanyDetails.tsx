@@ -1,4 +1,5 @@
 
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -327,7 +328,7 @@ function CompanyDetails() {
             />
           )}
 
-          {/* For VC+BITS users, show Questions to Ask section */}
+          {/* For VC+BITS users only, show Questions to Ask section */}
           {isVCAndBits && (
             <QuestionsToAsk 
               companyId={company.id}
@@ -426,3 +427,4 @@ function CompanyDetails() {
 }
 
 export default CompanyDetails;
+
