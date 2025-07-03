@@ -72,14 +72,6 @@ const SectionPage = () => {
     if (title.includes('go-to-market') || title.includes('strategy')) {
       return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
     }
-    // Handle USP/Differentiation mapping
-    if (title.includes('differentiation') || title.includes('usp') || title.includes('unique')) {
-      return SECTION_TITLES[SECTION_TYPES.USP];
-    }
-    // Handle Prototype section
-    if (title.includes('prototype') || title.includes('mvp') || title.includes('minimum viable')) {
-      return SECTION_TITLES[SECTION_TYPES.PROTOTYPE];
-    }
     
     return section.title;
   };
@@ -88,8 +80,8 @@ const SectionPage = () => {
     if (!company || !section) return { prevSection: null, nextSection: null };
     
     const sortedSections = [...company.sections].sort((a, b) => {
-      const indexA = ORDERED_SECTIONS.indexOf(a.type as typeof ORDERED_SECTIONS[number]);
-      const indexB = ORDERED_SECTIONS.indexOf(b.type as typeof ORDERED_SECTIONS[number]);
+      const indexA = ORDERED_SECTIONS.indexOf(a.type);
+      const indexB = ORDERED_SECTIONS.indexOf(b.type);
       
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       if (indexA !== -1) return -1;

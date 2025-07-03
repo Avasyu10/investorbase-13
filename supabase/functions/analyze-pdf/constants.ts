@@ -10,9 +10,7 @@ export const SECTION_TYPES = {
   GTM_STRATEGY: "GTM_STRATEGY",
   TEAM: "TEAM",
   FINANCIALS: "FINANCIALS",
-  ASK: "ASK",
-  USP: "USP", // Changed from DIFFERENTIATION
-  PROTOTYPE: "PROTOTYPE" // New section
+  ASK: "ASK"
 };
 
 // Ensure these match exactly with what we expect in the API response
@@ -26,9 +24,7 @@ export const SECTION_TITLES = {
   [SECTION_TYPES.GTM_STRATEGY]: "Go-to-Market Strategy",
   [SECTION_TYPES.TEAM]: "Founder & Team Background",
   [SECTION_TYPES.FINANCIALS]: "Financial Overview & Projections",
-  [SECTION_TYPES.ASK]: "The Ask & Next Steps",
-  [SECTION_TYPES.USP]: "USP", // Changed from "Differentiation"
-  [SECTION_TYPES.PROTOTYPE]: "Prototype" // New section
+  [SECTION_TYPES.ASK]: "The Ask & Next Steps"
 };
 
 // Define the ordered array of sections for consistent display
@@ -42,9 +38,7 @@ export const ORDERED_SECTIONS = [
   SECTION_TYPES.GTM_STRATEGY,
   SECTION_TYPES.TEAM,
   SECTION_TYPES.FINANCIALS,
-  SECTION_TYPES.ASK,
-  SECTION_TYPES.USP, // Changed from DIFFERENTIATION
-  SECTION_TYPES.PROTOTYPE // New section added
+  SECTION_TYPES.ASK
 ];
 
 // Array of all expected section types for validation

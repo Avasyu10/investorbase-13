@@ -91,9 +91,8 @@ const CompanyDetails = () => {
     }
     
     return [...sectionsToShow].sort((a, b) => {
-      // Cast the section types to the proper union type to fix TypeScript errors
-      const indexA = ORDERED_SECTIONS.indexOf(a.type.toUpperCase() as typeof ORDERED_SECTIONS[number]);
-      const indexB = ORDERED_SECTIONS.indexOf(b.type.toUpperCase() as typeof ORDERED_SECTIONS[number]);
+      const indexA = ORDERED_SECTIONS.indexOf(a.type);
+      const indexB = ORDERED_SECTIONS.indexOf(b.type);
       
       if (indexA !== -1 && indexB !== -1) {
         return indexA - indexB;
