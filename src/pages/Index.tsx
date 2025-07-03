@@ -99,7 +99,7 @@ const Index = () => {
                   <div className="flex items-center gap-3">
                     {getUserTypeIcon(selectedUserType)}
                     {/* Changed placeholder text */}
-                    <SelectValue placeholder="Select your user type..." />
+                    <SelectValue placeholder="Select your User Type" />
                   </div>
                 </SelectTrigger>
                 <SelectContent className="bg-background border-primary/20">
