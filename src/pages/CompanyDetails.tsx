@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -48,6 +49,12 @@ function CompanyDetails() {
   const isVCUser = profile?.is_vc || false;
   const isIITBombayUser = profile?.is_iitbombay || false;
   const isRegularUser = !isVCUser && !isIITBombayUser && !isBitsQuestion;
+
+  // Ensure we have values to display, using fallbacks and proper defaults - moved before usage
+  const websiteToShow = company?.website || "";
+  const stageToShow = company?.stage || "Not specified";
+  const industryToShow = company?.industry || "Not specified";
+  const introductionToShow = company?.introduction || `${company?.name || 'This company'} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
 
   // Extract slide notes and improvement suggestions from company data
   useEffect(() => {
@@ -189,12 +196,6 @@ function CompanyDetails() {
       </div>
     );
   }
-
-  // Ensure we have values to display, using fallbacks and proper defaults
-  const websiteToShow = company.website || "";
-  const stageToShow = company.stage || "Not specified";
-  const industryToShow = company.industry || "Not specified";
-  const introductionToShow = company.introduction || `${company.name} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
 
   // Filter sections based on user type - exclude slide notes and GTM strategy for display in section cards
   const filteredSections = company?.sections ? 
