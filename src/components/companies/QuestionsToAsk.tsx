@@ -1,29 +1,26 @@
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpCircle, Loader2, MessageSquare, ArrowRight } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
-
 interface QuestionsToAskProps {
   companyId: string;
   companyName: string;
 }
-
 interface BitsAnalysisResult {
   questions?: string[];
   [key: string]: any;
 }
-
 interface BitsAnalysis {
   id: string;
   analysis_result: BitsAnalysisResult | null;
 }
-
-export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) {
+export function QuestionsToAsk({
+  companyId,
+  companyName
+}: QuestionsToAskProps) {
   const [questions, setQuestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -31,20 +28,17 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
         setError(null);
 
         // Query bitsanalysis table for questions related to this company
-        const { data, error: fetchError } = await supabase
-          .from('bitsanalysis')
-          .select('analysis_result')
-          .ilike('deck_name', `%${companyName}%`)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
+        const {
+          data,
+          error: fetchError
+        } = await supabase.from('bitsanalysis').select('analysis_result').ilike('deck_name', `%${companyName}%`).order('created_at', {
+          ascending: false
+        }).limit(1).maybeSingle();
         if (fetchError) {
           console.error('Error fetching questions:', fetchError);
           setError('Failed to load questions');
           return;
         }
-
         const analysisResult = data?.analysis_result as BitsAnalysisResult | null;
         if (analysisResult?.questions && Array.isArray(analysisResult.questions)) {
           setQuestions(analysisResult.questions);
@@ -58,15 +52,12 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
         setIsLoading(false);
       }
     };
-
     if (companyName) {
       fetchQuestions();
     }
   }, [companyId, companyName]);
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -99,13 +90,10 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (error) {
-    return (
-      <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -138,13 +126,10 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (questions.length === 0) {
-    return (
-      <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -177,12 +162,9 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -207,8 +189,7 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
           </CardHeader>
           <CardContent className="pt-8 pb-8">
             <div className="space-y-6">
-              {questions.map((question, index) => (
-                <div key={index} className="group">
+              {questions.map((question, index) => <div key={index} className="group">
                   <div className="flex gap-4 items-start p-6 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-r from-slate-700 to-slate-800 text-white font-bold flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
@@ -216,7 +197,7 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
                       </div>
                     </div>
                     <div className="flex-1">
-                      <p className="text-foreground leading-relaxed font-medium text-lg">
+                      <p className="leading-relaxed font-medium text-lg text-neutral-950">
                         {question}
                       </p>
                     </div>
@@ -224,8 +205,7 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
                       <ArrowRight className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                     </div>
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
             
             <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -240,6 +220,5 @@ export function QuestionsToAsk({ companyId, companyName }: QuestionsToAskProps) 
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }
