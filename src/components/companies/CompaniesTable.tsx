@@ -305,12 +305,7 @@ export function CompaniesTable({
                 <TableHead className="font-semibold w-[200px]">Company</TableHead>
                 <TableHead className="font-semibold w-[150px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
-                {!isBitsQuestion && <TableHead className="font-semibold w-[100px]">
-                    <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
-                      Score
-                      {getSortIcon('overall_score')}
-                    </Button>
-                  </TableHead>}
+                {!isBitsQuestion && <TableHead className="font-semibold w-[100px]">Score </TableHead>}
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
