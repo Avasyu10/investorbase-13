@@ -21,8 +21,10 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
           return 'Competitors';
         case 'revenue_model':
           return 'Revenue Model';
-        case 'differentiation':
-          return 'Differentiation';
+        case 'usp': // Changed from 'differentiation' to 'usp'
+          return 'USP';
+        case 'prototype': // Added new prototype section
+          return 'Prototype';
         default:
           break;
       }

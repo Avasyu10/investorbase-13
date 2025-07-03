@@ -1,3 +1,4 @@
+
 export const AreaOfInterestOptions = [
   { label: "AI/Machine Learning", value: "ai-ml" },
   { label: "SaaS", value: "saas" },
@@ -69,7 +70,8 @@ export const ORDERED_SECTIONS = [
   'target_customers',
   'competitors',
   'revenue_model',
-  'differentiation'
+  'usp', // Changed from 'differentiation' to 'usp'
+  'prototype' // Added new prototype section
 ];
 
 // Array of all expected section types for validation

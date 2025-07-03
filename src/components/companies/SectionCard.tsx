@@ -55,7 +55,8 @@ export const SectionCard = ({ section, onClick, isVCAndBits = false }: SectionCa
       'target_customers': 'Target Customers', 
       'competitors': 'Competitors',
       'revenue_model': 'Revenue Model',
-      'differentiation': 'Differentiation'
+      'usp': 'USP', // Changed from 'differentiation' to 'usp'
+      'prototype': 'Prototype' // Added new prototype section
     };
 
     // Custom VC section title mappings based on section type

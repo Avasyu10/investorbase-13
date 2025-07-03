@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Globe,
   BookOpen,
-  FileText
+  FileText,
+  Wrench // Added for prototype section
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
@@ -31,6 +32,26 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   // Handle slide notes section
   if (section.type === 'SLIDE_NOTES') {
     return 'Slide by Slide Notes';
+  }
+  
+  // Handle IIT Bombay specific sections
+  if (section.section_type) {
+    switch (section.section_type) {
+      case 'problem_solution_fit':
+        return 'Problem & Solution';
+      case 'target_customers':
+        return 'Target Customers';
+      case 'competitors':
+        return 'Competitors';
+      case 'revenue_model':
+        return 'Revenue Model';
+      case 'usp': // Changed from 'differentiation' to 'usp'
+        return 'USP';
+      case 'prototype': // Added new prototype section
+        return 'Prototype';
+      default:
+        break;
+    }
   }
   
   // Try to match the section type to our constants
@@ -74,6 +95,37 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   
   // Final fallback to original title
   return section.title;
+};
+
+// Helper function to get appropriate icon for section
+const getSectionIcon = (section: SectionDetailed) => {
+  const sectionType = section.section_type || section.type?.toLowerCase();
+  
+  switch (sectionType) {
+    case 'problem_solution_fit':
+    case 'problem':
+      return <Lightbulb className="h-8 w-8 text-primary" />;
+    case 'target_customers':
+      return <Users className="h-8 w-8 text-primary" />;
+    case 'competitors':
+    case 'competitive_landscape':
+      return <Target className="h-8 w-8 text-primary" />;
+    case 'revenue_model':
+    case 'business_model':
+      return <DollarSign className="h-8 w-8 text-primary" />;
+    case 'usp': // Changed from 'differentiation' to 'usp'
+      return <LineChart className="h-8 w-8 text-primary" />;
+    case 'prototype': // Added new prototype section
+      return <Wrench className="h-8 w-8 text-primary" />;
+    case 'team':
+      return <Users className="h-8 w-8 text-primary" />;
+    case 'traction':
+      return <BarChart3 className="h-8 w-8 text-primary" />;
+    case 'market':
+      return <Globe className="h-8 w-8 text-primary" />;
+    default:
+      return <BookText className="h-8 w-8 text-primary" />;
+  }
 };
 
 // Helper function to format description as bullet points
@@ -229,16 +281,15 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
     );
   }
 
-  // Regular section display logic (for IIT Bombay users)
+  // Regular section display logic
   const contentBullets = section ? formatDescriptionAsBullets(section.detailedContent) : [];
   const isContentMissing = contentBullets.length === 0;
   
-  // Function to determine if a bullet point is a metric/statistic
+  // ... keep existing code (helper functions for bullet points)
   const isMetric = (text: string) => {
     return text.match(/\$|\d+%|\d+\s*(million|billion)|[0-9]+/i) !== null;
   };
 
-  // Function to determine if a bullet point is about competition
   const isCompetitive = (text: string) => {
     return text.toLowerCase().includes('competitor') || 
            text.toLowerCase().includes('market') ||
@@ -246,7 +297,6 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
            text.toLowerCase().includes('players');
   };
 
-  // Function to determine if a bullet point relates to growth or opportunity
   const isGrowth = (text: string) => {
     return text.toLowerCase().includes('growth') || 
            text.toLowerCase().includes('opportunity') ||
@@ -255,7 +305,6 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
            text.toLowerCase().includes('future');
   };
 
-  // Function to determine if a bullet point is about product or technology
   const isProduct = (text: string) => {
     return text.toLowerCase().includes('product') || 
            text.toLowerCase().includes('technology') ||
@@ -264,7 +313,6 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
            text.toLowerCase().includes('feature');
   };
 
-  // Get appropriate icon for each type of insight
   const getInsightIcon = (text: string) => {
     if (isMetric(text)) return <DollarSign className="h-5 w-5 text-emerald-500 shrink-0" />;
     if (isCompetitive(text)) return <Target className="h-5 w-5 text-blue-500 shrink-0" />;
@@ -281,7 +329,10 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">{displayTitle}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6 flex items-center gap-3">
+          {getSectionIcon(section)}
+          {displayTitle}
+        </h1>
 
         <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
           <CardHeader className="border-b pb-4">
