@@ -82,7 +82,7 @@ const Index = () => {
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                 <Label htmlFor="userType" className="text-base font-semibold text-primary">User Type</Label>
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                
               </div>
               <Select value={selectedUserType} onValueChange={handleUserTypeChange}>
                 <SelectTrigger className="w-full h-12 text-base border-2 border-primary/50 bg-background/80 hover:border-primary transition-colors">
