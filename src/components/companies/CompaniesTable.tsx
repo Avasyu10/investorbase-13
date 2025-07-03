@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -21,6 +20,7 @@ interface CompaniesTableProps {
   isIITBombay?: boolean;
   isVCAndBits?: boolean;
   isGeneralUser?: boolean;
+  isBitsQuestion?: boolean;
 }
 
 export function CompaniesTable({ 
@@ -31,7 +31,8 @@ export function CompaniesTable({
   currentSort,
   isIITBombay = false, 
   isVCAndBits = false,
-  isGeneralUser = false
+  isGeneralUser = false,
+  isBitsQuestion = false
 }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
@@ -346,16 +347,18 @@ export function CompaniesTable({
                 <TableHead className="font-semibold w-[200px]">Company</TableHead>
                 <TableHead className="font-semibold w-[150px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
-                <TableHead className="font-semibold w-[100px]">
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSortClick('overall_score')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
-                  >
-                    Score
-                    {getSortIcon('overall_score')}
-                  </Button>
-                </TableHead>
+                {!isBitsQuestion && (
+                  <TableHead className="font-semibold w-[100px]">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSortClick('overall_score')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
+                    >
+                      Score
+                      {getSortIcon('overall_score')}
+                    </Button>
+                  </TableHead>
+                )}
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -383,15 +386,17 @@ export function CompaniesTable({
                         {stage}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getScoreBadgeColor(formattedScore)}>
-                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                            {formattedScore}
-                          </span>
-                        </Badge>
-                      </div>
-                    </TableCell>
+                    {!isBitsQuestion && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getScoreBadgeColor(formattedScore)}>
+                            <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                              {formattedScore}
+                            </span>
+                          </Badge>
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Button
                         variant="ghost"

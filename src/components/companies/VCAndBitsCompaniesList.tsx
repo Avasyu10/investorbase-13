@@ -145,7 +145,8 @@ export function VCAndBitsCompaniesList() {
             onDeleteCompany={handleDeleteCompany}
             onSortChange={handleSortChange}
             currentSort={{ field: sortBy, order: sortOrder }}
-            isVCAndBits={true} 
+            isVCAndBits={true}
+            isBitsQuestion={true}
           />
           
           {/* Pagination */}

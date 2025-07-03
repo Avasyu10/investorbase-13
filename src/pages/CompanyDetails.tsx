@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -329,12 +327,12 @@ function CompanyDetails() {
           )}
 
           {/* For VC+BITS users only, show Questions to Ask section */}
-          {isVCAndBits && (
+          {/* {isVCAndBits && (
             <QuestionsToAsk 
               companyId={company.id}
               companyName={company.name}
             />
-          )}
+          )} */}
 
           {/* For VC users, show section metrics */}
           {isVCUser && (
@@ -427,4 +425,3 @@ function CompanyDetails() {
 }
 
 export default CompanyDetails;
-
