@@ -16,7 +16,7 @@ import {
   Globe,
   BookOpen,
   FileText,
-  Wrench // Added for prototype section
+  Wrench
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
@@ -45,9 +45,11 @@ const getDisplayTitle = (section: SectionDetailed): string => {
         return 'Competitors';
       case 'revenue_model':
         return 'Revenue Model';
-      case 'usp': // Changed from 'differentiation' to 'usp'
+      case 'usp':
         return 'USP';
-      case 'prototype': // Added new prototype section
+      case 'differentiation': // Map old 'differentiation' to 'USP'
+        return 'USP';
+      case 'prototype':
         return 'Prototype';
       default:
         break;
@@ -60,7 +62,12 @@ const getDisplayTitle = (section: SectionDetailed): string => {
     return SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES];
   }
   
-  // ... keep existing code (fallback mappings)
+  // Check title for "Differentiation" and map to "USP"
+  if (section.title && section.title.toLowerCase().includes('differentiation')) {
+    return 'USP';
+  }
+  
+  // Fallback mappings
   const title = section.title.toLowerCase();
   if (title.includes('solution') || title.includes('product')) {
     return SECTION_TITLES[SECTION_TYPES.SOLUTION];
@@ -113,9 +120,10 @@ const getSectionIcon = (section: SectionDetailed) => {
     case 'revenue_model':
     case 'business_model':
       return <DollarSign className="h-8 w-8 text-primary" />;
-    case 'usp': // Changed from 'differentiation' to 'usp'
+    case 'usp':
+    case 'differentiation': // Handle old differentiation sections
       return <LineChart className="h-8 w-8 text-primary" />;
-    case 'prototype': // Added new prototype section
+    case 'prototype':
       return <Wrench className="h-8 w-8 text-primary" />;
     case 'team':
       return <Users className="h-8 w-8 text-primary" />;
@@ -206,6 +214,44 @@ const parseSlideNotes = (description: string): Array<{slideNumber: number, notes
   return slideNotes.sort((a, b) => a.slideNumber - b.slideNumber);
 };
 
+// Helper functions for bullet points
+const isMetric = (text: string) => {
+  return text.match(/\$|\d+%|\d+\s*(million|billion)|[0-9]+/i) !== null;
+};
+
+const isCompetitive = (text: string) => {
+  return text.toLowerCase().includes('competitor') || 
+         text.toLowerCase().includes('market') ||
+         text.toLowerCase().includes('industry') ||
+         text.toLowerCase().includes('players');
+};
+
+const isGrowth = (text: string) => {
+  return text.toLowerCase().includes('growth') || 
+         text.toLowerCase().includes('opportunity') ||
+         text.toLowerCase().includes('expansion') ||
+         text.toLowerCase().includes('potential') ||
+         text.toLowerCase().includes('future');
+};
+
+const isProduct = (text: string) => {
+  return text.toLowerCase().includes('product') || 
+         text.toLowerCase().includes('technology') ||
+         text.toLowerCase().includes('solution') ||
+         text.toLowerCase().includes('platform') ||
+         text.toLowerCase().includes('feature');
+};
+
+const getInsightIcon = (text: string) => {
+  if (isMetric(text)) return <DollarSign className="h-5 w-5 text-emerald-500 shrink-0" />;
+  if (isCompetitive(text)) return <Target className="h-5 w-5 text-blue-500 shrink-0" />;
+  if (isGrowth(text)) return <LineChart className="h-5 w-5 text-violet-500 shrink-0" />;
+  if (isProduct(text)) return <Lightbulb className="h-5 w-5 text-amber-500 shrink-0" />;
+  
+  // Default icon
+  return <CheckCircle className="h-5 w-5 text-primary/70 shrink-0" />;
+};
+
 export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   if (isLoading) {
     return (
@@ -285,45 +331,6 @@ export function SectionDetail({ section, isLoading }: SectionDetailProps) {
   const contentBullets = section ? formatDescriptionAsBullets(section.detailedContent) : [];
   const isContentMissing = contentBullets.length === 0;
   
-  // ... keep existing code (helper functions for bullet points)
-  const isMetric = (text: string) => {
-    return text.match(/\$|\d+%|\d+\s*(million|billion)|[0-9]+/i) !== null;
-  };
-
-  const isCompetitive = (text: string) => {
-    return text.toLowerCase().includes('competitor') || 
-           text.toLowerCase().includes('market') ||
-           text.toLowerCase().includes('industry') ||
-           text.toLowerCase().includes('players');
-  };
-
-  const isGrowth = (text: string) => {
-    return text.toLowerCase().includes('growth') || 
-           text.toLowerCase().includes('opportunity') ||
-           text.toLowerCase().includes('expansion') ||
-           text.toLowerCase().includes('potential') ||
-           text.toLowerCase().includes('future');
-  };
-
-  const isProduct = (text: string) => {
-    return text.toLowerCase().includes('product') || 
-           text.toLowerCase().includes('technology') ||
-           text.toLowerCase().includes('solution') ||
-           text.toLowerCase().includes('platform') ||
-           text.toLowerCase().includes('feature');
-  };
-
-  const getInsightIcon = (text: string) => {
-    if (isMetric(text)) return <DollarSign className="h-5 w-5 text-emerald-500 shrink-0" />;
-    if (isCompetitive(text)) return <Target className="h-5 w-5 text-blue-500 shrink-0" />;
-    if (isGrowth(text)) return <LineChart className="h-5 w-5 text-violet-500 shrink-0" />;
-    if (isProduct(text)) return <Lightbulb className="h-5 w-5 text-amber-500 shrink-0" />;
-    
-    // Default icon
-    return <CheckCircle className="h-5 w-5 text-primary/70 shrink-0" />;
-  };
-
-  // Round score to integer for display
   const scoreAsInteger = Math.round(section?.score);
 
   return (

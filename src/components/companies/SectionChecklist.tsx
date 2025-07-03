@@ -21,9 +21,11 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
           return 'Competitors';
         case 'revenue_model':
           return 'Revenue Model';
-        case 'usp': // Changed from 'differentiation' to 'usp'
+        case 'usp':
           return 'USP';
-        case 'prototype': // Added new prototype section
+        case 'differentiation': // Map old 'differentiation' to 'USP'
+          return 'USP';
+        case 'prototype':
           return 'Prototype';
         default:
           break;
@@ -33,6 +35,11 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
     // Use the title from the section directly if it's already formatted
     if (title && title.includes('&')) {
       return title; // Already formatted titles like "Problem & Solution"
+    }
+    
+    // Handle "Differentiation" in title and map to "USP"
+    if (title && title.toLowerCase().includes('differentiation')) {
+      return 'USP';
     }
     
     // Fallback to formatting for older sections

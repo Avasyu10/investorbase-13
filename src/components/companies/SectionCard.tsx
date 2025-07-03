@@ -55,8 +55,9 @@ export const SectionCard = ({ section, onClick, isVCAndBits = false }: SectionCa
       'target_customers': 'Target Customers', 
       'competitors': 'Competitors',
       'revenue_model': 'Revenue Model',
-      'usp': 'USP', // Changed from 'differentiation' to 'usp'
-      'prototype': 'Prototype' // Added new prototype section
+      'usp': 'USP',
+      'differentiation': 'USP', // Map old 'differentiation' to 'USP'
+      'prototype': 'Prototype'
     };
 
     // Custom VC section title mappings based on section type
@@ -82,8 +83,11 @@ export const SectionCard = ({ section, onClick, isVCAndBits = false }: SectionCa
       return vcTitleMappings[sectionType];
     }
     
-    // Use the title from database if available
+    // Use the title from database if available, but map "Differentiation" to "USP"
     if (title && title !== sectionType) {
+      if (title.toLowerCase().includes('differentiation')) {
+        return 'USP';
+      }
       return title;
     }
     
