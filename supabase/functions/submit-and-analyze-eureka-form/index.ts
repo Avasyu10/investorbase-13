@@ -194,7 +194,7 @@ serve(async (req)=>{
     // Build analysis prompt with submission data
     const analysisPrompt = `
     You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
-
+    
     Company Information:
     - Company Name: ${submission.eureka_id || 'Not provided'}
     - Registration Type: ${submission.company_registration_type || 'Not provided'}
@@ -202,67 +202,76 @@ serve(async (req)=>{
     - Executive Summary: ${submission.executive_summary || 'Not provided'}
     - Idea ID: ${submission.idea_id || 'Not provided'}
     - Eureka ID: ${submission.eureka_id || 'Not provided'}
-
-    Application Responses and Specific Metrics for Evaluation:
-
-    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
     
+    Application Responses and Specific Metrics for Evaluation:
+    
+    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
+     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Problem Clarity (30 pts): Is it real, urgent, and well-articulated with specific details?
     - Current Alternatives (30 pts): Are existing coping methods explained clearly with depth?
     - Solution Fit (30 pts): Is the solution directly tackling the core pain point with thoughtful reasoning?
-    
+     
     Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
-
-    2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
     
+    2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
+     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Customer Definition (35 pts): Are the segments specific and realistic with detailed descriptions?
     - Use Case Relevance (35 pts): Does the product clearly serve these users with specific examples?
     - Depth of Understanding (30 pts): Shows behavioral, demographic, or need-based insight with evidence?
-    
+     
     Score harshly if: Describes "everyone" or is overly broad, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Defined personas, nuanced insights, matched offering + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
-
-    3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
     
+    3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
+     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Competitor Awareness (35 pts): Are both direct and indirect players mentioned with specific names and details?
     - Comparison Clarity (35 pts): Is differentiation from competitors clear with specific comparisons?
     - Strategic Positioning (30 pts): Do they show where they fit in the landscape with thoughtful analysis?
-    
+     
     Score harshly if: Misses obvious competitors or gives vague comparisons, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Deep landscape awareness and sharp positioning + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
-
+    
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
-   
+    
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Monetization Clarity (30 pts): Is revenue generation clearly explained with specific mechanisms?
     - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified with details?
     - Scalability & Growth (35 pts): Is there a future roadmap for expansion with concrete plans?
-    
+     
     Score harshly if: No revenue clarity or hand-wavy growth claims, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Structured, feasible model + strong growth potential + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
-
-    5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
     
+    5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
+     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - USP Clarity (30 pts): Clear, strong differentiator from others with specific advantages?
     - Customer Pull Strategy (35 pts): Effective tactics to attract and retain users with detailed plans?
     - IP or Moat (35 pts): Any defensibility—tech, brand, data, or network effects with specifics?
-    
+     
     Score harshly if: No meaningful edge, or vague marketing, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Compelling USP + solid GTM + proprietary advantage + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
-
+    
+    6. PROTOTYPE: "${submission.question_6 || 'Not provided'}"
+     
+    Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
+    - Maturity & Description Credibility (40 pts): Is the claimed prototype stage clearly defined, and is its description detailed, consistent, and credible (e.g., features, tech stack)?
+    - Problem-Solution Fit & User Validation (30 pts): Does the prototype clearly address the core problem, and is there evidence of external usage or stakeholder validation (e.g., user feedback, pilot programs)?
+    - Feasibility & Future Development (30 pts): Is the further development of the prototype into a full product feasible, realistic, and are the next steps clearly defined?
+     
+    Score harshly if: No prototype description, vague or contradictory details, no evidence of user feedback or validation, unclear path to productization, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
+    Score highly if: Detailed and credible prototype description, clear evidence of user engagement and validation, well-defined and feasible roadmap for future development + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
+    
     Additional Questions (if provided):
-    6. QUESTION 6: "${submission.question_6 || 'Not provided'}"
     7. QUESTION 7: "${submission.question_7 || 'Not provided'}"
     8. QUESTION 8: "${submission.question_8 || 'Not provided'}"
     9. QUESTION 9: "${submission.question_9 || 'Not provided'}"
-
+    
     CRITICAL SCORING GUIDELINES - BE EXTREMELY HARSH ON POOR ANSWERS:
-
+    
     ANSWER LENGTH AND QUALITY REQUIREMENTS (THESE ARE HARD LIMITS):
     - ONE-WORD ANSWERS OR UNDER 5 WORDS: Score 5-15 MAXIMUM (regardless of market potential)
     - UNDER 10 WORDS: Score 5-20 MAXIMUM (regardless of market potential)
@@ -272,9 +281,9 @@ serve(async (req)=>{
     - 100+ WORDS with specifics: Can score 70-85
     - 150+ WORDS with comprehensive analysis: Can score 80-95
     - 200+ WORDS with exceptional depth: Can score 90-100
-
+    
     ANSWER QUALITY IS THE PRIMARY FACTOR - Market data should only be used as context, NOT to inflate scores for poor answers.
-
+    
     90-100: Exceptional responses with deep insights, clear evidence, comprehensive understanding, DETAILED RESPONSES (150+ words with specific examples, data, and thorough explanations)
     80-89: Strong responses with good evidence and understanding, minor gaps, GOOD DETAIL (100-150 words with some specifics)
     70-79: Adequate responses with some evidence, moderate understanding, MODERATE DETAIL (50-100 words)
@@ -282,13 +291,13 @@ serve(async (req)=>{
     40-59: Poor responses with minimal substance, major deficiencies, VERY SHORT (10-20 words)
     20-39: Very poor responses, largely inadequate or missing key elements, EXTREMELY SHORT (5-10 words)
     1-19: Extremely poor or non-responses, ONE-WORD ANSWERS OR MEANINGLESS TEXT (under 5 words)
-
+    
     MARKET INTEGRATION REQUIREMENT:
     For each section, integrate relevant market data including: market size figures, growth rates, customer acquisition costs, competitive landscape data, industry benchmarks, success rates, and financial metrics. Balance response quality assessment with market context. However, POOR ANSWER QUALITY CANNOT BE COMPENSATED BY GOOD MARKET DATA.
-
+    
     For ASSESSMENT POINTS (8-10 points required):
     Each point MUST be detailed (3-4 sentences each) and contain specific numbers: market sizes ($X billion), growth rates (X% CAGR), customer metrics ($X CAC), competitive data, success rates (X%), and industry benchmarks, seamlessly integrated with response evaluation. Each assessment point should provide substantial market intelligence that connects startup positioning with industry realities, competitive dynamics, and growth opportunities.
-
+    
     CRITICAL CHANGE - For WEAKNESSES (exactly 4-5 each per section):
     WEAKNESSES must focus ONLY on market data challenges and industry-specific risks that the company faces, NOT on response quality or form completeness. Examples:
     - Market saturation concerns (X% of market already captured by incumbents)
@@ -298,13 +307,13 @@ serve(async (req)=>{
     - Technology adoption barriers affecting X% of target market
     - Competitive pressure from well-funded players with $X backing
     - Market timing risks based on industry cycles
-
+    
     For STRENGTHS (exactly 4-5 each per section):
     - STRENGTHS: Highlight what they did well, supported by market validation and data
-
+    
     CRITICAL ADDITION - SCORING REASON REQUIREMENT:
     Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating. This should be concise but specific about what drove the score up or down.
-
+    
     Return ONLY valid JSON in this exact format:
     {
       "overall_score": number (1-100),
@@ -345,6 +354,12 @@ serve(async (req)=>{
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+        },
+        "prototype": {
+          "score": number (1-100),
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
       },
       "summary": {
@@ -362,7 +377,7 @@ serve(async (req)=>{
         ]
       }
     }
-
+    
     CRITICAL REQUIREMENTS:
     1. ANSWER QUALITY IS THE PRIMARY SCORING FACTOR - poor answers cannot be saved by market potential
     2. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent detailed responses (80-100), poor short responses (5-30)
@@ -378,6 +393,8 @@ serve(async (req)=>{
     12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
     13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
 
+${linkedInDataSection}
+`;
     ${linkedInDataSection}
     `;
     // Call Gemini API for analysis
