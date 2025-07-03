@@ -10,26 +10,27 @@ import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
-
 interface CompaniesTableProps {
   companies: Company[];
   onCompanyClick: (companyId: string) => void;
   onDeleteCompany?: (companyId: string) => void;
   onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
-  currentSort?: { field: string; order: 'asc' | 'desc' };
+  currentSort?: {
+    field: string;
+    order: 'asc' | 'desc';
+  };
   isIITBombay?: boolean;
   isVCAndBits?: boolean;
   isGeneralUser?: boolean;
   isBitsQuestion?: boolean;
 }
-
-export function CompaniesTable({ 
-  companies, 
-  onCompanyClick, 
-  onDeleteCompany, 
+export function CompaniesTable({
+  companies,
+  onCompanyClick,
+  onDeleteCompany,
   onSortChange,
   currentSort,
-  isIITBombay = false, 
+  isIITBombay = false,
   isVCAndBits = false,
   isGeneralUser = false,
   isBitsQuestion = false
@@ -42,14 +43,18 @@ export function CompaniesTable({
     teamMember: string;
     status: string;
   } | null>(null);
-  const { deleteCompany, isDeleting } = useDeleteCompany();
-  const { downloadCompaniesAsPdf } = usePdfDownload();
+  const {
+    deleteCompany,
+    isDeleting
+  } = useDeleteCompany();
+  const {
+    downloadCompaniesAsPdf
+  } = usePdfDownload();
 
   // Update local state when companies prop changes
   useEffect(() => {
     setLocalCompanies(companies);
   }, [companies]);
-
   const getScoreColor = (score: number): string => {
     if (score >= 75) return "text-green-600";
     if (score >= 70) return "text-blue-600";
@@ -57,7 +62,6 @@ export function CompaniesTable({
     if (score >= 30) return "text-orange-600";
     return "text-red-600";
   };
-
   const getScoreBadgeColor = (score: number): string => {
     if (score >= 75) return "bg-green-100 text-green-900";
     if (score >= 70) return "bg-blue-100 text-blue-800";
@@ -65,7 +69,6 @@ export function CompaniesTable({
     if (score >= 30) return "bg-orange-100 text-orange-800";
     return "bg-red-100 text-red-800";
   };
-
   const getStatusBadgeColor = (status: string): string => {
     switch (status?.toLowerCase()) {
       case 'new':
@@ -96,30 +99,23 @@ export function CompaniesTable({
         return "bg-gray-100 text-gray-800";
     }
   };
-
   const handleSortClick = (field: string) => {
     if (!onSortChange) return;
-    
     let newOrder: 'asc' | 'desc' = 'desc';
     if (currentSort?.field === field && currentSort?.order === 'desc') {
       newOrder = 'asc';
     }
-    
     onSortChange(field, newOrder);
   };
-
   const getSortIcon = (field: string) => {
     if (!currentSort || currentSort.field !== field) {
       return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />;
     }
-    return currentSort.order === 'asc' 
-      ? <ArrowUp className="h-4 w-4 text-primary" />
-      : <ArrowDown className="h-4 w-4 text-primary" />;
+    return currentSort.order === 'asc' ? <ArrowUp className="h-4 w-4 text-primary" /> : <ArrowDown className="h-4 w-4 text-primary" />;
   };
-
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
-    
+
     // FIXED: Prevent duplicate deletion calls
     if (deletingCompanies.has(companyId)) {
       console.log('Company deletion already in progress:', companyId);
@@ -128,7 +124,6 @@ export function CompaniesTable({
 
     // Add company to deleting set
     setDeletingCompanies(prev => new Set(prev).add(companyId));
-    
     try {
       await deleteCompany(companyId);
       // Remove from local state immediately
@@ -142,7 +137,7 @@ export function CompaniesTable({
       toast({
         title: "Error deleting company",
         description: error.message || "Failed to delete the company. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       // Remove from deleting set
@@ -153,13 +148,11 @@ export function CompaniesTable({
       });
     }
   };
-
   const handleEditClick = (e: React.MouseEvent, company: Company) => {
     e.stopPropagation(); // Prevent row click event
     const companyDetails = (company as any).company_details;
     const teamMemberName = companyDetails?.teammember_name || '';
     const status = companyDetails?.status || 'New';
-    
     setSelectedCompanyForEdit({
       id: company.id,
       teamMember: teamMemberName,
@@ -167,7 +160,6 @@ export function CompaniesTable({
     });
     setEditDialogOpen(true);
   };
-
   const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
     // Update local state to reflect the change immediately
     setLocalCompanies(prev => prev.map(company => {
@@ -185,7 +177,6 @@ export function CompaniesTable({
       return company;
     }));
   };
-
   const handleDownloadPdf = () => {
     let title = 'Companies Prospects';
     if (isIITBombay) {
@@ -193,15 +184,13 @@ export function CompaniesTable({
     } else if (isVCAndBits) {
       title = 'VC & BITS Companies Prospects';
     }
-    
-    downloadCompaniesAsPdf(localCompanies, { 
+    downloadCompaniesAsPdf(localCompanies, {
       filename: `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`,
-      title 
+      title
     });
-    
     toast({
       title: "PDF Downloaded",
-      description: "Companies table has been downloaded successfully.",
+      description: "Companies table has been downloaded successfully."
     });
   };
 
@@ -220,8 +209,7 @@ export function CompaniesTable({
 
   // General users table format (is_bits, is_iitbombay, is_vc all false)
   if (isGeneralUser) {
-    return (
-      <>
+    return <>
         <Card>
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
@@ -246,19 +234,13 @@ export function CompaniesTable({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {localCompanies.map((company) => {
-                  const companyDetails = (company as any).company_details;
-                  const status = companyDetails?.status || 'New';
-                  const teamMemberName = companyDetails?.teammember_name || '';
-                  const isCompanyDeleting = deletingCompanies.has(company.id);
-                  const industry = company.industry || "—";
-                  
-                  return (
-                    <TableRow 
-                      key={company.id} 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => onCompanyClick(company.id)}
-                    >
+                {localCompanies.map(company => {
+                const companyDetails = (company as any).company_details;
+                const status = companyDetails?.status || 'New';
+                const teamMemberName = companyDetails?.teammember_name || '';
+                const isCompanyDeleting = deletingCompanies.has(company.id);
+                const industry = company.industry || "—";
+                return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                       <TableCell className="font-medium">
                         <span className="font-semibold text-foreground">{company.name}</span>
                       </TableCell>
@@ -279,57 +261,33 @@ export function CompaniesTable({
                         <span className="text-sm">{teamMemberName || "—"}</span>
                       </TableCell>
                       <TableCell>
-                        <div 
-                          className="flex items-center gap-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleEditClick(e, company)}
-                            className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                          >
+                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleDeleteClick(e, company.id)}
-                            disabled={isCompanyDeleting || isDeleting}
-                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
+                          <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
-                    </TableRow>
-                  );
-                })}
+                    </TableRow>;
+              })}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
 
-        <EditCompanyDialog
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-          companyId={selectedCompanyForEdit?.id || ""}
-          currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
-          currentStatus={selectedCompanyForEdit?.status || "New"}
-          onUpdate={(teamMember, status) => {
-            if (selectedCompanyForEdit) {
-              handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-            }
-          }}
-        />
-      </>
-    );
+        <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
+        if (selectedCompanyForEdit) {
+          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+        }
+      }} />
+      </>;
   }
 
   // VC and BITS combined view - simplified table with Stage instead of Source
   if (isVCAndBits) {
-    return (
-      <Card>
+    return <Card>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <div>
@@ -347,34 +305,22 @@ export function CompaniesTable({
                 <TableHead className="font-semibold w-[200px]">Company</TableHead>
                 <TableHead className="font-semibold w-[150px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
-                {!isBitsQuestion && (
-                  <TableHead className="font-semibold w-[100px]">
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleSortClick('overall_score')}
-                      className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
-                    >
+                {!isBitsQuestion && <TableHead className="font-semibold w-[100px]">
+                    <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
                       Score
                       {getSortIcon('overall_score')}
                     </Button>
-                  </TableHead>
-                )}
+                  </TableHead>}
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {localCompanies.map((company) => {
-                const formattedScore = Math.round(company.overall_score);
-                const isCompanyDeleting = deletingCompanies.has(company.id);
-                const industry = company.industry || "—";
-                const stage = getStageFromResponseReceived(company);
-                
-                return (
-                  <TableRow 
-                    key={company.id} 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => onCompanyClick(company.id)}
-                  >
+              {localCompanies.map(company => {
+              const formattedScore = Math.round(company.overall_score);
+              const isCompanyDeleting = deletingCompanies.has(company.id);
+              const industry = company.industry || "—";
+              const stage = getStageFromResponseReceived(company);
+              return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                     <TableCell className="font-medium">
                       <span className="font-semibold text-foreground">{company.name}</span>
                     </TableCell>
@@ -386,8 +332,7 @@ export function CompaniesTable({
                         {stage}
                       </Badge>
                     </TableCell>
-                    {!isBitsQuestion && (
-                      <TableCell>
+                    {!isBitsQuestion && <TableCell>
                         <div className="flex items-center gap-2">
                           <Badge className={getScoreBadgeColor(formattedScore)}>
                             <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
@@ -395,33 +340,23 @@ export function CompaniesTable({
                             </span>
                           </Badge>
                         </div>
-                      </TableCell>
-                    )}
+                      </TableCell>}
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleDeleteClick(e, company.id)}
-                        disabled={isCompanyDeleting || isDeleting}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
+                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
-                  </TableRow>
-                );
-              })}
+                  </TableRow>;
+            })}
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
 
   // IIT Bombay table format
   if (isIITBombay) {
-    return (
-      <Card>
+    return <Card>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <div>
@@ -430,12 +365,7 @@ export function CompaniesTable({
                 {localCompanies.length} companies found
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadPdf}
-              className="flex items-center gap-2"
-            >
+            <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               Download PDF
             </Button>
@@ -451,11 +381,7 @@ export function CompaniesTable({
                 <TableHead className="font-semibold w-[120px]">Email</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[80px]">
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSortClick('overall_score')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
-                  >
+                  <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
                     Score
                     {getSortIcon('overall_score')}
                   </Button>
@@ -465,16 +391,10 @@ export function CompaniesTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {localCompanies.map((company) => {
-                const formattedScore = Math.round(company.overall_score);
-                const isCompanyDeleting = deletingCompanies.has(company.id);
-                
-                return (
-                  <TableRow 
-                    key={company.id} 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => onCompanyClick(company.id)}
-                  >
+              {localCompanies.map(company => {
+              const formattedScore = Math.round(company.overall_score);
+              const isCompanyDeleting = deletingCompanies.has(company.id);
+              return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                     <TableCell className="font-medium">
                       {company.name}
                     </TableCell>
@@ -492,7 +412,7 @@ export function CompaniesTable({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-yellow-500" />
+                        
                         <Badge className={getScoreBadgeColor(formattedScore)}>
                           <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
                             {formattedScore}/100
@@ -508,29 +428,20 @@ export function CompaniesTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleDeleteClick(e, company.id)}
-                        disabled={isCompanyDeleting || isDeleting}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
+                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
-                  </TableRow>
-                );
-              })}
+                  </TableRow>;
+            })}
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
 
   // Regular table format for other users with edit functionality
-  return (
-    <>
+  return <>
       <Card>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
@@ -552,11 +463,7 @@ export function CompaniesTable({
                 <TableHead className="font-semibold w-[80px]">Source</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[80px]">
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSortClick('overall_score')}
-                    className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
-                  >
+                  <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
                     Score
                     {getSortIcon('overall_score')}
                   </Button>
@@ -567,28 +474,22 @@ export function CompaniesTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {localCompanies.map((company) => {
-                const formattedScore = Math.round(company.overall_score);
-                const companyDetails = (company as any).company_details;
-                // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
-                const status = companyDetails?.status || 'New';
-                const isCompanyDeleting = deletingCompanies.has(company.id);
-                
-                // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
-                const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
-                const contactEmail = (company as any).email || companyDetails?.contact_email || '';
-                const phoneNumber = (company as any).phonenumber || '';
-                
-                // Display industry directly from public_form_submissions
-                const industry = company.industry || "—";
-                const teamMemberName = companyDetails?.teammember_name || '';
-                
-                return (
-                  <TableRow 
-                    key={company.id} 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => onCompanyClick(company.id)}
-                  >
+              {localCompanies.map(company => {
+              const formattedScore = Math.round(company.overall_score);
+              const companyDetails = (company as any).company_details;
+              // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
+              const status = companyDetails?.status || 'New';
+              const isCompanyDeleting = deletingCompanies.has(company.id);
+
+              // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
+              const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
+              const contactEmail = (company as any).email || companyDetails?.contact_email || '';
+              const phoneNumber = (company as any).phonenumber || '';
+
+              // Display industry directly from public_form_submissions
+              const industry = company.industry || "—";
+              const teamMemberName = companyDetails?.teammember_name || '';
+              return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
                         <span className="font-semibold text-foreground">{company.name}</span>
@@ -596,29 +497,19 @@ export function CompaniesTable({
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        {contactInfo && (
-                          <span className="text-sm">{contactInfo}</span>
-                        )}
-                        {phoneNumber && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        {contactInfo && <span className="text-sm">{contactInfo}</span>}
+                        {phoneNumber && <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Phone className="h-3 w-3" />
                             <span>{phoneNumber}</span>
-                          </div>
-                        )}
-                        {!contactInfo && !phoneNumber && (
-                          <span className="text-sm">—</span>
-                        )}
+                          </div>}
+                        {!contactInfo && !phoneNumber && <span className="text-sm">—</span>}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {contactEmail ? (
-                        <div className="flex items-center gap-1 text-sm">
+                      {contactEmail ? <div className="flex items-center gap-1 text-sm">
                           <Mail className="h-3 w-3 text-muted-foreground" />
                           <span className="truncate">{contactEmail}</span>
-                        </div>
-                      ) : (
-                        "—"
-                      )}
+                        </div> : "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize text-xs">
@@ -647,49 +538,26 @@ export function CompaniesTable({
                       <span className="text-sm">{teamMemberName || "—"}</span>
                     </TableCell>
                     <TableCell>
-                      <div 
-                        className="flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleEditClick(e, company)}
-                          className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                        >
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleDeleteClick(e, company.id)}
-                          disabled={isCompanyDeleting || isDeleting}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
+                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
-                );
-              })}
+                  </TableRow>;
+            })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      <EditCompanyDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        companyId={selectedCompanyForEdit?.id || ""}
-        currentTeamMember={selectedCompanyForEdit?.teamMember || ""}
-        currentStatus={selectedCompanyForEdit?.status || "New"}
-        onUpdate={(teamMember, status) => {
-          if (selectedCompanyForEdit) {
-            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-          }
-        }}
-      />
-    </>
-  );
+      <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
+      if (selectedCompanyForEdit) {
+        handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+      }
+    }} />
+    </>;
 }
