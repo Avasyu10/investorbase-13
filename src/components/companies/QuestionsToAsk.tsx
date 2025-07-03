@@ -1,19 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HelpCircle, Loader2, MessageSquare, ArrowRight } from "lucide-react";
+import { HelpCircle, Loader2, MessageSquare } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
+
 interface QuestionsToAskProps {
   companyId: string;
   companyName: string;
 }
+
 interface BitsAnalysisResult {
   questions?: string[];
   [key: string]: any;
 }
+
 interface BitsAnalysis {
   id: string;
   analysis_result: BitsAnalysisResult | null;
 }
+
 export function QuestionsToAsk({
   companyId,
   companyName
@@ -21,6 +25,7 @@ export function QuestionsToAsk({
   const [questions, setQuestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -34,11 +39,13 @@ export function QuestionsToAsk({
         } = await supabase.from('bitsanalysis').select('analysis_result').ilike('deck_name', `%${companyName}%`).order('created_at', {
           ascending: false
         }).limit(1).maybeSingle();
+
         if (fetchError) {
           console.error('Error fetching questions:', fetchError);
           setError('Failed to load questions');
           return;
         }
+
         const analysisResult = data?.analysis_result as BitsAnalysisResult | null;
         if (analysisResult?.questions && Array.isArray(analysisResult.questions)) {
           setQuestions(analysisResult.questions);
@@ -52,10 +59,12 @@ export function QuestionsToAsk({
         setIsLoading(false);
       }
     };
+
     if (companyName) {
       fetchQuestions();
     }
   }, [companyId, companyName]);
+
   if (isLoading) {
     return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -92,6 +101,7 @@ export function QuestionsToAsk({
         </div>
       </div>;
   }
+
   if (error) {
     return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -128,6 +138,7 @@ export function QuestionsToAsk({
         </div>
       </div>;
   }
+
   if (questions.length === 0) {
     return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -164,6 +175,7 @@ export function QuestionsToAsk({
         </div>
       </div>;
   }
+
   return <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
@@ -200,9 +212,6 @@ export function QuestionsToAsk({
                       <p className="leading-relaxed font-medium text-lg text-neutral-950">
                         {question}
                       </p>
-                    </div>
-                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ArrowRight className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                     </div>
                   </div>
                 </div>)}
