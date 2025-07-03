@@ -134,12 +134,12 @@ const Index = () => {
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2 text-left"> {/* Added text-left */}
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
+                      <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required />
                     </div>
                     <div className="space-y-2 text-left"> {/* Added text-left */}
                       <Label htmlFor="password">Password</Label>
                       <div className="relative">
-                        <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required className="pr-10" />
+                        <Input id="password" placeholder="Enter your password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required className="pr-10" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
