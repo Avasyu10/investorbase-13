@@ -1,4 +1,3 @@
-
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -71,6 +70,14 @@ const SectionPage = () => {
     }
     if (title.includes('go-to-market') || title.includes('strategy')) {
       return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
+    }
+    // Handle USP/Differentiation mapping
+    if (title.includes('differentiation') || title.includes('usp') || title.includes('unique')) {
+      return SECTION_TITLES[SECTION_TYPES.USP];
+    }
+    // Handle Prototype section
+    if (title.includes('prototype') || title.includes('mvp') || title.includes('minimum viable')) {
+      return SECTION_TITLES[SECTION_TYPES.PROTOTYPE];
     }
     
     return section.title;

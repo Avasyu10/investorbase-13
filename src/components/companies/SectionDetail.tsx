@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Globe,
   BookOpen,
-  FileText
+  FileText,
+  Wrench
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionDetailed } from "@/lib/api/apiContract";
@@ -39,7 +40,7 @@ const getDisplayTitle = (section: SectionDetailed): string => {
     return SECTION_TITLES[sectionType as keyof typeof SECTION_TITLES];
   }
   
-  // ... keep existing code (fallback mappings)
+  // Fallback mappings for various section title formats
   const title = section.title.toLowerCase();
   if (title.includes('solution') || title.includes('product')) {
     return SECTION_TITLES[SECTION_TYPES.SOLUTION];
@@ -70,6 +71,14 @@ const getDisplayTitle = (section: SectionDetailed): string => {
   }
   if (title.includes('go-to-market') || title.includes('strategy')) {
     return SECTION_TITLES[SECTION_TYPES.GTM_STRATEGY];
+  }
+  // Handle USP/Differentiation mapping
+  if (title.includes('differentiation') || title.includes('usp') || title.includes('unique')) {
+    return SECTION_TITLES[SECTION_TYPES.USP];
+  }
+  // Handle Prototype section
+  if (title.includes('prototype') || title.includes('mvp') || title.includes('minimum viable')) {
+    return SECTION_TITLES[SECTION_TYPES.PROTOTYPE];
   }
   
   // Final fallback to original title
