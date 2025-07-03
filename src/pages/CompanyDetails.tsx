@@ -10,7 +10,7 @@ import { QuestionsToAsk } from "@/components/companies/QuestionsToAsk";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, BarChart2, ListChecks, Lightbulb, FileText, HelpCircle } from "lucide-react";
+import { ChevronLeft, Loader2, BarChart2, ListChecks, Lightbulb, FileText } from "lucide-react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
@@ -153,7 +153,7 @@ function CompanyDetails() {
   // For BITS question users, show only the Questions to Ask section with enhanced UI
   if (isBitsQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Enhanced Header */}
           <div className="mb-8">
@@ -161,22 +161,10 @@ function CompanyDetails() {
               variant="outline"
               size="sm"
               onClick={() => navigate("/dashboard")}
-              className="mb-6 flex items-center hover:bg-blue-50 transition-colors"
+              className="mb-6 flex items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <ChevronLeft className="mr-1 h-4 w-4" /> Back to Dashboard
             </Button>
-            
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full mb-4 shadow-lg">
-                <HelpCircle className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {company.name}
-              </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-300">
-                Strategic Questions for Due Diligence
-              </p>
-            </div>
           </div>
 
           {/* Enhanced Questions Section */}
