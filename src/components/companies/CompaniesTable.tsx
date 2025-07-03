@@ -381,7 +381,14 @@ export function CompaniesTable({
                 <TableHead className="font-semibold w-[120px]">Email</TableHead>
                 <TableHead className="font-semibold w-[100px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[80px]">
-                  <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    onClick={(e) => { // Add 'e' for the event object
+                      e.stopPropagation(); // Stop event propagation
+                      handleSortClick('overall_score');
+                    }}
+                    className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1"
+                  >
                     Score
                     {getSortIcon('overall_score')}
                   </Button>
