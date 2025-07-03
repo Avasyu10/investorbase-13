@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Building2, TrendingUp, Eye, EyeOff } from "lucide-react";
-
 const Index = () => {
   const {
     user,
@@ -23,13 +22,11 @@ const Index = () => {
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
   const [showPassword, setShowPassword] = useState(false);
-
   useEffect(() => {
     if (user && !isLoading) {
       navigate('/dashboard');
     }
   }, [user, isLoading, navigate]);
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUserType) {
@@ -38,7 +35,6 @@ const Index = () => {
     }
     await signInWithEmail(email, password, selectedUserType);
   };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUserType) {
@@ -52,14 +48,12 @@ const Index = () => {
       setActiveTab("signin");
     }
   };
-
   const handleUserTypeChange = (userType: 'founder' | 'accelerator' | 'vc') => {
     setSelectedUserType(userType);
     if (userType === 'accelerator' || userType === 'vc') {
       setActiveTab("signin");
     }
   };
-
   const getUserTypeIcon = (type: string) => {
     switch (type) {
       case 'founder':
@@ -69,15 +63,14 @@ const Index = () => {
       case 'vc':
         return <TrendingUp className="h-4 w-4" />;
       default:
-        return null; // Return null when no user type is selected
+        return null;
+      // Return null when no user type is selected
     }
   };
 
   // Determine if buttons should be disabled
   const isAuthDisabled = isLoading || !selectedUserType;
-
-  return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
+  return <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
         <div className="flex justify-center mb-6">
           <img src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" alt="InvestorBase Logo" className="h-16 w-auto" />
@@ -102,7 +95,7 @@ const Index = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <Label htmlFor="userType" className="text-base font-semibold text-muted-foreground">Select User Type</Label>
+                <Label htmlFor="userType" className="text-base font-semibold text-muted-foreground">User Type</Label>
               </div>
               <Select value={selectedUserType} onValueChange={handleUserTypeChange}>
                 <SelectTrigger className="w-full h-12 text-base border-2 border-primary/50 bg-background/80 hover:border-primary transition-colors">
@@ -131,14 +124,11 @@ const Index = () => {
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-muted-foreground/20" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-base text-amber-500 font-semibold">Step 2: Authentication</span>
-              </div>
+              
             </div>
 
             {/* Authentication Forms */}
-            {selectedUserType === 'founder' ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {selectedUserType === 'founder' ? <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -152,30 +142,17 @@ const Index = () => {
                     <div className="space-y-2 text-left"> {/* Added text-left */}
                       <Label htmlFor="password">Password</Label>
                       <div className="relative">
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          required
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary"
-                        >
+                        <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required className="pr-10" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </div>
                     <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
+                      {isLoading ? <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Signing in...</span>
-                        </div>
-                      ) : "Sign In"}
+                        </div> : "Sign In"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -188,36 +165,21 @@ const Index = () => {
                     <div className="space-y-2 text-left"> {/* Added text-left */}
                       <Label htmlFor="signup-password">Password</Label>
                       <div className="relative">
-                        <Input
-                          id="signup-password"
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          required
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary"
-                        >
+                        <Input id="signup-password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required className="pr-10" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </div>
                     <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
+                      {isLoading ? <div className="flex items-center space-x-2">
                           <span className="loader"></span>
                           <span>Creating account...</span>
-                        </div>
-                      ) : "Sign Up"}
+                        </div> : "Sign Up"}
                     </Button>
                   </form>
                 </TabsContent>
-              </Tabs>
-            ) : (
-              <form onSubmit={handleSignIn} className="space-y-4">
+              </Tabs> : <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2 text-left"> {/* Added text-left */}
                   <Label htmlFor="institutional-email">Email</Label>
                   <Input id="institutional-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
@@ -225,44 +187,26 @@ const Index = () => {
                 <div className="space-y-2 text-left"> {/* Added text-left */}
                   <Label htmlFor="institutional-password">Password</Label>
                   <div className="relative">
-                    <Input
-                      id="institutional-password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      required
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary"
-                    >
+                    <Input id="institutional-password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required className="pr-10" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-primary">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isAuthDisabled}>
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
+                  {isLoading ? <div className="flex items-center space-x-2">
                       <span className="loader"></span>
                       <span>Signing in...</span>
-                    </div>
-                  ) : "Sign In"}
+                    </div> : "Sign In"}
                 </Button>
-              </form>
-            )}
+              </form>}
 
-            {selectedUserType !== 'founder' && (
-              <p className="text-center text-sm text-muted-foreground mt-4">
+            {selectedUserType !== 'founder' && <p className="text-center text-sm text-muted-foreground mt-4">
                 Don't have an account? Please contact your administrator for access.
-              </p>
-            )}
+              </p>}
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
