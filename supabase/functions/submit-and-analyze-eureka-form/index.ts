@@ -192,6 +192,8 @@ serve(async (req)=>{
     ].filter(checkIfAnswerIsEmpty).length;
     const hasMinimalAnswers = emptyAnswerCount >= 3;
     // Build analysis prompt with submission data
+    // ... (previous code)
+    // Build analysis prompt with submission data
     const analysisPrompt = `
     You are an expert startup evaluator. Analyze the following startup application and provide a comprehensive assessment.
 
@@ -236,7 +238,7 @@ serve(async (req)=>{
     Score highly if: Deep landscape awareness and sharp positioning + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
-   
+    
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Monetization Clarity (30 pts): Is revenue generation clearly explained with specific mechanisms?
     - Cost/Revenue Drivers (35 pts): Are cost factors and revenue influencers identified with details?
@@ -254,9 +256,18 @@ serve(async (req)=>{
     
     Score harshly if: No meaningful edge, or vague marketing, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Compelling USP + solid GTM + proprietary advantage + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
+    
+    6. PROTOTYPE: "${submission.question_6 || 'Not provided'}"
+
+    Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
+    - Maturity & Description Credibility (40 pts): Is the claimed prototype stage clearly defined, and is its description detailed, consistent, and credible (e.g., features, tech stack)?
+    - Problem-Solution Fit & User Validation (30 pts): Does the prototype clearly address the core problem, and is there evidence of external usage or stakeholder validation (e.g., user feedback, pilot programs)?
+    - Feasibility & Future Development (30 pts): Is the further development of the prototype into a full product feasible, realistic, and are the next steps clearly defined?
+
+    Score harshly if: No clear description of prototype, no mention of user testing or feedback, technical aspects are vague, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
+    Score highly if: Detailed description of a functional prototype, clear evidence of user validation and iterative improvements, well-thought-out technical foundation and scalability plans + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
     Additional Questions (if provided):
-    6. QUESTION 6: "${submission.question_6 || 'Not provided'}"
     7. QUESTION 7: "${submission.question_7 || 'Not provided'}"
     8. QUESTION 8: "${submission.question_8 || 'Not provided'}"
     9. QUESTION 9: "${submission.question_9 || 'Not provided'}"
@@ -345,6 +356,12 @@ serve(async (req)=>{
           "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+        },
+        "prototype": {
+          "score": number (1-100),
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "strengths": ["exactly 4-5 strengths with market data integration"],
+          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
       },
       "summary": {
@@ -377,9 +394,9 @@ serve(async (req)=>{
     11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
     12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
     13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
-
-    ${linkedInDataSection}
+    ${linkedInDataSection} <--- THIS IS WHERE IT SHOULD BE
     `;
+    // ... (rest of your code)
     // Call Gemini API for analysis
     console.log('Calling Gemini API for analysis...');
     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
