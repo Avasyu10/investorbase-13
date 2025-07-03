@@ -1,3 +1,4 @@
+
 import { SectionDetail } from "@/components/companies/SectionDetail";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -87,8 +88,8 @@ const SectionPage = () => {
     if (!company || !section) return { prevSection: null, nextSection: null };
     
     const sortedSections = [...company.sections].sort((a, b) => {
-      const indexA = ORDERED_SECTIONS.indexOf(a.type);
-      const indexB = ORDERED_SECTIONS.indexOf(b.type);
+      const indexA = ORDERED_SECTIONS.indexOf(a.type as typeof ORDERED_SECTIONS[number]);
+      const indexB = ORDERED_SECTIONS.indexOf(b.type as typeof ORDERED_SECTIONS[number]);
       
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       if (indexA !== -1) return -1;

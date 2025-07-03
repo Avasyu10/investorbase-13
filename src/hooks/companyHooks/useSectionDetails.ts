@@ -117,7 +117,7 @@ export function useSectionDetails(companyId: string | undefined, sectionId: stri
         createdAt: sectionData.created_at,
         updatedAt: sectionData.updated_at || sectionData.created_at,
         // Add order index for sorting
-        orderIndex: ORDERED_SECTIONS.indexOf(sectionData.section_type || sectionData.type)
+        orderIndex: ORDERED_SECTIONS.indexOf(sectionData.section_type as typeof ORDERED_SECTIONS[number] || sectionData.type as typeof ORDERED_SECTIONS[number])
       } as SectionDetail;
     },
     enabled: !!companyId && !!sectionId,

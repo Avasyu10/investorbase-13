@@ -47,7 +47,7 @@ export const ORDERED_SECTIONS = [
   SECTION_TYPES.GTM_STRATEGY,
   SECTION_TYPES.USP, // Changed from DIFFERENTIATION
   SECTION_TYPES.PROTOTYPE // New section added
-];
+] as const;
 
 // Score color classes for consistent styling
 export const SCORE_COLORS = {
@@ -57,3 +57,23 @@ export const SCORE_COLORS = {
   POOR: 'bg-orange-500',
   CRITICAL: 'bg-red-500'
 } as const;
+
+// Area of interest options for profile setup
+export const AreaOfInterestOptions = [
+  { value: 'technology', label: 'Technology' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'education', label: 'Education' },
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'sustainability', label: 'Sustainability' },
+  { value: 'gaming', label: 'Gaming' },
+  { value: 'media', label: 'Media & Entertainment' },
+  { value: 'travel', label: 'Travel & Hospitality' },
+  { value: 'food', label: 'Food & Beverage' },
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'automotive', label: 'Automotive' },
+  { value: 'agriculture', label: 'Agriculture' },
+  { value: 'manufacturing', label: 'Manufacturing' },
+  { value: 'logistics', label: 'Logistics & Supply Chain' },
+  { value: 'other', label: 'Other' }
+];
