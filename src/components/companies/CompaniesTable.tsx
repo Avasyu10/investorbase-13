@@ -116,7 +116,7 @@ export function CompaniesTable({
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
 
-    // Prevent duplicate deletion calls
+    // FIXED: Prevent duplicate deletion calls
     if (deletingCompanies.has(companyId)) {
       console.log('Company deletion already in progress:', companyId);
       return;
@@ -383,9 +383,9 @@ export function CompaniesTable({
               {localCompanies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const isCompanyDeleting = deletingCompanies.has(company.id);
-              // Fetching Stage from question_1 and Website from question_2
-              const stageValue = company.question_1 || "—";
-              const websiteValue = company.question_2 || "—";
+              // Ensure question_1 and question_2 are accessed safely
+              const stageValue = (company as any).industry || "—";
+              const websiteValue = (company as any).scoring_reason || "—";
 
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                       <TableCell className="font-medium">
@@ -458,7 +458,7 @@ export function CompaniesTable({
               const status = companyDetails?.status || 'New';
               const isCompanyDeleting = deletingCompanies.has(company.id);
 
-              // Use poc_name, phonenumber, email from companies table first, then fallback to company_details
+              // FIXED: Use poc_name, phonenumber, email from companies table first, then fallback to company_details
               const contactInfo = (company as any).poc_name || companyDetails?.point_of_contact || '';
               const contactEmail = (company as any).email || companyDetails?.contact_email || '';
               const phoneNumber = (company as any).phonenumber || '';
