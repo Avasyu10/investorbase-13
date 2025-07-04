@@ -347,7 +347,7 @@ export function CompaniesTable({
                         </Button>
                       </TableCell>
                     </TableRow>;
-              })}
+            })}
             </TableBody>
           </Table>
         </CardContent>
@@ -360,7 +360,7 @@ export function CompaniesTable({
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-semibold">IIT Bombay Companies</h3>
+              <h3 className="text-lg font-semibold">Eureka Companies</h3>
               <p className="text-sm text-muted-foreground">
                 {localCompanies.length} companies found
               </p>
@@ -386,7 +386,6 @@ export function CompaniesTable({
               // Ensure question_1 and question_2 are accessed safely
               const stageValue = (company as any).industry || "—";
               const websiteValue = (company as any).scoring_reason || "—";
-
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                       <TableCell className="font-medium">
                         {company.name}
@@ -410,7 +409,7 @@ export function CompaniesTable({
                         </Button>
                       </TableCell>
                     </TableRow>;
-              })}
+            })}
             </TableBody>
           </Table>
         </CardContent>
@@ -525,7 +524,7 @@ export function CompaniesTable({
                         </div>
                       </TableCell>
                     </TableRow>;
-              })}
+            })}
             </TableBody>
           </Table>
         </CardContent>
