@@ -103,10 +103,7 @@ const Dashboard = () => {
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Panel
               </Button>}
-            {isIITBombay && <Button onClick={() => navigate("/public-forms")} variant="outline" className="flex items-center">
-                <Settings className="mr-2 h-4 w-4" />
-                Public Forms
-              </Button>}
+            {isIITBombay}
             {isIITBombay && <EurekaSampleButton />}
             {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
                 <BarChart3 className="mr-2 h-4 w-4" />
