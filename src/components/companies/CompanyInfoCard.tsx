@@ -8,7 +8,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
-import { useProfile } from "@/hooks/useProfile";
 
 type CompanyInfoProps = {
   website?: string;
@@ -28,8 +27,6 @@ interface Company {
   name: string;
   report_id?: string;
   response_received?: string;
-  scoring_reason?: string;
-  industry?: string;
 }
 
 interface AnalysisResult {
@@ -61,7 +58,6 @@ export function CompanyInfoCard({
   const { id } = useParams<{ id: string }>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
-  const { isIITBombayUser } = useProfile();
 
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
@@ -71,7 +67,7 @@ export function CompanyInfoCard({
       console.log("Fetching company data for ID:", id);
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, report_id, response_received, scoring_reason, industry')
+        .select('id, name, report_id, response_received')
         .eq('id', id)
         .single();
       if (error) {
@@ -138,27 +134,16 @@ export function CompanyInfoCard({
 
   // Prioritize data sources: response_received, then analysis data, then props
   const analysisCompanyInfo = analysisData?.companyInfo;
-  
-  // For IIT Bombay users, use different data sources
-  let displayWebsite, displayStage, displayIndustry, displayIntroduction;
-  
-  if (isIITBombayUser) {
-    // For IIT Bombay users: website from scoring_reason, stage from industry column
-    displayWebsite = companyData?.scoring_reason || "Not available";
-    displayStage = companyData?.industry || "Not specified";
-    displayIndustry = ""; // Industry section will be hidden
-    displayIntroduction = ""; // About section will be hidden
-  } else {
-    // For regular users: use existing logic
-    displayIntroduction = responseReceivedData?.description || analysisCompanyInfo?.description || introduction || description || "No detailed information available for this company.";
-    displayWebsite = responseReceivedData?.website || analysisCompanyInfo?.website || website;
-    displayStage = responseReceivedData?.stage || analysisCompanyInfo?.stage || stage || "Not specified";
-    displayIndustry = responseReceivedData?.industry || analysisCompanyInfo?.industry || industry || "Not specified";
-  }
+  const displayIntroduction = responseReceivedData?.description || analysisCompanyInfo?.description || introduction || description || "No detailed information available for this company.";
 
-  // Format website URL for display and linking
-  const websiteForDisplay = displayWebsite && displayWebsite !== "Not available" && displayWebsite !== "" ? displayWebsite.replace(/^https?:\/\/(www\.)?/, '') : "Not available";
-  const websiteUrl = displayWebsite && displayWebsite !== "Not available" && displayWebsite !== "" ? displayWebsite.startsWith('http') ? displayWebsite : `https://${displayWebsite}` : null;
+  // Format website URL for display and linking - prioritize response_received data
+  const prioritizedWebsite = responseReceivedData?.website || analysisCompanyInfo?.website || website;
+  const displayWebsite = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.replace(/^https?:\/\/(www\.)?/, '') : "Not available";
+  const websiteUrl = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.startsWith('http') ? prioritizedWebsite : `https://${prioritizedWebsite}` : null;
+
+  // Display stage and industry with prioritized data sources
+  const displayStage = responseReceivedData?.stage || analysisCompanyInfo?.stage || stage || "Not specified";
+  const displayIndustry = responseReceivedData?.industry || analysisCompanyInfo?.industry || industry || "Not specified";
 
   // Show the "More Information" button for all analyzed companies
   const shouldShowMoreInfoButton = !!companyData?.id;
@@ -192,36 +177,24 @@ export function CompanyInfoCard({
       
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
-          {/* Company Description with More Information Button - Hidden for IIT Bombay users */}
-          {!isIITBombayUser && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">About {companyData?.name || companyName}</h4>
-                {shouldShowMoreInfoButton && (
-                  <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
-                    <Info className="mr-2 h-4 w-4" />
-                    More Information
-                  </Button>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-                {displayIntroduction}
-              </p>
+          {/* Company Description with More Information Button */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium">About {companyData?.name || companyName}</h4>
+              {shouldShowMoreInfoButton && (
+                <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
+                  <Info className="mr-2 h-4 w-4" />
+                  More Information
+                </Button>
+              )}
             </div>
-          )}
-          
-          {/* For IIT Bombay users, show More Information button separately if About section is hidden */}
-          {isIITBombayUser && shouldShowMoreInfoButton && (
-            <div className="mb-6 flex justify-end">
-              <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
-                <Info className="mr-2 h-4 w-4" />
-                More Information
-              </Button>
-            </div>
-          )}
+            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+              {displayIntroduction}
+            </p>
+          </div>
           
           {/* Company Details Grid */}
-          <div className={`grid gap-4 ${isIITBombayUser ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary flex-shrink-0" />
               <div className="min-w-0">
@@ -233,10 +206,10 @@ export function CompanyInfoCard({
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary hover:underline truncate block"
                   >
-                    {websiteForDisplay}
+                    {displayWebsite}
                   </a>
                 ) : (
-                  <p className="text-sm text-muted-foreground">{websiteForDisplay}</p>
+                  <p className="text-sm text-muted-foreground">Not available</p>
                 )}
               </div>
             </div>
@@ -249,16 +222,13 @@ export function CompanyInfoCard({
               </div>
             </div>
             
-            {/* Industry section - Hidden for IIT Bombay users */}
-            {!isIITBombayUser && (
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Industry</p>
-                  <p className="text-sm text-muted-foreground">{displayIndustry}</p>
-                </div>
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Industry</p>
+                <p className="text-sm text-muted-foreground">{displayIndustry}</p>
               </div>
-            )}
+            </div>
           </div>
         </CardContent>
       </Card>
