@@ -49,6 +49,37 @@ function CompanyDetails() {
   const isIITBombayUser = profile?.is_iitbombay || false;
   const isRegularUser = !isVCUser && !isIITBombayUser && !isBitsQuestion;
 
+  // Fetch Eureka submission data for IIT Bombay users
+  const [eurekaAnalysisData, setEurekaAnalysisData] = useState<any>(null);
+
+  useEffect(() => {
+    if (isIITBombayUser && company?.id) {
+      const fetchEurekaData = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('eureka_form_submissions')
+            .select('analysis_result')
+            .eq('company_id', company.id)
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error fetching Eureka analysis data:', error);
+            return;
+          }
+
+          if (data?.analysis_result) {
+            setEurekaAnalysisData(data.analysis_result);
+            console.log('Eureka analysis data loaded:', data.analysis_result);
+          }
+        } catch (error) {
+          console.error('Error fetching Eureka analysis data:', error);
+        }
+      };
+
+      fetchEurekaData();
+    }
+  }, [isIITBombayUser, company?.id]);
+
   // Ensure we have values to display, using fallbacks and proper defaults - moved before usage
   const websiteToShow = company?.website || "";
   const stageToShow = company?.stage || "Not specified";
@@ -325,6 +356,8 @@ function CompanyDetails() {
                       section={section} 
                       onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
                       isVCAndBits={isVCAndBits}
+                      isIITBombay={isIITBombayUser}
+                      eurekaAnalysisData={eurekaAnalysisData}
                     />
                   ))}
                 </div>
