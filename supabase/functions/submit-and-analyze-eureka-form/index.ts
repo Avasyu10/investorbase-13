@@ -324,37 +324,37 @@ serve(async (req)=>{
       "sections": {
         "problem_solution_fit": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "target_customers": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "competitors": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "revenue_model": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "differentiation": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "prototype": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context",
+          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
