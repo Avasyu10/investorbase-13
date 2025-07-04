@@ -40,7 +40,7 @@ export const SectionCard = ({
       // For IIT Bombay users, use different color scheme without yellow
       if (score >= 80) return "text-emerald-600";
       if (score >= 60) return "text-blue-600";
-      if (score >= 40) return "text-amber-600";
+      if (score >= 40) return "text-slate-600";
       if (score >= 20) return "text-orange-600";
       return "text-red-600";
     } else {
@@ -66,6 +66,24 @@ export const SectionCard = ({
       if (score >= 60) return "secondary";
       if (score >= 40) return "outline";
       return "destructive";
+    }
+  };
+
+  const getProgressColor = (score: number) => {
+    if (isIITBombayUser) {
+      // For IIT Bombay users, use different progress bar colors without yellow
+      if (score >= 80) return "bg-emerald-500";
+      if (score >= 60) return "bg-blue-500";
+      if (score >= 40) return "bg-slate-500";
+      if (score >= 20) return "bg-orange-500";
+      return "bg-red-500";
+    } else {
+      // Original progress colors for other users
+      if (score >= 80) return "bg-emerald-500";
+      if (score >= 60) return "bg-blue-500";
+      if (score >= 40) return "bg-amber-500";
+      if (score >= 20) return "bg-orange-500";
+      return "bg-red-500";
     }
   };
 
@@ -148,7 +166,13 @@ export const SectionCard = ({
             </Badge>
           </div>
         </CardTitle>
-        <Progress value={progressValue} className="h-2" />
+        <div className="relative">
+          <Progress value={progressValue} className="h-2" />
+          <div 
+            className={`absolute top-0 left-0 h-2 rounded-full transition-all ${getProgressColor(displayScore)}`}
+            style={{ width: `${progressValue}%` }}
+          />
+        </div>
       </CardHeader>
       <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
         <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-shrink-0">
