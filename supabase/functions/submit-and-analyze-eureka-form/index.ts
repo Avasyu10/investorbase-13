@@ -113,7 +113,7 @@ serve(async (req)=>{
     // Prepare submission data with all form fields
     const submissionData = {
       form_slug: requestBody.form_slug || 'eureka-form',
-      company_name: requestBody.company_name || '',
+      company_name: requestBody.eureka_id || '',
       company_registration_type: requestBody.company_registration_type || null,
       executive_summary: requestBody.executive_summary || null,
       company_type: requestBody.company_type || null,
