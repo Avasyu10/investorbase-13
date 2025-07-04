@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
@@ -6,12 +7,17 @@ import { ArrowUpRight, Lightbulb, BarChart2, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { MarketResearch } from "./MarketResearch";
+import { IITBombayAnalysisDialog } from "./IITBombayAnalysisDialog";
+import { useProfile } from "@/hooks/useProfile";
 
 interface ScoreAssessmentProps {
   company: CompanyDetailed;
 }
 
 export function ScoreAssessment({ company }: ScoreAssessmentProps) {
+  const { isIITBombayUser } = useProfile();
+  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+
   // Always use 100-point scale
   const rawScore = company.overall_score;
   const displayScore = rawScore > 5 ? rawScore : rawScore * 20; // Convert 5-point to 100-point if needed
@@ -99,14 +105,33 @@ export function ScoreAssessment({ company }: ScoreAssessmentProps) {
           )}
         </CardContent>
         <CardFooter className="flex justify-end border-t pt-4">
-          <Link 
-            to={`/company/${company.id.toString()}/analysis`}
-            className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors"
-          >
-            View Full Analysis <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
+          {isIITBombayUser ? (
+            <Button
+              variant="link"
+              onClick={() => setShowAnalysisDialog(true)}
+              className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors p-0"
+            >
+              View Full Analysis <ArrowUpRight className="h-3.5 w-3.5" />
+            </Button>
+          ) : (
+            <Link 
+              to={`/company/${company.id.toString()}/analysis`}
+              className="text-sm text-primary font-medium hover:underline flex items-center gap-1 transition-colors"
+            >
+              View Full Analysis <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
         </CardFooter>
       </Card>
+
+      {/* IIT Bombay Analysis Dialog */}
+      {isIITBombayUser && (
+        <IITBombayAnalysisDialog
+          company={company}
+          open={showAnalysisDialog}
+          onOpenChange={setShowAnalysisDialog}
+        />
+      )}
       
       {/* Add Market Research component */}
       <MarketResearch 
