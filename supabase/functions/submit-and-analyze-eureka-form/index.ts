@@ -364,6 +364,7 @@ serve(async (req)=>{
     "key_factors": ["key decision factors with market validation"],
     "next_steps": ["specific recommendations with market-informed guidance"],
     "assessment_points": [
+      "First point should be: The score of <overall_score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score including some market data.>"
       "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
       "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
       "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
