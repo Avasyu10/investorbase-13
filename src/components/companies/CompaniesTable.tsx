@@ -3,13 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns"; // Import 'format'
 import { Star, Trash2, Phone, Mail, Globe, Download, Edit, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
+
 interface CompaniesTableProps {
   companies: Company[];
   onCompanyClick: (companyId: string) => void;
@@ -24,6 +25,7 @@ interface CompaniesTableProps {
   isGeneralUser?: boolean;
   isBitsQuestion?: boolean;
 }
+
 export function CompaniesTable({
   companies,
   onCompanyClick,
@@ -55,6 +57,7 @@ export function CompaniesTable({
   useEffect(() => {
     setLocalCompanies(companies);
   }, [companies]);
+
   const getScoreColor = (score: number): string => {
     if (score >= 75) return "text-green-600";
     if (score >= 70) return "text-blue-600";
@@ -62,6 +65,7 @@ export function CompaniesTable({
     if (score >= 30) return "text-orange-600";
     return "text-red-600";
   };
+
   const getScoreBadgeColor = (score: number): string => {
     if (score >= 75) return "bg-green-100 text-green-900";
     if (score >= 70) return "bg-blue-100 text-blue-800";
@@ -69,6 +73,7 @@ export function CompaniesTable({
     if (score >= 30) return "bg-orange-100 text-orange-800";
     return "bg-red-100 text-red-800";
   };
+
   const getStatusBadgeColor = (status: string): string => {
     switch (status?.toLowerCase()) {
       case 'new':
@@ -99,6 +104,7 @@ export function CompaniesTable({
         return "bg-gray-100 text-gray-800";
     }
   };
+
   const handleSortClick = (field: string) => {
     if (!onSortChange) return;
     let newOrder: 'asc' | 'desc' = 'desc';
@@ -107,12 +113,14 @@ export function CompaniesTable({
     }
     onSortChange(field, newOrder);
   };
+
   const getSortIcon = (field: string) => {
     if (!currentSort || currentSort.field !== field) {
       return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />;
     }
     return currentSort.order === 'asc' ? <ArrowUp className="h-4 w-4 text-primary" /> : <ArrowDown className="h-4 w-4 text-primary" />;
   };
+
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
 
@@ -148,6 +156,7 @@ export function CompaniesTable({
       });
     }
   };
+
   const handleEditClick = (e: React.MouseEvent, company: Company) => {
     e.stopPropagation(); // Prevent row click event
     const companyDetails = (company as any).company_details;
@@ -160,6 +169,7 @@ export function CompaniesTable({
     });
     setEditDialogOpen(true);
   };
+
   const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
     // Update local state to reflect the change immediately
     setLocalCompanies(prev => prev.map(company => {
@@ -177,6 +187,7 @@ export function CompaniesTable({
       return company;
     }));
   };
+
   const handleDownloadPdf = () => {
     let title = 'Companies Prospects';
     if (isIITBombay) {
@@ -271,17 +282,17 @@ export function CompaniesTable({
                       </div>
                     </TableCell>
                   </TableRow>;
-              })}
+                })}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
 
         <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
-        if (selectedCompanyForEdit) {
-          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-        }
-      }} />
+          if (selectedCompanyForEdit) {
+            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+          }
+        }} />
       </>;
   }
 
@@ -321,33 +332,33 @@ export function CompaniesTable({
               const industry = company.industry || "—";
               const stage = getStageFromResponseReceived(company);
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                      <TableCell className="font-medium">
-                        <span className="font-semibold text-foreground">{company.name}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{industry}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize text-xs">
-                          {stage}
-                        </Badge>
-                      </TableCell>
-                      {!isBitsQuestion && <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getScoreBadgeColor(formattedScore)}>
-                              <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                                {formattedScore}
-                              </span>
-                            </Badge>
-                          </div>
-                        </TableCell>}
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>;
-            })}
+                    <TableCell className="font-medium">
+                      <span className="font-semibold text-foreground">{company.name}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {stage}
+                      </Badge>
+                    </TableCell>
+                    {!isBitsQuestion && <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getScoreBadgeColor(formattedScore)}>
+                            <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                              {formattedScore}
+                            </span>
+                          </Badge>
+                        </div>
+                      </TableCell>}
+                    <TableCell>
+                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>;
+              })}
             </TableBody>
           </Table>
         </CardContent>
@@ -365,13 +376,15 @@ export function CompaniesTable({
                 {localCompanies.length} companies found
               </p>
             </div>
-             {/* Removed download button as per prompt, if it was intended to be removed */}
+              {/* Removed download button as per prompt, if it was intended to be removed */}
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                {/* New "Date" Column */}
+                <TableHead className="font-semibold w-[120px]">Date</TableHead> 
                 <TableHead className="font-semibold w-[140px]">Eureka ID</TableHead>
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
@@ -386,30 +399,35 @@ export function CompaniesTable({
               // Ensure question_1 and question_2 are accessed safely
               const stageValue = (company as any).industry || "—";
               const websiteValue = (company as any).scoring_reason || "—";
+              const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                      <TableCell className="font-medium">
-                        {company.name}
-                      </TableCell>
-                      <TableCell>
-                        {stageValue}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getScoreBadgeColor(formattedScore)}>
-                          <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
-                            {formattedScore}/100
-                          </span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {websiteValue}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>;
-            })}
+                    {/* New "Date" Cell */}
+                    <TableCell className="text-sm text-muted-foreground">
+                      {submissionDate}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {company.name}
+                    </TableCell>
+                    <TableCell>
+                      {stageValue}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getScoreBadgeColor(formattedScore)}>
+                        <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
+                          {formattedScore}/100
+                        </span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {websiteValue}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>;
+              })}
             </TableBody>
           </Table>
         </CardContent>
@@ -466,74 +484,74 @@ export function CompaniesTable({
               const industry = company.industry || "—";
               const teamMemberName = companyDetails?.teammember_name || '';
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{company.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {contactInfo && <span className="text-sm">{contactInfo}</span>}
-                          {phoneNumber && <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              <span>{phoneNumber}</span>
-                            </div>}
-                          {!contactInfo && !phoneNumber && <span className="text-sm">—</span>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {contactEmail ? <div className="flex items-center gap-1 text-sm">
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-foreground">{company.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {contactInfo && <span className="text-sm">{contactInfo}</span>}
+                        {phoneNumber && <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            <span>{phoneNumber}</span>
+                          </div>}
+                        {!contactInfo && !phoneNumber && <span className="text-sm">—</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {contactEmail ? <div className="flex items-center gap-1 text-sm">
                             <Mail className="h-3 w-3 text-muted-foreground" />
                             <span className="truncate">{contactEmail}</span>
                           </div> : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize text-xs">
-                          {company.source || 'Dashboard'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {company.source || 'Dashboard'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        
+                        <Badge className={getScoreBadgeColor(formattedScore)}>
+                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                            {formattedScore}
+                          </span>
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{industry}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          
-                          <Badge className={getScoreBadgeColor(formattedScore)}>
-                            <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                              {formattedScore}
-                            </span>
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusBadgeColor(status)}>
-                          <span className="text-xs font-medium">{status}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{teamMemberName || "—"}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>;
-            })}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(status)}>
+                        <span className="text-xs font-medium">{status}</span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{teamMemberName || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>;
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
       <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
-      if (selectedCompanyForEdit) {
-        handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-      }
-    }} />
+        if (selectedCompanyForEdit) {
+          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+        }
+      }} />
     </>;
 }
