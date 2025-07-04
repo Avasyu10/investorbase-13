@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +30,7 @@ export const SectionCard = ({
       // For IIT Bombay, use 5-point scale colors without yellow highlight
       if (score >= 4) return "text-emerald-600";
       if (score >= 3) return "text-blue-600";
-      if (score >= 2) return "text-amber-600";
+      if (score >= 2) return "text-amber-600"; // Changed to amber for consistency with lower score
       if (score >= 1) return "text-orange-600";
       return "text-red-600";
     } else {
@@ -84,8 +83,7 @@ export const SectionCard = ({
       'competitors': 'Competitors',
       'revenue_model': 'Revenue Model',
       'usp': 'USP',
-      'differentiation': 'USP',
-      // Map old 'differentiation' to 'USP'
+      'differentiation': 'USP', // Map old 'differentiation' to 'USP'
       'prototype': 'Prototype'
     };
 
@@ -130,14 +128,23 @@ export const SectionCard = ({
   const getAnalysisText = () => {
     if (!isIITBombay || !eurekaAnalysisData?.sections) return null;
     
-    const sectionType = section.section_type || section.type;
-    const sectionData = eurekaAnalysisData.sections[sectionType];
+    // Ensure section.section_type is used if available, otherwise fallback to section.type
+    const sectionTypeKey = section.section_type || section.type; 
+    
+    // Convert the key to uppercase if it's from `section.type` which is often uppercase (e.g., 'PROBLEM')
+    // but keep it as is if from `section.section_type` which is often lowercase (e.g., 'problem_solution_fit')
+    const normalizedSectionTypeKey = sectionTypeKey.toUpperCase(); // Ensure it matches the case in eurekaAnalysisData.sections
+
+    const sectionData = eurekaAnalysisData.sections[normalizedSectionTypeKey];
     
     if (sectionData?.analysis) {
-      // Get only the first sentence (up to the first period)
       const analysisText = sectionData.analysis;
-      const firstSentence = analysisText.split('.')[0] + '.';
-      return firstSentence;
+      // Extract the first sentence. Handle cases where there's no period or it's at the end.
+      const firstPeriodIndex = analysisText.indexOf('.');
+      if (firstPeriodIndex !== -1) {
+        return analysisText.substring(0, firstPeriodIndex + 1);
+      }
+      return analysisText; // Return whole text if no period is found
     }
     
     return null;
@@ -163,21 +170,23 @@ export const SectionCard = ({
           {section.description || "No description available"}
         </p>
         
-        {/* For IIT Bombay users, show analysis text instead of strengths/weaknesses */}
+        {/* Conditional rendering based on user type */}
         {isIITBombay && analysisText ? (
+          // Display only Analysis for IIT Bombay users
           <div className="space-y-3 flex-1 overflow-hidden">
             <div className="flex items-start gap-2">
               <FileText className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
               <div className="text-xs flex-1 min-w-0">
                 <span className="font-medium text-blue-700">Analysis:</span>
                 <div className="text-blue-600 mt-1">
-                  <div className="line-clamp-3 break-words">{analysisText}</div>
+                  {/* line-clamp-3 here will ensure it still shows only 3 lines even if the first sentence is long */}
+                  <div className="line-clamp-3 break-words">{analysisText}</div> 
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          /* Show strengths and weaknesses for non-IIT Bombay users */
+          // Display strengths and weaknesses for non-IIT Bombay users (original logic)
           <div className="space-y-3 flex-1 overflow-hidden">
             {section.strengths && section.strengths.length > 0 && (
               <div className="flex items-start gap-2">
