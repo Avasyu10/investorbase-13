@@ -312,83 +312,84 @@ serve(async (req)=>{
     Generate a brief 1-2 sentence explanation for the overall score that summarizes the key factors that led to this rating. This should be concise but specific about what drove the score up or down.
 
     Return ONLY valid JSON in this exact format:
-    {
-      "overall_score": number (1-100),
-      "scoring_reason": "Brief 1-2 sentence explanation of the key factors that determined this overall score",
-      "recommendation": "Accept" | "Consider" | "Reject",
-      "company_info": {
-        "industry": "string (infer from application)",
-        "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
-        "introduction": "string (2-3 sentence description)"
-      },
-      "sections": {
-        "problem_solution_fit": {
-          "score": number (1-100),
-          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "target_customers": {
-          "score": number (1-100),
-          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "competitors": {
-          "score": number (1-100),
-          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "revenue_model": {
-          "score": number (1-100),
-          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "differentiation": {
-          "score": number (1-100),
-          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        },
-        "prototype": {
-          "score": number (1-100),
-          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
-          "strengths": ["exactly 4-5 strengths with market data integration"],
-          "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
-        }
-      },
-      "summary": {
-        "overall_feedback": "comprehensive feedback integrating response quality with market context",
-        "key_factors": ["key decision factors with market validation"],
-        "next_steps": ["specific recommendations with market-informed guidance"],
-        "assessment_points": [
-          "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
-          "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
-          "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
-          "Weave in insights from the startup's responses to show market positioning and strategic implications",
-          "Focus on quantifiable market opportunities, risks, and benchmarks with actionable intelligence",
-          "Connect startup's approach to broader industry trends, competitive dynamics, and market timing factors",
-          "Provide detailed analysis of how their solution fits within current market conditions and future projections"
-        ]
-      }
+{
+  "overall_score": number (1-100),
+  "scoring_reason": "Brief 1-2 sentence explanation of the key factors that determined this overall score",
+  "recommendation": "Accept" | "Consider" | "Reject",
+  "company_info": {
+    "industry": "string (infer from application)",
+    "stage": "string (Idea/Prototype/Early Revenue/Growth based on responses)",
+    "introduction": "string (2-3 sentence description)"
+  },
+  "sections": {
+    "problem_solution_fit": {
+      "score": number (1-100),
+      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "strengths": ["exactly 4-5 strengths with market data integration"],
+      "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+    },
+    "target_customers": {
+      "score": number (1-100),
+      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "strengths": ["exactly 4-5 strengths with market data integration"],
+      "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+    },
+    "competitors": {
+      "score": number (1-100),
+      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "strengths": ["exactly 4-5 strengths with market data integration"],
+      "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+    },
+    "revenue_model": {
+      "score": number (1-100),
+      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "strengths": ["exactly 4-5 strengths with market data integration"],
+      "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+    },
+    "differentiation": {
+      "score": number (1-100),
+      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "strengths": ["exactly 4-5 strengths with market data integration"],
+      "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
+    },
+    "prototype": {
+      "score": number (1-100),
+      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "strengths": ["exactly 4-5 strengths with market data integration"],
+      "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     }
+  },
+  "summary": {
+    "overall_feedback": "comprehensive feedback integrating response quality with market context",
+    "key_factors": ["key decision factors with market validation"],
+    "next_steps": ["specific recommendations with market-informed guidance"],
+    "assessment_points": [
+      "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
+      "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
+      "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
+      "Weave in insights from the startup's responses to show market positioning and strategic implications",
+      "Focus on quantifiable market opportunities, risks, and benchmarks with actionable intelligence",
+      "Connect startup's approach to broader industry trends, competitive dynamics, and market timing factors",
+      "Provide detailed analysis of how their solution fits within current market conditions and future projections"
+    ]
+  }
+}
 
-    CRITICAL REQUIREMENTS:
-    1. ANSWER QUALITY IS THE PRIMARY SCORING FACTOR - poor answers cannot be saved by market potential
-    2. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent detailed responses (80-100), poor short responses (5-30)
-    3. Use the exact metrics provided for each question in your evaluation
-    4. HEAVILY PENALIZE SHORT, SUPERFICIAL ANSWERS - follow the strict word count limits above
-    5. REWARD DETAILED, THOUGHTFUL RESPONSES - comprehensive answers with specifics should score 80-100
-    6. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
-    7. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
-    8. Provide exactly 4-5 strengths and 4-5 weaknesses per section
-    9. All scores must be 1-100 scale
-    10. Return only valid JSON without markdown formatting
-    11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
-    12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
-    13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
+CRITICAL REQUIREMENTS:
+1. ANSWER QUALITY IS THE PRIMARY SCORING FACTOR - poor answers cannot be saved by market potential
+2. CREATE SIGNIFICANT SCORE DIFFERENCES - excellent detailed responses (80-100), poor short responses (5-30)
+3. Use the exact metrics provided for each question in your evaluation
+4. HEAVILY PENALIZE SHORT, SUPERFICIAL ANSWERS - follow the strict word count limits above
+5. REWARD DETAILED, THOUGHTFUL RESPONSES - comprehensive answers with specifics should score 80-100
+6. ASSESSMENT POINTS: Each of the 8-10 points must be heavily weighted toward market data, numbers, and quantifiable metrics with 3-4 sentences each
+7. Focus weaknesses ONLY on market data challenges and industry risks - NOT response quality or form gaps
+8. Provide exactly 4-5 strengths and 4-5 weaknesses per section
+9. All scores must be 1-100 scale
+10. Return only valid JSON without markdown formatting
+11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
+12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
+13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
+14. EACH SECTION'S 'analysis' FIELD MUST START WITH A CLEAR, CONCISE (1-2 SENTENCE) REASON FOR THE ASSIGNED SCORE, BEFORE ANY FURTHER DETAILED ANALYSIS.
     ${linkedInDataSection} <--- THIS IS WHERE IT SHOULD BE
     `;
     // ... (rest of your code)
