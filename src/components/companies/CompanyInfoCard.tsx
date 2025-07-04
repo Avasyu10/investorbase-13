@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Globe, TrendingUp, Briefcase, Info, Bot } from "lucide-react";
@@ -44,7 +45,14 @@ interface AnalysisResult {
 }
 
 interface EurekaSubmission {
-  analysis_result: AnalysisResult;
+  analysis_result: {
+    company_info?: {
+      stage: string;
+      industry: string;
+      introduction: string;
+    };
+    [key: string]: any;
+  };
 }
 
 export function CompanyInfoCard({
@@ -170,9 +178,13 @@ export function CompanyInfoCard({
 
   if (isIITBombayUser) {
     // For IIT Bombay users: Use Eureka submission data
-    const eurekaCompanyInfo = eurekaSubmission?.analysis_result?.companyInfo;
+    // Note: The actual JSON structure uses company_info (with underscore)
+    const eurekaCompanyInfo = eurekaSubmission?.analysis_result?.company_info;
     
-    // About/Introduction from Eureka analysis_result.companyInfo.introduction
+    console.log("Eureka company info:", eurekaCompanyInfo);
+    console.log("Full analysis result:", eurekaSubmission?.analysis_result);
+    
+    // About/Introduction from Eureka analysis_result.company_info.introduction
     displayIntroduction = eurekaCompanyInfo?.introduction || "No detailed information available for this company.";
     
     // Website from companies.scoring_reason
