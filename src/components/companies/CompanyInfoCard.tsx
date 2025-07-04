@@ -269,7 +269,7 @@ export function CompanyInfoCard({
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-medium">Website</p>
+                <p className="text-sm font-medium">Website/Link</p>
                 {websiteUrl ? (
                   <a
                     href={websiteUrl}
