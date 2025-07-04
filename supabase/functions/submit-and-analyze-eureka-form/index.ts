@@ -324,37 +324,37 @@ serve(async (req)=>{
   "sections": {
     "problem_solution_fit": {
       "score": number (1-100),
-      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "analysis": "<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
       "strengths": ["exactly 4-5 strengths with market data integration"],
       "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     },
     "target_customers": {
       "score": number (1-100),
-      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "analysis": ""<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
       "strengths": ["exactly 4-5 strengths with market data integration"],
       "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     },
     "competitors": {
       "score": number (1-100),
-      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "analysis": "<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
       "strengths": ["exactly 4-5 strengths with market data integration"],
       "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     },
     "revenue_model": {
       "score": number (1-100),
-      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "analysis": "<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
       "strengths": ["exactly 4-5 strengths with market data integration"],
       "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     },
     "differentiation": {
       "score": number (1-100),
-      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "analysis": "<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
       "strengths": ["exactly 4-5 strengths with market data integration"],
       "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     },
     "prototype": {
       "score": number (1-100),
-      "analysis": "**CRITICAL: The first 1-2 sentences MUST explain WHY this particular <score> was assigned (can use market data if relevant).** Then, provide detailed analysis evaluating response quality against the 3 specific metrics with market context.",
+      "analysis": "<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
       "strengths": ["exactly 4-5 strengths with market data integration"],
       "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     }
