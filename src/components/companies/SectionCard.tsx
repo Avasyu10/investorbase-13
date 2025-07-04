@@ -55,8 +55,8 @@ export const SectionCard = ({
 
   const getScoreBadgeVariant = (score: number) => {
     if (isIITBombayUser) {
-      // For IIT Bombay users, use different badge variants without yellow/warning
-      if (score >= 80) return "default"; // green
+      // For IIT Bombay users, use green badge for scores above 80 instead of default yellow
+      if (score >= 80) return "green"; // Use green variant instead of default
       if (score >= 60) return "secondary"; // blue/gray
       if (score >= 40) return "outline"; // neutral
       return "destructive"; // red
