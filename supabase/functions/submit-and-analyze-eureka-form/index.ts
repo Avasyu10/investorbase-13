@@ -324,37 +324,37 @@ serve(async (req)=>{
       "sections": {
         "problem_solution_fit": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
+          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "target_customers": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
+          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "competitors": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
+          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "revenue_model": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
+          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "differentiation": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
+          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         },
         "prototype": {
           "score": number (1-100),
-          "analysis": "detailed analysis evaluating response quality against the 3 specific metrics with market context. first point should be why that score was given with 1-2 sentence detailed explanation and if needed use market data.",
+          "analysis": "<The reason why the particular <score> was assigned(1-2 line reason, can also use market data if needed.>. Some detailed analysis evaluating response quality against the 3 specific metrics with market context.",
           "strengths": ["exactly 4-5 strengths with market data integration"],
           "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
         }
