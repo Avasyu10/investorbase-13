@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
+import { useProfile } from "@/hooks/useProfile";
 
 type CompanyInfoProps = {
   website?: string;
@@ -27,6 +28,8 @@ interface Company {
   name: string;
   report_id?: string;
   response_received?: string;
+  scoring_reason?: string;
+  industry?: string;
 }
 
 interface AnalysisResult {
@@ -35,9 +38,14 @@ interface AnalysisResult {
     industry: string;
     website: string;
     description: string;
+    introduction?: string;
   };
   assessmentPoints?: string[];
   [key: string]: any;
+}
+
+interface EurekaSubmission {
+  analysis_result: AnalysisResult;
 }
 
 export function CompanyInfoCard({
@@ -58,6 +66,7 @@ export function CompanyInfoCard({
   const { id } = useParams<{ id: string }>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
+  const { isIITBombayUser } = useProfile();
 
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
@@ -67,7 +76,7 @@ export function CompanyInfoCard({
       console.log("Fetching company data for ID:", id);
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, report_id, response_received')
+        .select('id, name, report_id, response_received, scoring_reason, industry')
         .eq('id', id)
         .single();
       if (error) {
@@ -78,6 +87,27 @@ export function CompanyInfoCard({
       return data as Company;
     },
     enabled: !!id
+  });
+
+  // Fetch Eureka form submission for IIT Bombay users
+  const { data: eurekaSubmission } = useQuery({
+    queryKey: ['eureka-submission', companyData?.id],
+    queryFn: async () => {
+      if (!companyData?.id || !isIITBombayUser) return null;
+      console.log("Fetching Eureka submission for company ID:", companyData.id);
+      const { data, error } = await supabase
+        .from('eureka_form_submissions')
+        .select('analysis_result')
+        .eq('company_id', companyData.id)
+        .maybeSingle();
+      if (error) {
+        console.error('Error fetching Eureka submission:', error);
+        return null;
+      }
+      console.log("Eureka submission data:", data);
+      return data as EurekaSubmission;
+    },
+    enabled: !!companyData?.id && isIITBombayUser
   });
 
   // Parse response_received data if available
@@ -132,18 +162,48 @@ export function CompanyInfoCard({
     enabled: !!companyData?.id
   });
 
-  // Prioritize data sources: response_received, then analysis data, then props
-  const analysisCompanyInfo = analysisData?.companyInfo;
-  const displayIntroduction = responseReceivedData?.description || analysisCompanyInfo?.description || introduction || description || "No detailed information available for this company.";
+  // Data prioritization logic for IIT Bombay vs regular users
+  let displayIntroduction: string;
+  let displayWebsite: string;
+  let websiteUrl: string | null;
+  let displayStage: string;
+  let displayIndustry: string;
 
-  // Format website URL for display and linking - prioritize response_received data
-  const prioritizedWebsite = responseReceivedData?.website || analysisCompanyInfo?.website || website;
-  const displayWebsite = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.replace(/^https?:\/\/(www\.)?/, '') : "Not available";
-  const websiteUrl = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.startsWith('http') ? prioritizedWebsite : `https://${prioritizedWebsite}` : null;
+  if (isIITBombayUser) {
+    // For IIT Bombay users: Use Eureka submission data
+    const eurekaCompanyInfo = eurekaSubmission?.analysis_result?.companyInfo;
+    
+    // About/Introduction from Eureka analysis_result.company_info.introduction
+    displayIntroduction = eurekaCompanyInfo?.introduction || "No detailed information available for this company.";
+    
+    // Website from companies.scoring_reason
+    const websiteFromScoring = companyData?.scoring_reason || "";
+    displayWebsite = websiteFromScoring && websiteFromScoring !== "" 
+      ? websiteFromScoring.replace(/^https?:\/\/(www\.)?/, '') 
+      : "Not available";
+    websiteUrl = websiteFromScoring && websiteFromScoring !== "" 
+      ? websiteFromScoring.startsWith('http') ? websiteFromScoring : `https://${websiteFromScoring}` 
+      : null;
+    
+    // Stage from companies.industry
+    displayStage = companyData?.industry || "Not specified";
+    
+    // Industry is not displayed for IIT Bombay users
+    displayIndustry = "";
+  } else {
+    // For regular users: Use existing logic
+    const analysisCompanyInfo = analysisData?.companyInfo;
+    displayIntroduction = responseReceivedData?.description || analysisCompanyInfo?.description || introduction || description || "No detailed information available for this company.";
 
-  // Display stage and industry with prioritized data sources
-  const displayStage = responseReceivedData?.stage || analysisCompanyInfo?.stage || stage || "Not specified";
-  const displayIndustry = responseReceivedData?.industry || analysisCompanyInfo?.industry || industry || "Not specified";
+    // Format website URL for display and linking - prioritize response_received data
+    const prioritizedWebsite = responseReceivedData?.website || analysisCompanyInfo?.website || website;
+    displayWebsite = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.replace(/^https?:\/\/(www\.)?/, '') : "Not available";
+    websiteUrl = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.startsWith('http') ? prioritizedWebsite : `https://${prioritizedWebsite}` : null;
+
+    // Display stage and industry with prioritized data sources
+    displayStage = responseReceivedData?.stage || analysisCompanyInfo?.stage || stage || "Not specified";
+    displayIndustry = responseReceivedData?.industry || analysisCompanyInfo?.industry || industry || "Not specified";
+  }
 
   // Show the "More Information" button for all analyzed companies
   const shouldShowMoreInfoButton = !!companyData?.id;
@@ -177,24 +237,26 @@ export function CompanyInfoCard({
       
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
-          {/* Company Description with More Information Button */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium">About {companyData?.name || companyName}</h4>
-              {shouldShowMoreInfoButton && (
-                <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
-                  <Info className="mr-2 h-4 w-4" />
-                  More Information
-                </Button>
-              )}
+          {/* Company Description with More Information Button - only show for non-IIT Bombay users or when there's content */}
+          {(!isIITBombayUser || displayIntroduction !== "No detailed information available for this company.") && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">About {companyData?.name || companyName}</h4>
+                {shouldShowMoreInfoButton && (
+                  <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
+                    <Info className="mr-2 h-4 w-4" />
+                    More Information
+                  </Button>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                {displayIntroduction}
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-              {displayIntroduction}
-            </p>
-          </div>
+          )}
           
           {/* Company Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 ${isIITBombayUser ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary flex-shrink-0" />
               <div className="min-w-0">
@@ -222,13 +284,16 @@ export function CompanyInfoCard({
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Industry</p>
-                <p className="text-sm text-muted-foreground">{displayIndustry}</p>
+            {/* Industry section - only show for non-IIT Bombay users */}
+            {!isIITBombayUser && (
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Industry</p>
+                  <p className="text-sm text-muted-foreground">{displayIndustry}</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -249,7 +314,7 @@ export function CompanyInfoCard({
           companyId={companyData.id}
           companyName={companyData.name || companyName}
           companyIntroduction={displayIntroduction}
-          companyIndustry={displayIndustry}
+          companyIndustry={isIITBombayUser ? "" : displayIndustry}
           companyStage={displayStage}
           assessmentPoints={analysisData?.assessmentPoints || []}
           open={chatbotOpen}
