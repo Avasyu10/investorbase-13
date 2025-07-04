@@ -74,7 +74,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
     "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)",
     "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.",
     "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any."
-    "Explain your prototype"
+    "Explain your prototype",
   ];
 
   return (
