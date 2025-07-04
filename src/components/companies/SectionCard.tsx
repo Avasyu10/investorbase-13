@@ -137,8 +137,6 @@ export const SectionCard = ({
   };
 
   // Logic to split the description into sentences/bullet points
-  // This is a common approach if 'description' is a single string but needs to be displayed as points.
-  // It's still ideal for the data to come pre-formatted as an array of strings.
   const descriptionPoints = section.description
     ? section.description.split(/(?<=\.)\s+(?=[A-Z])/) // Splits by period followed by space and uppercase letter
     : [];
@@ -163,12 +161,15 @@ export const SectionCard = ({
         </div>
       </CardHeader>
       <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
-        {/* Render as bullet points */}
         {descriptionPoints.length > 0 ? (
-          <ul className="text-sm text-muted-foreground mb-4 space-y-1">
+          // Added 'list-disc pl-5' for bullet points and padding
+          <ul className="text-sm text-muted-foreground mb-4 space-y-1 list-disc pl-5">
             {descriptionPoints.map((point, index) => (
-              <li key={index} className="leading-relaxed">
-                {point.trim() + (point.trim().endsWith('.') ? '' : '.')} {/* Ensure each point ends with a period */}
+              <li 
+                key={index} 
+                className={`leading-relaxed ${index === 0 ? 'font-semibold text-foreground' : ''}`} // Highlight first point
+              >
+                {point.trim() + (point.trim().endsWith('.') ? '' : '.')}
               </li>
             ))}
           </ul>
