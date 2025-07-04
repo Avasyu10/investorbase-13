@@ -136,6 +136,13 @@ export const SectionCard = ({
     return sectionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  // Logic to split the description into sentences/bullet points
+  // This is a common approach if 'description' is a single string but needs to be displayed as points.
+  // It's still ideal for the data to come pre-formatted as an array of strings.
+  const descriptionPoints = section.description
+    ? section.description.split(/(?<=\.)\s+(?=[A-Z])/) // Splits by period followed by space and uppercase letter
+    : [];
+
   return (
     <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-subtle hover:scale-105 h-full flex flex-col" onClick={onClick}>
       <CardHeader className="pb-3 flex-shrink-0">
@@ -156,10 +163,20 @@ export const SectionCard = ({
         </div>
       </CardHeader>
       <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
-        {/* Removed line-clamp-2 from here */}
-        <p className="text-sm text-muted-foreground mb-4 flex-shrink-0">
-          {section.description || "No description available"}
-        </p>
+        {/* Render as bullet points */}
+        {descriptionPoints.length > 0 ? (
+          <ul className="text-sm text-muted-foreground mb-4 space-y-1">
+            {descriptionPoints.map((point, index) => (
+              <li key={index} className="leading-relaxed">
+                {point.trim() + (point.trim().endsWith('.') ? '' : '.')} {/* Ensure each point ends with a period */}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground mb-4">
+            No description available.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
