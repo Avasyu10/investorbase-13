@@ -207,7 +207,7 @@ serve(async (req)=>{
 
     Application Responses and Specific Metrics for Evaluation:
 
-    1. PROBLEM & SOLUTION: "${submission.question_1 || 'Not provided'}"
+    1. PROBLEM & SOLUTION: "${submission.question_3 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Problem Clarity (30 pts): Is it real, urgent, and well-articulated with specific details?
@@ -217,7 +217,7 @@ serve(async (req)=>{
     Score harshly if: Problem is vague or generic, no insight into how people cope, unclear connection between problem and solution, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Clear, urgent pain point + solid understanding of alternatives + compelling solution match + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
-    2. TARGET CUSTOMERS: "${submission.question_2 || 'Not provided'}"
+    2. TARGET CUSTOMERS: "${submission.question_4 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Customer Definition (35 pts): Are the segments specific and realistic with detailed descriptions?
@@ -227,7 +227,7 @@ serve(async (req)=>{
     Score harshly if: Describes "everyone" or is overly broad, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Defined personas, nuanced insights, matched offering + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
-    3. COMPETITORS: "${submission.question_3 || 'Not provided'}"
+    3. COMPETITORS: "${submission.question_5 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Competitor Awareness (35 pts): Are both direct and indirect players mentioned with specific names and details?
@@ -237,7 +237,7 @@ serve(async (req)=>{
     Score harshly if: Misses obvious competitors or gives vague comparisons, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Deep landscape awareness and sharp positioning + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
-    4. REVENUE MODEL: "${submission.question_4 || 'Not provided'}"
+    4. REVENUE MODEL: "${submission.question_6 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Monetization Clarity (30 pts): Is revenue generation clearly explained with specific mechanisms?
@@ -247,7 +247,7 @@ serve(async (req)=>{
     Score harshly if: No revenue clarity or hand-wavy growth claims, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Structured, feasible model + strong growth potential + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
 
-    5. DIFFERENTIATION: "${submission.question_5 || 'Not provided'}"
+    5. DIFFERENTIATION: "${submission.question_7 || 'Not provided'}"
     
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - USP Clarity (30 pts): Clear, strong differentiator from others with specific advantages?
@@ -257,7 +257,7 @@ serve(async (req)=>{
     Score harshly if: No meaningful edge, or vague marketing, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Compelling USP + solid GTM + proprietary advantage + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
     
-    6. PROTOTYPE: "${submission.question_6 || 'Not provided'}"
+    6. PROTOTYPE: "${submission.question_8 || 'Not provided'}"
 
     Evaluate using these EXACT metrics (score each 1-100, be EXTREMELY discriminative based on ANSWER QUALITY AND DEPTH):
     - Maturity & Description Credibility (40 pts): Is the claimed prototype stage clearly defined, and is its description detailed, consistent, and credible (e.g., features, tech stack)?
@@ -266,11 +266,6 @@ serve(async (req)=>{
 
     Score harshly if: No clear description of prototype, no mention of user testing or feedback, technical aspects are vague, ONE-WORD OR VERY SHORT ANSWERS (under 10 words should score 5-15 MAXIMUM).
     Score highly if: Detailed description of a functional prototype, clear evidence of user validation and iterative improvements, well-thought-out technical foundation and scalability plans + DETAILED EXPLANATIONS (over 100 words with specifics should score 80-100).
-
-    Additional Questions (if provided):
-    7. QUESTION 7: "${submission.question_7 || 'Not provided'}"
-    8. QUESTION 8: "${submission.question_8 || 'Not provided'}"
-    9. QUESTION 9: "${submission.question_9 || 'Not provided'}"
 
     CRITICAL SCORING GUIDELINES - BE EXTREMELY HARSH ON POOR ANSWERS:
 
