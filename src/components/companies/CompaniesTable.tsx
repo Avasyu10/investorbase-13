@@ -375,7 +375,7 @@ export function CompaniesTable({
                 <TableHead className="font-semibold w-[140px]">Eureka ID</TableHead>
                 <TableHead className="font-semibold w-[100px]">Stage</TableHead>
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
-                <TableHead className="font-semibold w-[120px]">Website</TableHead>
+                <TableHead className="font-semibold w-[120px]">Link</TableHead>
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
