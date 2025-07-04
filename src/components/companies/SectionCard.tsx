@@ -24,11 +24,11 @@ export const SectionCard = ({
   // For IIT Bombay users, use the original score without conversion
   const rawScore = parseFloat(section.score.toString());
   const displayScore = isIITBombay ? rawScore : (rawScore > 5 ? rawScore : rawScore * 20);
-  const progressValue = isIITBombay ? rawScore : displayScore;
+  const progressValue = isIITBombay ? (rawScore * 20) : displayScore; // Convert 5-point to 100-point for progress bar
 
   const getScoreColor = (score: number) => {
     if (isIITBombay) {
-      // For IIT Bombay, don't use yellow highlight for scores above 80
+      // For IIT Bombay, use 5-point scale colors without yellow highlight
       if (score >= 4) return "text-emerald-600";
       if (score >= 3) return "text-blue-600";
       if (score >= 2) return "text-amber-600";
@@ -45,7 +45,7 @@ export const SectionCard = ({
 
   const getScoreBadgeVariant = (score: number) => {
     if (isIITBombay) {
-      // For IIT Bombay, don't use yellow/default variant for high scores
+      // For IIT Bombay, use 5-point scale without yellow/default variant for high scores
       if (score >= 4) return "secondary";
       if (score >= 3) return "secondary";
       if (score >= 2) return "outline";
@@ -126,7 +126,7 @@ export const SectionCard = ({
     return sectionType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Get analysis text for IIT Bombay users from Eureka data
+  // Get analysis text for IIT Bombay users from Eureka data - first sentence only
   const getAnalysisText = () => {
     if (!isIITBombay || !eurekaAnalysisData?.sections) return null;
     
@@ -134,12 +134,10 @@ export const SectionCard = ({
     const sectionData = eurekaAnalysisData.sections[sectionType];
     
     if (sectionData?.analysis) {
-      // Return the first sentence or up to 200 characters of the analysis
+      // Get only the first sentence (up to the first period)
       const analysisText = sectionData.analysis;
-      if (analysisText.length > 200) {
-        return analysisText.substring(0, 200) + "...";
-      }
-      return analysisText;
+      const firstSentence = analysisText.split('.')[0] + '.';
+      return firstSentence;
     }
     
     return null;
@@ -158,7 +156,7 @@ export const SectionCard = ({
             </Badge>
           </div>
         </CardTitle>
-        <Progress value={isIITBombay ? (progressValue * 20) : progressValue} className="h-2" />
+        <Progress value={progressValue} className="h-2" />
       </CardHeader>
       <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
         <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-shrink-0">
