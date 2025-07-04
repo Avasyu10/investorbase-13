@@ -109,7 +109,7 @@ serve(async (req)=>{
     }
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     // Use the specific user ID for all Eureka form submissions
-    const effectiveUserId = "ba8610ea-1e0c-49f9-ae5a-86aae1f6d1af";
+    const effectiveUserId = "2c1d5fc8-c1d2-4229-a36e-6f1d211562aa";
     // Prepare submission data with all form fields
     const submissionData = {
       form_slug: requestBody.form_slug || 'eureka-form',
@@ -446,11 +446,11 @@ serve(async (req)=>{
       const companyData = {
         name: submission.eureka_id,
         overall_score: analysisResult.overall_score,
-        scoring_reason: submission.question_2 || '',   //Website
+        scoring_reason: submission.question_2 || '',
         assessment_points: analysisResult.summary?.assessment_points || [],
         user_id: effectiveUserId,
         source: 'eureka_form',
-        industry: submission.question_1 || null,   //Stage
+        industry: submission.question_1 || null,
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
         phonenumber: submission.phoneno || null
