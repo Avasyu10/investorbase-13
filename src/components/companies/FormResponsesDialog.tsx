@@ -11,11 +11,13 @@ interface FormResponsesDialogProps {
 }
 
 interface EurekaSubmission {
-  question_1: string | null;
-  question_2: string | null;
   question_3: string | null;
   question_4: string | null;
   question_5: string | null;
+  question_6: string | null;
+  question_7: string | null;
+  question_8: string | null;
+
   company_name: string;
   submitter_email: string;
   created_at: string;
@@ -33,7 +35,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
     try {
       const { data, error } = await supabase
         .from('eureka_form_submissions')
-        .select('question_1, question_2, question_3, question_4, question_5, company_name, submitter_email, created_at')
+        .select('question_3, question_4, question_5, question_6, question_7, question_8, company_name, submitter_email, created_at')
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -72,6 +74,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
     "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)",
     "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.",
     "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any."
+    "Explain your prototype"
   ];
 
   return (
