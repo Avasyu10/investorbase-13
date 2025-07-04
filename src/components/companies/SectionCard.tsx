@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Star, TrendingUp, TrendingDown } from "lucide-react";
+import { Star } from "lucide-react"; // Removed TrendingUp and TrendingDown as they are no longer used
 import { Section } from "@/lib/api/apiContract";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -179,42 +178,8 @@ export const SectionCard = ({
           {section.description || "No description available"}
         </p>
         
-        {/* Show strengths and weaknesses if available */}
-        <div className="space-y-3 flex-1 overflow-hidden">
-          {section.strengths && section.strengths.length > 0 && (
-            <div className="flex items-start gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <div className="text-xs flex-1 min-w-0">
-                <span className="font-medium text-green-700">Strengths:</span>
-                <div className="text-green-600 mt-1 space-y-0.5">
-                  {section.strengths.slice(0, 2).map((strength, idx) => (
-                    <div key={idx} className="line-clamp-1 break-words">• {strength}</div>
-                  ))}
-                  {section.strengths.length > 2 && (
-                    <div className="text-green-500 text-xs">+{section.strengths.length - 2} more</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {section.weaknesses && section.weaknesses.length > 0 && (
-            <div className="flex items-start gap-2">
-              <TrendingDown className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-              <div className="text-xs flex-1 min-w-0">
-                <span className="font-medium text-red-700">Weaknesses:</span>
-                <div className="text-red-600 mt-1 space-y-0.5">
-                  {section.weaknesses.slice(0, 2).map((weakness, idx) => (
-                    <div key={idx} className="line-clamp-1 break-words">• {weakness}</div>
-                  ))}
-                  {section.weaknesses.length > 2 && (
-                    <div className="text-red-500 text-xs">+{section.weaknesses.length - 2} more</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* All content related to strengths and weaknesses is removed */}
+        {/* If you intend to add other content here later, you can add it directly */}
       </CardContent>
     </Card>
   );
