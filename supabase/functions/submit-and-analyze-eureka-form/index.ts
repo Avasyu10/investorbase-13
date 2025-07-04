@@ -365,7 +365,7 @@ serve(async (req)=>{
     "next_steps": ["specific recommendations with market-informed guidance"],
     "assessment_points": [
       "First point should be: The score of <overall_score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score including some market data.>"
-      "EXACTLY 8-10 detailed market-focused assessment points that combine insights across all sections",
+      "EXACTLY 7-8 detailed market-focused assessment points that combine insights across all sections",
       "Each point must be 3-4 sentences long and prioritize market data and numbers above all else",
       "Include specific market sizes (e.g., $X billion TAM), growth rates (X% CAGR), customer acquisition costs ($X CAC), competitive landscape metrics, funding trends, adoption rates, etc.",
       "Weave in insights from the startup's responses to show market positioning and strategic implications",
@@ -390,7 +390,7 @@ CRITICAL REQUIREMENTS:
 11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
 12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
 13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
-14. EACH SECTION'S 'analysis' FIELD MUST START WITH A CLEAR, CONCISE (1-2 SENTENCE) REASON FOR THE ASSIGNED SCORE, BEFORE ANY FURTHER DETAILED ANALYSIS. Also in the 'analysis' part that what could have been added more in the answer and how it missed something. It should be about that section based on answers and include market data.
+14. **Important**: In the "analysis" part of each section never include what could have been improved in the answer or how could it have been better.
 15. **Very Important**: Never give any market number or data as "X" or "Y", it should always be an actual number. If not available skip it just don't use these.
 
     ${linkedInDataSection} <--- THIS IS WHERE IT SHOULD BE
@@ -415,7 +415,7 @@ CRITICAL REQUIREMENTS:
         ],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 8000
+          maxOutputTokens: 8100
         }
       })
     });
