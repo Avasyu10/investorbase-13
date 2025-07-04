@@ -330,7 +330,7 @@ serve(async (req)=>{
     },
     "target_customers": {
       "score": number (1-100),
-      "analysis": ""<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
+      "analysis": "<The score of <score> was given because <concise, 1-2 sentence high-level summary of the primary reason for the score by including market data and how the whole section was analysed overall>. detailed analysis, synthesize information from the answer and market data.>",
       "strengths": ["exactly 4-5 strengths with market data integration"],
       "improvements": ["exactly 4-5 market data weaknesses/challenges the company faces in this industry - NOT response quality issues"]
     },
