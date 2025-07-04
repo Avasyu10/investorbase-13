@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Globe, TrendingUp, Briefcase, Info, Bot } from "lucide-react";
@@ -173,7 +172,7 @@ export function CompanyInfoCard({
     // For IIT Bombay users: Use Eureka submission data
     const eurekaCompanyInfo = eurekaSubmission?.analysis_result?.companyInfo;
     
-    // About/Introduction from Eureka analysis_result.company_info.introduction
+    // About/Introduction from Eureka analysis_result.companyInfo.introduction
     displayIntroduction = eurekaCompanyInfo?.introduction || "No detailed information available for this company.";
     
     // Website from companies.scoring_reason
@@ -237,23 +236,21 @@ export function CompanyInfoCard({
       
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
-          {/* Company Description with More Information Button - only show for non-IIT Bombay users or when there's content */}
-          {(!isIITBombayUser || displayIntroduction !== "No detailed information available for this company.") && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">About {companyData?.name || companyName}</h4>
-                {shouldShowMoreInfoButton && (
-                  <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
-                    <Info className="mr-2 h-4 w-4" />
-                    More Information
-                  </Button>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-                {displayIntroduction}
-              </p>
+          {/* Company Description with More Information Button */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium">About {companyData?.name || companyName}</h4>
+              {shouldShowMoreInfoButton && (
+                <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
+                  <Info className="mr-2 h-4 w-4" />
+                  More Information
+                </Button>
+              )}
             </div>
-          )}
+            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+              {displayIntroduction}
+            </p>
+          </div>
           
           {/* Company Details Grid */}
           <div className={`grid grid-cols-1 ${isIITBombayUser ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
