@@ -451,11 +451,11 @@ serve(async (req)=>{
       const companyData = {
         name: submission.eureka_id,
         overall_score: analysisResult.overall_score,
-        scoring_reason: analysisResult.scoring_reason || '',
+        scoring_reason: submission.question_2 || '',   //Website
         assessment_points: analysisResult.summary?.assessment_points || [],
         user_id: effectiveUserId,
         source: 'eureka_form',
-        industry: submission.company_type || null,
+        industry: submission.question_1 || null,   //Stage
         email: submission.submitter_email || null,
         poc_name: submission.poc_name || null,
         phonenumber: submission.phoneno || null
