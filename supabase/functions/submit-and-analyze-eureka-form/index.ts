@@ -390,6 +390,7 @@ CRITICAL REQUIREMENTS:
 12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
 13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
 14. EACH SECTION'S 'analysis' FIELD MUST START WITH A CLEAR, CONCISE (1-2 SENTENCE) REASON FOR THE ASSIGNED SCORE, BEFORE ANY FURTHER DETAILED ANALYSIS. Also in the 'analysis' part that what could have been added more in the answer and how it missed something. It should be about that section based on answers and include market data.
+15. **Very Important**: Never give any market number or data as "X" or "Y", it should always be an actual number. If not available skip it just don't use these.
 
     ${linkedInDataSection} <--- THIS IS WHERE IT SHOULD BE
     `;
