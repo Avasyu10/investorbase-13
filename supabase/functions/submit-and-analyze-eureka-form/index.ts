@@ -389,7 +389,8 @@ CRITICAL REQUIREMENTS:
 11. MOST IMPORTANT: Poor answer quality (short, vague, one-word answers) CANNOT be compensated by good market analysis
 12. MUST include scoring_reason field with brief 1-2 sentence justification for overall score
 13. WEAKNESSES MUST FOCUS EXCLUSIVELY ON EXTERNAL MARKET CONDITIONS WITH DETAILED ANALYSIS
-14. EACH SECTION'S 'analysis' FIELD MUST START WITH A CLEAR, CONCISE (1-2 SENTENCE) REASON FOR THE ASSIGNED SCORE, BEFORE ANY FURTHER DETAILED ANALYSIS.
+14. EACH SECTION'S 'analysis' FIELD MUST START WITH A CLEAR, CONCISE (1-2 SENTENCE) REASON FOR THE ASSIGNED SCORE, BEFORE ANY FURTHER DETAILED ANALYSIS. Also in the 'analysis' part that what could have been added more in the answer and how it missed something. It should be about that section based on answers and include market data.
+
     ${linkedInDataSection} <--- THIS IS WHERE IT SHOULD BE
     `;
     // ... (rest of your code)
