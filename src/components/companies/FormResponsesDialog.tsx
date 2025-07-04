@@ -10,6 +10,7 @@ interface FormResponsesDialogProps {
 }
 
 interface EurekaSubmission {
+  question_1: string | null; // Added question_1
   question_3: string | null;
   question_4: string | null;
   question_5: string | null;
@@ -34,7 +35,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
     try {
       const { data, error } = await supabase
         .from('eureka_form_submissions')
-        .select('question_3, question_4, question_5, question_6, question_7, question_8, company_name, submitter_email, created_at')
+        .select('question_1, question_3, question_4, question_5, question_6, question_7, question_8, company_name, submitter_email, created_at') // Included question_1
         .eq('company_id', companyId)
         .maybeSingle();
 
@@ -67,13 +68,32 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
     }
   }, [isOpen, companyId]);
 
-  const questions = [
-    "What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?", // Mapped to question_3
-    "What is the intended customer segment or target customers of your venture?", // Mapped to question_4
-    "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)", // Mapped to question_5
-    "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.", // Mapped to question_6
-    "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any.", // Mapped to question_7
-    "Explain your prototype", // Mapped to question_8
+  // Define questions with their display text and corresponding Supabase key
+  const questionsConfig = [
+    {
+      displayText: "What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?",
+      supabaseKey: "question_1"
+    },
+    {
+      displayText: "What is the intended customer segment or target customers of your venture?",
+      supabaseKey: "question_3"
+    },
+    {
+      displayText: "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)",
+      supabaseKey: "question_4"
+    },
+    {
+      displayText: "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.",
+      supabaseKey: "question_5"
+    },
+    {
+      displayText: "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any.",
+      supabaseKey: "question_6"
+    },
+    {
+      displayText: "Please describe the functioning of your prototype:",
+      supabaseKey: "question_8"
+    }
   ];
 
   return (
@@ -107,10 +127,9 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
                 </p>
               </div>
               
-              {questions.map((question, index) => {
-                // Internal mapping to Supabase columns (question_3, question_4, etc.)
-                const supabaseQuestionNumber = index + 3; 
-                const responseKey = `question_${supabaseQuestionNumber}` as keyof EurekaSubmission;
+              {questionsConfig.map((item, index) => {
+                const responseKey = item.supabaseKey as keyof EurekaSubmission;
+                const questionText = item.displayText;
                 
                 // Displayed question number (Q1, Q2, Q3, etc.)
                 const displayQuestionNumber = index + 1;
@@ -125,7 +144,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
                 return (
                   <div key={index} className="border-l-4 border-primary pl-4">
                     <h4 className="font-medium text-foreground mb-2">
-                      Q{displayQuestionNumber}: {question} {/* Changed from Q{questionNumber} to Q{displayQuestionNumber} */}
+                      Q{displayQuestionNumber}: {questionText}
                     </h4>
                     <p className="text-muted-foreground leading-relaxed">
                       {response || "No response provided"}
@@ -137,7 +156,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
           ) : (
             <div className="text-center py-8">
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-lg mb-2">No Form Responses Found</h3> {/* Adjusted text size for consistency */}
+              <h3 className="text-lg font-lg mb-2">No Form Responses Found</h3>
               <p className="text-muted-foreground">
                 This company doesn't have any associated Eureka form responses.
               </p>
