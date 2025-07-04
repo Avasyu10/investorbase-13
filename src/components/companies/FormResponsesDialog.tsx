@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -66,15 +65,15 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
     if (isOpen) {
       fetchFormResponses();
     }
-  }, [isOpen, companyId]);
+  }, [isOpen, companyId]); // Added companyId to dependency array as it's used in fetchFormResponses
 
   const questions = [
-    "What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?",
-    "What is the intended customer segment or target customers of your venture?", 
-    "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)",
-    "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.",
-    "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any."
-    "Explain your prototype",
+    "What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?", // This is Q3
+    "What is the intended customer segment or target customers of your venture?", // This is Q4
+    "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)", // This is Q5
+    "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.", // This is Q6
+    "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any.", // This is Q7
+    "Explain your prototype", // This is Q8
   ];
 
   return (
@@ -111,13 +110,24 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
               </div>
               
               {questions.map((question, index) => {
-                const responseKey = `question_${index + 1}` as keyof EurekaSubmission;
+                // Adjusting question number to match the actual question_X fields in EurekaSubmission
+                // questions[0] corresponds to question_3, questions[1] to question_4, etc.
+                const questionNumber = index + 3; 
+                const responseKey = `question_${questionNumber}` as keyof EurekaSubmission;
+                
+                // Ensure the key exists on the submission object before trying to access it
+                // This prevents runtime errors if the data structure is unexpected
+                if (!(responseKey in submission)) {
+                    console.warn(`Warning: '${String(responseKey)}' not found in submission data.`);
+                    return null; // Skip rendering this question if its key is missing
+                }
+
                 const response = submission[responseKey];
                 
                 return (
                   <div key={index} className="border-l-4 border-primary pl-4">
                     <h4 className="font-medium text-foreground mb-2">
-                      Q{index + 1}: {question}
+                      Q{questionNumber}: {question}
                     </h4>
                     <p className="text-muted-foreground leading-relaxed">
                       {response || "No response provided"}
