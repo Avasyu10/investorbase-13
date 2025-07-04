@@ -17,6 +17,7 @@ import { CompanyDetailed } from "@/lib/api/apiContract";
 import FormResponsesDialog from "./FormResponsesDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { IITBombayAnalysisDialog } from "./IITBombayAnalysisDialog";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -388,8 +389,45 @@ const CompanyDetails = () => {
                 />
               </div>
 
-              {/* Only show ScoreAssessment for IIT Bombay users */}
-              {isIITBombayUser && companyDetailed && <ScoreAssessment company={companyDetailed} />}
+              {/* Show ScoreAssessment for IIT Bombay users with the new analysis dialog */}
+              {isIITBombayUser && companyDetailed && (
+                <Card className="shadow-card border-0 mb-6 bg-gradient-to-br from-secondary/30 via-secondary/20 to-background">
+                  <CardHeader className="border-b pb-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <BarChart2 className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xl font-bold text-primary">
+                          {formattedScore.toFixed(1)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">/5</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-5">
+                    <div className="mb-6">
+                      <Progress 
+                        value={progressPercentage} 
+                        className="h-2" 
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Comprehensive analysis across {sortedSections.length} key sections
+                      </p>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end pt-0">
+                    <IITBombayAnalysisDialog 
+                      sections={sortedSections}
+                      companyName={company?.name || "Company"}
+                      overallScore={formattedScore}
+                    />
+                  </CardFooter>
+                </Card>
+              )}
             </div>
             
             {/* Show section metrics for IIT Bombay users only */}
