@@ -10,7 +10,6 @@ import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
-
 interface CompaniesTableProps {
   companies: Company[];
   onCompanyClick: (companyId: string) => void;
@@ -25,7 +24,6 @@ interface CompaniesTableProps {
   isGeneralUser?: boolean;
   isBitsQuestion?: boolean;
 }
-
 export function CompaniesTable({
   companies,
   onCompanyClick,
@@ -57,7 +55,6 @@ export function CompaniesTable({
   useEffect(() => {
     setLocalCompanies(companies);
   }, [companies]);
-
   const getScoreColor = (score: number): string => {
     if (score >= 75) return "text-green-600";
     if (score >= 70) return "text-blue-600";
@@ -65,7 +62,6 @@ export function CompaniesTable({
     if (score >= 30) return "text-orange-600";
     return "text-red-600";
   };
-
   const getScoreBadgeColor = (score: number): string => {
     if (score >= 75) return "bg-green-100 text-green-900";
     if (score >= 70) return "bg-blue-100 text-blue-800";
@@ -73,7 +69,6 @@ export function CompaniesTable({
     if (score >= 30) return "bg-orange-100 text-orange-800";
     return "bg-red-100 text-red-800";
   };
-
   const getStatusBadgeColor = (status: string): string => {
     switch (status?.toLowerCase()) {
       case 'new':
@@ -104,7 +99,6 @@ export function CompaniesTable({
         return "bg-gray-100 text-gray-800";
     }
   };
-
   const handleSortClick = (field: string) => {
     if (!onSortChange) return;
     let newOrder: 'asc' | 'desc' = 'desc';
@@ -113,14 +107,12 @@ export function CompaniesTable({
     }
     onSortChange(field, newOrder);
   };
-
   const getSortIcon = (field: string) => {
     if (!currentSort || currentSort.field !== field) {
       return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />;
     }
     return currentSort.order === 'asc' ? <ArrowUp className="h-4 w-4 text-primary" /> : <ArrowDown className="h-4 w-4 text-primary" />;
   };
-
   const handleDeleteClick = async (e: React.MouseEvent, companyId: string) => {
     e.stopPropagation(); // Prevent row click event
 
@@ -156,7 +148,6 @@ export function CompaniesTable({
       });
     }
   };
-
   const handleEditClick = (e: React.MouseEvent, company: Company) => {
     e.stopPropagation(); // Prevent row click event
     const companyDetails = (company as any).company_details;
@@ -169,7 +160,6 @@ export function CompaniesTable({
     });
     setEditDialogOpen(true);
   };
-
   const handleCompanyUpdate = (companyId: string, newTeamMember: string, newStatus: string) => {
     // Update local state to reflect the change immediately
     setLocalCompanies(prev => prev.map(company => {
@@ -187,7 +177,6 @@ export function CompaniesTable({
       return company;
     }));
   };
-
   const handleDownloadPdf = () => {
     let title = 'Companies Prospects';
     if (isIITBombay) {
@@ -282,17 +271,17 @@ export function CompaniesTable({
                       </div>
                     </TableCell>
                   </TableRow>;
-                })}
+              })}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
 
         <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
-          if (selectedCompanyForEdit) {
-            handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-          }
-        }} />
+        if (selectedCompanyForEdit) {
+          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+        }
+      }} />
       </>;
   }
 
@@ -358,7 +347,7 @@ export function CompaniesTable({
                       </Button>
                     </TableCell>
                   </TableRow>;
-              })}
+            })}
             </TableBody>
           </Table>
         </CardContent>
@@ -402,7 +391,7 @@ export function CompaniesTable({
               const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                     {/* New "Date" Cell */}
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm font-bold text-muted-foreground">
                       {submissionDate}
                     </TableCell>
                     <TableCell className="font-medium">
@@ -427,7 +416,7 @@ export function CompaniesTable({
                       </Button>
                     </TableCell>
                   </TableRow>;
-              })}
+            })}
             </TableBody>
           </Table>
         </CardContent>
@@ -542,16 +531,16 @@ export function CompaniesTable({
                       </div>
                     </TableCell>
                   </TableRow>;
-              })}
+            })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
       <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
-        if (selectedCompanyForEdit) {
-          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-        }
-      }} />
+      if (selectedCompanyForEdit) {
+        handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+      }
+    }} />
     </>;
 }
