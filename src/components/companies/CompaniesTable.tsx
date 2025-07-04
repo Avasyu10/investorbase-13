@@ -241,36 +241,36 @@ export function CompaniesTable({
                 const isCompanyDeleting = deletingCompanies.has(company.id);
                 const industry = company.industry || "—";
                 return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                    <TableCell className="font-medium">
-                      <span className="font-semibold text-foreground">{company.name}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize text-xs">
-                        {company.source || 'Dashboard'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{industry}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(status)}>
-                        <span className="text-xs font-medium">{status}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{teamMemberName || "—"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>;
+                      <TableCell className="font-medium">
+                        <span className="font-semibold text-foreground">{company.name}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize text-xs">
+                          {company.source || 'Dashboard'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{industry}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadgeColor(status)}>
+                          <span className="text-xs font-medium">{status}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{teamMemberName || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>;
               })}
               </TableBody>
             </Table>
@@ -321,33 +321,33 @@ export function CompaniesTable({
               const industry = company.industry || "—";
               const stage = getStageFromResponseReceived(company);
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                      <TableCell className="font-medium">
-                        <span className="font-semibold text-foreground">{company.name}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{industry}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize text-xs">
-                          {stage}
-                        </Badge>
-                      </TableCell>
-                      {!isBitsQuestion && <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getScoreBadgeColor(formattedScore)}>
-                              <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                                {formattedScore}
-                              </span>
-                            </Badge>
-                          </div>
-                        </TableCell>}
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>;
-              })}
+                    <TableCell className="font-medium">
+                      <span className="font-semibold text-foreground">{company.name}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {stage}
+                      </Badge>
+                    </TableCell>
+                    {!isBitsQuestion && <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getScoreBadgeColor(formattedScore)}>
+                            <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                              {formattedScore}
+                            </span>
+                          </Badge>
+                        </div>
+                      </TableCell>}
+                    <TableCell>
+                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>;
+            })}
             </TableBody>
           </Table>
         </CardContent>
@@ -360,57 +360,72 @@ export function CompaniesTable({
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-semibold">IIT Bombay Companies</h3>
+              <h3 className="text-lg font-semibold">Companies Prospects</h3>
               <p className="text-sm text-muted-foreground">
                 {localCompanies.length} companies found
               </p>
             </div>
-             {/* Removed download button as per prompt, if it was intended to be removed */}
+            
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-semibold w-[140px]">Eureka ID</TableHead>
-                <TableHead className="font-semibold w-[100px]">Stage</TableHead>
+                <TableHead className="font-semibold w-[140px]">Company Name</TableHead>
+                <TableHead className="font-semibold w-[100px]">Name</TableHead>
+                <TableHead className="font-semibold w-[110px]">Phone Number</TableHead>
+                <TableHead className="font-semibold w-[120px]">Email</TableHead>
+                <TableHead className="font-semibold w-[100px]">Industry</TableHead>
                 <TableHead className="font-semibold w-[80px]">Score</TableHead>
-                <TableHead className="font-semibold w-[120px]">Website</TableHead>
-                <TableHead className="w-[60px]">Actions</TableHead>
+                <TableHead className="font-semibold">Reason for Scoring</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {localCompanies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const isCompanyDeleting = deletingCompanies.has(company.id);
-              // Ensure question_1 and question_2 are accessed safely
-              const stageValue = (company as any).question_1 || "—";
-              const websiteValue = (company as any).question_2 || "—";
-
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                      <TableCell className="font-medium">
-                        {company.name}
-                      </TableCell>
-                      <TableCell>
-                        {stageValue}
-                      </TableCell>
-                      <TableCell>
+                    <TableCell className="font-medium">
+                      {company.name}
+                    </TableCell>
+                    <TableCell>
+                      {(company as any).poc_name || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {(company as any).phonenumber || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {(company as any).email || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {company.industry || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        
                         <Badge className={getScoreBadgeColor(formattedScore)}>
                           <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
                             {formattedScore}/100
                           </span>
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {websiteValue}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>;
-              })}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-none">
+                        <span className="text-sm text-muted-foreground">
+                          {company.scoring_reason || "Scoring analysis is being generated for this company."}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>;
+            })}
             </TableBody>
           </Table>
         </CardContent>
@@ -467,65 +482,65 @@ export function CompaniesTable({
               const industry = company.industry || "—";
               const teamMemberName = companyDetails?.teammember_name || '';
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{company.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {contactInfo && <span className="text-sm">{contactInfo}</span>}
-                          {phoneNumber && <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              <span>{phoneNumber}</span>
-                            </div>}
-                          {!contactInfo && !phoneNumber && <span className="text-sm">—</span>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {contactEmail ? <div className="flex items-center gap-1 text-sm">
-                            <Mail className="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate">{contactEmail}</span>
-                          </div> : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize text-xs">
-                          {company.source || 'Dashboard'}
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-foreground">{company.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {contactInfo && <span className="text-sm">{contactInfo}</span>}
+                        {phoneNumber && <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            <span>{phoneNumber}</span>
+                          </div>}
+                        {!contactInfo && !phoneNumber && <span className="text-sm">—</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {contactEmail ? <div className="flex items-center gap-1 text-sm">
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate">{contactEmail}</span>
+                        </div> : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {company.source || 'Dashboard'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{industry}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        
+                        <Badge className={getScoreBadgeColor(formattedScore)}>
+                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                            {formattedScore}
+                          </span>
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{industry}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          
-                          <Badge className={getScoreBadgeColor(formattedScore)}>
-                            <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                              {formattedScore}
-                            </span>
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusBadgeColor(status)}>
-                          <span className="text-xs font-medium">{status}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{teamMemberName || "—"}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>;
-              })}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(status)}>
+                        <span className="text-xs font-medium">{status}</span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{teamMemberName || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>;
+            })}
             </TableBody>
           </Table>
         </CardContent>
