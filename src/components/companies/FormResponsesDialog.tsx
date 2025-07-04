@@ -18,7 +18,7 @@ interface EurekaSubmission {
   question_8: string | null;
 
   company_name: string;
-  submitter_email: string;
+  submitter_email: string; // This field will still be fetched but not displayed
   created_at: string;
 }
 
@@ -65,15 +65,15 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
     if (isOpen) {
       fetchFormResponses();
     }
-  }, [isOpen, companyId]); // Added companyId to dependency array as it's used in fetchFormResponses
+  }, [isOpen, companyId]);
 
   const questions = [
-    "What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?", // This is Q3
-    "What is the intended customer segment or target customers of your venture?", // This is Q4
-    "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)", // This is Q5
-    "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.", // This is Q6
-    "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any.", // This is Q7
-    "Explain your prototype", // This is Q8
+    "What problem is your venture targeting to solve? How are the affected people (customers/consumers) coping with the problem at present?", // Mapped to question_3
+    "What is the intended customer segment or target customers of your venture?", // Mapped to question_4
+    "Who are your current competitors? (Please mention both direct and indirect competitors if applicable)", // Mapped to question_5
+    "How will your venture generate revenue? What are the factors affecting your costs and revenues? Also highlight any growth opportunities in future.", // Mapped to question_6
+    "How does your idea and marketing strategy differentiate your startup from your competitors and help you create demand for your product/service? Mention your IP (Intellectual Property) advantage if any.", // Mapped to question_7
+    "Explain your prototype", // Mapped to question_8
   ];
 
   return (
@@ -101,25 +101,23 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
             <div className="space-y-6">
               <div className="bg-muted/50 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg mb-2">{submission.company_name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Submitted by: {submission.submitter_email}
-                </p>
+                {/* Removed "Submitted by: {submission.submitter_email}" as requested */}
                 <p className="text-sm text-muted-foreground">
                   Date: {new Date(submission.created_at).toLocaleDateString()}
                 </p>
               </div>
               
               {questions.map((question, index) => {
-                // Adjusting question number to match the actual question_X fields in EurekaSubmission
-                // questions[0] corresponds to question_3, questions[1] to question_4, etc.
-                const questionNumber = index + 3; 
-                const responseKey = `question_${questionNumber}` as keyof EurekaSubmission;
+                // Internal mapping to Supabase columns (question_3, question_4, etc.)
+                const supabaseQuestionNumber = index + 3; 
+                const responseKey = `question_${supabaseQuestionNumber}` as keyof EurekaSubmission;
                 
-                // Ensure the key exists on the submission object before trying to access it
-                // This prevents runtime errors if the data structure is unexpected
+                // Displayed question number (Q1, Q2, Q3, etc.)
+                const displayQuestionNumber = index + 1;
+
                 if (!(responseKey in submission)) {
                     console.warn(`Warning: '${String(responseKey)}' not found in submission data.`);
-                    return null; // Skip rendering this question if its key is missing
+                    return null; 
                 }
 
                 const response = submission[responseKey];
@@ -127,7 +125,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
                 return (
                   <div key={index} className="border-l-4 border-primary pl-4">
                     <h4 className="font-medium text-foreground mb-2">
-                      Q{questionNumber}: {question}
+                      Q{displayQuestionNumber}: {question} {/* Changed from Q{questionNumber} to Q{displayQuestionNumber} */}
                     </h4>
                     <p className="text-muted-foreground leading-relaxed">
                       {response || "No response provided"}
@@ -139,7 +137,7 @@ const FormResponsesDialog = ({ companyId }: FormResponsesDialogProps) => {
           ) : (
             <div className="text-center py-8">
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No Form Responses Found</h3>
+              <h3 className="text-lg font-lg mb-2">No Form Responses Found</h3> {/* Adjusted text size for consistency */}
               <p className="text-muted-foreground">
                 This company doesn't have any associated Eureka form responses.
               </p>
