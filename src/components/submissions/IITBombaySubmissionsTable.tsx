@@ -32,7 +32,6 @@ export function IITBombaySubmissionsTable({ submissions }: IITBombaySubmissionsT
         <TableHeader>
           <TableRow>
             <TableHead>Company Name</TableHead>
-            <TableHead>From</TableHead>
             <TableHead>Submitted</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -42,9 +41,6 @@ export function IITBombaySubmissionsTable({ submissions }: IITBombaySubmissionsT
             <TableRow key={submission.id} className="hover:bg-muted/50">
               <TableCell className="font-medium">
                 {submission.company_name}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {submission.submitter_email}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDistanceToNow(new Date(submission.created_at), { addSuffix: true })}
