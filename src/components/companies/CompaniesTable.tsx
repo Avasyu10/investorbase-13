@@ -365,10 +365,7 @@ export function CompaniesTable({
                 {localCompanies.length} companies found
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Download PDF
-            </Button>
+            
           </div>
         </CardHeader>
         <CardContent className="p-0">
