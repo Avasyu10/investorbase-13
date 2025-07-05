@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -85,7 +86,7 @@ export function useCompanies(
           dbSortField = sortBy === 'overall_score' ? 'overall_score' : 'name';
         }
         
-        console.log('Fetching companies for user:', user.id);
+        console.log('Fetching companies for user:', user.id, 'Page:', page, 'PageSize:', pageSize);
         
         let query = supabase
           .from('companies')
@@ -116,7 +117,7 @@ export function useCompanies(
           throw error;
         }
         
-        console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total`);
+        console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total for page ${page}`);
         
         // For companies that have report_id, fetch additional industry data from public_form_submissions
         const companiesWithIndustry = await Promise.all((data || []).map(async (company) => {
