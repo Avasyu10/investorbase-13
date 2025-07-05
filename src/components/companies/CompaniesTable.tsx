@@ -386,15 +386,14 @@ export function CompaniesTable({
               <TableRow>
                 {/* New "Date" Column */}
                 <TableHead className="font-semibold w-[120px]">Date</TableHead> 
-                <TableHead className="font-semibold w-[140px]">Eureka ID</TableHead>
-                <TableHead className="font-semibold w-[100px]">Stage</TableHead>
+                <TableHead className="font-semibold w-[180px]">Eureka ID</TableHead>
                 <TableHead className="font-semibold w-[80px]">
                   <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
                     Score
                     {getSortIcon('overall_score')}
                   </Button>
                 </TableHead>
-                <TableHead className="font-semibold w-[120px]">Link</TableHead>
+                <TableHead className="font-semibold w-[200px]">Link</TableHead>
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -402,8 +401,6 @@ export function CompaniesTable({
               {localCompanies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const isCompanyDeleting = deletingCompanies.has(company.id);
-              // Ensure question_1 and question_2 are accessed safely
-              const stageValue = (company as any).industry || "—";
               const websiteValue = (company as any).scoring_reason || "—";
               const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
@@ -413,9 +410,6 @@ export function CompaniesTable({
                     </TableCell>
                     <TableCell className="font-medium">
                       {company.name}
-                    </TableCell>
-                    <TableCell>
-                      {stageValue}
                     </TableCell>
                     <TableCell>
                       <Badge className={getScoreBadgeColor(formattedScore)}>
