@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -135,22 +134,13 @@ export function IITBombayCompaniesList() {
 
       {companies.length > 0 ? (
         <div className="space-y-4">
-          <CompaniesTable 
-            companies={companies} 
-            onCompanyClick={handleCompanyClick} 
-            onDeleteCompany={handleDeleteCompany} 
-            onSortChange={handleSortChange}
-            currentSort={{ field: sortBy, order: sortOrder }}
-            isIITBombay={true} 
-          />
-          
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing {startItem} to {endItem} of {totalCount} companies
-              </div>
-              
+          {/* Pagination info and controls at the top */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {startItem} to {endItem} of {totalCount} companies
+            </div>
+            
+            {totalPages > 1 && (
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -196,8 +186,17 @@ export function IITBombayCompaniesList() {
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
-            </div>
-          )}
+            )}
+          </div>
+          
+          <CompaniesTable 
+            companies={companies} 
+            onCompanyClick={handleCompanyClick} 
+            onDeleteCompany={handleDeleteCompany} 
+            onSortChange={handleSortChange}
+            currentSort={{ field: sortBy, order: sortOrder }}
+            isIITBombay={true} 
+          />
         </div>
       ) : (
         <div className="text-center py-12 border rounded-lg bg-card/50">
