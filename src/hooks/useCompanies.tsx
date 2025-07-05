@@ -73,7 +73,7 @@ export function useCompanies(
       try {
         if (!user) {
           console.log('No user found, returning empty results');
-          return { companies: [], totalCount: 0 };
+          return { companies: [], totalCount: 0, potentialStats: { highPotential: 0, mediumPotential: 0, badPotential: 0 } };
         }
 
         // Calculate offset based on page number and page size
@@ -118,6 +118,30 @@ export function useCompanies(
         }
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total for page ${page}`);
+
+        // Fetch potential stats across ALL companies (not just current page)
+        let potentialStatsQuery = supabase
+          .from('companies')
+          .select('overall_score')
+          .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
+
+        // Apply the same search filter to stats query if provided
+        if (search && search.trim() !== '') {
+          potentialStatsQuery = potentialStatsQuery.ilike('name', `%${search.trim()}%`);
+        }
+
+        const { data: allCompaniesForStats, error: statsError } = await potentialStatsQuery;
+
+        if (statsError) {
+          console.error("Error fetching potential stats:", statsError);
+        }
+
+        // Calculate potential stats from all companies
+        const potentialStats = {
+          highPotential: allCompaniesForStats?.filter(c => c.overall_score > 70).length || 0,
+          mediumPotential: allCompaniesForStats?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0,
+          badPotential: allCompaniesForStats?.filter(c => c.overall_score < 50).length || 0,
+        };
         
         // For companies that have report_id, fetch additional industry data from public_form_submissions
         const companiesWithIndustry = await Promise.all((data || []).map(async (company) => {
@@ -150,7 +174,8 @@ export function useCompanies(
         
         return {
           companies: companiesWithIndustry,
-          totalCount: count || 0
+          totalCount: count || 0,
+          potentialStats
         };
       } catch (err) {
         console.error("Error in useCompanies:", err);
@@ -173,6 +198,7 @@ export function useCompanies(
   return {
     companies: companiesData?.companies || [],
     totalCount: companiesData?.totalCount || 0,
+    potentialStats: companiesData?.potentialStats || { highPotential: 0, mediumPotential: 0, badPotential: 0 },
     isLoading,
     error,
     refetch,

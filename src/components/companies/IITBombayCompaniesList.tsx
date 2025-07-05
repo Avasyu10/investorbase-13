@@ -29,6 +29,7 @@ export function IITBombayCompaniesList() {
   const {
     companies,
     totalCount,
+    potentialStats,
     isLoading,
     error
   } = useCompanies(currentPage, pageSize, sortBy, sortOrder, searchTerm);
@@ -57,11 +58,10 @@ export function IITBombayCompaniesList() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Calculate rating-based stats
-  const totalProspects = companies.length;
-  const highPotential = companies.filter(c => c.overall_score > 70).length;
-  const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
-  const badPotential = companies.filter(c => c.overall_score < 50).length;
+  // Use the potential stats from the hook instead of calculating from visible companies
+  const highPotential = potentialStats?.highPotential || 0;
+  const mediumPotential = potentialStats?.mediumPotential || 0;
+  const badPotential = potentialStats?.badPotential || 0;
   
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8">
@@ -113,7 +113,7 @@ export function IITBombayCompaniesList() {
         </div>
       </div>
 
-      {/* Enhanced stats section for IIT Bombay users */}
+      {/* Enhanced stats section for IIT Bombay users - now showing totals across all companies */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-card rounded-lg p-4 border">
           <div className="text-2xl font-bold text-primary">{totalCount}</div>
