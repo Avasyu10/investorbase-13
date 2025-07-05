@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ export function IITBombayCompaniesList() {
     user
   } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const {
     deleteCompany
   } = useDeleteCompany();
@@ -19,12 +22,19 @@ export function IITBombayCompaniesList() {
     companies,
     isLoading,
     error
-  } = useCompanies(1, 50, 'created_at', 'desc', searchTerm);
+  } = useCompanies(1, 50, sortBy, sortOrder, searchTerm);
+  
   const handleCompanyClick = (companyId: string) => {
     navigate(`/company/${companyId}`);
   };
+  
   const handleDeleteCompany = async (companyId: string) => {
     await deleteCompany(companyId);
+  };
+
+  const handleSortChange = (newSortBy: string, newSortOrder: 'asc' | 'desc') => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
   };
 
   // Calculate rating-based stats
@@ -32,6 +42,7 @@ export function IITBombayCompaniesList() {
   const highPotential = companies.filter(c => c.overall_score > 70).length;
   const mediumPotential = companies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
   const badPotential = companies.filter(c => c.overall_score < 50).length;
+  
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center py-12">
@@ -100,7 +111,14 @@ export function IITBombayCompaniesList() {
         </div>
       </div>
 
-      {companies.length > 0 ? <CompaniesTable companies={companies} onCompanyClick={handleCompanyClick} onDeleteCompany={handleDeleteCompany} isIITBombay={true} /> : <div className="text-center py-12 border rounded-lg bg-card/50">
+      {companies.length > 0 ? <CompaniesTable 
+        companies={companies} 
+        onCompanyClick={handleCompanyClick} 
+        onDeleteCompany={handleDeleteCompany} 
+        onSortChange={handleSortChange}
+        currentSort={{ field: sortBy, order: sortOrder }}
+        isIITBombay={true} 
+      /> : <div className="text-center py-12 border rounded-lg bg-card/50">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">No prospects found</h3>
           <p className="mt-2 text-muted-foreground">
