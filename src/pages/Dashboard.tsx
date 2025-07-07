@@ -12,6 +12,7 @@ import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarCh
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
+
 const Dashboard = () => {
   const {
     user,
@@ -32,6 +33,7 @@ const Dashboard = () => {
   const {
     toast
   } = useToast();
+
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("User not authenticated, redirecting to home");
@@ -57,6 +59,7 @@ const Dashboard = () => {
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
   }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading]);
+
   const checkAdminStatus = async () => {
     if (!user) return;
     try {
@@ -82,6 +85,7 @@ const Dashboard = () => {
       console.error('Error in admin check:', err);
     }
   };
+
   if (isLoading || profileLoading) {
     return <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -103,8 +107,6 @@ const Dashboard = () => {
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Panel
               </Button>}
-            {isIITBombay}
-            {isIITBombay && <EurekaSampleButton />}
             {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Upload Deck
@@ -153,4 +155,5 @@ const Dashboard = () => {
       {isVC && !isVCAndBits && <VCChatInterface open={chatOpen} onOpenChange={setChatOpen} />}
     </div>;
 };
+
 export default Dashboard;
