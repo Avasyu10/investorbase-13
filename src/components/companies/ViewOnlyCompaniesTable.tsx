@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
-import { Star, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Star, ArrowUpDown, ArrowUp, ArrowDown, FileText, ExternalLink } from "lucide-react";
 
 interface ViewOnlyCompaniesTableProps {
   companies: Company[];
@@ -68,6 +68,11 @@ export function ViewOnlyCompaniesTable({
     return currentSort.order === 'asc' ? <ArrowUp className="h-4 w-4 text-primary" /> : <ArrowDown className="h-4 w-4 text-primary" />;
   };
 
+  const handlePdfClick = (pdfUrl: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering company click
+    window.open(pdfUrl, '_blank');
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -98,6 +103,7 @@ export function ViewOnlyCompaniesTable({
                   {getSortIcon('overall_score')}
                 </Button>
               </TableHead>
+              <TableHead className="font-semibold w-[100px]">Deck</TableHead>
               <TableHead className="font-semibold w-[120px]">
                 <Button variant="ghost" onClick={() => handleSortClick('created_at')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
                   Created
@@ -110,6 +116,8 @@ export function ViewOnlyCompaniesTable({
             {companies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const industry = company.industry || "—";
+              const showDeck = company.source === 'Founder' && company.deck_url;
+              
               return (
                 <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                   <TableCell className="font-medium">
@@ -131,6 +139,21 @@ export function ViewOnlyCompaniesTable({
                         </span>
                       </Badge>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {showDeck ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handlePdfClick(company.deck_url!, e)}
+                        className="h-8 px-2 flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <FileText className="h-4 w-4" />
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">

@@ -36,7 +36,8 @@ function mapDbCompanyToApi(company: any) {
     phonenumber: company.phonenumber,
     email: company.email,
     industry: company.industry,
-    response_received: company.response_received
+    response_received: company.response_received,
+    deck_url: company.deck_url // Include deck_url from the report
   };
 }
 
@@ -75,7 +76,7 @@ export function useViewOnlyCompanies(
         
         console.log('Fetching filtered companies for view-only user:', user.id);
         
-        // Query companies with specific source filters
+        // Query companies with specific source filters and include report data for deck URLs
         let query = supabase
           .from('companies')
           .select(`
@@ -129,7 +130,9 @@ export function useViewOnlyCompanies(
           return mapDbCompanyToApi({
             ...company,
             industry: publicFormIndustry || company.industry,
-            response_received: company.response_received
+            response_received: company.response_received,
+            // Include deck_url from report for dashboard source companies
+            deck_url: company.source === 'dashboard' && company.report?.pdf_url ? company.report.pdf_url : null
           });
         }));
         
