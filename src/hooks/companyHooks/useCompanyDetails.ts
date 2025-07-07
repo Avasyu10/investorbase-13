@@ -129,6 +129,8 @@ export function useCompanyDetails(companyId: string) {
           weaknesses,
           created_at: section.created_at,
           updated_at: section.updated_at || section.created_at,
+          company_id: section.company_id,
+          section_type: section.section_type,
         };
       });
       
@@ -141,22 +143,29 @@ export function useCompanyDetails(companyId: string) {
         id: companyData.id,
         name: companyData.name,
         overall_score: Number(companyData.overall_score),
-        assessment_points: companyData.assessment_points || [],
-        sections: sectionsWithDetails,
         created_at: companyData.created_at,
         updated_at: companyData.updated_at,
-        source: companyData.source,
+        assessment_points: companyData.assessment_points || [],
         report_id: companyData.report_id,
-        // Use response_received first, then analysis result, then company_details, then fallback
-        website: responseReceivedData?.website || analysisCompanyInfo.website || companyDetailsData?.website || '',
-        stage: responseReceivedData?.stage || analysisCompanyInfo.stage || companyDetailsData?.stage || '',
-        industry: responseReceivedData?.industry || analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry || '',
-        introduction: responseReceivedData?.description || analysisCompanyInfo.description || companyDetailsData?.introduction || '',
+        source: companyData.source,
+        scoring_reason: companyData.scoring_reason,
+        poc_name: companyData.poc_name,
+        phonenumber: companyData.phonenumber,
+        email: companyData.email,
+        industry: responseReceivedData?.industry || analysisCompanyInfo.industry || companyDetailsData?.industry || companyData.industry,
+        response_received: companyData.response_received,
+        deck_url: companyData.deck_url,
+        website: responseReceivedData?.website || analysisCompanyInfo.website || companyDetailsData?.website,
+        stage: responseReceivedData?.stage || analysisCompanyInfo.stage || companyDetailsData?.stage,
+        introduction: responseReceivedData?.introduction || analysisCompanyInfo.introduction || companyDetailsData?.introduction,
+        sections: sectionsWithDetails,
+        reportId: companyData.report_id, // For backward compatibility
       };
     },
     enabled: !!companyId,
     meta: {
       onError: (err: any) => {
+        console.error("useCompanyDetails query error:", err);
         toast({
           title: 'Error loading company details',
           description: err.message || 'Failed to load company details',

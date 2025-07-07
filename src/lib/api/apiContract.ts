@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   full_name?: string;
@@ -39,7 +40,35 @@ export interface Company {
   email?: string;
   industry?: string;
   response_received?: string;
-  deck_url?: string; // Add deck_url property
+  deck_url?: string;
+  website?: string;
+  stage?: string;
+  introduction?: string;
+  sections?: Section[];
+  reportId?: string; // For backward compatibility
+}
+
+// Additional interfaces that were missing
+export interface CompanyListItem {
+  id: string;
+  name: string;
+  overall_score: number;
+  created_at?: string;
+  updated_at?: string;
+  assessment_points?: string[];
+  report_id?: string;
+  source?: string;
+  scoring_reason?: string;
+  poc_name?: string;
+  phonenumber?: string;
+  email?: string;
+  industry?: string;
+  response_received?: string;
+  deck_url?: string;
+}
+
+export interface CompanyDetailed extends Company {
+  sections: Section[];
 }
 
 export interface PublicFormSubmission {
@@ -96,6 +125,8 @@ export interface Section {
   type: string;
   score: number;
   section_type?: string;
+  strengths?: string[];
+  weaknesses?: string[];
 }
 
 export interface SectionDetail {
@@ -104,6 +135,11 @@ export interface SectionDetail {
   section_id: string;
   detail_type: string;
   content: string;
+}
+
+export interface SectionDetailed extends Section {
+  strengths: string[];
+  weaknesses: string[];
 }
 
 export interface InvestorResearch {
@@ -122,4 +158,105 @@ export interface InvestorResearch {
   sources?: any;
   status: string;
   error_message?: string;
+}
+
+// API related types
+export interface ApiResponse<T> {
+  data: T;
+  success: boolean;
+  message?: string;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string | number;
+  details?: any;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CompanyFilterParams {
+  search?: string;
+  industry?: string;
+  minScore?: number;
+  maxScore?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+// HTTP related types
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
+// API Endpoints
+export const API_ENDPOINTS = {
+  COMPANIES: '/api/companies',
+  COMPANY_DETAILS: (id: string) => `/api/companies/${id}`,
+  SECTIONS: '/api/sections',
+  SECTION_DETAILS: (id: string) => `/api/sections/${id}`,
+  REPORTS: '/api/reports',
+} as const;
+
+// Request types
+export interface CompanyCreateRequest {
+  name: string;
+  industry?: string;
+  stage?: string;
+  website?: string;
+  introduction?: string;
+}
+
+export interface CompanyUpdateRequest extends Partial<CompanyCreateRequest> {
+  id: string;
+}
+
+export interface SectionCreateRequest {
+  company_id: string;
+  title: string;
+  type: string;
+  description?: string;
+  score: number;
+}
+
+export interface SectionUpdateRequest extends Partial<SectionCreateRequest> {
+  id: string;
+}
+
+// Base types
+export interface BaseEntity {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export type SectionType = 
+  | 'PROBLEM'
+  | 'SOLUTION'
+  | 'MARKET'
+  | 'TRACTION'
+  | 'TEAM'
+  | 'FINANCIALS'
+  | 'ASK'
+  | 'COMPETITIVE_LANDSCAPE'
+  | 'BUSINESS_MODEL'
+  | 'GTM_STRATEGY'
+  | 'SLIDE_NOTES';
+
+export interface SectionBase extends BaseEntity {
+  title: string;
+  type: SectionType;
+  score: number;
+  description?: string;
 }
