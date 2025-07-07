@@ -366,7 +366,7 @@ export function CompaniesTable({
       </Card>;
   }
 
-  // IIT Bombay table format
+  // IIT Bombay table format - removed Link column
   if (isIITBombay) {
     return <Card>
         <CardHeader className="pb-3">
@@ -393,7 +393,6 @@ export function CompaniesTable({
                     {getSortIcon('overall_score')}
                   </Button>
                 </TableHead>
-                <TableHead className="font-semibold w-[200px]">Link</TableHead>
                 <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -401,7 +400,6 @@ export function CompaniesTable({
               {localCompanies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const isCompanyDeleting = deletingCompanies.has(company.id);
-              const websiteValue = (company as any).scoring_reason || "—";
               const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                     {/* New "Date" Cell */}
@@ -417,9 +415,6 @@ export function CompaniesTable({
                           {formattedScore}/100
                         </span>
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {websiteValue}
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">

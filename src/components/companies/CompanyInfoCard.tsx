@@ -187,14 +187,12 @@ export function CompanyInfoCard({
     // About/Introduction from Eureka analysis_result.company_info.introduction
     displayIntroduction = eurekaCompanyInfo?.introduction || "No detailed information available for this company.";
     
-    // Website from companies.scoring_reason
+    // Website from companies.scoring_reason - but we won't display it
     const websiteFromScoring = companyData?.scoring_reason || "";
     displayWebsite = websiteFromScoring && websiteFromScoring !== "" 
       ? websiteFromScoring.replace(/^https?:\/\/(www\.)?/, '') 
       : "Not available";
-    websiteUrl = websiteFromScoring && websiteFromScoring !== "" 
-      ? websiteFromScoring.startsWith('http') ? websiteFromScoring : `https://${websiteFromScoring}` 
-      : null;
+    websiteUrl = null; // Don't show website for IIT Bombay users
     
     // Stage from companies.industry
     displayStage = companyData?.industry || "Not specified";
@@ -264,26 +262,29 @@ export function CompanyInfoCard({
             </p>
           </div>
           
-          {/* Company Details Grid */}
-          <div className={`grid grid-cols-1 ${isIITBombayUser ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Website/Link</p>
-                {websiteUrl ? (
-                  <a
-                    href={websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary hover:underline truncate block"
-                  >
-                    {displayWebsite}
-                  </a>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Not available</p>
-                )}
+          {/* Company Details Grid - conditional rendering based on user type */}
+          <div className={`grid grid-cols-1 ${isIITBombayUser ? 'md:grid-cols-1' : 'md:grid-cols-3'} gap-4`}>
+            {/* Website section - only show for non-IIT Bombay users */}
+            {!isIITBombayUser && (
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Website/Link</p>
+                  {websiteUrl ? (
+                    <a
+                      href={websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-primary hover:underline truncate block"
+                    >
+                      {displayWebsite}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Not available</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
