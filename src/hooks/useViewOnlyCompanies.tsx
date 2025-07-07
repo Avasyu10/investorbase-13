@@ -12,12 +12,14 @@ function mapDbCompanyToApi(company: any) {
   
   let source = company.source || 'dashboard';
   
-  if (company.report && company.report.pdf_url) {
-    if (company.report.pdf_url.startsWith('email_attachments/')) {
-      source = 'email';
-    } else if (company.source === 'public_url' || company.report.is_public_submission) {
-      source = 'public_url';
-    }
+  // Map source values for display
+  let displaySource = source;
+  if (source === 'eureka_form') {
+    displaySource = 'IIT Bombay';
+  } else if (source === 'deck_upload') {
+    displaySource = 'BITS';
+  } else if (source === 'dashboard') {
+    displaySource = 'Founder';
   }
   
   return {
@@ -28,7 +30,7 @@ function mapDbCompanyToApi(company: any) {
     updated_at: company.updated_at || company.created_at,
     assessment_points: company.assessment_points || [],
     report_id: company.report_id,
-    source: source,
+    source: displaySource, // Use the mapped display source
     scoring_reason: company.scoring_reason,
     poc_name: company.poc_name,
     phonenumber: company.phonenumber,
@@ -71,9 +73,9 @@ export function useViewOnlyCompanies(
           dbSortField = sortBy === 'overall_score' ? 'overall_score' : 'name';
         }
         
-        console.log('Fetching all companies for view-only user:', user.id);
+        console.log('Fetching filtered companies for view-only user:', user.id);
         
-        // Query ALL companies regardless of user_id
+        // Query companies with specific source filters
         let query = supabase
           .from('companies')
           .select(`
@@ -84,7 +86,8 @@ export function useViewOnlyCompanies(
               pdf_url, 
               is_public_submission
             )
-          `, { count: 'exact' });
+          `, { count: 'exact' })
+          .in('source', ['eureka_form', 'deck_upload', 'dashboard']); // Filter by specific sources
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
@@ -101,7 +104,7 @@ export function useViewOnlyCompanies(
           throw error;
         }
         
-        console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total`);
+        console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total (filtered by source)`);
         
         // For companies that have report_id, fetch additional industry data from public_form_submissions
         const companiesWithIndustry = await Promise.all((data || []).map(async (company) => {
