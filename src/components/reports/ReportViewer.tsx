@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { getReportById } from "@/lib/supabase/reports";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReportViewerProps {
   reportId: string;
@@ -31,37 +31,84 @@ export function ReportViewer({ reportId }: ReportViewerProps) {
       
       console.log('Loading PDF for report:', reportId);
       
-      const report = await getReportById(reportId);
-      
-      if (!report.pdf_url) {
-        throw new Error('No PDF file associated with this report');
+      // Get the report data directly from reports table
+      const { data: report, error: reportError } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('id', reportId)
+        .single();
+        
+      if (reportError) {
+        console.error("Report fetch error:", reportError);
+        throw new Error(`Report not found: ${reportError.message}`);
       }
       
-      // Download the PDF using the Supabase storage client directly
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      const bucketName = 'report-pdfs';
-      const filePath = `${report.user_id || user.id}/${report.pdf_url}`;
-      
-      console.log(`Downloading from bucket: ${bucketName}, path: ${filePath}`);
-      
-      const { data: pdfBlob, error: downloadError } = await supabase.storage
-        .from(bucketName)
-        .download(filePath);
-
-      if (downloadError || !pdfBlob || pdfBlob.size === 0) {
-        console.error('Download failed:', downloadError?.message || 'No data/empty file');
-        throw new Error(`Failed to download PDF: ${downloadError?.message || 'File not found'}`);
+      if (!report) {
+        throw new Error("Report not found");
       }
       
-      console.log('PDF downloaded successfully:', {
-        path: filePath,
-        size: pdfBlob.size,
-        type: pdfBlob.type
+      console.log("Report found:", {
+        id: report.id,
+        title: report.title,
+        pdfUrl: report.pdf_url,
+        hasDescription: !!report.description,
+        descriptionLength: report.description?.length || 0,
+        isPublicSubmission: report.is_public_submission,
+        userId: report.user_id
       });
       
+      // Get the PDF file from storage
+      if (!report.pdf_url) {
+        throw new Error("No PDF URL found in report");
+      }
+      
+      console.log("Attempting to download PDF from storage");
+      
+      // Use the correct bucket name consistently
+      const bucketName = 'report-pdfs';
+      
+      // Try different path strategies based on report type
+      let pdfData = null;
+      
+      // Strategy 1: Try direct path first
+      console.log(`Downloading PDF: ${report.pdf_url} from bucket: ${bucketName}`);
+      
+      const { data, error: downloadError } = await supabase.storage
+        .from(bucketName)
+        .download(report.pdf_url);
+        
+      if (!downloadError && data) {
+        pdfData = data;
+        console.log(`Successfully downloaded PDF, size: ${data.size}`);
+      } else {
+        console.log(`Direct download failed: ${downloadError?.message}`);
+        
+        // Strategy 2: Try with user-specific path if we have a user_id
+        if (report.user_id && !report.is_public_submission) {
+          const userSpecificPath = `${report.user_id}/${report.pdf_url}`;
+          console.log(`Trying user-specific path: ${userSpecificPath}`);
+          
+          const { data: userData, error: userError } = await supabase.storage
+            .from(bucketName)
+            .download(userSpecificPath);
+            
+          if (!userError && userData) {
+            pdfData = userData;
+            console.log(`Successfully downloaded via user-specific path, size: ${userData.size}`);
+          } else {
+            console.log(`User-specific path failed: ${userError?.message || 'No data'}`);
+          }
+        }
+      }
+      
+      if (!pdfData) {
+        throw new Error(`Failed to download PDF from storage. Bucket: ${bucketName}, Path: ${report.pdf_url}`);
+      }
+      
+      console.log("PDF downloaded successfully, size:", pdfData.size);
+      
       // Create blob URL
-      const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+      const blobUrl = URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }));
       setPdfUrl(blobUrl);
       
     } catch (err) {
