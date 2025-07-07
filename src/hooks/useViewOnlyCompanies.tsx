@@ -37,7 +37,7 @@ function mapDbCompanyToApi(company: any) {
     email: company.email,
     industry: company.industry,
     response_received: company.response_received,
-    deck_url: company.deck_url // Include deck_url from the report
+    deck_url: company.report?.pdf_url || null // Get deck_url from the joined report data
   };
 }
 
@@ -130,9 +130,7 @@ export function useViewOnlyCompanies(
           return mapDbCompanyToApi({
             ...company,
             industry: publicFormIndustry || company.industry,
-            response_received: company.response_received,
-            // Include deck_url from report for dashboard source companies
-            deck_url: company.source === 'dashboard' && company.report?.pdf_url ? company.report.pdf_url : null
+            response_received: company.response_received
           });
         }));
         
