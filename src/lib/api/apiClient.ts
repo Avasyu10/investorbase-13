@@ -1,11 +1,12 @@
 
+import { supabase } from "@/integrations/supabase/client";
 import { 
-  API_ENDPOINTS, 
+  API_ENDPOINTS,
   HttpMethod,
-  ApiResponse, 
-  ApiError, 
-  CompanyListItem, 
-  CompanyDetailed, 
+  ApiResponse,
+  ApiError,
+  CompanyListItem,
+  CompanyDetailed,
   SectionDetailed,
   SectionBase,
   PaginatedResponse,
@@ -17,143 +18,100 @@ import {
   CompanyFilterParams
 } from './apiContract';
 
-// API base URL - this should be configured based on environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// Create a type-safe HTTP client for API requests
+class ApiClient {
+  private baseUrl: string;
 
-/**
- * Generic fetch function with error handling
- */
-async function fetchApi<T>(
-  endpoint: string, 
-  method: HttpMethod = HttpMethod.GET,
-  data?: any, 
-  params?: Record<string, any>
-): Promise<ApiResponse<T>> {
-  try {
-    // Build URL with query parameters if provided
-    let url = `${API_BASE_URL}${endpoint}`;
+  constructor(baseUrl: string = '') {
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(
+    method: HttpMethod,
+    url: string,
+    data?: any
+  ): Promise<ApiResponse<T>> {
+    try {
+      const config: RequestInit = {
+        method: method.toString(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+
+      if (data && (method === HttpMethod.POST || method === HttpMethod.PUT || method === HttpMethod.PATCH)) {
+        config.body = JSON.stringify(data);
+      }
+
+      const response = await fetch(`${this.baseUrl}${url}`, config);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw {
+          message: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+          code: response.status,
+          details: errorData
+        } as ApiError;
+      }
+
+      const result = await response.json();
+      return {
+        data: result,
+        success: true
+      };
+    } catch (error) {
+      if ((error as ApiError).message) {
+        throw error;
+      }
+      throw {
+        message: 'Network error occurred',
+        code: 'NETWORK_ERROR',
+        details: error
+      } as ApiError;
+    }
+  }
+
+  // Company endpoints
+  async getCompanies(params?: PaginationParams & CompanyFilterParams): Promise<ApiResponse<PaginatedResponse<CompanyListItem>>> {
+    const queryParams = new URLSearchParams();
     if (params) {
-      const queryParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          queryParams.append(key, String(value));
+          queryParams.append(key, value.toString());
         }
       });
-      const queryString = queryParams.toString();
-      if (queryString) {
-        url = `${url}?${queryString}`;
-      }
-    }
-
-    // Build request options
-    const options: RequestInit = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${getToken()}`,
-      },
-    };
-
-    // Add request body for methods that support it
-    if (data && [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH].includes(method)) {
-      options.body = JSON.stringify(data);
-    }
-
-    const response = await fetch(url, options);
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      // Handle error responses
-      const error: ApiError = {
-        status: response.status,
-        message: responseData.message || 'An unknown error occurred',
-        details: responseData.details,
-      };
-      
-      throw error;
-    }
-
-    return {
-      data: responseData.data || responseData,
-      status: response.status,
-      message: responseData.message,
-    };
-  } catch (error) {
-    if ((error as ApiError).status) {
-      throw error;
     }
     
-    // Handle network errors
-    throw {
-      status: 0,
-      message: 'Network error. Please check your connection.',
-    } as ApiError;
+    const url = `${API_ENDPOINTS.COMPANIES}?${queryParams.toString()}`;
+    return this.request<PaginatedResponse<CompanyListItem>>(HttpMethod.GET, url);
+  }
+
+  async getCompanyById(id: string): Promise<ApiResponse<CompanyDetailed>> {
+    return this.request<CompanyDetailed>(HttpMethod.GET, API_ENDPOINTS.COMPANY_DETAILS(id));
+  }
+
+  async createCompany(company: CompanyCreateRequest): Promise<ApiResponse<CompanyDetailed>> {
+    return this.request<CompanyDetailed>(HttpMethod.POST, API_ENDPOINTS.COMPANIES, company);
+  }
+
+  async updateCompany(company: CompanyUpdateRequest): Promise<ApiResponse<CompanyDetailed>> {
+    return this.request<CompanyDetailed>(HttpMethod.PUT, API_ENDPOINTS.COMPANY_DETAILS(company.id), company);
+  }
+
+  // Section endpoints
+  async getSectionById(id: string): Promise<ApiResponse<SectionDetailed>> {
+    return this.request<SectionDetailed>(HttpMethod.GET, API_ENDPOINTS.SECTION_DETAILS(id));
+  }
+
+  async createSection(section: SectionCreateRequest): Promise<ApiResponse<SectionDetailed>> {
+    return this.request<SectionDetailed>(HttpMethod.POST, API_ENDPOINTS.SECTIONS, section);
+  }
+
+  async updateSection(section: SectionUpdateRequest): Promise<ApiResponse<SectionDetailed>> {
+    return this.request<SectionDetailed>(HttpMethod.PUT, API_ENDPOINTS.SECTION_DETAILS(section.id), section);
   }
 }
 
-/**
- * API Client with specific methods for each endpoint
- */
-export const apiClient = {
-  // Companies
-  getCompanies: async (
-    params?: PaginationParams & CompanyFilterParams
-  ): Promise<ApiResponse<PaginatedResponse<CompanyListItem> | CompanyListItem[]>> => {
-    return fetchApi(API_ENDPOINTS.COMPANIES, HttpMethod.GET, undefined, params);
-  },
-
-  getCompany: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`);
-  },
-
-  createCompany: async (data: CompanyCreateRequest): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(API_ENDPOINTS.COMPANIES, HttpMethod.POST, data);
-  },
-
-  updateCompany: async (
-    companyId: string, 
-    data: CompanyUpdateRequest
-  ): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`, HttpMethod.PUT, data);
-  },
-
-  deleteCompany: async (companyId: string): Promise<ApiResponse<void>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}`, HttpMethod.DELETE);
-  },
-
-  // Sections
-  getSections: async (companyId: string): Promise<ApiResponse<SectionBase[]>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}`);
-  },
-
-  getSection: async (companyId: string, sectionId: string): Promise<ApiResponse<SectionDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`);
-  },
-
-  createSection: async (
-    companyId: string, 
-    data: SectionCreateRequest
-  ): Promise<ApiResponse<SectionDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}`, HttpMethod.POST, data);
-  },
-
-  updateSection: async (
-    companyId: string, 
-    sectionId: string, 
-    data: SectionUpdateRequest
-  ): Promise<ApiResponse<SectionDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`, HttpMethod.PUT, data);
-  },
-
-  deleteSection: async (companyId: string, sectionId: string): Promise<ApiResponse<void>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}${API_ENDPOINTS.SECTIONS}/${sectionId}`, HttpMethod.DELETE);
-  },
-
-  // Analysis
-  getCompanyAnalysis: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    return fetchApi(`${API_ENDPOINTS.COMPANIES}/${companyId}/analysis`);
-  },
-};
-
+// Export a singleton instance
+export const apiClient = new ApiClient();
 export default apiClient;

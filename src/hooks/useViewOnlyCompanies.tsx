@@ -83,7 +83,7 @@ export function useViewOnlyCompanies(
             id, name, overall_score, created_at, updated_at, 
             assessment_points, report_id, response_received, user_id, source,
             poc_name, phonenumber, email, industry, scoring_reason,
-            report:report_id (
+            report:reports!companies_report_id_fkey (
               pdf_url, 
               is_public_submission
             )

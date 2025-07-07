@@ -1,99 +1,97 @@
 
-import apiClient from './apiClient';
+// Main API exports and higher-level functions
 import { 
-  mockCompanies, 
-  mockCompanyDetails, 
-  getMockSectionDetails,
-  getMockCompanies
-} from './mockApi';
-import { 
-  ApiResponse, 
-  PaginatedResponse,
   CompanyListItem, 
   CompanyDetailed, 
-  SectionDetailed,
-  PaginationParams,
-  CompanyFilterParams
+  SectionDetailed, 
+  PaginationParams, 
+  CompanyFilterParams,
+  ApiResponse,
+  PaginatedResponse 
 } from './apiContract';
+import { getMockCompanies, getMockSectionDetails, mockCompanyDetails } from './mockApi';
 
-// Check if we should use mock data or real API
-const USE_MOCK_API = true;  // Set to true to use mock data
+// Mock API implementations for development
+export async function getCompanies(params?: PaginationParams & CompanyFilterParams): Promise<ApiResponse<CompanyListItem[]>> {
+  try {
+    const result = await getMockCompanies(params);
+    return {
+      data: result.data,
+      success: true
+    };
+  } catch (error) {
+    throw {
+      message: error instanceof Error ? error.message : 'Failed to fetch companies',
+      code: 'FETCH_ERROR',
+      details: error
+    };
+  }
+}
 
-// API Client that decides whether to use real or mock API
-const api = {
-  // Companies
-  getCompanies: async (params?: PaginationParams & CompanyFilterParams): Promise<ApiResponse<CompanyListItem[]>> => {
-    if (USE_MOCK_API) {
-      // Use mock data
-      const response = await getMockCompanies(params);
-      return {
-        data: response.data,
-        status: 200,
-      };
+export async function getCompanyById(id: string): Promise<ApiResponse<CompanyDetailed>> {
+  try {
+    const company = mockCompanyDetails[id];
+    if (!company) {
+      throw new Error('Company not found');
     }
-    // Use real API
-    const response = await apiClient.getCompanies(params);
-    return response as ApiResponse<CompanyListItem[]>;
-  },
+    
+    return {
+      data: company,
+      success: true
+    };
+  } catch (error) {
+    throw {
+      message: error instanceof Error ? error.message : 'Failed to fetch company',
+      code: 'FETCH_ERROR',
+      details: error
+    };
+  }
+}
 
-  getCompany: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    if (USE_MOCK_API) {
-      // Use mock data
-      const company = mockCompanyDetails[companyId];
-      if (!company) {
-        throw {
-          status: 404,
-          message: 'Company not found',
-        };
-      }
-      return {
-        data: company,
-        status: 200,
-      };
+export async function getSectionDetails(companyId: string, sectionId: string): Promise<ApiResponse<SectionDetailed>> {
+  try {
+    const section = await getMockSectionDetails(companyId, sectionId);
+    if (!section) {
+      throw new Error('Section not found');
     }
-    // Use real API
-    return apiClient.getCompany(companyId);
-  },
+    
+    return {
+      data: section,
+      success: true
+    };
+  } catch (error) {
+    throw {
+      message: error instanceof Error ? error.message : 'Failed to fetch section',
+      code: 'FETCH_ERROR',
+      details: error
+    };
+  }
+}
 
-  // Sections
-  getSection: async (companyId: string, sectionId: string): Promise<ApiResponse<SectionDetailed>> => {
-    if (USE_MOCK_API) {
-      // Use mock data
-      const section = await getMockSectionDetails(companyId, sectionId);
-      if (!section) {
-        throw {
-          status: 404,
-          message: 'Section not found',
-        };
-      }
-      return {
-        data: section,
-        status: 200,
-      };
-    }
-    // Use real API
-    return apiClient.getSection(companyId, sectionId);
-  },
+export async function createCompany(companyData: any): Promise<ApiResponse<CompanyDetailed>> {
+  try {
+    // Mock implementation - in real app, this would call the API
+    const newCompany: CompanyDetailed = {
+      id: Math.random().toString(),
+      name: companyData.name,
+      overall_score: 0,
+      created_at: new Date().toISOString(),
+      sections: []
+    };
+    
+    return {
+      data: newCompany,
+      success: true
+    };
+  } catch (error) {
+    throw {
+      message: error instanceof Error ? error.message : 'Failed to create company',
+      code: 'CREATE_ERROR',
+      details: error
+    };
+  }
+}
 
-  // Analysis
-  getCompanyAnalysis: async (companyId: string): Promise<ApiResponse<CompanyDetailed>> => {
-    if (USE_MOCK_API) {
-      // For mock data, analysis is the same as company details
-      const company = mockCompanyDetails[companyId];
-      if (!company) {
-        throw {
-          status: 404,
-          message: 'Company analysis not found',
-        };
-      }
-      return {
-        data: company,
-        status: 200,
-      };
-    }
-    // Use real API
-    return apiClient.getCompanyAnalysis(companyId);
-  },
-};
-
-export default api;
+// Re-export types and contracts
+export * from './apiContract';
+export { getMockCompanies } from './mockApi';

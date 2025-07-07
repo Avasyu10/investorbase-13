@@ -68,9 +68,24 @@ export function ViewOnlyCompaniesTable({
     return currentSort.order === 'asc' ? <ArrowUp className="h-4 w-4 text-primary" /> : <ArrowDown className="h-4 w-4 text-primary" />;
   };
 
-  const handlePdfClick = (pdfUrl: string, e: React.MouseEvent) => {
+  const handlePdfClick = async (company: Company, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering company click
-    window.open(pdfUrl, '_blank');
+    
+    if (!company.deck_url) {
+      console.log('No deck URL available for company:', company.name);
+      return;
+    }
+
+    try {
+      // Use the report ID to construct the proper report viewer URL
+      if (company.report_id) {
+        window.open(`/report/${company.report_id}`, '_blank');
+      } else {
+        console.log('No report ID available for company:', company.name);
+      }
+    } catch (error) {
+      console.error('Error opening deck:', error);
+    }
   };
 
   return (
@@ -116,7 +131,7 @@ export function ViewOnlyCompaniesTable({
             {companies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const industry = company.industry || "—";
-              const showDeck = company.source === 'Founder' && company.deck_url;
+              const showDeck = company.deck_url && company.report_id;
               
               return (
                 <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
@@ -145,7 +160,7 @@ export function ViewOnlyCompaniesTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => handlePdfClick(company.deck_url!, e)}
+                        onClick={(e) => handlePdfClick(company, e)}
                         className="h-8 px-2 flex items-center gap-1 text-blue-600 hover:text-blue-800"
                       >
                         <FileText className="h-4 w-4" />
