@@ -1,3 +1,4 @@
+
 import { 
   CompanyListItem, 
   CompanyDetailed, 
@@ -47,6 +48,7 @@ const transformSections = (companies: typeof COMPANIES_DETAILED_DATA_WITH_ASSESS
         id: String(section.id.replace('sec', '')), // Convert string IDs like 'sec1' to string numbers
         created_at: NOW,
         updated_at: NOW,
+        company_id: stringId, // Add the missing company_id property
       })),
       assessment_points: company.assessmentPoints || [],
     };

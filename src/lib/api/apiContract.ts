@@ -140,6 +140,7 @@ export interface SectionDetail {
 export interface SectionDetailed extends Section {
   strengths: string[];
   weaknesses: string[];
+  detailedContent?: string;
 }
 
 export interface InvestorResearch {
@@ -163,7 +164,7 @@ export interface InvestorResearch {
 // API related types
 export interface ApiResponse<T> {
   data: T;
-  success: boolean;
+  success?: boolean;
   message?: string;
 }
 
@@ -175,12 +176,15 @@ export interface ApiError {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  pagination: {
+  pagination?: {
     page: number;
     pageSize: number;
     total: number;
     totalPages: number;
   };
+  totalCount?: number;
+  currentPage?: number;
+  totalPages?: number;
 }
 
 export interface PaginationParams {
@@ -198,7 +202,13 @@ export interface CompanyFilterParams {
 }
 
 // HTTP related types
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export enum HttpMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+  PATCH = 'PATCH'
+}
 
 // API Endpoints
 export const API_ENDPOINTS = {
