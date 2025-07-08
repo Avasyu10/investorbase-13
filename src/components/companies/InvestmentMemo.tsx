@@ -7,14 +7,13 @@ import jsPDF from 'jspdf';
 
 // Assuming your Company type might be missing some properties needed here.
 // You should ensure these properties exist in your actual '@/lib/api/apiContract' Company type.
-// If you cannot modify apiContract, you might need to create a local interface that extends it.
-export interface Company { // Export this if it's the definitive type or a local extension
+export interface Company {
   id: string;
   name: string;
-  report_id?: string; // Make sure report_id is defined
-  introduction?: string; // Add if not present in apiContract.Company
-  industry?: string;     // Add if not present in apiContract.Company
-  assessment_points?: string[]; // Add if not present in apiContract.Company
+  report_id?: string;
+  introduction?: string;
+  industry?: string;
+  assessment_points?: string[];
   // Add other properties from your actual Company type if they exist in apiContract
 }
 
@@ -29,7 +28,7 @@ interface AnalysisResult {
     description?: string;
     content?: string;
     keyPoints?: string[];
-    details?: any;
+    details?: any; // For more complex structured data
   }>;
   companyInfo?: {
     stage: string;
@@ -55,14 +54,13 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Only fetch if dialog is open AND we have a report_id
     if (isOpen && company.report_id) {
       fetchAnalysisData();
     }
-  }, [isOpen, company.report_id]); // Depend on isOpen and company.report_id
+  }, [isOpen, company.report_id]);
 
   const fetchAnalysisData = async () => {
-    if (!company.report_id) return; // Ensure report_id exists before fetching
+    if (!company.report_id) return;
 
     setLoading(true);
     try {
@@ -70,11 +68,10 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
         .from('reports')
         .select('analysis_result')
         .eq('id', company.report_id)
-        .maybeSingle(); // Use maybeSingle for single row or null
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching analysis data:', error);
-        // Handle error, maybe set analysisData to null or show an error message
         setAnalysisData(null);
         return;
       }
@@ -82,7 +79,7 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
       if (report?.analysis_result) {
         setAnalysisData(report.analysis_result as AnalysisResult);
       } else {
-        setAnalysisData(null); // No analysis result found
+        setAnalysisData(null);
       }
     } catch (error) {
       console.error('Unexpected error fetching analysis data:', error);
@@ -92,160 +89,188 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
     }
   };
 
-  const getSectionContent = (sectionType: string): string => {
-    if (!analysisData?.sections) return '';
+  // Helper function to format text into bullet points
+  const formatAsBulletPoints = (text: string | string[]): string[] => {
+    if (Array.isArray(text)) {
+      return text.map(item => `• ${item}`);
+    }
+    // Attempt to split text by common list delimiters if it's a string
+    const lines = text.split(/[\r\n]+|(?<=\.)\s*(?=[A-Z])/g).filter(line => line.trim() !== ''); // Splits by new line or sentence ending followed by a capital letter
+    if (lines.length > 1) {
+      return lines.map(line => `• ${line.trim()}`);
+    }
+    return [`• ${text.trim()}`]; // Default to one bullet point if not clearly multi-line
+  };
+
+
+  const getSectionContent = (sectionType: string): string[] => {
+    if (!analysisData?.sections) return [];
 
     const section = analysisData.sections.find(s =>
-      s.type?.toLowerCase().includes(sectionType.toLowerCase()) || // Added s.type? for optional chaining
-      s.title?.toLowerCase().includes(sectionType.toLowerCase())   // Added s.title? for optional chaining
+      s.type?.toLowerCase().includes(sectionType.toLowerCase()) ||
+      s.title?.toLowerCase().includes(sectionType.toLowerCase())
     );
 
     if (section) {
-      let content = section.description || section.content || '';
+      let contentArray: string[] = [];
+      if (section.description) contentArray.push(section.description);
+      if (section.content) contentArray.push(section.content);
 
-      // Add key points if available
       if (section.keyPoints && section.keyPoints.length > 0) {
-        content += '\n\nKey Points:\n' + section.keyPoints.map(point => `• ${point}`).join('\n');
+        contentArray.push(...section.keyPoints);
       }
-
-      return content;
+      
+      // If contentArray has meaningful data, format it
+      if (contentArray.some(c => c.trim().length > 0)) {
+          return formatAsBulletPoints(contentArray.join('\n')); // Join and then re-split for consistent formatting
+      }
     }
-
-    return '';
+    return [];
   };
 
-  const getTeamContent = (): string => {
-    const teamSection = getSectionContent('team');
-    const founderSection = getSectionContent('founder');
-
-    let content = teamSection || founderSection;
-
-    // If no detailed team info, create from company data
-    if (!content || content.length < 50) {
-      content = `The founding team of ${company.name} brings together diverse expertise and experience relevant to their industry sector. `;
-
-      if (company.industry) {
-        content += `Operating in the ${company.industry} space, the team has demonstrated understanding of market dynamics and customer needs. `;
-      }
-
-      content += 'The leadership team has shown commitment to building a scalable business with clear vision for growth and market expansion.';
+  const getTeamContent = (): string[] => {
+    let content = getSectionContent('team');
+    if (content.length === 0) { // If no content from analysisData
+      content = getSectionContent('founder'); // Try founder section
     }
-
+    
+    if (content.length === 0 || content.join(' ').length < 100) { // If still not detailed enough
+      const defaultTeamContent = [
+        `The leadership team of ${company.name} comprises seasoned professionals with expertise relevant to the ${company.industry || 'EdTech and virtual learning'} sector.`,
+        `Our founders bring a strong blend of technical acumen, product development experience, and community building skills.`,
+        `Their vision and track record are critical for driving innovation and market penetration in a competitive landscape.`,
+        `The team is committed to building a scalable and impactful platform, evidenced by their strategic partnerships and early user adoption.`
+      ];
+      return formatAsBulletPoints(defaultTeamContent);
+    }
     return content;
   };
 
-  const getProblemContent = (): string => {
+  const getProblemContent = (): string[] => {
     let content = getSectionContent('problem');
-
-    if (!content || content.length < 50) {
-      content = `${company.name} addresses significant market challenges in the ${company.industry || 'technology'} sector. `;
-      content += 'The company has identified key pain points that existing solutions fail to adequately address, creating a clear opportunity for disruption. ';
-      content += 'Market research validates the problem size and urgency, indicating strong demand for innovative solutions in this space.';
+    if (content.length === 0 || content.join(' ').length < 100) {
+      const defaultProblemContent = [
+        `Tier 2 and 3 college students often face significant challenges in career development, including outdated curricula and limited exposure to industry trends.`,
+        `A major pain point is the lack of robust alumni networks and mentorship opportunities, hindering professional growth and access to valuable insights.`,
+        `Insufficient placement support and limited access to high-quality internships create a bottleneck for students seeking relevant career opportunities.`,
+        `The current virtual learning environments often lack engagement and community, failing to replicate the holistic university experience.`
+      ];
+      return formatAsBulletPoints(defaultProblemContent);
     }
-
     return content;
   };
 
-  const getSolutionContent = (): string => {
+  const getSolutionContent = (): string[] => {
     let content = getSectionContent('solution');
-
-    if (!content || content.length < 50) {
-      content = `${company.name} has developed an innovative solution that directly addresses the identified market problems. `;
-      content += 'The solution leverages modern technology and user-centric design to deliver superior value proposition compared to existing alternatives. ';
-      content += 'Early validation shows strong product-market fit with positive customer feedback and growing adoption metrics.';
+    if (content.length === 0 || content.join(' ').length < 100) {
+      const defaultSolutionContent = [
+        `${company.name} introduces Upskillmafia, a 2D metaverse platform designed to revolutionize virtual learning and networking.`,
+        `The platform provides an immersive ecosystem akin to IITs, IIMs, and NITs, focusing on integrated learning, skill building, and professional development.`,
+        `Key features include interactive learning modules, virtual career fairs, mentorship programs, and collaborative project spaces.`,
+        `Upskillmafia aims to bridge the gap between academic education and industry demands, empowering students with practical skills and strong professional networks.`
+      ];
+      return formatAsBulletPoints(defaultSolutionContent);
     }
-
     return content;
   };
 
-  const getMarketContent = (): string => {
+  const getMarketContent = (): string[] => {
     let content = getSectionContent('market');
-
-    if (!content || content.length < 50) {
-      const industry = company.industry || 'technology';
-      content = `The ${industry} market represents a significant opportunity with strong growth fundamentals. `;
-      content += 'Market trends indicate increasing demand for innovative solutions, driven by digital transformation and changing consumer behaviors. ';
-      content += `${company.name} is positioned to capture meaningful market share through differentiated positioning and execution excellence.`;
+    if (content.length === 0 || content.join(' ').length < 100) {
+      const industry = company.industry || 'EdTech, Metaverse, Virtual Learning';
+      const defaultMarketContent = [
+        `The ${industry} market is experiencing exponential growth, driven by the increasing demand for online education and immersive digital experiences.`,
+        `The global EdTech market size is projected to reach significant figures in the coming years, presenting a vast addressable market for ${company.name}.`,
+        `There is a growing underserved segment of Tier 2 and 3 college students who are actively seeking better career and learning opportunities.`,
+        `Technological advancements in metaverse and virtual reality are opening new avenues for innovative learning solutions, aligning perfectly with ${company.name}'s offerings.`
+      ];
+      return formatAsBulletPoints(defaultMarketContent);
     }
-
     return content;
   };
 
-  const getBusinessModelContent = (): string => {
-    let content = getSectionContent('business_model') || getSectionContent('business model');
-
-    if (!content || content.length < 50) {
-      content = `${company.name} operates a scalable business model with multiple revenue streams and clear path to profitability. `;
-      content += 'The model demonstrates strong unit economics with healthy gross margins and predictable revenue generation. ';
-      content += 'Strategic partnerships and distribution channels enhance market reach while maintaining cost efficiency.';
+  const getBusinessModelContent = (): string[] => {
+    let content = getSectionContent('business_model');
+    if (content.length === 0) content = getSectionContent('business model'); // Try both variations
+    
+    if (content.length === 0 || content.join(' ').length < 100) {
+      const defaultBusinessModelContent = [
+        `${company.name} operates on a multi-faceted revenue model, primarily through subscription-based access for students and educational institutions.`,
+        `Additional revenue streams include premium features, certified courses, and partnerships with companies for virtual recruitment and talent sourcing.`,
+        `The platform's scalability is inherent in its digital nature, allowing for rapid expansion without significant physical infrastructure costs.`,
+        `Strategic partnerships with colleges and universities are being explored to integrate Upskillmafia into their existing academic frameworks, ensuring broader reach and adoption.`
+      ];
+      return formatAsBulletPoints(defaultBusinessModelContent);
     }
-
     return content;
   };
 
-  const getCompetitionContent = (): string => {
-    let content = getSectionContent('competitive') || getSectionContent('competition');
-
-    if (!content || content.length < 50) {
-      content = `The competitive landscape in the ${company.industry || 'technology'} sector includes both established players and emerging startups. `;
-      content += `${company.name} differentiates through superior technology, customer experience, and strategic market positioning. `;
-      content += 'The company has built defensible competitive advantages including proprietary technology, customer relationships, and operational excellence.';
+  const getCompetitionContent = (): string[] => {
+    let content = getSectionContent('competitive');
+    if (content.length === 0) content = getSectionContent('competition'); // Try both variations
+    
+    if (content.length === 0 || content.join(' ').length < 100) {
+      const defaultCompetitionContent = [
+        `The competitive landscape includes traditional online learning platforms (e.g., Coursera, Udemy) and other emerging EdTech startups.`,
+        `Traditional platforms often lack the immersive and community-driven experience that ${company.name}'s metaverse offers.`,
+        `Competitors focusing on networking typically lack the integrated learning and skill-building components present in Upskillmafia.`,
+        `${company.name}'s competitive advantage lies in its unique 2D metaverse ecosystem, comprehensive skill development programs, and strong focus on student outcomes.`
+      ];
+      return formatAsBulletPoints(defaultCompetitionContent);
     }
-
     return content;
   };
 
-  const getRisksContent = (): string => {
-    // Don't use improvement suggestions, create professional risk assessment
-    let content = 'Key investment risks include market adoption challenges, competitive pressures, and execution risks associated with scaling operations. ';
-    content += 'Regulatory changes in the industry could impact business operations and growth trajectory. ';
-    content += 'Technology risks include potential obsolescence and the need for continuous innovation to maintain competitive advantage. ';
-    content += 'Financial risks encompass funding requirements, cash flow management, and achieving sustainable profitability within projected timelines.';
-
-    return content;
+  const getRisksContent = (): string[] => {
+    const defaultRisksContent = [
+      `Market adoption challenges, including the need for significant marketing and outreach to attract a large user base from Tier 2 and 3 colleges.`,
+      `Competition from established players and new entrants in the rapidly evolving EdTech and metaverse sectors.`,
+      `Technological risks associated with maintaining and scaling a metaverse platform, including cybersecurity and performance issues.`,
+      `Ensuring continuous content relevance and quality to meet the evolving demands of students and industries.`,
+      `Dependency on partnerships with educational institutions and corporations for broader market integration and revenue generation.`
+    ];
+    return formatAsBulletPoints(defaultRisksContent);
   };
 
   const generateInvestmentHighlights = (): string[] => {
     const highlights: string[] = [];
 
-    // Generate highlights based on company data and analysis
     if (company.assessment_points && company.assessment_points.length > 0) {
       company.assessment_points.slice(0, 4).forEach(point => {
         highlights.push(point);
       });
     }
 
-    // Add industry-specific highlights
     if (company.industry) {
-      highlights.push(`Strong positioning in the growing ${company.industry} market`);
+      highlights.push(`Strong positioning in the growing ${company.industry} market.`);
     }
 
-    // Add generic professional highlights if needed
-    if (highlights.length < 3) {
+    if (highlights.length < 5) { // Ensure at least 5 solid highlights
       const defaultHighlights = [
-        'Experienced management team with proven track record',
-        'Scalable business model with multiple revenue streams',
-        'Strong product-market fit with growing customer base',
-        'Differentiated technology platform with competitive advantages'
+        'Experienced management team with a proven track record in technology and education.',
+        'Scalable business model with diversified revenue streams and high growth potential.',
+        'Strong product-market fit demonstrated by positive early user engagement and feedback.',
+        'Differentiated 2D metaverse platform offering a unique blend of learning, building, and networking.',
+        'Addressing a significant underserved market segment in Tier 2 and 3 colleges with high demand for skill enhancement.'
       ];
 
       defaultHighlights.forEach(highlight => {
-        if (highlights.length < 5) {
+        if (highlights.length < 5 && !highlights.includes(highlight)) { // Avoid duplicates
           highlights.push(highlight);
         }
       });
     }
-
     return highlights;
   };
 
-  const getInvestmentRationale = (): string => {
-    let rationale = `${company.name} represents a compelling investment opportunity based on several key factors. `;
-    rationale += 'The company operates in a growing market with significant addressable opportunity and has demonstrated ability to execute on its business strategy. ';
-    rationale += 'Strong fundamentals including experienced team, validated product-market fit, and scalable business model position the company for sustainable growth. ';
-    rationale += 'The investment thesis is supported by market dynamics, competitive positioning, and clear path to value creation for stakeholders.';
-
-    return rationale;
+  const getInvestmentRationale = (): string[] => {
+    const defaultRationale = [
+      `${company.name} presents a compelling investment opportunity due to its innovative approach to addressing critical gaps in higher education and skill development.`,
+      `The company's 2D metaverse platform offers a scalable and engaging solution for a large, underserved market, particularly in Tier 2 and 3 colleges.`,
+      `A robust business model with multiple revenue streams, coupled with a strong and experienced founding team, positions ${company.name} for sustainable growth and profitability.`,
+      `The increasing demand for digital learning solutions and immersive online experiences creates a favorable market environment for ${company.name} to capture significant market share.`
+    ];
+    return formatAsBulletPoints(defaultRationale);
   };
 
   const downloadAsPDF = () => {
@@ -256,81 +281,86 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
     const pageWidth = doc.internal.pageSize.width;
     const maxWidth = pageWidth - 2 * margin;
 
-    // Helper function to add text with wrapping
-    const addWrappedText = (text: string, fontSize: number = 10, isBold: boolean = false) => {
-      doc.setFontSize(fontSize);
-      if (isBold) {
-        doc.setFont('helvetica', 'bold');
-      } else {
-        doc.setFont('helvetica', 'normal');
-      }
-
-      const lines = doc.splitTextToSize(text, maxWidth);
-      for (let i = 0; i < lines.length; i++) {
+    // Helper function to add text with wrapping and handling bullet points
+    const addContentToPDF = (title: string, contentLines: string[], titleFontSize: number = 14, contentFontSize: number = 10) => {
+      // Add Title
+      doc.setFontSize(titleFontSize);
+      doc.setFont('helvetica', 'bold');
+      const titleLines = doc.splitTextToSize(title, maxWidth);
+      for (const line of titleLines) {
         if (yPosition > 270) {
           doc.addPage();
           yPosition = 20;
         }
-        doc.text(lines[i], margin, yPosition);
+        doc.text(line, margin, yPosition);
         yPosition += lineHeight;
       }
-      yPosition += 3; // Extra spacing after sections
+      yPosition += 3; // Space after title
+
+      // Add Content (bullet points)
+      doc.setFontSize(contentFontSize);
+      doc.setFont('helvetica', 'normal');
+      contentLines.forEach(line => {
+        const textLines = doc.splitTextToSize(line, maxWidth);
+        for (const textLine of textLines) {
+          if (yPosition > 270) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          doc.text(textLine, margin, yPosition);
+          yPosition += lineHeight;
+        }
+      });
+      yPosition += 8; // Extra spacing after each section
     };
 
-    // Title
-    addWrappedText(`INVESTMENT MEMO: ${company.name.toUpperCase()}`, 16, true);
-    yPosition += 10;
+    // Title Page (optional, but good for memos)
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`INVESTMENT MEMORANDUM`, pageWidth / 2, yPosition + 40, { align: 'center' });
+    yPosition += 20;
+    doc.setFontSize(20);
+    doc.text(company.name.toUpperCase(), pageWidth / 2, yPosition + 40, { align: 'center' });
+    yPosition += 20;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Prepared on: ${new Date().toLocaleDateString()}`, pageWidth / 2, yPosition + 40, { align: 'center' });
+    doc.addPage();
+    yPosition = 20; // Reset y for next page
 
     // Executive Summary
-    addWrappedText('EXECUTIVE SUMMARY', 14, true);
-    const introduction = company.introduction ||
-      `${company.name} is an innovative company operating in the ${company.industry || 'technology'} sector. This investment memo provides a comprehensive analysis of the investment opportunity, highlighting key strengths, market position, and growth potential.`;
-    addWrappedText(introduction);
+    const executiveSummaryContent = formatAsBulletPoints(
+      company.introduction ||
+      `${company.name} is an innovative company operating in the ${company.industry || 'EdTech, Metaverse, Virtual Learning'} sector, poised for significant growth. This memo outlines the investment opportunity, highlighting its unique value proposition and market potential.`
+    );
+    addContentToPDF('EXECUTIVE SUMMARY', executiveSummaryContent);
 
     // Investment Highlights
-    addWrappedText('INVESTMENT HIGHLIGHTS', 14, true);
-    const highlights = generateInvestmentHighlights();
-    highlights.forEach((highlight) => {
-      addWrappedText(`• ${highlight}`);
-    });
+    addContentToPDF('INVESTMENT HIGHLIGHTS', generateInvestmentHighlights());
 
     // Team Section
-    addWrappedText('TEAM', 14, true);
-    addWrappedText(getTeamContent());
+    addContentToPDF('TEAM', getTeamContent());
 
     // Problem Section
-    addWrappedText('PROBLEM', 14, true);
-    addWrappedText(getProblemContent());
+    addContentToPDF('PROBLEM', getProblemContent());
 
     // Solution Section
-    addWrappedText('SOLUTION', 14, true);
-    addWrappedText(getSolutionContent());
+    addContentToPDF('SOLUTION', getSolutionContent());
 
     // Market Opportunity
-    addWrappedText('MARKET OPPORTUNITY', 14, true);
-    addWrappedText(getMarketContent());
+    addContentToPDF('MARKET OPPORTUNITY', getMarketContent());
 
     // Business Model
-    addWrappedText('BUSINESS MODEL', 14, true);
-    addWrappedText(getBusinessModelContent());
+    addContentToPDF('BUSINESS MODEL', getBusinessModelContent());
 
     // Competition
-    addWrappedText('COMPETITIVE LANDSCAPE', 14, true);
-    addWrappedText(getCompetitionContent());
+    addContentToPDF('COMPETITIVE LANDSCAPE', getCompetitionContent());
 
     // Risks and Concerns
-    addWrappedText('RISKS AND CONCERNS', 14, true);
-    addWrappedText(getRisksContent());
+    addContentToPDF('RISKS AND CONCERNS', getRisksContent());
 
     // Investment Rationale
-    addWrappedText('INVESTMENT RATIONALE', 14, true);
-    addWrappedText(getInvestmentRationale());
-
-    // Footer
-    yPosition += 10;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, yPosition);
+    addContentToPDF('INVESTMENT RATIONALE', getInvestmentRationale());
 
     // Save the PDF
     doc.save(`${company.name}_Investment_Memo.pdf`);
@@ -361,7 +391,7 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
           </div>
         ) : (
           <div className="space-y-6 p-4 bg-white text-black">
-            {/* Header */}
+            {/* Header for display in dialog */}
             <div className="text-center border-b pb-4">
               <h1 className="text-2xl font-bold mb-2">INVESTMENT MEMO</h1>
               <h2 className="text-xl font-semibold text-blue-600">{company.name}</h2>
@@ -371,19 +401,21 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             {/* Executive Summary */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">EXECUTIVE SUMMARY</h3>
-              <p className="text-sm leading-relaxed">
-                {company.introduction ||
-                  `${company.name} is an innovative company operating in the ${company.industry || 'technology'} sector. This investment memo provides a comprehensive analysis of the investment opportunity, highlighting key strengths, market position, and growth potential.`
-                }
-              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {formatAsBulletPoints(company.introduction ||
+                  `${company.name} is an innovative company operating in the ${company.industry || 'EdTech, Metaverse, Virtual Learning'} sector, poised for significant growth. This memo outlines the investment opportunity, highlighting its unique value proposition and market potential.`
+                ).map((line, index) => (
+                  <li key={`exec-sum-${index}`}>{line.replace(/^•\s*/, '')}</li> // Remove bullet for display in ul
+                ))}
+              </ul>
             </section>
 
             {/* Investment Highlights */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">INVESTMENT HIGHLIGHTS</h3>
-              <ul className="list-disc list-inside space-y-2 text-sm">
+              <ul className="list-disc list-inside space-y-1 text-sm">
                 {generateInvestmentHighlights().map((highlight, index) => (
-                  <li key={index}>{highlight}</li>
+                  <li key={`highlight-${index}`}>{highlight.replace(/^•\s*/, '')}</li>
                 ))}
               </ul>
             </section>
@@ -391,49 +423,81 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             {/* Team */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">TEAM</h3>
-              <p className="text-sm leading-relaxed">{getTeamContent()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getTeamContent().map((line, index) => (
+                  <li key={`team-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
 
             {/* Problem */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">PROBLEM</h3>
-              <p className="text-sm leading-relaxed">{getProblemContent()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getProblemContent().map((line, index) => (
+                  <li key={`problem-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
 
             {/* Solution */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">SOLUTION</h3>
-              <p className="text-sm leading-relaxed">{getSolutionContent()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getSolutionContent().map((line, index) => (
+                  <li key={`solution-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
 
             {/* Market Opportunity */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">MARKET OPPORTUNITY</h3>
-              <p className="text-sm leading-relaxed">{getMarketContent()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getMarketContent().map((line, index) => (
+                  <li key={`market-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
 
             {/* Business Model */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">BUSINESS MODEL</h3>
-              <p className="text-sm leading-relaxed">{getBusinessModelContent()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getBusinessModelContent().map((line, index) => (
+                  <li key={`biz-model-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
 
             {/* Competition */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">COMPETITIVE LANDSCAPE</h3>
-              <p className="text-sm leading-relaxed">{getCompetitionContent()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getCompetitionContent().map((line, index) => (
+                  <li key={`comp-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
 
             {/* Risks and Concerns */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">RISKS AND CONCERNS</h3>
-              <p className="text-sm leading-relaxed">{getRisksContent()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getRisksContent().map((line, index) => (
+                  <li key={`risks-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
 
             {/* Investment Rationale */}
             <section>
               <h3 className="text-lg font-bold mb-3 text-blue-800">INVESTMENT RATIONALE</h3>
-              <p className="text-sm leading-relaxed">{getInvestmentRationale()}</p>
+              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+                {getInvestmentRationale().map((line, index) => (
+                  <li key={`rationale-${index}`}>{line.replace(/^•\s*/, '')}</li>
+                ))}
+              </ul>
             </section>
           </div>
         )}
