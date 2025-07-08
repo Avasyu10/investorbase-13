@@ -339,9 +339,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"> {/* Removed padding from DialogContent to control it inside */}
         <DialogHeader className="p-6 pb-4 border-b border-gray-200"> {/* Added padding and border */}
           <DialogTitle className="flex items-center justify-between text-black text-2xl font-semibold">
-            <span>Investment Memo - {company.name}</span>
+            <span className="text-zinc-50">Investment Memo - {company.name}</span>
             {/* Download Button with neutral colors */}
-            <Button onClick={downloadAsPDF} variant="outline" size="sm" className="flex items-center gap-2 border-gray-300 text-gray-800 hover:bg-gray-100">
+            <Button onClick={downloadAsPDF} variant="outline" size="sm" className="flex items-center gap-2 border-gray-300 text-gray-800 bg-zinc-50">
               <Download className="h-4 w-4" />
               Download PDF
             </Button>
