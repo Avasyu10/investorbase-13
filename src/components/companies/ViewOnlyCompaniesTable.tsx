@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
 import { Star, ArrowUpDown, ArrowUp, ArrowDown, FileText, ExternalLink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ViewOnlyCompaniesTableProps {
   companies: Company[];
@@ -77,10 +78,46 @@ export function ViewOnlyCompaniesTable({
     }
 
     try {
-      // Use the report ID to construct the proper report viewer URL
-      window.open(`/report/${company.report_id}`, '_blank');
+      // Fetch the report to get the pdf_url
+      const { data: report, error: reportError } = await supabase
+        .from('reports')
+        .select('pdf_url')
+        .eq('id', company.report_id)
+        .single();
+        
+      if (reportError || !report) {
+        console.error('Error fetching report:', reportError);
+        return;
+      }
+      
+      if (!report.pdf_url) {
+        console.log('No PDF URL found in report');
+        return;
+      }
+      
+      console.log('Getting PDF from storage:', report.pdf_url);
+      
+      // Get the PDF file from storage using the bucket name 'report-pdfs'
+      const { data: pdfData, error: downloadError } = await supabase.storage
+        .from('report-pdfs')
+        .download(report.pdf_url);
+        
+      if (downloadError || !pdfData) {
+        console.error('Error downloading PDF:', downloadError);
+        return;
+      }
+      
+      // Create blob URL and open in new tab
+      const blobUrl = URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }));
+      window.open(blobUrl, '_blank');
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+      
     } catch (error) {
-      console.error('Error opening deck:', error);
+      console.error('Error opening PDF:', error);
     }
   };
 
