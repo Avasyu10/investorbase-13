@@ -75,8 +75,9 @@ export function CompanyInfoCard({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const { isIITBombayUser } = useProfile();
-  const { isBits } = useProfile();
-
+  const { isVcAndBits } = useProfile();
+  const { isBitsQuestion } = useProfile();
+  
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
     queryKey: ['company-data', id],
@@ -248,7 +249,7 @@ export function CompanyInfoCard({
           )}
 
           {/* Investment Memo component for non-IIT Bombay users */}
-          {companyData?.id && !isIITBombayUser && !isBits && (
+          {companyData?.id && !isIITBombayUser && !isVcAndBits && !isBitsQuestion && (
             // Pass the company data to the InvestmentMemo component
             // The InvestmentMemo component will render its own button/logic
             <InvestmentMemo company={companyData} />
