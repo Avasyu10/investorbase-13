@@ -71,12 +71,13 @@ export function CompanyInfoCard({
   companyLinkedInUrl
 }: CompanyInfoProps) {
   const { id } = useParams<{ id: string }>();
-  // const navigate = useNavigate(); // REMOVED: navigate is not needed here anymore
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const { isIITBombayUser } = useProfile();
   const { isVCAndBits } = useProfile();
   const { isBitsQuestion } = useProfile();
+  const { isVC } = useProfile();
+  const { isViewOnly } = useProfile();
   
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
@@ -172,6 +173,9 @@ export function CompanyInfoCard({
     enabled: !!companyData?.id
   });
 
+  // Check if this is a general user
+  const isGeneralUser = !isIITBombayUser && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+
   // Data prioritization logic for IIT Bombay vs regular users
   let displayIntroduction: string;
   let displayWebsite: string;
@@ -248,8 +252,8 @@ export function CompanyInfoCard({
             </Button>
           )}
 
-          {/* Investment Memo component for non-IIT Bombay users */}
-          {companyData?.id && !isIITBombayUser && !isVCAndBits && !isBitsQuestion && (
+          {/* Investment Memo component for general users */}
+          {companyData?.id && isGeneralUser && (
             // Pass the company data to the InvestmentMemo component
             // The InvestmentMemo component will render its own button/logic
             <InvestmentMemo company={companyData} />

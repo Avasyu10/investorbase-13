@@ -5,6 +5,7 @@ import { ProgressIndicator } from "./upload/ProgressIndicator";
 import { uploadReport } from "@/lib/supabase/analysis";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useProfile } from "@/hooks/useProfile";
 
 export function ReportUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -16,6 +17,7 @@ export function ReportUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const navigate = useNavigate();
+  const { isIITBombay, isVC, isVCAndBits, isViewOnly, isBitsQuestion } = useProfile();
 
   // Company form states
   const [companyStage, setCompanyStage] = useState("");
@@ -109,11 +111,25 @@ export function ReportUpload() {
       
       console.log('ReportUpload - Regular analysis completed successfully');
       
+      // Check if this is a general user and redirect accordingly
+      const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+      
       // Navigate to the company details page
       if (data.companyId) {
-        navigate(`/company/${data.companyId}`);
+        if (isGeneralUser) {
+          // For general users, redirect to company-details page
+          navigate(`/company-details/${data.companyId}`);
+        } else {
+          // For other users, redirect to company page
+          navigate(`/company/${data.companyId}`);
+        }
       } else {
-        navigate('/dashboard');
+        // Fallback navigation
+        if (isGeneralUser) {
+          navigate('/upload'); // Stay on upload page for general users
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (error) {
       console.error('Error in upload/analysis process:', error);
@@ -124,14 +140,20 @@ export function ReportUpload() {
     }
   };
 
+  // Check if this is a general user to show different UI
+  const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          Upload Pitch Deck
+          {isGeneralUser ? "Submit Your Pitch" : "Upload Pitch Deck"}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Upload your pitch deck for AI-powered analysis and insights.
+          {isGeneralUser 
+            ? "Upload your pitch here to be reviewed by our Investments Team."
+            : "Upload your pitch deck for AI-powered analysis and insights."
+          }
         </p>
       </div>
 
@@ -213,7 +235,7 @@ export function ReportUpload() {
           disabled={!selectedFile || !title.trim() || isUploading || isAnalyzing}
           className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
-          {isUploading ? "Uploading..." : isAnalyzing ? "Analyzing..." : "Upload & Analyze"}
+          {isUploading ? "Uploading..." : isAnalyzing ? "Analyzing..." : isGeneralUser ? "Submit" : "Upload & Analyze"}
         </button>
       </div>
 

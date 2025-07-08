@@ -24,6 +24,7 @@ const Dashboard = () => {
     isVC,
     isVCAndBits,
     isViewOnly,
+    isBitsQuestion,
     isLoading: profileLoading
   } = useProfile();
   const navigate = useNavigate();
@@ -43,6 +44,15 @@ const Dashboard = () => {
         }
       });
     } else if (user && !profileLoading) {
+      // Check if this is a general user (not any special user type)
+      const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+      
+      if (isGeneralUser) {
+        console.log("General user detected, redirecting to upload page");
+        navigate('/upload');
+        return;
+      }
+      
       // Redirect view-only users to the view-only dashboard
       if (isViewOnly) {
         console.log("User has view-only access, redirecting to view dashboard");
@@ -58,7 +68,7 @@ const Dashboard = () => {
 
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
-  }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading]);
+  }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading, isVCAndBits, isBitsQuestion]);
 
   const checkAdminStatus = async () => {
     if (!user) return;
