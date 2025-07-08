@@ -71,18 +71,14 @@ export function ViewOnlyCompaniesTable({
   const handlePdfClick = async (company: Company, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering company click
     
-    if (!company.deck_url) {
-      console.log('No deck URL available for company:', company.name);
+    if (!company.report_id) {
+      console.log('No report ID available for company:', company.name);
       return;
     }
 
     try {
       // Use the report ID to construct the proper report viewer URL
-      if (company.report_id) {
-        window.open(`/report/${company.report_id}`, '_blank');
-      } else {
-        console.log('No report ID available for company:', company.name);
-      }
+      window.open(`/report/${company.report_id}`, '_blank');
     } catch (error) {
       console.error('Error opening deck:', error);
     }
@@ -131,7 +127,8 @@ export function ViewOnlyCompaniesTable({
             {companies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const industry = company.industry || "—";
-              const showDeck = company.deck_url && company.report_id;
+              // Only show deck if company has a report_id (which means there's a report with PDF data)
+              const showDeck = company.report_id;
               
               return (
                 <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>

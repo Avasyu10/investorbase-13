@@ -37,7 +37,7 @@ function mapDbCompanyToApi(company: any) {
     email: company.email,
     industry: company.industry,
     response_received: company.response_received,
-    deck_url: company.report?.pdf_url || null // Get deck_url from the joined report data
+    // Remove deck_url completely - we'll use report_id to access reports table directly
   };
 }
 
@@ -76,17 +76,13 @@ export function useViewOnlyCompanies(
         
         console.log('Fetching filtered companies for view-only user:', user.id);
         
-        // Query companies with specific source filters and include report data for deck URLs
+        // Query companies with specific source filters - no need to join with reports table for deck URLs
         let query = supabase
           .from('companies')
           .select(`
             id, name, overall_score, created_at, updated_at, 
             assessment_points, report_id, response_received, user_id, source,
-            poc_name, phonenumber, email, industry, scoring_reason,
-            report:reports!companies_report_id_fkey (
-              pdf_url, 
-              is_public_submission
-            )
+            poc_name, phonenumber, email, industry, scoring_reason
           `, { count: 'exact' })
           .in('source', ['eureka_form', 'deck_upload', 'dashboard']); // Filter by specific sources
 
