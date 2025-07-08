@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isIITBombay, isVCAndBits, isViewOnly, isVC, isBitsQuestion } = useProfile();
+  const { isIITBombay, isVCAndBits, isViewOnly, isVC, isBitsQuestion, isBits } = useProfile();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -106,7 +106,7 @@ export function Navbar() {
                 </Button>
               )}
               
-              {isVC && !isVCAndBits && !isBitsQuestion && (
+              {!isBits && isVC && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
