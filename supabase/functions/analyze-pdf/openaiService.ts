@@ -217,7 +217,7 @@ Return your analysis in EXACTLY this JSON format:
 ]
 }
 
-IN SECTIONS, in the description of each section don't mention words pitch deck or deck as it is about the company and deck is just for extracting info about company.
+**Important**: IN SECTIONS, in the description of each section make sure to give 4-5 detailed points including market data and numbers and also don't mention words pitch deck or deck as it is about the company and deck is just for extracting info about company.
 
 COMPANY INFORMATION EXTRACTION REQUIREMENTS:
 - Stage: Look for funding stage mentions (seed, pre-seed, series A/B/C, growth, bootstrap, etc.)
