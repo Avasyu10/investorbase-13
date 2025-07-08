@@ -331,7 +331,7 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({
   return <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {/* Button with neutral colors */}
-        <Button variant="outline" className="flex items-center gap-2 border-gray-300 text-gray-800 bg-amber-500 hover:bg-amber-400">
+        <Button variant="outline" className="flex items-center gap-2 border-gray-300 text-gray-800 bg-yellow-500 hover:bg-yellow-400">
           <FileText className="h-4 w-4" />
           Investment Memo
         </Button>
