@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { isIITBombay, isVCAndBits, isViewOnly } = useProfile();
+  const { isIITBombay, isVCAndBits, isViewOnly, isVC } = useProfile();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   
