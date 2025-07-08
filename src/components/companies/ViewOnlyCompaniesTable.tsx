@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -78,15 +77,20 @@ export function ViewOnlyCompaniesTable({
     }
 
     try {
-      // Fetch the report to get the pdf_url
+      // Fetch the report to get the pdf_url - use maybeSingle to handle cases where no report is found
       const { data: report, error: reportError } = await supabase
         .from('reports')
         .select('pdf_url')
         .eq('id', company.report_id)
-        .single();
+        .maybeSingle();
         
-      if (reportError || !report) {
+      if (reportError) {
         console.error('Error fetching report:', reportError);
+        return;
+      }
+      
+      if (!report) {
+        console.log('No report found for ID:', company.report_id);
         return;
       }
       
