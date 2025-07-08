@@ -1,14 +1,14 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp, Briefcase, Info, Bot } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Globe, TrendingUp, Briefcase, Info, Bot } from "lucide-react"; // No need for FileText icon here anymore
+import { useParams } from "react-router-dom"; // No need for useNavigate here
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
 import { useProfile } from "@/hooks/useProfile";
+import { InvestmentMemo } from "./InvestmentMemo"; // Import the InvestmentMemo component
 
 type CompanyInfoProps = {
   website?: string;
@@ -71,6 +71,7 @@ export function CompanyInfoCard({
   companyLinkedInUrl
 }: CompanyInfoProps) {
   const { id } = useParams<{ id: string }>();
+  // const navigate = useNavigate(); // REMOVED: navigate is not needed here anymore
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const { isIITBombayUser } = useProfile();
@@ -180,23 +181,23 @@ export function CompanyInfoCard({
     // For IIT Bombay users: Use Eureka submission data
     // Note: The actual JSON structure uses company_info (with underscore)
     const eurekaCompanyInfo = eurekaSubmission?.analysis_result?.company_info;
-    
+
     console.log("Eureka company info:", eurekaCompanyInfo);
     console.log("Full analysis result:", eurekaSubmission?.analysis_result);
-    
+
     // About/Introduction from Eureka analysis_result.company_info.introduction
     displayIntroduction = eurekaCompanyInfo?.introduction || "No detailed information available for this company.";
-    
+
     // Website from companies.scoring_reason - but we won't display it
     const websiteFromScoring = companyData?.scoring_reason || "";
-    displayWebsite = websiteFromScoring && websiteFromScoring !== "" 
-      ? websiteFromScoring.replace(/^https?:\/\/(www\.)?/, '') 
+    displayWebsite = websiteFromScoring && websiteFromScoring !== ""
+      ? websiteFromScoring.replace(/^https?:\/\/(www\.)?/, '')
       : "Not available";
     websiteUrl = null; // Don't show website for IIT Bombay users
-    
+
     // Stage from companies.industry
     displayStage = companyData?.industry || "Not specified";
-    
+
     // Industry is not displayed for IIT Bombay users
     displayIndustry = "";
   } else {
@@ -216,11 +217,11 @@ export function CompanyInfoCard({
 
   // Show the "More Information" button for all analyzed companies
   const shouldShowMoreInfoButton = !!companyData?.id;
-  
+
   const handleMoreInformation = () => {
     setDialogOpen(true);
   };
-  
+
   const handleChatbot = () => {
     setChatbotOpen(true);
   };
@@ -232,18 +233,28 @@ export function CompanyInfoCard({
           <Briefcase className="h-5 w-5 text-primary" />
           Company Overview
         </h3>
-        {shouldShowMoreInfoButton && (
-          <Button
-            variant="outline"
-            onClick={handleChatbot}
-            size="sm"
-            className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950"
-          >
-            <Bot className="h-5 w-5" />
-          </Button>
-        )}
+        {/* Buttons for Chatbot and Investment Memo */}
+        <div className="flex gap-2">
+          {shouldShowMoreInfoButton && (
+            <Button
+              variant="outline"
+              onClick={handleChatbot}
+              size="sm"
+              className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950"
+            >
+              <Bot className="h-5 w-5" />
+            </Button>
+          )}
+
+          {/* Investment Memo component for non-IIT Bombay users */}
+          {companyData?.id && !isIITBombayUser && (
+            // Pass the company data to the InvestmentMemo component
+            // The InvestmentMemo component will render its own button/logic
+            <InvestmentMemo company={companyData} />
+          )}
+        </div>
       </div>
-      
+
       <Card className="border-0 shadow-card">
         <CardContent className="p-4 pt-5">
           {/* Company Description with More Information Button */}
@@ -261,7 +272,7 @@ export function CompanyInfoCard({
               {displayIntroduction}
             </p>
           </div>
-          
+
           {/* Company Details Grid - conditional rendering based on user type */}
           <div className={`grid grid-cols-1 ${isIITBombayUser ? 'md:grid-cols-1' : 'md:grid-cols-3'} gap-4`}>
             {/* Website section - only show for non-IIT Bombay users */}
@@ -285,7 +296,7 @@ export function CompanyInfoCard({
                 </div>
               </div>
             )}
-            
+
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
@@ -293,7 +304,7 @@ export function CompanyInfoCard({
                 <p className="text-sm text-muted-foreground">{displayStage}</p>
               </div>
             </div>
-            
+
             {/* Industry section - only show for non-IIT Bombay users */}
             {!isIITBombayUser && (
               <div className="flex items-center gap-2">
